@@ -1657,8 +1657,8 @@ describe("CYBERSTRIKE_DISABLE_PROJECT_CONFIG", () => {
         fn: async () => {
           const directories = await Config.directories()
           // Project .cyberstrike should NOT be in directories list
-          const hasProjectOpencode = directories.some((d) => d.startsWith(tmp.path))
-          expect(hasProjectOpencode).toBe(false)
+          const hasProjectCyberstrike = directories.some((d) => d.startsWith(tmp.path))
+          expect(hasProjectCyberstrike).toBe(false)
         },
       })
     } finally {

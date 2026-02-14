@@ -144,7 +144,7 @@ try {
   } else {
     Object.assign(process.env, serverEnv)
     process.env.AGENT = "1"
-    process.env.OPENCODE = "1"
+    process.env.CYBERSTRIKE = "1"
 
     const log = await import("../../cyberstrike/src/util/log")
     const install = await import("../../cyberstrike/src/installation")

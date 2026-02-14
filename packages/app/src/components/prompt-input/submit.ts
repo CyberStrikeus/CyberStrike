@@ -1,6 +1,6 @@
 import { Accessor } from "solid-js"
 import { useNavigate, useParams } from "@solidjs/router"
-import { createOpencodeClient, type Message } from "@cyberstrikeus/sdk/v2/client"
+import { createCyberstrikeClient, type Message } from "@cyberstrikeus/sdk/v2/client"
 import { showToast } from "@cyberstrikeus/ui/toast"
 import { base64Encode } from "@cyberstrikeus/util/encode"
 import { useLocal } from "@/context/local"
@@ -171,7 +171,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       }
 
       if (sessionDirectory !== projectDirectory) {
-        client = createOpencodeClient({
+        client = createCyberstrikeClient({
           baseUrl: sdk.url,
           fetch: platform.fetch,
           directory: sessionDirectory,
