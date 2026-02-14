@@ -40,7 +40,7 @@ import { Config } from "@/config/config"
 import { Todo } from "@/session/todo"
 import { z } from "zod"
 import { LoadAPIKeyError } from "ai"
-import type { AssistantMessage, Event, OpencodeClient, SessionMessageResponse } from "@cyberstrikeus/sdk/v2"
+import type { AssistantMessage, Event, CyberstrikeClient, SessionMessageResponse } from "@cyberstrikeus/sdk/v2"
 import { applyPatch } from "diff"
 
 type ModeOption = { id: string; name: string; description?: string }
@@ -52,7 +52,7 @@ export namespace ACP {
   const log = Log.create({ service: "acp-agent" })
 
   async function getContextLimit(
-    sdk: OpencodeClient,
+    sdk: CyberstrikeClient,
     providerID: string,
     modelID: string,
     directory: string,
@@ -72,7 +72,7 @@ export namespace ACP {
 
   async function sendUsageUpdate(
     connection: AgentSideConnection,
-    sdk: OpencodeClient,
+    sdk: CyberstrikeClient,
     sessionID: string,
     directory: string,
   ): Promise<void> {
@@ -119,7 +119,7 @@ export namespace ACP {
       })
   }
 
-  export async function init({ sdk: _sdk }: { sdk: OpencodeClient }) {
+  export async function init({ sdk: _sdk }: { sdk: CyberstrikeClient }) {
     return {
       create: (connection: AgentSideConnection, fullConfig: ACPConfig) => {
         return new Agent(connection, fullConfig)
@@ -130,7 +130,7 @@ export namespace ACP {
   export class Agent implements ACPAgent {
     private connection: AgentSideConnection
     private config: ACPConfig
-    private sdk: OpencodeClient
+    private sdk: CyberstrikeClient
     private sessionManager: ACPSessionManager
     private eventAbort = new AbortController()
     private eventStarted = false

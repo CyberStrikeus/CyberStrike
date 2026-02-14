@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import { createOpencode } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrike } from "@cyberstrikeus/sdk/v2"
 import { parseArgs } from "util"
 import { Script } from "@cyberstrikeus/script"
 
@@ -136,7 +136,7 @@ function getSection(areas: Set<string>): string {
   return "Core"
 }
 
-async function summarizeCommit(cyberstrike: Awaited<ReturnType<typeof createOpencode>>, message: string): Promise<string> {
+async function summarizeCommit(cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>, message: string): Promise<string> {
   console.log("summarizing commit:", message)
   const session = await cyberstrike.client.session.create()
   const result = await cyberstrike.client.session
@@ -164,7 +164,7 @@ Commit: ${message}`,
   return result.trim()
 }
 
-export async function generateChangelog(commits: Commit[], cyberstrike: Awaited<ReturnType<typeof createOpencode>>) {
+export async function generateChangelog(commits: Commit[], cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>) {
   // Summarize commits in parallel with max 10 concurrent requests
   const BATCH_SIZE = 10
   const summaries: string[] = []
@@ -227,7 +227,7 @@ export async function buildNotes(from: string, to: string) {
 
   console.log("generating changelog since " + from)
 
-  const cyberstrike = await createOpencode({ port: 0 })
+  const cyberstrike = await createCyberstrike({ port: 0 })
   const notes: string[] = []
 
   try {

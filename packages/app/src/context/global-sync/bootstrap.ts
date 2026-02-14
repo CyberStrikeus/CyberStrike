@@ -6,7 +6,7 @@ import {
   type ProviderAuthResponse,
   type ProviderListResponse,
   type QuestionRequest,
-  createOpencodeClient,
+  createCyberstrikeClient,
 } from "@cyberstrikeus/sdk/v2/client"
 import { batch } from "solid-js"
 import { reconcile, type SetStoreFunction, type Store } from "solid-js/store"
@@ -27,7 +27,7 @@ type GlobalStore = {
 }
 
 export async function bootstrapGlobal(input: {
-  globalSDK: ReturnType<typeof createOpencodeClient>
+  globalSDK: ReturnType<typeof createCyberstrikeClient>
   connectErrorTitle: string
   connectErrorDescription: string
   requestFailedTitle: string
@@ -106,7 +106,7 @@ function groupBySession<T extends { id: string; sessionID: string }>(input: T[])
 
 export async function bootstrapDirectory(input: {
   directory: string
-  sdk: ReturnType<typeof createOpencodeClient>
+  sdk: ReturnType<typeof createCyberstrikeClient>
   store: Store<State>
   setStore: SetStoreFunction<State>
   vcsCache: VcsCache

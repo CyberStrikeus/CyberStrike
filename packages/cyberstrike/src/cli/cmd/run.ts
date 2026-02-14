@@ -6,7 +6,7 @@ import { cmd } from "./cmd"
 import { Flag } from "../../flag/flag"
 import { bootstrap } from "../bootstrap"
 import { EOL } from "os"
-import { createOpencodeClient, type Message, type OpencodeClient, type ToolPart } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrikeClient, type Message, type CyberstrikeClient, type ToolPart } from "@cyberstrikeus/sdk/v2"
 import { Server } from "../../server/server"
 import { Provider } from "../../provider/provider"
 import { Agent } from "../../agent/agent"
@@ -374,7 +374,7 @@ export const RunCommand = cmd({
       return message.slice(0, 50) + (message.length > 50 ? "..." : "")
     }
 
-    async function session(sdk: OpencodeClient) {
+    async function session(sdk: CyberstrikeClient) {
       const baseID = args.continue ? (await sdk.session.list()).data?.find((s) => !s.parentID)?.id : args.session
 
       if (baseID && args.fork) {
@@ -389,7 +389,7 @@ export const RunCommand = cmd({
       return result.data?.id
     }
 
-    async function share(sdk: OpencodeClient, sessionID: string) {
+    async function share(sdk: CyberstrikeClient, sessionID: string) {
       const cfg = await sdk.config.get()
       if (!cfg.data) return
       if (cfg.data.share !== "auto" && !Flag.CYBERSTRIKE_AUTO_SHARE && !args.share) return
@@ -404,7 +404,7 @@ export const RunCommand = cmd({
       }
     }
 
-    async function execute(sdk: OpencodeClient) {
+    async function execute(sdk: CyberstrikeClient) {
       function tool(part: ToolPart) {
         try {
           if (part.tool === "bash") return bash(props<typeof BashTool>(part))
@@ -602,7 +602,7 @@ export const RunCommand = cmd({
     }
 
     if (args.attach) {
-      const sdk = createOpencodeClient({ baseUrl: args.attach, directory })
+      const sdk = createCyberstrikeClient({ baseUrl: args.attach, directory })
       return await execute(sdk)
     }
 
@@ -611,7 +611,7 @@ export const RunCommand = cmd({
         const request = new Request(input, init)
         return Server.App().fetch(request)
       }) as typeof globalThis.fetch
-      const sdk = createOpencodeClient({ baseUrl: "http://cyberstrike.internal", fetch: fetchFn })
+      const sdk = createCyberstrikeClient({ baseUrl: "http://cyberstrike.internal", fetch: fetchFn })
       await execute(sdk)
     })
   },

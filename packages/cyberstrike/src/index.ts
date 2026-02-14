@@ -72,7 +72,7 @@ const cli = yargs(hideBin(process.argv))
     })
 
     process.env.AGENT = "1"
-    process.env.OPENCODE = "1"
+    process.env.CYBERSTRIKE = "1"
 
     Log.Default.info("cyberstrike", {
       version: Installation.VERSION,

@@ -1,4 +1,4 @@
-import { createOpencodeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
+import { createCyberstrikeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrikeus/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
@@ -33,7 +33,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       }
     })()
 
-    const eventSdk = createOpencodeClient({
+    const eventSdk = createCyberstrikeClient({
       baseUrl: server.url,
       signal: abort.signal,
       fetch: eventFetch,
@@ -150,7 +150,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       flush()
     })
 
-    const sdk = createOpencodeClient({
+    const sdk = createCyberstrikeClient({
       baseUrl: server.url,
       fetch: platform.fetch,
       throwOnError: true,

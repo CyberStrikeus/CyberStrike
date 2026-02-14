@@ -37,9 +37,14 @@ const REPLACEMENTS: [string, string][] = [
   ["OPENCODE_", "CYBERSTRIKE_"],
   ['"OPENCODE"', '"CYBERSTRIKE"'],
   ["'OPENCODE'", "'CYBERSTRIKE'"],
+  [".OPENCODE", ".CYBERSTRIKE"],
+  ["OPENCODE", "CYBERSTRIKE"],
 
   // Title case product name
   ["OpenCode", "CyberStrike"],
+
+  // PascalCase (e.g. createOpencodeClient, OpencodeClient)
+  ["Opencode", "Cyberstrike"],
 
   // Bare lowercase (least specific - applied last)
   ["opencode", "cyberstrike"],

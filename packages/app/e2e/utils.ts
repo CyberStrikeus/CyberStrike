@@ -1,4 +1,4 @@
-import { createOpencodeClient } from "@cyberstrikeus/sdk/v2/client"
+import { createCyberstrikeClient } from "@cyberstrikeus/sdk/v2/client"
 import { base64Encode } from "@cyberstrikeus/util/encode"
 
 export const serverHost = process.env.PLAYWRIGHT_SERVER_HOST ?? "localhost"
@@ -11,7 +11,7 @@ export const modKey = process.platform === "darwin" ? "Meta" : "Control"
 export const terminalToggleKey = "Control+Backquote"
 
 export function createSdk(directory?: string) {
-  return createOpencodeClient({ baseUrl: serverUrl, directory, throwOnError: true })
+  return createCyberstrikeClient({ baseUrl: serverUrl, directory, throwOnError: true })
 }
 
 export async function getWorktree() {

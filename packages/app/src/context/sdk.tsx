@@ -1,4 +1,4 @@
-import { createOpencodeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
+import { createCyberstrikeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrikeus/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { createEffect, createMemo, onCleanup, type Accessor } from "solid-js"
@@ -17,7 +17,7 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
 
     const directory = createMemo(props.directory)
     const client = createMemo(() =>
-      createOpencodeClient({
+      createCyberstrikeClient({
         baseUrl: globalSDK.url,
         fetch: platform.fetch,
         directory: directory(),
