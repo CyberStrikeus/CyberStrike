@@ -1,21 +1,46 @@
-MIT License
+# CyberStrike Licensing
 
-Copyright (c) 2025 opencode
+CyberStrike is a derivative work based on [OpenCode](https://github.com/anomalyco/opencode),
+which is licensed under the MIT License.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This project uses a dual-license structure:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Original Code (from OpenCode)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+All original code from the OpenCode project remains under the
+**MIT License**. See [LICENSE-MIT](LICENSE-MIT) for the full text.
+
+## CyberStrike Modifications and New Code
+
+All modifications, additions, and new code written by the CyberStrike team
+are licensed under the **PolyForm Noncommercial License 1.0.0**.
+See [LICENSE-POLYFORM](LICENSE-POLYFORM) for the full text.
+
+### What this means:
+
+- **Individuals**: You may freely use, modify, and distribute CyberStrike
+  for personal, educational, research, and other noncommercial purposes.
+
+- **Noncommercial organizations**: Charitable, educational, public research,
+  and government institutions may use CyberStrike freely.
+
+- **Commercial use**: Commercial use of CyberStrike modifications and new code
+  is **not permitted** without a separate commercial license from CyberStrike.
+  Contact: licensing@cyberstrike.us
+
+- **Original OpenCode code**: The portions of code originating from OpenCode
+  remain under MIT and are not subject to the PolyForm restrictions.
+
+## How to Identify Code Origin
+
+- Commits before the fork date originate from OpenCode (MIT License).
+- Commits after the fork date are CyberStrike modifications (PolyForm Noncommercial).
+- When in doubt, refer to `git log` and the upstream repository.
+
+## Required Notice
+
+Required Notice: Copyright 2026 CyberStrike (https://cyberstrike.us)
+
+## Commercial Licensing
+
+For commercial licensing inquiries, contact: licensing@cyberstrike.us
