@@ -1,9 +1,9 @@
 import { useFile } from "@/context/file"
 import { encodeFilePath } from "@/context/file/path"
-import { Collapsible } from "@opencode-ai/ui/collapsible"
-import { FileIcon } from "@opencode-ai/ui/file-icon"
-import { Icon } from "@opencode-ai/ui/icon"
-import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { Collapsible } from "@cyberstrikeus/ui/collapsible"
+import { FileIcon } from "@cyberstrikeus/ui/file-icon"
+import { Icon } from "@cyberstrikeus/ui/icon"
+import { Tooltip } from "@cyberstrikeus/ui/tooltip"
 import {
   createEffect,
   createMemo,
@@ -19,7 +19,7 @@ import {
   type ParentProps,
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
-import type { FileNode } from "@opencode-ai/sdk/v2"
+import type { FileNode } from "@cyberstrikeus/sdk/v2"
 
 function pathToFileUrl(filepath: string): string {
   return `file://${encodeFilePath(filepath)}`
