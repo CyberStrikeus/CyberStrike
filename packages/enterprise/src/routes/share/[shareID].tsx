@@ -1,37 +1,37 @@
-import { FileDiff, Message, Model, Part, Session, SessionStatus, UserMessage } from "@opencode-ai/sdk/v2"
-import { SessionTurn } from "@opencode-ai/ui/session-turn"
-import { SessionReview } from "@opencode-ai/ui/session-review"
-import { DataProvider } from "@opencode-ai/ui/context"
-import { DiffComponentProvider } from "@opencode-ai/ui/context/diff"
-import { CodeComponentProvider } from "@opencode-ai/ui/context/code"
-import { WorkerPoolProvider } from "@opencode-ai/ui/context/worker-pool"
+import { FileDiff, Message, Model, Part, Session, SessionStatus, UserMessage } from "@cyberstrikeus/sdk/v2"
+import { SessionTurn } from "@cyberstrikeus/ui/session-turn"
+import { SessionReview } from "@cyberstrikeus/ui/session-review"
+import { DataProvider } from "@cyberstrikeus/ui/context"
+import { DiffComponentProvider } from "@cyberstrikeus/ui/context/diff"
+import { CodeComponentProvider } from "@cyberstrikeus/ui/context/code"
+import { WorkerPoolProvider } from "@cyberstrikeus/ui/context/worker-pool"
 import { createAsync, query, useParams } from "@solidjs/router"
 import { createEffect, createMemo, ErrorBoundary, For, Match, Show, Switch } from "solid-js"
 import { Share } from "~/core/share"
-import { Logo, Mark } from "@opencode-ai/ui/logo"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
-import { createDefaultOptions } from "@opencode-ai/ui/pierre"
-import { iife } from "@opencode-ai/util/iife"
-import { Binary } from "@opencode-ai/util/binary"
-import { NamedError } from "@opencode-ai/util/error"
+import { Logo, Mark } from "@cyberstrikeus/ui/logo"
+import { IconButton } from "@cyberstrikeus/ui/icon-button"
+import { ProviderIcon } from "@cyberstrikeus/ui/provider-icon"
+import { createDefaultOptions } from "@cyberstrikeus/ui/pierre"
+import { iife } from "@cyberstrikeus/util/iife"
+import { Binary } from "@cyberstrikeus/util/binary"
+import { NamedError } from "@cyberstrikeus/util/error"
 import { DateTime } from "luxon"
 import { createStore } from "solid-js/store"
 import z from "zod"
 import NotFound from "../[...404]"
-import { Tabs } from "@opencode-ai/ui/tabs"
-import { MessageNav } from "@opencode-ai/ui/message-nav"
+import { Tabs } from "@cyberstrikeus/ui/tabs"
+import { MessageNav } from "@cyberstrikeus/ui/message-nav"
 import { preloadMultiFileDiff, PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
-import { Diff as SSRDiff } from "@opencode-ai/ui/diff-ssr"
+import { Diff as SSRDiff } from "@cyberstrikeus/ui/diff-ssr"
 import { clientOnly } from "@solidjs/start"
-import { type IconName } from "@opencode-ai/ui/icons/provider"
+import { type IconName } from "@cyberstrikeus/ui/icons/provider"
 import { Meta, Title } from "@solidjs/meta"
 import { Base64 } from "js-base64"
 
-const ClientOnlyDiff = clientOnly(() => import("@opencode-ai/ui/diff").then((m) => ({ default: m.Diff })))
-const ClientOnlyCode = clientOnly(() => import("@opencode-ai/ui/code").then((m) => ({ default: m.Code })))
+const ClientOnlyDiff = clientOnly(() => import("@cyberstrikeus/ui/diff").then((m) => ({ default: m.Diff })))
+const ClientOnlyCode = clientOnly(() => import("@cyberstrikeus/ui/code").then((m) => ({ default: m.Code })))
 const ClientOnlyWorkerPoolProvider = clientOnly(() =>
-  import("@opencode-ai/ui/pierre/worker").then((m) => ({
+  import("@cyberstrikeus/ui/pierre/worker").then((m) => ({
     default: (props: { children: any }) => (
       <WorkerPoolProvider pools={m.getWorkerPools()}>{props.children}</WorkerPoolProvider>
     ),
@@ -206,15 +206,15 @@ export default function () {
               modelParam = "unknown"
             }
             const version = `v${info().version}`
-            return `https://social-cards.sst.dev/opencode-share/${encodedTitle}.png?model=${modelParam}&version=${version}&id=${data().shareID}`
+            return `https://social-cards.sst.dev/cyberstrike-share/${encodedTitle}.png?model=${modelParam}&version=${version}&id=${data().shareID}`
           })
 
           return (
             <>
               <Show when={info().title}>
-                <Title>{info().title} | OpenCode</Title>
+                <Title>{info().title} | CyberStrike</Title>
               </Show>
-              <Meta name="description" content="opencode - The AI coding agent built for the terminal." />
+              <Meta name="description" content="cyberstrike - The AI coding agent built for the terminal." />
               <Meta property="og:image" content={ogImage()} />
               <Meta name="twitter:image" content={ogImage()} />
               <ClientOnlyWorkerPoolProvider>
@@ -321,21 +321,21 @@ export default function () {
                           <div class="relative bg-background-stronger w-screen h-screen overflow-hidden flex flex-col">
                             <header class="h-12 px-6 py-2 flex items-center justify-between self-stretch bg-background-base border-b border-border-weak-base">
                               <div class="">
-                                <a href="https://opencode.ai">
+                                <a href="https://cyberstrike.us">
                                   <Mark />
                                 </a>
                               </div>
                               <div class="flex gap-3 items-center">
                                 <IconButton
                                   as={"a"}
-                                  href="https://github.com/anomalyco/opencode"
+                                  href="https://github.com/CyberStrikeus/CyberStrike"
                                   target="_blank"
                                   icon="github"
                                   variant="ghost"
                                 />
                                 <IconButton
                                   as={"a"}
-                                  href="https://opencode.ai/discord"
+                                  href="https://cyberstrike.us/discord"
                                   target="_blank"
                                   icon="discord"
                                   variant="ghost"
