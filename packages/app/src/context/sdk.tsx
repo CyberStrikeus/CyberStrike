@@ -1,5 +1,5 @@
-import { createOpencodeClient, type Event } from "@opencode-ai/sdk/v2/client"
-import { createSimpleContext } from "@opencode-ai/ui/context"
+import { createOpencodeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
+import { createSimpleContext } from "@cyberstrikeus/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { createEffect, createMemo, onCleanup, type Accessor } from "solid-js"
 import { useGlobalSDK } from "./global-sdk"

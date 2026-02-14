@@ -5,7 +5,7 @@ import {
   type ProviderAuthResponse,
   type ProviderListResponse,
   createOpencodeClient,
-} from "@opencode-ai/sdk/v2/client"
+} from "@cyberstrikeus/sdk/v2/client"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useGlobalSDK } from "./global-sdk"
 import type { InitError } from "../pages/error"
@@ -21,8 +21,8 @@ import {
   Switch,
   Match,
 } from "solid-js"
-import { showToast } from "@opencode-ai/ui/toast"
-import { getFilename } from "@opencode-ai/util/path"
+import { showToast } from "@cyberstrikeus/ui/toast"
+import { getFilename } from "@cyberstrikeus/util/path"
 import { usePlatform } from "./platform"
 import { useLanguage } from "@/context/language"
 import { Persist, persisted } from "@/utils/persist"
@@ -58,7 +58,7 @@ function setDevStats(value: {
   evictions: number
   loadSessionsFullFetchFallback: number
 }) {
-  ;(globalThis as { __OPENCODE_GLOBAL_SYNC_STATS?: typeof value }).__OPENCODE_GLOBAL_SYNC_STATS = value
+  ;(globalThis as { __CYBERSTRIKE_GLOBAL_SYNC_STATS?: typeof value }).__CYBERSTRIKE_GLOBAL_SYNC_STATS = value
 }
 
 function createGlobalSync() {
