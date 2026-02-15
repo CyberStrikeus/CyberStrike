@@ -13,6 +13,10 @@ import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
 import PROMPT_TITLE from "./prompt/title.txt"
+import PROMPT_WEB_APPLICATION from "./prompt/web-application.txt"
+import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
+import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
+import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -40,6 +44,7 @@ export namespace Agent {
         .optional(),
       variant: z.string().optional(),
       prompt: z.string().optional(),
+      skills: z.array(z.string()).optional(),
       options: z.record(z.string(), z.any()),
       steps: z.number().int().positive().optional(),
     })
@@ -198,6 +203,103 @@ export namespace Agent {
           user,
         ),
         prompt: PROMPT_SUMMARY,
+      },
+      "web-application": {
+        name: "web-application",
+        description:
+          "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
+        mode: "primary",
+        native: true,
+        color: "red",
+        prompt: PROMPT_WEB_APPLICATION,
+        skills: [
+          "wstg-recon-config",
+          "wstg-auth-session",
+          "wstg-injection",
+          "wstg-logic-client-api",
+        ],
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            bash: "allow",
+            browser: "allow",
+            read: "allow",
+            glob: "allow",
+            grep: "allow",
+            webfetch: "allow",
+            websearch: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "mobile-application": {
+        name: "mobile-application",
+        description:
+          "Mobile application security specialist. Android/iOS testing, OWASP MASTG/MASVS, static/dynamic analysis, Frida/Objection.",
+        mode: "primary",
+        native: true,
+        color: "magenta",
+        prompt: PROMPT_MOBILE_APPLICATION,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            bash: "allow",
+            browser: "allow",
+            read: "allow",
+            glob: "allow",
+            grep: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "cloud-security": {
+        name: "cloud-security",
+        description:
+          "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
+        mode: "primary",
+        native: true,
+        color: "cyan",
+        prompt: PROMPT_CLOUD_SECURITY,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            bash: "allow",
+            browser: "allow",
+            read: "allow",
+            glob: "allow",
+            grep: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "internal-network": {
+        name: "internal-network",
+        description:
+          "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
+        mode: "primary",
+        native: true,
+        color: "yellow",
+        prompt: PROMPT_INTERNAL_NETWORK,
+        skills: ["ad-security", "kerberos-attacks"],
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            bash: "allow",
+            browser: "allow",
+            read: "allow",
+            glob: "allow",
+            grep: "allow",
+          }),
+          user,
+        ),
+        options: {},
       },
     }
 

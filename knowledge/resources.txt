@@ -1,0 +1,2 @@
+https://owasp.org/www-project-web-security-testing-guide/latest/
+https://cvss.js.org/#CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:H
