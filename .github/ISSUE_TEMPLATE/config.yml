@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Discord Community
-    url: https://discord.gg/cyberstrike
-    about: For quick questions or real-time discussion. Note that issues are searchable and help others with the same question.
+  - name: Discord Community
+    url: https://cyberstrike.us/discord
+    about: For quick questions, real-time discussion, and community support
+  - name: Security Disclosure
+    url: https://github.com/CyberStrikeus/CyberStrike/security/advisories/new
+    about: Report a security vulnerability (private)
