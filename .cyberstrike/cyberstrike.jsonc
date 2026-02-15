@@ -1,16 +1,9 @@
 {
   "$schema": "https://cyberstrike.us/config.json",
-  // "enterprise": {
-  //   "url": "https://enterprise.dev.cyberstrike.us",
-  // },
   "provider": {
     "cyberstrike": {
       "options": {},
     },
   },
   "mcp": {},
-  "tools": {
-    "github-triage": false,
-    "github-pr-search": false,
-  },
 }
