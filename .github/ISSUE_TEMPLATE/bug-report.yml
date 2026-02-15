@@ -1,4 +1,4 @@
-name: Bug report
+name: Bug Report
 description: Report an issue that should be fixed
 labels: ["bug"]
 body:
@@ -11,11 +11,18 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: plugins
+  - type: dropdown
+    id: agent
     attributes:
-      label: Plugins
-      description: What plugins are you using?
+      label: Agent
+      description: Which agent were you using?
+      options:
+        - build (default)
+        - web-application
+        - mobile-application
+        - cloud-security
+        - internal-network
+        - other
     validations:
       required: false
 
@@ -23,7 +30,7 @@ body:
     id: cyberstrike-version
     attributes:
       label: CyberStrike version
-      description: What version of CyberStrike are you using?
+      description: What version of CyberStrike are you using? (run `cyberstrike --version`)
     validations:
       required: false
 
@@ -52,8 +59,7 @@ body:
     id: os
     attributes:
       label: Operating System
-      description: what OS are you using?
-      placeholder: e.g., macOS 26.0.1, Ubuntu 22.04, Windows 11
+      placeholder: e.g., macOS 15.0, Ubuntu 24.04, Windows 11
     validations:
       required: false
 
@@ -61,7 +67,6 @@ body:
     id: terminal
     attributes:
       label: Terminal
-      description: what terminal are you using?
       placeholder: e.g., iTerm2, Ghostty, Alacritty, Windows Terminal
     validations:
       required: false
