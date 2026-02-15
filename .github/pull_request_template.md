@@ -1,7 +1,22 @@
 ### What does this PR do?
 
-Please provide a description of the issue (if there is one), the changes you made to fix it, and why they work. It is expected that you understand why your changes work and if you do not understand why at least say as much so a maintainer knows how much to value the PR.
+Describe the changes and why they're needed. Link the related issue with `Fixes #` or `Closes #`.
 
-**If you paste a large clearly AI generated description here your PR may be IGNORED or CLOSED!**
+### Type of change
 
-### How did you verify your code works?
+- [ ] Bug fix
+- [ ] New feature / agent
+- [ ] Security tool / skill / knowledge base
+- [ ] Documentation
+- [ ] Refactor
+- [ ] Other
+
+### How did you verify it works?
+
+Describe what you tested and how a reviewer can confirm the fix or feature.
+
+### Checklist
+
+- [ ] `bun turbo typecheck` passes
+- [ ] I've tested my changes locally
+- [ ] My PR is small and focused on a single change

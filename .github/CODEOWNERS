@@ -1,5 +1,19 @@
-# web + desktop packages
-packages/app/      @adamdotdevin
-packages/tauri/    @adamdotdevin
-packages/desktop/src-tauri/  @brendonovich
-packages/desktop/  @adamdotdevin
+# CyberStrike Code Owners
+
+# Core CLI & agents
+packages/cyberstrike/            @badchars
+packages/cyberstrike/src/agent/  @badchars
+
+# Security knowledge base & skills
+knowledge/                       @badchars
+.cyberstrike/skill/              @badchars
+
+# Web & Desktop
+packages/app/                    @badchars
+packages/desktop/                @badchars
+
+# MCP Kali
+packages/mcp-kali/               @badchars
+
+# Infrastructure
+.github/                         @badchars

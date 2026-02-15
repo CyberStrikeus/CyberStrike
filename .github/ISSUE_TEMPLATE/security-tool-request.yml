@@ -1,0 +1,54 @@
+name: Security Tool Request
+description: Request a new security tool, agent skill, or knowledge base addition
+labels: ["security-tool"]
+title: "[TOOL]: "
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: What kind of security addition are you requesting?
+      options:
+        - New MCP Tool (Kali/Bolt)
+        - New Agent Skill
+        - Knowledge Base Content (WSTG, MASTG, etc.)
+        - New Security Agent
+        - Tool Integration
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Security Domain
+      description: Which area does this relate to?
+      options:
+        - Web Application Security
+        - Mobile Application Security
+        - Cloud Security (AWS/Azure/GCP)
+        - Internal Network / Active Directory
+        - API Security
+        - OSINT / Recon
+        - Wireless Security
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the tool or content you'd like added. Include relevant standards (OWASP, MITRE ATT&CK, CIS, etc.) if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tools
+    attributes:
+      label: Underlying Tools
+      description: What existing security tools would this integrate? (e.g., nuclei, sqlmap, burp, etc.)
+      placeholder: |
+        - tool1 — description
+        - tool2 — description
+    validations:
+      required: false

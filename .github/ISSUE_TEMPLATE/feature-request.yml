@@ -1,20 +1,37 @@
-name: 🚀 Feature Request
-description: Suggest an idea, feature, or enhancement
-labels: [discussion]
-title: "[FEATURE]:"
-
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["discussion"]
+title: "[FEATURE]: "
 body:
   - type: checkboxes
     id: verified
     attributes:
       label: Feature hasn't been suggested before.
       options:
-        - label: I have verified this feature I'm about to request hasn't been suggested before.
+        - label: I have verified this feature hasn't been suggested before.
           required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What area does this feature relate to?
+      options:
+        - Security Agent
+        - Security Tool / MCP
+        - Knowledge Base / Skill
+        - Browser Tool
+        - CLI / TUI
+        - Provider / Model
+        - Desktop App
+        - Plugin System
+        - Other
+    validations:
+      required: true
 
   - type: textarea
     attributes:
-      label: Describe the enhancement you want to request
-      description: What do you want to change or add? What are the benefits of implementing this? Try to be detailed so we can understand your request better :)
+      label: Description
+      description: What do you want to add or change? Why would this be useful?
     validations:
       required: true
