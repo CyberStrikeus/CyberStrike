@@ -84,8 +84,22 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           if (agent?.color) {
             const color = agent.color
             if (color.startsWith("#")) return RGBA.fromHex(color)
-            // already validated by config, just satisfying TS here
-            return theme[color as keyof typeof theme] as RGBA
+            // Map color names to theme keys or hex values
+            const colorMap: Record<string, string> = {
+              red: "#ff5555",
+              green: "#50fa7b",
+              yellow: "#f1fa8c",
+              blue: "#6272a4",
+              magenta: "#ff79c6",
+              cyan: "#8be9fd",
+              white: "#f8f8f2",
+              orange: "#ffb86c",
+            }
+            if (colorMap[color]) return RGBA.fromHex(colorMap[color])
+            // Try as theme key
+            const themeColor = theme[color as keyof typeof theme]
+            if (themeColor instanceof RGBA) return themeColor
+            return colors()[index % colors().length]
           }
           return colors()[index % colors().length]
         },
