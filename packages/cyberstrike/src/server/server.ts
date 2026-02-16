@@ -117,7 +117,7 @@ export namespace Server {
               )
                 return input
 
-              // *.cyberstrike.us (https only, adjust if needed)
+              // *.cyberstrike.io (https only, adjust if needed)
               if (/^https:\/\/([a-z0-9-]+\.)*cyberstrike\.ai$/.test(input)) {
                 return input
               }
@@ -541,11 +541,11 @@ export namespace Server {
         .all("/*", async (c) => {
           const path = c.req.path
 
-          const response = await proxy(`https://app.cyberstrike.us${path}`, {
+          const response = await proxy(`https://app.cyberstrike.io${path}`, {
             ...c.req,
             headers: {
               ...c.req.raw.headers,
-              host: "app.cyberstrike.us",
+              host: "app.cyberstrike.io",
             },
           })
           response.headers.set(

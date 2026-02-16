@@ -54,7 +54,7 @@ const TIPS = [
   "Press {highlight}Tab{/highlight} to cycle between Build and Plan agents",
   "Use {highlight}/undo{/highlight} to revert the last message and file changes",
   "Use {highlight}/redo{/highlight} to restore previously undone messages and file changes",
-  "Run {highlight}/share{/highlight} to create a public link to your conversation at cyberstrike.us",
+  "Run {highlight}/share{/highlight} to create a public link to your conversation at cyberstrike.io",
   "Drag and drop images into the terminal to add them as context",
   "Press {highlight}Ctrl+V{/highlight} to paste images from your clipboard into the prompt",
   "Press {highlight}Ctrl+X E{/highlight} or {highlight}/editor{/highlight} to compose messages in your external editor",
