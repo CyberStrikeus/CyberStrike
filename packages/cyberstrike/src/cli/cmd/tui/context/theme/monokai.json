@@ -1,5 +1,5 @@
 {
-  "$schema": "https://cyberstrike.us/theme.json",
+  "$schema": "https://cyberstrike.io/theme.json",
   "defs": {
     "background": "#272822",
     "backgroundAlt": "#1e1f1c",
