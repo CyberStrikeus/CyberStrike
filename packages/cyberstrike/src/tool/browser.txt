@@ -1,0 +1,63 @@
+HackR Browser — Multi-context Firefox browser for security testing.
+
+CRITICAL: Use this tool for ALL web-related testing tasks. Do NOT use webfetch, websearch, or shell commands to open URLs.
+
+## Core Concept: Multi-Context Testing
+HackR Browser runs multiple isolated browser contexts in a single Firefox instance.
+Each context has its own cookies, session, localStorage — like separate browsers.
+This enables simultaneous multi-role testing (admin, user, unauth) for:
+- IDOR detection (can user A access user B's resources?)
+- Access control matrix (which roles can reach which endpoints?)
+- Session comparison (how do auth vs unauth responses differ?)
+
+## Actions
+
+### Session Management
+- **launch**: Start Firefox browser. Set targetDomain for scope filtering.
+- **close**: Close browser + run analysis pipeline. Returns summary, full report saved to disk.
+
+### Context Management (NEW)
+- **create_context**: Create isolated context (id, label, color, role). Each gets own cookie jar.
+- **switch_context**: Switch active context for subsequent actions.
+- **list_contexts**: Show all contexts with their roles and colors.
+
+### Navigation & Interaction
+- **navigate**: Go to URL in active context
+- **click**: Click element by CSS selector
+- **fill**: Fill form field (selector + value)
+- **wait**: Wait for element or network idle
+
+### Inspection
+- **screenshot**: Capture page or element screenshot
+- **execute**: Run JavaScript in page context
+- **content**: Get page text, links, forms
+- **status**: Current page state overview
+
+### Traffic Analysis
+- **network**: View captured requests (with filters: urlPattern, method, statusCode)
+- **console**: Browser console logs
+- **har**: Export HAR file (per-context or combined)
+
+### Security Analysis (NEW)
+- **analyze**: Run analysis pipeline manually (endpoint extraction, access control matrix, IDOR detection, JS analysis, cookie tracking, session diff). Normally runs on close.
+- **replay**: Replay a request with a different context's cookies (cross-context request replay for IDOR testing)
+- **cookie_jar**: Show cookies for a specific context
+- **compare**: Compare two contexts' responses for the same endpoint
+- **aggregate**: Cross-session aggregate analysis. Scans ALL previous session data, merges endpoints/IDOR/secrets/cookies across sessions, deduplicates findings, marks persistent issues. Does NOT require a browser to be open. Writes full report to `.cyberstrike/aggregate-report.md`, returns concise summary.
+
+## Workflow Example
+1. `launch` with targetDomain="example.com"
+2. `create_context` id="admin" role="admin" color="red"
+3. `create_context` id="user" role="user" color="green"
+4. Default "unauth" context is auto-created
+5. `switch_context` to "admin" → navigate, login as admin
+6. `switch_context` to "user" → navigate, login as user
+7. Both contexts browse the app, traffic captured per-context
+8. `analyze` or `close` → full pipeline: endpoints, access matrix, IDOR candidates, JS secrets, cookies, session diffs
+
+## Important Notes
+- Always launch before other actions
+- Network capture is automatic and context-tagged
+- Use targetDomain to filter out third-party requests
+- Analysis pipeline produces ~500-1000 token summary for you, full report on disk
+- Screenshots saved to project directory

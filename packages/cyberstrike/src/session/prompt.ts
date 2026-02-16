@@ -23,6 +23,7 @@ import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
 import { clone } from "remeda"
 import { ToolRegistry } from "../tool/registry"
+import { LazyToolRegistry } from "../tool/lazy-registry"
 import { MCP } from "../mcp"
 import { LSP } from "../lsp"
 import { ReadTool } from "../tool/read"
@@ -812,14 +813,23 @@ export namespace SessionPrompt {
       })
     }
 
-    for (const [key, item] of Object.entries(await MCP.tools())) {
+    // Initialize lazy tool registry for MCP tools
+    await ToolRegistry.initLazyRegistry()
+    const lazyStats = LazyToolRegistry.stats()
+
+    // If lazy registry has tools, only include loaded ones (+ eager fallback)
+    const mcpToolSource: Record<string, AITool> = lazyStats.available > 0
+      ? ToolRegistry.getLoadedMCPTools()
+      : await MCP.tools()
+
+    for (const [key, item] of Object.entries(mcpToolSource)) {
       const execute = item.execute
       if (!execute) continue
 
       const transformed = ProviderTransform.schema(input.model, asSchema(item.inputSchema).jsonSchema)
       item.inputSchema = jsonSchema(transformed)
       // Wrap execute to add plugin hooks and format output
-      item.execute = async (args, opts) => {
+      item.execute = async (args: any, opts: any) => {
         const ctx = context(args, opts)
 
         await Plugin.trigger(
