@@ -68,7 +68,7 @@ export namespace Config {
   export const state = Instance.state(async () => {
     const auth = await Auth.all()
 
-    // Config loading order (low -> high precedence): https://cyberstrike.us/docs/config#precedence-order
+    // Config loading order (low -> high precedence): https://cyberstrike.io/docs/config#precedence-order
     // 1) Remote .well-known/cyberstrike (org defaults)
     // 2) Global config (~/.config/cyberstrike/cyberstrike.json{,c})
     // 3) Custom config (CYBERSTRIKE_CONFIG)
@@ -88,7 +88,7 @@ export namespace Config {
         const wellknown = (await response.json()) as any
         const remoteConfig = wellknown.config ?? {}
         // Add $schema to prevent load() from trying to write back to a non-existent file
-        if (!remoteConfig.$schema) remoteConfig.$schema = "https://cyberstrike.us/config.json"
+        if (!remoteConfig.$schema) remoteConfig.$schema = "https://cyberstrike.io/config.json"
         result = merge(result, await load(JSON.stringify(remoteConfig), `${key}/.well-known/cyberstrike`))
         log.debug("loaded remote config from well-known", { url: key })
       }
@@ -1014,7 +1014,7 @@ export namespace Config {
       command: z
         .record(z.string(), Command)
         .optional()
-        .describe("Command configuration, see https://cyberstrike.us/docs/commands"),
+        .describe("Command configuration, see https://cyberstrike.io/docs/commands"),
       skills: Skills.optional().describe("Additional skill folder paths"),
       watcher: z
         .object({
@@ -1081,7 +1081,7 @@ export namespace Config {
         })
         .catchall(Agent)
         .optional()
-        .describe("Agent configuration, see https://cyberstrike.us/docs/agents"),
+        .describe("Agent configuration, see https://cyberstrike.io/docs/agents"),
       provider: z
         .record(z.string(), Provider)
         .optional()
@@ -1218,7 +1218,7 @@ export namespace Config {
         .then(async (mod) => {
           const { provider, model, ...rest } = mod.default
           if (provider && model) result.model = `${provider}/${model}`
-          result["$schema"] = "https://cyberstrike.us/config.json"
+          result["$schema"] = "https://cyberstrike.io/config.json"
           result = mergeDeep(result, rest)
           await Bun.write(path.join(Global.Path.config, "config.json"), JSON.stringify(result, null, 2))
           await fs.unlink(legacy)
@@ -1311,9 +1311,9 @@ export namespace Config {
     const parsed = Info.safeParse(data)
     if (parsed.success) {
       if (!parsed.data.$schema) {
-        parsed.data.$schema = "https://cyberstrike.us/config.json"
+        parsed.data.$schema = "https://cyberstrike.io/config.json"
         // Write the $schema to the original text to preserve variables like {env:VAR}
-        const updated = original.replace(/^\s*\{/, '{\n  "$schema": "https://cyberstrike.us/config.json",')
+        const updated = original.replace(/^\s*\{/, '{\n  "$schema": "https://cyberstrike.io/config.json",')
         await Bun.write(configFilepath, updated).catch(() => {})
       }
       const data = parsed.data

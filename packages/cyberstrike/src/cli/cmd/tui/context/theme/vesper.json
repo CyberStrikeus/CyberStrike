@@ -1,5 +1,5 @@
 {
-  "$schema": "https://cyberstrike.us/theme.json",
+  "$schema": "https://cyberstrike.io/theme.json",
   "defs": {
     "vesperBg": "#101010",
     "vesperFg": "#FFF",
