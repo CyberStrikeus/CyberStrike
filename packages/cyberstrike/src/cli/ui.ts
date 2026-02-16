@@ -1,7 +1,7 @@
 import z from "zod"
 import { EOL } from "os"
 import { NamedError } from "@cyberstrikeus/util/error"
-import { logo as lines } from "./logo"
+import { colorize } from "./logo"
 
 export namespace UI {
   export const CancelledError = NamedError.create("UICancelledError", z.void())
@@ -41,12 +41,11 @@ export namespace UI {
   }
 
   export function logo(pad?: string) {
+    const lines = colorize()
     const result: string[] = []
-    const reset = "\x1b[0m"
-    const fg = "\x1b[32m" // green (forest theme)
     for (const line of lines) {
       if (pad) result.push(pad)
-      result.push(fg, line, reset, EOL)
+      result.push(line, EOL)
     }
     return result.join("").trimEnd()
   }
