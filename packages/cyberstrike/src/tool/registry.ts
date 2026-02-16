@@ -27,6 +27,10 @@ import { LspTool } from "./lsp"
 import { Truncate } from "./truncation"
 import { PlanExitTool, PlanEnterTool } from "./plan"
 import { ApplyPatchTool } from "./apply_patch"
+import { BrowserTool } from "./browser"
+import { MemorySearchTool, MemoryWriteTool, MemoryReadTool, MemoryContextTool } from "./memory"
+import { ToolSearchTool, LoadToolsTool, UnloadToolsTool, ListLoadedToolsTool } from "./tool-search"
+import { LazyToolRegistry } from "./lazy-registry"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -115,8 +119,36 @@ export namespace ToolRegistry {
       ...(Flag.CYBERSTRIKE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
       ...(Flag.CYBERSTRIKE_EXPERIMENTAL_PLAN_MODE && Flag.CYBERSTRIKE_CLIENT === "cli" ? [PlanExitTool, PlanEnterTool] : []),
+      BrowserTool,
+      MemorySearchTool,
+      MemoryWriteTool,
+      MemoryReadTool,
+      MemoryContextTool,
+      ToolSearchTool,
+      LoadToolsTool,
+      UnloadToolsTool,
+      ListLoadedToolsTool,
       ...custom,
     ]
+  }
+
+  /**
+   * Initialize lazy tool registry for MCP tools
+   */
+  export async function initLazyRegistry(): Promise<void> {
+    await LazyToolRegistry.init()
+  }
+
+  /**
+   * Get currently loaded MCP tools from the lazy registry
+   */
+  export function getLoadedMCPTools(): Record<string, any> {
+    const loaded = LazyToolRegistry.getLoaded()
+    const tools: Record<string, any> = {}
+    for (const t of loaded) {
+      tools[t.id] = t.tool
+    }
+    return tools
   }
 
   export async function ids() {
