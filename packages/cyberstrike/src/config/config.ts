@@ -1169,6 +1169,36 @@ export namespace Config {
             .min(0)
             .optional()
             .describe("Token buffer for compaction. Leaves enough window to avoid overflow during compaction."),
+          safetyMargin: z
+            .number()
+            .min(1)
+            .optional()
+            .describe("Safety margin multiplier for token estimation inaccuracy (default: 1.2)"),
+          chunkParts: z
+            .number()
+            .int()
+            .min(1)
+            .optional()
+            .describe("Number of partitions for staged compaction (default: 2)"),
+          memoryFlush: z
+            .object({
+              enabled: z.boolean().optional().describe("Enable pre-compaction memory flush (default: true)"),
+              softThresholdTokens: z
+                .number()
+                .int()
+                .min(0)
+                .optional()
+                .describe("Soft threshold tokens before compaction to trigger flush (default: 4000)"),
+              reserveTokensFloor: z
+                .number()
+                .int()
+                .min(0)
+                .optional()
+                .describe("Minimum reserve tokens floor for flush calculation (default: 20000)"),
+              systemPrompt: z.string().optional().describe("Custom system prompt for memory flush agent"),
+              prompt: z.string().optional().describe("Custom user prompt for memory flush agent"),
+            })
+            .optional(),
         })
         .optional(),
       experimental: z
