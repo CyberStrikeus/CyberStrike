@@ -243,9 +243,13 @@ class ClaudeCliLanguageModel {
         events.push({ type: "text-delta", id: textId, delta: part.text })
         events.push({ type: "text-end", id: textId, providerMetadata: result.providerMetadata })
       } else if (part.type === "tool-call") {
-        events.push({ type: "tool-call-start", id: part.toolCallId, toolName: part.toolName })
-        events.push({ type: "tool-call-delta", id: part.toolCallId, argsTextDelta: part.args })
-        events.push({ type: "tool-call-end", id: part.toolCallId })
+        // AI SDK expects: tool-input-start → tool-input-delta → tool-input-end → tool-call
+        events.push({
+          type: "tool-call",
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          args: part.args,
+        })
       }
     }
 
