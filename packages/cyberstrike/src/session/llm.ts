@@ -4,6 +4,7 @@ import { Log } from "@/util/log"
 import {
   streamText,
   wrapLanguageModel,
+  stepCountIs,
   type ModelMessage,
   type StreamTextResult,
   type Tool,
@@ -173,7 +174,15 @@ export namespace LLM {
       })
     }
 
+    // Claude CLI provider needs multi-step within a single stream because:
+    // 1. Each CLI subprocess is stateless — uses --resume for conversation continuity
+    // 2. CyberStrike's outer loop reads oldest assistant message first
+    // 3. Without multi-step, each tool round creates a separate assistant message
+    //    and the exit check always sees the oldest (finish="tool-calls"), never exiting
+    const isClaudeCliProvider = input.model.providerID === "claude-cli"
+
     return streamText({
+      stopWhen: isClaudeCliProvider ? stepCountIs(10) : undefined,
       onError(error) {
         l.error("stream error", {
           error,

@@ -349,15 +349,25 @@ class ClaudeCliLanguageModel {
 
   /**
    * Build prompt for CONTINUATION calls (with session-id).
-   * Only sends tool results from the latest round — Claude CLI already
-   * has the full conversation history via the session.
+   * Only sends tool results from the LATEST round (after the last assistant message).
+   * Claude CLI already has the full conversation history via the session.
    */
   private buildContinuationPrompt(options: any): string {
-    const parts: string[] = []
     const messages = options.prompt ?? []
 
-    // Collect tool results (they come AFTER the last assistant message)
-    for (const msg of messages) {
+    // Find the last assistant message index
+    let lastAssistantIdx = -1
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantIdx = i
+        break
+      }
+    }
+
+    // Only include tool results AFTER the last assistant message
+    const parts: string[] = []
+    for (let i = lastAssistantIdx + 1; i < messages.length; i++) {
+      const msg = messages[i]
       if (msg.role === "tool") {
         for (const part of msg.content) {
           if (part.type === "tool-result") {
