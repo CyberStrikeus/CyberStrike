@@ -61,7 +61,6 @@ function parseToolCalls(text: string): {
 
     const closeIdx = remaining.indexOf(TOOL_CALL_CLOSE, openIdx + TOOL_CALL_OPEN.length)
     if (closeIdx === -1) {
-      // Malformed — treat rest as text
       textParts.push(remaining.substring(openIdx).trim())
       break
     }
@@ -79,7 +78,6 @@ function parseToolCalls(text: string): {
         textParts.push(remaining.substring(openIdx, closeIdx + TOOL_CALL_CLOSE.length))
       }
     } catch {
-      // Failed to parse JSON — treat block as text
       textParts.push(remaining.substring(openIdx, closeIdx + TOOL_CALL_CLOSE.length))
     }
 
@@ -115,6 +113,7 @@ function formatToolDefinitions(tools: any[]): string {
     "- You may include brief text before the tool call to explain your reasoning",
     "- For built-in operations (bash, file read/write/edit, grep, glob), use your normal tools",
     "- For specialized operations (browser, memory, etc.), you MUST use <tool_call>",
+    "- NEVER repeat a tool call that has already been executed — check the conversation history",
     "",
   ]
 
@@ -137,12 +136,11 @@ function formatToolDefinitions(tools: any[]): string {
 
 /**
  * Claude CLI Language Model implementation with tool calling support.
- * Wraps the Claude Code CLI to provide AI SDK LanguageModelV2 compatibility.
  *
- * Tool calling works by:
- * 1. Injecting CyberStrike-specific tool definitions into the system prompt
- * 2. Parsing <tool_call> blocks from the model's response text
- * 3. Returning proper AI SDK tool-call content parts
+ * Uses Claude CLI session-id for multi-turn conversation continuity.
+ * On the first call, sends full prompt + system prompt with tool definitions.
+ * On continuation calls (after tool execution), uses session-id to continue
+ * the conversation, sending only tool results as the new prompt.
  */
 class ClaudeCliLanguageModel {
   readonly specificationVersion = "v2" as const
@@ -153,40 +151,75 @@ class ClaudeCliLanguageModel {
 
   private settings: ClaudeCliProviderSettings
 
+  /**
+   * Map of CyberStrike session ID → Claude CLI session ID.
+   * Allows multi-turn tool calling by continuing the same CLI conversation.
+   */
+  private cliSessions = new Map<string, string>()
+
   constructor(modelId: string, settings: ClaudeCliProviderSettings = {}) {
     this.modelId = modelId
     this.settings = settings
   }
 
   async doGenerate(options: any): Promise<any> {
-    const prompt = this.buildPrompt(options)
-    const systemPrompt = this.extractSystemPrompt(options)
     const tools = options.mode?.tools ?? options.tools ?? []
     const toolDefs = formatToolDefinitions(tools)
+    const csSessionId = options.headers?.["x-cyberstrike-session"] ?? "default"
+    const existingCliSession = this.cliSessions.get(csSessionId)
+    const hasToolResults = (options.prompt ?? []).some((m: any) => m.role === "tool")
+    const isContinuation = !!existingCliSession && hasToolResults
 
-    const fullSystemPrompt = toolDefs ? `${systemPrompt ?? ""}\n${toolDefs}` : systemPrompt || undefined
+    let prompt: string
+    let systemPrompt: string | undefined
+    let sessionId: string | undefined
+
+    if (isContinuation) {
+      // Continuation: Claude CLI already has the conversation history via session-id.
+      // Only send the tool results as the new user prompt.
+      prompt = this.buildContinuationPrompt(options)
+      systemPrompt = undefined // Already set in the session
+      sessionId = existingCliSession
+    } else {
+      // First call: full prompt + system prompt with tool definitions
+      prompt = this.buildInitialPrompt(options)
+      const rawSystem = this.extractSystemPrompt(options)
+      systemPrompt = toolDefs ? `${rawSystem ?? ""}\n${toolDefs}` : rawSystem || undefined
+      sessionId = undefined
+      this.cliSessions.delete(csSessionId) // Reset any stale session
+    }
 
     log.info("doGenerate", {
       modelId: this.modelId,
       promptLength: prompt.length,
       toolCount: tools.length,
       hasExternalTools: !!toolDefs,
+      isContinuation,
+      hasCliSession: !!sessionId,
     })
 
     try {
       const response = await runClaudeCli(prompt, {
         model: this.modelId,
-        systemPrompt: fullSystemPrompt,
+        systemPrompt,
+        sessionId,
+        resume: isContinuation,
         timeoutMs: this.settings.timeout,
         workingDirectory: this.settings.workingDirectory,
       })
+
+      // Capture CLI session ID for subsequent continuation calls
+      const respSessionId = response.session_id ?? response.sessionId
+      if (respSessionId) {
+        this.cliSessions.set(csSessionId, String(respSessionId))
+      }
 
       const text = extractResponseText(response)
       const usage = response.usage ?? { input_tokens: 0, output_tokens: 0 }
       const inputTokens = usage.input_tokens ?? 0
       const outputTokens = usage.output_tokens ?? 0
 
-      // Parse tool calls from response if tools are available
+      // Parse tool calls from response if external tools are available
       const content: any[] = []
       let finishReason = "stop"
 
@@ -221,18 +254,19 @@ class ClaudeCliLanguageModel {
         usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
         warnings: [],
         request: { body: { prompt, model: this.modelId } },
-        providerMetadata: response.session_id
-          ? { "claude-cli": { sessionId: String(response.session_id ?? response.sessionId) } }
+        providerMetadata: respSessionId
+          ? { "claude-cli": { sessionId: String(respSessionId) } }
           : undefined,
       }
     } catch (error) {
+      // On error, clear the session so next call starts fresh
+      this.cliSessions.delete(csSessionId)
       log.error("doGenerate failed", { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
 
   async doStream(options: any): Promise<any> {
-    // Claude CLI doesn't support true streaming — run doGenerate and convert to stream events
     const result = await this.doGenerate(options)
     const events: any[] = []
 
@@ -243,7 +277,6 @@ class ClaudeCliLanguageModel {
         events.push({ type: "text-delta", id: textId, delta: part.text })
         events.push({ type: "text-end", id: textId, providerMetadata: result.providerMetadata })
       } else if (part.type === "tool-call") {
-        // AI SDK expects: tool-input-start → tool-input-delta → tool-input-end → tool-call
         events.push({
           type: "tool-call",
           toolCallId: part.toolCallId,
@@ -273,46 +306,35 @@ class ClaudeCliLanguageModel {
   }
 
   /**
-   * Build prompt string from AI SDK message array.
-   * Handles user, assistant (with tool-call parts), and tool-result messages.
+   * Build prompt for the FIRST call (no session-id).
+   * Includes full conversation history.
    */
-  private buildPrompt(options: any): string {
+  private buildInitialPrompt(options: any): string {
     const parts: string[] = []
 
     for (const message of options.prompt) {
-      if (message.role === "system") {
-        // System messages handled separately via extractSystemPrompt
-        continue
-      }
+      if (message.role === "system") continue
 
       if (message.role === "user") {
         const userParts: string[] = []
         for (const part of message.content) {
-          if (part.type === "text") {
-            userParts.push(part.text)
-          }
+          if (part.type === "text") userParts.push(part.text)
         }
-        if (userParts.length > 0) {
-          parts.push(userParts.join("\n"))
-        }
+        if (userParts.length > 0) parts.push(userParts.join("\n"))
       } else if (message.role === "assistant") {
         const assistantParts: string[] = []
         for (const part of message.content) {
           if (part.type === "text") {
             assistantParts.push(part.text)
           } else if (part.type === "tool-call") {
-            // Format previous tool calls so the model sees them in the same format
             const args = typeof part.args === "string" ? JSON.parse(part.args) : part.args
             assistantParts.push(
               `${TOOL_CALL_OPEN}\n${JSON.stringify({ name: part.toolName, arguments: args }, null, 2)}\n${TOOL_CALL_CLOSE}`,
             )
           }
         }
-        if (assistantParts.length > 0) {
-          parts.push(`Assistant: ${assistantParts.join("\n")}`)
-        }
+        if (assistantParts.length > 0) parts.push(`Assistant: ${assistantParts.join("\n")}`)
       } else if (message.role === "tool") {
-        // Tool result messages — format them so the model can see previous tool execution results
         for (const part of message.content) {
           if (part.type === "tool-result") {
             const resultText = typeof part.result === "string" ? part.result : JSON.stringify(part.result, null, 2)
@@ -323,6 +345,33 @@ class ClaudeCliLanguageModel {
     }
 
     return parts.join("\n\n")
+  }
+
+  /**
+   * Build prompt for CONTINUATION calls (with session-id).
+   * Only sends tool results from the latest round — Claude CLI already
+   * has the full conversation history via the session.
+   */
+  private buildContinuationPrompt(options: any): string {
+    const parts: string[] = []
+    const messages = options.prompt ?? []
+
+    // Collect tool results (they come AFTER the last assistant message)
+    for (const msg of messages) {
+      if (msg.role === "tool") {
+        for (const part of msg.content) {
+          if (part.type === "tool-result") {
+            const result = typeof part.result === "string" ? part.result : JSON.stringify(part.result, null, 2)
+            parts.push(
+              `Tool "${part.toolName}" returned:\n${part.isError ? "[ERROR] " : ""}${result}`,
+            )
+          }
+        }
+      }
+    }
+
+    if (parts.length === 0) return "Continue with the task."
+    return parts.join("\n\n") + "\n\nProceed with the next step. Do NOT repeat previous tool calls."
   }
 
   /**
