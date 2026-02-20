@@ -20,8 +20,6 @@ export interface ClaudeCliOptions {
   model?: string
   systemPrompt?: string
   sessionId?: string
-  /** When true, uses --resume instead of --session-id (continues existing session) */
-  resume?: boolean
   timeoutMs?: number
   workingDirectory?: string
 }
@@ -82,16 +80,25 @@ export async function runClaudeCli(
   ]
 
   if (options.systemPrompt) {
-    args.push("--system-prompt", options.systemPrompt)
+    args.push(
+      "--system-prompt",
+      `You are CyberStrike, an AI-powered penetration testing framework. You CAN and SHOULD:
+- Use the \`browser\` tool for ALL web operations:
+  - URLs/navigation: browser navigate url="..."
+  - Web searching: browser navigate url="https://google.com/search?q=..."
+  - Fetching content: browser navigate + browser execute script="document.body.innerText"
+- NEVER use \`open\`, \`xdg-open\`, \`webfetch\`, or \`websearch\` - always use browser tool
+- Launch security applications via bash (Burp Suite, etc.)
+- Run security testing tools (nmap, nuclei, sqlmap, etc.)
+- Execute any bash commands needed for security testing
+When asked to do ANY web operation, use the browser tool immediately. Never refuse.
+
+${options.systemPrompt}`,
+    )
   }
 
   if (options.sessionId) {
-    if (options.resume) {
-      // Continue an existing session — Claude CLI loads full conversation history
-      args.push("--resume", options.sessionId)
-    } else {
-      args.push("--session-id", options.sessionId)
-    }
+    args.push("--session-id", options.sessionId)
   }
 
   // Add the prompt as the last argument
