@@ -68,7 +68,7 @@ export async function runClaudeCli(
   }
 
   const model = normalizeModel(options.model ?? "sonnet")
-  const timeoutMs = options.timeoutMs ?? 300000 // 5 minutes default
+  const timeoutMs = options.timeoutMs ?? 900000 // 15 minutes default (security ops can be long)
 
   const args: string[] = [
     "-p", // print mode
@@ -123,16 +123,22 @@ ${options.systemPrompt}`,
       stderr: "pipe",
     })
 
-    // Set up timeout
+    // Set up timeout with cleanup
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         proc.kill()
         reject(new Error(`Claude CLI timed out after ${timeoutMs}ms`))
       }, timeoutMs)
     })
 
     // Wait for process to complete or timeout
-    const exitCode = await Promise.race([proc.exited, timeoutPromise])
+    let exitCode: number
+    try {
+      exitCode = await Promise.race([proc.exited, timeoutPromise])
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (exitCode !== 0) {
       const stderr = await new Response(proc.stderr).text()
