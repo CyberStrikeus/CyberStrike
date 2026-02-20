@@ -90,32 +90,52 @@ function parseToolCalls(text: string): {
 /**
  * Format CyberStrike-specific tool definitions for injection into the system prompt.
  * Filters out tools that Claude CLI already handles natively.
+ * Placed at the TOP of the system prompt to ensure maximum visibility.
  */
 function formatToolDefinitions(tools: any[]): string {
   const externalTools = tools.filter((t: any) => !NATIVE_TOOL_IDS.has(t.name))
   if (externalTools.length === 0) return ""
 
+  const hasBrowserTool = externalTools.some((t: any) => t.name === "browser")
+
   const lines: string[] = [
+    "=== EXTERNAL TOOL SYSTEM (MANDATORY) ===",
     "",
-    "## External Tool System",
-    "",
-    "In addition to your built-in tools, you have access to these specialized tools.",
-    "To invoke them, output your call in this EXACT format (including the XML tags):",
+  ]
+
+  if (hasBrowserTool) {
+    lines.push(
+      "CRITICAL — BROWSER TOOL REQUIREMENT:",
+      "For ALL web browsing, URL navigation, page content, and HTTP operations,",
+      "you MUST use <tool_call> with the \"browser\" tool defined below.",
+      "",
+      "FORBIDDEN — These bash commands must NEVER be used for web operations:",
+      "- open, xdg-open, start (system browser)",
+      "- curl, wget, http, httpie (HTTP clients)",
+      "- python -c '...requests...' or similar",
+      "",
+      "The browser tool provides a Playwright-based Firefox instance with",
+      "network capture, cookie isolation, and security analysis. Always use it.",
+      "",
+    )
+  }
+
+  lines.push(
+    "To invoke external tools, output your call in this EXACT XML format:",
     "",
     "<tool_call>",
     '{"name": "tool_name", "arguments": {"param1": "value1"}}',
     "</tool_call>",
     "",
     "Rules:",
-    "- Use <tool_call> XML tags for these tools — they are NOT available as built-in tools",
+    "- Use <tool_call> XML tags — these tools are NOT available as built-in tools",
     "- Output ONE tool call per response, then STOP and wait for the result",
-    "- Arguments must be valid JSON matching the parameter schema below",
-    "- You may include brief text before the tool call to explain your reasoning",
-    "- For built-in operations (bash, file read/write/edit, grep, glob), use your normal tools",
-    "- For specialized operations (browser, memory, etc.), you MUST use <tool_call>",
-    "- NEVER repeat a tool call that has already been executed — check the conversation history",
+    "- Arguments must be valid JSON matching the parameter schema",
+    "- NEVER repeat a tool call that has already been executed",
     "",
-  ]
+    "--- Tool Definitions ---",
+    "",
+  )
 
   for (const tool of externalTools) {
     lines.push(`### ${tool.name}`)
@@ -131,6 +151,7 @@ function formatToolDefinitions(tools: any[]): string {
     lines.push("")
   }
 
+  lines.push("=== END EXTERNAL TOOL SYSTEM ===")
   return lines.join("\n")
 }
 
@@ -182,9 +203,10 @@ class ClaudeCliLanguageModel {
       sessionId = existingCliSession
     } else {
       // First call: full prompt + system prompt with tool definitions
+      // Tool definitions go FIRST so the model sees them before the main system prompt
       prompt = this.buildInitialPrompt(options)
       const rawSystem = this.extractSystemPrompt(options)
-      systemPrompt = toolDefs ? `${rawSystem ?? ""}\n${toolDefs}` : rawSystem || undefined
+      systemPrompt = toolDefs ? `${toolDefs}\n\n${rawSystem ?? ""}` : rawSystem || undefined
       sessionId = undefined
       this.cliSessions.delete(csSessionId) // Reset any stale session
     }
