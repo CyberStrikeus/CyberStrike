@@ -88,6 +88,7 @@ export namespace Agent {
           PermissionNext.fromConfig({
             question: "allow",
             plan_enter: "allow",
+            browser: "allow",
           }),
           user,
         ),
@@ -125,6 +126,7 @@ export namespace Agent {
           PermissionNext.fromConfig({
             todoread: "deny",
             todowrite: "deny",
+            browser: "allow",
           }),
           user,
         ),
