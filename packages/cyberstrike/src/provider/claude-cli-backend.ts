@@ -20,6 +20,8 @@ export interface ClaudeCliOptions {
   model?: string
   systemPrompt?: string
   sessionId?: string
+  /** When true, uses --resume instead of --session-id (continues existing session) */
+  resume?: boolean
   timeoutMs?: number
   workingDirectory?: string
 }
@@ -84,7 +86,12 @@ export async function runClaudeCli(
   }
 
   if (options.sessionId) {
-    args.push("--session-id", options.sessionId)
+    if (options.resume) {
+      // Continue an existing session — Claude CLI loads full conversation history
+      args.push("--resume", options.sessionId)
+    } else {
+      args.push("--session-id", options.sessionId)
+    }
   }
 
   // Add the prompt as the last argument
