@@ -6,6 +6,18 @@ import { existsSync, readFileSync, readdirSync } from "fs"
 
 const log = Log.create({ service: "tool.browser-analysis" })
 
+// Work directory override (for MCP server context)
+let _workDirOverride: string | undefined
+
+/** Set explicit work directory — used by MCP browser server to avoid Instance dependency */
+export function setAnalysisWorkDir(dir: string) {
+  _workDirOverride = dir
+}
+
+function getWorkDir(): string {
+  return _workDirOverride ?? Instance.worktree
+}
+
 // Types shared with browser.ts
 export interface NetworkEntry {
   contextId: string
@@ -117,7 +129,7 @@ export namespace BrowserAnalysis {
     })
 
     const analysisDir = path.join(
-      Instance.worktree,
+      getWorkDir(),
       ".cyberstrike",
       `analysis-${input.sessionId}`,
     )
@@ -1074,7 +1086,7 @@ export namespace BrowserAnalysis {
    * Triggered explicitly by the agent via `browser aggregate` action.
    */
   export async function aggregate(): Promise<string> {
-    const baseDir = path.join(Instance.worktree, ".cyberstrike")
+    const baseDir = path.join(getWorkDir(), ".cyberstrike")
     if (!existsSync(baseDir)) {
       return "No .cyberstrike directory found. No sessions to aggregate."
     }

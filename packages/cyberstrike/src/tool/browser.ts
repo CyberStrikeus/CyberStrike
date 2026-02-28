@@ -12,6 +12,25 @@ import { BrowserAnalysis, type NetworkEntry, type ConsoleEntry } from "./browser
 const log = Log.create({ service: "tool.browser" })
 
 // ============================================================================
+// Work Directory Override (for MCP server context where Instance is unavailable)
+// ============================================================================
+
+let _workDirOverride: string | undefined
+
+/** Set explicit work directory — used by MCP browser server to avoid Instance dependency */
+export function setWorkDir(dir: string) {
+  _workDirOverride = dir
+}
+
+function getWorkDir(): string {
+  return _workDirOverride ?? Instance.worktree
+}
+
+function getProjectDir(): string {
+  return _workDirOverride ?? Instance.directory
+}
+
+// ============================================================================
 // Cookie Jar — Per-container cookie isolation (like Firefox Multi-Account Containers)
 // ============================================================================
 
@@ -397,7 +416,7 @@ async function launchBrowser(
   }
 
   const playwright = await getPlaywright()
-  const analysisDir = path.join(Instance.worktree, ".cyberstrike", `analysis-${sessionID}`)
+  const analysisDir = path.join(getWorkDir(), ".cyberstrike", `analysis-${sessionID}`)
   const harPath = path.join(analysisDir, `hackr-${sessionID}.har`)
   const networkLogFile = path.join(analysisDir, "network.jsonl")
   const consoleLogFile = path.join(analysisDir, "console.jsonl")
@@ -1058,7 +1077,7 @@ export const BrowserTool = Tool.define("browser", {
 
         const container = getActiveContainer(session)
         const filename = `screenshot-${container.id}-${Date.now()}.png`
-        const filepath = path.join(Instance.directory, filename)
+        const filepath = path.join(getProjectDir(), filename)
 
         if (params.selector) {
           const element = await container.page.$(params.selector)
@@ -1236,7 +1255,7 @@ export const BrowserTool = Tool.define("browser", {
 
         const har = buildHarFromLogs(allLogs)
         const filename = `hackr-traffic-${Date.now()}.har`
-        const filepath = path.join(Instance.directory, filename)
+        const filepath = path.join(getProjectDir(), filename)
         await Bun.write(filepath, JSON.stringify(har, null, 2))
 
         return {
