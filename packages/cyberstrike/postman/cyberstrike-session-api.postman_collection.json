@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "CyberStrike Session API",
+    "description": "HTTP API for CyberStrike when running with a port (e.g. `--port 4096`). Ingest and session endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:4096" },
+    { "key": "sessionID", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Ingest",
+      "item": [
+        {
+          "name": "Ingest (new session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Merhaba, bu bir test mesajı.\"\n}"
+            },
+            "url": "{{baseUrl}}/session/ingest",
+            "description": "Sends a message as user input. Creates a new session; response includes sessionID. Default agent is proxy-agent.",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status is 202', () => pm.response.to.have.status(202));",
+                    "const json = pm.response.json();",
+                    "if (json.sessionID) pm.collectionVariables.set('sessionID', json.sessionID);"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Ingest (existing session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"İkinci mesaj.\",\n  \"sessionID\": \"{{sessionID}}\"\n}"
+            },
+            "url": "{{baseUrl}}/session/ingest",
+            "description": "Sends a follow-up message to an existing session. Set sessionID variable from a previous ingest response."
+          }
+        },
+        {
+          "name": "Ingest with agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Web uygulamasını tara.\",\n  \"agent\": \"proxy-agent\"\n}"
+            },
+            "url": "{{baseUrl}}/session/ingest",
+            "description": "Optional: specify agent (e.g. proxy-agent, build, web-application). Omit to use default proxy-agent."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "item": [
+        {
+          "name": "List sessions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/session?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["session"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "directory", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List sessions, most recently updated first."
+          }
+        },
+        {
+          "name": "Create session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test session\"\n}"
+            },
+            "url": "{{baseUrl}}/session",
+            "description": "Create a new session. Body optional (title, permission)."
+          }
+        },
+        {
+          "name": "Get session",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/session/{{sessionID}}",
+            "description": "Get a single session by ID."
+          }
+        },
+        {
+          "name": "Get session messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/session/{{sessionID}}/message?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["session", "{{sessionID}}", "message"],
+              "query": [{ "key": "limit", "value": "50" }]
+            },
+            "description": "Get messages for a session."
+          }
+        },
+        {
+          "name": "Send message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parts\": [\n    { \"type\": \"text\", \"text\": \"Merhaba\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/session/{{sessionID}}/message",
+            "description": "Send a message to a session (streaming response). Optional: agent, model, variant."
+          }
+        },
+        {
+          "name": "Delete session",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/session/{{sessionID}}",
+            "description": "Delete a session and all its data."
+          }
+        }
+      ]
+    }
+  ]
+}

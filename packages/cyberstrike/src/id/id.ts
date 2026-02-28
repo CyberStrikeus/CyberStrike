@@ -11,6 +11,14 @@ export namespace Identifier {
     part: "prt",
     pty: "pty",
     tool: "tool",
+    vulnerability: "vul",
+    request: "req",
+    web_credential: "wcr",
+    web_role: "wrl",
+    web_object: "wob",
+    web_object_value: "wov",
+    web_function: "wfn",
+    web_retest: "wrt",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {

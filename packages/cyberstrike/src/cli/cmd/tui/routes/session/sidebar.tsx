@@ -18,13 +18,27 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const session = createMemo(() => sync.session.get(props.sessionID)!)
   const diff = createMemo(() => sync.data.session_diff[props.sessionID] ?? [])
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
+  const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
+  const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
+  const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
+  const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
+  const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
+  const functions = createMemo(() => sync.data.web_function[props.sessionID] ?? [])
+  const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
     diff: true,
     todo: true,
+    vulnerability: true,
     lsp: true,
+    requests: true,
+    credentials: true,
+    roles: true,
+    objects: true,
+    functions: true,
+    retests: true,
   })
 
   // Sort MCP servers alphabetically for consistent display order
@@ -221,6 +235,278 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </Show>
               </box>
             </Show>
+            <Show when={vulnerability().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() =>
+                    vulnerability().length > 2 && setExpanded("vulnerability", !expanded.vulnerability)
+                  }
+                >
+                  <Show when={vulnerability().length > 2}>
+                    <text fg={theme.text}>{expanded.vulnerability ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Vulnerabilities</b>
+                  </text>
+                </box>
+                <Show when={vulnerability().length <= 2 || expanded.vulnerability}>
+                  <For each={vulnerability()}>
+                    {(v) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                critical: theme.error,
+                                high: theme.warning,
+                                medium: theme.text,
+                                low: theme.textMuted,
+                                info: theme.textMuted,
+                              }[v.severity] ?? theme.text,
+                          }}
+                        >
+                          •
+                        </text>
+                        <text fg={theme.text} wrapMode="word">
+                          {v.title}
+                          {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={requests().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => requests().length > 2 && setExpanded("requests", !expanded.requests)}
+                >
+                  <Show when={requests().length > 2}>
+                    <text fg={theme.text}>{expanded.requests ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Endpoints</b>
+                  </text>
+                </box>
+                <Show when={requests().length <= 2 || expanded.requests}>
+                  <For each={requests()}>
+                    {(r) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                queued: theme.textMuted,
+                                processing: theme.warning,
+                                processed: theme.success,
+                              }[r.status] ?? theme.text,
+                          }}
+                        >
+                          •
+                        </text>
+                        <text fg={theme.accent} flexShrink={0}>
+                          {r.method}
+                        </text>
+                        <text fg={theme.text} wrapMode="none">
+                          {r.normalized_path}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={roles().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => roles().length > 2 && setExpanded("roles", !expanded.roles)}
+                >
+                  <Show when={roles().length > 2}>
+                    <text fg={theme.text}>{expanded.roles ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Roles</b>
+                  </text>
+                </box>
+                <Show when={roles().length <= 2 || expanded.roles}>
+                  <For each={roles()}>
+                    {(r) => (
+                      <box flexDirection="row" gap={1}>
+                        <text flexShrink={0} style={{ fg: theme.accent }}>
+                          •
+                        </text>
+                        <text fg={theme.text} wrapMode="word">
+                          {r.name}
+                          <Show when={r.level != null}>
+                            <span style={{ fg: theme.textMuted }}> L{r.level}</span>
+                          </Show>
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={credentials().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => credentials().length > 2 && setExpanded("credentials", !expanded.credentials)}
+                >
+                  <Show when={credentials().length > 2}>
+                    <text fg={theme.text}>{expanded.credentials ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Credentials</b>
+                  </text>
+                </box>
+                <Show when={credentials().length <= 2 || expanded.credentials}>
+                  <For each={credentials()}>
+                    {(c) => (
+                      <box flexDirection="row" gap={1}>
+                        <text flexShrink={0} style={{ fg: theme.success }}>
+                          •
+                        </text>
+                        <text fg={theme.accent} flexShrink={0}>
+                          {c.type}
+                        </text>
+                        <text fg={theme.text} wrapMode="none">
+                          {c.label}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={objects().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => objects().length > 2 && setExpanded("objects", !expanded.objects)}
+                >
+                  <Show when={objects().length > 2}>
+                    <text fg={theme.text}>{expanded.objects ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Objects</b>
+                  </text>
+                </box>
+                <Show when={objects().length <= 2 || expanded.objects}>
+                  <For each={objects()}>
+                    {(o) => (
+                      <box flexDirection="row" gap={1}>
+                        <text flexShrink={0} style={{ fg: theme.textMuted }}>
+                          •
+                        </text>
+                        <text fg={theme.text} wrapMode="word">
+                          {o.name}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={functions().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => functions().length > 2 && setExpanded("functions", !expanded.functions)}
+                >
+                  <Show when={functions().length > 2}>
+                    <text fg={theme.text}>{expanded.functions ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Functions</b>
+                  </text>
+                </box>
+                <Show when={functions().length <= 2 || expanded.functions}>
+                  <For each={functions()}>
+                    {(f) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                create: theme.success,
+                                read: theme.accent,
+                                update: theme.warning,
+                                delete: theme.error,
+                              }[f.action_type] ?? theme.text,
+                          }}
+                        >
+                          •
+                        </text>
+                        <text fg={theme.accent} flexShrink={0}>
+                          {f.action_type.toUpperCase().charAt(0)}
+                        </text>
+                        <text fg={theme.text} wrapMode="none">
+                          {f.name}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
+            <Show when={retests().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => retests().length > 2 && setExpanded("retests", !expanded.retests)}
+                >
+                  <Show when={retests().length > 2}>
+                    <text fg={theme.text}>{expanded.retests ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Retest Queue</b>
+                    <span style={{ fg: theme.textMuted }}> ({retests().length})</span>
+                  </text>
+                </box>
+                <Show when={retests().length <= 2 || expanded.retests}>
+                  <For each={retests()}>
+                    {(r) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                pending: theme.textMuted,
+                                processing: theme.warning,
+                                completed: theme.success,
+                              }[r.status] ?? theme.text,
+                          }}
+                        >
+                          •
+                        </text>
+                        <text fg={theme.accent} flexShrink={0}>
+                          {r.priority}
+                        </text>
+                        <text fg={theme.textMuted} wrapMode="none">
+                          {r.status}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </Show>
+              </box>
+            </Show>
             <Show when={diff().length > 0}>
               <box>
                 <box
@@ -300,9 +586,9 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
             <span style={{ fg: theme.text }}>{directory().split("/").at(-1)}</span>
           </text>
           <text fg={theme.textMuted}>
-            <span style={{ fg: theme.success }}>•</span> <b>Cyber</b>
+            <span style={{ fg: theme.success }}>•</span> <b>Open</b>
             <span style={{ fg: theme.text }}>
-              <b>Strike</b>
+              <b>Code</b>
             </span>{" "}
             <span>{Installation.VERSION}</span>
           </text>

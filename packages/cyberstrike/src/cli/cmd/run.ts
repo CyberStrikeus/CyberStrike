@@ -25,6 +25,7 @@ import { TaskTool } from "../../tool/task"
 import { SkillTool } from "../../tool/skill"
 import { BashTool } from "../../tool/bash"
 import { TodoWriteTool } from "../../tool/todo"
+import { ReportVulnerabilityTool } from "../../tool/vulnerability"
 import { Locale } from "../../util/locale"
 
 type ToolProps<T extends Tool.Info> = {
@@ -204,6 +205,19 @@ function todo(info: ToolProps<typeof TodoWriteTool>) {
     },
     info.input.todos.map((item) => `${item.status === "completed" ? "[x]" : "[ ]"} ${item.content}`).join("\n"),
   )
+}
+
+function vulnerability(info: ToolProps<typeof ReportVulnerabilityTool>) {
+  const loc = info.input.file
+    ? info.input.line_start != null
+      ? `${info.input.file}:${info.input.line_start}`
+      : info.input.file
+    : ""
+  inline({
+    icon: "⚠",
+    title: `[${info.input.severity}] ${info.input.title}`,
+    description: loc || undefined,
+  })
 }
 
 function normalizePath(input?: string) {
@@ -419,6 +433,7 @@ export const RunCommand = cmd({
           if (part.tool === "websearch") return websearch(props<typeof WebSearchTool>(part))
           if (part.tool === "task") return task(props<typeof TaskTool>(part))
           if (part.tool === "todowrite") return todo(props<typeof TodoWriteTool>(part))
+          if (part.tool === "report_vulnerability") return vulnerability(props<typeof ReportVulnerabilityTool>(part))
           if (part.tool === "skill") return skill(props<typeof SkillTool>(part))
           return fallback(part)
         } catch {
@@ -607,6 +622,17 @@ export const RunCommand = cmd({
     }
 
     await bootstrap(process.cwd(), async () => {
+      const port = args.port
+      if (port !== undefined) {
+        const server = Server.listen({
+          port,
+          hostname: "127.0.0.1",
+        })
+        const baseUrl = server.url.toString().replace(/\/$/, "")
+        UI.println(UI.Style.TEXT_DIM + `Server listening at ${baseUrl} (ingest: POST ${baseUrl}/session/ingest)` + UI.Style.TEXT_NORMAL)
+        const sdk = createCyberstrikeClient({ baseUrl, directory: process.cwd() })
+        return await execute(sdk)
+      }
       const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
         const request = new Request(input, init)
         return Server.App().fetch(request)

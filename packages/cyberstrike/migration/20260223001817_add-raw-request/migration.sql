@@ -1,0 +1,1 @@
+ALTER TABLE `request` ADD `raw_request` text;

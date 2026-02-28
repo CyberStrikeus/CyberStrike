@@ -17,6 +17,12 @@ import PROMPT_WEB_APPLICATION from "./prompt/web-application.txt"
 import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
 import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
 import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
+import PROMPT_WEB_PROXY_AGENT from "./prompt/web-proxy-agent.txt"
+import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
+import PROMPT_PROXY_ANALYZER from "./prompt/proxy-analyzer.txt"
+import PROMPT_PROXY_TESTER_IDOR from "./prompt/proxy-tester-idor.txt"
+import PROMPT_PROXY_TESTER_AUTHZ from "./prompt/proxy-tester-authz.txt"
+import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/proxy-tester-mass-assignment.txt"
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
@@ -47,6 +53,7 @@ export namespace Agent {
       skills: z.array(z.string()).optional(),
       options: z.record(z.string(), z.any()),
       steps: z.number().int().positive().optional(),
+      prependRequestContext: z.boolean().optional(),
     })
     .meta({
       ref: "Agent",
@@ -88,7 +95,6 @@ export namespace Agent {
           PermissionNext.fromConfig({
             question: "allow",
             plan_enter: "allow",
-            browser: "allow",
           }),
           user,
         ),
@@ -126,7 +132,7 @@ export namespace Agent {
           PermissionNext.fromConfig({
             todoread: "deny",
             todowrite: "deny",
-            browser: "allow",
+            report_vulnerability: "deny",
           }),
           user,
         ),
@@ -191,6 +197,22 @@ export namespace Agent {
         ),
         prompt: PROMPT_TITLE,
       },
+      "normalize-request": {
+        name: "normalize-request",
+        mode: "primary",
+        options: {},
+        native: true,
+        hidden: true,
+        temperature: 0,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+          }),
+          user,
+        ),
+        prompt: PROMPT_NORMALIZE_REQUEST,
+      },
       summary: {
         name: "summary",
         mode: "primary",
@@ -208,18 +230,12 @@ export namespace Agent {
       },
       "web-application": {
         name: "web-application",
-        description:
-          "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
+        description: "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
         mode: "primary",
         native: true,
         color: "red",
         prompt: PROMPT_WEB_APPLICATION,
-        skills: [
-          "wstg-recon-config",
-          "wstg-auth-session",
-          "wstg-injection",
-          "wstg-logic-client-api",
-        ],
+        skills: ["wstg-recon-config", "wstg-auth-session", "wstg-injection", "wstg-logic-client-api"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -231,6 +247,7 @@ export namespace Agent {
             grep: "allow",
             webfetch: "allow",
             websearch: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -253,6 +270,7 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -260,8 +278,7 @@ export namespace Agent {
       },
       "cloud-security": {
         name: "cloud-security",
-        description:
-          "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
+        description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
         mode: "primary",
         native: true,
         color: "cyan",
@@ -275,6 +292,7 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -282,8 +300,7 @@ export namespace Agent {
       },
       "internal-network": {
         name: "internal-network",
-        description:
-          "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
+        description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
         mode: "primary",
         native: true,
         color: "yellow",
@@ -298,6 +315,117 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "proxy-agent": {
+        name: "proxy-agent",
+        description:
+          "Security testing orchestrator. Analyzes endpoints, manages application context, and delegates vulnerability testing to specialized subagents.",
+        mode: "primary",
+        native: true,
+        color: "blue",
+        prompt: PROMPT_WEB_PROXY_AGENT,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            web_get_session_context: "allow",
+            // proxy-agent is a pure orchestrator - it only reads session context
+            // and delegates to subagents. Writing is done by proxy-analyzer.
+          }),
+          user,
+        ),
+        options: {},
+      },
+      // Proxy Agent SubAgents
+      "proxy-analyzer": {
+        name: "proxy-analyzer",
+        description:
+          "Analyzes HTTP request/response to extract objects, roles, and functions. Writes directly to session tables.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        prompt: PROMPT_PROXY_ANALYZER,
+        prependRequestContext: true,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            web_write_role: "allow",
+            web_write_object: "allow",
+            web_write_object_value: "allow",
+            web_write_function: "allow",
+            web_update_credential_claims: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "proxy-tester-idor": {
+        name: "proxy-tester-idor",
+        description: "Tests for IDOR vulnerabilities using discovered object IDs across different credentials.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        prompt: PROMPT_PROXY_TESTER_IDOR,
+        prependRequestContext: true,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "proxy-tester-authz": {
+        name: "proxy-tester-authz",
+        description: "Tests for Broken Access Control using discovered roles and credentials.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        prompt: PROMPT_PROXY_TESTER_AUTHZ,
+        prependRequestContext: true,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "proxy-tester-mass-assignment": {
+        name: "proxy-tester-mass-assignment",
+        description: "Tests for Mass Assignment vulnerabilities using discovered object fields.",
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        prompt: PROMPT_PROXY_TESTER_MASS_ASSIGNMENT,
+        prependRequestContext: true,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
