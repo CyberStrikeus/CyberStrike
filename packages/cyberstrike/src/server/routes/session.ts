@@ -10,7 +10,15 @@ import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
+import { Vulnerability } from "../../session/vulnerability"
+import { Request } from "../../session/request"
+import { WebCredential } from "../../session/web/web-credential"
+import { WebRole } from "../../session/web/web-role"
+import { WebObject } from "../../session/web/web-object"
+import { WebFunction } from "../../session/web/web-function"
+import { WebRetest } from "../../session/web/web-retest"
 import { Agent } from "../../agent/agent"
+import { Provider } from "../../provider/provider"
 import { Snapshot } from "@/snapshot"
 import { Log } from "../../util/log"
 import { PermissionNext } from "@/permission/next"
@@ -18,6 +26,73 @@ import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
 const log = Log.create({ service: "server" })
+
+const ingestQueue = new Map<string, Promise<void>>()
+
+function buildPromptWithCredentialContext(
+  rawRequest: string,
+  credentialID?: string,
+  processedResponse?: string,
+): string {
+  const lines: string[] = []
+
+  lines.push("## Credential Context")
+
+  if (!credentialID) {
+    lines.push("UNAUTHENTICATED (no credential provided by browser extension)")
+  } else {
+    const cred = WebCredential.getById(credentialID)
+    if (!cred) {
+      lines.push(`- credential_id: ${credentialID} (NOT FOUND in database)`)
+    } else {
+      lines.push(`- credential_id: ${cred.id}`)
+      lines.push(`- label: ${cred.label}`)
+      if (cred.container_id) {
+        lines.push(`- container_id: ${cred.container_id}`)
+      }
+      if (Object.keys(cred.headers).length > 0) {
+        lines.push("- headers:")
+        for (const [key, value] of Object.entries(cred.headers)) {
+          // Truncate long values for display
+          const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
+          lines.push(`  - ${key}: ${displayValue}`)
+        }
+      }
+      if (cred.role_id) {
+        lines.push(`- role_id: ${cred.role_id}`)
+      }
+    }
+  }
+
+  lines.push("")
+  lines.push("## Raw HTTP Request")
+  lines.push("```")
+  lines.push(rawRequest)
+  lines.push("```")
+
+  // Add response if available
+  if (processedResponse) {
+    lines.push("")
+    lines.push("## Response")
+    lines.push("```")
+    lines.push(processedResponse)
+    lines.push("```")
+  }
+
+  return lines.join("\n")
+}
+
+function ingestEnqueue(sessionID: string, task: () => Promise<unknown>) {
+  const prev = ingestQueue.get(sessionID) ?? Promise.resolve()
+  const next = prev.then(task).then(
+    () => {},
+    (err) => log.error("ingest prompt failed", { sessionID, error: err }),
+  )
+  ingestQueue.set(sessionID, next)
+  next.then(() => {
+    if (ingestQueue.get(sessionID) === next) ingestQueue.delete(sessionID)
+  })
+}
 
 export const SessionRoutes = lazy(() =>
   new Hono()
@@ -182,6 +257,336 @@ export const SessionRoutes = lazy(() =>
         return c.json(todos)
       },
     )
+    .get(
+      "/:sessionID/vulnerability",
+      describeRoute({
+        summary: "Get session vulnerabilities",
+        description: "Retrieve the list of vulnerabilities reported for a specific session.",
+        operationId: "session.vulnerability",
+        responses: {
+          200: {
+            description: "Vulnerability list",
+            content: {
+              "application/json": {
+                schema: resolver(Vulnerability.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const list = Vulnerability.get(sessionID)
+        return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/request",
+      describeRoute({
+        summary: "Get session requests",
+        description: "Retrieve the list of normalized HTTP requests tracked for a specific session.",
+        operationId: "session.request",
+        responses: {
+          200: {
+            description: "Request list",
+            content: {
+              "application/json": {
+                schema: resolver(Request.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const list = Request.get(sessionID)
+        return c.json(list)
+      },
+    )
+    // Web Proxy Agent Context Endpoints
+    .get(
+      "/:sessionID/web/credentials",
+      describeRoute({
+        summary: "Get web credentials",
+        description: "Retrieve the list of credentials for web security testing in this session.",
+        operationId: "session.webCredentials",
+        responses: {
+          200: {
+            description: "Credential list",
+            content: {
+              "application/json": {
+                schema: resolver(WebCredential.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const list = WebCredential.get(sessionID)
+        return c.json(list)
+      },
+    )
+    .post(
+      "/:sessionID/web/credentials",
+      describeRoute({
+        summary: "Add web credential",
+        description: "Add a new credential for web security testing.",
+        operationId: "session.addWebCredential",
+        responses: {
+          200: {
+            description: "Created credential",
+            content: {
+              "application/json": {
+                schema: resolver(WebCredential.Info),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          label: z.string(),
+          headers: z.record(z.string(), z.string()).optional(),
+          container_id: z.string().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        const cred = WebCredential.add({
+          sessionID,
+          label: body.label,
+          headers: body.headers,
+          containerID: body.container_id,
+        })
+        return c.json(cred)
+      },
+    )
+    .delete(
+      "/:sessionID/web/credentials/:credentialID",
+      describeRoute({
+        summary: "Delete web credential",
+        description: "Delete a credential from the session.",
+        operationId: "session.deleteWebCredential",
+        responses: {
+          200: {
+            description: "Successfully deleted",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+          credentialID: z.string().meta({ description: "Credential ID" }),
+        }),
+      ),
+      async (c) => {
+        const params = c.req.valid("param")
+        WebCredential.remove(params.credentialID)
+        return c.json(true)
+      },
+    )
+    .patch(
+      "/:sessionID/web/credentials/:credentialID",
+      describeRoute({
+        summary: "Update web credential",
+        description: "Update a credential's value, label, or role. Used for token refresh.",
+        operationId: "session.updateWebCredential",
+        responses: {
+          200: {
+            description: "Updated credential",
+            content: {
+              "application/json": {
+                schema: resolver(WebCredential.Info),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+          credentialID: z.string().meta({ description: "Credential ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          headers: z.record(z.string(), z.string()).optional().meta({ description: "Auth headers" }),
+          label: z.string().optional().meta({ description: "New label" }),
+          container_id: z.string().optional().meta({ description: "Container ID" }),
+          role_id: z.string().optional().meta({ description: "Role ID to link" }),
+        }),
+      ),
+      async (c) => {
+        const params = c.req.valid("param")
+        const body = c.req.valid("json")
+        try {
+          const updated = WebCredential.update({
+            id: params.credentialID,
+            sessionID: params.sessionID,
+            headers: body.headers,
+            label: body.label,
+            containerID: body.container_id,
+            roleID: body.role_id,
+          })
+          if (!updated) {
+            c.status(404)
+            return c.json({ error: "Credential not found" })
+          }
+          return c.json(updated)
+        } catch (err) {
+          c.status(403)
+          return c.json({ error: (err as Error).message })
+        }
+      },
+    )
+    .get(
+      "/:sessionID/web/roles",
+      describeRoute({
+        summary: "Get web roles",
+        description: "Retrieve discovered roles for web security testing.",
+        operationId: "session.webRoles",
+        responses: {
+          200: {
+            description: "Role list",
+            content: {
+              "application/json": {
+                schema: resolver(WebRole.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const list = WebRole.get(c.req.valid("param").sessionID)
+        return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/web/objects",
+      describeRoute({
+        summary: "Get web objects",
+        description: "Retrieve discovered data objects for web security testing.",
+        operationId: "session.webObjects",
+        responses: {
+          200: {
+            description: "Object list",
+            content: {
+              "application/json": {
+                schema: resolver(WebObject.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const list = WebObject.get(c.req.valid("param").sessionID)
+        return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/web/functions",
+      describeRoute({
+        summary: "Get web functions",
+        description: "Retrieve discovered endpoint functions for web security testing.",
+        operationId: "session.webFunctions",
+        responses: {
+          200: {
+            description: "Function list",
+            content: {
+              "application/json": {
+                schema: resolver(WebFunction.Info.array()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const list = WebFunction.get(c.req.valid("param").sessionID)
+        return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/web/retest-queue",
+      describeRoute({
+        summary: "Get web retest queue",
+        description: "Retrieve pending retests triggered by new discoveries.",
+        operationId: "session.webRetestQueue",
+        responses: {
+          200: {
+            description: "Retest queue",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    pending: z.array(WebRetest.Info),
+                    counts: z.object({
+                      pending: z.number(),
+                      processing: z.number(),
+                      completed: z.number(),
+                    }),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const pending = WebRetest.getPending(sessionID)
+        const counts = WebRetest.count(sessionID)
+        return c.json({ pending, counts })
+      },
+    )
     .post(
       "/",
       describeRoute({
@@ -205,6 +610,160 @@ export const SessionRoutes = lazy(() =>
         const body = c.req.valid("json") ?? {}
         const session = await Session.create(body)
         return c.json(session)
+      },
+    )
+    .post(
+      "/ingest",
+      describeRoute({
+        summary: "Ingest message",
+        description:
+          "Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.",
+        operationId: "session.ingest",
+        responses: {
+          202: {
+            description: "Message accepted",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    sessionID: z
+                      .string()
+                      .meta({ description: "Session id (new or existing); use for follow-up ingest requests" }),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "json",
+        z.object({
+          text: z.string().min(1).meta({ description: "Message text (treated as user input)" }),
+          sessionID: z
+            .string()
+            .optional()
+            .meta({ description: "Existing session id; omit or leave invalid to create a new session" }),
+          agent: z.string().optional().meta({ description: "Agent to use (default if omitted)" }),
+          model: z
+            .object({
+              providerID: z.string(),
+              modelID: z.string(),
+            })
+            .optional()
+            .meta({ description: "Model to use (optional)" }),
+          credential_id: z.string().optional().meta({ description: "Existing credential ID to use for this request" }),
+          credential: z
+            .object({
+              label: z.string(),
+              headers: z.record(z.string(), z.string()).optional(),
+              container_id: z.string().optional(),
+            })
+            .optional()
+            .meta({ description: "New credential to register with this request" }),
+          response: z
+            .object({
+              status: z.number().meta({ description: "HTTP status code" }),
+              headers: z.record(z.string(), z.string()).meta({ description: "Response headers" }),
+              body: z.string().meta({ description: "Response body" }),
+            })
+            .optional()
+            .meta({ description: "HTTP response data" }),
+        }),
+      ),
+      async (c) => {
+        const body = c.req.valid("json")
+        let sessionID = body.sessionID
+        if (sessionID) {
+          try {
+            await Session.get(sessionID)
+          } catch {
+            sessionID = undefined
+          }
+        }
+        if (!sessionID) {
+          const session = await Session.create({})
+          sessionID = session.id
+        }
+
+        // Handle credential registration
+        let credentialID = body.credential_id
+        if (body.credential && !credentialID) {
+          const cred = WebCredential.add({
+            sessionID,
+            label: body.credential.label,
+            headers: body.credential.headers,
+            containerID: body.credential.container_id,
+          })
+          credentialID = cred.id
+          log.info("credential registered", { sessionID, credentialID, label: body.credential.label })
+        }
+
+        const parsed = Request.parseRawRequest(body.text)
+        if (parsed) {
+          const model = body.model ?? (await Provider.defaultModel())
+          const normalizedPath = await Request.normalize({
+            path: parsed.path,
+            providerID: model.providerID,
+            modelID: model.modelID,
+          })
+
+          const isDuplicate = Request.exists({
+            sessionID,
+            method: parsed.method,
+            normalizedPath,
+            bodyHash: Request.hash(parsed.body),
+            queryHash: Request.hashQueryKeys(parsed.query),
+          })
+
+          if (isDuplicate) {
+            log.info("duplicate request skipped", { sessionID, method: parsed.method, path: normalizedPath })
+            c.status(202)
+            return c.json({ sessionID, skipped: true })
+          }
+
+          const req = Request.add({
+            sessionID,
+            method: parsed.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS",
+            normalizedPath,
+            credentialID,
+            rawRequest: body.text,
+            bodyHash: Request.hash(parsed.body),
+            queryHash: Request.hashQueryKeys(parsed.query),
+            response: body.response,
+          })
+
+          // Build prompt with credential context and response
+          const promptText = buildPromptWithCredentialContext(body.text, credentialID, req.processed_response)
+
+          ingestEnqueue(sessionID, async () => {
+            Request.updateStatus({ id: req.id, status: "processing" })
+            try {
+              await SessionPrompt.prompt({
+                sessionID,
+                agent: body.agent ?? "proxy-agent",
+                model: body.model,
+                parts: [{ type: "text", text: promptText }],
+              })
+            } finally {
+              Request.updateStatus({ id: req.id, status: "processed" })
+            }
+          })
+        } else {
+          // Non-HTTP request (plain text message)
+          const promptText = buildPromptWithCredentialContext(body.text, credentialID)
+          ingestEnqueue(sessionID, () =>
+            SessionPrompt.prompt({
+              sessionID,
+              agent: body.agent ?? "proxy-agent",
+              model: body.model,
+              parts: [{ type: "text", text: promptText }],
+            }),
+          )
+        }
+        c.status(202)
+        return c.json({ sessionID })
       },
     )
     .delete(

@@ -3,9 +3,6 @@ import { isClaudeCliInstalled } from "@/auth/cli-credentials"
 
 const log = Log.create({ service: "claude-cli-backend" })
 
-// Resolve the browser MCP server script path relative to this file
-const BROWSER_SERVER_PATH = new URL("../mcp/browser-server.ts", import.meta.url).pathname
-
 export interface ClaudeCliResponse {
   result?: string
   response?: string
@@ -25,8 +22,6 @@ export interface ClaudeCliOptions {
   sessionId?: string
   timeoutMs?: number
   workingDirectory?: string
-  /** Enable browser MCP server for tool support */
-  enableBrowser?: boolean
 }
 
 const MODEL_ALIASES: Record<string, string> = {
@@ -73,9 +68,7 @@ export async function runClaudeCli(
   }
 
   const model = normalizeModel(options.model ?? "sonnet")
-  const timeoutMs = options.timeoutMs ?? 900000 // 15 minutes default (security ops can be long)
-
-  const cwd = options.workingDirectory ?? process.cwd()
+  const timeoutMs = options.timeoutMs ?? 300000 // 5 minutes default
 
   const args: string[] = [
     "-p", // print mode
@@ -85,24 +78,6 @@ export async function runClaudeCli(
     "--model",
     model,
   ]
-
-  // Inject HackR Browser MCP server so Claude CLI can use browser tool natively
-  if (options.enableBrowser !== false) {
-    const mcpConfig = JSON.stringify({
-      mcpServers: {
-        browser: {
-          command: "bun",
-          args: ["run", BROWSER_SERVER_PATH],
-          env: {
-            CYBERSTRIKE_WORK_DIR: cwd,
-            CYBERSTRIKE_SESSION_ID: options.sessionId ?? `cli-${Date.now()}`,
-          },
-        },
-      },
-    })
-    args.push("--mcp-config", mcpConfig)
-    log.info("injecting browser MCP server", { serverPath: BROWSER_SERVER_PATH })
-  }
 
   if (options.systemPrompt) {
     args.push(
@@ -134,12 +109,11 @@ ${options.systemPrompt}`,
     promptLength: prompt.length,
     hasSystemPrompt: !!options.systemPrompt,
     hasSessionId: !!options.sessionId,
-    browserMcp: options.enableBrowser !== false,
   })
 
   try {
     const proc = Bun.spawn(["claude", ...args], {
-      cwd,
+      cwd: options.workingDirectory ?? process.cwd(),
       env: {
         ...process.env,
         // Clear any API keys to ensure CLI uses its own auth
@@ -149,22 +123,16 @@ ${options.systemPrompt}`,
       stderr: "pipe",
     })
 
-    // Set up timeout with cleanup
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    // Set up timeout
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
+      setTimeout(() => {
         proc.kill()
         reject(new Error(`Claude CLI timed out after ${timeoutMs}ms`))
       }, timeoutMs)
     })
 
     // Wait for process to complete or timeout
-    let exitCode: number
-    try {
-      exitCode = await Promise.race([proc.exited, timeoutPromise])
-    } finally {
-      clearTimeout(timeoutId)
-    }
+    const exitCode = await Promise.race([proc.exited, timeoutPromise])
 
     if (exitCode !== 0) {
       const stderr = await new Response(proc.stderr).text()

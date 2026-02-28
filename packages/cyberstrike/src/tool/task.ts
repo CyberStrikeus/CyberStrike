@@ -10,6 +10,8 @@ import { iife } from "@/util/iife"
 import { defer } from "@/util/defer"
 import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
+import { Request } from "../session/request"
+import { WebCredential } from "../session/web/web-credential"
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -22,6 +24,8 @@ const parameters = z.object({
     )
     .optional(),
   command: z.string().describe("The command that triggered this task").optional(),
+  request_id: z.string().describe("Request ID to use as current request context (parent session).").optional(),
+  request_context: z.string().describe("Optional text to prepend before the task (e.g. extra context).").optional(),
 })
 
 export const TaskTool = Tool.define("task", async (ctx) => {
@@ -123,7 +127,66 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       }
       ctx.abort.addEventListener("abort", cancel)
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
-      const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
+
+      let prompt = params.prompt
+      if (agent.prependRequestContext) {
+        const requests = Request.get(ctx.sessionID)
+        const current =
+          (params.request_id ? requests.find((r) => r.id === params.request_id) : null) ??
+          requests.find((r) => r.status === "processing") ??
+          requests.sort((a, b) => b.time.updated - a.time.updated)[0]
+        const lines: string[] = []
+        if (params.request_context?.trim()) lines.push(params.request_context.trim())
+        if (current) {
+          lines.push(
+            "## Current request",
+            `- request_id: ${current.id}`,
+            `- session_id: ${current.session_id}`,
+            `- method: ${current.method}`,
+            `- normalized_path: ${current.normalized_path}`,
+            `- status: ${current.status}`,
+          )
+
+          // Credential context
+          if (current.credential_id) {
+            const cred = WebCredential.getById(current.credential_id)
+            if (cred) {
+              lines.push("")
+              lines.push("## Credential Context")
+              lines.push(`- credential_id: ${cred.id}`)
+              lines.push(`- label: ${cred.label}`)
+              if (cred.container_id) {
+                lines.push(`- container_id: ${cred.container_id}`)
+              }
+              if (Object.keys(cred.headers).length > 0) {
+                lines.push("- headers:")
+                for (const [key, value] of Object.entries(cred.headers)) {
+                  const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
+                  lines.push(`  - ${key}: ${displayValue}`)
+                }
+              }
+              if (cred.role_id) {
+                lines.push(`- role_id: ${cred.role_id}`)
+              }
+            }
+          } else {
+            lines.push("")
+            lines.push("## Credential Context")
+            lines.push("UNAUTHENTICATED (no credential associated with this request)")
+          }
+
+          if (current.raw_request) {
+            lines.push("", "## Raw HTTP Request", "```", current.raw_request, "```")
+          }
+
+          // Response
+          if (current.processed_response) {
+            lines.push("", "## Response", "```", current.processed_response, "```")
+          }
+        }
+        if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
+      }
+      const promptParts = await SessionPrompt.resolvePromptParts(prompt)
 
       const result = await SessionPrompt.prompt({
         messageID,

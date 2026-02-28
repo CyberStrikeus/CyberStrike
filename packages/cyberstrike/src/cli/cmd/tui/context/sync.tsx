@@ -57,6 +57,60 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       todo: {
         [sessionID: string]: Todo[]
       }
+      vulnerability: {
+        [sessionID: string]: Array<{
+          id?: string
+          severity: string
+          title: string
+          description: string
+          file?: string
+          line_start?: number
+          line_end?: number
+          status?: string
+        }>
+      }
+      request: {
+        [sessionID: string]: Array<{
+          id: string
+          method: string
+          normalized_path: string
+          status: string
+        }>
+      }
+      web_credential: {
+        [sessionID: string]: Array<{
+          id: string
+          label: string
+          type: string
+        }>
+      }
+      web_role: {
+        [sessionID: string]: Array<{
+          id: string
+          name: string
+          level?: number
+        }>
+      }
+      web_object: {
+        [sessionID: string]: Array<{
+          id: string
+          name: string
+        }>
+      }
+      web_function: {
+        [sessionID: string]: Array<{
+          id: string
+          name: string
+          action_type: string
+        }>
+      }
+      web_retest: {
+        [sessionID: string]: Array<{
+          id: string
+          status: string
+          priority: string
+        }>
+      }
       message: {
         [sessionID: string]: Message[]
       }
@@ -92,6 +146,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_status: {},
       session_diff: {},
       todo: {},
+      vulnerability: {},
+      request: {},
+      web_credential: {},
+      web_role: {},
+      web_object: {},
+      web_function: {},
+      web_retest: {},
       message: {},
       part: {},
       lsp: [],
@@ -340,6 +401,33 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           setStore("vcs", { branch: event.properties.branch })
           break
         }
+        case "vulnerability.updated": {
+          setStore("vulnerability", event.properties.sessionID, event.properties.vulnerabilities)
+          break
+        }
+        case "request.updated": {
+          setStore("request", event.properties.sessionID, event.properties.requests)
+          break
+        }
+      }
+
+      const raw = event as { type: string; properties: Record<string, any> }
+      switch (raw.type) {
+        case "web_credential.updated":
+          setStore("web_credential", raw.properties.sessionID, raw.properties.credentials)
+          break
+        case "web_role.updated":
+          setStore("web_role", raw.properties.sessionID, raw.properties.roles)
+          break
+        case "web_object.updated":
+          setStore("web_object", raw.properties.sessionID, raw.properties.objects)
+          break
+        case "web_function.updated":
+          setStore("web_function", raw.properties.sessionID, raw.properties.functions)
+          break
+        case "web_retest.updated":
+          setStore("web_retest", raw.properties.sessionID, raw.properties.queue)
+          break
       }
     })
 
@@ -459,11 +547,19 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         },
         async sync(sessionID: string) {
           if (fullSyncedSessions.has(sessionID)) return
-          const [session, messages, todo, diff] = await Promise.all([
+          const http = (sdk.client as any).client as { get: (opts: { url: string }) => Promise<{ data?: any }> }
+          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest] = await Promise.all([
             sdk.client.session.get({ sessionID }, { throwOnError: true }),
             sdk.client.session.messages({ sessionID, limit: 100 }),
             sdk.client.session.todo({ sessionID }),
             sdk.client.session.diff({ sessionID }),
+            sdk.client.session.vulnerability({ sessionID }).catch(() => ({ data: [] })),
+            sdk.client.session.request({ sessionID }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/web/credentials` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
           ])
           setStore(
             produce((draft) => {
@@ -471,6 +567,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               if (match.found) draft.session[match.index] = session.data!
               if (!match.found) draft.session.splice(match.index, 0, session.data!)
               draft.todo[sessionID] = todo.data ?? []
+              draft.vulnerability[sessionID] = vuln?.data ?? []
+              draft.request[sessionID] = req?.data ?? []
+              draft.web_credential[sessionID] = wCred?.data ?? []
+              draft.web_role[sessionID] = wRole?.data ?? []
+              draft.web_object[sessionID] = wObj?.data ?? []
+              draft.web_function[sessionID] = wFunc?.data ?? []
+              draft.web_retest[sessionID] = wRetest?.data?.pending ?? []
               draft.message[sessionID] = messages.data!.map((x) => x.info)
               for (const message of messages.data!) {
                 draft.part[message.info.id] = message.parts

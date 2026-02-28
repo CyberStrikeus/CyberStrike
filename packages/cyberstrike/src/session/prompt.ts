@@ -11,8 +11,6 @@ import { Agent } from "../agent/agent"
 import { Provider } from "../provider/provider"
 import { type Tool as AITool, tool, jsonSchema, type ToolCallOptions, asSchema } from "ai"
 import { SessionCompaction } from "./compaction"
-import { MemoryFlush } from "./memory-flush"
-import { Config } from "../config/config"
 import { Instance } from "../project/instance"
 import { Bus } from "../bus"
 import { ProviderTransform } from "../provider/transform"
@@ -535,30 +533,6 @@ export namespace SessionPrompt {
         continue
       }
 
-      // pre-compaction memory flush
-      if (lastFinished && !lastFinished.summary && !session.parentID) {
-        const cycle = MemoryFlush.countCompactionCycles(msgs)
-        if (
-          await MemoryFlush.shouldFlush({
-            tokens: lastFinished.tokens,
-            model,
-            sessionID,
-            compactionCycle: cycle,
-          })
-        ) {
-          log.info("running pre-compaction memory flush", { sessionID, cycle })
-          await runMemoryFlush({
-            sessionID,
-            model,
-            abort,
-            parentID: lastUser.id,
-            agent: lastUser.agent,
-            messages: msgs,
-          })
-          MemoryFlush.markFlushed(sessionID, cycle)
-        }
-      }
-
       // context overflow, needs compaction
       if (
         lastFinished &&
@@ -751,107 +725,6 @@ export namespace SessionPrompt {
       if (item.info.role === "user" && item.info.model) return item.info.model
     }
     return Provider.defaultModel()
-  }
-
-  /** Run a pre-compaction memory flush: synthetic agentic turn that writes durable memories. */
-  async function runMemoryFlush(input: {
-    sessionID: string
-    model: Provider.Model
-    abort: AbortSignal
-    parentID: string
-    agent: string
-    messages: MessageV2.WithParts[]
-  }) {
-    const config = await Config.get()
-    const flushConfig = config.compaction?.memoryFlush
-
-    const systemPrompt = flushConfig?.systemPrompt ?? MemoryFlush.DEFAULT_SYSTEM_PROMPT
-    const userPrompt = flushConfig?.prompt ?? MemoryFlush.DEFAULT_PROMPT
-
-    // Create synthetic user message for flush
-    const flushUserMsg = await Session.updateMessage({
-      id: Identifier.ascending("message"),
-      role: "user",
-      sessionID: input.sessionID,
-      time: { created: Date.now() },
-      agent: input.agent,
-      model: { providerID: input.model.providerID, modelID: input.model.id },
-    })
-    await Session.updatePart({
-      id: Identifier.ascending("part"),
-      messageID: flushUserMsg.id,
-      sessionID: input.sessionID,
-      type: "text",
-      synthetic: true,
-      text: userPrompt,
-      time: { start: Date.now(), end: Date.now() },
-    } satisfies MessageV2.TextPart)
-
-    // Create assistant message for flush response
-    const flushAssistantMsg = (await Session.updateMessage({
-      id: Identifier.ascending("message"),
-      role: "assistant",
-      parentID: flushUserMsg.id,
-      sessionID: input.sessionID,
-      mode: "memory-flush",
-      agent: input.agent,
-      path: { cwd: Instance.directory, root: Instance.worktree },
-      cost: 0,
-      tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
-      modelID: input.model.id,
-      providerID: input.model.providerID,
-      time: { created: Date.now() },
-    })) as MessageV2.Assistant
-
-    // Run with tools so agent can write files
-    const agent = await Agent.get(input.agent)
-    const processor = SessionProcessor.create({
-      assistantMessage: flushAssistantMsg,
-      sessionID: input.sessionID,
-      model: input.model,
-      abort: input.abort,
-    })
-
-    const session = await Session.get(input.sessionID)
-    const tools = await resolveTools({
-      agent,
-      session,
-      model: input.model,
-      processor,
-      bypassAgentCheck: false,
-      messages: input.messages,
-    })
-
-    await processor.process({
-      user: flushUserMsg as MessageV2.User,
-      agent,
-      abort: input.abort,
-      sessionID: input.sessionID,
-      tools,
-      system: [systemPrompt],
-      messages: [
-        ...MessageV2.toModelMessages(input.messages, input.model),
-        {
-          role: "user",
-          content: [{ type: "text", text: userPrompt }],
-        },
-      ],
-      model: input.model,
-    })
-
-    // If the model replied NO_REPLY, mark text parts as synthetic (hidden in UI)
-    const updatedMsgs = await Session.messages({ sessionID: input.sessionID })
-    const flushResponse = updatedMsgs.find((m) => m.info.id === flushAssistantMsg.id)
-    if (flushResponse) {
-      for (const part of flushResponse.parts) {
-        if (part.type === "text" && MemoryFlush.isSilentReply(part.text)) {
-          await Session.updatePart({
-            ...part,
-            synthetic: true,
-          })
-        }
-      }
-    }
   }
 
   /** @internal Exported for testing */
