@@ -1,0 +1,1 @@
+-- placeholder: endpoint table merged into web-proxy-tables migration (20260222221050)
