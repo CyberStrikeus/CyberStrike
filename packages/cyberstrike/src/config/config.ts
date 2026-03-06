@@ -636,6 +636,7 @@ export namespace Config {
           external_directory: PermissionRule.optional(),
           todowrite: PermissionAction.optional(),
           todoread: PermissionAction.optional(),
+          report_vulnerability: PermissionAction.optional(),
           question: PermissionAction.optional(),
           webfetch: PermissionAction.optional(),
           websearch: PermissionAction.optional(),
@@ -725,6 +726,7 @@ export namespace Config {
         "permission",
         "disable",
         "tools",
+        "prependRequestContext",
       ])
 
       // Extract unknown properties into options
