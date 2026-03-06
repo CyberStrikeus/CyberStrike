@@ -1,0 +1,2 @@
+Tests IDOR vulnerabilities by manipulating object IDs in paths, queries, and bodies. Effective when: (1) request contains numeric/UUID identifiers, OR (2) session has multiple credentials with cross-user object values, OR (3) endpoint operates on user-specific resources. Can test with single credential using ID manipulation (sequential, negative, admin IDs).
+Performs comprehensive Insecure Direct Object Reference testing across all discovered objects and credentials in the session context.

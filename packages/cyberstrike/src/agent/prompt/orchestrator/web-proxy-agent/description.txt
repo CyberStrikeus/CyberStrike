@@ -1,0 +1,2 @@
+Pure orchestrator agent that receives HTTP requests, delegates analysis to proxy-analyzer, manages application architecture context, and intelligently selects appropriate vulnerability testing subagents based on request characteristics and accumulated session context. Does not perform testing directly.
+Main orchestration agent for web application security testing workflow.
