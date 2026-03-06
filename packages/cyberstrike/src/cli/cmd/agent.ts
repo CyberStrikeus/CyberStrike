@@ -25,6 +25,7 @@ const AVAILABLE_TOOLS = [
   "task",
   "todowrite",
   "todoread",
+  "report_vulnerability",
 ]
 
 const AgentCreateCommand = cmd({
