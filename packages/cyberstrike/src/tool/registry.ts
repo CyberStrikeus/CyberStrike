@@ -7,6 +7,7 @@ import { BatchTool } from "./batch"
 import { ReadTool } from "./read"
 import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
+import { ReportVulnerabilityTool } from "./vulnerability"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
@@ -31,6 +32,12 @@ import { BrowserTool } from "./browser"
 import { MemorySearchTool, MemoryWriteTool, MemoryReadTool, MemoryContextTool } from "./memory"
 import { ToolSearchTool, LoadToolsTool, UnloadToolsTool, ListLoadedToolsTool } from "./tool-search"
 import { LazyToolRegistry } from "./lazy-registry"
+import { WebWriteRoleTool } from "./web-write-role"
+import { WebWriteObjectTool } from "./web-write-object"
+import { WebWriteObjectValueTool } from "./web-write-object-value"
+import { WebWriteFunctionTool } from "./web-write-function"
+import { WebGetSessionContextTool } from "./web-get-session-context"
+import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -111,6 +118,7 @@ export namespace ToolRegistry {
       TaskTool,
       WebFetchTool,
       TodoWriteTool,
+      ReportVulnerabilityTool,
       // TodoReadTool,
       WebSearchTool,
       CodeSearchTool,
@@ -118,7 +126,9 @@ export namespace ToolRegistry {
       ApplyPatchTool,
       ...(Flag.CYBERSTRIKE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
-      ...(Flag.CYBERSTRIKE_EXPERIMENTAL_PLAN_MODE && Flag.CYBERSTRIKE_CLIENT === "cli" ? [PlanExitTool, PlanEnterTool] : []),
+      ...(Flag.CYBERSTRIKE_EXPERIMENTAL_PLAN_MODE && Flag.CYBERSTRIKE_CLIENT === "cli"
+        ? [PlanExitTool, PlanEnterTool]
+        : []),
       BrowserTool,
       MemorySearchTool,
       MemoryWriteTool,
@@ -128,6 +138,13 @@ export namespace ToolRegistry {
       LoadToolsTool,
       UnloadToolsTool,
       ListLoadedToolsTool,
+      // Web Proxy Agent Tools
+      WebWriteRoleTool,
+      WebWriteObjectTool,
+      WebWriteObjectValueTool,
+      WebWriteFunctionTool,
+      WebGetSessionContextTool,
+      WebUpdateCredentialClaimsTool,
       ...custom,
     ]
   }
