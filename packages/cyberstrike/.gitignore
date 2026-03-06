@@ -3,3 +3,9 @@ dist
 gen
 app.log
 src/provider/models-snapshot.ts
+cookies.txt
+headers.txt
+jq
+postman/
+TODO.md
+update_review_payload.json
