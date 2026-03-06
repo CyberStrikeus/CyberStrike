@@ -45,7 +45,7 @@ export function Dialog(
           dismiss = false
           e.stopPropagation()
         }}
-        width={props.size === "large" ? 80 : 60}
+        width={props.size === "large" ? 120 : 60}
         maxWidth={dimensions().width - 2}
         backgroundColor={theme.backgroundPanel}
         paddingTop={1}
