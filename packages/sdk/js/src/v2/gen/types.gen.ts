@@ -715,6 +715,33 @@ export type EventTodoUpdated = {
   }
 }
 
+export type Vulnerability = {
+  id?: string
+  severity: "critical" | "high" | "medium" | "low" | "info"
+  title: string
+  description: string
+  cwe_id?: string
+  file?: string
+  line_start?: number
+  line_end?: number
+  evidence?: string
+  recommendation?: string
+  status?: "open" | "fixed" | "ignored"
+  message_id?: string
+  time?: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventVulnerabilityUpdated = {
+  type: "vulnerability.updated"
+  properties: {
+    sessionID: string
+    vulnerabilities: Array<Vulnerability>
+  }
+}
+
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -887,6 +914,28 @@ export type EventVcsBranchUpdated = {
   }
 }
 
+export type Request = {
+  id: string
+  session_id: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  normalized_path: string
+  body_hash?: string
+  query_hash?: string
+  status: "queued" | "processing" | "processed"
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventRequestUpdated = {
+  type: "request.updated"
+  properties: {
+    sessionID: string
+    requests: Array<Request>
+  }
+}
+
 export type Pty = {
   id: string
   title: string
@@ -966,6 +1015,7 @@ export type Event =
   | EventSessionCompacted
   | EventFileWatcherUpdated
   | EventTodoUpdated
+  | EventVulnerabilityUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -979,6 +1029,7 @@ export type Event =
   | EventSessionDiff
   | EventSessionError
   | EventVcsBranchUpdated
+  | EventRequestUpdated
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
@@ -1425,6 +1476,7 @@ export type PermissionConfig =
       external_directory?: PermissionRuleConfig
       todowrite?: PermissionActionConfig
       todoread?: PermissionActionConfig
+      report_vulnerability?: PermissionActionConfig
       question?: PermissionActionConfig
       webfetch?: PermissionActionConfig
       websearch?: PermissionActionConfig
@@ -1702,7 +1754,7 @@ export type Config = {
   }
   server?: ServerConfig
   /**
-   * Command configuration, see https://cyberstrike.us/docs/commands
+   * Command configuration, see https://cyberstrike.io/docs/commands
    */
   command?: {
     [key: string]: {
@@ -1776,7 +1828,7 @@ export type Config = {
     [key: string]: AgentConfig | undefined
   }
   /**
-   * Agent configuration, see https://cyberstrike.us/docs/agents
+   * Agent configuration, see https://cyberstrike.io/docs/agents
    */
   agent?: {
     plan?: AgentConfig
@@ -2225,6 +2277,7 @@ export type Agent = {
   }
   variant?: string
   prompt?: string
+  skills?: Array<string>
   options: {
     [key: string]: unknown
   }
@@ -3160,6 +3213,134 @@ export type SessionTodoResponses = {
 }
 
 export type SessionTodoResponse = SessionTodoResponses[keyof SessionTodoResponses]
+
+export type SessionVulnerabilityData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vulnerability"
+}
+
+export type SessionVulnerabilityErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionVulnerabilityError = SessionVulnerabilityErrors[keyof SessionVulnerabilityErrors]
+
+export type SessionVulnerabilityResponses = {
+  /**
+   * Vulnerability list
+   */
+  200: Array<Vulnerability>
+}
+
+export type SessionVulnerabilityResponse = SessionVulnerabilityResponses[keyof SessionVulnerabilityResponses]
+
+export type SessionRequestData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/request"
+}
+
+export type SessionRequestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionRequestError = SessionRequestErrors[keyof SessionRequestErrors]
+
+export type SessionRequestResponses = {
+  /**
+   * Request list
+   */
+  200: Array<Request>
+}
+
+export type SessionRequestResponse = SessionRequestResponses[keyof SessionRequestResponses]
+
+export type SessionIngestData = {
+  body?: {
+    /**
+     * Message text (treated as user input)
+     */
+    text: string
+    /**
+     * Existing session id; omit or leave invalid to create a new session
+     */
+    sessionID?: string
+    /**
+     * Agent to use (default if omitted)
+     */
+    agent?: string
+    /**
+     * Model to use (optional)
+     */
+    model?: {
+      providerID: string
+      modelID: string
+    }
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/session/ingest"
+}
+
+export type SessionIngestErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionIngestError = SessionIngestErrors[keyof SessionIngestErrors]
+
+export type SessionIngestResponses = {
+  /**
+   * Message accepted
+   */
+  202: {
+    /**
+     * Session id (new or existing); use for follow-up ingest requests
+     */
+    sessionID: string
+  }
+}
+
+export type SessionIngestResponse = SessionIngestResponses[keyof SessionIngestResponses]
 
 export type SessionInitData = {
   body?: {
