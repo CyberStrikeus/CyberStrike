@@ -17,12 +17,46 @@ import PROMPT_WEB_APPLICATION from "./prompt/web-application.txt"
 import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
 import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
 import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
+import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
+
+// New folder-based agent imports
+import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
+import PROMPT_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/prompt.txt"
+import DESC_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/description.txt"
+import PROMPT_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/prompt.txt"
+import DESC_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/description.txt"
+import PROMPT_PROXY_TESTER_IDOR from "./prompt/vuln/idor/prompt.txt"
+import DESC_PROXY_TESTER_IDOR from "./prompt/vuln/idor/description.txt"
+import PROMPT_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/prompt.txt"
+import DESC_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/description.txt"
+import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/prompt.txt"
+import DESC_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/description.txt"
+import PROMPT_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/prompt.txt"
+import DESC_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/description.txt"
+import PROMPT_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/prompt.txt"
+import DESC_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/description.txt"
+import PROMPT_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/prompt.txt"
+import DESC_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/description.txt"
+import PROMPT_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/prompt.txt"
+import DESC_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/description.txt"
+import PROMPT_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/prompt.txt"
+import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/description.txt"
+
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import { Global } from "@/global"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
+
+// Helper function to load vulnerability agent with common prompt prepended
+function loadVulnAgent(prompt: string, description: string): { prompt: string; description: string } {
+  // First line of description for agent.ts, full description for future use
+  const shortDesc = description.split("\n")[0].trim()
+  // Prepend common vulnerability testing instructions to agent-specific prompt
+  const fullPrompt = `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}`
+  return { prompt: fullPrompt, description: shortDesc }
+}
 
 export namespace Agent {
   export const Info = z
@@ -47,6 +81,7 @@ export namespace Agent {
       skills: z.array(z.string()).optional(),
       options: z.record(z.string(), z.any()),
       steps: z.number().int().positive().optional(),
+      prependRequestContext: z.boolean().optional(),
     })
     .meta({
       ref: "Agent",
@@ -125,6 +160,7 @@ export namespace Agent {
           PermissionNext.fromConfig({
             todoread: "deny",
             todowrite: "deny",
+            report_vulnerability: "deny",
           }),
           user,
         ),
@@ -189,6 +225,22 @@ export namespace Agent {
         ),
         prompt: PROMPT_TITLE,
       },
+      "normalize-request": {
+        name: "normalize-request",
+        mode: "primary",
+        options: {},
+        native: true,
+        hidden: true,
+        temperature: 0,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+          }),
+          user,
+        ),
+        prompt: PROMPT_NORMALIZE_REQUEST,
+      },
       summary: {
         name: "summary",
         mode: "primary",
@@ -206,18 +258,12 @@ export namespace Agent {
       },
       "web-application": {
         name: "web-application",
-        description:
-          "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
+        description: "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
         mode: "primary",
         native: true,
         color: "red",
         prompt: PROMPT_WEB_APPLICATION,
-        skills: [
-          "wstg-recon-config",
-          "wstg-auth-session",
-          "wstg-injection",
-          "wstg-logic-client-api",
-        ],
+        skills: ["wstg-recon-config", "wstg-auth-session", "wstg-injection", "wstg-logic-client-api"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -229,6 +275,7 @@ export namespace Agent {
             grep: "allow",
             webfetch: "allow",
             websearch: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -251,6 +298,7 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -258,8 +306,7 @@ export namespace Agent {
       },
       "cloud-security": {
         name: "cloud-security",
-        description:
-          "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
+        description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
         mode: "primary",
         native: true,
         color: "cyan",
@@ -273,6 +320,7 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
@@ -280,8 +328,7 @@ export namespace Agent {
       },
       "internal-network": {
         name: "internal-network",
-        description:
-          "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
+        description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
         mode: "primary",
         native: true,
         color: "yellow",
@@ -296,11 +343,173 @@ export namespace Agent {
             read: "allow",
             glob: "allow",
             grep: "allow",
+            report_vulnerability: "allow",
           }),
           user,
         ),
         options: {},
       },
+      "proxy-agent": {
+        name: "proxy-agent",
+        description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
+        mode: "primary",
+        native: true,
+        color: "blue",
+        prompt: PROMPT_WEB_PROXY_AGENT,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            web_get_session_context: "allow",
+            // proxy-agent is a pure orchestrator - it only reads session context
+            // and delegates to subagents. Writing is done by proxy-analyzer.
+          }),
+          user,
+        ),
+        options: {},
+      },
+      // Proxy Agent SubAgents
+      "proxy-analyzer": {
+        name: "proxy-analyzer",
+        description: DESC_PROXY_ANALYZER.split("\n")[0].trim(),
+        mode: "subagent",
+        native: true,
+        hidden: true,
+        prompt: PROMPT_PROXY_ANALYZER,
+        prependRequestContext: true,
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            web_write_role: "allow",
+            web_write_object: "allow",
+            web_write_object_value: "allow",
+            web_write_function: "allow",
+            web_update_credential_claims: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      ...(() => {
+        const idorAgent = loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR)
+        const authzAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ)
+        const massAssignmentAgent = loadVulnAgent(
+          PROMPT_PROXY_TESTER_MASS_ASSIGNMENT,
+          DESC_PROXY_TESTER_MASS_ASSIGNMENT,
+        )
+        const injectionAgent = loadVulnAgent(PROMPT_PROXY_TESTER_INJECTION, DESC_PROXY_TESTER_INJECTION)
+        const authnAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHN, DESC_PROXY_TESTER_AUTHN)
+        const businessLogicAgent = loadVulnAgent(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, DESC_PROXY_TESTER_BUSINESS_LOGIC)
+        const ssrfAgent = loadVulnAgent(PROMPT_PROXY_TESTER_SSRF, DESC_PROXY_TESTER_SSRF)
+        const fileAttacksAgent = loadVulnAgent(PROMPT_PROXY_TESTER_FILE_ATTACKS, DESC_PROXY_TESTER_FILE_ATTACKS)
+
+        const vulnAgentPermission = PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            "*": "deny",
+            bash: "allow",
+            webfetch: "allow",
+            web_get_session_context: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        )
+
+        return {
+          "proxy-tester-idor": {
+            name: "proxy-tester-idor",
+            description: idorAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: idorAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-authz": {
+            name: "proxy-tester-authz",
+            description: authzAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: authzAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-mass-assignment": {
+            name: "proxy-tester-mass-assignment",
+            description: massAssignmentAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: massAssignmentAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-injection": {
+            name: "proxy-tester-injection",
+            description: injectionAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: injectionAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-authn": {
+            name: "proxy-tester-authn",
+            description: authnAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: authnAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-business-logic": {
+            name: "proxy-tester-business-logic",
+            description: businessLogicAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: businessLogicAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-ssrf": {
+            name: "proxy-tester-ssrf",
+            description: ssrfAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: ssrfAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-file-attacks": {
+            name: "proxy-tester-file-attacks",
+            description: fileAttacksAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: fileAttacksAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+        }
+      })(),
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
