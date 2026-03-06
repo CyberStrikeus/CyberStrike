@@ -54,9 +54,17 @@ export namespace Database {
       .map((name) => {
         const file = path.join(dir, name, "migration.sql")
         if (!Bun.file(file).size) return
+        const ts = time(name)
+        if (ts === 0) {
+          throw new Error(
+            `Migration folder "${name}" has invalid name. ` +
+              `Folder names must start with 14 digits (YYYYMMDDHHmmss). ` +
+              `Example: 20260225000000_my-migration`,
+          )
+        }
         return {
           sql: readFileSync(file, "utf-8"),
-          timestamp: time(name),
+          timestamp: ts,
         }
       })
       .filter(Boolean) as Journal
