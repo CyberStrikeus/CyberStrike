@@ -544,6 +544,22 @@ export namespace Session {
     }
   }
 
+  export function root(sessionID: string): string {
+    let current = sessionID
+    for (let i = 0; i < 10; i++) {
+      const row = Database.use((db) =>
+        db
+          .select({ parent_id: SessionTable.parent_id })
+          .from(SessionTable)
+          .where(eq(SessionTable.id, current))
+          .get(),
+      )
+      if (!row?.parent_id) return current
+      current = row.parent_id
+    }
+    return current
+  }
+
   export const children = fn(Identifier.schema("session"), async (parentID) => {
     const project = Instance.project
     const rows = Database.use((db) =>

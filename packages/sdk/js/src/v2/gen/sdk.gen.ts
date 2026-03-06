@@ -111,6 +111,8 @@ import type {
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
+  SessionIngestErrors,
+  SessionIngestResponses,
   SessionInitErrors,
   SessionInitResponses,
   SessionListResponses,
@@ -122,6 +124,8 @@ import type {
   SessionPromptAsyncResponses,
   SessionPromptErrors,
   SessionPromptResponses,
+  SessionRequestErrors,
+  SessionRequestResponses,
   SessionRevertErrors,
   SessionRevertResponses,
   SessionShareErrors,
@@ -140,6 +144,8 @@ import type {
   SessionUnshareResponses,
   SessionUpdateErrors,
   SessionUpdateResponses,
+  SessionVulnerabilityErrors,
+  SessionVulnerabilityResponses,
   SubtaskPartInput,
   TextPartInput,
   ToolIdsErrors,
@@ -1179,6 +1185,114 @@ export class Session extends HeyApiClient {
       url: "/session/{sessionID}/todo",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Get session vulnerabilities
+   *
+   * Retrieve the list of vulnerabilities reported for a specific session.
+   */
+  public vulnerability<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionVulnerabilityResponses,
+      SessionVulnerabilityErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/vulnerability",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get session requests
+   *
+   * Retrieve the list of normalized HTTP requests tracked for a specific session.
+   */
+  public request<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionRequestResponses, SessionRequestErrors, ThrowOnError>({
+      url: "/session/{sessionID}/request",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Ingest message
+   *
+   * Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.
+   */
+  public ingest<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      text?: string
+      sessionID?: string
+      agent?: string
+      model?: {
+        providerID: string
+        modelID: string
+      }
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "text" },
+            { in: "body", key: "sessionID" },
+            { in: "body", key: "agent" },
+            { in: "body", key: "model" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionIngestResponses, SessionIngestErrors, ThrowOnError>({
+      url: "/session/ingest",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
