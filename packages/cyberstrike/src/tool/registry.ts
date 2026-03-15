@@ -26,7 +26,6 @@ import { Flag } from "@/flag/flag"
 import { Log } from "@/util/log"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncation"
-import { PlanExitTool, PlanEnterTool } from "./plan"
 import { ApplyPatchTool } from "./apply_patch"
 import { BrowserTool } from "./browser"
 import { MemorySearchTool, MemoryWriteTool, MemoryReadTool, MemoryContextTool } from "./memory"
@@ -37,6 +36,7 @@ import { WebWriteObjectTool } from "./web-write-object"
 import { WebWriteObjectValueTool } from "./web-write-object-value"
 import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
+import { WebGetRequestDetailTool } from "./web-get-request-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 
 export namespace ToolRegistry {
@@ -126,9 +126,6 @@ export namespace ToolRegistry {
       ApplyPatchTool,
       ...(Flag.CYBERSTRIKE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
-      ...(Flag.CYBERSTRIKE_EXPERIMENTAL_PLAN_MODE && Flag.CYBERSTRIKE_CLIENT === "cli"
-        ? [PlanExitTool, PlanEnterTool]
-        : []),
       BrowserTool,
       MemorySearchTool,
       MemoryWriteTool,
@@ -144,6 +141,7 @@ export namespace ToolRegistry {
       WebWriteObjectValueTool,
       WebWriteFunctionTool,
       WebGetSessionContextTool,
+      WebGetRequestDetailTool,
       WebUpdateCredentialClaimsTool,
       ...custom,
     ]

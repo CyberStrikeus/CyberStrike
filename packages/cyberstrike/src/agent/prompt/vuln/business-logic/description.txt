@@ -1,0 +1,2 @@
+Tests business logic flaws: price manipulation, workflow bypass, negative values, integer overflow, rate limit abuse. Effective when: endpoint involves transactions, financial operations, multi-step workflows, or quantity-based logic. Uses session context to understand workflow sequences and identify bypass opportunities.
+Business logic vulnerability testing for financial, transactional, and workflow-based endpoints.

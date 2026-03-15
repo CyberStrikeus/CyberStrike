@@ -17,18 +17,45 @@ import PROMPT_WEB_APPLICATION from "./prompt/web-application.txt"
 import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
 import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
 import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
-import PROMPT_WEB_PROXY_AGENT from "./prompt/web-proxy-agent.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
-import PROMPT_PROXY_ANALYZER from "./prompt/proxy-analyzer.txt"
-import PROMPT_PROXY_TESTER_IDOR from "./prompt/proxy-tester-idor.txt"
-import PROMPT_PROXY_TESTER_AUTHZ from "./prompt/proxy-tester-authz.txt"
-import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/proxy-tester-mass-assignment.txt"
+
+// New folder-based agent imports
+import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
+import PROMPT_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/prompt.txt"
+import DESC_WEB_PROXY_AGENT from "./prompt/orchestrator/web-proxy-agent/description.txt"
+import PROMPT_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/prompt.txt"
+import DESC_PROXY_ANALYZER from "./prompt/analyzer/proxy-analyzer/description.txt"
+import PROMPT_PROXY_TESTER_IDOR from "./prompt/vuln/idor/prompt.txt"
+import DESC_PROXY_TESTER_IDOR from "./prompt/vuln/idor/description.txt"
+import PROMPT_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/prompt.txt"
+import DESC_PROXY_TESTER_AUTHZ from "./prompt/vuln/authz/description.txt"
+import PROMPT_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/prompt.txt"
+import DESC_PROXY_TESTER_MASS_ASSIGNMENT from "./prompt/vuln/mass-assignment/description.txt"
+import PROMPT_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/prompt.txt"
+import DESC_PROXY_TESTER_INJECTION from "./prompt/vuln/injection/description.txt"
+import PROMPT_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/prompt.txt"
+import DESC_PROXY_TESTER_AUTHN from "./prompt/vuln/authn/description.txt"
+import PROMPT_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/prompt.txt"
+import DESC_PROXY_TESTER_BUSINESS_LOGIC from "./prompt/vuln/business-logic/description.txt"
+import PROMPT_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/prompt.txt"
+import DESC_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/description.txt"
+import PROMPT_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/prompt.txt"
+import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/description.txt"
+
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
-import { Global } from "@/global"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
+
+// Helper function to load vulnerability agent with common prompt prepended
+function loadVulnAgent(prompt: string, description: string): { prompt: string; description: string } {
+  // First line of description for agent.ts, full description for future use
+  const shortDesc = description.split("\n")[0].trim()
+  // Prepend common vulnerability testing instructions to agent-specific prompt
+  const fullPrompt = `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}`
+  return { prompt: fullPrompt, description: shortDesc }
+}
 
 export namespace Agent {
   export const Info = z
@@ -73,8 +100,6 @@ export namespace Agent {
         ...Object.fromEntries(skillDirs.map((dir) => [path.join(dir, "*"), "allow"])),
       },
       question: "deny",
-      plan_enter: "deny",
-      plan_exit: "deny",
       // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
       read: {
         "*": "allow",
@@ -86,38 +111,14 @@ export namespace Agent {
     const user = PermissionNext.fromConfig(cfg.permission ?? {})
 
     const result: Record<string, Info> = {
-      build: {
-        name: "build",
-        description: "The default agent. Executes tools based on configured permissions.",
+      cyberstrike: {
+        name: "cyberstrike",
+        description: "The default CyberStrike agent. AI-powered offensive security with full tool access.",
         options: {},
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
             question: "allow",
-            plan_enter: "allow",
-          }),
-          user,
-        ),
-        mode: "primary",
-        native: true,
-      },
-      plan: {
-        name: "plan",
-        description: "Plan mode. Disallows all edit tools.",
-        options: {},
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            plan_exit: "allow",
-            external_directory: {
-              [path.join(Global.Path.data, "plans", "*")]: "allow",
-            },
-            edit: {
-              "*": "deny",
-              [path.join(".cyberstrike", "plans", "*.md")]: "allow",
-              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
-            },
           }),
           user,
         ),
@@ -168,7 +169,7 @@ export namespace Agent {
       },
       compaction: {
         name: "compaction",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         hidden: true,
         prompt: PROMPT_COMPACTION,
@@ -183,7 +184,7 @@ export namespace Agent {
       },
       title: {
         name: "title",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -199,7 +200,7 @@ export namespace Agent {
       },
       "normalize-request": {
         name: "normalize-request",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -215,7 +216,7 @@ export namespace Agent {
       },
       summary: {
         name: "summary",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -231,7 +232,7 @@ export namespace Agent {
       "web-application": {
         name: "web-application",
         description: "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "red",
         prompt: PROMPT_WEB_APPLICATION,
@@ -257,7 +258,7 @@ export namespace Agent {
         name: "mobile-application",
         description:
           "Mobile application security specialist. Android/iOS testing, OWASP MASTG/MASVS, static/dynamic analysis, Frida/Objection.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "magenta",
         prompt: PROMPT_MOBILE_APPLICATION,
@@ -279,7 +280,7 @@ export namespace Agent {
       "cloud-security": {
         name: "cloud-security",
         description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "cyan",
         prompt: PROMPT_CLOUD_SECURITY,
@@ -301,7 +302,7 @@ export namespace Agent {
       "internal-network": {
         name: "internal-network",
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "yellow",
         prompt: PROMPT_INTERNAL_NETWORK,
@@ -323,9 +324,8 @@ export namespace Agent {
       },
       "proxy-agent": {
         name: "proxy-agent",
-        description:
-          "Security testing orchestrator. Analyzes endpoints, manages application context, and delegates vulnerability testing to specialized subagents.",
-        mode: "primary",
+        description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
+        mode: "subagent",
         native: true,
         color: "blue",
         prompt: PROMPT_WEB_PROXY_AGENT,
@@ -344,8 +344,7 @@ export namespace Agent {
       // Proxy Agent SubAgents
       "proxy-analyzer": {
         name: "proxy-analyzer",
-        description:
-          "Analyzes HTTP request/response to extract objects, roles, and functions. Writes directly to session tables.",
+        description: DESC_PROXY_ANALYZER.split("\n")[0].trim(),
         mode: "subagent",
         native: true,
         hidden: true,
@@ -358,6 +357,7 @@ export namespace Agent {
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_request_detail: "allow",
             web_write_role: "allow",
             web_write_object: "allow",
             web_write_object_value: "allow",
@@ -368,69 +368,123 @@ export namespace Agent {
         ),
         options: {},
       },
-      "proxy-tester-idor": {
-        name: "proxy-tester-idor",
-        description: "Tests for IDOR vulnerabilities using discovered object IDs across different credentials.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        prompt: PROMPT_PROXY_TESTER_IDOR,
-        prependRequestContext: true,
-        permission: PermissionNext.merge(
+      ...(() => {
+        const idorAgent = loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR)
+        const authzAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ)
+        const massAssignmentAgent = loadVulnAgent(
+          PROMPT_PROXY_TESTER_MASS_ASSIGNMENT,
+          DESC_PROXY_TESTER_MASS_ASSIGNMENT,
+        )
+        const injectionAgent = loadVulnAgent(PROMPT_PROXY_TESTER_INJECTION, DESC_PROXY_TESTER_INJECTION)
+        const authnAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHN, DESC_PROXY_TESTER_AUTHN)
+        const businessLogicAgent = loadVulnAgent(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, DESC_PROXY_TESTER_BUSINESS_LOGIC)
+        const ssrfAgent = loadVulnAgent(PROMPT_PROXY_TESTER_SSRF, DESC_PROXY_TESTER_SSRF)
+        const fileAttacksAgent = loadVulnAgent(PROMPT_PROXY_TESTER_FILE_ATTACKS, DESC_PROXY_TESTER_FILE_ATTACKS)
+
+        const vulnAgentPermission = PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
             "*": "deny",
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_request_detail: "allow",
             report_vulnerability: "allow",
           }),
           user,
-        ),
-        options: {},
-      },
-      "proxy-tester-authz": {
-        name: "proxy-tester-authz",
-        description: "Tests for Broken Access Control using discovered roles and credentials.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        prompt: PROMPT_PROXY_TESTER_AUTHZ,
-        prependRequestContext: true,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            bash: "allow",
-            webfetch: "allow",
-            web_get_session_context: "allow",
-            report_vulnerability: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
-      "proxy-tester-mass-assignment": {
-        name: "proxy-tester-mass-assignment",
-        description: "Tests for Mass Assignment vulnerabilities using discovered object fields.",
-        mode: "subagent",
-        native: true,
-        hidden: true,
-        prompt: PROMPT_PROXY_TESTER_MASS_ASSIGNMENT,
-        prependRequestContext: true,
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            "*": "deny",
-            bash: "allow",
-            webfetch: "allow",
-            web_get_session_context: "allow",
-            report_vulnerability: "allow",
-          }),
-          user,
-        ),
-        options: {},
-      },
+        )
+
+        return {
+          "proxy-tester-idor": {
+            name: "proxy-tester-idor",
+            description: idorAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: idorAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-authz": {
+            name: "proxy-tester-authz",
+            description: authzAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: authzAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-mass-assignment": {
+            name: "proxy-tester-mass-assignment",
+            description: massAssignmentAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: massAssignmentAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-injection": {
+            name: "proxy-tester-injection",
+            description: injectionAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: injectionAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-authn": {
+            name: "proxy-tester-authn",
+            description: authnAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: authnAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-business-logic": {
+            name: "proxy-tester-business-logic",
+            description: businessLogicAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: businessLogicAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-ssrf": {
+            name: "proxy-tester-ssrf",
+            description: ssrfAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: ssrfAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+          "proxy-tester-file-attacks": {
+            name: "proxy-tester-file-attacks",
+            description: fileAttacksAgent.description,
+            mode: "subagent" as const,
+            native: true,
+            hidden: true,
+            prompt: fileAttacksAgent.prompt,
+            prependRequestContext: true,
+            permission: vulnAgentPermission,
+            options: {},
+          },
+        }
+      })(),
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
@@ -490,7 +544,7 @@ export namespace Agent {
     return pipe(
       await state(),
       values(),
-      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"]),
+      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "cyberstrike"), "desc"]),
     )
   }
 
