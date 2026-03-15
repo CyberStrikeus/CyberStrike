@@ -4,7 +4,7 @@ import { useSync } from "@tui/context/sync"
 import { map, pipe, flatMap, entries, filter, sortBy, take } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useDialog } from "@tui/ui/dialog"
-import { createDialogProviderOptions, DialogProvider } from "./dialog-provider"
+import { createDialogProviderOptions, DialogProvider, LocalProviderFlow } from "./dialog-provider"
 import { useKeybind } from "../context/keybind"
 import * as fuzzysort from "fuzzysort"
 
@@ -119,14 +119,52 @@ export function DialogModel(props: { providerID?: string }) {
         )
       : []
 
+    // Local models from config providers with custom api URL
+    const configProviders = sync.data.config.provider ?? {}
+    const localModels = pipe(
+      Object.entries(configProviders),
+      filter(([_, p]) => !!p.api),
+      flatMap(([pid, p]) =>
+        pipe(
+          Object.entries(p.models ?? {}),
+          map(([mid, m]) => ({
+            value: { providerID: pid, modelID: mid },
+            title: m.name ?? mid,
+            description: p.name ?? pid,
+            category: "Local Models" as string | undefined,
+            disabled: false,
+            footer: "Local" as string | undefined,
+            onSelect() {
+              dialog.clear()
+              local.model.set({ providerID: pid, modelID: mid }, { recent: true })
+            },
+          })),
+        ),
+      ),
+    )
+
+    const addLocalOption = {
+      value: { providerID: "__local__" as string, modelID: "__local__" as string },
+      title: "Add Local Provider",
+      description: "(vLLM, Ollama, llama.cpp)" as string | undefined,
+      category: "Local Models" as string | undefined,
+      disabled: false,
+      footer: undefined as string | undefined,
+      onSelect() {
+        dialog.replace(() => <LocalProviderFlow />)
+      },
+    }
+
     if (needle) {
       return [
         ...fuzzysort.go(needle, providerOptions, { keys: ["title", "category"] }).map((x) => x.obj),
+        ...fuzzysort.go(needle, localModels, { keys: ["title", "description"] }).map((x) => x.obj),
         ...fuzzysort.go(needle, popularProviders, { keys: ["title"] }).map((x) => x.obj),
+        ...fuzzysort.go(needle, [addLocalOption], { keys: ["title", "description"] }).map((x) => x.obj),
       ]
     }
 
-    return [...favoriteOptions, ...recentOptions, ...providerOptions, ...popularProviders]
+    return [...favoriteOptions, ...recentOptions, ...localModels, ...providerOptions, ...popularProviders, addLocalOption]
   })
 
   const provider = createMemo(() =>

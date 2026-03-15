@@ -953,6 +953,17 @@ export namespace Provider {
       }
     }
 
+    // load config providers with custom API URL (no auth required, e.g. local vLLM/Ollama)
+    for (const [providerID, provider] of configProviders) {
+      if (disabled.has(providerID)) continue
+      if (providers[providerID]) continue
+      if (provider.api) {
+        mergeProvider(providerID, {
+          source: "config",
+        })
+      }
+    }
+
     for (const plugin of await Plugin.list()) {
       if (!plugin.auth) continue
       const providerID = plugin.auth.provider
