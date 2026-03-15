@@ -1,11 +1,11 @@
 {
   "$schema": "https://cyberstrike.io/theme.json",
   "defs": {
-    "darkStep1": "#0a0a0a",
-    "darkStep2": "#141414",
-    "darkStep3": "#1e1e1e",
-    "darkStep4": "#282828",
-    "darkStep5": "#323232",
+    "darkStep1": "#000000",
+    "darkStep2": "#0a0a0a",
+    "darkStep3": "#141414",
+    "darkStep4": "#1e1e1e",
+    "darkStep5": "#282828",
     "darkStep6": "#3c3c3c",
     "darkStep7": "#484848",
     "darkStep8": "#606060",
