@@ -172,15 +172,16 @@ try {
     })
   }
 
-  if (e instanceof ResolveMessage) {
+  if (e instanceof Error && "specifier" in e) {
+    const re = e as Error & { code?: string; specifier?: string; referrer?: string; position?: unknown; importKind?: string }
     Object.assign(data, {
-      name: e.name,
-      message: e.message,
-      code: e.code,
-      specifier: e.specifier,
-      referrer: e.referrer,
-      position: e.position,
-      importKind: e.importKind,
+      name: re.name,
+      message: re.message,
+      code: re.code,
+      specifier: re.specifier,
+      referrer: re.referrer,
+      position: re.position,
+      importKind: re.importKind,
     })
   }
   Log.Default.error("fatal", data)
