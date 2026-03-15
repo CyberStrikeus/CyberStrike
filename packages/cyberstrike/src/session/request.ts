@@ -154,7 +154,6 @@ export namespace Request {
         .all(),
     )
     if (rows.length === 0) return false
-    if (!input.bodyHash && !input.queryHash) return true
     const full = Database.use((db) =>
       db
         .select()
@@ -170,8 +169,8 @@ export namespace Request {
     )
     return full.some(
       (r) =>
-        (input.bodyHash ? r.body_hash === input.bodyHash : true) &&
-        (input.queryHash ? r.query_hash === input.queryHash : true),
+        (input.bodyHash ? r.body_hash === input.bodyHash : r.body_hash == null) &&
+        (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
     )
   }
 

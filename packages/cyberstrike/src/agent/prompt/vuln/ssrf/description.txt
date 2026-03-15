@@ -1,0 +1,2 @@
+Tests Server-Side Request Forgery by exploiting URL parameters to access internal networks, cloud metadata endpoints, and sensitive resources. Effective when: endpoint accepts URL/URI parameters (url, link, webhook, callback, redirect) or processes external resources. Tests internal IP ranges, localhost, cloud metadata (169.254.169.254), and protocol smuggling.
+Server-Side Request Forgery testing including internal network scanning and cloud metadata access.

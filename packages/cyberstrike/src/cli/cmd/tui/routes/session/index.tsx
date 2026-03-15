@@ -59,6 +59,8 @@ import { DialogConfirm } from "@tui/ui/dialog-confirm"
 import { DialogTimeline } from "./dialog-timeline"
 import { DialogForkFromTimeline } from "./dialog-fork-from-timeline"
 import { DialogSessionRename } from "../../component/dialog-session-rename"
+import { DialogVulnerability } from "../../component/dialog-vulnerability"
+import { DialogWebContext } from "../../component/dialog-web-context"
 import { Sidebar } from "./sidebar"
 import { Flag } from "@/flag/flag"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
@@ -426,6 +428,36 @@ export function Session() {
           providerID: selectedModel.providerID,
         })
         dialog.clear()
+      },
+    },
+    {
+      title: "View vulnerabilities",
+      value: "session.vulnerabilities",
+      category: "Session",
+      slash: {
+        name: "vulnerabilities",
+        aliases: ["vuln", "vulns"],
+      },
+      onSelect: (dialog) => {
+        const list = sync.data.vulnerability[route.sessionID] ?? []
+        if (list.length === 0) {
+          toast.show({ message: "No vulnerabilities found", variant: "info" })
+          dialog.clear()
+          return
+        }
+        dialog.replace(() => <DialogVulnerability sessionID={route.sessionID} />)
+      },
+    },
+    {
+      title: "View web context",
+      value: "session.web.context",
+      category: "Session",
+      slash: {
+        name: "web",
+        aliases: ["endpoints", "roles", "credentials"],
+      },
+      onSelect: (dialog) => {
+        dialog.replace(() => <DialogWebContext sessionID={route.sessionID} />)
       },
     },
     {
