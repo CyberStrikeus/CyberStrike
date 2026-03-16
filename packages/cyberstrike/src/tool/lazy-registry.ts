@@ -46,9 +46,11 @@ export namespace LazyToolRegistry {
     log.info("initializing lazy tool registry")
 
     const mcpStatus = await MCP.status()
+    const boltStatusMap = await MCP.boltStatus()
+    const allStatus = { ...mcpStatus, ...boltStatusMap }
     const clients = await MCP.clients()
 
-    for (const [serverName, status] of Object.entries(mcpStatus)) {
+    for (const [serverName, status] of Object.entries(allStatus)) {
       if (status.status !== "connected") continue
 
       const client = clients[serverName]
