@@ -585,6 +585,23 @@ export namespace Config {
   export const Mcp = z.discriminatedUnion("type", [McpLocal, McpRemote])
   export type Mcp = z.infer<typeof Mcp>
 
+  export const Bolt = z
+    .object({
+      url: z.string().describe("Bolt server URL (e.g. http://myserver:3001)"),
+      enabled: z.boolean().optional().describe("Enable or disable the Bolt server on startup"),
+      timeout: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Timeout in ms for Bolt server requests. Defaults to 30000 (30 seconds) if not specified."),
+    })
+    .strict()
+    .meta({
+      ref: "BoltConfig",
+    })
+  export type Bolt = z.infer<typeof Bolt>
+
   export const PermissionAction = z.enum(["ask", "allow", "deny"]).meta({
     ref: "PermissionActionConfig",
   })
@@ -1100,6 +1117,10 @@ export namespace Config {
         )
         .optional()
         .describe("MCP (Model Context Protocol) server configurations"),
+      bolt: z
+        .record(z.string(), Bolt)
+        .optional()
+        .describe("Bolt server configurations (Docker Kali containers)"),
       formatter: z
         .union([
           z.literal(false),

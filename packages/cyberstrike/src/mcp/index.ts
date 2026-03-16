@@ -19,6 +19,7 @@ import { withTimeout } from "@/util/timeout"
 import { McpOAuthProvider } from "./oauth-provider"
 import { McpOAuthCallback } from "./oauth-callback"
 import { McpAuth } from "./auth"
+import { BoltAuth } from "./bolt-auth"
 import { BusEvent } from "../bus/bus-event"
 import { Bus } from "@/bus"
 import { TuiEvent } from "@/cli/cmd/tui/event"
@@ -160,21 +161,25 @@ export namespace MCP {
     return typeof entry === "object" && entry !== null && "type" in entry
   }
 
+  // Track which connection names are bolt (vs regular MCP)
+  const boltNames = new Set<string>()
+
   const state = Instance.state(
     async () => {
       const cfg = await Config.get()
       const config = cfg.mcp ?? {}
+      const boltConfig = cfg.bolt ?? {}
       const clients: Record<string, MCPClient> = {}
       const status: Record<string, Status> = {}
 
-      await Promise.all(
-        Object.entries(config).map(async ([key, mcp]) => {
+      await Promise.all([
+        // Load MCP servers
+        ...Object.entries(config).map(async ([key, mcp]) => {
           if (!isMcpConfigured(mcp)) {
             log.error("Ignoring MCP config entry without type", { key })
             return
           }
 
-          // If disabled by config, mark as disabled without trying to connect
           if (mcp.enabled === false) {
             status[key] = { status: "disabled" }
             return
@@ -189,7 +194,25 @@ export namespace MCP {
             clients[key] = result.mcpClient
           }
         }),
-      )
+        // Load Bolt servers
+        ...Object.entries(boltConfig).map(async ([key, bolt]) => {
+          boltNames.add(key)
+
+          if (bolt.enabled === false) {
+            status[key] = { status: "disabled" }
+            return
+          }
+
+          const result = await createBolt(key, bolt).catch(() => undefined)
+          if (!result) return
+
+          status[key] = result.status
+
+          if (result.mcpClient) {
+            clients[key] = result.mcpClient
+          }
+        }),
+      ])
       return {
         status,
         clients,
@@ -493,6 +516,111 @@ export namespace MCP {
     }
   }
 
+  async function createBolt(key: string, bolt: Config.Bolt) {
+    if (bolt.enabled === false) {
+      log.info("bolt server disabled", { key })
+      return {
+        mcpClient: undefined as MCPClient | undefined,
+        status: { status: "disabled" as const },
+      }
+    }
+
+    log.info("found bolt", { key, url: bolt.url })
+    let mcpClient: MCPClient | undefined
+    let status: Status | undefined
+
+    const creds = await BoltAuth.getCredentials(key)
+    if (!creds) {
+      log.info("bolt server needs pairing", { key })
+      status = { status: "needs_auth" as const }
+      Bus.publish(TuiEvent.ToastShow, {
+        title: "Bolt Pairing Required",
+        message: `Server "${key}" needs pairing. Use /bolt → add`,
+        variant: "warning",
+        duration: 8000,
+      }).catch((e) => log.debug("failed to show toast", { error: e }))
+      return { mcpClient: undefined as MCPClient | undefined, status }
+    }
+
+    // Validate URL matches stored credentials
+    if (creds.serverUrl !== bolt.url.replace(/\/+$/, "")) {
+      log.warn("bolt server URL changed, re-pairing required", { key, stored: creds.serverUrl, current: bolt.url })
+      await BoltAuth.deleteCredentials(key)
+      status = { status: "needs_auth" as const }
+      return { mcpClient: undefined as MCPClient | undefined, status }
+    }
+
+    const connectTimeout = bolt.timeout ?? DEFAULT_TIMEOUT
+    try {
+      const mcpUrl = `${bolt.url.replace(/\/+$/, "")}/mcp`
+      const origFetch = globalThis.fetch
+      const signedTransportFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+        const parsed = new URL(url)
+        const method = (init?.method ?? "GET").toUpperCase()
+        const body = typeof init?.body === "string" ? init.body : ""
+        const urlPath = parsed.pathname + parsed.search
+        const authHeaders = BoltAuth.signRequest(creds, method, urlPath, body)
+        return origFetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers ?? {}).entries()),
+            ...authHeaders,
+          },
+        })
+      }
+
+      const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
+        fetch: signedTransportFetch as typeof fetch,
+      })
+
+      const client = new Client({
+        name: "cyberstrike",
+        version: Installation.VERSION,
+      })
+      await withTimeout(client.connect(transport), connectTimeout)
+      registerNotificationHandlers(client, key)
+      mcpClient = client
+      status = { status: "connected" }
+      log.info("bolt connected", { key, clientId: creds.clientId })
+    } catch (error) {
+      log.error("bolt connection failed", {
+        key,
+        url: bolt.url,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      status = {
+        status: "failed" as const,
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
+
+    if (!status) {
+      status = { status: "failed" as const, error: "Unknown error" }
+    }
+
+    if (!mcpClient) {
+      return { mcpClient: undefined as MCPClient | undefined, status }
+    }
+
+    const result = await withTimeout(mcpClient.listTools(), bolt.timeout ?? DEFAULT_TIMEOUT).catch((err) => {
+      log.error("failed to get tools from bolt", { key, error: err })
+      return undefined
+    })
+    if (!result) {
+      await mcpClient.close().catch((error) => {
+        log.error("Failed to close bolt client", { error })
+      })
+      return {
+        mcpClient: undefined as MCPClient | undefined,
+        status: { status: "failed" as const, error: "Failed to get tools" },
+      }
+    }
+
+    log.info("createBolt() successfully created client", { key, toolCount: result.tools.length })
+    return { mcpClient, status }
+  }
+
   export async function status() {
     const s = await state()
     const cfg = await Config.get()
@@ -506,6 +634,80 @@ export namespace MCP {
     }
 
     return result
+  }
+
+  export async function boltStatus() {
+    const s = await state()
+    const cfg = await Config.get()
+    const boltConfig = cfg.bolt ?? {}
+    const result: Record<string, Status> = {}
+
+    for (const key of Object.keys(boltConfig)) {
+      result[key] = s.status[key] ?? { status: "disabled" }
+    }
+
+    return result
+  }
+
+  export async function addBolt(name: string, bolt: Config.Bolt) {
+    const s = await state()
+    boltNames.add(name)
+    const result = await createBolt(name, bolt)
+    if (!result) {
+      const failStatus = { status: "failed" as const, error: "unknown error" }
+      s.status[name] = failStatus
+      return { status: { [name]: failStatus } }
+    }
+    s.status[name] = result.status
+    if (result.mcpClient) {
+      const existingClient = s.clients[name]
+      if (existingClient) {
+        await existingClient.close().catch((error) => {
+          log.error("Failed to close existing bolt client", { name, error })
+        })
+      }
+      s.clients[name] = result.mcpClient
+    }
+    return { status: { [name]: result.status } }
+  }
+
+  export async function connectBolt(name: string) {
+    const cfg = await Config.get()
+    const bolt = cfg.bolt?.[name]
+    if (!bolt) {
+      log.error("Bolt config not found", { name })
+      return
+    }
+    boltNames.add(name)
+    const result = await createBolt(name, { ...bolt, enabled: true })
+    if (!result) {
+      const s = await state()
+      s.status[name] = { status: "failed", error: "Unknown error during connection" }
+      return
+    }
+    const s = await state()
+    s.status[name] = result.status
+    if (result.mcpClient) {
+      const existingClient = s.clients[name]
+      if (existingClient) {
+        await existingClient.close().catch((error) => {
+          log.error("Failed to close existing bolt client", { name, error })
+        })
+      }
+      s.clients[name] = result.mcpClient
+    }
+  }
+
+  export async function disconnectBolt(name: string) {
+    const s = await state()
+    const client = s.clients[name]
+    if (client) {
+      await client.close().catch((error) => {
+        log.error("Failed to close bolt client", { name, error })
+      })
+      delete s.clients[name]
+    }
+    s.status[name] = { status: "disabled" }
   }
 
   export async function clients() {
@@ -568,6 +770,7 @@ export namespace MCP {
     const s = await state()
     const cfg = await Config.get()
     const config = cfg.mcp ?? {}
+    const boltConfig = cfg.bolt ?? {}
     const clientsSnapshot = await clients()
     const defaultTimeout = cfg.experimental?.mcp_timeout
 
@@ -593,9 +796,11 @@ export namespace MCP {
 
     for (const { clientName, client, toolsResult } of toolsResults) {
       if (!toolsResult) continue
+      // Look up timeout from MCP config or Bolt config
       const mcpConfig = config[clientName]
+      const boltEntry = boltConfig[clientName]
       const entry = isMcpConfigured(mcpConfig) ? mcpConfig : undefined
-      const timeout = entry?.timeout ?? defaultTimeout
+      const timeout = entry?.timeout ?? boltEntry?.timeout ?? defaultTimeout
       for (const mcpTool of toolsResult.tools) {
         const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9_-]/g, "_")
         const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")

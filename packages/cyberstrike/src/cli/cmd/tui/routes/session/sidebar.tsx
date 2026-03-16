@@ -142,7 +142,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                           style={{
                             fg: (
                               {
-                                connected: theme.success,
+                                connected: theme.info,
                                 failed: theme.error,
                                 disabled: theme.textMuted,
                                 needs_auth: theme.warning,

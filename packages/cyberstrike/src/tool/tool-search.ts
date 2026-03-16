@@ -136,28 +136,48 @@ export const UnloadToolsTool = Tool.define("unload_tools", async () => {
 
 export const ListLoadedToolsTool = Tool.define("list_loaded_tools", async () => {
   return {
-    description: "List all currently loaded tools and context usage.",
+    description: "List all currently loaded tools, available MCP tools, and context usage.",
     parameters: z.object({}),
     async execute(_params, _ctx) {
       const loaded = LazyToolRegistry.getLoaded()
       const stats = LazyToolRegistry.stats()
+      const allLazy = LazyToolRegistry.getAll()
 
-      const output =
-        loaded.length === 0
-          ? "No tools currently loaded. Use tool_search to find tools."
-          : [
-              `Currently loaded tools (${loaded.length}):`,
-              "",
-              ...loaded.map((t) => `- ${t.id}`),
-              "",
-              "---",
-              `Available: ${stats.available} | Loaded: ${stats.loaded}`,
-              `Token usage: ~${stats.estimatedTokens} / ${stats.estimatedTokens + stats.budgetRemaining}`,
-            ].join("\n")
+      const lines: string[] = []
+
+      if (loaded.length > 0) {
+        lines.push(`Currently loaded tools (${loaded.length}):`, "")
+        for (const t of loaded) lines.push(`- ${t.id}`)
+        lines.push("")
+      } else {
+        lines.push("No tools currently loaded.", "")
+      }
+
+      if (allLazy.length > 0) {
+        const byServer = new Map<string, string[]>()
+        for (const t of allLazy) {
+          const server = t.mcpServer ?? "unknown"
+          if (!byServer.has(server)) byServer.set(server, [])
+          byServer.get(server)!.push(t.name)
+        }
+        lines.push(`Available MCP tools (${allLazy.length}):`, "")
+        for (const [server, toolNames] of byServer) {
+          lines.push(`**${server}** (${toolNames.length} tools):`)
+          for (const name of toolNames) lines.push(`  - ${name}`)
+          lines.push("")
+        }
+        lines.push("Use `tool_search` to find tools by capability, then `load_tools` to activate them.")
+      } else {
+        lines.push("No MCP tools available. Connect an MCP server first.")
+      }
+
+      lines.push("", "---")
+      lines.push(`Available: ${stats.available} | Loaded: ${stats.loaded}`)
+      lines.push(`Token usage: ~${stats.estimatedTokens} / ${stats.estimatedTokens + stats.budgetRemaining}`)
 
       return {
-        title: `${loaded.length} tools loaded`,
-        output,
+        title: `${loaded.length} tools loaded, ${stats.available} available`,
+        output: lines.join("\n"),
         metadata: {
           loadedCount: loaded.length,
           loadedIds: loaded.map((t) => t.id),
