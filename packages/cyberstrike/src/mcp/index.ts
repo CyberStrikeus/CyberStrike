@@ -14,6 +14,7 @@ import { Log } from "../util/log"
 import { NamedError } from "@cyberstrikeus/util/error"
 import z from "zod/v4"
 import { Instance } from "../project/instance"
+import path from "node:path"
 import { Installation } from "../installation"
 import { withTimeout } from "@/util/timeout"
 import { McpOAuthProvider } from "./oauth-provider"
@@ -589,10 +590,11 @@ export namespace MCP {
         url: bolt.url,
         error: error instanceof Error ? error.message : String(error),
       })
-      status = {
-        status: "failed" as const,
-        error: error instanceof Error ? error.message : String(error),
-      }
+      const errMsg = error instanceof Error ? error.message : String(error)
+      const isAuthError = /unauthorized|unknown client|needs.*pair/i.test(errMsg)
+      status = isAuthError
+        ? { status: "needs_auth" as const }
+        : { status: "failed" as const, error: errMsg }
     }
 
     if (!status) {
@@ -708,6 +710,28 @@ export namespace MCP {
       delete s.clients[name]
     }
     s.status[name] = { status: "disabled" }
+  }
+
+  export async function removeBolt(name: string) {
+    await disconnectBolt(name)
+    const s = await state()
+    delete s.status[name]
+    boltNames.delete(name)
+
+    // Remove from config file
+    const filepath = path.join(Instance.directory, "cyberstrike.json")
+    try {
+      const raw = await Bun.file(filepath).text()
+      const config = JSON.parse(raw)
+      if (config.bolt?.[name]) {
+        delete config.bolt[name]
+        if (Object.keys(config.bolt).length === 0) delete config.bolt
+        await Bun.write(filepath, JSON.stringify(config, null, 2))
+      }
+    } catch {
+      // config file may not exist
+    }
+    log.info("bolt removed", { name })
   }
 
   export async function clients() {
