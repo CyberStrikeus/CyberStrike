@@ -799,23 +799,18 @@ export function Prompt(props: PromptProps) {
         promptPartTypeId={() => promptPartTypeId}
       />
       <box ref={(r) => (anchor = r)} visible={props.visible !== false}>
-        <box
-          border={["left"]}
-          borderColor={highlight()}
-          customBorderChars={{
-            ...EmptyBorder,
-            vertical: "┃",
-            bottomLeft: "╹",
-          }}
-        >
+        <box flexDirection="row">
           <box
-            paddingLeft={2}
-            paddingRight={2}
-            paddingTop={1}
+            width={1}
             flexShrink={0}
-            backgroundColor={theme.backgroundElement}
-            flexGrow={1}
-          >
+            border={["right"]}
+            borderColor={highlight()}
+            customBorderChars={{
+              ...EmptyBorder,
+              vertical: "┃",
+            }}
+          />
+          <box paddingLeft={2} paddingRight={2} paddingTop={1} backgroundColor={theme.backgroundElement} flexGrow={1}>
             <textarea
               placeholder={placeholderText()}
               textColor={keybind.leader ? theme.textMuted : theme.text}
