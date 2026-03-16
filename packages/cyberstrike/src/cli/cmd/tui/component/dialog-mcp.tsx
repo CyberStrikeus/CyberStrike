@@ -383,7 +383,7 @@ function BoltNameStep(props: { url: string; adminToken: string; defaultName: str
 
         try {
           // 1. Pair with Bolt server (Ed25519 key exchange)
-          const pairRes = await fetch(`${sdk.url}/bolt/${name}/pair`, {
+          const pairRes = await sdk.fetch(`${sdk.url}/bolt/${name}/pair`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: props.url, adminToken: props.adminToken }),
@@ -399,14 +399,14 @@ function BoltNameStep(props: { url: string; adminToken: string; defaultName: str
           })
 
           // 3. Connect via bolt route
-          const addRes = await fetch(`${sdk.url}/bolt`, {
+          await sdk.fetch(`${sdk.url}/bolt`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, config: { url: props.url } }),
           })
 
           // 4. Refresh bolt status
-          const statusRes = await fetch(`${sdk.url}/bolt`)
+          const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
           const statusData = statusRes.ok ? await statusRes.json() : {}
           sync.set("bolt", statusData)
 
@@ -541,8 +541,8 @@ export function DialogBolt() {
         setLoading(option.value)
         try {
           const action = (sync.data.bolt?.[option.value]?.status === "disabled") ? "connect" : "disconnect"
-          await fetch(`${sdk.url}/bolt/${option.value}/${action}`, { method: "POST" })
-          const statusRes = await fetch(`${sdk.url}/bolt`)
+          await sdk.fetch(`${sdk.url}/bolt/${option.value}/${action}`, { method: "POST" })
+          const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
           if (statusRes.ok) {
             sync.set("bolt", await statusRes.json())
           }
