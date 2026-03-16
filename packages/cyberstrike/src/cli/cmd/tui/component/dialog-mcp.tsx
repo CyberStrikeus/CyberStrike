@@ -522,7 +522,7 @@ export function DialogBolt() {
     boltOptions.push({
       value: "__add_bolt__",
       title: "Add Bolt Server",
-      description: "(Docker Kali container)",
+      description: "(remote security tool server)",
       footer: undefined as any,
       category: undefined,
     })
@@ -558,6 +558,27 @@ export function DialogBolt() {
       title: "add",
       onTrigger: () => {
         dialog.replace(() => <BoltUrlStep />)
+      },
+    },
+    {
+      keybind: Keybind.parse("d")[0],
+      title: "delete",
+      onTrigger: async (option: DialogSelectOption<string>) => {
+        if (option.value === "__add_bolt__") return
+        if (loading() !== null) return
+
+        setLoading(option.value)
+        try {
+          await sdk.fetch(`${sdk.url}/bolt/${option.value}`, { method: "DELETE" })
+          const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
+          if (statusRes.ok) {
+            sync.set("bolt", await statusRes.json())
+          }
+        } catch (error) {
+          console.error("Failed to delete Bolt:", error)
+        } finally {
+          setLoading(null)
+        }
       },
     },
   ])

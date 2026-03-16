@@ -147,5 +147,29 @@ export const BoltRoutes = lazy(() =>
         await MCP.disconnectBolt(name)
         return c.json(true)
       },
+    )
+    .delete(
+      "/:name",
+      describeRoute({
+        summary: "Remove a Bolt server",
+        description: "Disconnect and permanently remove a Bolt server from configuration.",
+        operationId: "bolt.remove",
+        responses: {
+          200: {
+            description: "Bolt server removed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+        },
+      }),
+      validator("param", z.object({ name: z.string() })),
+      async (c) => {
+        const { name } = c.req.valid("param")
+        await MCP.removeBolt(name)
+        return c.json(true)
+      },
     ),
 )
