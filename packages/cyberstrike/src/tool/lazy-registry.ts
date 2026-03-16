@@ -93,6 +93,8 @@ export namespace LazyToolRegistry {
       totalTools: lazyTools.size,
       loadedTools: loadedTools.size,
     })
+
+    ensureSubscribed()
   }
 
   /**
@@ -137,11 +139,16 @@ export namespace LazyToolRegistry {
     }
   }
 
-  // Subscribe to MCP tool list changes (e.g., after kali_load on bolt)
-  Bus.subscribe(MCP.ToolsChanged, async (payload) => {
-    log.info("tools changed notification, refreshing", { server: payload.properties.server })
-    await refresh(payload.properties.server)
-  })
+  // Ensure we only subscribe once
+  let subscribed = false
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    Bus.subscribe(MCP.ToolsChanged, async (payload) => {
+      log.info("tools changed notification, refreshing", { server: payload.properties.server })
+      await refresh(payload.properties.server)
+    })
+  }
 
   export function search(query: string, limit = 10): LazyTool[] {
     const queryLower = query.toLowerCase()
