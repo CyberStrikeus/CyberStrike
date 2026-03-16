@@ -27,7 +27,7 @@ import { Log } from "@/util/log"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncation"
 import { ApplyPatchTool } from "./apply_patch"
-import { BrowserTool } from "./browser"
+
 import { MemorySearchTool, MemoryWriteTool, MemoryReadTool, MemoryContextTool } from "./memory"
 import { ToolSearchTool, LoadToolsTool, UnloadToolsTool, ListLoadedToolsTool } from "./tool-search"
 import { LazyToolRegistry } from "./lazy-registry"
@@ -126,7 +126,6 @@ export namespace ToolRegistry {
       ApplyPatchTool,
       ...(Flag.CYBERSTRIKE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
-      BrowserTool,
       MemorySearchTool,
       MemoryWriteTool,
       MemoryReadTool,

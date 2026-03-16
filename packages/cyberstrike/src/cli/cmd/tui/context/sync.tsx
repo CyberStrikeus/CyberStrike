@@ -121,6 +121,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       mcp: {
         [key: string]: McpStatus
       }
+      bolt: {
+        [key: string]: McpStatus
+      }
       mcp_resource: {
         [key: string]: McpResource
       }
@@ -157,6 +160,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       part: {},
       lsp: [],
       mcp: {},
+      bolt: {},
       mcp_resource: {},
       formatter: [],
       vcs: undefined,
@@ -493,6 +497,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
             sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
+            fetch(`${sdk.url}/bolt`).then((r) => r.json()).then((x) => setStore("bolt", reconcile(x as any))).catch(() => {}),
             sdk.client.experimental.resource.list().then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
             sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
             sdk.client.session.status().then((x) => {

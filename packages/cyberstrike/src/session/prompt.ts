@@ -650,6 +650,34 @@ export namespace SessionPrompt {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
       }
 
+      // Inject MCP tool availability info so the LLM knows to use tool_search
+      const mcpLazyStats = LazyToolRegistry.stats()
+      if (mcpLazyStats.available > 0) {
+        const allLazy = LazyToolRegistry.getAll()
+        const byServer = new Map<string, string[]>()
+        for (const t of allLazy) {
+          const server = t.mcpServer ?? "unknown"
+          if (!byServer.has(server)) byServer.set(server, [])
+          byServer.get(server)!.push(t.name)
+        }
+        const lines = [
+          "# MCP Tools",
+          `You have ${mcpLazyStats.available} tools available from MCP servers. These tools are NOT yet in your context.`,
+          "Use `tool_search` to find tools by capability, then `load_tools` to make them usable.",
+          "",
+          "Available servers:",
+        ]
+        for (const [server, toolNames] of byServer) {
+          const preview = toolNames.slice(0, 5).join(", ")
+          const suffix = toolNames.length > 5 ? `, ... (+${toolNames.length - 5} more)` : ""
+          lines.push(`- **${server}**: ${toolNames.length} tools — ${preview}${suffix}`)
+        }
+        if (mcpLazyStats.loaded > 0) {
+          lines.push("", `Currently loaded: ${mcpLazyStats.loaded} tool(s) (${mcpLazyStats.estimatedTokens} tokens used)`)
+        }
+        system.push(lines.join("\n"))
+      }
+
       const result = await processor.process({
         user: lastUser,
         agent,

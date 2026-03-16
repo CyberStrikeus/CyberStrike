@@ -41,8 +41,6 @@ import { createVercel } from "@ai-sdk/vercel"
 import { createGitLab, VERSION as GITLAB_PROVIDER_VERSION } from "@gitlab/gitlab-ai-provider"
 import { ProviderTransform } from "./transform"
 import { Installation } from "../installation"
-import { isClaudeCliInstalled, hasValidClaudeCliCredentials, getValidClaudeCliToken } from "@/auth/cli-credentials"
-import { createClaudeCliProvider } from "./claude-cli-provider"
 
 export namespace Provider {
   const log = Log.create({ service: "provider" })
@@ -92,7 +90,35 @@ export namespace Provider {
   }>
 
   const CUSTOM_LOADERS: Record<string, CustomLoader> = {
-    async anthropic() {
+    async anthropic(input) {
+      // Check if the stored key is an OAuth Access Token (sk-ant-oat*)
+      // OAT tokens require Authorization: Bearer + Claude Code identity headers
+      // @ai-sdk/anthropic doesn't support authToken, so we use custom fetch
+      const auth = await Auth.get(input.id)
+      const key = input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
+      const isOAT = key?.startsWith("sk-ant-oat")
+
+      if (isOAT) {
+        return {
+          autoload: false,
+          options: {
+            apiKey: "oat-bearer",
+            headers: {
+              "anthropic-beta":
+                "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
+              "user-agent": "claude-cli/2.1.34",
+              "x-app": "cli",
+            },
+            fetch: async (url: any, init?: any) => {
+              const headers = new Headers(init?.headers)
+              headers.delete("x-api-key")
+              headers.set("Authorization", `Bearer ${key}`)
+              return fetch(url, { ...init, headers })
+            },
+          },
+        }
+      }
+
       return {
         autoload: false,
         options: {
@@ -537,42 +563,6 @@ export namespace Provider {
         },
       }
     },
-    "claude-cli": async () => {
-      try {
-        if (!isClaudeCliInstalled()) return { autoload: false }
-
-        return {
-          autoload: true,
-          async getModel(_sdk: any, modelID: string) {
-            const provider = createClaudeCliProvider()
-            return provider.languageModel(modelID) as any
-          },
-        }
-      } catch {
-        return { autoload: false }
-      }
-    },
-    "claude-api": async () => {
-      try {
-        if (!hasValidClaudeCliCredentials()) return { autoload: false }
-
-        const token = await getValidClaudeCliToken()
-        if (!token) return { autoload: false }
-
-        return {
-          autoload: true,
-          options: {
-            apiKey: token,
-            headers: {
-              "anthropic-beta":
-                "claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
-            },
-          },
-        }
-      } catch {
-        return { autoload: false }
-      }
-    },
   }
 
   export const Model = z
@@ -775,61 +765,6 @@ export namespace Provider {
         models: mapValues(githubCopilot.models, (model) => ({
           ...model,
           providerID: "github-copilot-enterprise",
-        })),
-      }
-    }
-
-    // Add Claude CLI (Subprocess) provider — synthetic model definitions
-    if (!database["claude-cli"]) {
-      const cliModel = (id: string, name: string, contextLimit: number, outputLimit: number): Model => ({
-        id,
-        providerID: "claude-cli",
-        name,
-        api: { id, url: "https://api.anthropic.com/v1", npm: "@ai-sdk/anthropic" },
-        status: "active",
-        headers: {},
-        options: {},
-        cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
-        limit: { context: contextLimit, output: outputLimit },
-        capabilities: {
-          temperature: true,
-          reasoning: true,
-          attachment: true,
-          toolcall: true,
-          input: { text: true, audio: false, image: true, video: false, pdf: true },
-          output: { text: true, audio: false, image: false, video: false, pdf: false },
-          interleaved: true,
-        },
-        family: "claude",
-        release_date: "2025-05-14",
-        variants: {},
-      })
-      database["claude-cli"] = {
-        id: "claude-cli",
-        name: "Claude CLI (Subprocess)",
-        source: "custom",
-        env: [],
-        options: {},
-        models: {
-          opus: cliModel("opus", "Claude Opus (CLI)", 200000, 32000),
-          sonnet: cliModel("sonnet", "Claude Sonnet (CLI)", 200000, 64000),
-          haiku: cliModel("haiku", "Claude Haiku (CLI)", 200000, 64000),
-        },
-      }
-    }
-
-    // Add Claude API (OAuth) provider — clones anthropic models with different provider ID
-    if (database["anthropic"] && !database["claude-api"]) {
-      const anthropic = database["anthropic"]
-      database["claude-api"] = {
-        ...anthropic,
-        id: "claude-api",
-        name: "Claude API (OAuth)",
-        source: "custom",
-        env: [],
-        models: mapValues(anthropic.models, (model) => ({
-          ...model,
-          providerID: "claude-api",
         })),
       }
     }

@@ -1173,7 +1173,7 @@ export namespace ACP {
               {
                 directory,
                 name: key,
-                config: mcp,
+                config: mcp as any,
               },
               { throwOnError: true },
             )
