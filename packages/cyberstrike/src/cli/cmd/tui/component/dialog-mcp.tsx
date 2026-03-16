@@ -561,7 +561,7 @@ export function DialogBolt() {
       },
     },
     {
-      keybind: Keybind.parse("d")[0],
+      keybind: Keybind.parse("ctrl+d")[0],
       title: "delete",
       onTrigger: async (option: DialogSelectOption<string>) => {
         if (option.value === "__add_bolt__") return
