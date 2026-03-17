@@ -1,26 +1,4 @@
 <p align="center">
-  <picture>
-    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
-    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
-    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
-  </picture>
-</p>
-
-<h3 align="center">Den f&oslash;rste open source AI-agent bygget til offensiv sikkerhed.</h3>
-
-<p align="center">
-  Autonom pentesting fra din terminal — rekognoscering, s&aring;rbarhedsopdagelse, udnyttelse og rapportering.<br>
-  &Eacute;n kommando. 13+ specialiserede agenter. 120+ OWASP-testcases. Dit AI red team.
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
-  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licens" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
-</p>
-
-<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
@@ -47,6 +25,21 @@
 </p>
 
 <p align="center">
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
+</p>
+
+<h3 align="center">Den f&oslash;rste open source AI-agent bygget til offensiv sikkerhed.</h3>
+
+<p align="center">
+  Autonom pentesting fra din terminal — rekognoscering, s&aring;rbarhedsopdagelse, udnyttelse og rapportering.<br>
+  &Eacute;n kommando. 13+ specialiserede agenter. 120+ OWASP-testcases. Dit AI red team.
+</p>
+
+<p align="center">
   <a href="#hvorfor-cyberstrike">Hvorfor CyberStrike?</a> &bull;
   <a href="#hvad-gør-det-anderledes">Hvad G&oslash;r Det Anderledes</a> &bull;
   <a href="#agenter">Agenter</a> &bull;
@@ -57,6 +50,13 @@
   <a href="#hvem-er-det-til">Hvem Er Det Til?</a> &bull;
   <a href="CHANGELOG.md">Changelog</a> &bull;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licens" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 ---

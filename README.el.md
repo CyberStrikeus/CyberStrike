@@ -1,26 +1,4 @@
 <p align="center">
-  <picture>
-    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
-    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
-    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
-  </picture>
-</p>
-
-<h3 align="center">Ο πρώτος AI agent ανοιχτού κώδικα σχεδιασμένος για επιθετική ασφάλεια.</h3>
-
-<p align="center">
-  Αυτόνομο penetration testing από το τερματικό σας — αναγνώριση, ανακάλυψη ευπαθειών, εκμετάλλευση και αναφορά.<br>
-  Μία εντολή. 13+ εξειδικευμένοι agents. 120+ σενάρια δοκιμών OWASP. Η AI red team σας.
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
-  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
-</p>
-
-<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
@@ -47,6 +25,21 @@
 </p>
 
 <p align="center">
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
+</p>
+
+<h3 align="center">Ο πρώτος AI agent ανοιχτού κώδικα σχεδιασμένος για επιθετική ασφάλεια.</h3>
+
+<p align="center">
+  Αυτόνομο penetration testing από το τερματικό σας — αναγνώριση, ανακάλυψη ευπαθειών, εκμετάλλευση και αναφορά.<br>
+  Μία εντολή. 13+ εξειδικευμένοι agents. 120+ σενάρια δοκιμών OWASP. Η AI red team σας.
+</p>
+
+<p align="center">
   <a href="#γιατί-cyberstrike">Γιατί CyberStrike;</a> &bull;
   <a href="#τι-το-κάνει-διαφορετικό">Τι το κάνει διαφορετικό</a> &bull;
   <a href="#agents">Agents</a> &bull;
@@ -57,6 +50,13 @@
   <a href="#για-ποιον-είναι">Για ποιον είναι;</a> &bull;
   <a href="CHANGELOG.md">Changelog</a> &bull;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 ---
