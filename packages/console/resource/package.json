@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@cyberstrikeus/console-resource",
+  "name": "@cyberstrike-io/console-resource",
   "license": "MIT",
   "dependencies": {
     "@cloudflare/workers-types": "catalog:"

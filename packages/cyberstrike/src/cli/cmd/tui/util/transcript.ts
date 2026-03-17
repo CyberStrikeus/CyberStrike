@@ -1,4 +1,4 @@
-import type { AssistantMessage, Part, UserMessage } from "@cyberstrikeus/sdk/v2"
+import type { AssistantMessage, Part, UserMessage } from "@cyberstrike-io/sdk/v2"
 import { Locale } from "@/util/locale"
 
 export type TranscriptOptions = {

@@ -1,5 +1,5 @@
 {
-  "name": "@cyberstrikeus/function",
+  "name": "@cyberstrike-io/function",
   "version": "1.2.2",
   "$schema": "https://json.schemastore.org/package.json",
   "private": true,

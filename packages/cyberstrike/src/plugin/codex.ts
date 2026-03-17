@@ -1,4 +1,4 @@
-import type { Hooks, PluginInput } from "@cyberstrikeus/plugin"
+import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { Log } from "../util/log"
 import { Installation } from "../installation"
 import { Auth, OAUTH_DUMMY_KEY } from "../auth"

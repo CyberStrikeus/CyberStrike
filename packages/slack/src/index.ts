@@ -1,5 +1,5 @@
 import { App } from "@slack/bolt"
-import { createCyberstrike, type ToolPart } from "@cyberstrikeus/sdk"
+import { createCyberstrike, type ToolPart } from "@cyberstrike-io/sdk"
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,

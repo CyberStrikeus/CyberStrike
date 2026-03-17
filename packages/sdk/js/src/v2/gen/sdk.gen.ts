@@ -13,6 +13,15 @@ import type {
   AuthRemoveResponses,
   AuthSetErrors,
   AuthSetResponses,
+  BoltAddErrors,
+  BoltAddResponses,
+  BoltConfig,
+  BoltConnectResponses,
+  BoltDisconnectResponses,
+  BoltPairErrors,
+  BoltPairResponses,
+  BoltRemoveResponses,
+  BoltStatusResponses,
   CommandListResponses,
   Config as Config3,
   ConfigGetResponses,
@@ -56,6 +65,7 @@ import type {
   McpDisconnectResponses,
   McpLocalConfig,
   McpRemoteConfig,
+  McpRemoveResponses,
   McpStatusResponses,
   OutputFormat,
   Part as Part2,
@@ -99,6 +109,8 @@ import type {
   QuestionReplyResponses,
   SessionAbortErrors,
   SessionAbortResponses,
+  SessionAddWebCredentialErrors,
+  SessionAddWebCredentialResponses,
   SessionChildrenErrors,
   SessionChildrenResponses,
   SessionCommandErrors,
@@ -107,6 +119,8 @@ import type {
   SessionCreateResponses,
   SessionDeleteErrors,
   SessionDeleteResponses,
+  SessionDeleteWebCredentialErrors,
+  SessionDeleteWebCredentialResponses,
   SessionDiffResponses,
   SessionForkResponses,
   SessionGetErrors,
@@ -144,8 +158,20 @@ import type {
   SessionUnshareResponses,
   SessionUpdateErrors,
   SessionUpdateResponses,
+  SessionUpdateWebCredentialErrors,
+  SessionUpdateWebCredentialResponses,
   SessionVulnerabilityErrors,
   SessionVulnerabilityResponses,
+  SessionWebCredentialsErrors,
+  SessionWebCredentialsResponses,
+  SessionWebFunctionsErrors,
+  SessionWebFunctionsResponses,
+  SessionWebObjectsErrors,
+  SessionWebObjectsResponses,
+  SessionWebRetestQueueErrors,
+  SessionWebRetestQueueResponses,
+  SessionWebRolesErrors,
+  SessionWebRolesResponses,
   SubtaskPartInput,
   TextPartInput,
   ToolIdsErrors,
@@ -1253,6 +1279,298 @@ export class Session extends HeyApiClient {
   }
 
   /**
+   * Get web credentials
+   *
+   * Retrieve the list of credentials for web security testing in this session.
+   */
+  public webCredentials<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionWebCredentialsResponses,
+      SessionWebCredentialsErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/credentials",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add web credential
+   *
+   * Add a new credential for web security testing.
+   */
+  public addWebCredential<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      label?: string
+      headers?: {
+        [key: string]: string
+      }
+      container_id?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "label" },
+            { in: "body", key: "headers" },
+            { in: "body", key: "container_id" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionAddWebCredentialResponses,
+      SessionAddWebCredentialErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/credentials",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Delete web credential
+   *
+   * Delete a credential from the session.
+   */
+  public deleteWebCredential<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      credentialID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "credentialID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<
+      SessionDeleteWebCredentialResponses,
+      SessionDeleteWebCredentialErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/credentials/{credentialID}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update web credential
+   *
+   * Update a credential's value, label, or role. Used for token refresh.
+   */
+  public updateWebCredential<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      credentialID: string
+      directory?: string
+      headers?: {
+        [key: string]: string
+      }
+      label?: string
+      container_id?: string
+      role_id?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "credentialID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "headers" },
+            { in: "body", key: "label" },
+            { in: "body", key: "container_id" },
+            { in: "body", key: "role_id" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<
+      SessionUpdateWebCredentialResponses,
+      SessionUpdateWebCredentialErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/credentials/{credentialID}",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get web roles
+   *
+   * Retrieve discovered roles for web security testing.
+   */
+  public webRoles<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebRolesResponses, SessionWebRolesErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/roles",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get web objects
+   *
+   * Retrieve discovered data objects for web security testing.
+   */
+  public webObjects<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebObjectsResponses, SessionWebObjectsErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/objects",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get web functions
+   *
+   * Retrieve discovered endpoint functions for web security testing.
+   */
+  public webFunctions<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebFunctionsResponses, SessionWebFunctionsErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/functions",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get web retest queue
+   *
+   * Retrieve pending retests triggered by new discoveries.
+   */
+  public webRetestQueue<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionWebRetestQueueResponses,
+      SessionWebRetestQueueErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/retest-queue",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Ingest message
    *
    * Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.
@@ -1267,6 +1585,30 @@ export class Session extends HeyApiClient {
         providerID: string
         modelID: string
       }
+      credential_id?: string
+      credential?: {
+        label: string
+        headers?: {
+          [key: string]: string
+        }
+        container_id?: string
+      }
+      response?: {
+        /**
+         * HTTP status code
+         */
+        status: number
+        /**
+         * Response headers
+         */
+        headers: {
+          [key: string]: string
+        }
+        /**
+         * Response body
+         */
+        body: string
+      }
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1280,6 +1622,9 @@ export class Session extends HeyApiClient {
             { in: "body", key: "sessionID" },
             { in: "body", key: "agent" },
             { in: "body", key: "model" },
+            { in: "body", key: "credential_id" },
+            { in: "body", key: "credential" },
+            { in: "body", key: "response" },
           ],
         },
       ],
@@ -2648,6 +2993,36 @@ export class Mcp extends HeyApiClient {
   }
 
   /**
+   * Remove MCP server
+   *
+   * Disconnect and permanently remove an MCP server from configuration.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<McpRemoveResponses, unknown, ThrowOnError>({
+      url: "/mcp/{name}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Connect an MCP server
    */
   public connect<ThrowOnError extends boolean = false>(
@@ -2706,6 +3081,189 @@ export class Mcp extends HeyApiClient {
   private _auth?: Auth2
   get auth(): Auth2 {
     return (this._auth ??= new Auth2({ client: this.client }))
+  }
+}
+
+export class Bolt extends HeyApiClient {
+  /**
+   * Get Bolt status
+   *
+   * Get the status of all Bolt servers.
+   */
+  public status<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<BoltStatusResponses, unknown, ThrowOnError>({
+      url: "/bolt",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Add Bolt server
+   *
+   * Dynamically add a new Bolt server.
+   */
+  public add<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      name?: string
+      config?: BoltConfig
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "name" },
+            { in: "body", key: "config" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BoltAddResponses, BoltAddErrors, ThrowOnError>({
+      url: "/bolt",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Pair with Bolt server
+   *
+   * Pair with a Bolt server using Ed25519 key exchange. Requires admin token.
+   */
+  public pair<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      url?: string
+      adminToken?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "url" },
+            { in: "body", key: "adminToken" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BoltPairResponses, BoltPairErrors, ThrowOnError>({
+      url: "/bolt/{name}/pair",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Connect a Bolt server
+   */
+  public connect<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BoltConnectResponses, unknown, ThrowOnError>({
+      url: "/bolt/{name}/connect",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Disconnect a Bolt server
+   */
+  public disconnect<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<BoltDisconnectResponses, unknown, ThrowOnError>({
+      url: "/bolt/{name}/disconnect",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Remove a Bolt server
+   *
+   * Disconnect and permanently remove a Bolt server from configuration.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<BoltRemoveResponses, unknown, ThrowOnError>({
+      url: "/bolt/{name}",
+      ...options,
+      ...params,
+    })
   }
 }
 
@@ -3383,6 +3941,11 @@ export class CyberstrikeClient extends HeyApiClient {
   private _mcp?: Mcp
   get mcp(): Mcp {
     return (this._mcp ??= new Mcp({ client: this.client }))
+  }
+
+  private _bolt?: Bolt
+  get bolt(): Bolt {
+    return (this._bolt ??= new Bolt({ client: this.client }))
   }
 
   private _tui?: Tui

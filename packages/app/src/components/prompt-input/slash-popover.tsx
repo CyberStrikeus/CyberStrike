@@ -1,7 +1,7 @@
 import { Component, For, Match, Show, Switch } from "solid-js"
-import { FileIcon } from "@cyberstrikeus/ui/file-icon"
-import { Icon } from "@cyberstrikeus/ui/icon"
-import { getDirectory, getFilename } from "@cyberstrikeus/util/path"
+import { FileIcon } from "@cyberstrike-io/ui/file-icon"
+import { Icon } from "@cyberstrike-io/ui/icon"
+import { getDirectory, getFilename } from "@cyberstrike-io/util/path"
 
 export type AtOption =
   | { type: "agent"; name: string; display: string }

@@ -1,8 +1,8 @@
 import { Component, For, Show } from "solid-js"
-import { FileIcon } from "@cyberstrikeus/ui/file-icon"
-import { IconButton } from "@cyberstrikeus/ui/icon-button"
-import { Tooltip } from "@cyberstrikeus/ui/tooltip"
-import { getDirectory, getFilename, getFilenameTruncated } from "@cyberstrikeus/util/path"
+import { FileIcon } from "@cyberstrike-io/ui/file-icon"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { Tooltip } from "@cyberstrike-io/ui/tooltip"
+import { getDirectory, getFilename, getFilenameTruncated } from "@cyberstrike-io/util/path"
 import type { ContextItem } from "@/context/prompt"
 
 type PromptContextItem = ContextItem & { key: string }

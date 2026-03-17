@@ -11,7 +11,7 @@ import {
 } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind } from "@tui/context/keybind"
-import type { KeybindsConfig } from "@cyberstrikeus/sdk/v2"
+import type { KeybindsConfig } from "@cyberstrike-io/sdk/v2"
 
 type Context = ReturnType<typeof init>
 const ctx = createContext<Context>()

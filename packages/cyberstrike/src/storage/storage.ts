@@ -6,7 +6,7 @@ import { Filesystem } from "../util/filesystem"
 import { lazy } from "../util/lazy"
 import { Lock } from "../util/lock"
 import { $ } from "bun"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import z from "zod"
 
 export namespace Storage {

@@ -1,5 +1,5 @@
-import { createCyberstrikeClient, type Event } from "@cyberstrikeus/sdk/v2/client"
-import { createSimpleContext } from "@cyberstrikeus/ui/context"
+import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2/client"
+import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { createEffect, createMemo, onCleanup, type Accessor } from "solid-js"
 import { useGlobalSDK } from "./global-sdk"

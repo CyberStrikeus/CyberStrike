@@ -10,7 +10,7 @@ import type {
   Part,
   Auth,
   Config,
-} from "@cyberstrikeus/sdk"
+} from "@cyberstrike-io/sdk"
 
 import type { BunShell } from "./shell"
 import { type ToolDefinition } from "./tool"

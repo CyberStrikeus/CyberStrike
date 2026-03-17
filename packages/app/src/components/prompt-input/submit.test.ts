@@ -39,18 +39,18 @@ beforeAll(async () => {
     useParams: () => ({}),
   }))
 
-  mock.module("@cyberstrikeus/sdk/v2/client", () => ({
+  mock.module("@cyberstrike-io/sdk/v2/client", () => ({
     createCyberstrikeClient: (input: { directory: string }) => {
       createdClients.push(input.directory)
       return clientFor(input.directory)
     },
   }))
 
-  mock.module("@cyberstrikeus/ui/toast", () => ({
+  mock.module("@cyberstrike-io/ui/toast", () => ({
     showToast: () => 0,
   }))
 
-  mock.module("@cyberstrikeus/util/encode", () => ({
+  mock.module("@cyberstrike-io/util/encode", () => ({
     base64Encode: (value: string) => value,
   }))
 

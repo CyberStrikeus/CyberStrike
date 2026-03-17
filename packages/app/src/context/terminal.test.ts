@@ -8,7 +8,7 @@ beforeAll(async () => {
     useNavigate: () => () => undefined,
     useParams: () => ({}),
   }))
-  mock.module("@cyberstrikeus/ui/context", () => ({
+  mock.module("@cyberstrike-io/ui/context", () => ({
     createSimpleContext: () => ({
       use: () => undefined,
       provider: () => undefined,

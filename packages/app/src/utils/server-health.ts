@@ -1,4 +1,4 @@
-import { createCyberstrikeClient } from "@cyberstrikeus/sdk/v2/client"
+import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
 
 export type ServerHealth = { healthy: boolean; version?: string }
 

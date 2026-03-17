@@ -4,7 +4,7 @@ import { cmd } from "./cmd"
 import { AgentSideConnection, ndJsonStream } from "@agentclientprotocol/sdk"
 import { ACP } from "@/acp/agent"
 import { Server } from "@/server/server"
-import { createCyberstrikeClient } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2"
 import { withNetworkOptions, resolveNetworkOptions } from "../network"
 
 const log = Log.create({ service: "acp-command" })

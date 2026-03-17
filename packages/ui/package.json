@@ -1,5 +1,5 @@
 {
-  "name": "@cyberstrikeus/ui",
+  "name": "@cyberstrike-io/ui",
   "version": "1.2.2",
   "type": "module",
   "license": "MIT",
@@ -41,8 +41,8 @@
   },
   "dependencies": {
     "@kobalte/core": "catalog:",
-    "@cyberstrikeus/sdk": "workspace:*",
-    "@cyberstrikeus/util": "workspace:*",
+    "@cyberstrike-io/sdk": "workspace:*",
+    "@cyberstrike-io/util": "workspace:*",
     "@pierre/diffs": "catalog:",
     "@shikijs/transformers": "3.9.2",
     "@solid-primitives/bounds": "0.1.3",

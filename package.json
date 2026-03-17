@@ -76,9 +76,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.933.0",
-    "@cyberstrikeus/plugin": "workspace:*",
-    "@cyberstrikeus/script": "workspace:*",
-    "@cyberstrikeus/sdk": "workspace:*",
+    "@cyberstrike-io/plugin": "workspace:*",
+    "@cyberstrike-io/script": "workspace:*",
+    "@cyberstrike-io/sdk": "workspace:*",
     "@opentui/core": "0.1.87",
     "playwright": "1.58.2",
     "typescript": "catalog:"

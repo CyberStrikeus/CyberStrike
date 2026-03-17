@@ -1,5 +1,5 @@
-import { Select } from "@cyberstrikeus/ui/select"
-import { showToast } from "@cyberstrikeus/ui/toast"
+import { Select } from "@cyberstrike-io/ui/select"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { Component, For, createMemo, type JSX } from "solid-js"
 import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"

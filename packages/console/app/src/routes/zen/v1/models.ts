@@ -1,9 +1,9 @@
 import type { APIEvent } from "@solidjs/start/server"
-import { and, Database, eq, isNull } from "@cyberstrikeus/console-core/drizzle/index.js"
-import { KeyTable } from "@cyberstrikeus/console-core/schema/key.sql.js"
-import { WorkspaceTable } from "@cyberstrikeus/console-core/schema/workspace.sql.js"
-import { ModelTable } from "@cyberstrikeus/console-core/schema/model.sql.js"
-import { ZenData } from "@cyberstrikeus/console-core/model.js"
+import { and, Database, eq, isNull } from "@cyberstrike-io/console-core/drizzle/index.js"
+import { KeyTable } from "@cyberstrike-io/console-core/schema/key.sql.js"
+import { WorkspaceTable } from "@cyberstrike-io/console-core/schema/workspace.sql.js"
+import { ModelTable } from "@cyberstrike-io/console-core/schema/model.sql.js"
+import { ZenData } from "@cyberstrike-io/console-core/model.js"
 
 export async function OPTIONS(input: APIEvent) {
   return new Response(null, {

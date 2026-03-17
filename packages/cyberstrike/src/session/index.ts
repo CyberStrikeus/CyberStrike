@@ -1,4 +1,4 @@
-import { Slug } from "@cyberstrikeus/util/slug"
+import { Slug } from "@cyberstrike-io/util/slug"
 import path from "path"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"

@@ -1,4 +1,4 @@
-import type { FileContent } from "@cyberstrikeus/sdk/v2"
+import type { FileContent } from "@cyberstrike-io/sdk/v2"
 
 export type FileSelection = {
   startLine: number

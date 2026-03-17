@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch"
-import { lazy } from "@cyberstrikeus/util/lazy"
+import { lazy } from "@cyberstrike-io/util/lazy"
 
 export namespace Storage {
   export interface Adapter {
