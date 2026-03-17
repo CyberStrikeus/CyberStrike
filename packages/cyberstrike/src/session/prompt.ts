@@ -17,7 +17,6 @@ import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
 import { InstructionPrompt } from "./instruction"
 import { Plugin } from "../plugin"
-import PROMPT_PLAN from "../session/prompt/plan.txt"
 import BUILD_SWITCH from "../session/prompt/build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
@@ -651,6 +650,34 @@ export namespace SessionPrompt {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
       }
 
+      // Inject MCP tool availability info so the LLM knows to use tool_search
+      const mcpLazyStats = LazyToolRegistry.stats()
+      if (mcpLazyStats.available > 0) {
+        const allLazy = LazyToolRegistry.getAll()
+        const byServer = new Map<string, string[]>()
+        for (const t of allLazy) {
+          const server = t.mcpServer ?? "unknown"
+          if (!byServer.has(server)) byServer.set(server, [])
+          byServer.get(server)!.push(t.name)
+        }
+        const lines = [
+          "# MCP Tools",
+          `You have ${mcpLazyStats.available} tools available from MCP servers. These tools are NOT yet in your context.`,
+          "Use `tool_search` to find tools by capability, then `load_tools` to make them usable.",
+          "",
+          "Available servers:",
+        ]
+        for (const [server, toolNames] of byServer) {
+          const preview = toolNames.slice(0, 5).join(", ")
+          const suffix = toolNames.length > 5 ? `, ... (+${toolNames.length - 5} more)` : ""
+          lines.push(`- **${server}**: ${toolNames.length} tools — ${preview}${suffix}`)
+        }
+        if (mcpLazyStats.loaded > 0) {
+          lines.push("", `Currently loaded: ${mcpLazyStats.loaded} tool(s) (${mcpLazyStats.estimatedTokens} tokens used)`)
+        }
+        system.push(lines.join("\n"))
+      }
+
       const result = await processor.process({
         user: lastUser,
         agent,
@@ -720,7 +747,7 @@ export namespace SessionPrompt {
     throw new Error("Impossible")
   })
 
-  async function lastModel(sessionID: string) {
+  export async function lastModel(sessionID: string) {
     for await (const item of MessageV2.stream(sessionID)) {
       if (item.info.role === "user" && item.info.model) return item.info.model
     }
@@ -1336,29 +1363,8 @@ export namespace SessionPrompt {
     const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
     if (!userMessage) return input.messages
 
-    // Original logic when experimental plan mode is disabled
+    // Plan mode disabled — no plan/build agent switching
     if (!Flag.CYBERSTRIKE_EXPERIMENTAL_PLAN_MODE) {
-      if (input.agent.name === "plan") {
-        userMessage.parts.push({
-          id: Identifier.ascending("part"),
-          messageID: userMessage.info.id,
-          sessionID: userMessage.info.sessionID,
-          type: "text",
-          text: PROMPT_PLAN,
-          synthetic: true,
-        })
-      }
-      const wasPlan = input.messages.some((msg) => msg.info.role === "assistant" && msg.info.agent === "plan")
-      if (wasPlan && input.agent.name === "build") {
-        userMessage.parts.push({
-          id: Identifier.ascending("part"),
-          messageID: userMessage.info.id,
-          sessionID: userMessage.info.sessionID,
-          type: "text",
-          text: BUILD_SWITCH,
-          synthetic: true,
-        })
-      }
       return input.messages
     }
 

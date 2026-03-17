@@ -29,6 +29,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
+    bolt: true,
     diff: true,
     todo: true,
     vulnerability: true,
@@ -52,6 +53,13 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
         ([_, item]) =>
           item.status === "failed" || item.status === "needs_auth" || item.status === "needs_client_registration",
       ).length,
+  )
+
+  // Sort Bolt servers alphabetically
+  const boltEntries = createMemo(() => Object.entries(sync.data.bolt).sort(([a], [b]) => a.localeCompare(b)))
+  const connectedBoltCount = createMemo(() => boltEntries().filter(([_, item]) => item.status === "connected").length)
+  const errorBoltCount = createMemo(
+    () => boltEntries().filter(([_, item]) => item.status === "failed" || item.status === "needs_auth").length,
   )
 
   const cost = createMemo(() => {
@@ -142,7 +150,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                           style={{
                             fg: (
                               {
-                                connected: theme.success,
+                                connected: theme.info,
                                 failed: theme.error,
                                 disabled: theme.textMuted,
                                 needs_auth: theme.warning,
@@ -173,49 +181,64 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </Show>
               </box>
             </Show>
-            <box>
-              <box
-                flexDirection="row"
-                gap={1}
-                onMouseDown={() => sync.data.lsp.length > 2 && setExpanded("lsp", !expanded.lsp)}
-              >
-                <Show when={sync.data.lsp.length > 2}>
-                  <text fg={theme.text}>{expanded.lsp ? "▼" : "▶"}</text>
-                </Show>
-                <text fg={theme.text}>
-                  <b>LSP</b>
-                </text>
-              </box>
-              <Show when={sync.data.lsp.length <= 2 || expanded.lsp}>
-                <Show when={sync.data.lsp.length === 0}>
-                  <text fg={theme.textMuted}>
-                    {sync.data.config.lsp === false
-                      ? "LSPs have been disabled in settings"
-                      : "LSPs will activate as files are read"}
+            <Show when={boltEntries().length > 0}>
+              <box>
+                <box
+                  flexDirection="row"
+                  gap={1}
+                  onMouseDown={() => boltEntries().length > 2 && setExpanded("bolt", !expanded.bolt)}
+                >
+                  <Show when={boltEntries().length > 2}>
+                    <text fg={theme.text}>{expanded.bolt ? "▼" : "▶"}</text>
+                  </Show>
+                  <text fg={theme.text}>
+                    <b>Bolt</b>
+                    <Show when={!expanded.bolt}>
+                      <span style={{ fg: theme.textMuted }}>
+                        {" "}
+                        ({connectedBoltCount()} active
+                        {errorBoltCount() > 0 ? `, ${errorBoltCount()} error${errorBoltCount() > 1 ? "s" : ""}` : ""})
+                      </span>
+                    </Show>
                   </text>
+                </box>
+                <Show when={boltEntries().length <= 2 || expanded.bolt}>
+                  <For each={boltEntries()}>
+                    {([key, item]) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg: (
+                              {
+                                connected: theme.info,
+                                failed: theme.error,
+                                disabled: theme.textMuted,
+                                needs_auth: theme.warning,
+                              } as Record<string, typeof theme.success>
+                            )[item.status],
+                          }}
+                        >
+                          •
+                        </text>
+                        <text fg={theme.text} wrapMode="word">
+                          {key}{" "}
+                          <span style={{ fg: theme.textMuted }}>
+                            <Switch fallback={item.status}>
+                              <Match when={item.status === "connected"}>Connected</Match>
+                              <Match when={item.status === "failed"}>Failed</Match>
+                              <Match when={item.status === "disabled"}>Disabled</Match>
+                              <Match when={(item.status as string) === "needs_auth"}>Needs pairing</Match>
+                            </Switch>
+                          </span>
+                        </text>
+                      </box>
+                    )}
+                  </For>
                 </Show>
-                <For each={sync.data.lsp}>
-                  {(item) => (
-                    <box flexDirection="row" gap={1}>
-                      <text
-                        flexShrink={0}
-                        style={{
-                          fg: {
-                            connected: theme.success,
-                            error: theme.error,
-                          }[item.status],
-                        }}
-                      >
-                        •
-                      </text>
-                      <text fg={theme.textMuted}>
-                        {item.id} {item.root}
-                      </text>
-                    </box>
-                  )}
-                </For>
-              </Show>
-            </box>
+              </box>
+            </Show>
+            {/* LSP section hidden — will enable for source code review */}
             <Show when={todo().length > 0 && todo().some((t) => t.status !== "completed")}>
               <box>
                 <box

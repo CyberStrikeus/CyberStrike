@@ -6,6 +6,7 @@ node_modules
 .idea
 .vscode
 .codex
+.claude/
 *~
 playground
 tmp
@@ -17,7 +18,7 @@ ts-dist
 /result
 refs
 Session.vim
-opencode.json
+cyberstrike.json
 a.out
 target
 .scripts

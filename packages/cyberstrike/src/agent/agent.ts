@@ -44,7 +44,6 @@ import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/descripti
 
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
-import { Global } from "@/global"
 import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
@@ -101,8 +100,6 @@ export namespace Agent {
         ...Object.fromEntries(skillDirs.map((dir) => [path.join(dir, "*"), "allow"])),
       },
       question: "deny",
-      plan_enter: "deny",
-      plan_exit: "deny",
       // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
       read: {
         "*": "allow",
@@ -114,38 +111,14 @@ export namespace Agent {
     const user = PermissionNext.fromConfig(cfg.permission ?? {})
 
     const result: Record<string, Info> = {
-      build: {
-        name: "build",
-        description: "The default agent. Executes tools based on configured permissions.",
+      cyberstrike: {
+        name: "cyberstrike",
+        description: "The default CyberStrike agent. AI-powered offensive security with full tool access.",
         options: {},
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
             question: "allow",
-            plan_enter: "allow",
-          }),
-          user,
-        ),
-        mode: "primary",
-        native: true,
-      },
-      plan: {
-        name: "plan",
-        description: "Plan mode. Disallows all edit tools.",
-        options: {},
-        permission: PermissionNext.merge(
-          defaults,
-          PermissionNext.fromConfig({
-            question: "allow",
-            plan_exit: "allow",
-            external_directory: {
-              [path.join(Global.Path.data, "plans", "*")]: "allow",
-            },
-            edit: {
-              "*": "deny",
-              [path.join(".cyberstrike", "plans", "*.md")]: "allow",
-              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
-            },
           }),
           user,
         ),
@@ -196,7 +169,7 @@ export namespace Agent {
       },
       compaction: {
         name: "compaction",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         hidden: true,
         prompt: PROMPT_COMPACTION,
@@ -211,7 +184,7 @@ export namespace Agent {
       },
       title: {
         name: "title",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -227,7 +200,7 @@ export namespace Agent {
       },
       "normalize-request": {
         name: "normalize-request",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -243,7 +216,7 @@ export namespace Agent {
       },
       summary: {
         name: "summary",
-        mode: "primary",
+        mode: "subagent",
         options: {},
         native: true,
         hidden: true,
@@ -259,7 +232,7 @@ export namespace Agent {
       "web-application": {
         name: "web-application",
         description: "Web application security specialist. OWASP Top 10, WSTG methodology, API security testing.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "red",
         prompt: PROMPT_WEB_APPLICATION,
@@ -285,7 +258,7 @@ export namespace Agent {
         name: "mobile-application",
         description:
           "Mobile application security specialist. Android/iOS testing, OWASP MASTG/MASVS, static/dynamic analysis, Frida/Objection.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "magenta",
         prompt: PROMPT_MOBILE_APPLICATION,
@@ -307,7 +280,7 @@ export namespace Agent {
       "cloud-security": {
         name: "cloud-security",
         description: "Cloud security specialist. AWS, Azure, GCP security testing. IAM, CIS benchmarks.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "cyan",
         prompt: PROMPT_CLOUD_SECURITY,
@@ -329,7 +302,7 @@ export namespace Agent {
       "internal-network": {
         name: "internal-network",
         description: "Internal network and Active Directory specialist. AD attacks, Kerberos, lateral movement.",
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "yellow",
         prompt: PROMPT_INTERNAL_NETWORK,
@@ -352,7 +325,7 @@ export namespace Agent {
       "proxy-agent": {
         name: "proxy-agent",
         description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
-        mode: "primary",
+        mode: "subagent",
         native: true,
         color: "blue",
         prompt: PROMPT_WEB_PROXY_AGENT,
@@ -384,6 +357,7 @@ export namespace Agent {
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_request_detail: "allow",
             web_write_role: "allow",
             web_write_object: "allow",
             web_write_object_value: "allow",
@@ -414,6 +388,7 @@ export namespace Agent {
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_request_detail: "allow",
             report_vulnerability: "allow",
           }),
           user,
@@ -569,7 +544,7 @@ export namespace Agent {
     return pipe(
       await state(),
       values(),
-      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "build"), "desc"]),
+      sortBy([(x) => (cfg.default_agent ? x.name === cfg.default_agent : x.name === "cyberstrike"), "desc"]),
     )
   }
 

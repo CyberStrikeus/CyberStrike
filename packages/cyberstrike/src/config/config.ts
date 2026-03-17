@@ -585,6 +585,23 @@ export namespace Config {
   export const Mcp = z.discriminatedUnion("type", [McpLocal, McpRemote])
   export type Mcp = z.infer<typeof Mcp>
 
+  export const Bolt = z
+    .object({
+      url: z.string().describe("Bolt server URL (e.g. http://myserver:3001)"),
+      enabled: z.boolean().optional().describe("Enable or disable the Bolt server on startup"),
+      timeout: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Timeout in ms for Bolt server requests. Defaults to 30000 (30 seconds) if not specified."),
+    })
+    .strict()
+    .meta({
+      ref: "BoltConfig",
+    })
+  export type Bolt = z.infer<typeof Bolt>
+
   export const PermissionAction = z.enum(["ask", "allow", "deny"]).meta({
     ref: "PermissionActionConfig",
   })
@@ -1054,7 +1071,7 @@ export namespace Config {
         .string()
         .optional()
         .describe(
-          "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.",
+          "Default agent to use when none is specified. Must be a primary agent. Falls back to 'cyberstrike' if not set or if the specified agent is invalid.",
         ),
       username: z
         .string()
@@ -1062,8 +1079,7 @@ export namespace Config {
         .describe("Custom username to display in conversations instead of system username"),
       mode: z
         .object({
-          build: Agent.optional(),
-          plan: Agent.optional(),
+          cyberstrike: Agent.optional(),
         })
         .catchall(Agent)
         .optional()
@@ -1071,8 +1087,7 @@ export namespace Config {
       agent: z
         .object({
           // primary
-          plan: Agent.optional(),
-          build: Agent.optional(),
+          cyberstrike: Agent.optional(),
           // subagent
           general: Agent.optional(),
           explore: Agent.optional(),
@@ -1102,6 +1117,10 @@ export namespace Config {
         )
         .optional()
         .describe("MCP (Model Context Protocol) server configurations"),
+      bolt: z
+        .record(z.string(), Bolt)
+        .optional()
+        .describe("Bolt server configurations (Docker Kali containers)"),
       formatter: z
         .union([
           z.literal(false),
@@ -1370,7 +1389,7 @@ export namespace Config {
   }
 
   export async function update(config: Info) {
-    const filepath = path.join(Instance.directory, "config.json")
+    const filepath = path.join(Instance.directory, "cyberstrike.json")
     const existing = await loadFile(filepath)
     await Bun.write(filepath, JSON.stringify(mergeDeep(existing, config), null, 2))
     await Instance.dispose()

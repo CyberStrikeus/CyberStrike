@@ -26,6 +26,7 @@ import { EOL } from "os"
 import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
+import { ProviderCommand } from "./cli/cmd/provider"
 import path from "path"
 import { Global } from "./global"
 import { JsonMigration } from "./storage/json-migration"
@@ -138,6 +139,7 @@ const cli = yargs(hideBin(process.argv))
   .command(GithubCommand)
   .command(PrCommand)
   .command(SessionCommand)
+  .command(ProviderCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
@@ -172,15 +174,16 @@ try {
     })
   }
 
-  if (e instanceof ResolveMessage) {
+  if (e instanceof Error && "specifier" in e) {
+    const re = e as Error & { code?: string; specifier?: string; referrer?: string; position?: unknown; importKind?: string }
     Object.assign(data, {
-      name: e.name,
-      message: e.message,
-      code: e.code,
-      specifier: e.specifier,
-      referrer: e.referrer,
-      position: e.position,
-      importKind: e.importKind,
+      name: re.name,
+      message: re.message,
+      code: re.code,
+      specifier: re.specifier,
+      referrer: re.referrer,
+      position: re.position,
+      importKind: re.importKind,
     })
   }
   Log.Default.error("fatal", data)

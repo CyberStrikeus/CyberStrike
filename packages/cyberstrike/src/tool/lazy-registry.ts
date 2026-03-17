@@ -1,5 +1,6 @@
 import { Log } from "../util/log"
 import { MCP } from "../mcp"
+import { Bus } from "../bus"
 import type { Tool as AITool } from "ai"
 
 const log = Log.create({ service: "tool.lazy-registry" })
@@ -46,9 +47,11 @@ export namespace LazyToolRegistry {
     log.info("initializing lazy tool registry")
 
     const mcpStatus = await MCP.status()
+    const boltStatusMap = await MCP.boltStatus()
+    const allStatus = { ...mcpStatus, ...boltStatusMap }
     const clients = await MCP.clients()
 
-    for (const [serverName, status] of Object.entries(mcpStatus)) {
+    for (const [serverName, status] of Object.entries(allStatus)) {
       if (status.status !== "connected") continue
 
       const client = clients[serverName]
@@ -89,6 +92,61 @@ export namespace LazyToolRegistry {
     log.info("lazy tool registry initialized", {
       totalTools: lazyTools.size,
       loadedTools: loadedTools.size,
+    })
+
+    ensureSubscribed()
+  }
+
+  /**
+   * Refresh tools from a specific server (called when ToolListChanged notification fires)
+   */
+  export async function refresh(serverName: string): Promise<void> {
+    const clients = await MCP.clients()
+    const client = clients[serverName]
+    if (!client) return
+
+    try {
+      const toolsResult = await client.listTools()
+      const sanitizedServerName = serverName.replace(/[^a-zA-Z0-9_-]/g, "_")
+
+      for (const mcpTool of toolsResult.tools) {
+        const sanitizedToolName = mcpTool.name.replace(/[^a-zA-Z0-9_-]/g, "_")
+        const id = `${sanitizedServerName}_${sanitizedToolName}`
+
+        if (lazyTools.has(id)) continue
+
+        const keywords = extractKeywords(mcpTool.name, mcpTool.description || "")
+        const summary = (mcpTool.description || mcpTool.name).slice(0, 100)
+        const category = categorize(keywords)
+
+        lazyTools.set(id, {
+          id,
+          name: mcpTool.name,
+          summary,
+          keywords,
+          category,
+          source: "mcp",
+          mcpServer: serverName,
+        })
+      }
+
+      log.info("refreshed tools from server", {
+        server: serverName,
+        totalTools: lazyTools.size,
+      })
+    } catch (err) {
+      log.error("failed to refresh tools", { server: serverName, error: err })
+    }
+  }
+
+  // Ensure we only subscribe once
+  let subscribed = false
+  function ensureSubscribed() {
+    if (subscribed) return
+    subscribed = true
+    Bus.subscribe(MCP.ToolsChanged, async (payload) => {
+      log.info("tools changed notification, refreshing", { server: payload.properties.server })
+      await refresh(payload.properties.server)
     })
   }
 
