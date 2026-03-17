@@ -1,4 +1,4 @@
-import { createSimpleContext } from "@cyberstrikeus/ui/context"
+import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { batch, createEffect, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"

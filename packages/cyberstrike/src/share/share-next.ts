@@ -7,7 +7,7 @@ import { MessageV2 } from "@/session/message-v2"
 import { Database, eq } from "@/storage/db"
 import { SessionShareTable } from "./share.sql"
 import { Log } from "@/util/log"
-import type * as SDK from "@cyberstrikeus/sdk/v2"
+import type * as SDK from "@cyberstrike-io/sdk/v2"
 
 export namespace ShareNext {
   const log = Log.create({ service: "share-next" })

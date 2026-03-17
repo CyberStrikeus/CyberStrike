@@ -1,4 +1,4 @@
-import { createCyberstrikeClient, createCyberstrikeServer } from "@cyberstrikeus/sdk"
+import { createCyberstrikeClient, createCyberstrikeServer } from "@cyberstrike-io/sdk"
 import { pathToFileURL } from "bun"
 
 const server = await createCyberstrikeServer()

@@ -1,4 +1,4 @@
-import type { AssistantMessage, Message } from "@cyberstrikeus/sdk/v2/client"
+import type { AssistantMessage, Message } from "@cyberstrike-io/sdk/v2/client"
 
 type Provider = {
   id: string

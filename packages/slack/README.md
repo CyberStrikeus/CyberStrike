@@ -1,4 +1,4 @@
-# @cyberstrikeus/slack
+# @cyberstrike-io/slack
 
 Slack bot integration for cyberstrike that creates threaded conversations.
 

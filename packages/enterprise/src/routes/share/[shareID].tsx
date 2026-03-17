@@ -1,37 +1,37 @@
-import { FileDiff, Message, Model, Part, Session, SessionStatus, UserMessage } from "@cyberstrikeus/sdk/v2"
-import { SessionTurn } from "@cyberstrikeus/ui/session-turn"
-import { SessionReview } from "@cyberstrikeus/ui/session-review"
-import { DataProvider } from "@cyberstrikeus/ui/context"
-import { DiffComponentProvider } from "@cyberstrikeus/ui/context/diff"
-import { CodeComponentProvider } from "@cyberstrikeus/ui/context/code"
-import { WorkerPoolProvider } from "@cyberstrikeus/ui/context/worker-pool"
+import { FileDiff, Message, Model, Part, Session, SessionStatus, UserMessage } from "@cyberstrike-io/sdk/v2"
+import { SessionTurn } from "@cyberstrike-io/ui/session-turn"
+import { SessionReview } from "@cyberstrike-io/ui/session-review"
+import { DataProvider } from "@cyberstrike-io/ui/context"
+import { DiffComponentProvider } from "@cyberstrike-io/ui/context/diff"
+import { CodeComponentProvider } from "@cyberstrike-io/ui/context/code"
+import { WorkerPoolProvider } from "@cyberstrike-io/ui/context/worker-pool"
 import { createAsync, query, useParams } from "@solidjs/router"
 import { createEffect, createMemo, ErrorBoundary, For, Match, Show, Switch } from "solid-js"
 import { Share } from "~/core/share"
-import { Logo, Mark } from "@cyberstrikeus/ui/logo"
-import { IconButton } from "@cyberstrikeus/ui/icon-button"
-import { ProviderIcon } from "@cyberstrikeus/ui/provider-icon"
-import { createDefaultOptions } from "@cyberstrikeus/ui/pierre"
-import { iife } from "@cyberstrikeus/util/iife"
-import { Binary } from "@cyberstrikeus/util/binary"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { Logo, Mark } from "@cyberstrike-io/ui/logo"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
+import { createDefaultOptions } from "@cyberstrike-io/ui/pierre"
+import { iife } from "@cyberstrike-io/util/iife"
+import { Binary } from "@cyberstrike-io/util/binary"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { DateTime } from "luxon"
 import { createStore } from "solid-js/store"
 import z from "zod"
 import NotFound from "../[...404]"
-import { Tabs } from "@cyberstrikeus/ui/tabs"
-import { MessageNav } from "@cyberstrikeus/ui/message-nav"
+import { Tabs } from "@cyberstrike-io/ui/tabs"
+import { MessageNav } from "@cyberstrike-io/ui/message-nav"
 import { preloadMultiFileDiff, PreloadMultiFileDiffResult } from "@pierre/diffs/ssr"
-import { Diff as SSRDiff } from "@cyberstrikeus/ui/diff-ssr"
+import { Diff as SSRDiff } from "@cyberstrike-io/ui/diff-ssr"
 import { clientOnly } from "@solidjs/start"
-import { type IconName } from "@cyberstrikeus/ui/icons/provider"
+import { type IconName } from "@cyberstrike-io/ui/icons/provider"
 import { Meta, Title } from "@solidjs/meta"
 import { Base64 } from "js-base64"
 
-const ClientOnlyDiff = clientOnly(() => import("@cyberstrikeus/ui/diff").then((m) => ({ default: m.Diff })))
-const ClientOnlyCode = clientOnly(() => import("@cyberstrikeus/ui/code").then((m) => ({ default: m.Code })))
+const ClientOnlyDiff = clientOnly(() => import("@cyberstrike-io/ui/diff").then((m) => ({ default: m.Diff })))
+const ClientOnlyCode = clientOnly(() => import("@cyberstrike-io/ui/code").then((m) => ({ default: m.Code })))
 const ClientOnlyWorkerPoolProvider = clientOnly(() =>
-  import("@cyberstrikeus/ui/pierre/worker").then((m) => ({
+  import("@cyberstrike-io/ui/pierre/worker").then((m) => ({
     default: (props: { children: any }) => (
       <WorkerPoolProvider pools={m.getWorkerPools()}>{props.children}</WorkerPoolProvider>
     ),

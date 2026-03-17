@@ -5,7 +5,7 @@ import {
   type ProviderAuthResponse,
   type ProviderListResponse,
   createCyberstrikeClient,
-} from "@cyberstrikeus/sdk/v2/client"
+} from "@cyberstrike-io/sdk/v2/client"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useGlobalSDK } from "./global-sdk"
 import type { InitError } from "../pages/error"
@@ -21,8 +21,8 @@ import {
   Switch,
   Match,
 } from "solid-js"
-import { showToast } from "@cyberstrikeus/ui/toast"
-import { getFilename } from "@cyberstrikeus/util/path"
+import { showToast } from "@cyberstrike-io/ui/toast"
+import { getFilename } from "@cyberstrike-io/util/path"
 import { usePlatform } from "./platform"
 import { useLanguage } from "@/context/language"
 import { Persist, persisted } from "@/utils/persist"

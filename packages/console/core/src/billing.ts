@@ -4,7 +4,7 @@ import { BillingTable, PaymentTable, SubscriptionTable, UsageTable } from "./sch
 import { Actor } from "./actor"
 import { fn } from "./util/fn"
 import { z } from "zod"
-import { Resource } from "@cyberstrikeus/console-resource"
+import { Resource } from "@cyberstrike-io/console-resource"
 import { Identifier } from "./identifier"
 import { centsToMicroCents } from "./util/price"
 import { User } from "./user"

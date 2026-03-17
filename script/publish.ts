@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import { Script } from "@cyberstrikeus/script"
+import { Script } from "@cyberstrike-io/script"
 
 const highlightsTemplate = `
 <!--

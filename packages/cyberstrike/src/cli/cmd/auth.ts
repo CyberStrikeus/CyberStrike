@@ -10,7 +10,7 @@ import { Config } from "../../config/config"
 import { Global } from "../../global"
 import { Plugin } from "../../plugin"
 import { Instance } from "../../project/instance"
-import type { Hooks } from "@cyberstrikeus/plugin"
+import type { Hooks } from "@cyberstrike-io/plugin"
 
 type PluginAuth = NonNullable<Hooks["auth"]>
 

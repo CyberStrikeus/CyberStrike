@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@cyberstrikeus/plugin",
+  "name": "@cyberstrike-io/plugin",
   "version": "1.2.2",
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "dist"
   ],
   "dependencies": {
-    "@cyberstrikeus/sdk": "workspace:*",
+    "@cyberstrike-io/sdk": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { Hooks, PluginInput } from "@cyberstrikeus/plugin"
+import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { Installation } from "@/installation"
 import { iife } from "@/util/iife"
 

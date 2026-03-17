@@ -9,7 +9,7 @@ import { mergeDeep, pipe, unique } from "remeda"
 import { Global } from "../global"
 import fs from "fs/promises"
 import { lazy } from "../util/lazy"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { Flag } from "../flag/flag"
 import { Auth } from "../auth"
 import {
@@ -260,7 +260,7 @@ export namespace Config {
       .catch(() => ({}))
     json.dependencies = {
       ...json.dependencies,
-      "@cyberstrikeus/plugin": targetVersion,
+      "@cyberstrike-io/plugin": targetVersion,
     }
     await Bun.write(pkg, JSON.stringify(json, null, 2))
     await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -309,15 +309,15 @@ export namespace Config {
 
     const parsed = await pkgFile.json().catch(() => null)
     const dependencies = parsed?.dependencies ?? {}
-    const depVersion = dependencies["@cyberstrikeus/plugin"]
+    const depVersion = dependencies["@cyberstrike-io/plugin"]
     if (!depVersion) return true
 
     const targetVersion = Installation.isLocal() ? "latest" : Installation.VERSION
     if (targetVersion === "latest") {
-      const isOutdated = await PackageRegistry.isOutdated("@cyberstrikeus/plugin", depVersion, dir)
+      const isOutdated = await PackageRegistry.isOutdated("@cyberstrike-io/plugin", depVersion, dir)
       if (!isOutdated) return false
       log.info("Cached version is outdated, proceeding with install", {
-        pkg: "@cyberstrikeus/plugin",
+        pkg: "@cyberstrike-io/plugin",
         cachedVersion: depVersion,
       })
       return true

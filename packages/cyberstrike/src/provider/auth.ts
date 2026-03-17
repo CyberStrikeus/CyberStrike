@@ -3,8 +3,8 @@ import { Plugin } from "../plugin"
 import { map, filter, pipe, fromEntries, mapValues } from "remeda"
 import z from "zod"
 import { fn } from "@/util/fn"
-import type { AuthOuathResult, Hooks } from "@cyberstrikeus/plugin"
-import { NamedError } from "@cyberstrikeus/util/error"
+import type { AuthOuathResult, Hooks } from "@cyberstrike-io/plugin"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { Auth } from "@/auth"
 
 export namespace ProviderAuth {

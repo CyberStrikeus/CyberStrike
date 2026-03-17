@@ -1,7 +1,7 @@
 import { Match, Show, Switch, createMemo } from "solid-js"
-import { Tooltip } from "@cyberstrikeus/ui/tooltip"
-import { ProgressCircle } from "@cyberstrikeus/ui/progress-circle"
-import { Button } from "@cyberstrikeus/ui/button"
+import { Tooltip } from "@cyberstrike-io/ui/tooltip"
+import { ProgressCircle } from "@cyberstrike-io/ui/progress-circle"
+import { Button } from "@cyberstrike-io/ui/button"
 import { useParams } from "@solidjs/router"
 
 import { useLayout } from "@/context/layout"

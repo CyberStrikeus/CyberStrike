@@ -1,11 +1,11 @@
-import { TextField } from "@cyberstrikeus/ui/text-field"
-import { Logo } from "@cyberstrikeus/ui/logo"
-import { Button } from "@cyberstrikeus/ui/button"
+import { TextField } from "@cyberstrike-io/ui/text-field"
+import { Logo } from "@cyberstrike-io/ui/logo"
+import { Button } from "@cyberstrike-io/ui/button"
 import { Component, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
-import { Icon } from "@cyberstrikeus/ui/icon"
+import { Icon } from "@cyberstrike-io/ui/icon"
 
 export type InitError = {
   name: string

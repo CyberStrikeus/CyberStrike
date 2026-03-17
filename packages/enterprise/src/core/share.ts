@@ -1,10 +1,10 @@
-import { FileDiff, Message, Model, Part, Session } from "@cyberstrikeus/sdk/v2"
-import { fn } from "@cyberstrikeus/util/fn"
-import { iife } from "@cyberstrikeus/util/iife"
-import { Identifier } from "@cyberstrikeus/util/identifier"
+import { FileDiff, Message, Model, Part, Session } from "@cyberstrike-io/sdk/v2"
+import { fn } from "@cyberstrike-io/util/fn"
+import { iife } from "@cyberstrike-io/util/iife"
+import { Identifier } from "@cyberstrike-io/util/identifier"
 import z from "zod"
 import { Storage } from "./storage"
-import { Binary } from "@cyberstrikeus/util/binary"
+import { Binary } from "@cyberstrike-io/util/binary"
 
 export namespace Share {
   export const Info = z.object({

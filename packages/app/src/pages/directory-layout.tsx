@@ -5,10 +5,10 @@ import { SDKProvider, useSDK } from "@/context/sdk"
 import { SyncProvider, useSync } from "@/context/sync"
 import { LocalProvider } from "@/context/local"
 
-import { DataProvider } from "@cyberstrikeus/ui/context"
-import type { QuestionAnswer } from "@cyberstrikeus/sdk/v2"
+import { DataProvider } from "@cyberstrike-io/ui/context"
+import type { QuestionAnswer } from "@cyberstrike-io/sdk/v2"
 import { decode64 } from "@/utils/base64"
-import { showToast } from "@cyberstrikeus/ui/toast"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { useLanguage } from "@/context/language"
 
 function DirectoryDataProvider(props: ParentProps<{ directory: string }>) {

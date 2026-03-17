@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import { createCyberstrike } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrike } from "@cyberstrike-io/sdk/v2"
 import { parseArgs } from "util"
-import { Script } from "@cyberstrikeus/script"
+import { Script } from "@cyberstrike-io/script"
 
 type Release = {
   tag_name: string

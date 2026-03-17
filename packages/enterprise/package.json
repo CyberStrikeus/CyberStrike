@@ -1,5 +1,5 @@
 {
-  "name": "@cyberstrikeus/enterprise",
+  "name": "@cyberstrike-io/enterprise",
   "version": "1.2.2",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "shell-prod": "sst shell --target Teams --stage production"
   },
   "dependencies": {
-    "@cyberstrikeus/util": "workspace:*",
-    "@cyberstrikeus/ui": "workspace:*",
+    "@cyberstrike-io/util": "workspace:*",
+    "@cyberstrike-io/ui": "workspace:*",
     "aws4fetch": "^1.0.20",
     "@pierre/diffs": "catalog:",
     "@solidjs/router": "catalog:",

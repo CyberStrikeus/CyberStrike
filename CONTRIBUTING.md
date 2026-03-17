@@ -66,7 +66,7 @@ Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 |---------|-------------|
 | `packages/cyberstrike` | Core CLI — agents, tools, session, provider logic |
 | `packages/app` | Web UI components (SolidJS) |
-| `packages/plugin` | Plugin SDK (`@cyberstrikeus/plugin`) |
+| `packages/plugin` | Plugin SDK (`@cyberstrike-io/plugin`) |
 | `knowledge/` | Security knowledge base (WSTG test cases) |
 | `.cyberstrike/skill/` | Security skills (methodology guides) |
 

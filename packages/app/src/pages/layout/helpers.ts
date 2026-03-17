@@ -1,5 +1,5 @@
-import { getFilename } from "@cyberstrikeus/util/path"
-import { type Session } from "@cyberstrikeus/sdk/v2/client"
+import { getFilename } from "@cyberstrike-io/util/path"
+import { type Session } from "@cyberstrike-io/sdk/v2/client"
 
 export const workspaceKey = (directory: string) => {
   const drive = directory.match(/^([A-Za-z]:)[\\/]+$/)

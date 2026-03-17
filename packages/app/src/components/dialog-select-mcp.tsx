@@ -1,9 +1,9 @@
 import { Component, createMemo, createSignal, Show } from "solid-js"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
-import { Dialog } from "@cyberstrikeus/ui/dialog"
-import { List } from "@cyberstrikeus/ui/list"
-import { Switch } from "@cyberstrikeus/ui/switch"
+import { Dialog } from "@cyberstrike-io/ui/dialog"
+import { List } from "@cyberstrike-io/ui/list"
+import { Switch } from "@cyberstrike-io/ui/switch"
 import { useLanguage } from "@/context/language"
 
 const statusLabels = {

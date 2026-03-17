@@ -1,5 +1,5 @@
 import type { APIEvent } from "@solidjs/start/server"
-import { Resource } from "@cyberstrikeus/console-resource"
+import { Resource } from "@cyberstrike-io/console-resource"
 import { docs, localeFromRequest, tag } from "~/lib/language"
 
 async function handler(evt: APIEvent) {
