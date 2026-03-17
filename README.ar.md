@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#لماذا-cyberstrike؟">لماذا CyberStrike؟</a> &bull;
+  <a href="#ما-الذي-يجعله-مختلفاً">ما الذي يجعله مختلفاً</a> &bull;
+  <a href="#الوكلاء">الوكلاء</a> &bull;
+  <a href="#منظومة-mcp">منظومة MCP</a> &bull;
+  <a href="#التثبيت">التثبيت</a> &bull;
+  <a href="#الأدوات-المدمجة">الأدوات المدمجة</a> &bull;
+  <a href="#لمن-هذا؟">لمن هذا؟</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### لماذا CyberStrike؟

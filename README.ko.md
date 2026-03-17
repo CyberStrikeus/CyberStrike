@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#왜-cyberstrike인가">왜 CyberStrike인가?</a> &bull;
+  <a href="#무엇이-다른가">무엇이 다른가</a> &bull;
+  <a href="#에이전트">에이전트</a> &bull;
+  <a href="#mcp-생태계">MCP 생태계</a> &bull;
+  <a href="#설치">설치</a> &bull;
+  <a href="#내장-도구">내장 도구</a> &bull;
+  <a href="#누구를-위한-것인가">누구를 위한 것인가</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### 왜 CyberStrike인가?

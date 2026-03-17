@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#neden-cyberstrike">Neden CyberStrike?</a> &bull;
+  <a href="#farki-ne">Farki Ne?</a> &bull;
+  <a href="#ajanlar">Ajanlar</a> &bull;
+  <a href="#mcp-ekosistemi">MCP Ekosistemi</a> &bull;
+  <a href="#kurulum">Kurulum</a> &bull;
+  <a href="#yerlesik-araclar">Yerlesik Araclar</a> &bull;
+  <a href="#kimler-icin">Kimler Icin?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### Neden CyberStrike?

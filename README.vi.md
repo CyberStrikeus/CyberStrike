@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#tại-sao-chọn-cyberstrike">Tại sao chọn CyberStrike?</a> &bull;
+  <a href="#điều-gì-khiến-cyberstrike-khác-biệt">Điều gì khiến CyberStrike khác biệt</a> &bull;
+  <a href="#tác-nhân">Tác nhân</a> &bull;
+  <a href="#hệ-sinh-thái-mcp">Hệ sinh thái MCP</a> &bull;
+  <a href="#cài-đặt">Cài đặt</a> &bull;
+  <a href="#công-cụ-tích-hợp-sẵn">Công cụ tích hợp sẵn</a> &bull;
+  <a href="#đối-tượng-sử-dụng">Đối tượng sử dụng</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### Tại sao chọn CyberStrike?

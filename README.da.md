@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#hvorfor-cyberstrike">Hvorfor CyberStrike?</a> &bull;
+  <a href="#hvad-gør-det-anderledes">Hvad G&oslash;r Det Anderledes</a> &bull;
+  <a href="#agenter">Agenter</a> &bull;
+  <a href="#mcp-økosystem">MCP-&Oslash;kosystem</a> &bull;
+  <a href="#installation">Installation</a> &bull;
+  <a href="#indbyggede-værktøjer">Indbyggede V&aelig;rkt&oslash;jer</a> &bull;
+  <a href="#hvem-er-det-til">Hvem Er Det Til?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### Hvorfor CyberStrike?

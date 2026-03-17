@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#為什麼選擇-cyberstrike？">為什麼選擇 CyberStrike？</a> &bull;
+  <a href="#獨特之處">獨特之處</a> &bull;
+  <a href="#智能體">智能體</a> &bull;
+  <a href="#mcp-生態系統">MCP 生態系統</a> &bull;
+  <a href="#安裝">安裝</a> &bull;
+  <a href="#內建工具">內建工具</a> &bull;
+  <a href="#適用對象">適用對象</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### 為什麼選擇 CyberStrike？
