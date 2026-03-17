@@ -91,7 +91,7 @@ jobs:
     needs:
       - build-cli
       - version
-    continue-on-error: false
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
