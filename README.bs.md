@@ -1,17 +1,18 @@
 <p align="center">
-  <a href="https://cyberstrike.us">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="CyberStrike logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
 </p>
-<p align="center">CyberStrike je open source AI agent za programiranje.</p>
+
+<p align="center"><b>AI platforma za autonomne ofanzivne sigurnosne agente.</b></p>
+
 <p align="center">
-  <a href="https://cyberstrike.us/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licenca" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -32,106 +33,94 @@
   <a href="README.no.md">Norsk</a> |
   <a href="README.br.md">Português (Brasil)</a> |
   <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a>
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.el.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a> |
+  <a href="README.hi.md">हिन्दी</a>
 </p>
 
-[![CyberStrike Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://cyberstrike.us)
-
 ---
+
+### Šta je CyberStrike?
+
+CyberStrike je open-source, autonomni ofanzivni sigurnosni agent koji radi u vašem terminalu. Dolazi sa 13+ specijaliziranih sigurnosnih agenata, 120+ OWASP test slučajeva i podržava 15+ LLM provajdera. Usmjerite ga na cilj, a on obavlja izviđanje, otkrivanje ranjivosti i generisanje izvještaja — sve iz jednog TUI sučelja.
+
+### Mogućnosti
+
+- **13+ sigurnosnih agenata** — Web aplikacije (OWASP WSTG), mobilne aplikacije (MASTG/MASVS), cloud (AWS/Azure/GCP), Active Directory/Kerberos, mreže, te 8 specijaliziranih proxy testera (IDOR, injekcije, SSRF, zaobilaženje autorizacije i više)
+- **30+ ugrađenih alata** — Izvršavanje komandi, HTTP zahtjevi, operacije nad datotekama, pretraga koda, web scraping, izvještavanje o ranjivostima
+- **Bolt** — Udaljeni server za alate sa MCP protokolom i Ed25519 uparivanjem. Pokrenite sigurnosne alate na udaljenim serverima, kontrolišite ih iz vašeg terminala
+- **MCP ekosistem** — Vlastite integracije: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
+- **15+ LLM provajdera** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, lokalni modeli putem OpenAI-kompatibilnih endpointa i više
+- **Višestruka sučelja** — TUI (terminal), Web (SolidJS), Desktop (Tauri) — isti engine agenata svugdje
+- **LSP podrška** — Integracija Language Server Protocol-a za radne tokove u IDE-u
+- **Sistem proširenja** — Kreirajte prilagođene agente i alate pomoću SDK-a za proširenja
 
 ### Instalacija
 
 ```bash
-# YOLO
-curl -fsSL https://cyberstrike.us/install | bash
+# npm / bun / pnpm / yarn
+npm i -g cyberstrike@latest
 
-# Package manageri
-npm i -g cyberstrike@latest        # ili bun/pnpm/yarn
-scoop install cyberstrike             # Windows
-choco install cyberstrike             # Windows
-brew install CyberStrikeus/tap/cyberstrike # macOS i Linux (preporučeno, uvijek ažurno)
-brew install cyberstrike              # macOS i Linux (zvanična brew formula, rjeđe se ažurira)
-sudo pacman -S cyberstrike            # Arch Linux (Stable)
-paru -S cyberstrike-bin               # Arch Linux (Latest from AUR)
-mise use -g cyberstrike               # Bilo koji OS
-nix run nixpkgs#cyberstrike           # ili github:CyberStrikeus/CyberStrike za najnoviji dev branch
+# macOS
+brew install CyberStrikeus/tap/cyberstrike
+
+# Windows
+scoop install cyberstrike
+
+# curl
+curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-> [!TIP]
-> Ukloni verzije starije od 0.1.x prije instalacije.
-
-### Desktop aplikacija (BETA)
-
-CyberStrike je dostupan i kao desktop aplikacija. Preuzmi je direktno sa [stranice izdanja](https://github.com/CyberStrikeus/CyberStrike/releases) ili sa [cyberstrike.us/download](https://cyberstrike.us/download).
-
-| Platforma             | Preuzimanje                           |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `cyberstrike-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `cyberstrike-desktop-darwin-x64.dmg`     |
-| Windows               | `cyberstrike-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`, `.rpm`, ili AppImage          |
+### Brzi početak
 
 ```bash
-# macOS (Homebrew)
-brew install --cask cyberstrike-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+# Pokrenite CyberStrike
+cyberstrike
 
-#### Instalacijski direktorij
-
-Instalacijska skripta koristi sljedeći redoslijed prioriteta za putanju instalacije:
-
-1. `$CYBERSTRIKE_INSTALL_DIR` - Prilagođeni instalacijski direktorij
-2. `$XDG_BIN_DIR` - Putanja usklađena sa XDG Base Directory specifikacijom
-3. `$HOME/bin` - Standardni korisnički bin direktorij (ako postoji ili se može kreirati)
-4. `$HOME/.cyberstrike/bin` - Podrazumijevana rezervna lokacija
-
-```bash
-# Primjeri
-CYBERSTRIKE_INSTALL_DIR=/usr/local/bin curl -fsSL https://cyberstrike.us/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://cyberstrike.us/install | bash
+# Odaberite vašeg LLM provajdera pri prvom pokretanju, zatim:
+# "Pokreni potpunu OWASP WSTG procjenu na https://target.com"
 ```
 
 ### Agenti
 
-CyberStrike uključuje dva ugrađena agenta između kojih možeš prebacivati tasterom `Tab`.
+Prebacujte se između agenata pritiskom na `Tab` u TUI-ju.
 
-- **build** - Podrazumijevani agent sa punim pristupom za razvoj
-- **plan** - Agent samo za čitanje za analizu i istraživanje koda
-  - Podrazumijevano zabranjuje izmjene datoteka
-  - Traži dozvolu prije pokretanja bash komandi
-  - Idealan za istraživanje nepoznatih codebase-ova ili planiranje izmjena
+| Agent | Domena | Opis |
+|-------|--------|------|
+| **cyberstrike** | Opći | Zadani ofanzivni sigurnosni agent sa punim pristupom |
+| **web-application** | Web | OWASP Top 10, WSTG metodologija, API sigurnost |
+| **mobile-application** | Mobilne | Android/iOS testiranje, Frida, MASTG/MASVS |
+| **cloud-security** | Cloud | AWS, Azure, GCP, IAM, CIS mjerila |
+| **internal-network** | Mreža | Active Directory, Kerberos, lateralno kretanje |
 
-Uključen je i **general** pod-agent za složene pretrage i višekoračne zadatke.
-Koristi se interno i može se pozvati pomoću `@general` u porukama.
+Plus 8 specijaliziranih **proxy tester** agenata za ciljane klase ranjivosti: IDOR, autorizacija, masovno dodjeljivanje, injekcije, autentifikacija, poslovna logika, SSRF i napadi na datoteke.
 
-Saznaj više o [agentima](https://cyberstrike.us/docs/agents).
+### Desktop aplikacija
+
+Dostupna za macOS, Windows i Linux. Preuzmite sa [stranice izdanja](https://github.com/CyberStrikeus/CyberStrike/releases).
+
+```bash
+# macOS
+brew install --cask cyberstrike-desktop
+# Windows
+scoop bucket add extras; scoop install extras/cyberstrike-desktop
+```
 
 ### Dokumentacija
 
-Za više informacija o konfiguraciji CyberStrike-a, [**pogledaj dokumentaciju**](https://cyberstrike.us/docs).
+- [Dokumentacija](https://cyberstrike.io/docs)
+- [Doprinos projektu](./CONTRIBUTING.md)
+- [Kodeks ponašanja](./CODE_OF_CONDUCT.md)
 
-### Doprinosi
+### Licenca
 
-Ako želiš doprinositi CyberStrike-u, pročitaj [upute za doprinošenje](./CONTRIBUTING.md) prije slanja pull requesta.
-
-### Gradnja na CyberStrike-u
-
-Ako radiš na projektu koji je povezan s CyberStrike-om i koristi "cyberstrike" kao dio naziva, npr. "cyberstrike-dashboard" ili "cyberstrike-mobile", dodaj napomenu u svoj README da projekat nije napravio CyberStrike tim i da nije povezan s nama.
-
-### FAQ
-
-#### Po čemu se razlikuje od Claude Code-a?
-
-Po mogućnostima je vrlo sličan Claude Code-u. Ključne razlike su:
-
-- 100% open source
-- Nije vezan za jednog provajdera. Iako preporučujemo modele koje nudimo kroz [CyberStrike Zen](https://cyberstrike.us/zen), CyberStrike možeš koristiti s Claude, OpenAI, Google ili čak lokalnim modelima. Kako modeli napreduju, razlike među njima će se smanjivati, a cijene padati, zato je nezavisnost od provajdera važna.
-- LSP podrška odmah po instalaciji
-- Fokus na TUI. CyberStrike grade neovim korisnici i kreatori [terminal.shop](https://terminal.shop); pomjeraćemo granice onoga što je moguće u terminalu.
-- Klijent/server arhitektura. To, recimo, omogućava da CyberStrike radi na tvom računaru dok ga daljinski koristiš iz mobilne aplikacije, što znači da je TUI frontend samo jedan od mogućih klijenata.
+[AGPL-3.0-only](./LICENSE) — Komercijalno licenciranje dostupno putem [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
 
 ---
 
-**Pridruži se našoj zajednici** [Discord](https://discord.gg/cyberstrike) | [X.com](https://x.com/cyberstrike)
+<p align="center">
+  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+</p>

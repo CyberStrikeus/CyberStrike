@@ -1,17 +1,18 @@
 <p align="center">
-  <a href="https://cyberstrike.us">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="CyberStrike logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
 </p>
-<p align="center">오픈 소스 AI 코딩 에이전트.</p>
+
+<p align="center"><b>AI 기반 공격적 보안 에이전트 플랫폼.</b></p>
+
 <p align="center">
-  <a href="https://cyberstrike.us/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -27,110 +28,99 @@
   <a href="README.ja.md">日本語</a> |
   <a href="README.pl.md">Polski</a> |
   <a href="README.ru.md">Русский</a> |
+  <a href="README.bs.md">Bosanski</a> |
   <a href="README.ar.md">العربية</a> |
   <a href="README.no.md">Norsk</a> |
   <a href="README.br.md">Português (Brasil)</a> |
   <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a>
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.el.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a> |
+  <a href="README.hi.md">हिन्दी</a>
 </p>
 
-[![CyberStrike Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://cyberstrike.us)
-
 ---
+
+### CyberStrike란?
+
+CyberStrike는 터미널에서 실행되는 오픈 소스 자율 공격적 보안 에이전트입니다. 13개 이상의 전문 보안 에이전트, 120개 이상의 OWASP 테스트 케이스를 내장하고 있으며, 15개 이상의 LLM 제공자를 지원합니다. 대상을 지정하면 정찰, 취약점 발견, 보고서 생성까지 모두 하나의 TUI에서 처리합니다.
+
+### 기능
+
+- **13개 이상의 보안 에이전트** — 웹 애플리케이션(OWASP WSTG), 모바일(MASTG/MASVS), 클라우드(AWS/Azure/GCP), Active Directory/Kerberos, 네트워크, 그리고 8개의 전문 프록시 테스터(IDOR, 인젝션, SSRF, 인증 우회 등)
+- **30개 이상의 내장 도구** — Shell 실행, HTTP 요청, 파일 작업, 코드 검색, 웹 스크래핑, 취약점 보고
+- **Bolt** — MCP 프로토콜과 Ed25519 페어링을 사용하는 원격 도구 서버. 원격 서버에서 보안 도구를 실행하고 터미널에서 제어
+- **MCP 생태계** — 퍼스트 파티 통합: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
+- **15개 이상의 LLM 제공자** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, OpenAI 호환 엔드포인트를 통한 로컬 모델 등
+- **멀티 인터페이스** — TUI(터미널), Web(SolidJS), 데스크톱(Tauri) — 어디서나 동일한 에이전트 엔진
+- **LSP 지원** — IDE 기반 워크플로를 위한 언어 서버 프로토콜 통합
+- **플러그인 시스템** — 플러그인 SDK로 커스텀 에이전트와 도구 구축
 
 ### 설치
 
 ```bash
-# YOLO
-curl -fsSL https://cyberstrike.us/install | bash
+# npm / bun / pnpm / yarn
+npm i -g cyberstrike@latest
 
-# 패키지 매니저
-npm i -g cyberstrike@latest        # bun/pnpm/yarn 도 가능
-scoop install cyberstrike             # Windows
-choco install cyberstrike             # Windows
-brew install CyberStrikeus/tap/cyberstrike # macOS 및 Linux (권장, 항상 최신)
-brew install cyberstrike              # macOS 및 Linux (공식 brew formula, 업데이트 빈도 낮음)
-sudo pacman -S cyberstrike            # Arch Linux (Stable)
-paru -S cyberstrike-bin               # Arch Linux (Latest from AUR)
-mise use -g cyberstrike               # 어떤 OS든
-nix run nixpkgs#cyberstrike           # 또는 github:CyberStrikeus/CyberStrike 로 최신 dev 브랜치
+# macOS
+brew install CyberStrikeus/tap/cyberstrike
+
+# Windows
+scoop install cyberstrike
+
+# curl
+curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-> [!TIP]
-> 설치 전에 0.1.x 보다 오래된 버전을 제거하세요.
-
-### 데스크톱 앱 (BETA)
-
-CyberStrike 는 데스크톱 앱으로도 제공됩니다. [releases page](https://github.com/CyberStrikeus/CyberStrike/releases) 에서 직접 다운로드하거나 [cyberstrike.us/download](https://cyberstrike.us/download) 를 이용하세요.
-
-| 플랫폼                | 다운로드                              |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `cyberstrike-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `cyberstrike-desktop-darwin-x64.dmg`     |
-| Windows               | `cyberstrike-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`, `.rpm`, 또는 AppImage         |
+### 빠른 시작
 
 ```bash
-# macOS (Homebrew)
+# CyberStrike 시작
+cyberstrike
+
+# 첫 실행 시 LLM 제공자를 선택한 다음:
+# "https://target.com에 대해 전체 OWASP WSTG 평가를 실행해줘"
+```
+
+### 에이전트
+
+TUI에서 `Tab` 키로 에이전트를 전환합니다.
+
+| 에이전트 | 영역 | 설명 |
+|----------|------|------|
+| **cyberstrike** | 범용 | 기본 전체 권한 공격적 보안 에이전트 |
+| **web-application** | 웹 | OWASP Top 10, WSTG 방법론, API 보안 |
+| **mobile-application** | 모바일 | Android/iOS 테스트, Frida, MASTG/MASVS |
+| **cloud-security** | 클라우드 | AWS, Azure, GCP, IAM, CIS 벤치마크 |
+| **internal-network** | 네트워크 | Active Directory, Kerberos, 횡적 이동 |
+
+추가로 특정 취약점 유형을 위한 8개의 전문 **프록시 테스터** 에이전트가 있습니다: IDOR, 인가, 대량 할당, 인젝션, 인증, 비즈니스 로직, SSRF, 파일 공격.
+
+### 데스크톱 앱
+
+macOS, Windows, Linux에서 사용 가능합니다. [릴리스 페이지](https://github.com/CyberStrikeus/CyberStrike/releases)에서 다운로드하세요.
+
+```bash
+# macOS
 brew install --cask cyberstrike-desktop
-# Windows (Scoop)
+# Windows
 scoop bucket add extras; scoop install extras/cyberstrike-desktop
 ```
 
-#### 설치 디렉터리
-
-설치 스크립트는 설치 경로를 다음 우선순위로 결정합니다.
-
-1. `$CYBERSTRIKE_INSTALL_DIR` - 사용자 지정 설치 디렉터리
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification 준수 경로
-3. `$HOME/bin` - 표준 사용자 바이너리 디렉터리 (존재하거나 생성 가능할 경우)
-4. `$HOME/.cyberstrike/bin` - 기본 폴백
-
-```bash
-# 예시
-CYBERSTRIKE_INSTALL_DIR=/usr/local/bin curl -fsSL https://cyberstrike.us/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://cyberstrike.us/install | bash
-```
-
-### Agents
-
-CyberStrike 에는 내장 에이전트 2개가 있으며 `Tab` 키로 전환할 수 있습니다.
-
-- **build** - 기본값, 개발 작업을 위한 전체 권한 에이전트
-- **plan** - 분석 및 코드 탐색을 위한 읽기 전용 에이전트
-  - 기본적으로 파일 편집을 거부
-  - bash 명령 실행 전에 권한을 요청
-  - 낯선 코드베이스를 탐색하거나 변경을 계획할 때 적합
-
-또한 복잡한 검색과 여러 단계 작업을 위한 **general** 서브 에이전트가 포함되어 있습니다.
-내부적으로 사용되며, 메시지에서 `@general` 로 호출할 수 있습니다.
-
-[agents](https://cyberstrike.us/docs/agents) 에 대해 더 알아보세요.
-
 ### 문서
 
-CyberStrike 설정에 대한 자세한 내용은 [**문서**](https://cyberstrike.us/docs) 를 참고하세요.
+- [문서](https://cyberstrike.io/docs)
+- [기여 가이드](./CONTRIBUTING.md)
+- [행동 강령](./CODE_OF_CONDUCT.md)
 
-### 기여하기
+### 라이선스
 
-CyberStrike 에 기여하고 싶다면, Pull Request 를 제출하기 전에 [contributing docs](./CONTRIBUTING.md) 를 읽어주세요.
-
-### CyberStrike 기반으로 만들기
-
-CyberStrike 와 관련된 프로젝트를 진행하면서 이름에 "cyberstrike"(예: "cyberstrike-dashboard" 또는 "cyberstrike-mobile") 를 포함한다면, README 에 해당 프로젝트가 CyberStrike 팀이 만든 것이 아니며 어떤 방식으로도 우리와 제휴되어 있지 않다는 점을 명시해 주세요.
-
-### FAQ
-
-#### Claude Code 와는 무엇이 다른가요?
-
-기능 면에서는 Claude Code 와 매우 유사합니다. 주요 차이점은 다음과 같습니다.
-
-- 100% 오픈 소스
-- 특정 제공자에 묶여 있지 않습니다. [CyberStrike Zen](https://cyberstrike.us/zen) 을 통해 제공하는 모델을 권장하지만, CyberStrike 는 Claude, OpenAI, Google 또는 로컬 모델과도 사용할 수 있습니다. 모델이 발전하면서 격차는 줄고 가격은 내려가므로 provider-agnostic 인 것이 중요합니다.
-- 기본으로 제공되는 LSP 지원
-- TUI 에 집중. CyberStrike 는 neovim 사용자와 [terminal.shop](https://terminal.shop) 제작자가 만들었으며, 터미널에서 가능한 것의 한계를 밀어붙입니다.
-- 클라이언트/서버 아키텍처. 예를 들어 CyberStrike 를 내 컴퓨터에서 실행하면서 모바일 앱으로 원격 조작할 수 있습니다. 즉, TUI 프런트엔드는 가능한 여러 클라이언트 중 하나일 뿐입니다.
+[AGPL-3.0-only](./LICENSE) — 상용 라이선스는 [contact@cyberstrike.io](mailto:contact@cyberstrike.io)로 문의하세요.
 
 ---
 
-**커뮤니티에 참여하기** [Discord](https://discord.gg/cyberstrike) | [X.com](https://x.com/cyberstrike)
+<p align="center">
+  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+</p>
