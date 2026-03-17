@@ -12,7 +12,10 @@ type Release = {
 }
 
 export async function getLatestRelease(skip?: string) {
-  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100").then((res) => {
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json" }
+  if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`
+  else if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
+  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100", { headers }).then((res) => {
     if (!res.ok) throw new Error(res.statusText)
     return res.json()
   })
