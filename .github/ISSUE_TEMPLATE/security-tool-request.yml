@@ -9,11 +9,13 @@ body:
       label: Type
       description: What kind of security addition are you requesting?
       options:
-        - New MCP Tool (Kali/Bolt)
+        - New MCP Server
+        - Bolt Plugin
         - New Agent Skill
         - Knowledge Base Content (WSTG, MASTG, etc.)
         - New Security Agent
         - Tool Integration
+        - Enhancement to existing MCP (hackbrowser/cloud-audit/github-security/cve/osint)
     validations:
       required: true
 

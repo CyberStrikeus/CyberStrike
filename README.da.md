@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
-  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licens" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
@@ -206,7 +206,7 @@ L&aelig;s [Bidragsguiden](./CONTRIBUTING.md) f&oslash;r du indsender en PR. Alle
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+  <a href="https://discord.gg/snunAaHf6U"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
 </p>
 <p align="center">
   <sub>Bygget af hackere, der blev tr&aelig;tte af at kopiere og inds&aelig;tte mellem terminaler.</sub>
