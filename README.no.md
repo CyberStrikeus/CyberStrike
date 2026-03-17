@@ -6,7 +6,12 @@
   </picture>
 </p>
 
-<p align="center"><b>AI-drevet plattform for offensive sikkerhetsagenter.</b></p>
+<h3 align="center">Den første AI-agenten med åpen kildekode bygget for offensiv sikkerhet.</h3>
+
+<p align="center">
+  Autonom penetrasjonstesting fra terminalen din — rekognosering, sårbarhetsfunn, utnyttelse og rapportering.<br>
+  Én kommando. 13+ spesialiserte agenter. 120+ OWASP-testtilfeller. Ditt AI røde team.
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
@@ -43,20 +48,93 @@
 
 ---
 
-### Hva er CyberStrike?
+### Hvorfor CyberStrike?
 
-CyberStrike er en open source, autonom offensiv sikkerhetsagent som kjorer i terminalen din. Den leveres med 13+ spesialiserte sikkerhetsagenter, 120+ OWASP-testtilfeller, og stotter 15+ LLM-leverandorer. Pek den mot et mal, sa tar den seg av rekognosering, sarbarhetsfunn og rapportgenerering — alt fra ett enkelt TUI-grensesnitt.
+Sikkerhetstesting er fortsatt overveldende manuelt. Penetrasjonstestere sjonglerer med dusinvis av verktøy, kopierer og limer inn resultater mellom terminaler, og bruker timer på repetitiv rekognosering før de i det hele tatt berører den faktiske angrepsflaten. Belønningsjegere kaster bort tid på den samme recon-arbeidsflyten for hvert program.
 
-### Funksjoner
+**CyberStrike endrer det.** Det er en autonom AI-agent som forstår offensiv sikkerhetsmetodikk — ikke bare å kjøre verktøy, men å resonnere om hva som bør testes, lenke funn sammen og tilpasse tilnærmingen basert på hva den oppdager. Tenk på det som et utrettelig rødt team-medlem i terminalen din som følger OWASP WSTG, vet når det skal skifte retning, og skriver rapporten når det er ferdig.
 
-- **13+ sikkerhetsagenter** — Webapplikasjoner (OWASP WSTG), mobilapplikasjoner (MASTG/MASVS), sky (AWS/Azure/GCP), Active Directory/Kerberos, nettverk, samt 8 spesialiserte proxy-testere (IDOR, injeksjon, SSRF, autentiseringsomgaelse og mer)
-- **30+ innebygde verktoy** — Kommandokjoring, HTTP-foresporsler, filoperasjoner, kodesok, web-scraping, sarbarhetsrapportering
-- **Bolt** — Ekstern verktoyserver med MCP-protokoll og Ed25519-paring. Kjor sikkerhetsverktoy pa eksterne servere, kontroller dem fra terminalen din
-- **MCP-okosystem** — Forsteparts integrasjoner: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
-- **15+ LLM-leverandorer** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, lokale modeller via OpenAI-kompatible endepunkter og mer
-- **Flere grensesnitt** — TUI (terminal), Web (SolidJS), Desktop (Tauri) — samme agentmotor overalt
-- **LSP-stotte** — Language Server Protocol-integrasjon for IDE-baserte arbeidsflyter
-- **Utvidelsessystem** — Bygg egendefinerte agenter og verktoy med SDK-et for utvidelser
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "Kjør en full OWASP WSTG-vurdering på https://mål.com"
+```
+
+Det er åpen kildekode, fungerer med enhver LLM-leverandør, og du eier alt det produserer.
+
+---
+
+### Hva gjør det annerledes
+
+<table>
+<tr>
+<td width="50%">
+
+**Spesialiserte sikkerhetsagenter, ikke generisk chat**
+
+CyberStrike leveres med 13+ agenter skreddersydd for sikkerhetsdomener. Hver agent har domenespesifikk metodikk, verktøykunnskap og testmønstre. Webapplikasjonsagenten følger WSTG. Skysikkerhetsagenten kjenner CIS-referansene. Mobilagenten bruker Frida og følger MASTG/MASVS. De gjetter ikke — de følger velprøvde rammeverk.
+
+</td>
+<td width="50%">
+
+**Autonom, ikke bare assisterende**
+
+Andre AI-verktøy venter på at du skal fortelle dem hva de skal gjøre videre. CyberStrike-agenter planlegger flertrinns angrepskjeder, kjører verktøy, analyserer resultater, skifter retning når de finner noe interessant, og genererer bevisbaserte rapporter. Du setter målet — de håndterer metodikken.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Hvilken som helst LLM, ingen innlåsing**
+
+15+ leverandører rett ut av boksen: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter — til og med lokale modeller gjennom OpenAI-kompatible endepunkter. Kjør det med Claude, GPT, Gemini eller din egen selvhostede LLM. Ettersom modeller blir bedre og billigere, blir CyberStrike bedre med dem.
+
+</td>
+<td width="50%">
+
+**Ekstern verktøykjøring med Bolt**
+
+Sikkerhetsverktøyene dine trenger ikke å kjøre på laptopen din. Bolt er CyberStrikes eksterne verktøyserver — distribuer den på en VPS med pentest-verktøysettet ditt, par den med Ed25519-nøkler, og kontroller alt fra din lokale terminal over MCP-protokollen. Ett TUI, flere angrepsservere.
+
+</td>
+</tr>
+</table>
+
+---
+
+### Agenter
+
+Bytt mellom agenter med `Tab`. Hver enkelt er en spesialist.
+
+| Agent | Fokus | Hva den gjør |
+|-------|-------|--------------|
+| **cyberstrike** | Generelt | Primæragent med full tilgang — rekognosering, utnyttelse, rapportering |
+| **web-application** | Web | OWASP Top 10, WSTG-metodikk, API-sikkerhet, sesjonstesting |
+| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS-samsvar |
+| **cloud-security** | Sky | AWS, Azure, GCP — IAM-feilkonfigurasjoner, CIS-referanser, eksponerte ressurser |
+| **internal-network** | Nettverk | Active Directory, Kerberos-angrep, lateral bevegelse, pivotering |
+
+Pluss **8 spesialiserte proxy-testere** som fanger opp og manipulerer trafikk for målrettede sårbarhetsklasser:
+
+`IDOR` · `Authorization Bypass` · `Mass Assignment` · `Injection` · `Authentication` · `Business Logic` · `SSRF` · `File Attacks`
+
+---
+
+### MCP-økosystemet
+
+CyberStrike kobler til spesialiserte MCP-servere som utvider funksjonaliteten:
+
+| Server | Verktøy | Hva den legger til |
+|--------|---------|--------------------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Nettleserbasert sikkerhetstesting — XSS, CSRF, DOM-manipulering, informasjonskapsel-tyveri |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Skysikkerhetsrevisjoner — 60+ sjekker på tvers av AWS, Azure, GCP |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub sikkerhetsposisjon — repo, organisasjon, handlinger, hemmeligheter, forsyningskjede |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE-etterretning — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-rekognosering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+
+Alt er åpen kildekode. Alt kan installeres med `npx`. Koble dem til CyberStrike eller bruk dem frittstående med en hvilken som helst MCP-klient.
+
+---
 
 ### Installasjon
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### Hurtigstart
+**Skrivebordsapp** (macOS, Windows, Linux) — last ned fra [utgivelsessiden](https://github.com/CyberStrikeus/CyberStrike/releases) eller:
 
 ```bash
-# Start CyberStrike
-cyberstrike
-
-# Velg LLM-leverandoren din ved forste kjoring, deretter:
-# "Kjor en fullstendig OWASP WSTG-vurdering pa https://target.com"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### Agenter
+---
 
-Bytt mellom agenter med `Tab` i TUI-en.
+### Innebygde verktøy
 
-| Agent | Omrade | Beskrivelse |
-|-------|--------|-------------|
-| **cyberstrike** | Generell | Standard offensiv sikkerhetsagent med full tilgang |
-| **web-application** | Web | OWASP Top 10, WSTG-metodikk, API-sikkerhet |
-| **mobile-application** | Mobil | Android/iOS-testing, Frida, MASTG/MASVS |
-| **cloud-security** | Sky | AWS, Azure, GCP, IAM, CIS-referanseverdier |
-| **internal-network** | Nettverk | Active Directory, Kerberos, lateral bevegelse |
+CyberStrike-agenter har direkte tilgang til 30+ verktøy:
 
-I tillegg 8 spesialiserte **proxy-tester**-agenter for malrettede sarbarhetsklasser: IDOR, autorisasjon, massetilordning, injeksjon, autentisering, forretningslogikk, SSRF og filbaserte angrep.
+| Kategori | Verktøy |
+|----------|---------|
+| **Kjøring** | Shell (bash), fillesing/-skriving/-redigering, katalogvisning |
+| **Oppdagelse** | Webhenting, websøk, kodesøk, glob, grep |
+| **Sikkerhet** | Sårbarhetsrapportering (HackerOne-format), bevisinnsamling |
+| **Proxy** | HTTP/HTTPS-avlytting, forespørselsreplay, trafikkanalyse |
+| **Integrasjon** | MCP-servere, Bolt eksterne verktøy, tilpassede utvidelser |
 
-### Desktop-app
+Pluss en **utvidelsespakke (SDK)** — bygg dine egne agenter og verktøy, registrer dem under kjøring.
 
-Tilgjengelig for macOS, Windows og Linux. Last ned fra [utgivelsessiden](https://github.com/CyberStrikeus/CyberStrike/releases).
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### Hvem er dette for?
 
-### Dokumentasjon
+- **Penetrasjonstestere** — Automatiser de repetitive delene. La agentene håndtere rekognosering og innledende testing mens du fokuserer på de kreative angrepskjedene som krever menneskelig intuisjon.
+- **Belønningsjegere** — Raskere rekognosering, bredere dekning, konsistent metodikk på tvers av programmer. CyberStrike blir ikke sliten klokken 3 om natten.
+- **Sikkerhetsteam** — Kjør strukturerte OWASP-vurderinger med reproduserbar metodikk. Få rapporter som kartlegges til standarder samsvarssteamet ditt forstår.
+- **Sikkerhetsforskere** — Utvid CyberStrike med tilpassede agenter og MCP-servere. Utvidelsessystemet og MCP-protokollen gjør det til en plattform, ikke bare et verktøy.
 
-- [Dokumentasjon](https://cyberstrike.io/docs)
-- [Bidra](./CONTRIBUTING.md)
-- [Atferdskodeks](./CODE_OF_CONDUCT.md)
+---
+
+### Bidrag
+
+CyberStrike er bygget av sikkerhetsmiljøet, for sikkerhetsmiljøet. Vi ønsker bidrag velkommen på tvers av:
+
+- **Sikkerhetsagenter og ferdigheter** — Nye angrepsmetodikker, testmønstre, sårbarhetsdeteksjon
+- **MCP-servere** — Koble til nye sikkerhetsverktøy og datakilder
+- **Kunnskapsbase** — WSTG-, MASTG-, PTES-, CIS-metodikkguider
+- **Kjerneforbedringer** — Ytelse, brukeropplevelse, leverandørintegrasjoner, feilrettinger
+
+Les [bidragsguiden](./CONTRIBUTING.md) før du sender en PR. Alle bidrag må følge prosjektets [retningslinjer for etisk bruk](./CODE_OF_CONDUCT.md) — CyberStrike er kun for autorisert sikkerhetstesting.
+
+---
 
 ### Lisens
 
-[AGPL-3.0-only](./LICENSE) — Kommersiell lisensiering tilgjengelig via [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
+[AGPL-3.0-only](./LICENSE) — Gratis for personlig bruk og åpen kildekode. Kommersiell lisensiering tilgjengelig via [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>Bygget av hackere som ble lei av å kopiere og lime mellom terminaler.</sub>
 </p>

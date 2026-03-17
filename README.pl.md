@@ -6,7 +6,12 @@
   </picture>
 </p>
 
-<p align="center"><b>Platforma agentow ofensywnego bezpieczenstwa oparta na sztucznej inteligencji.</b></p>
+<h3 align="center">Pierwszy open-source'owy agent AI stworzony do ofensywnego bezpieczeństwa.</h3>
+
+<p align="center">
+  Autonomiczne pentesty z Twojego terminala — rekonesans, odkrywanie podatności, eksploatacja i raportowanie.<br>
+  Jedna komenda. 13+ wyspecjalizowanych agentów. 120+ przypadków testowych OWASP. Twój red team AI.
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
@@ -43,20 +48,93 @@
 
 ---
 
-### Czym jest CyberStrike?
+### Dlaczego CyberStrike?
 
-CyberStrike to otwartoźródłowa, autonomiczna platforma agentów ofensywnego bezpieczeństwa działająca w terminalu. Zawiera ponad 13 wyspecjalizowanych agentów bezpieczeństwa, ponad 120 przypadków testowych OWASP i współpracuje z ponad 15 dostawcami LLM. Wystarczy wskazać cel, a CyberStrike zajmie się rekonesansem, odkrywaniem podatności i generowaniem raportów — wszystko z poziomu jednego interfejsu TUI.
+Testy bezpieczeństwa wciąż są w przeważającej mierze ręczne. Pentesterzy żonglują dziesiątkami narzędzi, kopiują i wklejają wyniki między terminalami i spędzają godziny na powtarzalnym rekonesansie, zanim dotkną właściwej powierzchni ataku. Łowcy bug bounty tracą czas na ten sam workflow rekonesansowy dla każdego programu.
 
-### Funkcje
+**CyberStrike to zmienia.** To autonomiczny agent AI, który rozumie metodologię ofensywnego bezpieczeństwa — nie tylko uruchamia narzędzia, ale rozumuje o tym, co testować, łączy odkrycia ze sobą i dostosowuje swoje podejście na podstawie tego, co znajdzie. Wyobraź sobie niezmordowanego członka red teamu w Twoim terminalu, który stosuje OWASP WSTG, wie kiedy zmienić kierunek i pisze raport, gdy skończy.
 
-- **Ponad 13 agentów bezpieczeństwa** — Aplikacje webowe (OWASP WSTG), mobilne (MASTG/MASVS), chmurowe (AWS/Azure/GCP), Active Directory/Kerberos, sieciowe oraz 8 wyspecjalizowanych testerów proxy (IDOR, wstrzykiwanie, SSRF, omijanie uwierzytelniania i więcej)
-- **Ponad 30 wbudowanych narzędzi** — Wykonywanie poleceń shell, żądania HTTP, operacje na plikach, przeszukiwanie kodu, web scraping, raportowanie podatności
-- **Bolt** — Zdalny serwer narzędzi z protokołem MCP i parowaniem Ed25519. Uruchamiaj narzędzia bezpieczeństwa na zdalnych serwerach i kontroluj je ze swojego terminala
-- **Ekosystem MCP** — Autorskie integracje: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
-- **Ponad 15 dostawców LLM** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, modele lokalne przez endpointy kompatybilne z OpenAI i więcej
-- **Wiele interfejsów** — TUI (terminal), Web (SolidJS), Desktop (Tauri) — ten sam silnik agentów wszędzie
-- **Obsługa LSP** — Integracja z protokołem Language Server dla przepływów pracy opartych na IDE
-- **System wtyczek** — Twórz własnych agentów i narzędzia za pomocą SDK wtyczek
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "Przeprowadź pełną ocenę OWASP WSTG na https://target.com"
+```
+
+Jest open source, działa z dowolnym dostawcą LLM, a wszystko co wyprodukuje, należy do Ciebie.
+
+---
+
+### Co Go Wyróżnia
+
+<table>
+<tr>
+<td width="50%">
+
+**Wyspecjalizowani Agenci Bezpieczeństwa, Nie Generyczny Czat**
+
+CyberStrike zawiera 13+ agentów celowo zbudowanych dla domen bezpieczeństwa. Każdy agent posiada specyficzną dla domeny metodologię, znajomość narzędzi i wzorce testowania. Agent web-application stosuje WSTG. Agent cloud-security zna benchmarki CIS. Agent mobilny używa Frida i stosuje MASTG/MASVS. Nie zgadują — stosują sprawdzone frameworki.
+
+</td>
+<td width="50%">
+
+**Autonomiczny, Nie Tylko Wspomagający**
+
+Inne narzędzia AI czekają, aż powiesz im, co robić dalej. Agenci CyberStrike planują wieloetapowe łańcuchy ataków, uruchamiają narzędzia, analizują wyniki, zmieniają kierunek gdy znajdą coś interesującego i generują raporty poparte dowodami. Ty wyznaczasz cel — oni zajmują się metodologią.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Dowolny LLM, Bez Uzależnienia od Dostawcy**
+
+15+ dostawców od razu po instalacji: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter — nawet lokalne modele przez endpointy kompatybilne z OpenAI. Uruchom go z Claude, GPT, Gemini lub własnym self-hostowanym LLM. W miarę jak modele stają się lepsze i tańsze, CyberStrike staje się lepszy razem z nimi.
+
+</td>
+<td width="50%">
+
+**Zdalne Uruchamianie Narzędzi z Bolt**
+
+Twoje narzędzia bezpieczeństwa nie muszą działać na Twoim laptopie. Bolt to zdalny serwer narzędzi CyberStrike — wdróż go na VPS ze swoim zestawem pentestowym, sparuj kluczami Ed25519 i kontroluj wszystko z lokalnego terminala przez protokół MCP. Jeden TUI, wiele serwerów ataku.
+
+</td>
+</tr>
+</table>
+
+---
+
+### Agenci
+
+Przełączaj się między agentami klawiszem `Tab`. Każdy z nich jest specjalistą.
+
+| Agent | Dziedzina | Co Robi |
+|-------|-----------|---------|
+| **cyberstrike** | Ogólny | Główny agent z pełnym dostępem — rekonesans, eksploatacja, raportowanie |
+| **web-application** | Web | OWASP Top 10, metodologia WSTG, bezpieczeństwo API, testowanie sesji |
+| **mobile-application** | Mobilne | Android/iOS, Frida/Objection, zgodność z MASTG/MASVS |
+| **cloud-security** | Chmura | AWS, Azure, GCP — błędy konfiguracji IAM, benchmarki CIS, wyeksponowane zasoby |
+| **internal-network** | Sieć | Active Directory, ataki Kerberos, ruch boczny, pivoting |
+
+Dodatkowo **8 wyspecjalizowanych proxy testerów** przechwytujących i manipulujących ruchem dla wybranych klas podatności:
+
+`IDOR` · `Authorization Bypass` · `Mass Assignment` · `Injection` · `Authentication` · `Business Logic` · `SSRF` · `File Attacks`
+
+---
+
+### Ekosystem MCP
+
+CyberStrike łączy się ze specjalizowanymi serwerami MCP, które rozszerzają jego możliwości:
+
+| Serwer | Narzędzia | Co Dodaje |
+|--------|-----------|-----------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Testy bezpieczeństwa oparte na przeglądarce — XSS, CSRF, manipulacja DOM, kradzież ciasteczek |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Audyty bezpieczeństwa chmury — 60+ kontroli w AWS, Azure, GCP |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | Postura bezpieczeństwa GitHub — repozytoria, organizacja, actions, secrets, supply chain |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | Wywiad CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+
+Wszystkie open source. Wszystkie instalowalne przez `npx`. Podłącz je do CyberStrike lub używaj samodzielnie z dowolnym klientem MCP.
+
+---
 
 ### Instalacja
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### Szybki start
+**Aplikacja desktopowa** (macOS, Windows, Linux) — pobierz ze [strony wydań](https://github.com/CyberStrikeus/CyberStrike/releases) lub:
 
 ```bash
-# Uruchom CyberStrike
-cyberstrike
-
-# Wybierz swojego dostawcę LLM przy pierwszym uruchomieniu, a następnie:
-# "Przeprowadź pełną ocenę OWASP WSTG na https://target.com"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### Agenci
+---
 
-Przełączaj się między agentami klawiszem `Tab` w TUI.
+### Wbudowane Narzędzia
 
-| Agent | Dziedzina | Opis |
-|-------|-----------|------|
-| **cyberstrike** | Ogólny | Domyślny agent ofensywnego bezpieczeństwa z pełnym dostępem |
-| **web-application** | Web | OWASP Top 10, metodologia WSTG, bezpieczeństwo API |
-| **mobile-application** | Mobilne | Testowanie Android/iOS, Frida, MASTG/MASVS |
-| **cloud-security** | Chmura | AWS, Azure, GCP, IAM, benchmarki CIS |
-| **internal-network** | Sieć | Active Directory, Kerberos, ruch boczny |
+Agenci CyberStrike mają bezpośredni dostęp do 30+ narzędzi:
 
-Dodatkowo 8 wyspecjalizowanych agentów **proxy tester** dla konkretnych klas podatności: IDOR, autoryzacja, masowe przypisywanie, wstrzykiwanie, uwierzytelnianie, logika biznesowa, SSRF i ataki na pliki.
+| Kategoria | Narzędzia |
+|-----------|-----------|
+| **Wykonywanie** | Shell (bash), odczyt/zapis/edycja plików, listowanie katalogów |
+| **Odkrywanie** | Web fetch, wyszukiwanie internetowe, wyszukiwanie kodu, glob, grep |
+| **Bezpieczeństwo** | Raportowanie podatności (format HackerOne), zbieranie dowodów |
+| **Proxy** | Przechwytywanie HTTP/HTTPS, powtarzanie żądań, analiza ruchu |
+| **Integracja** | Serwery MCP, zdalne narzędzia Bolt, własne pluginy |
 
-### Aplikacja desktopowa
+Dodatkowo **SDK do pluginów** — buduj własnych agentów i narzędzia, rejestruj je w czasie wykonywania.
 
-Dostępna na macOS, Windows i Linux. Pobierz ze [strony wydań](https://github.com/CyberStrikeus/CyberStrike/releases).
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### Dla Kogo To Jest?
 
-### Dokumentacja
+- **Pentesterzy** — Zautomatyzuj powtarzalne części. Pozwól agentom zająć się rekonesansem i wstępnymi testami, a Ty skup się na kreatywnych łańcuchach ataków wymagających ludzkiej intuicji.
+- **Łowcy Bug Bounty** — Szybszy rekonesans, szersze pokrycie, spójna metodologia między programami. CyberStrike nie męczy się o 3 w nocy.
+- **Zespoły Bezpieczeństwa** — Przeprowadzaj strukturalne oceny OWASP z powtarzalną metodologią. Otrzymuj raporty zmapowane do standardów zrozumiałych dla Twojego zespołu compliance.
+- **Badacze Bezpieczeństwa** — Rozszerzaj CyberStrike o własnych agentów i serwery MCP. System pluginów i protokół MCP czynią go platformą, nie tylko narzędziem.
 
-- [Dokumentacja](https://cyberstrike.io/docs)
-- [Współtworzenie](./CONTRIBUTING.md)
-- [Kodeks postępowania](./CODE_OF_CONDUCT.md)
+---
+
+### Współtworzenie
+
+CyberStrike jest tworzony przez społeczność bezpieczeństwa, dla społeczności bezpieczeństwa. Zapraszamy do współtworzenia w zakresie:
+
+- **Agenci i umiejętności bezpieczeństwa** — Nowe metodologie ataków, wzorce testowania, wykrywanie podatności
+- **Serwery MCP** — Podłączanie nowych narzędzi bezpieczeństwa i źródeł danych
+- **Baza wiedzy** — Przewodniki metodologiczne WSTG, MASTG, PTES, CIS
+- **Ulepszenia rdzenia** — Wydajność, UX, integracje dostawców, poprawki błędów
+
+Przeczytaj [Przewodnik Współtworzenia](./CONTRIBUTING.md) przed zgłoszeniem PR. Wszystkie kontrybucje muszą być zgodne z [polityką etycznego użytkowania](./CODE_OF_CONDUCT.md) projektu — CyberStrike jest przeznaczony wyłącznie do autoryzowanych testów bezpieczeństwa.
+
+---
 
 ### Licencja
 
-[AGPL-3.0-only](./LICENSE) — Licencja komercyjna dostępna przez [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
+[AGPL-3.0-only](./LICENSE) — Darmowy do użytku osobistego i open source. Licencja komercyjna dostępna przez [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>Zbudowane przez hakerów, którzy mieli dość kopiowania i wklejania między terminalami.</sub>
 </p>

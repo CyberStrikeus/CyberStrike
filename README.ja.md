@@ -6,7 +6,12 @@
   </picture>
 </p>
 
-<p align="center"><b>AI 駆動の攻撃的セキュリティエージェントプラットフォーム。</b></p>
+<h3 align="center">攻撃的セキュリティのために作られた、初のオープンソース AI エージェント。</h3>
+
+<p align="center">
+  ターミナルからの自律ペネトレーションテスト — 偵察、脆弱性発見、エクスプロイト、レポート作成。<br>
+  コマンド一つ。13以上の専門エージェント。120以上の OWASP テストケース。あなたの AI レッドチーム。
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
@@ -43,20 +48,93 @@
 
 ---
 
-### CyberStrike とは？
+### なぜ CyberStrike なのか？
 
-CyberStrike は、ターミナルで動作するオープンソースの自律型攻撃的セキュリティエージェントです。13 以上の専門セキュリティエージェント、120 以上の OWASP テストケースを内蔵し、15 以上の LLM プロバイダーに対応しています。ターゲットを指定するだけで、偵察、脆弱性発見、レポート生成まですべてを単一の TUI で処理します。
+セキュリティテストは今なお圧倒的に手作業です。ペネトレーションテスターは数十のツールを使い分け、ターミナル間で出力をコピー&ペーストし、実際の攻撃対象面に触れる前に何時間も反復的な偵察に費やします。バグバウンティハンターはプログラムごとに同じ偵察ワークフローを繰り返します。
 
-### 機能
+**CyberStrike はそれを変えます。** 攻撃的セキュリティの方法論を理解する自律 AI エージェントです — 単にツールを実行するのではなく、何をテストすべきかを推論し、発見事項をチェーンし、発見した内容に基づいてアプローチを適応させます。ターミナルに疲れ知らずのレッドチームメンバーがいると考えてください。OWASP WSTG に従い、いつピボットすべきかを知り、完了したらレポートを書きます。
 
-- **13 以上のセキュリティエージェント** — Web アプリケーション（OWASP WSTG）、モバイル（MASTG/MASVS）、クラウド（AWS/Azure/GCP）、Active Directory/Kerberos、ネットワーク、そして 8 つの専門プロキシテスター（IDOR、インジェクション、SSRF、認証バイパスなど）
-- **30 以上の組み込みツール** — Shell 実行、HTTP リクエスト、ファイル操作、コード検索、Web スクレイピング、脆弱性レポート
-- **Bolt** — MCP プロトコルと Ed25519 ペアリングによるリモートツールサーバー。リモートサーバーでセキュリティツールを実行し、ターミナルから制御
-- **MCP エコシステム** — ファーストパーティ統合：[hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)、[cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)、[github-security-mcp](https://github.com/badchars/github-security-mcp)、[cve-mcp](https://github.com/badchars/cve-mcp)、[osint-mcp](https://github.com/badchars/osint-mcp)
-- **15 以上の LLM プロバイダー** — Anthropic、OpenAI、Google、Amazon Bedrock、Azure、Groq、DeepInfra、Mistral、OpenRouter、OpenAI 互換エンドポイント経由のローカルモデルなど
-- **マルチインターフェース** — TUI（ターミナル）、Web（SolidJS）、デスクトップ（Tauri）——どこでも同じエージェントエンジン
-- **LSP サポート** — IDE ベースのワークフロー向け言語サーバープロトコル統合
-- **プラグインシステム** — プラグイン SDK でカスタムエージェントやツールを構築
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "https://target.com に対して完全な OWASP WSTG 評価を実行してください"
+```
+
+オープンソースで、あらゆる LLM プロバイダーで動作し、生成物はすべてあなたのものです。
+
+---
+
+### 何が違うのか
+
+<table>
+<tr>
+<td width="50%">
+
+**汎用チャットではない、専門セキュリティエージェント**
+
+CyberStrike にはセキュリティ領域向けに特化して構築された 13以上のエージェントが搭載されています。各エージェントはドメイン固有の方法論、ツールの知識、テストパターンを備えています。Web アプリケーションエージェントは WSTG に従います。クラウドセキュリティエージェントは CIS ベンチマークを知っています。モバイルエージェントは Frida を使用し MASTG/MASVS に従います。推測ではなく — 実証済みのフレームワークに従います。
+
+</td>
+<td width="50%">
+
+**単なる補助ではなく、自律行動**
+
+他の AI ツールは次に何をすべきか指示を待ちます。CyberStrike エージェントは多段階の攻撃チェーンを計画し、ツールを実行し、結果を分析し、興味深い発見があればピボットし、証拠に基づいたレポートを生成します。目的を設定すれば — エージェントが方法論を遂行します。
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**あらゆる LLM、ベンダーロックインなし**
+
+15以上のプロバイダーをすぐに利用可能：Anthropic、OpenAI、Google、Amazon Bedrock、Azure、Groq、Mistral、OpenRouter — OpenAI 互換エンドポイントを介したローカルモデルにも対応。Claude、GPT、Gemini、または自前でホスティングした LLM で実行できます。モデルがより強力で安価になれば、CyberStrike もそれに伴い向上します。
+
+</td>
+<td width="50%">
+
+**Bolt によるリモートツール実行**
+
+セキュリティツールをノートPCで実行する必要はありません。Bolt は CyberStrike のリモートツールサーバーです — ペンテストツールキットを備えた VPS にデプロイし、Ed25519 鍵でペアリングし、MCP プロトコルでローカルターミナルからすべてを制御します。一つの TUI、複数の攻撃サーバー。
+
+</td>
+</tr>
+</table>
+
+---
+
+### エージェント
+
+`Tab` でエージェントを切り替えます。それぞれがスペシャリストです。
+
+| エージェント | 専門分野 | 機能説明 |
+|-------------|---------|---------|
+| **cyberstrike** | 汎用 | フルアクセスのプライマリエージェント — 偵察、エクスプロイト、レポート |
+| **web-application** | Web | OWASP Top 10、WSTG 方法論、API セキュリティ、セッションテスト |
+| **mobile-application** | モバイル | Android/iOS、Frida/Objection、MASTG/MASVS 準拠 |
+| **cloud-security** | クラウド | AWS、Azure、GCP — IAM 設定ミス、CIS ベンチマーク、公開リソース |
+| **internal-network** | ネットワーク | Active Directory、Kerberos 攻撃、ラテラルムーブメント、ピボット |
+
+さらに、特定の脆弱性クラスに対してトラフィックを傍受・操作する **8つの専門プロキシテスター**があります：
+
+`IDOR` · `認可バイパス` · `マスアサインメント` · `インジェクション` · `認証` · `ビジネスロジック` · `SSRF` · `ファイル攻撃`
+
+---
+
+### MCP エコシステム
+
+CyberStrike は専門の MCP サーバーに接続して機能を拡張します：
+
+| サーバー | ツール数 | 追加機能 |
+|---------|---------|---------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | ブラウザベースのセキュリティテスト — XSS、CSRF、DOM 操作、Cookie 窃取 |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | クラウドセキュリティ監査 — AWS、Azure、GCP 全体で 60以上のチェック |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub セキュリティ態勢 — リポジトリ、組織、Actions、シークレット、サプライチェーン |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE インテリジェンス — NVD、EPSS、CISA KEV、GitHub Advisory、OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT 偵察 — Shodan、VirusTotal、SecurityTrails、Censys、DNS、WHOIS |
+
+すべてオープンソース。すべて `npx` でインストール可能。CyberStrike に接続するか、任意の MCP クライアントでスタンドアロンとして使用できます。
+
+---
 
 ### インストール
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### クイックスタート
+**デスクトップアプリ**（macOS、Windows、Linux）— [リリースページ](https://github.com/CyberStrikeus/CyberStrike/releases)からダウンロード、または：
 
 ```bash
-# CyberStrike を起動
-cyberstrike
-
-# 初回起動時に LLM プロバイダーを選択し、その後：
-# "https://target.com に対して完全な OWASP WSTG 評価を実行してください"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### エージェント
+---
 
-TUI で `Tab` キーを押してエージェントを切り替えます。
+### 組み込みツール
 
-| エージェント | 領域 | 説明 |
-|-------------|------|------|
-| **cyberstrike** | 汎用 | デフォルトのフルアクセス攻撃的セキュリティエージェント |
-| **web-application** | Web | OWASP Top 10、WSTG 方法論、API セキュリティ |
-| **mobile-application** | モバイル | Android/iOS テスト、Frida、MASTG/MASVS |
-| **cloud-security** | クラウド | AWS、Azure、GCP、IAM、CIS ベンチマーク |
-| **internal-network** | ネットワーク | Active Directory、Kerberos、ラテラルムーブメント |
+CyberStrike エージェントは 30以上のツールに直接アクセスできます：
 
-さらに、特定の脆弱性クラスに対応する 8 つの専門**プロキシテスター**エージェントがあります：IDOR、認可、マスアサインメント、インジェクション、認証、ビジネスロジック、SSRF、ファイル攻撃。
+| カテゴリ | ツール |
+|---------|-------|
+| **実行** | Shell（bash）、ファイル読み書き・編集、ディレクトリ一覧 |
+| **ディスカバリ** | Web フェッチ、Web 検索、コード検索、glob、grep |
+| **セキュリティ** | 脆弱性レポート（HackerOne 形式）、証拠収集 |
+| **プロキシ** | HTTP/HTTPS 傍受、リクエストリプレイ、トラフィック分析 |
+| **統合** | MCP サーバー、Bolt リモートツール、カスタムプラグイン |
 
-### デスクトップアプリ
+さらに**プラグイン SDK** — 独自のエージェントやツールを構築し、ランタイムで登録できます。
 
-macOS、Windows、Linux で利用可能です。[リリースページ](https://github.com/CyberStrikeus/CyberStrike/releases)からダウンロードしてください。
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### 誰のためのものか
 
-### ドキュメント
+- **ペネトレーションテスター** — 反復作業を自動化。エージェントに偵察と初期テストを任せ、人間の直感が必要なクリエイティブな攻撃チェーンに集中しましょう。
+- **バグバウンティハンター** — より速い偵察、より広いカバレッジ、プログラム間で一貫した方法論。CyberStrike は午前3時でも疲れません。
+- **セキュリティチーム** — 再現可能な方法論で構造化された OWASP アセスメントを実行。コンプライアンスチームが理解する標準にマッピングされたレポートを取得できます。
+- **セキュリティ研究者** — カスタムエージェントと MCP サーバーで CyberStrike を拡張。プラグインシステムと MCP プロトコルにより、単なるツールではなくプラットフォームとなります。
 
-- [ドキュメント](https://cyberstrike.io/docs)
-- [コントリビューションガイド](./CONTRIBUTING.md)
-- [行動規範](./CODE_OF_CONDUCT.md)
+---
+
+### コントリビュート
+
+CyberStrike はセキュリティコミュニティによって構築され、セキュリティコミュニティのために存在します。以下の分野でのコントリビュートを歓迎します：
+
+- **セキュリティエージェントとスキル** — 新しい攻撃方法論、テストパターン、脆弱性検出
+- **MCP サーバー** — 新しいセキュリティツールやデータソースの接続
+- **ナレッジベース** — WSTG、MASTG、PTES、CIS 方法論ガイド
+- **コア改善** — パフォーマンス、UX、プロバイダー統合、バグ修正
+
+PR を提出する前に[コントリビュートガイド](./CONTRIBUTING.md)をお読みください。すべてのコントリビュートはプロジェクトの[倫理的使用ポリシー](./CODE_OF_CONDUCT.md)に従う必要があります — CyberStrike は許可されたセキュリティテスト専用です。
+
+---
 
 ### ライセンス
 
-[AGPL-3.0-only](./LICENSE) — 商用ライセンスについては [contact@cyberstrike.io](mailto:contact@cyberstrike.io) までお問い合わせください。
+[AGPL-3.0-only](./LICENSE) — 個人およびオープンソース利用は無料。商用ライセンスについては [contact@cyberstrike.io](mailto:contact@cyberstrike.io) までお問い合わせください。
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>ターミナル間のコピー&ペーストに疲れたハッカーたちが構築しました。</sub>
 </p>
