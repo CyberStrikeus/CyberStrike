@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#dlaczego-cyberstrike">Dlaczego CyberStrike?</a> &bull;
+  <a href="#co-go-wyróżnia">Co Go Wyróżnia</a> &bull;
+  <a href="#agenci">Agenci</a> &bull;
+  <a href="#ekosystem-mcp">Ekosystem MCP</a> &bull;
+  <a href="#instalacja">Instalacja</a> &bull;
+  <a href="#wbudowane-narzędzia">Wbudowane Narzędzia</a> &bull;
+  <a href="#dla-kogo-to-jest">Dla Kogo To Jest?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### Dlaczego CyberStrike?

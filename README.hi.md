@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#cyberstrike-क्यों">CyberStrike क्यों?</a> &bull;
+  <a href="#यह-अलग-क्या-बनाता-है">यह अलग क्या बनाता है</a> &bull;
+  <a href="#एजेंट">एजेंट</a> &bull;
+  <a href="#mcp-इकोसिस्टम">MCP इकोसिस्टम</a> &bull;
+  <a href="#इंस्टॉलेशन">इंस्टॉलेशन</a> &bull;
+  <a href="#बिल्ट-इन-टूल्स">बिल्ट-इन टूल्स</a> &bull;
+  <a href="#यह-किसके-लिए-है">यह किसके लिए है?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### CyberStrike क्यों?

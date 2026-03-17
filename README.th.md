@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#ทำไมต้อง-cyberstrike">ทำไมต้อง CyberStrike?</a> &bull;
+  <a href="#อะไรทำให้มันแตกต่าง">อะไรทำให้มันแตกต่าง</a> &bull;
+  <a href="#เอเจนต์">เอเจนต์</a> &bull;
+  <a href="#ระบบนิเวศ-mcp">ระบบนิเวศ MCP</a> &bull;
+  <a href="#การติดตั้ง">การติดตั้ง</a> &bull;
+  <a href="#เครื่องมือในตัว">เครื่องมือในตัว</a> &bull;
+  <a href="#เหมาะสำหรับใคร">เหมาะสำหรับใคร?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### ทำไมต้อง CyberStrike?
