@@ -20,10 +20,17 @@ jobs:
 
       - name: Setup git committer
         id: committer
+        continue-on-error: true
         uses: ./.github/actions/setup-git-committer
         with:
           cyberstrike-app-id: ${{ vars.CYBERSTRIKE_APP_ID }}
           cyberstrike-app-secret: ${{ secrets.CYBERSTRIKE_APP_SECRET }}
+
+      - name: Fallback git config
+        if: steps.committer.outcome == 'failure'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Generate
         run: ./script/generate.ts
