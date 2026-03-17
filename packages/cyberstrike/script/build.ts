@@ -194,7 +194,7 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name,
+        name: `@cyberstrike-io/${name}`,
         version: Script.version,
         os: [item.os],
         cpu: [item.arch],

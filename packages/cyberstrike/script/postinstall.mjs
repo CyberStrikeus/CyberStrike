@@ -49,7 +49,7 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `cyberstrike-${platform}-${arch}`
+  const packageName = `@cyberstrike-io/cyberstrike-${platform}-${arch}`
   const binaryName = platform === "windows" ? "cyberstrike.exe" : "cyberstrike"
 
   try {

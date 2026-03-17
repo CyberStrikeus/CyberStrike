@@ -53,7 +53,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
   <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="लाइसेंस" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
@@ -68,7 +68,7 @@
 **CyberStrike यह बदलता है।** यह एक स्वायत्त AI एजेंट है जो आक्रामक सुरक्षा कार्यप्रणाली को समझता है — सिर्फ़ टूल चलाना नहीं, बल्कि यह तर्क करना कि क्या परीक्षण करना है, निष्कर्षों को एक-दूसरे से जोड़ना, और जो खोजता है उसके आधार पर अपना दृष्टिकोण बदलना। इसे अपने टर्मिनल में एक अथक रेड टीम सदस्य समझिए जो OWASP WSTG का पालन करता है, जानता है कब दिशा बदलनी है, और काम पूरा होने पर रिपोर्ट लिखता है।
 
 ```bash
-npm i -g cyberstrike@latest && cyberstrike
+npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 # "https://target.com पर पूर्ण OWASP WSTG मूल्यांकन चलाएँ"
 ```
 
@@ -177,7 +177,7 @@ Bolt CyberStrike का रिमोट टूल एक्ज़ीक्यू
 
 ```bash
 # npm / bun / pnpm / yarn
-npm i -g cyberstrike@latest
+npm i -g @cyberstrike-io/cyberstrike@latest
 
 # macOS
 brew install CyberStrikeus/tap/cyberstrike
