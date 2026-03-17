@@ -1,26 +1,4 @@
 <p align="center">
-  <picture>
-    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
-    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
-    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
-  </picture>
-</p>
-
-<h3 align="center">공격적 보안을 위해 만들어진 최초의 오픈 소스 AI 에이전트.</h3>
-
-<p align="center">
-  터미널에서 자율 침투 테스트 — 정찰, 취약점 발견, 익스플로잇, 보고서 생성.<br>
-  하나의 명령어. 13+ 전문 에이전트. 120+ OWASP 테스트 케이스. 당신의 AI 레드팀.
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
-  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
-</p>
-
-<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
@@ -47,6 +25,21 @@
 </p>
 
 <p align="center">
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
+</p>
+
+<h3 align="center">공격적 보안을 위해 만들어진 최초의 오픈 소스 AI 에이전트.</h3>
+
+<p align="center">
+  터미널에서 자율 침투 테스트 — 정찰, 취약점 발견, 익스플로잇, 보고서 생성.<br>
+  하나의 명령어. 13+ 전문 에이전트. 120+ OWASP 테스트 케이스. 당신의 AI 레드팀.
+</p>
+
+<p align="center">
   <a href="#왜-cyberstrike인가">왜 CyberStrike인가?</a> &bull;
   <a href="#무엇이-다른가">무엇이 다른가</a> &bull;
   <a href="#에이전트">에이전트</a> &bull;
@@ -57,6 +50,13 @@
   <a href="#누구를-위한-것인가">누구를 위한 것인가</a> &bull;
   <a href="CHANGELOG.md">Changelog</a> &bull;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 ---

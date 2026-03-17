@@ -23,7 +23,8 @@ await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: pkg.name + "-ai",
+      name: pkg.name,
+      description: pkg.description,
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
       },
@@ -32,6 +33,12 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
       },
       version: version,
       license: pkg.license,
+      keywords: pkg.keywords,
+      homepage: "https://github.com/CyberStrikeus/CyberStrike",
+      repository: {
+        type: "git",
+        url: "https://github.com/CyberStrikeus/CyberStrike.git",
+      },
       optionalDependencies: binaries,
     },
     null,

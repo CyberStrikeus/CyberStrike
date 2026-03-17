@@ -1,26 +1,4 @@
 <p align="center">
-  <picture>
-    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
-    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
-    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
-  </picture>
-</p>
-
-<h3 align="center">首個專為攻擊性安全打造的開源 AI 智能體。</h3>
-
-<p align="center">
-  在終端機中實現自主滲透測試 — 偵察、漏洞發現、漏洞利用和報告生成。<br>
-  一條指令。13+ 專業智能體。120+ OWASP 測試案例。您的 AI 紅隊。
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
-  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
-</p>
-
-<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh.md">简体中文</a> |
   <a href="README.zht.md">繁體中文</a> |
@@ -47,6 +25,21 @@
 </p>
 
 <p align="center">
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
+</p>
+
+<h3 align="center">首個專為攻擊性安全打造的開源 AI 智能體。</h3>
+
+<p align="center">
+  在終端機中實現自主滲透測試 — 偵察、漏洞發現、漏洞利用和報告生成。<br>
+  一條指令。13+ 專業智能體。120+ OWASP 測試案例。您的 AI 紅隊。
+</p>
+
+<p align="center">
   <a href="#為什麼選擇-cyberstrike？">為什麼選擇 CyberStrike？</a> &bull;
   <a href="#獨特之處">獨特之處</a> &bull;
   <a href="#智能體">智能體</a> &bull;
@@ -57,6 +50,13 @@
   <a href="#適用對象">適用對象</a> &bull;
   <a href="CHANGELOG.md">Changelog</a> &bull;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 ---
