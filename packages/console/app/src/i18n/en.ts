@@ -195,7 +195,8 @@ export const dict = {
   "zen.faq.a4.p1.afterPricing": "with zero markups, so you pay exactly what the model provider charges.",
   "zen.faq.a4.p2.beforeAccount": "Your total cost depends on usage, and you can set monthly spend limits in your",
   "zen.faq.a4.p2.accountLink": "account",
-  "zen.faq.a4.p3": "To cover costs, CyberStrike adds only a small payment processing fee of $1.23 per $20 balance top-up.",
+  "zen.faq.a4.p3":
+    "To cover costs, CyberStrike adds only a small payment processing fee of $1.23 per $20 balance top-up.",
   "zen.faq.q5": "What about data and privacy?",
   "zen.faq.a5.beforeExceptions":
     "All Zen models are hosted in the US. Providers follow a zero-retention policy and do not use your data for model training, with the",

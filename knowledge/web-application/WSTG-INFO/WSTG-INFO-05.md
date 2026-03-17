@@ -1,9 +1,11 @@
 # WSTG-INFO-05: Review Web Page Content for Information Leakage
 
 ## Test ID
+
 WSTG-INFO-05
 
 ## Test Name
+
 Review Web Page Content for Information Leakage
 
 ## High-Level Description
@@ -87,11 +89,11 @@ curl -s https://target.com | grep -iE 'author|generator|description|keywords|rob
 #### META Tags of Interest
 
 ```html
-<meta name="author" content="John Doe">
-<meta name="generator" content="WordPress 6.0">
-<meta name="csrf-token" content="abc123xyz">
-<meta name="api-base" content="https://api.internal.target.com">
-<meta property="og:url" content="https://staging.target.com/page">
+<meta name="author" content="John Doe" />
+<meta name="generator" content="WordPress 6.0" />
+<meta name="csrf-token" content="abc123xyz" />
+<meta name="api-base" content="https://api.internal.target.com" />
+<meta property="og:url" content="https://staging.target.com/page" />
 ```
 
 ### Step 3: JavaScript Analysis
@@ -129,21 +131,21 @@ grep -iE '/admin|/api/|/internal|/private' *.js
 
 ```javascript
 // API Keys
-const API_KEY = "AIzaSyD-xxxxxxxxxxx";
-const STRIPE_KEY = "sk_live_xxxxxxxx";
-const GOOGLE_MAPS_KEY = "AIzaxxxxxxxx";
+const API_KEY = "AIzaSyD-xxxxxxxxxxx"
+const STRIPE_KEY = "sk_live_xxxxxxxx"
+const GOOGLE_MAPS_KEY = "AIzaxxxxxxxx"
 
 // Credentials
-const DB_PASSWORD = "password123";
-const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIs...";
+const DB_PASSWORD = "password123"
+const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIs..."
 
 // Internal URLs
-const API_BASE = "https://internal-api.company.com";
-const ADMIN_URL = "/super-secret-admin";
+const API_BASE = "https://internal-api.company.com"
+const ADMIN_URL = "/super-secret-admin"
 
 // AWS Credentials
-const AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE";
-const AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+const AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+const AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 ```
 
 ### Step 4: Source Map Discovery
@@ -165,6 +167,7 @@ curl -s https://target.com/main.js.map | jq -r '.sourcesContent[]'
 #### Source Map Contents
 
 Source maps can reveal:
+
 - Original unminified source code
 - File paths (`/home/developer/project/src/`)
 - Development comments
@@ -185,11 +188,11 @@ curl -s https://target.com | grep -iE 'hidden.*value|hidden.*name'
 #### Suspicious Hidden Fields
 
 ```html
-<input type="hidden" name="debug" value="true">
-<input type="hidden" name="admin" value="0">
-<input type="hidden" name="price" value="100">
-<input type="hidden" name="role" value="user">
-<input type="hidden" name="discount" value="0">
+<input type="hidden" name="debug" value="true" />
+<input type="hidden" name="admin" value="0" />
+<input type="hidden" name="price" value="100" />
+<input type="hidden" name="role" value="user" />
+<input type="hidden" name="discount" value="0" />
 ```
 
 ### Step 6: Data Attributes
@@ -216,15 +219,15 @@ curl -s https://target.com | grep -oP 'window\.[a-zA-Z_]+\s*=\s*\{[^}]+\}'
 
 ```html
 <script>
-    window.__CONFIG__ = {
-        apiKey: "secret123",
-        environment: "staging",
-        debugMode: true
-    };
+  window.__CONFIG__ = {
+    apiKey: "secret123",
+    environment: "staging",
+    debugMode: true,
+  }
 </script>
 
 <script type="application/json" id="app-data">
-    {"user": {"id": 1, "role": "admin", "token": "xyz"}}
+  { "user": { "id": 1, "role": "admin", "token": "xyz" } }
 </script>
 ```
 
@@ -263,49 +266,49 @@ curl -s "https://web.archive.org/web/2020/https://target.com/app.js"
 
 ### Command-Line Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl/wget** | HTTP client | `curl -s https://target.com` |
-| **grep** | Pattern search | `grep -iE 'api_key\|secret'` |
-| **jq** | JSON processor | `jq '.sources' file.map` |
-| **waybackurls** | Historical URLs | `waybackurls target.com` |
-| **gau** | Get All URLs | `gau target.com` |
+| Tool            | Description     | Usage                        |
+| --------------- | --------------- | ---------------------------- |
+| **curl/wget**   | HTTP client     | `curl -s https://target.com` |
+| **grep**        | Pattern search  | `grep -iE 'api_key\|secret'` |
+| **jq**          | JSON processor  | `jq '.sources' file.map`     |
+| **waybackurls** | Historical URLs | `waybackurls target.com`     |
+| **gau**         | Get All URLs    | `gau target.com`             |
 
 ### Specialized Secret Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **truffleHog** | Git secret scanner | `trufflehog filesystem .` |
-| **gitleaks** | Secret detection | `gitleaks detect --source=.` |
-| **SecretFinder** | JS secret finder | `python3 SecretFinder.py -i url` |
-| **LinkFinder** | Endpoint extractor | `python3 linkfinder.py -i url` |
-| **JSParser** | JavaScript parser | Extracts URLs from JS |
+| Tool             | Description        | Usage                            |
+| ---------------- | ------------------ | -------------------------------- |
+| **truffleHog**   | Git secret scanner | `trufflehog filesystem .`        |
+| **gitleaks**     | Secret detection   | `gitleaks detect --source=.`     |
+| **SecretFinder** | JS secret finder   | `python3 SecretFinder.py -i url` |
+| **LinkFinder**   | Endpoint extractor | `python3 linkfinder.py -i url`   |
+| **JSParser**     | JavaScript parser  | Extracts URLs from JS            |
 
 ### Browser Extensions
 
-| Extension | Purpose |
-|-----------|---------|
-| Wappalyzer | Technology detection |
-| Retire.js | Vulnerable JS libraries |
-| BuiltWith | Tech stack analysis |
-| Source Detector | Source map finder |
+| Extension       | Purpose                 |
+| --------------- | ----------------------- |
+| Wappalyzer      | Technology detection    |
+| Retire.js       | Vulnerable JS libraries |
+| BuiltWith       | Tech stack analysis     |
+| Source Detector | Source map finder       |
 
 ### Web Proxies
 
-| Tool | Description |
-|------|-------------|
+| Tool       | Description                   |
+| ---------- | ----------------------------- |
 | Burp Suite | Intercept and analyze traffic |
-| OWASP ZAP | Automated scanning |
-| Fiddler | Traffic analysis |
-| Charles | HTTP debugging proxy |
+| OWASP ZAP  | Automated scanning            |
+| Fiddler    | Traffic analysis              |
+| Charles    | HTTP debugging proxy          |
 
 ### API Key Validators
 
-| Service | Purpose |
-|---------|---------|
-| KeyHacks | API key validation |
-| API Key Scanner | Cloud key detection |
-| Google Maps API Scanner | Maps key testing |
+| Service                 | Purpose             |
+| ----------------------- | ------------------- |
+| KeyHacks                | API key validation  |
+| API Key Scanner         | Cloud key detection |
+| Google Maps API Scanner | Maps key testing    |
 
 ---
 
@@ -459,33 +462,33 @@ bearer [a-zA-Z0-9_\-\.=:_\+\/]{5,100}
 
 ```javascript
 // webpack.config.js
-const TerserPlugin = require('terser-webpack-plugin');
+const TerserPlugin = require("terser-webpack-plugin")
 
 module.exports = {
-    optimization: {
-        minimize: true,
-        minimizer: [
-            new TerserPlugin({
-                terserOptions: {
-                    format: {
-                        comments: false,
-                    },
-                },
-                extractComments: false,
-            }),
-        ],
-    },
-};
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          format: {
+            comments: false,
+          },
+        },
+        extractComments: false,
+      }),
+    ],
+  },
+}
 ```
 
 ### 2. Externalize Secrets
 
 ```javascript
 // BAD
-const API_KEY = "AIzaSyD-xxxxxxxxxxx";
+const API_KEY = "AIzaSyD-xxxxxxxxxxx"
 
 // GOOD
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.API_KEY
 ```
 
 #### Environment Variable Best Practices
@@ -506,18 +509,18 @@ DB_PASSWORD=your_password
 ```javascript
 // webpack.config.js
 module.exports = {
-    devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
-};
+  devtool: process.env.NODE_ENV === "production" ? false : "source-map",
+}
 ```
 
 ```json
 // Angular: angular.json
 {
-    "configurations": {
-        "production": {
-            "sourceMap": false
-        }
+  "configurations": {
+    "production": {
+      "sourceMap": false
     }
+  }
 }
 ```
 
@@ -568,55 +571,60 @@ module.exports = {
 **Base Score**: Variable (5.3 - 9.8 depending on exposed data)
 
 #### Information Disclosure (Generic)
+
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 **Score**: 5.3 (Medium)
 
 #### Credential Exposure
+
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
 **Score**: 9.8 (Critical)
 
 ### Severity Levels
 
-| Finding | Severity | Impact |
-|---------|----------|--------|
-| Developer comments | Info | Limited exposure |
-| Version information | Low | Aids targeted attacks |
-| Internal paths/URLs | Low | Reconnaissance data |
-| API endpoints | Medium | Attack surface mapping |
-| Internal IP addresses | Medium | Network information |
-| Non-sensitive API keys | Medium | Service abuse potential |
-| Admin credentials | Critical | Full compromise |
+| Finding                 | Severity | Impact                    |
+| ----------------------- | -------- | ------------------------- |
+| Developer comments      | Info     | Limited exposure          |
+| Version information     | Low      | Aids targeted attacks     |
+| Internal paths/URLs     | Low      | Reconnaissance data       |
+| API endpoints           | Medium   | Attack surface mapping    |
+| Internal IP addresses   | Medium   | Network information       |
+| Non-sensitive API keys  | Medium   | Service abuse potential   |
+| Admin credentials       | Critical | Full compromise           |
 | Cloud credentials (AWS) | Critical | Infrastructure compromise |
-| Database passwords | Critical | Data breach |
+| Database passwords      | Critical | Data breach               |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Exposure of Sensitive Information | General information disclosure |
-| **CWE-312** | Cleartext Storage of Sensitive Information | Hardcoded credentials |
-| **CWE-615** | Inclusion of Sensitive Information in Source Code Comments | Comments with secrets |
-| **CWE-540** | Inclusion of Sensitive Information in Source Code | Secrets in code |
-| **CWE-798** | Use of Hard-coded Credentials | Hardcoded passwords |
-| **CWE-209** | Generation of Error Message Containing Sensitive Information | Verbose errors |
+| CWE ID      | Title                                                        | Description                    |
+| ----------- | ------------------------------------------------------------ | ------------------------------ |
+| **CWE-200** | Exposure of Sensitive Information                            | General information disclosure |
+| **CWE-312** | Cleartext Storage of Sensitive Information                   | Hardcoded credentials          |
+| **CWE-615** | Inclusion of Sensitive Information in Source Code Comments   | Comments with secrets          |
+| **CWE-540** | Inclusion of Sensitive Information in Source Code            | Secrets in code                |
+| **CWE-798** | Use of Hard-coded Credentials                                | Hardcoded passwords            |
+| **CWE-209** | Generation of Error Message Containing Sensitive Information | Verbose errors                 |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Review Web Page Content](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/05-Review_Web_Page_Content_for_Information_Leakage)
 - [OWASP Cheat Sheet - Secrets Management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
 
 ### Tools
+
 - [SecretFinder](https://github.com/m4ll0k/SecretFinder)
 - [LinkFinder](https://github.com/GerbenJavado/LinkFinder)
 - [truffleHog](https://github.com/trufflesecurity/trufflehog)
 - [gitleaks](https://github.com/gitleaks/gitleaks)
 
 ### Additional Resources
+
 - [KeyHacks](https://github.com/streaak/keyhacks)
 - [OWASP Source Code Analysis Tools](https://owasp.org/www-community/Source_Code_Analysis_Tools)
 

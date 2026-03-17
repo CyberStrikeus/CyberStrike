@@ -1,9 +1,11 @@
 # WSTG-BUSL-09: Test Upload of Malicious Files
 
 ## Test ID
+
 WSTG-BUSL-09
 
 ## Test Name
+
 Test Upload of Malicious Files
 
 ## High-Level Description
@@ -26,14 +28,14 @@ This test examines whether the application properly scans and rejects files cont
 
 ### Common Attack Vectors
 
-| File Type | Attack Vector |
-|-----------|---------------|
-| DOCX/XLSX | Macros, OLE objects |
-| PDF | JavaScript, embedded files |
-| SVG | JavaScript, XSS |
-| XML | XXE, XSS |
-| ZIP | Path traversal, zip bombs |
-| Images | Steganography, polyglots |
+| File Type | Attack Vector              |
+| --------- | -------------------------- |
+| DOCX/XLSX | Macros, OLE objects        |
+| PDF       | JavaScript, embedded files |
+| SVG       | JavaScript, XSS            |
+| XML       | XXE, XSS                   |
+| ZIP       | Path traversal, zip bombs  |
+| Images    | Steganography, polyglots   |
 
 ---
 
@@ -229,19 +231,19 @@ curl -s -X POST "https://target.com/api/upload" \
 
 ### Malware Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **EICAR** | Antivirus test file | Standard detection test |
-| **ClamAV** | Open source antivirus | Server-side scanning |
-| **VirusTotal API** | Multi-engine scanning | Integration |
+| Tool               | Description           | Usage                   |
+| ------------------ | --------------------- | ----------------------- |
+| **EICAR**          | Antivirus test file   | Standard detection test |
+| **ClamAV**         | Open source antivirus | Server-side scanning    |
+| **VirusTotal API** | Multi-engine scanning | Integration             |
 
 ### Payload Generation
 
-| Tool | Description |
-|------|-------------|
-| **msfvenom** | Metasploit payloads |
-| **Office-DDE-Payloads** | Office exploits |
-| **PDF-parser** | PDF analysis |
+| Tool                    | Description         |
+| ----------------------- | ------------------- |
+| **msfvenom**            | Metasploit payloads |
+| **Office-DDE-Payloads** | Office exploits     |
+| **PDF-parser**          | PDF analysis        |
 
 ---
 
@@ -578,24 +580,24 @@ def add_security_headers(response):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Malware upload accepted | 9.8 | Critical |
-| Macro-enabled document upload | 8.8 | High |
-| SVG with JavaScript accepted | 7.5 | High |
-| XXE via XML upload | 8.8 | High |
-| Zip bomb accepted | 5.3 | Medium |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| Malware upload accepted       | 9.8  | Critical |
+| Macro-enabled document upload | 8.8  | High     |
+| SVG with JavaScript accepted  | 7.5  | High     |
+| XXE via XML upload            | 8.8  | High     |
+| Zip bomb accepted             | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-434** | Unrestricted Upload | Dangerous file content |
-| **CWE-79** | Cross-site Scripting | SVG/HTML with JS |
-| **CWE-611** | XXE | XML external entities |
-| **CWE-400** | Resource Exhaustion | Zip bombs |
+| CWE ID      | Title                | Description            |
+| ----------- | -------------------- | ---------------------- |
+| **CWE-434** | Unrestricted Upload  | Dangerous file content |
+| **CWE-79**  | Cross-site Scripting | SVG/HTML with JS       |
+| **CWE-611** | XXE                  | XML external entities  |
+| **CWE-400** | Resource Exhaustion  | Zip bombs              |
 
 ---
 

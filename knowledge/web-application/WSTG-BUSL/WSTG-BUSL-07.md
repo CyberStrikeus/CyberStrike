@@ -1,9 +1,11 @@
 # WSTG-BUSL-07: Test Defenses Against Application Misuse
 
 ## Test ID
+
 WSTG-BUSL-07
 
 ## Test Name
+
 Test Defenses Against Application Misuse
 
 ## High-Level Description
@@ -26,12 +28,12 @@ Application misuse defense testing examines whether an application has adequate 
 
 ### Abuse Scenarios
 
-| Scenario | Defense Expected |
-|----------|------------------|
-| Brute force login | Account lockout, rate limiting |
-| Credential stuffing | IP blocking, CAPTCHA |
-| Web scraping | Rate limiting, bot detection |
-| Price scraping | CAPTCHA, behavior analysis |
+| Scenario            | Defense Expected                 |
+| ------------------- | -------------------------------- |
+| Brute force login   | Account lockout, rate limiting   |
+| Credential stuffing | IP blocking, CAPTCHA             |
+| Web scraping        | Rate limiting, bot detection     |
+| Price scraping      | CAPTCHA, behavior analysis       |
 | Enumeration attacks | Generic responses, rate limiting |
 
 ---
@@ -254,19 +256,19 @@ done
 
 ### Rate Limit Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **wfuzz** | Fuzzer | Rate limit testing |
-| **ffuf** | Fast fuzzer | Parallel request testing |
-| **Custom scripts** | Bash/Python | Automated testing |
+| Tool               | Description | Usage                    |
+| ------------------ | ----------- | ------------------------ |
+| **wfuzz**          | Fuzzer      | Rate limit testing       |
+| **ffuf**           | Fast fuzzer | Parallel request testing |
+| **Custom scripts** | Bash/Python | Automated testing        |
 
 ### Bot Detection Testing
 
-| Tool | Description |
-|------|-------------|
-| **Puppeteer** | Headless Chrome automation |
-| **Selenium** | Browser automation |
-| **Playwright** | Cross-browser automation |
+| Tool           | Description                |
+| -------------- | -------------------------- |
+| **Puppeteer**  | Headless Chrome automation |
+| **Selenium**   | Browser automation         |
+| **Playwright** | Cross-browser automation   |
 
 ---
 
@@ -620,23 +622,23 @@ class BehaviorAnalyzer:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No rate limiting on login | 8.8 | High |
-| No account lockout | 7.5 | High |
-| No bot detection | 5.3 | Medium |
-| Weak CAPTCHA trigger threshold | 4.3 | Medium |
-| No behavioral analysis | 4.3 | Medium |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| No rate limiting on login      | 8.8  | High     |
+| No account lockout             | 7.5  | High     |
+| No bot detection               | 5.3  | Medium   |
+| Weak CAPTCHA trigger threshold | 4.3  | Medium   |
+| No behavioral analysis         | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Missing lockout |
-| **CWE-770** | Allocation of Resources Without Limits | No rate limiting |
-| **CWE-799** | Improper Control of Interaction Frequency | Abuse not detected |
+| CWE ID      | Title                                                     | Description        |
+| ----------- | --------------------------------------------------------- | ------------------ |
+| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Missing lockout    |
+| **CWE-770** | Allocation of Resources Without Limits                    | No rate limiting   |
+| **CWE-799** | Improper Control of Interaction Frequency                 | Abuse not detected |
 
 ---
 

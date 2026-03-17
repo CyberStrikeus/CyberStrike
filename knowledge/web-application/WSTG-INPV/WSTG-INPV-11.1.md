@@ -1,9 +1,11 @@
 # WSTG-INPV-11.1: Testing for File Inclusion (LFI/RFI)
 
 ## Test ID
+
 WSTG-INPV-11.1
 
 ## Test Name
+
 Testing for Local/Remote File Inclusion
 
 ## High-Level Description
@@ -357,12 +359,12 @@ C:\inetpub\logs\LogFiles\W3SVC1\
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| LFISuite | Automated LFI exploitation |
-| Burp Suite | Manual testing |
-| fimap | LFI/RFI scanner |
-| kadimus | LFI scanner |
+| Tool       | Purpose                    |
+| ---------- | -------------------------- |
+| LFISuite   | Automated LFI exploitation |
+| Burp Suite | Manual testing             |
+| fimap      | LFI/RFI scanner            |
+| kadimus    | LFI scanner                |
 
 ---
 
@@ -413,19 +415,19 @@ def safe_include(filename):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| RFI to RCE | 9.8 | Critical |
-| LFI with PHP wrappers | 8.6 | High |
-| LFI sensitive file read | 7.5 | High |
-| Log poisoning to RCE | 9.1 | Critical |
+| Finding                 | CVSS | Severity |
+| ----------------------- | ---- | -------- |
+| RFI to RCE              | 9.8  | Critical |
+| LFI with PHP wrappers   | 8.6  | High     |
+| LFI sensitive file read | 7.5  | High     |
+| Log poisoning to RCE    | 9.1  | Critical |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                            |
+| ---------- | ------------------------------------------------ |
 | **CWE-98** | Improper Control of Filename for Include/Require |
 
 ---

@@ -95,7 +95,8 @@ export namespace Provider {
       // OAT tokens require Authorization: Bearer + Claude Code identity headers
       // @ai-sdk/anthropic doesn't support authToken, so we use custom fetch
       const auth = await Auth.get(input.id)
-      const key = input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
+      const key =
+        input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
       const isOAT = key?.startsWith("sk-ant-oat")
 
       if (isOAT) {

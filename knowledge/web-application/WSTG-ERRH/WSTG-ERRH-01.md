@@ -1,9 +1,11 @@
 # WSTG-ERRH-01: Testing for Improper Error Handling
 
 ## Test ID
+
 WSTG-ERRH-01
 
 ## Test Name
+
 Testing for Improper Error Handling
 
 ## High-Level Description
@@ -27,14 +29,14 @@ Improper error handling can reveal sensitive information about the application's
 
 ### Error Scenarios to Test
 
-| Scenario | Potential Disclosure |
-|----------|---------------------|
-| Invalid input | Framework info |
-| Database errors | SQL structure |
-| File operations | Path disclosure |
-| Authentication failures | User enumeration |
-| Authorization errors | Role information |
-| Server errors (500) | Stack traces |
+| Scenario                | Potential Disclosure |
+| ----------------------- | -------------------- |
+| Invalid input           | Framework info       |
+| Database errors         | SQL structure        |
+| File operations         | Path disclosure      |
+| Authentication failures | User enumeration     |
+| Authorization errors    | Role information     |
+| Server errors (500)     | Stack traces         |
 
 ---
 
@@ -306,11 +308,11 @@ tester.generate_report()
 
 ### Error Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
+| Tool           | Description        | Usage             |
+| -------------- | ------------------ | ----------------- |
 | **Burp Suite** | Error interception | Analyze responses |
-| **OWASP ZAP** | Automated scanning | Error detection |
-| **curl** | Manual testing | Trigger errors |
+| **OWASP ZAP**  | Automated scanning | Error detection   |
+| **curl**       | Manual testing     | Trigger errors    |
 
 ---
 
@@ -385,23 +387,23 @@ location = /404.html {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Full stack trace exposure | 5.3 | Medium |
-| SQL error messages | 5.3 | Medium |
-| File path disclosure | 4.3 | Medium |
-| Technology version disclosure | 3.7 | Low |
-| Debug information | 5.3 | Medium |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| Full stack trace exposure     | 5.3  | Medium   |
+| SQL error messages            | 5.3  | Medium   |
+| File path disclosure          | 4.3  | Medium   |
+| Technology version disclosure | 3.7  | Low      |
+| Debug information             | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                                      | Description              |
+| ----------- | ------------------------------------------ | ------------------------ |
 | **CWE-209** | Information Exposure Through Error Message | Sensitive info in errors |
-| **CWE-211** | Externally-Generated Error Message | External error details |
-| **CWE-215** | Information Exposure Through Debug | Debug info exposure |
+| **CWE-211** | Externally-Generated Error Message         | External error details   |
+| **CWE-215** | Information Exposure Through Debug         | Debug info exposure      |
 
 ---
 

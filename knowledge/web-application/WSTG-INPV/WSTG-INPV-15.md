@@ -1,9 +1,11 @@
 # WSTG-INPV-15: Testing for HTTP Splitting/Smuggling
 
 ## Test ID
+
 WSTG-INPV-15
 
 ## Test Name
+
 Testing for HTTP Splitting/Smuggling
 
 ## High-Level Description
@@ -305,11 +307,11 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite (HTTP Smuggler) | Automated detection |
-| smuggler.py | HTTP smuggling scanner |
-| Turbo Intruder | Advanced testing |
+| Tool                       | Purpose                |
+| -------------------------- | ---------------------- |
+| Burp Suite (HTTP Smuggler) | Automated detection    |
+| smuggler.py                | HTTP smuggling scanner |
+| Turbo Intruder             | Advanced testing       |
 
 ---
 
@@ -341,20 +343,20 @@ HttpProtocolOptions Strict
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| HTTP Request Smuggling | 9.8 | Critical |
-| CRLF Response Splitting | 6.1 | Medium |
-| Cache Poisoning via Smuggling | 8.1 | High |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| HTTP Request Smuggling        | 9.8  | Critical |
+| CRLF Response Splitting       | 6.1  | Medium   |
+| Cache Poisoning via Smuggling | 8.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                        |
+| ----------- | -------------------------------------------- |
 | **CWE-444** | Inconsistent Interpretation of HTTP Requests |
-| **CWE-113** | Improper Neutralization of CRLF Sequences |
+| **CWE-113** | Improper Neutralization of CRLF Sequences    |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-INFO-09: Fingerprint Web Application
 
 ## Test ID
+
 WSTG-INFO-09
 
 ## Test Name
+
 Fingerprint Web Application
 
 ## Status
@@ -13,6 +15,7 @@ Fingerprint Web Application
 ## Consolidated Reference
 
 For comprehensive guidance on web application fingerprinting, including:
+
 - Application identification techniques
 - Version detection methods
 - Technology stack analysis

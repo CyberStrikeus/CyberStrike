@@ -119,13 +119,13 @@ Dine sikkerhedsv&aelig;rkt&oslash;jer beh&oslash;ver ikke k&oslash;re p&aring; d
 
 Skift mellem agenter med `Tab`. Hver enkelt er en specialist.
 
-| Agent | Fokus | Hvad Den G&oslash;r |
-|-------|-------|---------------------|
-| **cyberstrike** | Generel | Prim&aelig;r agent med fuld adgang — rekognoscering, udnyttelse, rapportering |
-| **web-application** | Web | OWASP Top 10, WSTG-metodik, API-sikkerhed, sessionstest |
-| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS-overensstemmelse |
-| **cloud-security** | Cloud | AWS, Azure, GCP — IAM-fejlkonfigurationer, CIS-benchmarks, eksponerede ressourcer |
-| **internal-network** | Netv&aelig;rk | Active Directory, Kerberos-angreb, lateral bev&aelig;gelse, pivoting |
+| Agent                  | Fokus         | Hvad Den G&oslash;r                                                               |
+| ---------------------- | ------------- | --------------------------------------------------------------------------------- |
+| **cyberstrike**        | Generel       | Prim&aelig;r agent med fuld adgang — rekognoscering, udnyttelse, rapportering     |
+| **web-application**    | Web           | OWASP Top 10, WSTG-metodik, API-sikkerhed, sessionstest                           |
+| **mobile-application** | Mobil         | Android/iOS, Frida/Objection, MASTG/MASVS-overensstemmelse                        |
+| **cloud-security**     | Cloud         | AWS, Azure, GCP — IAM-fejlkonfigurationer, CIS-benchmarks, eksponerede ressourcer |
+| **internal-network**   | Netv&aelig;rk | Active Directory, Kerberos-angreb, lateral bev&aelig;gelse, pivoting              |
 
 Plus **8 specialiserede proxy-testere** der opfanger og manipulerer trafik til m&aring;lrettede s&aring;rbarhedsklasser:
 
@@ -137,13 +137,13 @@ Plus **8 specialiserede proxy-testere** der opfanger og manipulerer trafik til m
 
 CyberStrike forbinder til specialiserede MCP-servere, der udvider dets funktionalitet:
 
-| Server | V&aelig;rkt&oslash;jer | Hvad Den Tilf&oslash;jer |
-|--------|----------------------|--------------------------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Browserbaseret sikkerhedstest — XSS, CSRF, DOM-manipulation, cookie-tyveri |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Cloud-sikkerhedsaudits — 60+ kontroller p&aring; tv&aelig;rs af AWS, Azure, GCP |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub-sikkerhedsposition — repo, organisation, actions, secrets, supply chain |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE-efterretning — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-rekognoscering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Server                                                                 | V&aelig;rkt&oslash;jer | Hvad Den Tilf&oslash;jer                                                        |
+| ---------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39                     | Browserbaseret sikkerhedstest — XSS, CSRF, DOM-manipulation, cookie-tyveri      |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38                     | Cloud-sikkerhedsaudits — 60+ kontroller p&aring; tv&aelig;rs af AWS, Azure, GCP |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39                     | GitHub-sikkerhedsposition — repo, organisation, actions, secrets, supply chain  |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23                     | CVE-efterretning — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                    |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37                     | OSINT-rekognoscering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS   |
 
 Alle open source. Alle installerbare med `npx`. Tilslut dem til CyberStrike eller brug dem selvst&aelig;ndigt med enhver MCP-klient.
 
@@ -163,6 +163,7 @@ Bolt er CyberStrikes server til fjerneksekvering af v&aelig;rkt&oslash;jer. I st
 ```
 
 **S&aring;dan fungerer det:**
+
 - Deploy Bolt p&aring; enhver server med dit pentest-toolkit installeret
 - Par med Ed25519-n&oslash;gler — ingen adgangskoder, ingen delte hemmeligheder
 - CyberStrike-agenter kalder v&aelig;rkt&oslash;jer eksternt via MCP-protokollen
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 CyberStrike-agenter har direkte adgang til 30+ v&aelig;rkt&oslash;jer:
 
-| Kategori | V&aelig;rkt&oslash;jer |
-|----------|----------------------|
+| Kategori        | V&aelig;rkt&oslash;jer                                              |
+| --------------- | ------------------------------------------------------------------- |
 | **Eksekvering** | Shell (bash), fil l&aelig;sning/skrivning/redigering, mappeoversigt |
-| **Opdagelse** | Web fetch, webs&oslash;gning, kodes&oslash;gning, glob, grep |
-| **Sikkerhed** | S&aring;rbarhedsrapportering (HackerOne-format), bevisindsamling |
-| **Proxy** | HTTP/HTTPS-opfangning, anmodningsreplay, trafikanalyse |
-| **Integration** | MCP-servere, Bolt-fjernv&aelig;rkt&oslash;jer, tilpassede plugins |
+| **Opdagelse**   | Web fetch, webs&oslash;gning, kodes&oslash;gning, glob, grep        |
+| **Sikkerhed**   | S&aring;rbarhedsrapportering (HackerOne-format), bevisindsamling    |
+| **Proxy**       | HTTP/HTTPS-opfangning, anmodningsreplay, trafikanalyse              |
+| **Integration** | MCP-servere, Bolt-fjernv&aelig;rkt&oslash;jer, tilpassede plugins   |
 
 Plus et **plugin-SDK** — byg dine egne agenter og v&aelig;rkt&oslash;jer, registr&eacute;r dem ved k&oslash;rsel.
 
@@ -246,14 +247,14 @@ L&aelig;s [Bidragsguiden](./CONTRIBUTING.md) f&oslash;r du indsender en PR. Alle
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-BUSL-05: Test Number of Times a Function Can Be Used Limits
 
 ## Test ID
+
 WSTG-BUSL-05
 
 ## Test Name
+
 Test Number of Times a Function Can Be Used Limits
 
 ## High-Level Description
@@ -27,13 +29,13 @@ Function usage limit testing examines whether an application properly enforces r
 
 ### Bypass Techniques
 
-| Technique | Description |
-|-----------|-------------|
+| Technique            | Description                |
+| -------------------- | -------------------------- |
 | Session manipulation | New session resets counter |
-| Account switching | Multiple accounts |
-| Parameter tampering | Modify limit parameters |
-| Time manipulation | Change timestamps |
-| Race conditions | Parallel requests |
+| Account switching    | Multiple accounts          |
+| Parameter tampering  | Modify limit parameters    |
+| Time manipulation    | Change timestamps          |
+| Race conditions      | Parallel requests          |
 
 ---
 
@@ -232,18 +234,18 @@ curl -s -X POST "https://target.com/api/subscription/trial" \
 
 ### Automated Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Intruder** | Automated limit testing | Iterate until blocked |
-| **Custom scripts** | Limit bypass testing | Python/Bash automation |
-| **Postman** | API testing | Collection runners |
+| Tool               | Description             | Usage                  |
+| ------------------ | ----------------------- | ---------------------- |
+| **Burp Intruder**  | Automated limit testing | Iterate until blocked  |
+| **Custom scripts** | Limit bypass testing    | Python/Bash automation |
+| **Postman**        | API testing             | Collection runners     |
 
 ### Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Burp Logger** | Track all requests |
-| **Excel/Sheets** | Analyze patterns |
+| Tool             | Description        |
+| ---------------- | ------------------ |
+| **Burp Logger**  | Track all requests |
+| **Excel/Sheets** | Analyze patterns   |
 
 ---
 
@@ -604,23 +606,23 @@ class TieredLimiter:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Financial transaction limit bypass | 9.8 | Critical |
-| Unlimited free trial abuse | 6.5 | Medium |
-| Download quota bypass | 5.3 | Medium |
-| API rate limit bypass | 5.3 | Medium |
-| Vote/rating manipulation | 4.3 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| Financial transaction limit bypass | 9.8  | Critical |
+| Unlimited free trial abuse         | 6.5  | Medium   |
+| Download quota bypass              | 5.3  | Medium   |
+| API rate limit bypass              | 5.3  | Medium   |
+| Vote/rating manipulation           | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-770** | Allocation of Resources Without Limits | Missing usage limits |
-| **CWE-799** | Improper Control of Interaction Frequency | Rate limit bypass |
-| **CWE-841** | Improper Enforcement of Behavioral Workflow | Workflow bypass |
+| CWE ID      | Title                                       | Description          |
+| ----------- | ------------------------------------------- | -------------------- |
+| **CWE-770** | Allocation of Resources Without Limits      | Missing usage limits |
+| **CWE-799** | Improper Control of Interaction Frequency   | Rate limit bypass    |
+| **CWE-841** | Improper Enforcement of Behavioral Workflow | Workflow bypass      |
 
 ---
 

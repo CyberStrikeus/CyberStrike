@@ -1,9 +1,11 @@
 # WSTG-SESS-03: Testing for Session Fixation
 
 ## Test ID
+
 WSTG-SESS-03
 
 ## Test Name
+
 Testing for Session Fixation
 
 ## High-Level Description
@@ -271,11 +273,11 @@ tester.test_url_session()
 
 ## Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Session analysis | Compare pre/post auth sessions |
-| **OWASP ZAP** | Automated testing | Session fixation scanner |
-| **Browser DevTools** | Cookie monitoring | Observe session changes |
+| Tool                 | Description       | Usage                          |
+| -------------------- | ----------------- | ------------------------------ |
+| **Burp Suite**       | Session analysis  | Compare pre/post auth sessions |
+| **OWASP ZAP**        | Automated testing | Session fixation scanner       |
+| **Browser DevTools** | Cookie monitoring | Observe session changes        |
 
 ---
 
@@ -319,25 +321,25 @@ def login():
 ### 2. Express.js Session Regeneration
 
 ```javascript
-app.post('/login', (req, res) => {
-    authenticate(req.body.username, req.body.password, (err, user) => {
-        if (user) {
-            // Regenerate session ID
-            req.session.regenerate((err) => {
-                if (err) {
-                    return res.status(500).send('Session error');
-                }
-
-                req.session.userId = user.id;
-                req.session.authenticated = true;
-
-                res.redirect('/dashboard');
-            });
-        } else {
-            res.render('login', { error: 'Invalid credentials' });
+app.post("/login", (req, res) => {
+  authenticate(req.body.username, req.body.password, (err, user) => {
+    if (user) {
+      // Regenerate session ID
+      req.session.regenerate((err) => {
+        if (err) {
+          return res.status(500).send("Session error")
         }
-    });
-});
+
+        req.session.userId = user.id
+        req.session.authenticated = true
+
+        res.redirect("/dashboard")
+      })
+    } else {
+      res.render("login", { error: "Invalid credentials" })
+    }
+  })
+})
 ```
 
 ### 3. Java/Spring Session Regeneration
@@ -372,19 +374,19 @@ public String login(HttpServletRequest request, @RequestParam String username,
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Session fixation (no regeneration) | 8.8 | High |
-| Session ID accepted from URL | 7.5 | High |
-| Cross-subdomain fixation | 6.5 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| Session fixation (no regeneration) | 8.8  | High     |
+| Session ID accepted from URL       | 7.5  | High     |
+| Cross-subdomain fixation           | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-384** | Session Fixation |
+| CWE ID      | Title                                  |
+| ----------- | -------------------------------------- |
+| **CWE-384** | Session Fixation                       |
 | **CWE-472** | External Control of Web Service Cookie |
 
 ---

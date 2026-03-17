@@ -1,9 +1,11 @@
 # WSTG-IDNT-01: Test Role Definitions
 
 ## Test ID
+
 WSTG-IDNT-01
 
 ## Test Name
+
 Test Role Definitions
 
 ## High-Level Description
@@ -24,12 +26,12 @@ Role definitions testing evaluates how well an application implements role-based
 
 ### Access Control Verification
 
-| Check | Description |
-|-------|-------------|
-| Role boundaries | Each role can only access assigned resources |
-| Privilege separation | Sensitive functions require specific roles |
-| Role escalation | Users cannot self-assign higher roles |
-| Cross-role access | Users cannot access other role's data |
+| Check                | Description                                  |
+| -------------------- | -------------------------------------------- |
+| Role boundaries      | Each role can only access assigned resources |
+| Privilege separation | Sensitive functions require specific roles   |
+| Role escalation      | Users cannot self-assign higher roles        |
+| Cross-role access    | Users cannot access other role's data        |
 
 ---
 
@@ -147,19 +149,19 @@ done
 
 ### Automated Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite Autorize** | Access control testing | Automatic re-request with different sessions |
-| **OWASP ZAP Access Control** | Automated role testing | Context-based access testing |
-| **AuthMatrix** | Burp extension | Matrix-based authorization testing |
+| Tool                         | Description            | Usage                                        |
+| ---------------------------- | ---------------------- | -------------------------------------------- |
+| **Burp Suite Autorize**      | Access control testing | Automatic re-request with different sessions |
+| **OWASP ZAP Access Control** | Automated role testing | Context-based access testing                 |
+| **AuthMatrix**               | Burp extension         | Matrix-based authorization testing           |
 
 ### Manual Testing
 
-| Tool | Description |
-|------|-------------|
-| **Burp Suite** | Intercept and modify role parameters |
-| **Postman** | Create collections for different roles |
-| **curl** | Command-line HTTP testing |
+| Tool           | Description                            |
+| -------------- | -------------------------------------- |
+| **Burp Suite** | Intercept and modify role parameters   |
+| **Postman**    | Create collections for different roles |
+| **curl**       | Command-line HTTP testing              |
 
 ---
 
@@ -257,25 +259,21 @@ public class SecurityConfig {
 ```javascript
 // Node.js/Express middleware
 const checkRole = (allowedRoles) => {
-    return (req, res, next) => {
-        const userRole = req.user.role;
+  return (req, res, next) => {
+    const userRole = req.user.role
 
-        if (!allowedRoles.includes(userRole)) {
-            return res.status(403).json({
-                error: 'Access denied'
-            });
-        }
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        error: "Access denied",
+      })
+    }
 
-        next();
-    };
-};
+    next()
+  }
+}
 
 // Usage
-app.get('/admin/users',
-    authenticate,
-    checkRole(['admin']),
-    adminController.getUsers
-);
+app.get("/admin/users", authenticate, checkRole(["admin"]), adminController.getUsers)
 ```
 
 ### 4. Best Practices
@@ -293,12 +291,12 @@ app.get('/admin/users',
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No role definitions | 8.8 | High |
-| Role bypass possible | 8.8 | High |
-| Privilege escalation via role manipulation | 8.8 | High |
-| Incomplete role enforcement | 6.5 | Medium |
+| Finding                                    | CVSS | Severity |
+| ------------------------------------------ | ---- | -------- |
+| No role definitions                        | 8.8  | High     |
+| Role bypass possible                       | 8.8  | High     |
+| Privilege escalation via role manipulation | 8.8  | High     |
+| Incomplete role enforcement                | 6.5  | Medium   |
 
 **Privilege Escalation Vector**: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H
 
@@ -306,12 +304,12 @@ app.get('/admin/users',
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                         | Description             |
+| ----------- | ----------------------------- | ----------------------- |
 | **CWE-269** | Improper Privilege Management | Incorrect role handling |
-| **CWE-284** | Improper Access Control | Missing authorization |
-| **CWE-285** | Improper Authorization | Authorization bypass |
-| **CWE-862** | Missing Authorization | No role check |
+| **CWE-284** | Improper Access Control       | Missing authorization   |
+| **CWE-285** | Improper Authorization        | Authorization bypass    |
+| **CWE-862** | Missing Authorization         | No role check           |
 
 ---
 

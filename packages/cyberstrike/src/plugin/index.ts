@@ -19,7 +19,11 @@ export namespace Plugin {
   const BUILTIN: string[] = []
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin as unknown as PluginInstance]
+  const INTERNAL_PLUGINS: PluginInstance[] = [
+    CodexAuthPlugin,
+    CopilotAuthPlugin,
+    GitlabAuthPlugin as unknown as PluginInstance,
+  ]
 
   const state = Instance.state(async () => {
     const client = createCyberstrikeClient({

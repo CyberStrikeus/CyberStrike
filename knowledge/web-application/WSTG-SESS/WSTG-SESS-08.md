@@ -1,9 +1,11 @@
 # WSTG-SESS-08: Testing for Session Puzzling
 
 ## Test ID
+
 WSTG-SESS-08
 
 ## Test Name
+
 Testing for Session Puzzling (Session Variable Overloading)
 
 ## High-Level Description
@@ -134,17 +136,17 @@ session['password_reset'] = {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Auth bypass via flow manipulation | 9.8 | Critical |
-| Step bypass in multi-step flow | 7.5 | High |
+| Finding                           | CVSS | Severity |
+| --------------------------------- | ---- | -------- |
+| Auth bypass via flow manipulation | 9.8  | Critical |
+| Step bypass in multi-step flow    | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                     |
+| ----------- | ----------------------------------------- |
 | **CWE-488** | Exposure of Data Element to Wrong Session |
 
 ---

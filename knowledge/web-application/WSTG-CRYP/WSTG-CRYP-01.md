@@ -1,9 +1,11 @@
 # WSTG-CRYP-01: Testing for Weak Transport Layer Security
 
 ## Test ID
+
 WSTG-CRYP-01
 
 ## Test Name
+
 Testing for Weak Transport Layer Security
 
 ## High-Level Description
@@ -26,14 +28,14 @@ Transport Layer Security (TLS) protects data in transit between clients and serv
 
 ### Known Vulnerabilities
 
-| Issue | Description |
-|-------|-------------|
-| SSLv2/SSLv3 | Obsolete, insecure protocols |
-| TLS 1.0/1.1 | Deprecated, weak |
-| BEAST | CBC vulnerability |
-| POODLE | SSLv3 vulnerability |
-| Heartbleed | OpenSSL vulnerability |
-| CRIME/BREACH | Compression attacks |
+| Issue        | Description                  |
+| ------------ | ---------------------------- |
+| SSLv2/SSLv3  | Obsolete, insecure protocols |
+| TLS 1.0/1.1  | Deprecated, weak             |
+| BEAST        | CBC vulnerability            |
+| POODLE       | SSLv3 vulnerability          |
+| Heartbleed   | OpenSSL vulnerability        |
+| CRIME/BREACH | Compression attacks          |
 
 ---
 
@@ -292,12 +294,12 @@ analyzer.generate_report()
 
 ## Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **testssl.sh** | Comprehensive TLS testing | `./testssl.sh target.com` |
-| **sslscan** | SSL/TLS scanner | `sslscan target.com` |
-| **sslyze** | Python-based scanner | `sslyze target.com` |
-| **Qualys SSL Labs** | Online scanner | Web-based |
+| Tool                | Description               | Usage                     |
+| ------------------- | ------------------------- | ------------------------- |
+| **testssl.sh**      | Comprehensive TLS testing | `./testssl.sh target.com` |
+| **sslscan**         | SSL/TLS scanner           | `sslscan target.com`      |
+| **sslyze**          | Python-based scanner      | `sslyze target.com`       |
+| **Qualys SSL Labs** | Online scanner            | Web-based                 |
 
 ---
 
@@ -330,23 +332,23 @@ Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| SSLv2/SSLv3 supported | 7.5 | High |
-| TLS 1.0/1.1 supported | 5.3 | Medium |
-| Weak cipher suites | 5.3 | Medium |
-| Missing HSTS | 4.3 | Medium |
-| Expired certificate | 7.5 | High |
+| Finding               | CVSS | Severity |
+| --------------------- | ---- | -------- |
+| SSLv2/SSLv3 supported | 7.5  | High     |
+| TLS 1.0/1.1 supported | 5.3  | Medium   |
+| Weak cipher suites    | 5.3  | Medium   |
+| Missing HSTS          | 4.3  | Medium   |
+| Expired certificate   | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-326** | Inadequate Encryption Strength |
+| CWE ID      | Title                                          |
+| ----------- | ---------------------------------------------- |
+| **CWE-326** | Inadequate Encryption Strength                 |
 | **CWE-327** | Use of Broken or Risky Cryptographic Algorithm |
-| **CWE-295** | Improper Certificate Validation |
+| **CWE-295** | Improper Certificate Validation                |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-INFO-07: Map Execution Paths Through Application
 
 ## Test ID
+
 WSTG-INFO-07
 
 ## Test Name
+
 Map Execution Paths Through Application
 
 ## High-Level Description
@@ -57,6 +59,7 @@ wget --spider -r -l 3 https://target.com 2>&1 | grep '^--'
 ### Step 2: Document All Links and Endpoints
 
 Create a comprehensive list of:
+
 - Navigation links
 - Form actions
 - AJAX endpoints
@@ -67,14 +70,14 @@ Create a comprehensive list of:
 
 Look for functionality that branches based on:
 
-| Decision Type | Example |
-|---------------|---------|
-| User role | Admin vs regular user |
-| Authentication state | Logged in vs anonymous |
-| Input validation | Valid vs invalid data |
-| Business rules | Quantity limits, pricing tiers |
-| Time-based | Business hours, expiration |
-| Geographic | Region-specific features |
+| Decision Type        | Example                        |
+| -------------------- | ------------------------------ |
+| User role            | Admin vs regular user          |
+| Authentication state | Logged in vs anonymous         |
+| Input validation     | Valid vs invalid data          |
+| Business rules       | Quantity limits, pricing tiers |
+| Time-based           | Business hours, expiration     |
+| Geographic           | Region-specific features       |
 
 ### Step 4: Map User Workflows
 
@@ -126,14 +129,14 @@ Look for functionality that branches based on:
 
 ### Step 6: Document State Transitions
 
-| Current State | Action | Next State | Conditions |
-|---------------|--------|------------|------------|
-| Anonymous | Login | Authenticated | Valid credentials |
-| Cart Empty | Add Item | Cart Active | Item in stock |
-| Cart Active | Checkout | Payment | Authenticated |
-| Payment | Submit | Processing | Valid payment |
-| Processing | Success | Confirmed | Payment approved |
-| Processing | Failure | Payment | Payment declined |
+| Current State | Action   | Next State    | Conditions        |
+| ------------- | -------- | ------------- | ----------------- |
+| Anonymous     | Login    | Authenticated | Valid credentials |
+| Cart Empty    | Add Item | Cart Active   | Item in stock     |
+| Cart Active   | Checkout | Payment       | Authenticated     |
+| Payment       | Submit   | Processing    | Valid payment     |
+| Processing    | Success  | Confirmed     | Payment approved  |
+| Processing    | Failure  | Payment       | Payment declined  |
 
 ### Step 7: Identify Race Condition Opportunities
 
@@ -191,29 +194,29 @@ def process_order(user, cart, coupon=None):
 
 ### Automated Crawlers
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **OWASP ZAP Spider** | Automated web crawler | Spider via GUI/API |
+| Tool                  | Description             | Usage                     |
+| --------------------- | ----------------------- | ------------------------- |
+| **OWASP ZAP Spider**  | Automated web crawler   | Spider via GUI/API        |
 | **Burp Suite Spider** | Passive/Active crawling | Target > Engagement tools |
-| **Scrapy** | Python web scraper | Custom crawling scripts |
-| **HTTrack** | Website copier | Offline analysis |
+| **Scrapy**            | Python web scraper      | Custom crawling scripts   |
+| **HTTrack**           | Website copier          | Offline analysis          |
 
 ### Diagramming Tools
 
-| Tool | Purpose |
-|------|---------|
-| **Draw.io** | Flow diagrams |
-| **Lucidchart** | Process mapping |
-| **Mermaid** | Markdown diagrams |
-| **PlantUML** | Text-based diagrams |
+| Tool           | Purpose             |
+| -------------- | ------------------- |
+| **Draw.io**    | Flow diagrams       |
+| **Lucidchart** | Process mapping     |
+| **Mermaid**    | Markdown diagrams   |
+| **PlantUML**   | Text-based diagrams |
 
 ### Traffic Analysis
 
-| Tool | Purpose |
-|------|---------|
+| Tool                  | Purpose                  |
+| --------------------- | ------------------------ |
 | **Burp Suite Logger** | Request/response history |
-| **Chrome DevTools** | Network monitoring |
-| **Wireshark** | Packet capture |
+| **Chrome DevTools**   | Network monitoring       |
+| **Wireshark**         | Packet capture           |
 
 ---
 
@@ -340,33 +343,35 @@ Findings discovered during mapping (race conditions, logic flaws) have separate 
 
 ### Common Findings
 
-| Finding | Typical Severity |
-|---------|------------------|
-| Undocumented admin paths | Medium |
-| Race conditions | High |
-| State manipulation | High |
-| Workflow bypass | Medium-Critical |
-| Missing authorization checks | High-Critical |
+| Finding                      | Typical Severity |
+| ---------------------------- | ---------------- |
+| Undocumented admin paths     | Medium           |
+| Race conditions              | High             |
+| State manipulation           | High             |
+| Workflow bypass              | Medium-Critical  |
+| Missing authorization checks | High-Critical    |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                                                                    | Description     |
+| ----------- | ------------------------------------------------------------------------ | --------------- |
 | **CWE-362** | Concurrent Execution Using Shared Resource with Improper Synchronization | Race conditions |
-| **CWE-841** | Improper Enforcement of Behavioral Workflow | Workflow bypass |
-| **CWE-840** | Business Logic Errors | Logic flaws |
+| **CWE-841** | Improper Enforcement of Behavioral Workflow                              | Workflow bypass |
+| **CWE-840** | Business Logic Errors                                                    | Logic flaws     |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Map Execution Paths](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/07-Map_Execution_Paths_Through_Application)
 - [OWASP Testing for Race Conditions](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Business_Logic_Testing/05-Test_Number_of_Times_a_Function_Can_Be_Used_Limits)
 
 ### Tools
+
 - [OWASP ZAP](https://www.zaproxy.org/)
 - [Burp Suite](https://portswigger.net/burp)
 

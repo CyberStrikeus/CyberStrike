@@ -1,9 +1,11 @@
 # WSTG-CONF-09: Test File Permission
 
 ## Test ID
+
 WSTG-CONF-09
 
 ## Test Name
+
 Test File Permission
 
 ## High-Level Description
@@ -128,27 +130,27 @@ curl -s https://target.com/logs/
 
 ### Linux Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **ls** | List files | `ls -la /path` |
-| **namei** | Path permissions | `namei -l /path/to/file` |
-| **find** | Find files | `find /path -perm mode` |
-| **stat** | File status | `stat /path/to/file` |
-| **getfacl** | ACL permissions | `getfacl /path/to/file` |
+| Tool        | Description      | Usage                    |
+| ----------- | ---------------- | ------------------------ |
+| **ls**      | List files       | `ls -la /path`           |
+| **namei**   | Path permissions | `namei -l /path/to/file` |
+| **find**    | Find files       | `find /path -perm mode`  |
+| **stat**    | File status      | `stat /path/to/file`     |
+| **getfacl** | ACL permissions  | `getfacl /path/to/file`  |
 
 ### Windows Tools
 
-| Tool | Description |
-|------|-------------|
-| **icacls** | Display/modify ACLs |
-| **AccessChk** | Sysinternals tool |
+| Tool           | Description            |
+| -------------- | ---------------------- |
+| **icacls**     | Display/modify ACLs    |
+| **AccessChk**  | Sysinternals tool      |
 | **AccessEnum** | Permission enumeration |
 
 ### Automated
 
-| Tool | Description |
-|------|-------------|
-| **Lynis** | Security auditing |
+| Tool                        | Description       |
+| --------------------------- | ----------------- |
+| **Lynis**                   | Security auditing |
 | **Linux Exploit Suggester** | Permission checks |
 
 ---
@@ -290,22 +292,22 @@ chown root:adm /var/log/apache2/*
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| World-writable config file | 9.8 | Critical |
-| Executable in upload dir | 9.8 | Critical |
-| World-readable credentials | 7.5 | High |
-| Overly permissive directories | 5.3 | Medium |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| World-writable config file    | 9.8  | Critical |
+| Executable in upload dir      | 9.8  | Critical |
+| World-readable credentials    | 7.5  | High     |
+| Overly permissive directories | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-732** | Incorrect Permission Assignment for Critical Resource | Improper file permissions |
-| **CWE-276** | Incorrect Default Permissions | Default permissions too permissive |
-| **CWE-284** | Improper Access Control | Access control failure |
+| CWE ID      | Title                                                 | Description                        |
+| ----------- | ----------------------------------------------------- | ---------------------------------- |
+| **CWE-732** | Incorrect Permission Assignment for Critical Resource | Improper file permissions          |
+| **CWE-276** | Incorrect Default Permissions                         | Default permissions too permissive |
+| **CWE-284** | Improper Access Control                               | Access control failure             |
 
 ---
 

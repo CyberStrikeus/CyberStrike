@@ -1,9 +1,11 @@
 # WSTG-INPV-18: Testing for Server-Side Template Injection (SSTI)
 
 ## Test ID
+
 WSTG-INPV-18
 
 ## Test Name
+
 Testing for Server-Side Template Injection (SSTI)
 
 ## High-Level Description
@@ -301,11 +303,11 @@ ${product.getClass().getProtectionDomain().getCodeSource().getLocation()}
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| tplmap | Automated SSTI exploitation |
-| Burp Suite | Manual testing |
-| SSTImap | SSTI scanner |
+| Tool       | Purpose                     |
+| ---------- | --------------------------- |
+| tplmap     | Automated SSTI exploitation |
+| Burp Suite | Manual testing              |
+| SSTImap    | SSTI scanner                |
 
 ---
 
@@ -334,18 +336,18 @@ cfg.setNewBuiltinClassResolver(TemplateClassResolver.ALLOWS_NOTHING_RESOLVER);
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| SSTI with RCE | 9.8 | Critical |
-| SSTI config disclosure | 7.5 | High |
-| SSTI file read | 7.5 | High |
+| Finding                | CVSS | Severity |
+| ---------------------- | ---- | -------- |
+| SSTI with RCE          | 9.8  | Critical |
+| SSTI config disclosure | 7.5  | High     |
+| SSTI file read         | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID       | Title                                                                 |
+| ------------ | --------------------------------------------------------------------- |
 | **CWE-1336** | Improper Neutralization of Special Elements Used in a Template Engine |
 
 ---

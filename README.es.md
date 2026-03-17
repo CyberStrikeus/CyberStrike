@@ -119,13 +119,13 @@ Tus herramientas de seguridad no tienen que ejecutarse en tu portatil. Bolt es e
 
 Cambia entre agentes con `Tab`. Cada uno es un especialista.
 
-| Agente | Enfoque | Que hace |
-|--------|---------|----------|
-| **cyberstrike** | General | Agente principal con acceso completo — reconocimiento, explotacion, informes |
-| **web-application** | Web | OWASP Top 10, metodologia WSTG, seguridad de API, pruebas de sesion |
-| **mobile-application** | Movil | Android/iOS, Frida/Objection, conformidad MASTG/MASVS |
-| **cloud-security** | Nube | AWS, Azure, GCP — configuraciones erroneas de IAM, benchmarks CIS, recursos expuestos |
-| **internal-network** | Red | Active Directory, ataques Kerberos, movimiento lateral, pivoteo |
+| Agente                 | Enfoque | Que hace                                                                              |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------- |
+| **cyberstrike**        | General | Agente principal con acceso completo — reconocimiento, explotacion, informes          |
+| **web-application**    | Web     | OWASP Top 10, metodologia WSTG, seguridad de API, pruebas de sesion                   |
+| **mobile-application** | Movil   | Android/iOS, Frida/Objection, conformidad MASTG/MASVS                                 |
+| **cloud-security**     | Nube    | AWS, Azure, GCP — configuraciones erroneas de IAM, benchmarks CIS, recursos expuestos |
+| **internal-network**   | Red     | Active Directory, ataques Kerberos, movimiento lateral, pivoteo                       |
 
 Ademas, **8 testers proxy especializados** que interceptan y manipulan trafico para clases de vulnerabilidades especificas:
 
@@ -137,13 +137,13 @@ Ademas, **8 testers proxy especializados** que interceptan y manipulan trafico p
 
 CyberStrike se conecta a servidores MCP especializados que amplian sus capacidades:
 
-| Servidor | Herramientas | Que anade |
-|----------|--------------|-----------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Pruebas de seguridad basadas en navegador — XSS, CSRF, manipulacion DOM, robo de cookies |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Auditorias de seguridad en la nube — 60+ verificaciones en AWS, Azure, GCP |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | Postura de seguridad de GitHub — repo, org, actions, secrets, cadena de suministro |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | Inteligencia CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Reconocimiento OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Servidor                                                               | Herramientas | Que anade                                                                                |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39           | Pruebas de seguridad basadas en navegador — XSS, CSRF, manipulacion DOM, robo de cookies |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38           | Auditorias de seguridad en la nube — 60+ verificaciones en AWS, Azure, GCP               |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39           | Postura de seguridad de GitHub — repo, org, actions, secrets, cadena de suministro       |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23           | Inteligencia CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                             |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37           | Reconocimiento OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS            |
 
 Todos de codigo abierto. Todos instalables con `npx`. Conectalos a CyberStrike o usalos de forma independiente con cualquier cliente MCP.
 
@@ -163,6 +163,7 @@ Bolt es el servidor de ejecucion remota de herramientas de CyberStrike. En lugar
 ```
 
 **Como funciona:**
+
 - Despliega Bolt en cualquier servidor con tu kit de pentesting instalado
 - Empareja con claves Ed25519 — sin contrasenas, sin secretos compartidos
 - Los agentes de CyberStrike llaman herramientas remotamente a traves del protocolo MCP
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 Los agentes de CyberStrike tienen acceso directo a 30+ herramientas:
 
-| Categoria | Herramientas |
-|-----------|--------------|
-| **Ejecucion** | Shell (bash), lectura/escritura/edicion de archivos, listado de directorios |
-| **Descubrimiento** | Obtencion web, busqueda web, busqueda de codigo, glob, grep |
-| **Seguridad** | Reportes de vulnerabilidades (formato HackerOne), recopilacion de evidencia |
-| **Proxy** | Intercepcion HTTP/HTTPS, repeticion de solicitudes, analisis de trafico |
-| **Integracion** | Servidores MCP, herramientas remotas Bolt, plugins personalizados |
+| Categoria          | Herramientas                                                                |
+| ------------------ | --------------------------------------------------------------------------- |
+| **Ejecucion**      | Shell (bash), lectura/escritura/edicion de archivos, listado de directorios |
+| **Descubrimiento** | Obtencion web, busqueda web, busqueda de codigo, glob, grep                 |
+| **Seguridad**      | Reportes de vulnerabilidades (formato HackerOne), recopilacion de evidencia |
+| **Proxy**          | Intercepcion HTTP/HTTPS, repeticion de solicitudes, analisis de trafico     |
+| **Integracion**    | Servidores MCP, herramientas remotas Bolt, plugins personalizados           |
 
 Ademas, un **SDK de plugins** — crea tus propios agentes y herramientas, registralos en tiempo de ejecucion.
 
@@ -246,14 +247,14 @@ Lee la [guia de contribucion](./CONTRIBUTING.md) antes de enviar un PR. Todas la
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

@@ -673,7 +673,10 @@ export namespace SessionPrompt {
           lines.push(`- **${server}**: ${toolNames.length} tools — ${preview}${suffix}`)
         }
         if (mcpLazyStats.loaded > 0) {
-          lines.push("", `Currently loaded: ${mcpLazyStats.loaded} tool(s) (${mcpLazyStats.estimatedTokens} tokens used)`)
+          lines.push(
+            "",
+            `Currently loaded: ${mcpLazyStats.loaded} tool(s) (${mcpLazyStats.estimatedTokens} tokens used)`,
+          )
         }
         system.push(lines.join("\n"))
       }
@@ -845,9 +848,8 @@ export namespace SessionPrompt {
     const lazyStats = LazyToolRegistry.stats()
 
     // If lazy registry has tools, only include loaded ones (+ eager fallback)
-    const mcpToolSource: Record<string, AITool> = lazyStats.available > 0
-      ? ToolRegistry.getLoadedMCPTools()
-      : await MCP.tools()
+    const mcpToolSource: Record<string, AITool> =
+      lazyStats.available > 0 ? ToolRegistry.getLoadedMCPTools() : await MCP.tools()
 
     for (const [key, item] of Object.entries(mcpToolSource)) {
       const execute = item.execute

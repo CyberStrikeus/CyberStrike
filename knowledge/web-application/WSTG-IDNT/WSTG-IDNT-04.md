@@ -1,9 +1,11 @@
 # WSTG-IDNT-04: Test Account Enumeration
 
 ## Test ID
+
 WSTG-IDNT-04
 
 ## Test Name
+
 Testing for Account Enumeration and Guessable User Account
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Account enumeration occurs when an application reveals whether a username or ema
 
 ### Response Indicators
 
-| Location | Enumeration Sign |
-|----------|------------------|
-| Login | "Invalid username" vs "Invalid password" |
-| Registration | "Username already exists" |
-| Password Reset | "Email sent" vs "User not found" |
-| API | Different status codes (404 vs 401) |
-| Timing | Faster response for non-existent users |
+| Location       | Enumeration Sign                         |
+| -------------- | ---------------------------------------- |
+| Login          | "Invalid username" vs "Invalid password" |
+| Registration   | "Username already exists"                |
+| Password Reset | "Email sent" vs "User not found"         |
+| API            | Different status codes (404 vs 401)      |
+| Timing         | Faster response for non-existent users   |
 
 ---
 
@@ -226,20 +228,20 @@ done
 
 ### Automated Enumeration
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Intruder** | Automated enumeration | Payload lists + response comparison |
-| **ffuf** | Fast fuzzer | `ffuf -w users.txt -X POST -d "user=FUZZ"` |
-| **Hydra** | Password cracker | Has enumeration capabilities |
-| **wfuzz** | Web fuzzer | Response-based filtering |
+| Tool              | Description           | Usage                                      |
+| ----------------- | --------------------- | ------------------------------------------ |
+| **Burp Intruder** | Automated enumeration | Payload lists + response comparison        |
+| **ffuf**          | Fast fuzzer           | `ffuf -w users.txt -X POST -d "user=FUZZ"` |
+| **Hydra**         | Password cracker      | Has enumeration capabilities               |
+| **wfuzz**         | Web fuzzer            | Response-based filtering                   |
 
 ### Username Lists
 
-| Source | Description |
-|--------|-------------|
-| **SecLists** | Common usernames |
-| **Custom** | Company-specific patterns |
-| **OSINT** | LinkedIn, email patterns |
+| Source       | Description               |
+| ------------ | ------------------------- |
+| **SecLists** | Common usernames          |
+| **Custom**   | Company-specific patterns |
+| **OSINT**    | LinkedIn, email patterns  |
 
 ---
 
@@ -463,12 +465,12 @@ def check_lockout(username):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Username enumeration via login | 5.3 | Medium |
-| Email enumeration via password reset | 5.3 | Medium |
-| Timing-based enumeration | 3.7 | Low |
-| API-based enumeration | 5.3 | Medium |
+| Finding                              | CVSS | Severity |
+| ------------------------------------ | ---- | -------- |
+| Username enumeration via login       | 5.3  | Medium   |
+| Email enumeration via password reset | 5.3  | Medium   |
+| Timing-based enumeration             | 3.7  | Low      |
+| API-based enumeration                | 5.3  | Medium   |
 
 **Attack Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
@@ -476,11 +478,11 @@ def check_lockout(username):
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-204** | Observable Response Discrepancy | Different error messages |
-| **CWE-203** | Observable Discrepancy | Timing differences |
-| **CWE-200** | Exposure of Sensitive Information | User existence revealed |
+| CWE ID      | Title                             | Description              |
+| ----------- | --------------------------------- | ------------------------ |
+| **CWE-204** | Observable Response Discrepancy   | Different error messages |
+| **CWE-203** | Observable Discrepancy            | Timing differences       |
+| **CWE-200** | Exposure of Sensitive Information | User existence revealed  |
 
 ---
 

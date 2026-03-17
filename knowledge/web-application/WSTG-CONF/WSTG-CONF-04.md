@@ -1,9 +1,11 @@
 # WSTG-CONF-04: Review Old Backup and Unreferenced Files for Sensitive Information
 
 ## Test ID
+
 WSTG-CONF-04
 
 ## Test Name
+
 Review Old Backup and Unreferenced Files for Sensitive Information
 
 ## High-Level Description
@@ -29,18 +31,18 @@ Old backup files, unreferenced pages, and forgotten content can expose sensitive
 
 ### Naming Conventions
 
-| Pattern | Description |
-|---------|-------------|
-| file~ | Emacs backup |
-| file.bak | Generic backup |
-| file.old | Old version |
-| file.orig | Original version |
-| file.save | Saved version |
-| file.swp | Vim swap file |
-| file.tmp | Temporary file |
-| Copy of file | Manual copy |
-| file (1).ext | Duplicate |
-| file_backup | Backup naming |
+| Pattern       | Description       |
+| ------------- | ----------------- |
+| file~         | Emacs backup      |
+| file.bak      | Generic backup    |
+| file.old      | Old version       |
+| file.orig     | Original version  |
+| file.save     | Saved version     |
+| file.swp      | Vim swap file     |
+| file.tmp      | Temporary file    |
+| Copy of file  | Manual copy       |
+| file (1).ext  | Duplicate         |
+| file_backup   | Backup naming     |
 | file_YYYYMMDD | Date-based backup |
 
 ---
@@ -211,27 +213,27 @@ done
 
 ### Directory/File Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Gobuster** | Directory brute-force | `gobuster dir -u url -w wordlist -x bak,old` |
-| **ffuf** | Fast fuzzer | `ffuf -u url/FUZZ -w wordlist` |
-| **Dirb** | Directory scanner | `dirb https://target.com` |
-| **Dirsearch** | Web path scanner | `dirsearch -u target.com` |
+| Tool          | Description           | Usage                                        |
+| ------------- | --------------------- | -------------------------------------------- |
+| **Gobuster**  | Directory brute-force | `gobuster dir -u url -w wordlist -x bak,old` |
+| **ffuf**      | Fast fuzzer           | `ffuf -u url/FUZZ -w wordlist`               |
+| **Dirb**      | Directory scanner     | `dirb https://target.com`                    |
+| **Dirsearch** | Web path scanner      | `dirsearch -u target.com`                    |
 
 ### Web Spiders
 
-| Tool | Description |
-|------|-------------|
-| **wget** | Recursive download |
-| **HTTrack** | Website copier |
-| **Burp Spider** | Web crawler |
+| Tool            | Description        |
+| --------------- | ------------------ |
+| **wget**        | Recursive download |
+| **HTTrack**     | Website copier     |
+| **Burp Spider** | Web crawler        |
 
 ### Vulnerability Scanners
 
-| Tool | Description |
-|------|-------------|
-| **Nikto** | Web server scanner |
-| **Nessus** | Vulnerability scanner |
+| Tool       | Description            |
+| ---------- | ---------------------- |
+| **Nikto**  | Web server scanner     |
+| **Nessus** | Vulnerability scanner  |
 | **Nuclei** | Template-based scanner |
 
 ---
@@ -347,12 +349,12 @@ location ~* \.(bak|backup|old|orig|save|swp|tmp|sql|tar|gz|zip|rar)$ {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Source code backup exposed | 7.5 | High |
-| Database dump accessible | 9.8 | Critical |
-| Config file with credentials | 9.8 | Critical |
-| Old vulnerable page | Variable | Variable |
+| Finding                      | CVSS     | Severity |
+| ---------------------------- | -------- | -------- |
+| Source code backup exposed   | 7.5      | High     |
+| Database dump accessible     | 9.8      | Critical |
+| Config file with credentials | 9.8      | Critical |
+| Old vulnerable page          | Variable | Variable |
 
 **Typical Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
 
@@ -360,11 +362,11 @@ location ~* \.(bak|backup|old|orig|save|swp|tmp|sql|tar|gz|zip|rar)$ {
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-530** | Exposure of Backup File | Backup accessible to attackers |
+| CWE ID      | Title                          | Description                    |
+| ----------- | ------------------------------ | ------------------------------ |
+| **CWE-530** | Exposure of Backup File        | Backup accessible to attackers |
 | **CWE-538** | Sensitive Information in Files | Sensitive data in public files |
-| **CWE-200** | Information Exposure | Information disclosure |
+| **CWE-200** | Information Exposure           | Information disclosure         |
 
 ---
 

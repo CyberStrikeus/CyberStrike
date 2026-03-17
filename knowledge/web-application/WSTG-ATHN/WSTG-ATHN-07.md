@@ -1,9 +1,11 @@
 # WSTG-ATHN-07: Testing for Weak Password Policy
 
 ## Test ID
+
 WSTG-ATHN-07
 
 ## Test Name
+
 Testing for Weak Password Policy
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Password policy testing evaluates the strength requirements enforced by an appli
 
 ### Policy Weaknesses
 
-| Weakness | Risk |
-|----------|------|
-| Short minimum length (<8) | Easy brute-force |
-| No complexity requirements | Dictionary attacks |
-| No blocklist | Common password usage |
-| Allows personal info | Social engineering |
-| No history check | Password cycling |
+| Weakness                   | Risk                  |
+| -------------------------- | --------------------- |
+| Short minimum length (<8)  | Easy brute-force      |
+| No complexity requirements | Dictionary attacks    |
+| No blocklist               | Common password usage |
+| Allows personal info       | Social engineering    |
+| No history check           | Password cycling      |
 
 ---
 
@@ -260,17 +262,17 @@ done
 
 ### Password Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Intruder** | Payload testing | Test password variations |
+| Tool               | Description       | Usage                     |
+| ------------------ | ----------------- | ------------------------- |
+| **Burp Intruder**  | Payload testing   | Test password variations  |
 | **Custom scripts** | Automated testing | Systematic policy testing |
-| **SecLists** | Common passwords | Wordlist testing |
+| **SecLists**       | Common passwords  | Wordlist testing          |
 
 ### Password Analysis
 
-| Tool | Description |
-|------|-------------|
-| **zxcvbn** | Password strength meter |
+| Tool                  | Description                |
+| --------------------- | -------------------------- |
+| **zxcvbn**            | Password strength meter    |
 | **Have I Been Pwned** | Compromised password check |
 
 ---
@@ -550,25 +552,25 @@ def validate_password(password):
 
 ```javascript
 // Client-side password strength feedback
-import zxcvbn from 'zxcvbn';
+import zxcvbn from "zxcvbn"
 
 function checkPasswordStrength(password, userInputs = []) {
-    const result = zxcvbn(password, userInputs);
+  const result = zxcvbn(password, userInputs)
 
-    return {
-        score: result.score,  // 0-4
-        feedback: result.feedback,
-        crackTime: result.crack_times_display.offline_slow_hashing_1e4_per_second,
-        suggestions: result.feedback.suggestions
-    };
+  return {
+    score: result.score, // 0-4
+    feedback: result.feedback,
+    crackTime: result.crack_times_display.offline_slow_hashing_1e4_per_second,
+    suggestions: result.feedback.suggestions,
+  }
 }
 
 // Usage
-document.getElementById('password').addEventListener('input', (e) => {
-    const strength = checkPasswordStrength(e.target.value, [username, email]);
-    updateStrengthMeter(strength.score);
-    showFeedback(strength.feedback);
-});
+document.getElementById("password").addEventListener("input", (e) => {
+  const strength = checkPasswordStrength(e.target.value, [username, email])
+  updateStrengthMeter(strength.score)
+  showFeedback(strength.feedback)
+})
 ```
 
 ---
@@ -577,23 +579,23 @@ document.getElementById('password').addEventListener('input', (e) => {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No minimum length requirement | 7.5 | High |
-| No complexity requirements | 6.5 | Medium |
-| Common passwords allowed | 7.5 | High |
-| Password reuse allowed | 5.3 | Medium |
-| Very short minimum (<6) | 8.8 | High |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| No minimum length requirement | 7.5  | High     |
+| No complexity requirements    | 6.5  | Medium   |
+| Common passwords allowed      | 7.5  | High     |
+| Password reuse allowed        | 5.3  | Medium   |
+| Very short minimum (<6)       | 8.8  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-521** | Weak Password Requirements | Insufficient policy |
-| **CWE-262** | Not Using Password Aging | No history check |
-| **CWE-263** | Password Aging with Long Expiration | Policy issues |
+| CWE ID      | Title                               | Description         |
+| ----------- | ----------------------------------- | ------------------- |
+| **CWE-521** | Weak Password Requirements          | Insufficient policy |
+| **CWE-262** | Not Using Password Aging            | No history check    |
+| **CWE-263** | Password Aging with Long Expiration | Policy issues       |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-SESS-11: Testing for Concurrent Sessions
 
 ## Test ID
+
 WSTG-SESS-11
 
 ## Test Name
+
 Testing for Concurrent Sessions
 
 ## High-Level Description
@@ -258,20 +260,20 @@ def change_password():
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Sessions persist after password change | 7.5 | High |
-| No concurrent session limit | 4.3 | Medium |
-| No session termination capability | 4.3 | Medium |
+| Finding                                | CVSS | Severity |
+| -------------------------------------- | ---- | -------- |
+| Sessions persist after password change | 7.5  | High     |
+| No concurrent session limit            | 4.3  | Medium   |
+| No session termination capability      | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                           |
+| ----------- | ------------------------------- |
 | **CWE-613** | Insufficient Session Expiration |
-| **CWE-384** | Session Fixation |
+| **CWE-384** | Session Fixation                |
 
 ---
 

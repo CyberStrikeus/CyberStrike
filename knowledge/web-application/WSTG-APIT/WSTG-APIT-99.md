@@ -1,9 +1,11 @@
 # WSTG-APIT-99: Testing GraphQL
 
 ## Test ID
+
 WSTG-APIT-99
 
 ## Test Name
+
 Testing GraphQL APIs
 
 ## High-Level Description
@@ -253,12 +255,12 @@ tester.generate_report()
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
+| Tool                | Description          |
+| ------------------- | -------------------- |
 | **GraphQL Voyager** | Schema visualization |
-| **Altair** | GraphQL client |
-| **InQL** | Burp Suite extension |
-| **graphql-cop** | Security auditor |
+| **Altair**          | GraphQL client       |
+| **InQL**            | Burp Suite extension |
+| **graphql-cop**     | Security auditor     |
 
 ---
 
@@ -284,12 +286,12 @@ schema.execute(query, validation_rules=[depth_limit_validator(5)])
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Introspection enabled | 5.3 | Medium |
-| No depth limit (DoS) | 5.3 | Medium |
-| Authorization bypass | 7.5 | High |
-| SQL injection | 9.8 | Critical |
+| Finding               | CVSS | Severity |
+| --------------------- | ---- | -------- |
+| Introspection enabled | 5.3  | Medium   |
+| No depth limit (DoS)  | 5.3  | Medium   |
+| Authorization bypass  | 7.5  | High     |
+| SQL injection         | 9.8  | Critical |
 
 ---
 

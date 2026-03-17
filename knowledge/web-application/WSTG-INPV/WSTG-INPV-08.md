@@ -1,9 +1,11 @@
 # WSTG-INPV-08: Testing for SSI Injection
 
 ## Test ID
+
 WSTG-INPV-08
 
 ## Test Name
+
 Testing for SSI Injection
 
 ## High-Level Description
@@ -262,10 +264,10 @@ Admin content
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Parameter fuzzing |
-| curl | Manual testing |
+| Tool           | Purpose           |
+| -------------- | ----------------- |
+| Burp Suite     | Parameter fuzzing |
+| curl           | Manual testing    |
 | Custom scripts | Automated testing |
 
 ---
@@ -301,18 +303,18 @@ ssi_types text/html;
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| SSI command execution | 9.8 | Critical |
-| SSI file inclusion | 7.5 | High |
-| SSI information disclosure | 5.3 | Medium |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| SSI command execution      | 9.8  | Critical |
+| SSI file inclusion         | 7.5  | High     |
+| SSI information disclosure | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                 |
+| ---------- | ----------------------------------------------------- |
 | **CWE-97** | Improper Neutralization of Server-Side Includes (SSI) |
 
 ---

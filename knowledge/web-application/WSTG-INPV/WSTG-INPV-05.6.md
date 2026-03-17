@@ -1,9 +1,11 @@
 # WSTG-INPV-05.6: Testing for NoSQL Injection
 
 ## Test ID
+
 WSTG-INPV-05.6
 
 ## Test Name
+
 Testing for NoSQL Injection
 
 ## High-Level Description
@@ -339,12 +341,12 @@ SET user "test\r\nCONFIG SET dir /var/www/html\r\nCONFIG SET dbfilename shell.ph
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| NoSQLMap | Automated NoSQL injection |
-| Burp Suite | Manual testing |
-| mongosh | MongoDB client |
-| redis-cli | Redis client |
+| Tool       | Purpose                   |
+| ---------- | ------------------------- |
+| NoSQLMap   | Automated NoSQL injection |
+| Burp Suite | Manual testing            |
+| mongosh    | MongoDB client            |
+| redis-cli  | Redis client              |
 
 ---
 
@@ -352,38 +354,38 @@ SET user "test\r\nCONFIG SET dir /var/www/html\r\nCONFIG SET dbfilename shell.ph
 
 ```javascript
 // Node.js/MongoDB - Input validation
-const mongoose = require('mongoose');
+const mongoose = require("mongoose")
 
 // Sanitize input - remove $ operators
 function sanitize(obj) {
-    if (typeof obj === 'object') {
-        for (let key in obj) {
-            if (key.startsWith('$')) {
-                delete obj[key];
-            } else {
-                sanitize(obj[key]);
-            }
-        }
+  if (typeof obj === "object") {
+    for (let key in obj) {
+      if (key.startsWith("$")) {
+        delete obj[key]
+      } else {
+        sanitize(obj[key])
+      }
     }
-    return obj;
+  }
+  return obj
 }
 
 // Use parameterized queries
 async function findUser(username, password) {
-    // Type checking
-    if (typeof username !== 'string' || typeof password !== 'string') {
-        throw new Error('Invalid input types');
-    }
+  // Type checking
+  if (typeof username !== "string" || typeof password !== "string") {
+    throw new Error("Invalid input types")
+  }
 
-    return await User.findOne({
-        username: username,
-        password: hashPassword(password)
-    });
+  return await User.findOne({
+    username: username,
+    password: hashPassword(password),
+  })
 }
 
 // mongo-sanitize library
-const sanitize = require('mongo-sanitize');
-const cleanInput = sanitize(userInput);
+const sanitize = require("mongo-sanitize")
+const cleanInput = sanitize(userInput)
 ```
 
 ```python
@@ -405,19 +407,19 @@ def sanitize_input(data):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| NoSQL auth bypass | 9.8 | Critical |
-| JavaScript injection ($where) | 9.1 | Critical |
-| Regex data extraction | 7.5 | High |
-| Operator injection | 7.5 | High |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| NoSQL auth bypass             | 9.8  | Critical |
+| JavaScript injection ($where) | 9.1  | Critical |
+| Regex data extraction         | 7.5  | High     |
+| Operator injection            | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                           |
+| ----------- | --------------------------------------------------------------- |
 | **CWE-943** | Improper Neutralization of Special Elements in Data Query Logic |
 
 ---

@@ -1,9 +1,11 @@
 # WSTG-ATHN-01: Testing for Credentials Transported over an Encrypted Channel
 
 ## Test ID
+
 WSTG-ATHN-01
 
 ## Test Name
+
 Testing for Credentials Transported over an Encrypted Channel
 
 ## High-Level Description
@@ -25,12 +27,12 @@ This test verifies that user credentials (usernames, passwords, tokens) are tran
 
 ### Common Vulnerabilities
 
-| Issue | Risk |
-|-------|------|
-| HTTP login page | Credential interception |
-| Mixed content (HTTPS page, HTTP form action) | Form hijacking |
-| HTTP redirects before HTTPS | SSL stripping |
-| Insecure API endpoints | Token theft |
+| Issue                                        | Risk                    |
+| -------------------------------------------- | ----------------------- |
+| HTTP login page                              | Credential interception |
+| Mixed content (HTTPS page, HTTP form action) | Form hijacking          |
+| HTTP redirects before HTTPS                  | SSL stripping           |
+| Insecure API endpoints                       | Token theft             |
 
 ---
 
@@ -172,19 +174,19 @@ done
 
 ### TLS Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **SSLyze** | TLS configuration analyzer | `sslyze target.com` |
-| **testssl.sh** | TLS testing | `./testssl.sh target.com` |
-| **nmap** | SSL enumeration | `nmap --script ssl-*` |
+| Tool           | Description                | Usage                     |
+| -------------- | -------------------------- | ------------------------- |
+| **SSLyze**     | TLS configuration analyzer | `sslyze target.com`       |
+| **testssl.sh** | TLS testing                | `./testssl.sh target.com` |
+| **nmap**       | SSL enumeration            | `nmap --script ssl-*`     |
 
 ### Traffic Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Wireshark** | Network traffic analysis |
+| Tool           | Description               |
+| -------------- | ------------------------- |
+| **Wireshark**  | Network traffic analysis  |
 | **Burp Suite** | Proxy with TLS inspection |
-| **mitmproxy** | MITM proxy |
+| **mitmproxy**  | MITM proxy                |
 
 ---
 
@@ -366,23 +368,23 @@ def enforce_https():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Credentials over HTTP | 7.5 | High |
-| No HTTP to HTTPS redirect | 5.3 | Medium |
-| Missing HSTS | 4.3 | Medium |
-| Weak TLS configuration | 5.3 | Medium |
-| Missing Secure cookie flag | 4.3 | Medium |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| Credentials over HTTP      | 7.5  | High     |
+| No HTTP to HTTPS redirect  | 5.3  | Medium   |
+| Missing HSTS               | 4.3  | Medium   |
+| Weak TLS configuration     | 5.3  | Medium   |
+| Missing Secure cookie flag | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-319** | Cleartext Transmission of Sensitive Information | HTTP credentials |
-| **CWE-523** | Unprotected Transport of Credentials | Missing encryption |
-| **CWE-614** | Sensitive Cookie Without Secure Flag | Cookie theft |
+| CWE ID      | Title                                           | Description        |
+| ----------- | ----------------------------------------------- | ------------------ |
+| **CWE-319** | Cleartext Transmission of Sensitive Information | HTTP credentials   |
+| **CWE-523** | Unprotected Transport of Credentials            | Missing encryption |
+| **CWE-614** | Sensitive Cookie Without Secure Flag            | Cookie theft       |
 
 ---
 

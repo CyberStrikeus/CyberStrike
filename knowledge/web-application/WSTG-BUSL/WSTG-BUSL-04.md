@@ -1,9 +1,11 @@
 # WSTG-BUSL-04: Test for Process Timing
 
 ## Test ID
+
 WSTG-BUSL-04
 
 ## Test Name
+
 Test for Process Timing
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Process timing testing examines whether an application's business logic can be e
 
 ### Vulnerable Operations
 
-| Operation | Risk |
-|-----------|------|
-| Financial transfers | Double spending |
-| Coupon/code redemption | Multiple use |
-| Vote/rating systems | Vote manipulation |
-| Inventory reservation | Overbooking |
-| Account creation | Duplicate accounts |
+| Operation              | Risk               |
+| ---------------------- | ------------------ |
+| Financial transfers    | Double spending    |
+| Coupon/code redemption | Multiple use       |
+| Vote/rating systems    | Vote manipulation  |
+| Inventory reservation  | Overbooking        |
+| Account creation       | Duplicate accounts |
 
 ---
 
@@ -337,19 +339,19 @@ asyncio.run(vote_race_condition_test(
 
 ### Race Condition Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Turbo Intruder** | Burp extension | Race condition testing |
-| **Race The Web** | CLI tool | `race-the-web config.toml` |
-| **asyncio/aiohttp** | Python async | Parallel requests |
+| Tool                | Description    | Usage                      |
+| ------------------- | -------------- | -------------------------- |
+| **Turbo Intruder**  | Burp extension | Race condition testing     |
+| **Race The Web**    | CLI tool       | `race-the-web config.toml` |
+| **asyncio/aiohttp** | Python async   | Parallel requests          |
 
 ### Timing Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Burp Suite** | Response time analysis |
-| **curl** | `-w "%{time_total}"` |
-| **Custom scripts** | Statistical analysis |
+| Tool               | Description            |
+| ------------------ | ---------------------- |
+| **Burp Suite**     | Response time analysis |
+| **curl**           | `-w "%{time_total}"`   |
+| **Custom scripts** | Statistical analysis   |
 
 ---
 
@@ -655,23 +657,23 @@ def process_payment_idempotent(idempotency_key, payment_data):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Double-spending in financial transactions | 9.8 | Critical |
-| Race condition bypassing business limits | 8.8 | High |
-| TOCTOU in authorization checks | 8.8 | High |
-| Multiple coupon redemption | 6.5 | Medium |
-| Vote manipulation | 5.3 | Medium |
+| Finding                                   | CVSS | Severity |
+| ----------------------------------------- | ---- | -------- |
+| Double-spending in financial transactions | 9.8  | Critical |
+| Race condition bypassing business limits  | 8.8  | High     |
+| TOCTOU in authorization checks            | 8.8  | High     |
+| Multiple coupon redemption                | 6.5  | Medium   |
+| Vote manipulation                         | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-362** | Concurrent Execution Using Shared Resource | Race condition |
-| **CWE-367** | Time-of-check Time-of-use (TOCTOU) | TOCTOU vulnerability |
-| **CWE-208** | Observable Timing Discrepancy | Timing attacks |
+| CWE ID      | Title                                      | Description          |
+| ----------- | ------------------------------------------ | -------------------- |
+| **CWE-362** | Concurrent Execution Using Shared Resource | Race condition       |
+| **CWE-367** | Time-of-check Time-of-use (TOCTOU)         | TOCTOU vulnerability |
+| **CWE-208** | Observable Timing Discrepancy              | Timing attacks       |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-SESS-04: Testing for Exposed Session Variables
 
 ## Test ID
+
 WSTG-SESS-04
 
 ## Test Name
+
 Testing for Exposed Session Variables
 
 ## High-Level Description
@@ -76,29 +78,29 @@ curl -sI "$TARGET/dashboard" | grep -i "referrer-policy"
 // Browser console tests
 
 // Check localStorage for session data
-console.log("=== localStorage ===");
+console.log("=== localStorage ===")
 for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    console.log(`${key}: ${localStorage.getItem(key)}`);
+  const key = localStorage.key(i)
+  console.log(`${key}: ${localStorage.getItem(key)}`)
 }
 
 // Check sessionStorage
-console.log("\n=== sessionStorage ===");
+console.log("\n=== sessionStorage ===")
 for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    console.log(`${key}: ${sessionStorage.getItem(key)}`);
+  const key = sessionStorage.key(i)
+  console.log(`${key}: ${sessionStorage.getItem(key)}`)
 }
 
 // Check for sensitive data
-const sensitivePatterns = ['session', 'token', 'auth', 'user', 'password', 'secret'];
-[localStorage, sessionStorage].forEach(storage => {
-    for (let i = 0; i < storage.length; i++) {
-        const key = storage.key(i);
-        if (sensitivePatterns.some(p => key.toLowerCase().includes(p))) {
-            console.log(`[SENSITIVE] Found: ${key}`);
-        }
+const sensitivePatterns = ["session", "token", "auth", "user", "password", "secret"]
+;[localStorage, sessionStorage].forEach((storage) => {
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i)
+    if (sensitivePatterns.some((p) => key.toLowerCase().includes(p))) {
+      console.log(`[SENSITIVE] Found: ${key}`)
     }
-});
+  }
+})
 ```
 
 ### Step 4: Check Error Messages
@@ -337,22 +339,22 @@ location /dashboard {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Session in URL | 7.5 | High |
-| Session in error message | 5.3 | Medium |
-| Referer leakage | 4.3 | Medium |
-| Cache exposure | 4.3 | Medium |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Session in URL           | 7.5  | High     |
+| Session in error message | 5.3  | Medium   |
+| Referer leakage          | 4.3  | Medium   |
+| Cache exposure           | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                  |
+| ----------- | ------------------------------------------------------ |
 | **CWE-598** | Use of GET Request Method with Sensitive Query Strings |
-| **CWE-200** | Exposure of Sensitive Information |
-| **CWE-532** | Insertion of Sensitive Info into Log File |
+| **CWE-200** | Exposure of Sensitive Information                      |
+| **CWE-532** | Insertion of Sensitive Info into Log File              |
 
 ---
 

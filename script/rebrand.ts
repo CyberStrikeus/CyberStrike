@@ -64,10 +64,17 @@ const EXCLUDE_PATTERNS = [
 
 // File extensions to process
 const TEXT_EXTENSIONS = new Set([
-  ".ts", ".tsx", ".js", ".mjs", ".cjs",
-  ".json", ".jsonc",
-  ".yml", ".yaml",
-  ".md", ".mdx",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".jsonc",
+  ".yml",
+  ".yaml",
+  ".md",
+  ".mdx",
   ".toml",
   ".nix",
   ".rs",

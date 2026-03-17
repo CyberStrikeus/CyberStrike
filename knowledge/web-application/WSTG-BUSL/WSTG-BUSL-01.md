@@ -1,9 +1,11 @@
 # WSTG-BUSL-01: Test Business Logic Data Validation
 
 ## Test ID
+
 WSTG-BUSL-01
 
 ## Test Name
+
 Test Business Logic Data Validation
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Business logic data validation testing examines whether the application correctl
 
 ### Common Vulnerabilities
 
-| Vulnerability | Example |
-|---------------|---------|
-| Negative values | Negative quantity causing refund |
-| Out-of-range | 200% discount |
-| Logic bypass | Skipping required steps |
-| Race conditions | Double spending |
-| Integer overflow | Extreme values wrapping |
+| Vulnerability    | Example                          |
+| ---------------- | -------------------------------- |
+| Negative values  | Negative quantity causing refund |
+| Out-of-range     | 200% discount                    |
+| Logic bypass     | Skipping required steps          |
+| Race conditions  | Double spending                  |
+| Integer overflow | Extreme values wrapping          |
 
 ---
 
@@ -230,18 +232,18 @@ curl -s -X POST "https://target.com/api/transfer" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request manipulation | Modify values in requests |
-| **Postman** | API testing | Create test collections |
-| **Browser DevTools** | Form manipulation | Modify hidden fields |
+| Tool                 | Description          | Usage                     |
+| -------------------- | -------------------- | ------------------------- |
+| **Burp Suite**       | Request manipulation | Modify values in requests |
+| **Postman**          | API testing          | Create test collections   |
+| **Browser DevTools** | Form manipulation    | Modify hidden fields      |
 
 ### Automated Testing
 
-| Tool | Description |
-|------|-------------|
-| **Burp Intruder** | Boundary value testing |
-| **Custom scripts** | Automated logic tests |
+| Tool               | Description            |
+| ------------------ | ---------------------- |
+| **Burp Intruder**  | Boundary value testing |
+| **Custom scripts** | Automated logic tests  |
 
 ---
 
@@ -525,23 +527,23 @@ def checkout():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Price manipulation accepted | 9.8 | Critical |
-| Negative quantity causing refund | 9.8 | Critical |
-| State transition bypass | 8.8 | High |
-| Missing calculation validation | 7.5 | High |
-| Date logic bypass | 6.5 | Medium |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| Price manipulation accepted      | 9.8  | Critical |
+| Negative quantity causing refund | 9.8  | Critical |
+| State transition bypass          | 8.8  | High     |
+| Missing calculation validation   | 7.5  | High     |
+| Date logic bypass                | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-20** | Improper Input Validation | Missing business validation |
-| **CWE-129** | Improper Validation of Array Index | Numeric bounds issues |
-| **CWE-840** | Business Logic Errors | Logic flaw exploitation |
+| CWE ID      | Title                              | Description                 |
+| ----------- | ---------------------------------- | --------------------------- |
+| **CWE-20**  | Improper Input Validation          | Missing business validation |
+| **CWE-129** | Improper Validation of Array Index | Numeric bounds issues       |
+| **CWE-840** | Business Logic Errors              | Logic flaw exploitation     |
 
 ---
 

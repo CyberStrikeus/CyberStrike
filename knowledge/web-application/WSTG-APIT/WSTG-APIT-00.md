@@ -1,9 +1,11 @@
 # WSTG-APIT-00: API Testing Overview
 
 ## Test ID
+
 WSTG-APIT-00
 
 ## Test Name
+
 API Testing Overview
 
 ## High-Level Description
@@ -15,18 +17,21 @@ APIs (Application Programming Interfaces) are the backbone of modern application
 ## API Types
 
 ### REST APIs
+
 - HTTP-based, stateless
 - Uses standard methods (GET, POST, PUT, DELETE)
 - JSON/XML responses
 - Resource-based URLs
 
 ### GraphQL APIs
+
 - Single endpoint
 - Query language for APIs
 - Client-specified data retrieval
 - Introspection capabilities
 
 ### SOAP APIs
+
 - XML-based protocol
 - WSDL service descriptions
 - Enterprise/legacy systems
@@ -37,6 +42,7 @@ APIs (Application Programming Interfaces) are the backbone of modern application
 ## What to Check
 
 ### Authentication & Authorization
+
 - [ ] API key security
 - [ ] OAuth implementation
 - [ ] JWT validation
@@ -45,12 +51,14 @@ APIs (Application Programming Interfaces) are the backbone of modern application
 - [ ] Rate limiting
 
 ### Input Validation
+
 - [ ] Injection attacks
 - [ ] Mass assignment
 - [ ] Parameter tampering
 - [ ] Content-type validation
 
 ### Data Protection
+
 - [ ] Sensitive data exposure
 - [ ] Excessive data exposure
 - [ ] Encryption in transit
@@ -233,30 +241,30 @@ checker.generate_report()
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| **Postman** | API testing and documentation |
-| **Burp Suite** | API traffic interception |
-| **OWASP ZAP** | Automated API scanning |
-| **Insomnia** | API client |
-| **GraphQL Voyager** | GraphQL visualization |
+| Tool                | Description                   |
+| ------------------- | ----------------------------- |
+| **Postman**         | API testing and documentation |
+| **Burp Suite**      | API traffic interception      |
+| **OWASP ZAP**       | Automated API scanning        |
+| **Insomnia**        | API client                    |
+| **GraphQL Voyager** | GraphQL visualization         |
 
 ---
 
 ## OWASP API Security Top 10 (2023)
 
-| ID | Vulnerability |
-|----|--------------|
-| API1 | Broken Object Level Authorization (BOLA) |
-| API2 | Broken Authentication |
-| API3 | Broken Object Property Level Authorization |
-| API4 | Unrestricted Resource Consumption |
-| API5 | Broken Function Level Authorization (BFLA) |
-| API6 | Unrestricted Access to Sensitive Business Flows |
-| API7 | Server Side Request Forgery (SSRF) |
-| API8 | Security Misconfiguration |
-| API9 | Improper Inventory Management |
-| API10 | Unsafe Consumption of APIs |
+| ID    | Vulnerability                                   |
+| ----- | ----------------------------------------------- |
+| API1  | Broken Object Level Authorization (BOLA)        |
+| API2  | Broken Authentication                           |
+| API3  | Broken Object Property Level Authorization      |
+| API4  | Unrestricted Resource Consumption               |
+| API5  | Broken Function Level Authorization (BFLA)      |
+| API6  | Unrestricted Access to Sensitive Business Flows |
+| API7  | Server Side Request Forgery (SSRF)              |
+| API8  | Security Misconfiguration                       |
+| API9  | Improper Inventory Management                   |
+| API10 | Unsafe Consumption of APIs                      |
 
 ---
 

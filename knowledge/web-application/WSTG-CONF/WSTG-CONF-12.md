@@ -1,9 +1,11 @@
 # WSTG-CONF-12: Test for Content Security Policy
 
 ## Test ID
+
 WSTG-CONF-12
 
 ## Test Name
+
 Test for Content Security Policy (CSP)
 
 ## High-Level Description
@@ -23,30 +25,30 @@ Content Security Policy (CSP) is a security mechanism that helps prevent cross-s
 
 ### Dangerous Directives
 
-| Directive | Risk | Description |
-|-----------|------|-------------|
-| `unsafe-inline` | High | Allows inline scripts/styles (XSS) |
-| `unsafe-eval` | High | Allows eval() function |
-| `unsafe-hashes` | Medium | Allows specific inline scripts |
-| `*` wildcard | High | Allows any source |
-| `data:` | Medium | Allows data URLs |
-| `blob:` | Medium | Allows blob URLs |
-| Missing `frame-ancestors` | Medium | Clickjacking possible |
+| Directive                 | Risk   | Description                        |
+| ------------------------- | ------ | ---------------------------------- |
+| `unsafe-inline`           | High   | Allows inline scripts/styles (XSS) |
+| `unsafe-eval`             | High   | Allows eval() function             |
+| `unsafe-hashes`           | Medium | Allows specific inline scripts     |
+| `*` wildcard              | High   | Allows any source                  |
+| `data:`                   | Medium | Allows data URLs                   |
+| `blob:`                   | Medium | Allows blob URLs                   |
+| Missing `frame-ancestors` | Medium | Clickjacking possible              |
 
 ### Key Directives
 
-| Directive | Purpose |
-|-----------|---------|
-| `default-src` | Fallback for other directives |
-| `script-src` | JavaScript sources |
-| `style-src` | CSS sources |
-| `img-src` | Image sources |
-| `connect-src` | AJAX/WebSocket sources |
-| `font-src` | Font sources |
-| `object-src` | Plugin sources (Flash, etc.) |
-| `frame-ancestors` | Embedding restrictions |
-| `base-uri` | Base URL restrictions |
-| `form-action` | Form submission targets |
+| Directive         | Purpose                       |
+| ----------------- | ----------------------------- |
+| `default-src`     | Fallback for other directives |
+| `script-src`      | JavaScript sources            |
+| `style-src`       | CSS sources                   |
+| `img-src`         | Image sources                 |
+| `connect-src`     | AJAX/WebSocket sources        |
+| `font-src`        | Font sources                  |
+| `object-src`      | Plugin sources (Flash, etc.)  |
+| `frame-ancestors` | Embedding restrictions        |
+| `base-uri`        | Base URL restrictions         |
+| `form-action`     | Form submission targets       |
 
 ---
 
@@ -135,16 +137,14 @@ curl -s "https://trusted.com/api?callback=alert(1)"
 
 ```html
 <!-- If Angular is loaded and unsafe-eval not blocked -->
-<div ng-app ng-csp>
-    {{constructor.constructor('alert(1)')()}}
-</div>
+<div ng-app ng-csp>{{constructor.constructor('alert(1)')()}}</div>
 ```
 
 #### 3. Check for Base URI Injection
 
 ```html
 <!-- If base-uri not set -->
-<base href="https://attacker.com/">
+<base href="https://attacker.com/" />
 <script src="/malicious.js"></script>
 ```
 
@@ -172,26 +172,26 @@ csp-evaluator "script-src 'self' 'unsafe-inline'"
 
 ### Online Tools
 
-| Tool | URL | Purpose |
-|------|-----|---------|
+| Tool                 | URL                          | Purpose         |
+| -------------------- | ---------------------------- | --------------- |
 | Google CSP Evaluator | csp-evaluator.withgoogle.com | Policy analysis |
-| CSP Validator | cspvalidator.org | Validation |
-| Security Headers | securityheaders.com | Header check |
-| Mozilla Observatory | observatory.mozilla.org | Security scan |
+| CSP Validator        | cspvalidator.org             | Validation      |
+| Security Headers     | securityheaders.com          | Header check    |
+| Mozilla Observatory  | observatory.mozilla.org      | Security scan   |
 
 ### Browser Extensions
 
-| Extension | Browser | Purpose |
-|-----------|---------|---------|
-| CSP Evaluator | Chrome | Inline analysis |
-| CSP Tester | Firefox | Policy testing |
+| Extension     | Browser | Purpose         |
+| ------------- | ------- | --------------- |
+| CSP Evaluator | Chrome  | Inline analysis |
+| CSP Tester    | Firefox | Policy testing  |
 
 ### Burp Extensions
 
-| Extension | Purpose |
-|-----------|---------|
-| CSP Auditor | CSP analysis |
-| CSP Bypass | Bypass detection |
+| Extension   | Purpose          |
+| ----------- | ---------------- |
+| CSP Auditor | CSP analysis     |
+| CSP Bypass  | Bypass detection |
 
 ---
 
@@ -278,10 +278,12 @@ echo "    https://csp-evaluator.withgoogle.com/"
 
 ```html
 <!-- Test for unsafe-inline bypass -->
-<script>alert('XSS')</script>
+<script>
+  alert("XSS")
+</script>
 
 <!-- Test for event handler bypass -->
-<img src=x onerror="alert('XSS')">
+<img src="x" onerror="alert('XSS')" />
 
 <!-- Test for data: URI -->
 <script src="data:text/javascript,alert('XSS')"></script>
@@ -350,23 +352,23 @@ Content-Security-Policy-Report-Only: default-src 'self'; report-uri /csp-report
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No CSP implemented | 6.1 | Medium |
-| unsafe-inline in script-src | 6.1 | Medium |
-| Wildcard in script-src | 6.1 | Medium |
-| Missing frame-ancestors | 4.3 | Medium |
-| Report-Only mode only | 3.7 | Low |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| No CSP implemented          | 6.1  | Medium   |
+| unsafe-inline in script-src | 6.1  | Medium   |
+| Wildcard in script-src      | 6.1  | Medium   |
+| Missing frame-ancestors     | 4.3  | Medium   |
+| Report-Only mode only       | 3.7  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-16** | Configuration | Missing security header |
-| **CWE-79** | Cross-site Scripting | CSP prevents XSS |
-| **CWE-1021** | Improper Restriction of Rendered UI | Clickjacking |
+| CWE ID       | Title                               | Description             |
+| ------------ | ----------------------------------- | ----------------------- |
+| **CWE-16**   | Configuration                       | Missing security header |
+| **CWE-79**   | Cross-site Scripting                | CSP prevents XSS        |
+| **CWE-1021** | Improper Restriction of Rendered UI | Clickjacking            |
 
 ---
 

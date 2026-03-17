@@ -1,9 +1,11 @@
 # WSTG-INFO-03: Review Webserver Metafiles for Information Leakage
 
 ## Test ID
+
 WSTG-INFO-03
 
 ## Test Name
+
 Review Webserver Metafiles for Information Leakage
 
 ## High-Level Description
@@ -63,13 +65,13 @@ curl -s https://target.com/robots.txt | grep -i "user-agent\|disallow\|allow\|si
 
 #### robots.txt Directives to Analyze
 
-| Directive | Purpose | Example |
-|-----------|---------|---------|
-| `User-agent` | Specifies which bot | `User-agent: *` |
-| `Disallow` | Paths to exclude | `Disallow: /admin/` |
-| `Allow` | Explicitly allowed paths | `Allow: /public/` |
-| `Sitemap` | Sitemap location | `Sitemap: /sitemap.xml` |
-| `Crawl-delay` | Delay between requests | `Crawl-delay: 10` |
+| Directive     | Purpose                  | Example                 |
+| ------------- | ------------------------ | ----------------------- |
+| `User-agent`  | Specifies which bot      | `User-agent: *`         |
+| `Disallow`    | Paths to exclude         | `Disallow: /admin/`     |
+| `Allow`       | Explicitly allowed paths | `Allow: /public/`       |
+| `Sitemap`     | Sitemap location         | `Sitemap: /sitemap.xml` |
+| `Crawl-delay` | Delay between requests   | `Crawl-delay: 10`       |
 
 #### Common Sensitive Paths in robots.txt
 
@@ -117,13 +119,13 @@ curl -s https://target.com/sitemap.xml | grep -i "sitemap"
 
 #### Sitemap Types
 
-| Type | Purpose |
-|------|---------|
-| `sitemap.xml` | Main page listing |
+| Type                | Purpose                    |
+| ------------------- | -------------------------- |
+| `sitemap.xml`       | Main page listing          |
 | `sitemap_index.xml` | Index of multiple sitemaps |
-| `video-sitemap.xml` | Video content |
-| `image-sitemap.xml` | Image content |
-| `news-sitemap.xml` | News articles |
+| `video-sitemap.xml` | Video content              |
+| `image-sitemap.xml` | Image content              |
+| `news-sitemap.xml`  | News articles              |
 
 ### Step 3: Check security.txt
 
@@ -140,15 +142,15 @@ curl -s https://target.com/.well-known/security.txt | grep -i "contact\|encrypti
 
 #### security.txt Fields
 
-| Field | Description |
-|-------|-------------|
-| `Contact` | Security team contact |
-| `Encryption` | PGP key location |
-| `Acknowledgments` | Hall of fame page |
-| `Policy` | Disclosure policy URL |
-| `Hiring` | Security jobs page |
-| `Expires` | File expiration date |
-| `Preferred-Languages` | Preferred languages |
+| Field                 | Description           |
+| --------------------- | --------------------- |
+| `Contact`             | Security team contact |
+| `Encryption`          | PGP key location      |
+| `Acknowledgments`     | Hall of fame page     |
+| `Policy`              | Disclosure policy URL |
+| `Hiring`              | Security jobs page    |
+| `Expires`             | File expiration date  |
+| `Preferred-Languages` | Preferred languages   |
 
 ### Step 4: Examine humans.txt
 
@@ -206,15 +208,15 @@ curl -s https://target.com | grep -i "generator"
 
 ```html
 <!-- Robot directives -->
-<meta name="robots" content="noindex, nofollow">
-<meta name="googlebot" content="noindex">
+<meta name="robots" content="noindex, nofollow" />
+<meta name="googlebot" content="noindex" />
 
 <!-- Generator (CMS info) -->
-<meta name="generator" content="WordPress 6.0">
+<meta name="generator" content="WordPress 6.0" />
 
 <!-- Technology indicators -->
-<meta name="csrf-token" content="...">
-<meta name="viewport" content="...">
+<meta name="csrf-token" content="..." />
+<meta name="viewport" content="..." />
 ```
 
 ### Step 7: Check Additional Metafiles
@@ -253,31 +255,31 @@ site:target.com inurl:admin OR inurl:backup OR inurl:config
 
 ### Command-Line Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | HTTP client | `curl -s https://target.com/robots.txt` |
-| **wget** | File retrieval | `wget https://target.com/robots.txt` |
-| **xmllint** | XML parser | `xmllint --format sitemap.xml` |
-| **Gobuster** | Directory fuzzer | `gobuster dir -u target.com -w wordlist.txt` |
-| **ffuf** | Fast web fuzzer | `ffuf -u https://target.com/FUZZ -w wordlist.txt` |
-| **httpx** | HTTP toolkit | `httpx -path /robots.txt -l targets.txt` |
+| Tool         | Description      | Usage                                             |
+| ------------ | ---------------- | ------------------------------------------------- |
+| **curl**     | HTTP client      | `curl -s https://target.com/robots.txt`           |
+| **wget**     | File retrieval   | `wget https://target.com/robots.txt`              |
+| **xmllint**  | XML parser       | `xmllint --format sitemap.xml`                    |
+| **Gobuster** | Directory fuzzer | `gobuster dir -u target.com -w wordlist.txt`      |
+| **ffuf**     | Fast web fuzzer  | `ffuf -u https://target.com/FUZZ -w wordlist.txt` |
+| **httpx**    | HTTP toolkit     | `httpx -path /robots.txt -l targets.txt`          |
 
 ### Automated Scanners
 
-| Tool | Description |
-|------|-------------|
+| Tool           | Description           |
+| -------------- | --------------------- |
 | **Burp Suite** | Spider/crawler module |
-| **OWASP ZAP** | Automated spider |
-| **Nikto** | Web server scanner |
-| **Parsero** | robots.txt analyzer |
+| **OWASP ZAP**  | Automated spider      |
+| **Nikto**      | Web server scanner    |
+| **Parsero**    | robots.txt analyzer   |
 
 ### Online Tools
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Google Search Console | search.google.com/search-console | robots.txt tester |
-| Bing Webmaster Tools | bing.com/webmasters | robots.txt validator |
-| SEO Site Checkup | seositecheckup.com | Sitemap analysis |
+| Service               | URL                              | Purpose              |
+| --------------------- | -------------------------------- | -------------------- |
+| Google Search Console | search.google.com/search-console | robots.txt tester    |
+| Bing Webmaster Tools  | bing.com/webmasters              | robots.txt validator |
+| SEO Site Checkup      | seositecheckup.com               | Sitemap analysis     |
 
 ---
 
@@ -424,6 +426,7 @@ Disallow: /api/v2/internal/
 ```
 
 **Recommendations:**
+
 - Do not use robots.txt as a security mechanism
 - Use authentication for sensitive areas instead
 - Consider not listing truly sensitive paths at all
@@ -441,13 +444,13 @@ Disallow: /api/v2/internal/
 ```html
 <!-- Remove generator information -->
 <!-- Bad -->
-<meta name="generator" content="WordPress 6.0">
+<meta name="generator" content="WordPress 6.0" />
 
 <!-- Good - Remove entirely or use generic -->
-<meta name="generator" content="Custom CMS">
+<meta name="generator" content="Custom CMS" />
 
 <!-- Restrict indexing for sensitive pages -->
-<meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="noindex, nofollow" />
 ```
 
 ### 4. security.txt Guidelines (RFC 9116)
@@ -487,52 +490,55 @@ Expires: 2025-12-31T23:59:59.000Z
 
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Accessible via internet |
-| Attack Complexity | Low | Simple file retrieval |
-| Privileges Required | None | No authentication needed |
-| User Interaction | None | No user interaction required |
-| Scope | Unchanged | Impact scope unchanged |
-| Confidentiality | Low | Directory/path disclosure |
-| Integrity | None | No integrity impact |
-| Availability | None | No availability impact |
+| Metric              | Value     | Description                  |
+| ------------------- | --------- | ---------------------------- |
+| Attack Vector       | Network   | Accessible via internet      |
+| Attack Complexity   | Low       | Simple file retrieval        |
+| Privileges Required | None      | No authentication needed     |
+| User Interaction    | None      | No user interaction required |
+| Scope               | Unchanged | Impact scope unchanged       |
+| Confidentiality     | Low       | Directory/path disclosure    |
+| Integrity           | None      | No integrity impact          |
+| Availability        | None      | No availability impact       |
 
 ### Severity Levels
 
-| Finding | Severity | Description |
-|---------|----------|-------------|
-| Standard robots.txt | Info | Normal crawler directives |
-| Sensitive paths in robots.txt | Low | Hidden admin/backup paths revealed |
-| Internal IPs in metafiles | Medium | Network architecture exposed |
-| Credentials in metafiles | High | Direct security compromise |
-| Full team roster in humans.txt | Low | Social engineering vector |
+| Finding                        | Severity | Description                        |
+| ------------------------------ | -------- | ---------------------------------- |
+| Standard robots.txt            | Info     | Normal crawler directives          |
+| Sensitive paths in robots.txt  | Low      | Hidden admin/backup paths revealed |
+| Internal IPs in metafiles      | Medium   | Network architecture exposed       |
+| Credentials in metafiles       | High     | Direct security compromise         |
+| Full team roster in humans.txt | Low      | Social engineering vector          |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor | Information disclosure via metafiles |
-| **CWE-538** | Insertion of Sensitive Information into Externally-Accessible File or Directory | Sensitive data in public files |
-| **CWE-548** | Exposure of Information Through Directory Listing | Path disclosure |
-| **CWE-1230** | Exposure of Sensitive Information Through Metadata | Metadata-based information leak |
+| CWE ID       | Title                                                                           | Description                          |
+| ------------ | ------------------------------------------------------------------------------- | ------------------------------------ |
+| **CWE-200**  | Exposure of Sensitive Information to an Unauthorized Actor                      | Information disclosure via metafiles |
+| **CWE-538**  | Insertion of Sensitive Information into Externally-Accessible File or Directory | Sensitive data in public files       |
+| **CWE-548**  | Exposure of Information Through Directory Listing                               | Path disclosure                      |
+| **CWE-1230** | Exposure of Sensitive Information Through Metadata                              | Metadata-based information leak      |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Review Webserver Metafiles](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/03-Review_Webserver_Metafiles_for_Information_Leakage)
 
 ### Standards
+
 - [RFC 9116 - security.txt](https://www.rfc-editor.org/rfc/rfc9116)
 - [RFC 5785 - .well-known URIs](https://www.rfc-editor.org/rfc/rfc5785)
 - [Google robots.txt Specification](https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt)
 - [Sitemaps Protocol](https://www.sitemaps.org/protocol.html)
 
 ### Tools
+
 - [Parsero](https://github.com/behindthefirewalls/Parsero)
 - [Gobuster](https://github.com/OJ/gobuster)
 

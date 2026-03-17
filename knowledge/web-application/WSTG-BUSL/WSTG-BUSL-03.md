@@ -1,9 +1,11 @@
 # WSTG-BUSL-03: Test Integrity Checks
 
 ## Test ID
+
 WSTG-BUSL-03
 
 ## Test Name
+
 Test Integrity Checks
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Integrity testing examines whether an application properly validates that data h
 
 ### Common Weaknesses
 
-| Weakness | Risk |
-|----------|------|
-| No integrity check | Data modification undetected |
-| Weak hash algorithm (MD5) | Collision attacks |
-| Client-side only validation | Bypass by request modification |
-| Missing signature verification | Forged requests accepted |
-| Hash without salt | Rainbow table attacks |
+| Weakness                       | Risk                           |
+| ------------------------------ | ------------------------------ |
+| No integrity check             | Data modification undetected   |
+| Weak hash algorithm (MD5)      | Collision attacks              |
+| Client-side only validation    | Bypass by request modification |
+| Missing signature verification | Forged requests accepted       |
+| Hash without salt              | Rainbow table attacks          |
 
 ---
 
@@ -219,18 +221,18 @@ curl -s -X POST "https://target.com/api/upload" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request manipulation | Modify integrity fields |
-| **CyberChef** | Hash/encode operations | Generate test hashes |
-| **jwt.io** | JWT manipulation | Test token integrity |
+| Tool           | Description            | Usage                   |
+| -------------- | ---------------------- | ----------------------- |
+| **Burp Suite** | Request manipulation   | Modify integrity fields |
+| **CyberChef**  | Hash/encode operations | Generate test hashes    |
+| **jwt.io**     | JWT manipulation       | Test token integrity    |
 
 ### Hash Analysis
 
-| Tool | Description |
-|------|-------------|
-| **hashcat** | Hash cracking |
-| **John the Ripper** | Hash analysis |
+| Tool                | Description        |
+| ------------------- | ------------------ |
+| **hashcat**         | Hash cracking      |
+| **John the Ripper** | Hash analysis      |
 | **hash-identifier** | Identify hash type |
 
 ---
@@ -531,24 +533,24 @@ def decrypt_and_verify(encrypted_data):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Missing integrity validation | 9.8 | Critical |
-| Weak hash algorithm (MD5) | 7.5 | High |
-| Client-side only integrity check | 8.8 | High |
-| Signature bypass | 9.8 | Critical |
-| Checksum bypass | 8.8 | High |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| Missing integrity validation     | 9.8  | Critical |
+| Weak hash algorithm (MD5)        | 7.5  | High     |
+| Client-side only integrity check | 8.8  | High     |
+| Signature bypass                 | 9.8  | Critical |
+| Checksum bypass                  | 8.8  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-345** | Insufficient Verification of Data Authenticity | Missing integrity check |
-| **CWE-328** | Use of Weak Hash | MD5/SHA1 usage |
-| **CWE-347** | Improper Verification of Cryptographic Signature | Signature bypass |
-| **CWE-354** | Improper Validation of Integrity Check Value | Checksum bypass |
+| CWE ID      | Title                                            | Description             |
+| ----------- | ------------------------------------------------ | ----------------------- |
+| **CWE-345** | Insufficient Verification of Data Authenticity   | Missing integrity check |
+| **CWE-328** | Use of Weak Hash                                 | MD5/SHA1 usage          |
+| **CWE-347** | Improper Verification of Cryptographic Signature | Signature bypass        |
+| **CWE-354** | Improper Validation of Integrity Check Value     | Checksum bypass         |
 
 ---
 

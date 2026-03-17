@@ -1,9 +1,11 @@
 # WSTG-INPV-16: Testing for HTTP Incoming Requests
 
 ## Test ID
+
 WSTG-INPV-16
 
 ## Test Name
+
 Testing for HTTP Incoming Requests
 
 ## High-Level Description
@@ -310,10 +312,10 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| curl | Basic testing |
-| netcat | Raw request sending |
+| Tool         | Purpose               |
+| ------------ | --------------------- |
+| curl         | Basic testing         |
+| netcat       | Raw request sending   |
 | slowhttptest | Slow HTTP DoS testing |
 
 ---
@@ -342,18 +344,18 @@ Timeout 60
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No request size limits | 5.3 | Medium |
-| Slow HTTP DoS possible | 5.3 | Medium |
-| Malformed request acceptance | 4.3 | Medium |
+| Finding                      | CVSS | Severity |
+| ---------------------------- | ---- | -------- |
+| No request size limits       | 5.3  | Medium   |
+| Slow HTTP DoS possible       | 5.3  | Medium   |
+| Malformed request acceptance | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                             |
+| ----------- | --------------------------------- |
 | **CWE-400** | Uncontrolled Resource Consumption |
 
 ---

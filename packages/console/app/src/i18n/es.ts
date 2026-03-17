@@ -244,7 +244,8 @@ export const dict = {
   "zen.privacy.exceptionsLink": "siguientes excepciones",
 
   "black.meta.title": "CyberStrike Black | Accede a los mejores modelos de codificación del mundo",
-  "black.meta.description": "Obtén acceso a Claude, GPT, Gemini y más con los planes de suscripción de CyberStrike Black.",
+  "black.meta.description":
+    "Obtén acceso a Claude, GPT, Gemini y más con los planes de suscripción de CyberStrike Black.",
   "black.hero.title": "Accede a los mejores modelos de codificación del mundo",
   "black.hero.subtitle": "Incluyendo Claude, GPT, Gemini y más",
   "black.title": "CyberStrike Black | Precios",

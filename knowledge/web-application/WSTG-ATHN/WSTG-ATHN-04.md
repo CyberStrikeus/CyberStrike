@@ -1,9 +1,11 @@
 # WSTG-ATHN-04: Testing for Bypassing Authentication Schema
 
 ## Test ID
+
 WSTG-ATHN-04
 
 ## Test Name
+
 Testing for Bypassing Authentication Schema
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Authentication bypass testing examines whether an application's authentication c
 
 ### Common Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Forced browsing | Direct URL access to protected pages |
-| Parameter tampering | Modifying auth parameters |
-| Cookie manipulation | Changing session/auth cookies |
-| SQL injection | Auth bypass via SQLi |
-| JWT manipulation | Token tampering |
+| Vulnerability       | Description                          |
+| ------------------- | ------------------------------------ |
+| Forced browsing     | Direct URL access to protected pages |
+| Parameter tampering | Modifying auth parameters            |
+| Cookie manipulation | Changing session/auth cookies        |
+| SQL injection       | Auth bypass via SQLi                 |
+| JWT manipulation    | Token tampering                      |
 
 ---
 
@@ -220,18 +222,18 @@ curl -s "https://target.com/api/protected" \
 
 ### Authentication Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
+| Tool           | Description          | Usage                |
+| -------------- | -------------------- | -------------------- |
 | **Burp Suite** | Request manipulation | Intercept and modify |
-| **SQLMap** | SQL injection | Auth bypass testing |
-| **jwt_tool** | JWT testing | Token manipulation |
+| **SQLMap**     | SQL injection        | Auth bypass testing  |
+| **jwt_tool**   | JWT testing          | Token manipulation   |
 
 ### Automation
 
-| Tool | Description |
-|------|-------------|
-| **OWASP ZAP** | Automated scanning |
-| **Nuclei** | Template-based testing |
+| Tool          | Description            |
+| ------------- | ---------------------- |
+| **OWASP ZAP** | Automated scanning     |
+| **Nuclei**    | Template-based testing |
 
 ---
 
@@ -557,24 +559,24 @@ def check_authorization():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Complete auth bypass (SQLi) | 9.8 | Critical |
-| Direct access to admin pages | 9.8 | Critical |
-| JWT none algorithm accepted | 9.8 | Critical |
-| Parameter-based bypass | 8.8 | High |
-| Cookie manipulation bypass | 8.8 | High |
+| Finding                      | CVSS | Severity |
+| ---------------------------- | ---- | -------- |
+| Complete auth bypass (SQLi)  | 9.8  | Critical |
+| Direct access to admin pages | 9.8  | Critical |
+| JWT none algorithm accepted  | 9.8  | Critical |
+| Parameter-based bypass       | 8.8  | High     |
+| Cookie manipulation bypass   | 8.8  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-287** | Improper Authentication | Auth bypass |
-| **CWE-89** | SQL Injection | SQLi in auth |
-| **CWE-639** | Authorization Bypass | Access control bypass |
-| **CWE-347** | Improper Verification of Cryptographic Signature | JWT bypass |
+| CWE ID      | Title                                            | Description           |
+| ----------- | ------------------------------------------------ | --------------------- |
+| **CWE-287** | Improper Authentication                          | Auth bypass           |
+| **CWE-89**  | SQL Injection                                    | SQLi in auth          |
+| **CWE-639** | Authorization Bypass                             | Access control bypass |
+| **CWE-347** | Improper Verification of Cryptographic Signature | JWT bypass            |
 
 ---
 

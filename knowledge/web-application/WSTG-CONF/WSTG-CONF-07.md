@@ -1,9 +1,11 @@
 # WSTG-CONF-07: Test HTTP Strict Transport Security
 
 ## Test ID
+
 WSTG-CONF-07
 
 ## Test Name
+
 Test HTTP Strict Transport Security (HSTS)
 
 ## High-Level Description
@@ -16,11 +18,11 @@ HTTP Strict Transport Security (HSTS) is a security mechanism that forces browse
 
 ### HSTS Header Directives
 
-| Directive | Description | Recommended |
-|-----------|-------------|-------------|
-| `max-age` | Time in seconds to enforce HTTPS | >= 31536000 (1 year) |
-| `includeSubDomains` | Apply HSTS to all subdomains | Yes |
-| `preload` | Include in browser preload lists | Recommended |
+| Directive           | Description                      | Recommended          |
+| ------------------- | -------------------------------- | -------------------- |
+| `max-age`           | Time in seconds to enforce HTTPS | >= 31536000 (1 year) |
+| `includeSubDomains` | Apply HSTS to all subdomains     | Yes                  |
+| `preload`           | Include in browser preload lists | Recommended          |
 
 ### Verification Points
 
@@ -147,19 +149,19 @@ curl -s "https://hstspreload.org/api/v2/status?domain=target.com" | jq
 
 ### Command-Line
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | HTTP client | `curl -sI https://target.com` |
+| Tool           | Description    | Usage                          |
+| -------------- | -------------- | ------------------------------ |
+| **curl**       | HTTP client    | `curl -sI https://target.com`  |
 | **testssl.sh** | SSL/TLS tester | `testssl.sh --hsts target.com` |
-| **sslyze** | SSL analyzer | `sslyze --hsts target.com` |
+| **sslyze**     | SSL analyzer   | `sslyze --hsts target.com`     |
 
 ### Online Tools
 
-| Tool | URL | Purpose |
-|------|-----|---------|
-| SSL Labs | ssllabs.com/ssltest | Comprehensive SSL test |
-| HSTS Preload | hstspreload.org | Preload list check |
-| Security Headers | securityheaders.com | Header analysis |
+| Tool             | URL                 | Purpose                |
+| ---------------- | ------------------- | ---------------------- |
+| SSL Labs         | ssllabs.com/ssltest | Comprehensive SSL test |
+| HSTS Preload     | hstspreload.org     | Preload list check     |
+| Security Headers | securityheaders.com | Header analysis        |
 
 ---
 
@@ -260,35 +262,36 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 ### CVSS Score
 
 **Missing HSTS**
+
 - **Base Score**: 5.9 (Medium)
 - **Vector**: CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Remote attack |
-| Attack Complexity | High | Requires MITM position |
-| Privileges Required | None | No auth needed |
-| User Interaction | Required | User visits site |
-| Confidentiality | High | Session hijacking possible |
+| Metric              | Value    | Description                |
+| ------------------- | -------- | -------------------------- |
+| Attack Vector       | Network  | Remote attack              |
+| Attack Complexity   | High     | Requires MITM position     |
+| Privileges Required | None     | No auth needed             |
+| User Interaction    | Required | User visits site           |
+| Confidentiality     | High     | Session hijacking possible |
 
 ### Severity Levels
 
-| Finding | Severity | Description |
-|---------|----------|-------------|
-| HSTS not implemented | Medium | SSL stripping possible |
-| Low max-age value | Low | Reduced protection window |
-| Missing includeSubDomains | Low | Subdomain attacks possible |
-| Not in preload list | Info | First visit vulnerable |
+| Finding                   | Severity | Description                |
+| ------------------------- | -------- | -------------------------- |
+| HSTS not implemented      | Medium   | SSL stripping possible     |
+| Low max-age value         | Low      | Reduced protection window  |
+| Missing includeSubDomains | Low      | Subdomain attacks possible |
+| Not in preload list       | Info     | First visit vulnerable     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                                           | Description                    |
+| ----------- | ----------------------------------------------- | ------------------------------ |
 | **CWE-319** | Cleartext Transmission of Sensitive Information | Missing encryption enforcement |
-| **CWE-523** | Unprotected Transport of Credentials | Credential exposure risk |
-| **CWE-16** | Configuration | Security misconfiguration |
+| **CWE-523** | Unprotected Transport of Credentials            | Credential exposure risk       |
+| **CWE-16**  | Configuration                                   | Security misconfiguration      |
 
 ---
 

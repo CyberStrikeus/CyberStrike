@@ -1,9 +1,11 @@
 # WSTG-CLNT-02: Testing for JavaScript Execution
 
 ## Test ID
+
 WSTG-CLNT-02
 
 ## Test Name
+
 Testing for JavaScript Execution
 
 ## High-Level Description
@@ -65,10 +67,10 @@ test_event_handlers("https://target.com/search", "q")
 // Common patterns to look for in JS:
 
 // Dangerous
-eval(userInput);
-new Function(userInput)();
-setTimeout(userInput, 1000);
-setInterval(userInput, 1000);
+eval(userInput)
+new Function(userInput)()
+setTimeout(userInput, 1000)
+setInterval(userInput, 1000)
 
 // Test payloads
 // alert(1)
@@ -85,12 +87,12 @@ setInterval(userInput, 1000);
 // AVOID: eval(userInput)
 
 // Use safe alternatives
-JSON.parse(jsonString);  // For JSON parsing
+JSON.parse(jsonString) // For JSON parsing
 
 // For dynamic function calls, use allowlist
-const allowedFunctions = { 'sum': (a,b) => a+b };
+const allowedFunctions = { sum: (a, b) => a + b }
 if (allowedFunctions[functionName]) {
-    allowedFunctions[functionName](args);
+  allowedFunctions[functionName](args)
 }
 ```
 
@@ -98,18 +100,18 @@ if (allowedFunctions[functionName]) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| javascript: URI execution | 6.1 | Medium |
-| Event handler injection | 6.1 | Medium |
-| eval() with user input | 8.6 | High |
+| Finding                   | CVSS | Severity |
+| ------------------------- | ---- | -------- |
+| javascript: URI execution | 6.1  | Medium   |
+| Event handler injection   | 6.1  | Medium   |
+| eval() with user input    | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                               |
+| ---------- | ------------------------------------------------------------------- |
 | **CWE-95** | Improper Neutralization of Directives in Dynamically Evaluated Code |
 
 ---

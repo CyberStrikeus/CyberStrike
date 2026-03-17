@@ -119,13 +119,13 @@ Guvenlik araclarinizin dizustu bilgisayarinizda calismasi gerekmez. Bolt, CyberS
 
 Ajanlar arasinda `Tab` ile gecis yapin. Her biri bir uzmandir.
 
-| Ajan | Odak | Ne Yapar |
-|------|------|----------|
-| **cyberstrike** | Genel | Tam erisimli birincil ajan — kesif, istismar, raporlama |
-| **web-application** | Web | OWASP Top 10, WSTG metodolojisi, API guvenligi, oturum testi |
-| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS uyumlulugu |
-| **cloud-security** | Bulut | AWS, Azure, GCP — IAM yanlis yapilandirmalari, CIS kiyaslamalari, acik kaynaklar |
-| **internal-network** | Ag | Active Directory, Kerberos saldirilari, yanal hareket, pivotlama |
+| Ajan                   | Odak  | Ne Yapar                                                                         |
+| ---------------------- | ----- | -------------------------------------------------------------------------------- |
+| **cyberstrike**        | Genel | Tam erisimli birincil ajan — kesif, istismar, raporlama                          |
+| **web-application**    | Web   | OWASP Top 10, WSTG metodolojisi, API guvenligi, oturum testi                     |
+| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS uyumlulugu                             |
+| **cloud-security**     | Bulut | AWS, Azure, GCP — IAM yanlis yapilandirmalari, CIS kiyaslamalari, acik kaynaklar |
+| **internal-network**   | Ag    | Active Directory, Kerberos saldirilari, yanal hareket, pivotlama                 |
 
 Ayrica hedefli zafiyet siniflari icin trafigi yakalayip manipule eden **8 uzmanlasmis proxy test ajani**:
 
@@ -137,13 +137,13 @@ Ayrica hedefli zafiyet siniflari icin trafigi yakalayip manipule eden **8 uzmanl
 
 CyberStrike, yeteneklerini genisleten uzmanlasmis MCP sunucularina baglanir:
 
-| Sunucu | Arac | Ne Ekler |
-|--------|------|----------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Tarayici tabanli guvenlik testi — XSS, CSRF, DOM manipulasyonu, cerez hirsizligi |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Bulut guvenlik denetimleri — AWS, Azure, GCP genelinde 60+ kontrol |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub guvenlik durusu — repo, org, actions, secrets, tedarik zinciri |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE istihbarati — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Sunucu                                                                 | Arac | Ne Ekler                                                                         |
+| ---------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39   | Tarayici tabanli guvenlik testi — XSS, CSRF, DOM manipulasyonu, cerez hirsizligi |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38   | Bulut guvenlik denetimleri — AWS, Azure, GCP genelinde 60+ kontrol               |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39   | GitHub guvenlik durusu — repo, org, actions, secrets, tedarik zinciri            |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23   | CVE istihbarati — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                      |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37   | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS             |
 
 Hepsi acik kaynak. Hepsi `npx` ile kurulabilir. CyberStrike'a baglayin veya herhangi bir MCP istemcisiyle bagimsiz kullanin.
 
@@ -163,6 +163,7 @@ Bolt, CyberStrike'in uzaktan arac calistirma sunucusudur. Guvenlik araclarini di
 ```
 
 **Nasil calisir:**
+
 - Bolt'u sizma testi arac setinizin yuklu oldugu herhangi bir sunucuya kurun
 - Ed25519 anahtarlariyla eslestirin — sifre yok, paylasilan sir yok
 - CyberStrike ajanlari araclari MCP protokolu uzerinden uzaktan cagirir
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 CyberStrike ajanlari 30+ araca dogrudan erisim saglar:
 
-| Kategori | Araclar |
-|----------|---------|
-| **Calistirma** | Shell (bash), dosya okuma/yazma/duzenleme, dizin listeleme |
-| **Kesif** | Web getirme, web aramasi, kod aramasi, glob, grep |
-| **Guvenlik** | Zafiyet raporlama (HackerOne formati), kanit toplama |
-| **Proxy** | HTTP/HTTPS yakalama, istek tekrarlama, trafik analizi |
-| **Entegrasyon** | MCP sunuculari, Bolt uzak araclari, ozel eklentiler |
+| Kategori        | Araclar                                                    |
+| --------------- | ---------------------------------------------------------- |
+| **Calistirma**  | Shell (bash), dosya okuma/yazma/duzenleme, dizin listeleme |
+| **Kesif**       | Web getirme, web aramasi, kod aramasi, glob, grep          |
+| **Guvenlik**    | Zafiyet raporlama (HackerOne formati), kanit toplama       |
+| **Proxy**       | HTTP/HTTPS yakalama, istek tekrarlama, trafik analizi      |
+| **Entegrasyon** | MCP sunuculari, Bolt uzak araclari, ozel eklentiler        |
 
 Ayrica bir **eklenti SDK'si** — kendi ajanlarinizi ve araclarinizi olusturun, calisma zamaninda kaydedin.
 
@@ -246,14 +247,14 @@ PR gondermeden once [Katkida Bulunma Kilavuzu](./CONTRIBUTING.md)'nu okuyun. Tum
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

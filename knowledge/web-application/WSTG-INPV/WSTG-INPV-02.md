@@ -1,9 +1,11 @@
 # WSTG-INPV-02: Testing for Stored Cross-Site Scripting (XSS)
 
 ## Test ID
+
 WSTG-INPV-02
 
 ## Test Name
+
 Testing for Stored Cross-Site Scripting (XSS)
 
 ## High-Level Description
@@ -367,13 +369,13 @@ tester.run_tests(auth_cookies={'session': 'your_session_cookie'})
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| XSS Hunter | Blind XSS detection |
-| Burp Collaborator | Out-of-band detection |
-| BeEF | Browser exploitation framework |
-| XSStrike | XSS detection |
-| Dalfox | XSS scanner |
+| Tool              | Purpose                        |
+| ----------------- | ------------------------------ |
+| XSS Hunter        | Blind XSS detection            |
+| Burp Collaborator | Out-of-band detection          |
+| BeEF              | Browser exploitation framework |
+| XSStrike          | XSS detection                  |
+| Dalfox            | XSS scanner                    |
 
 ---
 
@@ -411,33 +413,33 @@ def add_csp(response):
 ```javascript
 // JavaScript - Safe rendering
 // Use textContent instead of innerHTML
-element.textContent = userInput;
+element.textContent = userInput
 
 // If HTML is needed, use DOMPurify
 const clean = DOMPurify.sanitize(userInput, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em'],
-    ALLOWED_ATTR: []
-});
-element.innerHTML = clean;
+  ALLOWED_TAGS: ["p", "br", "strong", "em"],
+  ALLOWED_ATTR: [],
+})
+element.innerHTML = clean
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Stored XSS in public area | 8.1 | High |
-| Stored XSS in user profile | 7.5 | High |
-| Stored XSS in admin panel | 9.0 | Critical |
-| Stored XSS via file upload | 7.5 | High |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| Stored XSS in public area  | 8.1  | High     |
+| Stored XSS in user profile | 7.5  | High     |
+| Stored XSS in admin panel  | 9.0  | Critical |
+| Stored XSS via file upload | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                       |
+| ---------- | ----------------------------------------------------------- |
 | **CWE-79** | Improper Neutralization of Input During Web Page Generation |
 
 ---

@@ -1,9 +1,11 @@
 # WSTG-INPV-19: Testing for Server-Side Request Forgery (SSRF)
 
 ## Test ID
+
 WSTG-INPV-19
 
 ## Test Name
+
 Testing for Server-Side Request Forgery (SSRF)
 
 ## High-Level Description
@@ -369,11 +371,11 @@ dict://127.0.0.1:11211/stats
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Collaborator | Blind SSRF detection |
-| SSRFmap | Automated SSRF exploitation |
-| Gopherus | Gopher payload generator |
+| Tool              | Purpose                     |
+| ----------------- | --------------------------- |
+| Burp Collaborator | Blind SSRF detection        |
+| SSRFmap           | Automated SSRF exploitation |
+| Gopherus          | Gopher payload generator    |
 
 ---
 
@@ -421,19 +423,19 @@ def is_safe_url(url):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| SSRF cloud metadata access | 9.8 | Critical |
-| SSRF to internal services | 8.6 | High |
-| SSRF localhost access | 7.5 | High |
-| Blind SSRF | 5.3 | Medium |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| SSRF cloud metadata access | 9.8  | Critical |
+| SSRF to internal services  | 8.6  | High     |
+| SSRF localhost access      | 7.5  | High     |
+| Blind SSRF                 | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                              |
+| ----------- | ---------------------------------- |
 | **CWE-918** | Server-Side Request Forgery (SSRF) |
 
 ---

@@ -175,7 +175,13 @@ try {
   }
 
   if (e instanceof Error && "specifier" in e) {
-    const re = e as Error & { code?: string; specifier?: string; referrer?: string; position?: unknown; importKind?: string }
+    const re = e as Error & {
+      code?: string
+      specifier?: string
+      referrer?: string
+      position?: unknown
+      importKind?: string
+    }
     Object.assign(data, {
       name: re.name,
       message: re.message,

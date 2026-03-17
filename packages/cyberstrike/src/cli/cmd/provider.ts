@@ -12,11 +12,7 @@ export const ProviderCommand = cmd({
   describe: "manage local/custom AI providers",
 
   builder: (yargs) =>
-    yargs
-      .command(ProviderAddCommand)
-      .command(ProviderListCommand)
-      .command(ProviderRemoveCommand)
-      .demandCommand(),
+    yargs.command(ProviderAddCommand).command(ProviderListCommand).command(ProviderRemoveCommand).demandCommand(),
 
   async handler() {},
 })
@@ -208,9 +204,9 @@ export const ProviderRemoveCommand = cmd({
       async fn() {
         const id = args.id as string
         const filepath = path.join(Instance.directory, "cyberstrike.json")
-        const raw = await Bun.file(filepath)
+        const raw = (await Bun.file(filepath)
           .json()
-          .catch(() => ({})) as Record<string, any>
+          .catch(() => ({}))) as Record<string, any>
 
         if (!raw.provider?.[id]) {
           console.log(`Provider "${id}" not found in project config.`)

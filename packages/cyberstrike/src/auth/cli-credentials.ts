@@ -29,10 +29,11 @@ function readFromKeychain(): ClaudeCliCredential | null {
   if (process.platform !== "darwin") return null
 
   try {
-    const result = execSync(
-      `security find-generic-password -s "${CLAUDE_CLI_KEYCHAIN_SERVICE}" -w`,
-      { encoding: "utf8", timeout: 5000, stdio: ["pipe", "pipe", "pipe"] },
-    )
+    const result = execSync(`security find-generic-password -s "${CLAUDE_CLI_KEYCHAIN_SERVICE}" -w`, {
+      encoding: "utf8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    })
 
     const data = JSON.parse(result.trim())
     const claudeOauth = data?.claudeAiOauth

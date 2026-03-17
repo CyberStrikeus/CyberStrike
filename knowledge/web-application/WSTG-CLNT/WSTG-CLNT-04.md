@@ -1,9 +1,11 @@
 # WSTG-CLNT-04: Testing for Client-Side URL Redirect
 
 ## Test ID
+
 WSTG-CLNT-04
 
 ## Test Name
+
 Testing for Client-Side URL Redirect
 
 ## High-Level Description
@@ -76,21 +78,21 @@ done
 // window.open(
 
 // Check if URL parameter is used without validation
-const urlParams = new URLSearchParams(window.location.search);
-const redirectUrl = urlParams.get('redirect');
+const urlParams = new URLSearchParams(window.location.search)
+const redirectUrl = urlParams.get("redirect")
 
 // Vulnerable pattern:
-window.location.href = redirectUrl;  // No validation!
+window.location.href = redirectUrl // No validation!
 
 // Safe pattern:
-const allowedHosts = ['target.com', 'sub.target.com'];
+const allowedHosts = ["target.com", "sub.target.com"]
 try {
-    const url = new URL(redirectUrl);
-    if (allowedHosts.includes(url.hostname)) {
-        window.location.href = redirectUrl;
-    }
+  const url = new URL(redirectUrl)
+  if (allowedHosts.includes(url.hostname)) {
+    window.location.href = redirectUrl
+  }
 } catch (e) {
-    // Invalid URL
+  // Invalid URL
 }
 ```
 
@@ -100,21 +102,20 @@ try {
 
 ```javascript
 function safeRedirect(url) {
-    const allowedHosts = ['example.com', 'sub.example.com'];
+  const allowedHosts = ["example.com", "sub.example.com"]
 
-    try {
-        const parsed = new URL(url, window.location.origin);
+  try {
+    const parsed = new URL(url, window.location.origin)
 
-        // Only allow same-origin or whitelisted hosts
-        if (parsed.origin === window.location.origin ||
-            allowedHosts.includes(parsed.hostname)) {
-            window.location.href = parsed.href;
-        } else {
-            window.location.href = '/';  // Default safe redirect
-        }
-    } catch (e) {
-        window.location.href = '/';
+    // Only allow same-origin or whitelisted hosts
+    if (parsed.origin === window.location.origin || allowedHosts.includes(parsed.hostname)) {
+      window.location.href = parsed.href
+    } else {
+      window.location.href = "/" // Default safe redirect
     }
+  } catch (e) {
+    window.location.href = "/"
+  }
 }
 ```
 
@@ -122,17 +123,17 @@ function safeRedirect(url) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Open redirect | 4.7 | Medium |
-| javascript: URI redirect | 6.1 | Medium |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Open redirect            | 4.7  | Medium   |
+| javascript: URI redirect | 6.1  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                             |
+| ----------- | --------------------------------- |
 | **CWE-601** | URL Redirection to Untrusted Site |
 
 ---

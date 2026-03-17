@@ -1,9 +1,11 @@
 # WSTG-CONF-06: Test HTTP Methods
 
 ## Test ID
+
 WSTG-CONF-06
 
 ## Test Name
+
 Test HTTP Methods
 
 ## High-Level Description
@@ -16,17 +18,17 @@ HTTP methods define the type of action to be performed on a resource. While GET 
 
 ### HTTP Methods to Test
 
-| Method | Purpose | Security Risk |
-|--------|---------|---------------|
-| GET | Retrieve resource | Authorization bypass |
-| POST | Submit data | Authorization bypass |
-| HEAD | Get headers only | Auth bypass, info disclosure |
-| PUT | Upload/create resource | Arbitrary file upload |
-| DELETE | Remove resource | Arbitrary file deletion |
-| OPTIONS | List supported methods | Information disclosure |
-| TRACE | Echo request (debug) | Cross-Site Tracing (XST) |
-| CONNECT | TCP tunnel | Proxy abuse |
-| PATCH | Partial modification | Data manipulation |
+| Method  | Purpose                | Security Risk                |
+| ------- | ---------------------- | ---------------------------- |
+| GET     | Retrieve resource      | Authorization bypass         |
+| POST    | Submit data            | Authorization bypass         |
+| HEAD    | Get headers only       | Auth bypass, info disclosure |
+| PUT     | Upload/create resource | Arbitrary file upload        |
+| DELETE  | Remove resource        | Arbitrary file deletion      |
+| OPTIONS | List supported methods | Information disclosure       |
+| TRACE   | Echo request (debug)   | Cross-Site Tracing (XST)     |
+| CONNECT | TCP tunnel             | Proxy abuse                  |
+| PATCH   | Partial modification   | Data manipulation            |
 
 ### Additional Checks
 
@@ -196,25 +198,25 @@ nmap -p 80,443 --script http-methods --script-args http-methods.test-all=true ta
 
 ### Command-Line Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | HTTP client | `curl -X METHOD url` |
-| **Nmap** | NSE scripts | `nmap --script http-methods` |
-| **Netcat** | Raw requests | Manual HTTP crafting |
+| Tool       | Description  | Usage                        |
+| ---------- | ------------ | ---------------------------- |
+| **curl**   | HTTP client  | `curl -X METHOD url`         |
+| **Nmap**   | NSE scripts  | `nmap --script http-methods` |
+| **Netcat** | Raw requests | Manual HTTP crafting         |
 
 ### Web Proxies
 
-| Tool | Description |
-|------|-------------|
+| Tool           | Description                 |
+| -------------- | --------------------------- |
 | **Burp Suite** | Repeater for method testing |
-| **OWASP ZAP** | Request editor |
-| **mitmproxy** | Scripted testing |
+| **OWASP ZAP**  | Request editor              |
+| **mitmproxy**  | Scripted testing            |
 
 ### Scanners
 
-| Tool | Description |
-|------|-------------|
-| **Nikto** | Web server scanner |
+| Tool       | Description           |
+| ---------- | --------------------- |
+| **Nikto**  | Web server scanner    |
 | **Nessus** | Vulnerability scanner |
 
 ---
@@ -397,13 +399,13 @@ def resource():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| PUT enabled (file upload) | 9.8 | Critical |
-| DELETE enabled | 8.1 | High |
-| TRACE enabled | 5.3 | Medium |
-| Auth bypass via method | 8.8 | High |
-| WebDAV enabled | 7.5 | High |
+| Finding                   | CVSS | Severity |
+| ------------------------- | ---- | -------- |
+| PUT enabled (file upload) | 9.8  | Critical |
+| DELETE enabled            | 8.1  | High     |
+| TRACE enabled             | 5.3  | Medium   |
+| Auth bypass via method    | 8.8  | High     |
+| WebDAV enabled            | 7.5  | High     |
 
 **PUT Enabled Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
 
@@ -411,11 +413,11 @@ def resource():
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-749** | Exposed Dangerous Method | Dangerous HTTP methods enabled |
+| CWE ID      | Title                            | Description                       |
+| ----------- | -------------------------------- | --------------------------------- |
+| **CWE-749** | Exposed Dangerous Method         | Dangerous HTTP methods enabled    |
 | **CWE-650** | Trusting HTTP Permission Methods | Insufficient method authorization |
-| **CWE-434** | Unrestricted Upload of File | PUT file upload |
+| **CWE-434** | Unrestricted Upload of File      | PUT file upload                   |
 
 ---
 

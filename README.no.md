@@ -119,13 +119,13 @@ Sikkerhetsverktøyene dine trenger ikke å kjøre på laptopen din. Bolt er Cybe
 
 Bytt mellom agenter med `Tab`. Hver enkelt er en spesialist.
 
-| Agent | Fokus | Hva den gjør |
-|-------|-------|--------------|
-| **cyberstrike** | Generelt | Primæragent med full tilgang — rekognosering, utnyttelse, rapportering |
-| **web-application** | Web | OWASP Top 10, WSTG-metodikk, API-sikkerhet, sesjonstesting |
-| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS-samsvar |
-| **cloud-security** | Sky | AWS, Azure, GCP — IAM-feilkonfigurasjoner, CIS-referanser, eksponerte ressurser |
-| **internal-network** | Nettverk | Active Directory, Kerberos-angrep, lateral bevegelse, pivotering |
+| Agent                  | Fokus    | Hva den gjør                                                                    |
+| ---------------------- | -------- | ------------------------------------------------------------------------------- |
+| **cyberstrike**        | Generelt | Primæragent med full tilgang — rekognosering, utnyttelse, rapportering          |
+| **web-application**    | Web      | OWASP Top 10, WSTG-metodikk, API-sikkerhet, sesjonstesting                      |
+| **mobile-application** | Mobil    | Android/iOS, Frida/Objection, MASTG/MASVS-samsvar                               |
+| **cloud-security**     | Sky      | AWS, Azure, GCP — IAM-feilkonfigurasjoner, CIS-referanser, eksponerte ressurser |
+| **internal-network**   | Nettverk | Active Directory, Kerberos-angrep, lateral bevegelse, pivotering                |
 
 Pluss **8 spesialiserte proxy-testere** som fanger opp og manipulerer trafikk for målrettede sårbarhetsklasser:
 
@@ -137,13 +137,13 @@ Pluss **8 spesialiserte proxy-testere** som fanger opp og manipulerer trafikk fo
 
 CyberStrike kobler til spesialiserte MCP-servere som utvider funksjonaliteten:
 
-| Server | Verktøy | Hva den legger til |
-|--------|---------|--------------------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Nettleserbasert sikkerhetstesting — XSS, CSRF, DOM-manipulering, informasjonskapsel-tyveri |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Skysikkerhetsrevisjoner — 60+ sjekker på tvers av AWS, Azure, GCP |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub sikkerhetsposisjon — repo, organisasjon, handlinger, hemmeligheter, forsyningskjede |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE-etterretning — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-rekognosering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Server                                                                 | Verktøy | Hva den legger til                                                                         |
+| ---------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39      | Nettleserbasert sikkerhetstesting — XSS, CSRF, DOM-manipulering, informasjonskapsel-tyveri |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38      | Skysikkerhetsrevisjoner — 60+ sjekker på tvers av AWS, Azure, GCP                          |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39      | GitHub sikkerhetsposisjon — repo, organisasjon, handlinger, hemmeligheter, forsyningskjede |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23      | CVE-etterretning — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                               |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37      | OSINT-rekognosering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS               |
 
 Alt er åpen kildekode. Alt kan installeres med `npx`. Koble dem til CyberStrike eller bruk dem frittstående med en hvilken som helst MCP-klient.
 
@@ -163,6 +163,7 @@ Bolt er CyberStrikes server for ekstern verktøykjøring. I stedet for å kjøre
 ```
 
 **Slik fungerer det:**
+
 - Distribuer Bolt på en hvilken som helst server med pentest-verktøysettet ditt installert
 - Par med Ed25519-nøkler — ingen passord, ingen delte hemmeligheter
 - CyberStrike-agenter kaller verktøy eksternt over MCP-protokollen
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 CyberStrike-agenter har direkte tilgang til 30+ verktøy:
 
-| Kategori | Verktøy |
-|----------|---------|
-| **Kjøring** | Shell (bash), fillesing/-skriving/-redigering, katalogvisning |
-| **Oppdagelse** | Webhenting, websøk, kodesøk, glob, grep |
-| **Sikkerhet** | Sårbarhetsrapportering (HackerOne-format), bevisinnsamling |
-| **Proxy** | HTTP/HTTPS-avlytting, forespørselsreplay, trafikkanalyse |
-| **Integrasjon** | MCP-servere, Bolt eksterne verktøy, tilpassede utvidelser |
+| Kategori        | Verktøy                                                       |
+| --------------- | ------------------------------------------------------------- |
+| **Kjøring**     | Shell (bash), fillesing/-skriving/-redigering, katalogvisning |
+| **Oppdagelse**  | Webhenting, websøk, kodesøk, glob, grep                       |
+| **Sikkerhet**   | Sårbarhetsrapportering (HackerOne-format), bevisinnsamling    |
+| **Proxy**       | HTTP/HTTPS-avlytting, forespørselsreplay, trafikkanalyse      |
+| **Integrasjon** | MCP-servere, Bolt eksterne verktøy, tilpassede utvidelser     |
 
 Pluss en **utvidelsespakke (SDK)** — bygg dine egne agenter og verktøy, registrer dem under kjøring.
 
@@ -246,14 +247,14 @@ Les [bidragsguiden](./CONTRIBUTING.md) før du sender en PR. Alle bidrag må fø
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

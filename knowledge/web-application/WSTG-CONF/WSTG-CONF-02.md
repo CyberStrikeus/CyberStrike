@@ -1,9 +1,11 @@
 # WSTG-CONF-02: Test Application Platform Configuration
 
 ## Test ID
+
 WSTG-CONF-02
 
 ## Test Name
+
 Test Application Platform Configuration
 
 ## High-Level Description
@@ -217,19 +219,19 @@ cat /etc/logrotate.d/apache2
 
 ### Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nikto** | Web server scanner | `nikto -h target.com` |
-| **Nuclei** | Template scanner | `nuclei -u target.com -t misconfigs/` |
+| Tool         | Description           | Usage                                        |
+| ------------ | --------------------- | -------------------------------------------- |
+| **Nikto**    | Web server scanner    | `nikto -h target.com`                        |
+| **Nuclei**   | Template scanner      | `nuclei -u target.com -t misconfigs/`        |
 | **Gobuster** | Directory brute-force | `gobuster dir -u target.com -w wordlist.txt` |
 
 ### Configuration Auditing
 
-| Tool | Description |
-|------|-------------|
-| **CIS-CAT Lite** | CIS benchmark assessment |
-| **Lynis** | Unix security auditing |
-| **Microsoft Baseline Security Analyzer** | Windows auditing |
+| Tool                                     | Description              |
+| ---------------------------------------- | ------------------------ |
+| **CIS-CAT Lite**                         | CIS benchmark assessment |
+| **Lynis**                                | Unix security auditing   |
+| **Microsoft Baseline Security Analyzer** | Windows auditing         |
 
 ---
 
@@ -399,26 +401,26 @@ CustomLog logs/access.log combined env=!dontlog
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| phpinfo.php exposed | 5.3 | Medium |
-| Debug mode enabled | 7.5 | High |
-| Backup files accessible | 7.5 | High |
-| Directory listing enabled | 5.3 | Medium |
-| Sensitive config exposed | 9.8 | Critical |
-| Verbose error messages | 5.3 | Medium |
+| Finding                   | CVSS | Severity |
+| ------------------------- | ---- | -------- |
+| phpinfo.php exposed       | 5.3  | Medium   |
+| Debug mode enabled        | 7.5  | High     |
+| Backup files accessible   | 7.5  | High     |
+| Directory listing enabled | 5.3  | Medium   |
+| Sensitive config exposed  | 9.8  | Critical |
+| Verbose error messages    | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-16** | Configuration | Improper configuration |
-| **CWE-200** | Information Exposure | Sensitive info disclosure |
-| **CWE-209** | Error Message Information Exposure | Verbose errors |
-| **CWE-215** | Information Exposure Through Debug | Debug info leak |
-| **CWE-548** | Directory Listing | Directory enumeration |
+| CWE ID      | Title                              | Description               |
+| ----------- | ---------------------------------- | ------------------------- |
+| **CWE-16**  | Configuration                      | Improper configuration    |
+| **CWE-200** | Information Exposure               | Sensitive info disclosure |
+| **CWE-209** | Error Message Information Exposure | Verbose errors            |
+| **CWE-215** | Information Exposure Through Debug | Debug info leak           |
+| **CWE-548** | Directory Listing                  | Directory enumeration     |
 
 ---
 

@@ -3,7 +3,15 @@ import { decode64 } from "@/utils/base64"
 import { useParams } from "@solidjs/router"
 import { createMemo } from "solid-js"
 
-export const popularProviders = ["cyberstrike", "anthropic", "github-copilot", "openai", "google", "openrouter", "vercel"]
+export const popularProviders = [
+  "cyberstrike",
+  "anthropic",
+  "github-copilot",
+  "openai",
+  "google",
+  "openrouter",
+  "vercel",
+]
 const popularProviderSet = new Set(popularProviders)
 
 export function useProviders() {

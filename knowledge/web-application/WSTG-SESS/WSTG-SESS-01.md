@@ -1,9 +1,11 @@
 # WSTG-SESS-01: Testing for Session Management Schema
 
 ## Test ID
+
 WSTG-SESS-01
 
 ## Test Name
+
 Testing for Session Management Schema
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Session management is the mechanism by which a web application maintains state w
 
 ### Session Lifecycle
 
-| Phase | Security Concern |
-|-------|-----------------|
-| Generation | Randomness, entropy |
-| Transmission | HTTPS, secure headers |
-| Storage | HttpOnly, Secure flags |
-| Validation | Server-side checks |
-| Termination | Proper invalidation |
+| Phase        | Security Concern       |
+| ------------ | ---------------------- |
+| Generation   | Randomness, entropy    |
+| Transmission | HTTPS, secure headers  |
+| Storage      | HttpOnly, Secure flags |
+| Validation   | Server-side checks     |
+| Termination  | Proper invalidation    |
 
 ---
 
@@ -290,22 +292,23 @@ fi
 // Browser console tests for session storage
 
 // Check for session data in localStorage (not recommended)
-console.log("localStorage session data:");
+console.log("localStorage session data:")
 for (let key in localStorage) {
-    if (key.toLowerCase().includes('session') ||
-        key.toLowerCase().includes('token') ||
-        key.toLowerCase().includes('auth')) {
-        console.log(key + ": " + localStorage[key]);
-    }
+  if (
+    key.toLowerCase().includes("session") ||
+    key.toLowerCase().includes("token") ||
+    key.toLowerCase().includes("auth")
+  ) {
+    console.log(key + ": " + localStorage[key])
+  }
 }
 
 // Check sessionStorage
-console.log("\nsessionStorage session data:");
+console.log("\nsessionStorage session data:")
 for (let key in sessionStorage) {
-    if (key.toLowerCase().includes('session') ||
-        key.toLowerCase().includes('token')) {
-        console.log(key + ": " + sessionStorage[key]);
-    }
+  if (key.toLowerCase().includes("session") || key.toLowerCase().includes("token")) {
+    console.log(key + ": " + sessionStorage[key])
+  }
 }
 
 // If session data in storage is accessible, it's vulnerable to XSS
@@ -455,18 +458,18 @@ analyzer.generate_report()
 
 ### Session Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Session analysis | Sequencer, token analysis |
-| **OWASP ZAP** | Session testing | Automated scanning |
-| **Cookie-Editor** | Browser extension | Cookie manipulation |
+| Tool              | Description       | Usage                     |
+| ----------------- | ----------------- | ------------------------- |
+| **Burp Suite**    | Session analysis  | Sequencer, token analysis |
+| **OWASP ZAP**     | Session testing   | Automated scanning        |
+| **Cookie-Editor** | Browser extension | Cookie manipulation       |
 
 ### Entropy Analysis
 
-| Tool | Description |
-|------|-------------|
+| Tool               | Description               |
+| ------------------ | ------------------------- |
 | **Burp Sequencer** | Token randomness analysis |
-| **Custom scripts** | Entropy calculation |
+| **Custom scripts** | Entropy calculation       |
 
 ---
 
@@ -584,24 +587,24 @@ class SessionValidator:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Predictable session tokens | 9.1 | Critical |
-| Missing Secure flag | 7.5 | High |
-| Missing HttpOnly flag | 6.1 | Medium |
-| Session in URL | 7.5 | High |
-| Short session token | 5.3 | Medium |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| Predictable session tokens | 9.1  | Critical |
+| Missing Secure flag        | 7.5  | High     |
+| Missing HttpOnly flag      | 6.1  | Medium   |
+| Session in URL             | 7.5  | High     |
+| Short session token        | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-330** | Insufficient Randomness | Weak token generation |
-| **CWE-614** | HTTPS Session Cookie Without Secure | Missing Secure flag |
-| **CWE-1004** | Sensitive Cookie Without HttpOnly | Missing HttpOnly |
-| **CWE-598** | Session ID in URL | Exposure via Referer |
+| CWE ID       | Title                               | Description           |
+| ------------ | ----------------------------------- | --------------------- |
+| **CWE-330**  | Insufficient Randomness             | Weak token generation |
+| **CWE-614**  | HTTPS Session Cookie Without Secure | Missing Secure flag   |
+| **CWE-1004** | Sensitive Cookie Without HttpOnly   | Missing HttpOnly      |
+| **CWE-598**  | Session ID in URL                   | Exposure via Referer  |
 
 ---
 
