@@ -207,7 +207,7 @@ jobs:
     needs:
       - version
       - build-cli
-      - build-tauri
+    if: ${{ !cancelled() && needs.build-cli.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
@@ -251,30 +251,10 @@ jobs:
           name: cyberstrike-cli
           path: packages/cyberstrike/dist
 
-      - name: Cache apt packages (AUR)
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-aur-${{ hashFiles('.github/workflows/publish.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-aur-
-
-      - name: Setup SSH for AUR
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pacman-package-manager
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AUR_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          git config --global user.email "cyberstrike@sst.dev"
-          git config --global user.name "cyberstrike"
-          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts || true
-
       - run: ./script/publish.ts
         env:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
-          AUR_KEY: ${{ secrets.AUR_KEY }}
           GITHUB_TOKEN: ${{ steps.committer.outputs.token || github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: false
