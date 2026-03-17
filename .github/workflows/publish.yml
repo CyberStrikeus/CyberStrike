@@ -43,6 +43,7 @@ jobs:
 
       - name: Install CyberStrike
         if: inputs.bump || inputs.version
+        continue-on-error: true
         run: bun i -g cyberstrike
 
       - id: version
