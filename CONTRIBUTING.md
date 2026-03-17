@@ -66,7 +66,6 @@ Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 |---------|-------------|
 | `packages/cyberstrike` | Core CLI — agents, tools, session, provider logic |
 | `packages/app` | Web UI components (SolidJS) |
-| `packages/desktop` | Native desktop app (Tauri) |
 | `packages/plugin` | Plugin SDK (`@cyberstrikeus/plugin`) |
 | `knowledge/` | Security knowledge base (WSTG test cases) |
 | `.cyberstrike/skill/` | Security skills (methodology guides) |
@@ -133,15 +132,6 @@ bun turbo typecheck        # Run type checking across all packages
 
 1. Start the server: `bun dev serve`
 2. Start the web app: `bun run --cwd packages/app dev`
-
-### Running the Desktop App
-
-```bash
-bun run --cwd packages/desktop tauri dev
-```
-
-> [!NOTE]
-> Requires Tauri dependencies (Rust toolchain, platform-specific libraries). See [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ### Debugging
 
