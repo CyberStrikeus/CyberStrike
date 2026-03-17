@@ -68,9 +68,18 @@ Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 | `packages/app` | Web UI components (SolidJS) |
 | `packages/desktop` | Native desktop app (Tauri) |
 | `packages/plugin` | Plugin SDK (`@cyberstrikeus/plugin`) |
-| `packages/mcp-kali` | Kali Linux MCP server (Bolt) |
 | `knowledge/` | Security knowledge base (WSTG test cases) |
 | `.cyberstrike/skill/` | Security skills (methodology guides) |
+
+### MCP Ecosystem (separate repos)
+
+| Server | Repo | Description |
+|--------|------|-------------|
+| hackbrowser-mcp | [badchars/hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing — 39 tools |
+| cloud-audit-mcp | [badchars/cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security audits — AWS/Azure/GCP |
+| github-security-mcp | [badchars/github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture — 39 tools |
+| cve-mcp | [badchars/cve-mcp](https://github.com/badchars/cve-mcp) | CVE intelligence — NVD/EPSS/KEV |
+| osint-mcp | [badchars/osint-mcp](https://github.com/badchars/osint-mcp) | OSINT recon — Shodan/VT/DNS/WHOIS |
 
 ## How to Contribute
 
@@ -104,10 +113,12 @@ Each file should include: objective, test description, tools, commands, and reme
 
 ### Adding MCP Tools
 
-For Kali MCP tools, contribute to `packages/mcp-kali/`. Each tool needs:
-- Tool definition with input schema
+MCP servers live in their own repos (see table above). Each tool needs:
+- Tool definition with Zod input schema
 - Implementation with proper error handling
 - Category tagging for lazy loading
+
+To contribute to an MCP server, open a PR in the relevant repo.
 
 ## Development Commands
 
@@ -205,3 +216,9 @@ Maintainers can manage the list by commenting `vouch`, `denounce`, or `unvouch` 
 ## Feature Requests
 
 For new functionality, start with a design conversation. Open an issue describing the problem, your proposed approach, and why it belongs in CyberStrike. Wait for core team approval before opening a PR.
+
+## Community
+
+- **Discord:** [Join the community](https://discord.gg/snunAaHf6U)
+- **X:** [@cyberstrike](https://x.com/cyberstrike)
+- **Website:** [cyberstrike.io](https://cyberstrike.io)
