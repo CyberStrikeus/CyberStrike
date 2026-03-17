@@ -125,15 +125,15 @@ export default function Download() {
                 </code>
                 <CopyStatus />
               </button>
-              <button data-component="cli-row" onClick={handleCopyClick("npm i -g cyberstrike")}>
+              <button data-component="cli-row" onClick={handleCopyClick("npm i -g @cyberstrike-io/cyberstrike")}>
                 <code>
-                  npm i -g <strong>cyberstrike</strong>
+                  npm i -g <strong>@cyberstrike-io/cyberstrike</strong>
                 </code>
                 <CopyStatus />
               </button>
-              <button data-component="cli-row" onClick={handleCopyClick("bun add -g cyberstrike")}>
+              <button data-component="cli-row" onClick={handleCopyClick("bun add -g @cyberstrike-io/cyberstrike")}>
                 <code>
-                  bun add -g <strong>cyberstrike</strong>
+                  bun add -g <strong>@cyberstrike-io/cyberstrike</strong>
                 </code>
                 <CopyStatus />
               </button>

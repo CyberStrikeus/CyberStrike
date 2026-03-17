@@ -138,19 +138,19 @@ export namespace Installation {
         })
         break
       case "npm":
-        cmd = $`npm install -g cyberstrike@${target}`
+        cmd = $`npm install -g @cyberstrike-io/cyberstrike@${target}`
         break
       case "pnpm":
-        cmd = $`pnpm install -g cyberstrike@${target}`
+        cmd = $`pnpm install -g @cyberstrike-io/cyberstrike@${target}`
         break
       case "bun":
-        cmd = $`bun install -g cyberstrike@${target}`
+        cmd = $`bun install -g @cyberstrike-io/cyberstrike@${target}`
         break
       case "brew": {
         const formula = await getBrewFormula()
         if (formula.includes("/")) {
           cmd =
-            $`brew tap anomalyco/tap && cd "$(brew --repo anomalyco/tap)" && git pull --ff-only && brew upgrade ${formula}`.env(
+            $`brew tap CyberStrikeus/tap && cd "$(brew --repo CyberStrikeus/tap)" && git pull --ff-only && brew upgrade ${formula}`.env(
               {
                 HOMEBREW_NO_AUTO_UPDATE: "1",
                 ...process.env,

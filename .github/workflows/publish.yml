@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   version:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     if: github.repository == 'CyberStrikeus/CyberStrike'
     steps:
       - uses: actions/checkout@v3
@@ -43,7 +43,8 @@ jobs:
 
       - name: Install CyberStrike
         if: inputs.bump || inputs.version
-        run: bun i -g cyberstrike
+        continue-on-error: true
+        run: bun i -g @cyberstrike-io/cyberstrike
 
       - id: version
         run: |
@@ -60,7 +61,7 @@ jobs:
 
   build-cli:
     needs: version
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     if: github.repository == 'CyberStrikeus/CyberStrike'
     steps:
       - uses: actions/checkout@v3
@@ -99,11 +100,11 @@ jobs:
             target: x86_64-apple-darwin
           - host: macos-latest
             target: aarch64-apple-darwin
-          - host: blacksmith-4vcpu-windows-2025
+          - host: windows-latest
             target: x86_64-pc-windows-msvc
-          - host: blacksmith-4vcpu-ubuntu-2404
+          - host: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-          - host: blacksmith-8vcpu-ubuntu-2404-arm
+          - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -207,7 +208,7 @@ jobs:
       - version
       - build-cli
       - build-tauri
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
 

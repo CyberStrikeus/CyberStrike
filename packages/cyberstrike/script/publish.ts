@@ -7,23 +7,29 @@ import { fileURLToPath } from "url"
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
 
+const SCOPE = "@cyberstrike-io"
+const scopedName = `${SCOPE}/${pkg.name}`
+const distDir = `dist/${pkg.name}`
+
 const binaries: Record<string, string> = {}
 for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: "./dist" })) {
-  const pkg = await Bun.file(`./dist/${filepath}`).json()
-  binaries[pkg.name] = pkg.version
+  const binPkg = await Bun.file(`./dist/${filepath}`).json()
+  // Prefix binary package names with scope
+  const scopedBinName = binPkg.name.startsWith(SCOPE) ? binPkg.name : `${SCOPE}/${binPkg.name}`
+  binaries[scopedBinName] = binPkg.version
 }
 console.log("binaries", binaries)
 const version = Object.values(binaries)[0]
 
-await $`mkdir -p ./dist/${pkg.name}`
-await $`cp -r ./bin ./dist/${pkg.name}/bin`
-await $`cp ./script/postinstall.mjs ./dist/${pkg.name}/postinstall.mjs`
-await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE").text())
+await $`mkdir -p ./${distDir}`
+await $`cp -r ./bin ./${distDir}/bin`
+await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
+await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
 
-await Bun.file(`./dist/${pkg.name}/package.json`).write(
+await Bun.file(`./${distDir}/package.json`).write(
   JSON.stringify(
     {
-      name: pkg.name,
+      name: scopedName,
       description: pkg.description,
       bin: {
         [pkg.name]: `./bin/${pkg.name}`,
@@ -47,14 +53,17 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 )
 
 const tasks = Object.entries(binaries).map(async ([name]) => {
+  // name is scoped like "@cyberstrike-io/cyberstrike-darwin-arm64"
+  // directory on disk is just "cyberstrike-darwin-arm64"
+  const dirName = name.replace(`${SCOPE}/`, "")
   if (process.platform !== "win32") {
-    await $`chmod -R 755 .`.cwd(`./dist/${name}`)
+    await $`chmod -R 755 .`.cwd(`./dist/${dirName}`)
   }
-  await $`bun pm pack`.cwd(`./dist/${name}`)
-  await $`npm publish *.tgz --access public --tag ${Script.channel}`.cwd(`./dist/${name}`)
+  await $`bun pm pack`.cwd(`./dist/${dirName}`)
+  await $`npm publish *.tgz --access public --tag ${Script.channel}`.cwd(`./dist/${dirName}`)
 })
 await Promise.all(tasks)
-await $`cd ./dist/${pkg.name} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
+await $`cd ./${distDir} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
 
 const image = "ghcr.io/CyberStrikeus/CyberStrike"
 const platforms = "linux/amd64,linux/arm64"
@@ -178,7 +187,7 @@ if (!Script.preview) {
     console.error("GITHUB_TOKEN is required to update homebrew tap")
     process.exit(1)
   }
-  const tap = `https://x-access-token:${token}@github.com/anomalyco/homebrew-tap.git`
+  const tap = `https://x-access-token:${token}@github.com/CyberStrikeus/homebrew-tap.git`
   await $`rm -rf ./dist/homebrew-tap`
   await $`git clone ${tap} ./dist/homebrew-tap`
   await Bun.file("./dist/homebrew-tap/cyberstrike.rb").write(homebrewFormula)

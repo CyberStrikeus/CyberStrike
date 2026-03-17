@@ -53,7 +53,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
   <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
@@ -68,7 +68,7 @@
 **CyberStrike এটি বদলে দেয়।** এটি একটি স্বয়ংক্রিয় AI এজেন্ট যা আক্রমণাত্মক নিরাপত্তা পদ্ধতি বোঝে — শুধু টুল চালানো নয়, বরং কী পরীক্ষা করতে হবে তা নিয়ে চিন্তা করা, আবিষ্কারগুলিকে একসাথে সংযুক্ত করা এবং যা আবিষ্কার করে তার ভিত্তিতে নিজের পদ্ধতি মানিয়ে নেওয়া। এটিকে আপনার টার্মিনালে একজন অক্লান্ত রেড টিম সদস্য মনে করুন যে OWASP WSTG অনুসরণ করে, জানে কখন দিক পরিবর্তন করতে হবে এবং শেষ হলে রিপোর্ট লেখে।
 
 ```bash
-npm i -g cyberstrike@latest && cyberstrike
+npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 # "Run a full OWASP WSTG assessment on https://target.com"
 ```
 
@@ -177,7 +177,7 @@ Bolt হল CyberStrike-এর রিমোট টুল এক্সিকি�
 
 ```bash
 # npm / bun / pnpm / yarn
-npm i -g cyberstrike@latest
+npm i -g @cyberstrike-io/cyberstrike@latest
 
 # macOS
 brew install CyberStrikeus/tap/cyberstrike
