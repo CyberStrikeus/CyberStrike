@@ -46,6 +46,18 @@
   <a href="README.hi.md">हिन्दी</a>
 </p>
 
+<p align="center">
+  <a href="#zašto-cyberstrike">Zašto CyberStrike?</a> &bull;
+  <a href="#po-čemu-se-razlikuje">Po čemu se razlikuje</a> &bull;
+  <a href="#agenti">Agenti</a> &bull;
+  <a href="#mcp-ekosistem">MCP ekosistem</a> &bull;
+  <a href="#instalacija">Instalacija</a> &bull;
+  <a href="#ugrađeni-alati">Ugrađeni alati</a> &bull;
+  <a href="#kome-je-ovo-namijenjeno">Kome je ovo namijenjeno?</a> &bull;
+  <a href="CHANGELOG.md">Changelog</a> &bull;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
 ---
 
 ### Zašto CyberStrike?
