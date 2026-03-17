@@ -1,17 +1,18 @@
 <p align="center">
-  <a href="https://cyberstrike.us">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="CyberStrike logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
 </p>
-<p align="center">Açık kaynaklı yapay zeka kodlama asistanı.</p>
+
+<p align="center"><b>Yapay zeka destekli ofansif guvenlik ajan platformu.</b></p>
+
 <p align="center">
-  <a href="https://cyberstrike.us/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Lisans" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -27,110 +28,99 @@
   <a href="README.ja.md">日本語</a> |
   <a href="README.pl.md">Polski</a> |
   <a href="README.ru.md">Русский</a> |
+  <a href="README.bs.md">Bosanski</a> |
   <a href="README.ar.md">العربية</a> |
   <a href="README.no.md">Norsk</a> |
   <a href="README.br.md">Português (Brasil)</a> |
   <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a>
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.el.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a> |
+  <a href="README.hi.md">हिन्दी</a>
 </p>
 
-[![CyberStrike Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://cyberstrike.us)
-
 ---
+
+### CyberStrike Nedir?
+
+CyberStrike, terminalinizde calisan acik kaynakli, otonom bir ofansif guvenlik ajandir. 13'ten fazla uzmanlasmis guvenlik ajani, 120'den fazla OWASP test senaryosu ile birlikte gelir ve 15'ten fazla LLM saglayicisini destekler. Hedefe yonlendirin; kesif, zafiyet tespiti ve rapor olusturma islemlerini tek bir TUI uzerinden gerceklestirir.
+
+### Ozellikler
+
+- **13+ Guvenlik Ajani** — Web uygulamasi (OWASP WSTG), mobil (MASTG/MASVS), bulut (AWS/Azure/GCP), Active Directory/Kerberos, ag ve 8 uzmanlasmis proxy test ajani (IDOR, enjeksiyon, SSRF, yetkilendirme atlama ve daha fazlasi)
+- **30+ Yerlesik Arac** — Kabuk calistirma, HTTP istekleri, dosya islemleri, kod arama, web kazima, zafiyet raporlama
+- **Bolt** — MCP protokolu ve Ed25519 eslestirme ile uzak arac sunucusu. Guvenlik araclarini uzak sunucularda calistirin, terminalinizden kontrol edin
+- **MCP Ekosistemi** — Birinci taraf entegrasyonlar: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
+- **15+ LLM Saglayicisi** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, OpenAI uyumlu uc noktalar uzerinden yerel modeller ve daha fazlasi
+- **Coklu Arayuz** — TUI (terminal), Web (SolidJS), Masaustu (Tauri) — her yerde ayni ajan motoru
+- **LSP Destegi** — IDE tabanli is akislari icin dil sunucu protokolu entegrasyonu
+- **Eklenti Sistemi** — Eklenti SDK'si ile ozel ajanlar ve araclar olusturun
 
 ### Kurulum
 
 ```bash
-# YOLO
-curl -fsSL https://cyberstrike.us/install | bash
+# npm / bun / pnpm / yarn
+npm i -g cyberstrike@latest
 
-# Paket yöneticileri
-npm i -g cyberstrike@latest        # veya bun/pnpm/yarn
-scoop install cyberstrike             # Windows
-choco install cyberstrike             # Windows
-brew install CyberStrikeus/tap/cyberstrike # macOS ve Linux (önerilir, her zaman güncel)
-brew install cyberstrike              # macOS ve Linux (resmi brew formülü, daha az güncellenir)
-sudo pacman -S cyberstrike            # Arch Linux (Stable)
-paru -S cyberstrike-bin               # Arch Linux (Latest from AUR)
-mise use -g cyberstrike               # Tüm işletim sistemleri
-nix run nixpkgs#cyberstrike           # veya en güncel geliştirme dalı için github:CyberStrikeus/CyberStrike
+# macOS
+brew install CyberStrikeus/tap/cyberstrike
+
+# Windows
+scoop install cyberstrike
+
+# curl
+curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-> [!TIP]
-> Kurulumdan önce 0.1.x'ten eski sürümleri kaldırın.
-
-### Masaüstü Uygulaması (BETA)
-
-CyberStrike ayrıca masaüstü uygulaması olarak da mevcuttur. Doğrudan [sürüm sayfasından](https://github.com/CyberStrikeus/CyberStrike/releases) veya [cyberstrike.us/download](https://cyberstrike.us/download) adresinden indirebilirsiniz.
-
-| Platform              | İndirme                               |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `cyberstrike-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `cyberstrike-desktop-darwin-x64.dmg`     |
-| Windows               | `cyberstrike-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`, `.rpm` veya AppImage          |
+### Hizli Baslangic
 
 ```bash
-# macOS (Homebrew)
-brew install --cask cyberstrike-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+# CyberStrike'i baslatin
+cyberstrike
 
-#### Kurulum Dizini (Installation Directory)
-
-Kurulum betiği (install script), kurulum yolu (installation path) için aşağıdaki öncelik sırasını takip eder:
-
-1. `$CYBERSTRIKE_INSTALL_DIR` - Özel kurulum dizini
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification uyumlu yol
-3. `$HOME/bin` - Standart kullanıcı binary dizini (varsa veya oluşturulabiliyorsa)
-4. `$HOME/.cyberstrike/bin` - Varsayılan yedek konum
-
-```bash
-# Örnekler
-CYBERSTRIKE_INSTALL_DIR=/usr/local/bin curl -fsSL https://cyberstrike.us/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://cyberstrike.us/install | bash
+# Ilk calistirmada LLM saglayicinizi secin, ardindan:
+# "https://hedef.com uzerinde tam bir OWASP WSTG degerlendirmesi calistir"
 ```
 
 ### Ajanlar
 
-CyberStrike, `Tab` tuşuyla aralarında geçiş yapabileceğiniz iki yerleşik (built-in) ajan içerir.
+TUI'de `Tab` tusu ile ajanlar arasinda gecis yapin.
 
-- **build** - Varsayılan, geliştirme çalışmaları için tam erişimli ajan
-- **plan** - Analiz ve kod keşfi için salt okunur ajan
-  - Varsayılan olarak dosya düzenlemelerini reddeder
-  - Bash komutlarını çalıştırmadan önce izin ister
-  - Tanımadığınız kod tabanlarını keşfetmek veya değişiklikleri planlamak için ideal
+| Ajan | Alan | Aciklama |
+|------|------|----------|
+| **cyberstrike** | Genel | Varsayilan tam erisimli ofansif guvenlik ajani |
+| **web-application** | Web | OWASP Top 10, WSTG metodolojisi, API guvenligi |
+| **mobile-application** | Mobil | Android/iOS testi, Frida, MASTG/MASVS |
+| **cloud-security** | Bulut | AWS, Azure, GCP, IAM, CIS kiyaslama standartlari |
+| **internal-network** | Ag | Active Directory, Kerberos, yanal hareket |
 
-Ayrıca, karmaşık aramalar ve çok adımlı görevler için bir **genel** alt ajan bulunmaktadır.
-Bu dahili olarak kullanılır ve mesajlarda `@general` ile çağrılabilir.
+Ayrica hedefli zafiyet siniflari icin 8 uzmanlasmis **proxy test** ajani: IDOR, yetkilendirme, toplu atama, enjeksiyon, kimlik dogrulama, is mantigi, SSRF ve dosya saldirilari.
 
-[Ajanlar](https://cyberstrike.us/docs/agents) hakkında daha fazla bilgi edinin.
+### Masaustu Uygulamasi
 
-### Dokümantasyon
+macOS, Windows ve Linux icin mevcuttur. [Surumler sayfasindan](https://github.com/CyberStrikeus/CyberStrike/releases) indirin.
 
-CyberStrike'u nasıl yapılandıracağınız hakkında daha fazla bilgi için [**dokümantasyonumuza göz atın**](https://cyberstrike.us/docs).
+```bash
+# macOS
+brew install --cask cyberstrike-desktop
+# Windows
+scoop bucket add extras; scoop install extras/cyberstrike-desktop
+```
 
-### Katkıda Bulunma
+### Dokumantasyon
 
-CyberStrike'a katkıda bulunmak istiyorsanız, lütfen bir pull request göndermeden önce [katkıda bulunma dokümanlarımızı](./CONTRIBUTING.md) okuyun.
+- [Dokumantasyon](https://cyberstrike.io/docs)
+- [Katkida Bulunma](./CONTRIBUTING.md)
+- [Davranis Kurallari](./CODE_OF_CONDUCT.md)
 
-### CyberStrike Üzerine Geliştirme
+### Lisans
 
-CyberStrike ile ilgili bir proje üzerinde çalışıyorsanız ve projenizin adının bir parçası olarak "cyberstrike" kullanıyorsanız (örneğin, "cyberstrike-dashboard" veya "cyberstrike-mobile"), lütfen README dosyanıza projenin CyberStrike ekibi tarafından geliştirilmediğini ve bizimle hiçbir şekilde bağlantılı olmadığını belirten bir not ekleyin.
-
-### SSS
-
-#### Bu Claude Code'dan nasıl farklı?
-
-Yetenekler açısından Claude Code'a çok benzer. İşte temel farklar:
-
-- %100 açık kaynak
-- Herhangi bir sağlayıcıya bağlı değil. [CyberStrike Zen](https://cyberstrike.us/zen) üzerinden sunduğumuz modelleri önermekle birlikte; CyberStrike, Claude, OpenAI, Google veya hatta yerel modellerle kullanılabilir. Modeller geliştikçe aralarındaki farklar kapanacak ve fiyatlar düşecek, bu nedenle sağlayıcıdan bağımsız olmak önemlidir.
-- Kurulum gerektirmeyen hazır LSP desteği
-- TUI odaklı yaklaşım. CyberStrike, neovim kullanıcıları ve [terminal.shop](https://terminal.shop)'un geliştiricileri tarafından geliştirilmektedir; terminalde olabileceklerin sınırlarını zorlayacağız.
-- İstemci/sunucu (client/server) mimarisi. Bu, örneğin CyberStrike'un bilgisayarınızda çalışması ve siz onu bir mobil uygulamadan uzaktan yönetmenizi sağlar. TUI arayüzü olası istemcilerden sadece biridir.
+[AGPL-3.0-only](./LICENSE) — Ticari lisanslama icin [contact@cyberstrike.io](mailto:contact@cyberstrike.io) adresiyle iletisime gecin.
 
 ---
 
-**Topluluğumuza katılın** [Discord](https://discord.gg/cyberstrike) | [X.com](https://x.com/cyberstrike)
+<p align="center">
+  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+</p>

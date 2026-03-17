@@ -1,17 +1,18 @@
 <p align="center">
-  <a href="https://cyberstrike.us">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="CyberStrike logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
 </p>
-<p align="center">The open source AI coding agent.</p>
+
+<p align="center"><b>AI-powered offensive security agent platform.</b></p>
+
 <p align="center">
-  <a href="https://cyberstrike.us/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -32,106 +33,94 @@
   <a href="README.no.md">Norsk</a> |
   <a href="README.br.md">Português (Brasil)</a> |
   <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a>
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.el.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a> |
+  <a href="README.hi.md">हिन्दी</a>
 </p>
 
-[![CyberStrike Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://cyberstrike.us)
-
 ---
+
+### What is CyberStrike?
+
+CyberStrike is an open-source, autonomous offensive security agent that runs in your terminal. It comes with 13+ specialized security agents, 120+ OWASP test cases, and works with 15+ LLM providers. Point it at a target, and it handles reconnaissance, vulnerability discovery, and report generation — all from a single TUI.
+
+### Features
+
+- **13+ Security Agents** — Web application (OWASP WSTG), mobile (MASTG/MASVS), cloud (AWS/Azure/GCP), Active Directory/Kerberos, network, and 8 specialized proxy testers (IDOR, injection, SSRF, auth bypass, and more)
+- **30+ Built-in Tools** — Shell execution, HTTP requests, file operations, code search, web scraping, vulnerability reporting
+- **Bolt** — Remote tool server with MCP protocol and Ed25519 pairing. Run security tools on remote servers, control them from your terminal
+- **MCP Ecosystem** — First-party integrations: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
+- **15+ LLM Providers** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, local models via OpenAI-compatible endpoints, and more
+- **Multi-Interface** — TUI (terminal), Web (SolidJS), Desktop (Tauri) — same agent engine everywhere
+- **LSP Support** — Language server protocol integration for IDE-based workflows
+- **Plugin System** — Build custom agents and tools with the plugin SDK
 
 ### Installation
 
 ```bash
-# YOLO
-curl -fsSL https://cyberstrike.us/install | bash
+# npm / bun / pnpm / yarn
+npm i -g cyberstrike@latest
 
-# Package managers
-npm i -g cyberstrike@latest        # or bun/pnpm/yarn
-scoop install cyberstrike             # Windows
-choco install cyberstrike             # Windows
-brew install CyberStrikeus/tap/cyberstrike # macOS and Linux (recommended, always up to date)
-brew install cyberstrike              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S cyberstrike            # Arch Linux (Stable)
-paru -S cyberstrike-bin               # Arch Linux (Latest from AUR)
-mise use -g cyberstrike               # Any OS
-nix run nixpkgs#cyberstrike           # or github:CyberStrikeus/CyberStrike for latest dev branch
+# macOS
+brew install CyberStrikeus/tap/cyberstrike
+
+# Windows
+scoop install cyberstrike
+
+# curl
+curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
-
-### Desktop App (BETA)
-
-CyberStrike is also available as a desktop application. Download directly from the [releases page](https://github.com/CyberStrikeus/CyberStrike/releases) or [cyberstrike.us/download](https://cyberstrike.us/download).
-
-| Platform              | Download                              |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `cyberstrike-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `cyberstrike-desktop-darwin-x64.dmg`     |
-| Windows               | `cyberstrike-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`, `.rpm`, or AppImage           |
+### Quick Start
 
 ```bash
-# macOS (Homebrew)
-brew install --cask cyberstrike-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+# Start CyberStrike
+cyberstrike
 
-#### Installation Directory
-
-The install script respects the following priority order for the installation path:
-
-1. `$CYBERSTRIKE_INSTALL_DIR` - Custom installation directory
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
-3. `$HOME/bin` - Standard user binary directory (if it exists or can be created)
-4. `$HOME/.cyberstrike/bin` - Default fallback
-
-```bash
-# Examples
-CYBERSTRIKE_INSTALL_DIR=/usr/local/bin curl -fsSL https://cyberstrike.us/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://cyberstrike.us/install | bash
+# Select your LLM provider on first run, then:
+# "Run a full OWASP WSTG assessment on https://target.com"
 ```
 
 ### Agents
 
-CyberStrike includes two built-in agents you can switch between with the `Tab` key.
+Switch between agents with `Tab` in the TUI.
 
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+| Agent | Domain | Description |
+|-------|--------|-------------|
+| **cyberstrike** | General | Default full-access offensive security agent |
+| **web-application** | Web | OWASP Top 10, WSTG methodology, API security |
+| **mobile-application** | Mobile | Android/iOS testing, Frida, MASTG/MASVS |
+| **cloud-security** | Cloud | AWS, Azure, GCP, IAM, CIS benchmarks |
+| **internal-network** | Network | Active Directory, Kerberos, lateral movement |
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+Plus 8 specialized **proxy tester** agents for targeted vulnerability classes: IDOR, authorization, mass assignment, injection, authentication, business logic, SSRF, and file attacks.
 
-Learn more about [agents](https://cyberstrike.us/docs/agents).
+### Desktop App
+
+Available for macOS, Windows, and Linux. Download from the [releases page](https://github.com/CyberStrikeus/CyberStrike/releases).
+
+```bash
+# macOS
+brew install --cask cyberstrike-desktop
+# Windows
+scoop bucket add extras; scoop install extras/cyberstrike-desktop
+```
 
 ### Documentation
 
-For more info on how to configure CyberStrike, [**head over to our docs**](https://cyberstrike.us/docs).
+- [Documentation](https://cyberstrike.io/docs)
+- [Contributing](./CONTRIBUTING.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
 
-### Contributing
+### License
 
-If you're interested in contributing to CyberStrike, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-
-### Building on CyberStrike
-
-If you are working on a project that's related to CyberStrike and is using "cyberstrike" as part of its name, for example "cyberstrike-dashboard" or "cyberstrike-mobile", please add a note to your README to clarify that it is not built by the CyberStrike team and is not affiliated with us in any way.
-
-### FAQ
-
-#### How is this different from Claude Code?
-
-It's very similar to Claude Code in terms of capability. Here are the key differences:
-
-- 100% open source
-- Not coupled to any provider. Although we recommend the models we provide through [CyberStrike Zen](https://cyberstrike.us/zen), CyberStrike can be used with Claude, OpenAI, Google, or even local models. As models evolve, the gaps between them will close and pricing will drop, so being provider-agnostic is important.
-- Out-of-the-box LSP support
-- A focus on TUI. CyberStrike is built by neovim users and the creators of [terminal.shop](https://terminal.shop); we are going to push the limits of what's possible in the terminal.
-- A client/server architecture. This, for example, can allow CyberStrike to run on your computer while you drive it remotely from a mobile app, meaning that the TUI frontend is just one of the possible clients.
+[AGPL-3.0-only](./LICENSE) — Commercial licensing available via [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
 
 ---
 
-**Join our community** [Discord](https://discord.gg/cyberstrike) | [X.com](https://x.com/cyberstrike)
+<p align="center">
+  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+</p>

@@ -1,17 +1,18 @@
 <p align="center">
-  <a href="https://cyberstrike.us">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="CyberStrike logo">
-    </picture>
-  </a>
+  <picture>
+    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
+    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  </picture>
 </p>
-<p align="center">开源的 AI Coding Agent。</p>
+
+<p align="center"><b>AI 驱动的攻击性安全智能体平台。</b></p>
+
 <p align="center">
-  <a href="https://cyberstrike.us/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -27,109 +28,99 @@
   <a href="README.ja.md">日本語</a> |
   <a href="README.pl.md">Polski</a> |
   <a href="README.ru.md">Русский</a> |
+  <a href="README.bs.md">Bosanski</a> |
   <a href="README.ar.md">العربية</a> |
   <a href="README.no.md">Norsk</a> |
   <a href="README.br.md">Português (Brasil)</a> |
   <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a>
+  <a href="README.tr.md">Türkçe</a> |
+  <a href="README.uk.md">Українська</a> |
+  <a href="README.bn.md">বাংলা</a> |
+  <a href="README.el.md">Ελληνικά</a> |
+  <a href="README.vi.md">Tiếng Việt</a> |
+  <a href="README.hi.md">हिन्दी</a>
 </p>
 
-[![CyberStrike Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://cyberstrike.us)
-
 ---
+
+### 什么是 CyberStrike？
+
+CyberStrike 是一个开源的自主攻击性安全智能体，运行在你的终端中。它内置 13+ 个专业安全智能体、120+ 个 OWASP 测试用例，并支持 15+ 个 LLM 提供商。只需指定目标，它就能自动完成侦察、漏洞发现和报告生成——一切都在一个终端界面中完成。
+
+### 功能特性
+
+- **13+ 个安全智能体** — Web 应用（OWASP WSTG）、移动端（MASTG/MASVS）、云安全（AWS/Azure/GCP）、Active Directory/Kerberos、网络，以及 8 个专业代理测试器（IDOR、注入、SSRF、认证绕过等）
+- **30+ 个内置工具** — Shell 执行、HTTP 请求、文件操作、代码搜索、网页抓取、漏洞报告
+- **Bolt** — 基于 MCP 协议和 Ed25519 配对的远程工具服务器。在远程服务器上运行安全工具，从终端进行控制
+- **MCP 生态系统** — 第一方集成：[hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)、[cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)、[github-security-mcp](https://github.com/badchars/github-security-mcp)、[cve-mcp](https://github.com/badchars/cve-mcp)、[osint-mcp](https://github.com/badchars/osint-mcp)
+- **15+ 个 LLM 提供商** — Anthropic、OpenAI、Google、Amazon Bedrock、Azure、Groq、DeepInfra、Mistral、OpenRouter、通过 OpenAI 兼容端点接入的本地模型等
+- **多界面** — TUI（终端）、Web（SolidJS）、桌面端（Tauri）——随处使用同一个智能体引擎
+- **LSP 支持** — 语言服务器协议集成，适用于 IDE 工作流
+- **插件系统** — 使用插件 SDK 构建自定义智能体和工具
 
 ### 安装
 
 ```bash
-# 直接安装 (YOLO)
-curl -fsSL https://cyberstrike.us/install | bash
+# npm / bun / pnpm / yarn
+npm i -g cyberstrike@latest
 
-# 软件包管理器
-npm i -g cyberstrike@latest        # 也可使用 bun/pnpm/yarn
-scoop install cyberstrike             # Windows
-choco install cyberstrike             # Windows
-brew install CyberStrikeus/tap/cyberstrike # macOS 和 Linux（推荐，始终保持最新）
-brew install cyberstrike              # macOS 和 Linux（官方 brew formula，更新频率较低）
-sudo pacman -S cyberstrike            # Arch Linux (Stable)
-paru -S cyberstrike-bin               # Arch Linux (Latest from AUR)
-mise use -g cyberstrike               # 任意系统
-nix run nixpkgs#cyberstrike           # 或用 github:CyberStrikeus/CyberStrike 获取最新 dev 分支
+# macOS
+brew install CyberStrikeus/tap/cyberstrike
+
+# Windows
+scoop install cyberstrike
+
+# curl
+curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-> [!TIP]
-> 安装前请先移除 0.1.x 之前的旧版本。
-
-### 桌面应用程序 (BETA)
-
-CyberStrike 也提供桌面版应用。可直接从 [发布页 (releases page)](https://github.com/CyberStrikeus/CyberStrike/releases) 或 [cyberstrike.us/download](https://cyberstrike.us/download) 下载。
-
-| 平台                  | 下载文件                              |
-| --------------------- | ------------------------------------- |
-| macOS (Apple Silicon) | `cyberstrike-desktop-darwin-aarch64.dmg` |
-| macOS (Intel)         | `cyberstrike-desktop-darwin-x64.dmg`     |
-| Windows               | `cyberstrike-desktop-windows-x64.exe`    |
-| Linux                 | `.deb`、`.rpm` 或 AppImage            |
+### 快速开始
 
 ```bash
-# macOS (Homebrew Cask)
+# 启动 CyberStrike
+cyberstrike
+
+# 首次运行时选择你的 LLM 提供商，然后：
+# "对 https://target.com 执行完整的 OWASP WSTG 评估"
+```
+
+### 智能体
+
+在 TUI 中使用 `Tab` 键切换智能体。
+
+| 智能体 | 领域 | 描述 |
+|--------|------|------|
+| **cyberstrike** | 通用 | 默认全权限攻击性安全智能体 |
+| **web-application** | Web | OWASP Top 10、WSTG 方法论、API 安全 |
+| **mobile-application** | 移动端 | Android/iOS 测试、Frida、MASTG/MASVS |
+| **cloud-security** | 云 | AWS、Azure、GCP、IAM、CIS 基准 |
+| **internal-network** | 网络 | Active Directory、Kerberos、横向移动 |
+
+另外还有 8 个专业**代理测试器**智能体，针对特定漏洞类型：IDOR、授权、批量赋值、注入、认证、业务逻辑、SSRF 和文件攻击。
+
+### 桌面应用
+
+支持 macOS、Windows 和 Linux。从[发布页面](https://github.com/CyberStrikeus/CyberStrike/releases)下载。
+
+```bash
+# macOS
 brew install --cask cyberstrike-desktop
-# Windows (Scoop)
+# Windows
 scoop bucket add extras; scoop install extras/cyberstrike-desktop
 ```
 
-#### 安装目录
-
-安装脚本按照以下优先级决定安装路径：
-
-1. `$CYBERSTRIKE_INSTALL_DIR` - 自定义安装目录
-2. `$XDG_BIN_DIR` - 符合 XDG 基础目录规范的路径
-3. `$HOME/bin` - 如果存在或可创建的用户二进制目录
-4. `$HOME/.cyberstrike/bin` - 默认备用路径
-
-```bash
-# 示例
-CYBERSTRIKE_INSTALL_DIR=/usr/local/bin curl -fsSL https://cyberstrike.us/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://cyberstrike.us/install | bash
-```
-
-### Agents
-
-CyberStrike 内置两种 Agent，可用 `Tab` 键快速切换：
-
-- **build** - 默认模式，具备完整权限，适合开发工作
-- **plan** - 只读模式，适合代码分析与探索
-  - 默认拒绝修改文件
-  - 运行 bash 命令前会询问
-  - 便于探索未知代码库或规划改动
-
-另外还包含一个 **general** 子 Agent，用于复杂搜索和多步任务，内部使用，也可在消息中输入 `@general` 调用。
-
-了解更多 [Agents](https://cyberstrike.us/docs/agents) 相关信息。
-
 ### 文档
 
-更多配置说明请查看我们的 [**官方文档**](https://cyberstrike.us/docs)。
+- [文档](https://cyberstrike.io/docs)
+- [贡献指南](./CONTRIBUTING.md)
+- [行为准则](./CODE_OF_CONDUCT.md)
 
-### 参与贡献
+### 许可证
 
-如有兴趣贡献代码，请在提交 PR 前阅读 [贡献指南 (Contributing Docs)](./CONTRIBUTING.md)。
-
-### 基于 CyberStrike 进行开发
-
-如果你在项目名中使用了 “cyberstrike”（如 “cyberstrike-dashboard” 或 “cyberstrike-mobile”），请在 README 里注明该项目不是 CyberStrike 团队官方开发，且不存在隶属关系。
-
-### 常见问题 (FAQ)
-
-#### 这和 Claude Code 有什么不同？
-
-功能上很相似，关键差异：
-
-- 100% 开源。
-- 不绑定特定提供商。推荐使用 [CyberStrike Zen](https://cyberstrike.us/zen) 的模型，但也可搭配 Claude、OpenAI、Google 甚至本地模型。模型迭代会缩小差异、降低成本，因此保持 provider-agnostic 很重要。
-- 内置 LSP 支持。
-- 聚焦终端界面 (TUI)。CyberStrike 由 Neovim 爱好者和 [terminal.shop](https://terminal.shop) 的创建者打造，会持续探索终端的极限。
-- 客户端/服务器架构。可在本机运行，同时用移动设备远程驱动。TUI 只是众多潜在客户端之一。
+[AGPL-3.0-only](./LICENSE) — 商业许可请联系 [contact@cyberstrike.io](mailto:contact@cyberstrike.io)。
 
 ---
 
-**加入我们的社区** [Discord](https://discord.gg/cyberstrike) | [X.com](https://x.com/cyberstrike)
+<p align="center">
+  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+</p>
