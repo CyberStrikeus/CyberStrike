@@ -97,13 +97,47 @@ export function DialogMcp() {
       onSelect={(option) => {
         if (option.value === "__add__") {
           dialog.replace(() => <McpAddFlow />)
+        } else {
+          dialog.replace(() => <McpActions name={option.value} />)
         }
       }}
     />
   )
 }
 
-// --- MCP Add Flow ---
+function McpActions(props: { name: string }) {
+  const sdk = useSDK()
+  const sync = useSync()
+  const dialog = useDialog()
+  const { theme } = useTheme()
+
+  return (
+    <DialogSelect
+      title={props.name}
+      options={[
+        { value: "delete", title: "Delete" },
+        { value: "back", title: "Back" },
+      ]}
+      onSelect={async (option) => {
+        if (option.value === "delete") {
+          dialog.replace(() => (
+            <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
+              <text attributes={TextAttributes.BOLD} fg={theme.text}>Deleting {props.name}...</text>
+            </box>
+          ))
+          try {
+            await sdk.fetch(`${sdk.url}/mcp/${props.name}`, { method: "DELETE" })
+          } catch {}
+          try {
+            const status = await sdk.client.mcp.status()
+            if (status.data) sync.set("mcp", status.data)
+          } catch {}
+        }
+        dialog.replace(() => <DialogMcp />)
+      }}
+    />
+  )
+}
 
 function McpAddFlow() {
   const dialog = useDialog()
@@ -235,16 +269,41 @@ function McpNameStep(props: McpNameStepProps) {
           ? { type: "local" as const, command: props.command!, environment: props.environment }
           : { type: "remote" as const, url: props.url! }
 
+        // Check if MCP already exists
+        const existing = sync.data.mcp?.[name]
+        if (existing) {
+          const errMsg = `"${name}" already exists (${existing.status})`
+          if (props.type === "local") {
+            dialog.replace(() => <McpLocalCommandStep error={errMsg} />)
+          } else {
+            dialog.replace(() => <McpRemoteUrlStep error={errMsg} />)
+          }
+          return
+        }
+
         dialog.replace(() => <McpConnectingStep name={name} config={config} />)
 
         try {
-          // Persist to config file
+          // Try connecting first (in-memory only, no config persist yet)
+          const addResult = await sdk.client.mcp.add({ name, config })
+          const serverStatus = addResult.data?.[name]?.status ?? "unknown"
+
+          if (serverStatus !== "connected") {
+            // Connection failed — remove from memory, don't persist
+            await sdk.fetch(`${sdk.url}/mcp/${name}`, { method: "DELETE" }).catch(() => {})
+            const errMsg = (addResult.data?.[name] as any)?.error ?? `Connection failed (${serverStatus})`
+            if (props.type === "local") {
+              dialog.replace(() => <McpLocalCommandStep error={errMsg} />)
+            } else {
+              dialog.replace(() => <McpRemoteUrlStep error={errMsg} />)
+            }
+            return
+          }
+
+          // Connection succeeded — now persist to config
           await sdk.client.config.update({
             config: { mcp: { [name]: config } },
           })
-
-          // Connect the MCP server
-          await sdk.client.mcp.add({ name, config })
 
           // Refresh status
           const status = await sdk.client.mcp.status()
@@ -252,9 +311,10 @@ function McpNameStep(props: McpNameStepProps) {
             sync.set("mcp", status.data)
           }
 
-          const serverStatus = status.data?.[name]?.status ?? "unknown"
           dialog.replace(() => <McpDoneStep name={name} status={serverStatus} />)
         } catch (e) {
+          // Clean up on error
+          await sdk.fetch(`${sdk.url}/mcp/${name}`, { method: "DELETE" }).catch(() => {})
           const msg = e instanceof Error ? e.message : String(e)
           if (props.type === "local") {
             dialog.replace(() => <McpLocalCommandStep error={msg} />)
@@ -379,6 +439,27 @@ function BoltNameStep(props: { url: string; adminToken: string; defaultName: str
         const name = (value || props.defaultName).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "")
         if (!name) return
 
+        // Check duplicate name
+        if (sync.data.bolt?.[name]) {
+          dialog.replace(() => <BoltUrlStep error={`"${name}" already exists`} />)
+          return
+        }
+
+        // Check duplicate URL
+        try {
+          const cfgRes = await sdk.fetch(`${sdk.url}/config`)
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json() as any
+            const inputOrigin = new URL(props.url).origin
+            for (const [existing, bolt] of Object.entries(cfg.bolt ?? {}) as [string, any][]) {
+              if (bolt.url && new URL(bolt.url).origin === inputOrigin) {
+                dialog.replace(() => <BoltUrlStep error={`Already configured as "${existing}"`} />)
+                return
+              }
+            }
+          }
+        } catch {}
+
         dialog.replace(() => <BoltPairingStep name={name} />)
 
         try {
@@ -440,57 +521,38 @@ function BoltPairingStep(props: { name: string }) {
   )
 }
 
-// --- Helpers ---
+function BoltActions(props: { name: string }) {
+  const sdk = useSDK()
+  const sync = useSync()
+  const dialog = useDialog()
+  const { theme } = useTheme()
 
-function deriveName(command: string[]): string {
-  // npx cve-mcp → cve-mcp
-  // bunx hackbrowser-mcp → hackbrowser-mcp
-  // bun run /path/to/hackbrowser-mcp/src/index.ts --mcp → hackbrowser-mcp
-  // bun run ./server.ts → server
-  // /path/to/binary → binary
-  const runner = command[0]
-  if ((runner === "npx" || runner === "bunx") && command.length > 1) {
-    return command[1].replace(/^@[^/]+\//, "")
-  }
-  if (runner === "bun" && command[1] === "run" && command.length > 2) {
-    return nameFromPath(command[2])
-  }
-  if (runner === "node" && command.length > 1) {
-    return nameFromPath(command[1])
-  }
-  if (command.length === 1) {
-    return nameFromPath(runner)
-  }
-  // Find first arg that looks like a file path
-  const file = command.slice(1).find((a) => !a.startsWith("-"))
-  return file ? nameFromPath(file) : nameFromPath(runner)
-}
-
-function nameFromPath(filepath: string): string {
-  const parts = filepath.replace(/\\/g, "/").split("/").filter(Boolean)
-  const filename = parts[parts.length - 1] ?? filepath
-  const base = filename.replace(/\.[^.]+$/, "")
-  // If filename is index/main/server, use parent dir (skip src/dist/lib)
-  if (["index", "main", "server", "app"].includes(base) && parts.length > 1) {
-    const skip = new Set(["src", "dist", "lib", "bin", "build"])
-    for (let i = parts.length - 2; i >= 0; i--) {
-      if (!skip.has(parts[i])) return parts[i]
-    }
-  }
-  return base
-}
-
-function parseEnvVars(input: string): Record<string, string> {
-  const env: Record<string, string> = {}
-  if (!input.trim()) return env
-  const pairs = input.split(",").map((s) => s.trim()).filter(Boolean)
-  for (const pair of pairs) {
-    const eq = pair.indexOf("=")
-    if (eq > 0) {
-      env[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim()
-    }
-  }
-  return env
+  return (
+    <DialogSelect
+      title={props.name}
+      options={[
+        { value: "delete", title: "Delete" },
+        { value: "back", title: "Back" },
+      ]}
+      onSelect={async (option) => {
+        if (option.value === "delete") {
+          dialog.replace(() => (
+            <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
+              <text attributes={TextAttributes.BOLD} fg={theme.text}>Deleting {props.name}...</text>
+            </box>
+          ))
+          try {
+            await sdk.fetch(`${sdk.url}/bolt/${props.name}`, { method: "DELETE" })
+          } catch {}
+          try {
+            const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
+            if (statusRes.ok) sync.set("bolt", await statusRes.json())
+          } catch {}
+        }
+        dialog.replace(() => <DialogBolt />)
+      }}
+    />
+  )
 }
 
 // --- Bolt Dialog (standalone /bolt command) ---
@@ -560,27 +622,6 @@ export function DialogBolt() {
         dialog.replace(() => <BoltUrlStep />)
       },
     },
-    {
-      keybind: Keybind.parse("ctrl+d")[0],
-      title: "delete",
-      onTrigger: async (option: DialogSelectOption<string>) => {
-        if (option.value === "__add_bolt__") return
-        if (loading() !== null) return
-
-        setLoading(option.value)
-        try {
-          await sdk.fetch(`${sdk.url}/bolt/${option.value}`, { method: "DELETE" })
-          const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
-          if (statusRes.ok) {
-            sync.set("bolt", await statusRes.json())
-          }
-        } catch (error) {
-          console.error("Failed to delete Bolt:", error)
-        } finally {
-          setLoading(null)
-        }
-      },
-    },
   ])
 
   return (
@@ -592,6 +633,8 @@ export function DialogBolt() {
       onSelect={(option) => {
         if (option.value === "__add_bolt__") {
           dialog.replace(() => <BoltUrlStep />)
+        } else {
+          dialog.replace(() => <BoltActions name={option.value} />)
         }
       }}
     />
@@ -640,4 +683,50 @@ function BoltDoneStep(props: { name: string; status: string }) {
       </text>
     </box>
   )
+}
+
+// --- Helpers ---
+
+function deriveName(command: string[]): string {
+  const runner = command[0]
+  if ((runner === "npx" || runner === "bunx") && command.length > 1) {
+    return command[1].replace(/^@[^/]+\//, "")
+  }
+  if (runner === "bun" && command[1] === "run" && command.length > 2) {
+    return nameFromPath(command[2])
+  }
+  if (runner === "node" && command.length > 1) {
+    return nameFromPath(command[1])
+  }
+  if (command.length === 1) {
+    return nameFromPath(runner)
+  }
+  const file = command.slice(1).find((a) => !a.startsWith("-"))
+  return file ? nameFromPath(file) : nameFromPath(runner)
+}
+
+function nameFromPath(filepath: string): string {
+  const parts = filepath.replace(/\\/g, "/").split("/").filter(Boolean)
+  const filename = parts[parts.length - 1] ?? filepath
+  const base = filename.replace(/\.[^.]+$/, "")
+  if (["index", "main", "server", "app"].includes(base) && parts.length > 1) {
+    const skip = new Set(["src", "dist", "lib", "bin", "build"])
+    for (let i = parts.length - 2; i >= 0; i--) {
+      if (!skip.has(parts[i])) return parts[i]
+    }
+  }
+  return base
+}
+
+function parseEnvVars(input: string): Record<string, string> {
+  const env: Record<string, string> = {}
+  if (!input.trim()) return env
+  const pairs = input.split(",").map((s) => s.trim()).filter(Boolean)
+  for (const pair of pairs) {
+    const eq = pair.indexOf("=")
+    if (eq > 0) {
+      env[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim()
+    }
+  }
+  return env
 }

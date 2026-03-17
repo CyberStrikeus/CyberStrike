@@ -79,6 +79,7 @@
     "@cyberstrikeus/plugin": "workspace:*",
     "@cyberstrikeus/script": "workspace:*",
     "@cyberstrikeus/sdk": "workspace:*",
+    "@opentui/core": "0.1.87",
     "playwright": "1.58.2",
     "typescript": "catalog:"
   },

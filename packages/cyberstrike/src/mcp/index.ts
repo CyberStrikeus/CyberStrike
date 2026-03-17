@@ -16,7 +16,9 @@ import z from "zod/v4"
 import { Instance } from "../project/instance"
 import path from "node:path"
 import { Installation } from "../installation"
+import { Filesystem } from "../util/filesystem"
 import { withTimeout } from "@/util/timeout"
+import { modify, applyEdits } from "jsonc-parser"
 import { McpOAuthProvider } from "./oauth-provider"
 import { McpOAuthCallback } from "./oauth-callback"
 import { McpAuth } from "./auth"
@@ -718,19 +720,19 @@ export namespace MCP {
     delete s.status[name]
     boltNames.delete(name)
 
-    // Remove from config file
-    const filepath = path.join(Instance.directory, "cyberstrike.json")
-    try {
-      const raw = await Bun.file(filepath).text()
-      const config = JSON.parse(raw)
-      if (config.bolt?.[name]) {
-        delete config.bolt[name]
-        if (Object.keys(config.bolt).length === 0) delete config.bolt
-        await Bun.write(filepath, JSON.stringify(config, null, 2))
+    for (const filepath of await findConfigFiles()) {
+      try {
+        const raw = await Bun.file(filepath).text()
+        const edits = modify(raw, ["bolt", name], undefined, {})
+        if (edits.length > 0) {
+          await Bun.write(filepath, applyEdits(raw, edits))
+          log.info("bolt removed from config", { name, filepath })
+        }
+      } catch {
+        // file may not exist
       }
-    } catch {
-      // config file may not exist
     }
+    await Instance.dispose()
     log.info("bolt removed", { name })
   }
 
@@ -787,6 +789,43 @@ export namespace MCP {
       delete s.clients[name]
     }
     s.status[name] = { status: "disabled" }
+  }
+
+  async function findConfigFiles() {
+    const files: string[] = []
+    // Project-level config files (same as Config.get() discovery)
+    for (const filename of ["cyberstrike.jsonc", "cyberstrike.json"]) {
+      const found = await Filesystem.findUp(filename, Instance.directory, Instance.worktree)
+      files.push(...found)
+    }
+    // .cyberstrike directory config files
+    for await (const dir of Filesystem.up({ targets: [".cyberstrike"], start: Instance.directory, stop: Instance.worktree })) {
+      for (const filename of ["cyberstrike.jsonc", "cyberstrike.json"]) {
+        files.push(path.join(dir, filename))
+      }
+    }
+    return files
+  }
+
+  export async function remove(name: string) {
+    await disconnect(name)
+    const s = await state()
+    delete s.status[name]
+
+    for (const filepath of await findConfigFiles()) {
+      try {
+        const raw = await Bun.file(filepath).text()
+        const edits = modify(raw, ["mcp", name], undefined, {})
+        if (edits.length > 0) {
+          await Bun.write(filepath, applyEdits(raw, edits))
+          log.info("mcp removed from config", { name, filepath })
+        }
+      } catch {
+        // file may not exist
+      }
+    }
+    await Instance.dispose()
+    log.info("mcp removed", { name })
   }
 
   export async function tools() {

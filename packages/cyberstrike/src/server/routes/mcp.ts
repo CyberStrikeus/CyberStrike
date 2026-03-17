@@ -60,6 +60,29 @@ export const McpRoutes = lazy(() =>
         return c.json(result.status)
       },
     )
+    .delete(
+      "/:name",
+      describeRoute({
+        summary: "Remove MCP server",
+        description: "Disconnect and permanently remove an MCP server from configuration.",
+        operationId: "mcp.remove",
+        responses: {
+          200: {
+            description: "MCP server removed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        const name = c.req.param("name")
+        await MCP.remove(name)
+        return c.json(true)
+      },
+    )
     .post(
       "/:name/auth",
       describeRoute({
