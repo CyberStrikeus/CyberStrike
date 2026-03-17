@@ -1,7 +1,7 @@
 id = "cyberstrike"
 name = "CyberStrike"
 description = "The open source coding agent."
-version = "1.1.1"
+version = "1.1.2"
 schema_version = 1
 authors = ["Anomaly"]
 repository = "https://github.com/CyberStrikeus/CyberStrike"
@@ -11,26 +11,26 @@ name = "CyberStrike"
 icon = "./icons/cyberstrike.svg"
 
 [agent_servers.cyberstrike.targets.darwin-aarch64]
-archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.1/cyberstrike-darwin-arm64.zip"
+archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.2/cyberstrike-darwin-arm64.zip"
 cmd = "./cyberstrike"
 args = ["acp"]
 
 [agent_servers.cyberstrike.targets.darwin-x86_64]
-archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.1/cyberstrike-darwin-x64.zip"
+archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.2/cyberstrike-darwin-x64.zip"
 cmd = "./cyberstrike"
 args = ["acp"]
 
 [agent_servers.cyberstrike.targets.linux-aarch64]
-archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.1/cyberstrike-linux-arm64.tar.gz"
+archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.2/cyberstrike-linux-arm64.tar.gz"
 cmd = "./cyberstrike"
 args = ["acp"]
 
 [agent_servers.cyberstrike.targets.linux-x86_64]
-archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.1/cyberstrike-linux-x64.tar.gz"
+archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.2/cyberstrike-linux-x64.tar.gz"
 cmd = "./cyberstrike"
 args = ["acp"]
 
 [agent_servers.cyberstrike.targets.windows-x86_64]
-archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.1/cyberstrike-windows-x64.zip"
+archive = "https://github.com/CyberStrikeus/CyberStrike/releases/download/v1.1.2/cyberstrike-windows-x64.zip"
 cmd = "./cyberstrike.exe"
 args = ["acp"]
