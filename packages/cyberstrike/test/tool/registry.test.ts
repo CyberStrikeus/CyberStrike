@@ -115,10 +115,10 @@ describe("tool.registry", () => {
       directory: tmp.path,
       fn: async () => {
         // Registry should not crash when a tool has unresolved external deps.
-        // The tool may or may not appear in ids depending on whether the
-        // dependency is installed — the key assertion is no throw.
+        // The tool with missing deps is skipped gracefully.
         const ids = await ToolRegistry.ids()
         expect(Array.isArray(ids)).toBe(true)
+        expect(ids).not.toContain("cowsay")
       },
     })
   })
