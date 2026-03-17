@@ -234,10 +234,17 @@ jobs:
 
       - name: Setup git committer
         id: committer
+        continue-on-error: true
         uses: ./.github/actions/setup-git-committer
         with:
           cyberstrike-app-id: ${{ vars.CYBERSTRIKE_APP_ID }}
           cyberstrike-app-secret: ${{ secrets.CYBERSTRIKE_APP_SECRET }}
+
+      - name: Fallback git config
+        if: steps.committer.outcome == 'failure'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - uses: actions/download-artifact@v4
         with:
@@ -268,5 +275,6 @@ jobs:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
           AUR_KEY: ${{ secrets.AUR_KEY }}
-          GITHUB_TOKEN: ${{ steps.committer.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.committer.outputs.token || github.token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: false
