@@ -10,11 +10,19 @@ CyberStrike is an AI-powered offensive security agent that runs locally on your 
 
 CyberStrike does **not** sandbox the agent. The permission system exists as a UX feature to help users stay aware of what actions the agent is taking — it prompts for confirmation before executing commands, writing files, etc. However, it is not designed to provide security isolation.
 
-If you need true isolation, run CyberStrike inside a Docker container or VM. The Bolt system (Kali MCP) runs security tools in Docker by design.
+If you need true isolation, run CyberStrike inside a Docker container or VM. The Bolt system runs security tools on remote servers by design.
 
 ### Server Mode
 
 Server mode is opt-in only. When enabled, set `CYBERSTRIKE_SERVER_PASSWORD` to require HTTP Basic Auth. Without this, the server runs unauthenticated (with a warning). It is the end user's responsibility to secure the server.
+
+### Bolt Remote Tool Server
+
+Bolt connections are authenticated with Ed25519 key pairs. All tool execution happens on the remote server — your local machine only sends commands over MCP protocol. Ensure your Bolt server is on a trusted network or behind a VPN.
+
+### MCP Servers
+
+CyberStrike connects to external MCP servers (hackbrowser-mcp, cloud-audit-mcp, etc.) that you explicitly configure. These servers run with whatever permissions you grant them. Review MCP server code before adding it to your configuration.
 
 ### Out of Scope
 
@@ -29,6 +37,18 @@ Server mode is opt-in only. When enabled, set `CYBERSTRIKE_SERVER_PASSWORD` to r
 
 ---
 
+## Supported Versions
+
+| Version | Supported |
+|---------|-----------|
+| Latest release | Yes |
+| Previous minor | Best effort |
+| Older versions | No |
+
+We recommend always running the latest version.
+
+---
+
 ## Reporting Security Issues
 
 We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
@@ -37,6 +57,18 @@ To report a security issue, please use the GitHub Security Advisory ["Report a V
 
 The team will send a response indicating the next steps in handling your report. After the initial reply, we will keep you informed of progress towards a fix and full announcement, and may ask for additional information.
 
+**Please do NOT:**
+- Open a public GitHub issue for security vulnerabilities
+- Post vulnerability details on Discord or social media
+- Exploit vulnerabilities beyond what is necessary to demonstrate the issue
+
 ## Escalation
 
-If you do not receive an acknowledgement within 6 business days, you may send an email to **security@cyberstrike.us**
+If you do not receive an acknowledgement within 5 business days, contact **security@cyberstrike.io**.
+
+## Disclosure Policy
+
+- We aim to confirm receipt within 2 business days
+- We aim to provide an initial assessment within 5 business days
+- We coordinate disclosure timelines with the reporter
+- We credit reporters in the security advisory (unless anonymity is requested)
