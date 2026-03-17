@@ -776,7 +776,7 @@ export const SessionRoutes = lazy(() =>
 
         const parsed = Request.parseRawRequest(body.text)
         if (parsed) {
-          const model = body.model ?? (await Provider.defaultModel())
+          const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
           const normalizedPath = await Request.normalize({
             path: parsed.path,
             providerID: model.providerID,

@@ -747,7 +747,7 @@ export namespace SessionPrompt {
     throw new Error("Impossible")
   })
 
-  async function lastModel(sessionID: string) {
+  export async function lastModel(sessionID: string) {
     for await (const item of MessageV2.stream(sessionID)) {
       if (item.info.role === "user" && item.info.model) return item.info.model
     }
