@@ -227,27 +227,35 @@ export async function buildNotes(from: string, to: string) {
 
   console.log("generating changelog since " + from)
 
-  const cyberstrike = await createCyberstrike({ port: 0 })
   const notes: string[] = []
 
   try {
-    const lines = await generateChangelog(commits, cyberstrike)
-    notes.push(...lines)
-    console.log("---- Generated Changelog ----")
-    console.log(notes.join("\n"))
-    console.log("-----------------------------")
-  } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
-      console.log("Changelog generation timed out, using raw commits")
-      for (const commit of commits) {
-        const attribution = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
-        notes.push(`- ${commit.message}${attribution}`)
+    const cyberstrike = await createCyberstrike({ port: 0 })
+    try {
+      const lines = await generateChangelog(commits, cyberstrike)
+      notes.push(...lines)
+      console.log("---- Generated Changelog ----")
+      console.log(notes.join("\n"))
+      console.log("-----------------------------")
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        console.log("Changelog generation timed out, using raw commits")
+        for (const commit of commits) {
+          const attribution = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
+          notes.push(`- ${commit.message}${attribution}`)
+        }
+      } else {
+        throw error
       }
-    } else {
-      throw error
+    } finally {
+      await cyberstrike.server.close()
     }
-  } finally {
-    await cyberstrike.server.close()
+  } catch (error) {
+    console.log("Could not start cyberstrike for changelog generation, using raw commits:", (error as Error).message)
+    for (const commit of commits) {
+      const attribution = commit.author && !Script.team.includes(commit.author) ? ` (@${commit.author})` : ""
+      notes.push(`- ${commit.message}${attribution}`)
+    }
   }
   console.log("changelog generation complete")
 
