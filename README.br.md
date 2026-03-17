@@ -51,6 +51,7 @@
   <a href="#o-que-o-torna-diferente">O que o torna diferente</a> &bull;
   <a href="#agentes">Agentes</a> &bull;
   <a href="#ecossistema-mcp">Ecossistema MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#instalacao">Instalacao</a> &bull;
   <a href="#ferramentas-integradas">Ferramentas integradas</a> &bull;
   <a href="#para-quem-e-isso">Para quem e isso?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike se conecta a servidores MCP especializados que estendem suas capacid
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Reconhecimento OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Tudo codigo aberto. Tudo instalavel com `npx`. Conecte-os ao CyberStrike ou use de forma independente com qualquer cliente MCP.
+
+---
+
+### Bolt
+
+Bolt e o servidor de execucao remota de ferramentas do CyberStrike. Em vez de rodar ferramentas de seguranca no seu notebook, implante-as em um VPS (ou varios) e controle tudo do seu terminal local.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Como funciona:**
+- Implante Bolt em qualquer servidor com seu toolkit de pentest instalado
+- Pareie com chaves Ed25519 — sem senhas, sem segredos compartilhados
+- Agentes CyberStrike chamam ferramentas remotamente pelo protocolo MCP
+- Resultados sao transmitidos em tempo real para sua TUI local
+- Gerencie conexoes pela TUI: adicionar, remover, monitorar status
+
+**Por que isso importa:** Sua superficie de ataque fica em infraestrutura dedicada. Execute scans pesados de um VPS com melhor largura de banda, mantenha suas ferramentas atualizadas em um unico lugar e alterne entre multiplos servidores de ataque a partir de um unico terminal.
 
 ---
 

@@ -51,6 +51,7 @@
   <a href="#cosa-lo-rende-diverso">Cosa Lo Rende Diverso</a> &bull;
   <a href="#agenti">Agenti</a> &bull;
   <a href="#ecosistema-mcp">Ecosistema MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installazione">Installazione</a> &bull;
   <a href="#strumenti-integrati">Strumenti Integrati</a> &bull;
   <a href="#a-chi-è-rivolto">A Chi &Egrave; Rivolto?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike si connette a server MCP specializzati che ne estendono le capacit&a
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Ricognizione OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Tutti open source. Tutti installabili con `npx`. Collegali a CyberStrike o usali autonomamente con qualsiasi client MCP.
+
+---
+
+### Bolt
+
+Bolt &egrave; il server di esecuzione remota degli strumenti di CyberStrike. Invece di eseguire strumenti di sicurezza sul tuo portatile, distribuiscili su un VPS (o pi&ugrave;) e controlla tutto dal tuo terminale locale.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Come funziona:**
+- Distribuisci Bolt su qualsiasi server con il tuo toolkit di pentesting installato
+- Associa con chiavi Ed25519 — nessuna password, nessun segreto condiviso
+- Gli agenti CyberStrike chiamano gli strumenti da remoto tramite protocollo MCP
+- I risultati vengono trasmessi in tempo reale alla tua TUI locale
+- Gestisci le connessioni dalla TUI: aggiungi, rimuovi, monitora lo stato
+
+**Perch&eacute; &egrave; importante:** La tua superficie d'attacco rimane su infrastruttura dedicata. Esegui scansioni pesanti da un VPS con maggiore larghezza di banda, mantieni i tuoi strumenti aggiornati in un unico punto e passa da un server d'attacco all'altro da un singolo terminale.
 
 ---
 

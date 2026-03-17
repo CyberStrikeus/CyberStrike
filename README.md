@@ -51,6 +51,7 @@
   <a href="#what-makes-it-different">What Makes It Different</a> &bull;
   <a href="#agents">Agents</a> &bull;
   <a href="#mcp-ecosystem">MCP Ecosystem</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installation">Installation</a> &bull;
   <a href="#built-in-tools">Built-in Tools</a> &bull;
   <a href="#who-is-this-for">Who Is This For?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike connects to specialized MCP servers that extend its capabilities:
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT recon — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 All open source. All installable with `npx`. Plug them into CyberStrike or use them standalone with any MCP client.
+
+---
+
+### Bolt
+
+Bolt is CyberStrike's remote tool execution server. Instead of running security tools on your laptop, deploy them on a VPS (or multiple) and control everything from your local terminal.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**How it works:**
+- Deploy Bolt on any server with your pentest toolkit installed
+- Pair with Ed25519 keys — no passwords, no shared secrets
+- CyberStrike agents call tools remotely over MCP protocol
+- Results stream back to your local TUI in real-time
+- Manage connections from the TUI: add, remove, monitor status
+
+**Why it matters:** Your attack surface stays on dedicated infrastructure. Run heavy scans from a VPS with better bandwidth, keep your tools updated in one place, and switch between multiple attack servers from a single terminal.
 
 ---
 

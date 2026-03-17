@@ -51,6 +51,7 @@
   <a href="#co-go-wyróżnia">Co Go Wyróżnia</a> &bull;
   <a href="#agenci">Agenci</a> &bull;
   <a href="#ekosystem-mcp">Ekosystem MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#instalacja">Instalacja</a> &bull;
   <a href="#wbudowane-narzędzia">Wbudowane Narzędzia</a> &bull;
   <a href="#dla-kogo-to-jest">Dla Kogo To Jest?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike łączy się ze specjalizowanymi serwerami MCP, które rozszerzają 
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Wszystkie open source. Wszystkie instalowalne przez `npx`. Podłącz je do CyberStrike lub używaj samodzielnie z dowolnym klientem MCP.
+
+---
+
+### Bolt
+
+Bolt to serwer zdalnego uruchamiania narzędzi CyberStrike. Zamiast uruchamiać narzędzia bezpieczeństwa na swoim laptopie, wdróż je na VPS (lub kilku) i kontroluj wszystko z lokalnego terminala.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Jak to działa:**
+- Wdróż Bolt na dowolnym serwerze z zainstalowanym zestawem narzędzi pentestowych
+- Sparuj kluczami Ed25519 — bez haseł, bez współdzielonych sekretów
+- Agenci CyberStrike wywołują narzędzia zdalnie przez protokół MCP
+- Wyniki są strumieniowane w czasie rzeczywistym do Twojego lokalnego TUI
+- Zarządzaj połączeniami z TUI: dodawaj, usuwaj, monitoruj status
+
+**Dlaczego to ważne:** Twoja powierzchnia ataku pozostaje na dedykowanej infrastrukturze. Uruchamiaj ciężkie skany z VPS z lepszą przepustowością, utrzymuj narzędzia aktualne w jednym miejscu i przełączaj się między wieloma serwerami atakowymi z jednego terminala.
 
 ---
 

@@ -51,6 +51,7 @@
   <a href="#farki-ne">Farki Ne?</a> &bull;
   <a href="#ajanlar">Ajanlar</a> &bull;
   <a href="#mcp-ekosistemi">MCP Ekosistemi</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#kurulum">Kurulum</a> &bull;
   <a href="#yerlesik-araclar">Yerlesik Araclar</a> &bull;
   <a href="#kimler-icin">Kimler Icin?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike, yeteneklerini genisleten uzmanlasmis MCP sunucularina baglanir:
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Hepsi acik kaynak. Hepsi `npx` ile kurulabilir. CyberStrike'a baglayin veya herhangi bir MCP istemcisiyle bagimsiz kullanin.
+
+---
+
+### Bolt
+
+Bolt, CyberStrike'in uzaktan arac calistirma sunucusudur. Guvenlik araclarini dizustu bilgisayarinizda calistirmak yerine, bunlari bir VPS'e (veya birden fazlasina) kurun ve her seyi yerel terminalinizden kontrol edin.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Nasil calisir:**
+- Bolt'u sizma testi arac setinizin yuklu oldugu herhangi bir sunucuya kurun
+- Ed25519 anahtarlariyla eslestirin — sifre yok, paylasilan sir yok
+- CyberStrike ajanlari araclari MCP protokolu uzerinden uzaktan cagirir
+- Sonuclar yerel TUI'nize gercek zamanli olarak akar
+- Baglantilari TUI'den yonetin: ekleme, kaldirma, durum izleme
+
+**Neden onemli:** Saldiri yuzeyiniz ozel altyapida kalir. Daha iyi bant genisligine sahip bir VPS'ten agir taramalar calistirin, araclari tek bir yerde guncel tutun ve tek bir terminalden birden fazla saldiri sunucusu arasinda gecis yapin.
 
 ---
 

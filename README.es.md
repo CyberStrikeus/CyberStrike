@@ -51,6 +51,7 @@
   <a href="#que-lo-hace-diferente">Que lo hace diferente</a> &bull;
   <a href="#agentes">Agentes</a> &bull;
   <a href="#ecosistema-mcp">Ecosistema MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#instalacion">Instalacion</a> &bull;
   <a href="#herramientas-integradas">Herramientas integradas</a> &bull;
   <a href="#para-quien-es">Para quien es?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike se conecta a servidores MCP especializados que amplian sus capacidad
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Reconocimiento OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Todos de codigo abierto. Todos instalables con `npx`. Conectalos a CyberStrike o usalos de forma independiente con cualquier cliente MCP.
+
+---
+
+### Bolt
+
+Bolt es el servidor de ejecucion remota de herramientas de CyberStrike. En lugar de ejecutar herramientas de seguridad en tu portatil, desplegalas en un VPS (o varios) y controla todo desde tu terminal local.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Como funciona:**
+- Despliega Bolt en cualquier servidor con tu kit de pentesting instalado
+- Empareja con claves Ed25519 — sin contrasenas, sin secretos compartidos
+- Los agentes de CyberStrike llaman herramientas remotamente a traves del protocolo MCP
+- Los resultados se transmiten en tiempo real a tu TUI local
+- Gestiona conexiones desde la TUI: agregar, eliminar, monitorear estado
+
+**Por que importa:** Tu superficie de ataque permanece en infraestructura dedicada. Ejecuta escaneos pesados desde un VPS con mejor ancho de banda, manten tus herramientas actualizadas en un solo lugar y cambia entre multiples servidores de ataque desde una sola terminal.
 
 ---
 
