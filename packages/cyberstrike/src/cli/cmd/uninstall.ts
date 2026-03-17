@@ -128,10 +128,10 @@ async function showRemovalSummary(targets: RemovalTargets, method: Installation.
 
   if (method !== "curl" && method !== "unknown") {
     const cmds: Record<string, string> = {
-      npm: "npm uninstall -g cyberstrike",
-      pnpm: "pnpm uninstall -g cyberstrike",
-      bun: "bun remove -g cyberstrike",
-      yarn: "yarn global remove cyberstrike",
+      npm: "npm uninstall -g @cyberstrike-io/cyberstrike",
+      pnpm: "pnpm uninstall -g @cyberstrike-io/cyberstrike",
+      bun: "bun remove -g @cyberstrike-io/cyberstrike",
+      yarn: "yarn global remove @cyberstrike-io/cyberstrike",
       brew: "brew uninstall cyberstrike",
       choco: "choco uninstall cyberstrike",
       scoop: "scoop uninstall cyberstrike",

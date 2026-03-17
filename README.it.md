@@ -53,7 +53,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
   <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licenza" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
@@ -68,7 +68,7 @@ I test di sicurezza sono ancora in gran parte manuali. I pentester si destreggia
 **CyberStrike cambia tutto questo.** &Egrave; un agente IA autonomo che comprende la metodologia della sicurezza offensiva — non si limita a eseguire strumenti, ma ragiona su cosa testare, concatena le scoperte e adatta il proprio approccio in base a ci&ograve; che trova. Immaginalo come un membro instancabile del red team nel tuo terminale che segue OWASP WSTG, sa quando cambiare rotta e scrive il report quando ha finito.
 
 ```bash
-npm i -g cyberstrike@latest && cyberstrike
+npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 # "Esegui una valutazione completa OWASP WSTG su https://target.com"
 ```
 
@@ -177,7 +177,7 @@ Bolt &egrave; il server di esecuzione remota degli strumenti di CyberStrike. Inv
 
 ```bash
 # npm / bun / pnpm / yarn
-npm i -g cyberstrike@latest
+npm i -g @cyberstrike-io/cyberstrike@latest
 
 # macOS
 brew install CyberStrikeus/tap/cyberstrike

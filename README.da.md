@@ -53,7 +53,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
+  <a href="https://www.npmjs.com/package/@cyberstrike-io/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/@cyberstrike-io/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
   <a href="https://discord.gg/snunAaHf6U"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Licens" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
@@ -68,7 +68,7 @@ Sikkerhedstest er stadig overvejende manuelt. Pentestere jonglerer med snesevis 
 **CyberStrike &aelig;ndrer det.** Det er en autonom AI-agent, der forst&aring;r offensiv sikkerhedsmetodologi — den k&oslash;rer ikke bare v&aelig;rkt&oslash;jer, men r&aelig;sonnerer om hvad der skal testes, k&aelig;der fund sammen og tilpasser sin tilgang baseret p&aring; hvad den opdager. T&aelig;nk p&aring; det som et utr&aelig;tteligt red team-medlem i din terminal, der f&oslash;lger OWASP WSTG, ved hvorn&aring;r man skal skifte retning, og skriver rapporten n&aring;r det er f&aelig;rdigt.
 
 ```bash
-npm i -g cyberstrike@latest && cyberstrike
+npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 # "K&oslash;r en komplet OWASP WSTG-vurdering p&aring; https://target.com"
 ```
 
@@ -177,7 +177,7 @@ Bolt er CyberStrikes server til fjerneksekvering af v&aelig;rkt&oslash;jer. I st
 
 ```bash
 # npm / bun / pnpm / yarn
-npm i -g cyberstrike@latest
+npm i -g @cyberstrike-io/cyberstrike@latest
 
 # macOS
 brew install CyberStrikeus/tap/cyberstrike
