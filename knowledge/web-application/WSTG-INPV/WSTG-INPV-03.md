@@ -1,9 +1,11 @@
 # WSTG-INPV-03: Testing for HTTP Verb Tampering
 
 ## Test ID
+
 WSTG-INPV-03
 
 ## Test Name
+
 Testing for HTTP Verb Tampering
 
 ## High-Level Description
@@ -299,12 +301,12 @@ FAKE
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| curl | Manual method testing |
-| Burp Suite | Intercept and modify methods |
+| Tool              | Purpose                       |
+| ----------------- | ----------------------------- |
+| curl              | Manual method testing         |
+| Burp Suite        | Intercept and modify methods  |
 | Nmap http-methods | Script for method enumeration |
-| OWASP ZAP | Web scanner |
+| OWASP ZAP         | Web scanner                   |
 
 ---
 
@@ -369,20 +371,20 @@ location /admin {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Authentication bypass via method | 9.8 | Critical |
-| Authorization bypass via method | 8.1 | High |
-| TRACE method enabled (XST) | 5.3 | Medium |
-| WebDAV methods enabled | 4.3 | Medium |
-| Arbitrary methods accepted | 3.1 | Low |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| Authentication bypass via method | 9.8  | Critical |
+| Authorization bypass via method  | 8.1  | High     |
+| TRACE method enabled (XST)       | 5.3  | Medium   |
+| WebDAV methods enabled           | 4.3  | Medium   |
+| Arbitrary methods accepted       | 3.1  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                               |
+| ----------- | --------------------------------------------------- |
 | **CWE-650** | Trusting HTTP Permission Methods on the Server Side |
 
 ---

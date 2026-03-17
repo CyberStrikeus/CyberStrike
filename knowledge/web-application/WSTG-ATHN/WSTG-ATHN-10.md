@@ -1,9 +1,11 @@
 # WSTG-ATHN-10: Testing for Weaker Authentication in Alternative Channel
 
 ## Test ID
+
 WSTG-ATHN-10
 
 ## Test Name
+
 Testing for Weaker Authentication in Alternative Channel
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Many applications provide multiple access channels (web, mobile, API, legacy int
 
 ### Security Differences
 
-| Channel | Potential Weakness |
-|---------|-------------------|
-| Mobile API | No 2FA, weaker rate limiting |
-| Legacy interface | Old auth mechanisms |
-| Internal API | No auth assumed |
-| Partner API | API key only |
-| Dev/staging | Default credentials |
+| Channel          | Potential Weakness           |
+| ---------------- | ---------------------------- |
+| Mobile API       | No 2FA, weaker rate limiting |
+| Legacy interface | Old auth mechanisms          |
+| Internal API     | No auth assumed              |
+| Partner API      | API key only                 |
+| Dev/staging      | Default credentials          |
 
 ---
 
@@ -230,18 +232,18 @@ curl -sI "https://legacy.target.com/login" | grep -i "location\|oauth\|sso"
 
 ### Channel Discovery
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Subfinder** | Subdomain enumeration | Find alternative endpoints |
-| **Amass** | Asset discovery | Discover channels |
-| **Burp Suite** | Traffic analysis | Identify API patterns |
+| Tool           | Description           | Usage                      |
+| -------------- | --------------------- | -------------------------- |
+| **Subfinder**  | Subdomain enumeration | Find alternative endpoints |
+| **Amass**      | Asset discovery       | Discover channels          |
+| **Burp Suite** | Traffic analysis      | Identify API patterns      |
 
 ### Comparison Testing
 
-| Tool | Description |
-|------|-------------|
-| **Custom scripts** | Automated comparison |
-| **Postman** | Multi-channel testing |
+| Tool               | Description           |
+| ------------------ | --------------------- |
+| **Custom scripts** | Automated comparison  |
+| **Postman**        | Multi-channel testing |
 
 ---
 
@@ -550,10 +552,10 @@ routes:
     policies: [authentication, rate_limiting, mfa]
 
   - path: /legacy/**
-    policies: [authentication, rate_limiting, mfa]  # Same policies!
+    policies: [authentication, rate_limiting, mfa] # Same policies!
 
   - path: /mobile/**
-    policies: [authentication, rate_limiting, mfa]  # Same policies!
+    policies: [authentication, rate_limiting, mfa] # Same policies!
 ```
 
 ---
@@ -562,22 +564,22 @@ routes:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| 2FA bypass via alternative channel | 8.8 | High |
-| No rate limiting on API channel | 7.5 | High |
-| Weaker lockout on mobile API | 6.5 | Medium |
-| Different session security | 5.3 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| 2FA bypass via alternative channel | 8.8  | High     |
+| No rate limiting on API channel    | 7.5  | High     |
+| Weaker lockout on mobile API       | 6.5  | Medium   |
+| Different session security         | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-306** | Missing Authentication for Critical Function | Weak channel auth |
-| **CWE-287** | Improper Authentication | Inconsistent controls |
-| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Rate limiting gaps |
+| CWE ID      | Title                                                     | Description           |
+| ----------- | --------------------------------------------------------- | --------------------- |
+| **CWE-306** | Missing Authentication for Critical Function              | Weak channel auth     |
+| **CWE-287** | Improper Authentication                                   | Inconsistent controls |
+| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Rate limiting gaps    |
 
 ---
 

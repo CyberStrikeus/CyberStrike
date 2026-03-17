@@ -1,9 +1,11 @@
 # WSTG-SESS-02: Testing for Cookies Attributes
 
 ## Test ID
+
 WSTG-SESS-02
 
 ## Test Name
+
 Testing for Cookies Attributes
 
 ## High-Level Description
@@ -22,17 +24,17 @@ Cookie attributes control how browsers handle cookies, including security restri
 - [ ] Domain scope
 - [ ] Path scope
 - [ ] Expires/Max-Age settings
-- [ ] Cookie prefix (__Host-, __Secure-)
+- [ ] Cookie prefix (**Host-, **Secure-)
 
 ### Attribute Impact
 
-| Attribute | Missing Impact |
-|-----------|---------------|
-| Secure | Token sent over HTTP |
-| HttpOnly | XSS can steal token |
-| SameSite | CSRF attacks possible |
-| Proper Domain | Subdomain attacks |
-| Proper Path | Broader exposure |
+| Attribute     | Missing Impact        |
+| ------------- | --------------------- |
+| Secure        | Token sent over HTTP  |
+| HttpOnly      | XSS can steal token   |
+| SameSite      | CSRF attacks possible |
+| Proper Domain | Subdomain attacks     |
+| Proper Path   | Broader exposure      |
 
 ---
 
@@ -197,19 +199,21 @@ fi
 // Browser console test - check if session cookies are accessible
 // If accessible, XSS can steal them
 
-console.log("=== Cookies accessible via JavaScript ===");
-console.log(document.cookie);
+console.log("=== Cookies accessible via JavaScript ===")
+console.log(document.cookie)
 
 // Check for specific session cookies
-const cookies = document.cookie.split(';');
-cookies.forEach(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    if (name.toLowerCase().includes('session') ||
-        name.toLowerCase().includes('token') ||
-        name.toLowerCase().includes('auth')) {
-        console.log(`[VULN] Sensitive cookie accessible: ${name}`);
-    }
-});
+const cookies = document.cookie.split(";")
+cookies.forEach((cookie) => {
+  const [name, value] = cookie.trim().split("=")
+  if (
+    name.toLowerCase().includes("session") ||
+    name.toLowerCase().includes("token") ||
+    name.toLowerCase().includes("auth")
+  ) {
+    console.log(`[VULN] Sensitive cookie accessible: ${name}`)
+  }
+})
 
 // If session cookies appear, HttpOnly is missing
 ```
@@ -365,18 +369,18 @@ analyzer.generate_report()
 
 ### Cookie Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
+| Tool                 | Description       | Usage                 |
+| -------------------- | ----------------- | --------------------- |
 | **Browser DevTools** | Cookie inspection | Application > Cookies |
-| **Cookie-Editor** | Browser extension | Edit/analyze cookies |
-| **Burp Suite** | Traffic analysis | Cookie interception |
+| **Cookie-Editor**    | Browser extension | Edit/analyze cookies  |
+| **Burp Suite**       | Traffic analysis  | Cookie interception   |
 
 ### Testing
 
-| Tool | Description |
-|------|-------------|
-| **curl** | Command-line testing |
-| **Custom scripts** | Automated analysis |
+| Tool               | Description          |
+| ------------------ | -------------------- |
+| **curl**           | Command-line testing |
+| **Custom scripts** | Automated analysis   |
 
 ---
 
@@ -418,37 +422,39 @@ def set_cookie():
 ### 2. Express.js Configuration
 
 ```javascript
-const express = require('express');
-const session = require('express-session');
+const express = require("express")
+const session = require("express-session")
 
-const app = express();
+const app = express()
 
-app.use(session({
-    name: '__Host-session',
+app.use(
+  session({
+    name: "__Host-session",
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true,           // HTTPS only
-        httpOnly: true,         // No JavaScript access
-        sameSite: 'strict',     // CSRF protection
-        maxAge: 3600000,        // 1 hour
-        path: '/'
-        // domain not set for __Host- prefix
-    }
-}));
+      secure: true, // HTTPS only
+      httpOnly: true, // No JavaScript access
+      sameSite: "strict", // CSRF protection
+      maxAge: 3600000, // 1 hour
+      path: "/",
+      // domain not set for __Host- prefix
+    },
+  }),
+)
 
 // For individual cookies
-app.get('/set-cookie', (req, res) => {
-    res.cookie('preference', 'value', {
-        secure: true,
-        httpOnly: true,
-        sameSite: 'strict',
-        maxAge: 86400000,
-        path: '/settings'
-    });
-    res.send('Cookie set');
-});
+app.get("/set-cookie", (req, res) => {
+  res.cookie("preference", "value", {
+    secure: true,
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 86400000,
+    path: "/settings",
+  })
+  res.send("Cookie set")
+})
 ```
 
 ### 3. Java/Spring Configuration
@@ -498,24 +504,24 @@ location / {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Missing Secure flag on session | 7.5 | High |
-| Missing HttpOnly on session | 6.1 | Medium |
-| SameSite=None without Secure | 6.5 | Medium |
-| Missing SameSite | 4.3 | Medium |
-| Overly broad Domain | 4.3 | Medium |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| Missing Secure flag on session | 7.5  | High     |
+| Missing HttpOnly on session    | 6.1  | Medium   |
+| SameSite=None without Secure   | 6.5  | Medium   |
+| Missing SameSite               | 4.3  | Medium   |
+| Overly broad Domain            | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-614** | HTTPS Cookie Without Secure | Missing Secure flag |
-| **CWE-1004** | Cookie Without HttpOnly | XSS accessible |
-| **CWE-1275** | Cookie With SameSite=None | CSRF risk |
-| **CWE-565** | Reliance on Cookies Without Validation | Cookie trust |
+| CWE ID       | Title                                  | Description         |
+| ------------ | -------------------------------------- | ------------------- |
+| **CWE-614**  | HTTPS Cookie Without Secure            | Missing Secure flag |
+| **CWE-1004** | Cookie Without HttpOnly                | XSS accessible      |
+| **CWE-1275** | Cookie With SameSite=None              | CSRF risk           |
+| **CWE-565**  | Reliance on Cookies Without Validation | Cookie trust        |
 
 ---
 

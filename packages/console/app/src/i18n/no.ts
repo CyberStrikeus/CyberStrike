@@ -106,7 +106,8 @@ export const dict = {
   "home.install.ariaLabel": "Installeringsalternativer",
 
   "home.what.title": "Hva er CyberStrike?",
-  "home.what.body": "CyberStrike er en åpen kildekode-agent som hjelper deg å skrive kode i terminal, IDE eller desktop.",
+  "home.what.body":
+    "CyberStrike er en åpen kildekode-agent som hjelper deg å skrive kode i terminal, IDE eller desktop.",
   "home.what.lsp.title": "LSP aktivert",
   "home.what.lsp.body": "Laster automatisk de riktige LSP-ene for LLM-en",
   "home.what.multiSession.title": "Multi-sesjon",

@@ -1,9 +1,11 @@
 # WSTG-APIT-01: API Reconnaissance
 
 ## Test ID
+
 WSTG-APIT-01
 
 ## Test Name
+
 API Reconnaissance
 
 ## High-Level Description
@@ -208,12 +210,12 @@ recon.generate_report()
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| **ffuf** | API endpoint fuzzing |
-| **Arjun** | Parameter discovery |
+| Tool           | Description            |
+| -------------- | ---------------------- |
+| **ffuf**       | API endpoint fuzzing   |
+| **Arjun**      | Parameter discovery    |
 | **Kiterunner** | API endpoint discovery |
-| **Postman** | API documentation |
+| **Postman**    | API documentation      |
 
 ---
 

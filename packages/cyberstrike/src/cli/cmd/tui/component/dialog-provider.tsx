@@ -229,7 +229,8 @@ function ApiMethod(props: ApiMethodProps) {
         props.providerID === "cyberstrike" ? (
           <box gap={1}>
             <text fg={theme.textMuted}>
-              CyberStrike Zen gives you access to all the best coding models at the cheapest prices with a single API key.
+              CyberStrike Zen gives you access to all the best coding models at the cheapest prices with a single API
+              key.
             </text>
             <text fg={theme.text}>
               Go to <span style={{ fg: theme.primary }}>https://cyberstrike.io/zen</span> to get a key
@@ -277,11 +278,7 @@ function LocalUrlStep(props: { name: string; error?: string }) {
     <DialogPrompt
       title="Base URL"
       placeholder="http://192.168.1.201:8000/v1"
-      description={
-        props.error
-          ? () => <text fg={theme.error}>{props.error}</text>
-          : undefined
-      }
+      description={props.error ? () => <text fg={theme.error}>{props.error}</text> : undefined}
       onConfirm={(value) => {
         if (!value) return
         try {
@@ -326,7 +323,10 @@ function LocalKeyStep(props: { name: string; url: string }) {
           const body = (await resp.json()) as { data?: { id: string; owned_by?: string }[] }
           if (!body.data?.length) throw new Error("No models found")
 
-          const models: Record<string, { name: string; tool_call: boolean; limit: { context: number; output: number } }> = {}
+          const models: Record<
+            string,
+            { name: string; tool_call: boolean; limit: { context: number; output: number } }
+          > = {}
           for (const m of body.data) {
             models[m.id] = { name: m.id, tool_call: true, limit: { context: 131072, output: 32768 } }
           }
@@ -399,9 +399,7 @@ function LocalDoneStep(props: { providerID: string; modelIDs: string[] }) {
       <text fg={theme.accent}>
         {props.providerID} — {props.modelIDs.length} model(s)
       </text>
-      <text fg={theme.textMuted}>
-        {"Use: cyberstrike --model " + props.providerID + "/" + props.modelIDs[0]}
-      </text>
+      <text fg={theme.textMuted}>{"Use: cyberstrike --model " + props.providerID + "/" + props.modelIDs[0]}</text>
     </box>
   )
 }

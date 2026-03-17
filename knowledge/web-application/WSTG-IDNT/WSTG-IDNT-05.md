@@ -1,9 +1,11 @@
 # WSTG-IDNT-05: Test Username Policy
 
 ## Test ID
+
 WSTG-IDNT-05
 
 ## Test Name
+
 Testing for Weak or Unenforced Username Policy
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Username policy testing evaluates the rules and restrictions applied to username
 
 ### Security Considerations
 
-| Aspect | Risk |
-|--------|------|
-| Predictable usernames | Account enumeration |
-| Similar usernames | User confusion/impersonation |
-| No reserved words | Admin impersonation |
-| Case insensitive | Duplicate accounts |
-| Special chars allowed | XSS/Injection |
+| Aspect                | Risk                         |
+| --------------------- | ---------------------------- |
+| Predictable usernames | Account enumeration          |
+| Similar usernames     | User confusion/impersonation |
+| No reserved words     | Admin impersonation          |
+| Case insensitive      | Duplicate accounts           |
+| Special chars allowed | XSS/Injection                |
 
 ---
 
@@ -289,19 +291,19 @@ done
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request manipulation | Test various username formats |
-| **curl** | Command-line HTTP | Scripted testing |
-| **Unicode tools** | Character lookup | Homograph testing |
+| Tool              | Description          | Usage                         |
+| ----------------- | -------------------- | ----------------------------- |
+| **Burp Suite**    | Request manipulation | Test various username formats |
+| **curl**          | Command-line HTTP    | Scripted testing              |
+| **Unicode tools** | Character lookup     | Homograph testing             |
 
 ### Automated Testing
 
-| Tool | Description |
-|------|-------------|
-| **Burp Intruder** | Fuzzing usernames |
+| Tool               | Description           |
+| ------------------ | --------------------- |
+| **Burp Intruder**  | Fuzzing usernames     |
 | **Custom scripts** | Comprehensive testing |
-| **Regex testers** | Validate patterns |
+| **Regex testers**  | Validate patterns     |
 
 ---
 
@@ -611,23 +613,23 @@ class User:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Reserved names allowed (admin) | 7.5 | High |
-| Unicode homograph allowed | 6.5 | Medium |
-| Case sensitivity issues | 5.3 | Medium |
-| XSS via username | 6.1 | Medium |
-| Weak length requirements | 3.7 | Low |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| Reserved names allowed (admin) | 7.5  | High     |
+| Unicode homograph allowed      | 6.5  | Medium   |
+| Case sensitivity issues        | 5.3  | Medium   |
+| XSS via username               | 6.1  | Medium   |
+| Weak length requirements       | 3.7  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-20** | Improper Input Validation | Weak username validation |
-| **CWE-79** | Cross-site Scripting | XSS via username |
-| **CWE-178** | Improper Handling of Case | Case sensitivity issues |
+| CWE ID      | Title                     | Description              |
+| ----------- | ------------------------- | ------------------------ |
+| **CWE-20**  | Improper Input Validation | Weak username validation |
+| **CWE-79**  | Cross-site Scripting      | XSS via username         |
+| **CWE-178** | Improper Handling of Case | Case sensitivity issues  |
 
 ---
 

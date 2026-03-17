@@ -1,9 +1,11 @@
 # WSTG-INPV-05.5: Testing for SQL Injection - MS Access
 
 ## Test ID
+
 WSTG-INPV-05.5
 
 ## Test Name
+
 Testing for SQL Injection - MS Access
 
 ## High-Level Description
@@ -203,17 +205,17 @@ Set rs = cmd.Execute()
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| MS Access SQLi data extraction | 7.5 | High |
-| MS Access auth bypass | 8.1 | High |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| MS Access SQLi data extraction | 7.5  | High     |
+| MS Access auth bypass          | 8.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title         |
+| ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
 ---

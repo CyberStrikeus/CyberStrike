@@ -1,9 +1,11 @@
 # WSTG-BUSL-08: Test Upload of Unexpected File Types
 
 ## Test ID
+
 WSTG-BUSL-08
 
 ## Test Name
+
 Test Upload of Unexpected File Types
 
 ## High-Level Description
@@ -26,13 +28,13 @@ File upload functionality is a common attack vector where attackers attempt to u
 
 ### Dangerous File Types
 
-| Category | Extensions |
-|----------|------------|
-| Web shells | .php, .asp, .aspx, .jsp, .jspx |
-| Scripts | .sh, .bash, .ps1, .bat, .cmd |
-| Executables | .exe, .dll, .so, .elf |
-| Archives | .zip, .tar, .gz (may contain malicious files) |
-| Office macros | .docm, .xlsm, .pptm |
+| Category      | Extensions                                    |
+| ------------- | --------------------------------------------- |
+| Web shells    | .php, .asp, .aspx, .jsp, .jspx                |
+| Scripts       | .sh, .bash, .ps1, .bat, .cmd                  |
+| Executables   | .exe, .dll, .so, .elf                         |
+| Archives      | .zip, .tar, .gz (may contain malicious files) |
+| Office macros | .docm, .xlsm, .pptm                           |
 
 ---
 
@@ -231,19 +233,19 @@ done
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request manipulation | Modify upload requests |
-| **curl** | CLI HTTP client | Upload testing |
-| **exiftool** | Metadata manipulation | Add payloads to metadata |
+| Tool           | Description           | Usage                    |
+| -------------- | --------------------- | ------------------------ |
+| **Burp Suite** | Request manipulation  | Modify upload requests   |
+| **curl**       | CLI HTTP client       | Upload testing           |
+| **exiftool**   | Metadata manipulation | Add payloads to metadata |
 
 ### Payload Generation
 
-| Tool | Description |
-|------|-------------|
-| **msfvenom** | Shell generation |
-| **weevely** | PHP agent generator |
-| **p0wny-shell** | PHP web shell |
+| Tool            | Description         |
+| --------------- | ------------------- |
+| **msfvenom**    | Shell generation    |
+| **weevely**     | PHP agent generator |
+| **p0wny-shell** | PHP web shell       |
 
 ---
 
@@ -574,23 +576,23 @@ location /uploads {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Web shell upload (RCE) | 9.8 | Critical |
-| Executable upload | 9.8 | Critical |
-| Path traversal via filename | 7.5 | High |
-| No file type validation | 8.8 | High |
-| Size limit bypass | 5.3 | Medium |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| Web shell upload (RCE)      | 9.8  | Critical |
+| Executable upload           | 9.8  | Critical |
+| Path traversal via filename | 7.5  | High     |
+| No file type validation     | 8.8  | High     |
+| Size limit bypass           | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-434** | Unrestricted Upload of File with Dangerous Type | Web shell upload |
-| **CWE-20** | Improper Input Validation | Missing file validation |
-| **CWE-79** | Cross-site Scripting | HTML/SVG file upload |
+| CWE ID      | Title                                           | Description             |
+| ----------- | ----------------------------------------------- | ----------------------- |
+| **CWE-434** | Unrestricted Upload of File with Dangerous Type | Web shell upload        |
+| **CWE-20**  | Improper Input Validation                       | Missing file validation |
+| **CWE-79**  | Cross-site Scripting                            | HTML/SVG file upload    |
 
 ---
 

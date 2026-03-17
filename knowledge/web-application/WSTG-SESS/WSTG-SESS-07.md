@@ -1,9 +1,11 @@
 # WSTG-SESS-07: Testing for Session Timeout
 
 ## Test ID
+
 WSTG-SESS-07
 
 ## Test Name
+
 Testing for Session Timeout
 
 ## High-Level Description
@@ -201,18 +203,18 @@ def login():
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No idle timeout | 5.3 | Medium |
-| Excessive timeout (>4 hours) | 4.3 | Medium |
-| No absolute timeout | 5.3 | Medium |
+| Finding                      | CVSS | Severity |
+| ---------------------------- | ---- | -------- |
+| No idle timeout              | 5.3  | Medium   |
+| Excessive timeout (>4 hours) | 4.3  | Medium   |
+| No absolute timeout          | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                           |
+| ----------- | ------------------------------- |
 | **CWE-613** | Insufficient Session Expiration |
 
 ---

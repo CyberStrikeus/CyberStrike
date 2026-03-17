@@ -1,9 +1,11 @@
 # WSTG-APIT-02: Testing for Broken Object Level Authorization (BOLA)
 
 ## Test ID
+
 WSTG-APIT-02
 
 ## Test Name
+
 Testing for Broken Object Level Authorization (BOLA/IDOR)
 
 ## High-Level Description
@@ -156,18 +158,18 @@ def get_user(user_id):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Read other users' data | 7.5 | High |
-| Modify other users' data | 8.1 | High |
-| Delete other users' data | 8.1 | High |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Read other users' data   | 7.5  | High     |
+| Modify other users' data | 8.1  | High     |
+| Delete other users' data | 8.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                            |
+| ----------- | ------------------------------------------------ |
 | **CWE-639** | Authorization Bypass Through User-Controlled Key |
 
 ---

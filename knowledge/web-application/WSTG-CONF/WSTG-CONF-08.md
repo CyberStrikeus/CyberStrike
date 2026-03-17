@@ -1,9 +1,11 @@
 # WSTG-CONF-08: Test RIA Cross Domain Policy
 
 ## Test ID
+
 WSTG-CONF-08
 
 ## Test Name
+
 Test RIA Cross Domain Policy
 
 ## Status
@@ -108,11 +110,11 @@ curl -s https://target.com/clientaccesspolicy.xml | grep -E 'uri="\*"|uri="http:
 
 ## Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | Retrieve policy files | `curl -s url/crossdomain.xml` |
-| **Nikto** | Web scanner | Includes RIA policy checks |
-| **Burp Suite** | Proxy | Analyze policy files |
+| Tool           | Description           | Usage                         |
+| -------------- | --------------------- | ----------------------------- |
+| **curl**       | Retrieve policy files | `curl -s url/crossdomain.xml` |
+| **Nikto**      | Web scanner           | Includes RIA policy checks    |
+| **Burp Suite** | Proxy                 | Analyze policy files          |
 
 ---
 
@@ -121,6 +123,7 @@ curl -s https://target.com/clientaccesspolicy.xml | grep -E 'uri="\*"|uri="http:
 ### 1. Remove If Not Needed
 
 If Flash/Silverlight are not used, remove policy files:
+
 ```bash
 rm /var/www/html/crossdomain.xml
 rm /var/www/html/clientaccesspolicy.xml
@@ -140,6 +143,7 @@ rm /var/www/html/clientaccesspolicy.xml
 ### 3. Modern Alternative - Use CORS
 
 Instead of RIA policies, implement proper CORS headers for modern applications:
+
 ```
 Access-Control-Allow-Origin: https://trusted.example.com
 Access-Control-Allow-Methods: GET, POST
@@ -153,6 +157,7 @@ Access-Control-Allow-Headers: Content-Type
 ### CVSS Score
 
 **Wildcard Cross-Domain Policy**
+
 - **Base Score**: 7.5 (High)
 - **Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
 
@@ -160,10 +165,10 @@ Access-Control-Allow-Headers: Content-Type
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                    |
+| ----------- | ---------------------------------------- |
 | **CWE-942** | Overly Permissive Cross-domain Whitelist |
-| **CWE-346** | Origin Validation Error |
+| **CWE-346** | Origin Validation Error                  |
 
 ---
 

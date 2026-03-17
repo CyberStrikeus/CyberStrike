@@ -1,9 +1,11 @@
 # WSTG-CRYP-02: Testing for Padding Oracle
 
 ## Test ID
+
 WSTG-CRYP-02
 
 ## Test Name
+
 Testing for Padding Oracle
 
 ## High-Level Description
@@ -191,11 +193,11 @@ padbuster https://target.com/decrypt?data= ENCRYPTED_VALUE 16 \
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| **PadBuster** | Automated padding oracle exploitation |
-| **Burp Suite** | Manual testing |
-| **Custom scripts** | Timing analysis |
+| Tool               | Description                           |
+| ------------------ | ------------------------------------- |
+| **PadBuster**      | Automated padding oracle exploitation |
+| **Burp Suite**     | Manual testing                        |
+| **Custom scripts** | Timing analysis                       |
 
 ---
 
@@ -238,18 +240,18 @@ plaintext = aesgcm.decrypt(nonce, ciphertext, None)
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Padding oracle (decryption possible) | 7.5 | High |
-| Different error messages for padding | 5.3 | Medium |
+| Finding                              | CVSS | Severity |
+| ------------------------------------ | ---- | -------- |
+| Padding oracle (decryption possible) | 7.5  | High     |
+| Different error messages for padding | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-209** | Information Exposure Through Error Message |
+| CWE ID      | Title                                                            |
+| ----------- | ---------------------------------------------------------------- |
+| **CWE-209** | Information Exposure Through Error Message                       |
 | **CWE-649** | Reliance on Obfuscation or Encryption without Integrity Checking |
 
 ---

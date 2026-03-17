@@ -119,13 +119,13 @@ Vos outils de securite n'ont pas besoin de tourner sur votre ordinateur portable
 
 Basculez entre les agents avec `Tab`. Chacun est un specialiste.
 
-| Agent | Domaine | Ce qu'il fait |
-|-------|---------|---------------|
-| **cyberstrike** | General | Agent principal avec acces complet — reconnaissance, exploitation, rapports |
-| **web-application** | Web | OWASP Top 10, methodologie WSTG, securite des API, tests de session |
-| **mobile-application** | Mobile | Android/iOS, Frida/Objection, conformite MASTG/MASVS |
-| **cloud-security** | Cloud | AWS, Azure, GCP — erreurs de configuration IAM, benchmarks CIS, ressources exposees |
-| **internal-network** | Reseau | Active Directory, attaques Kerberos, mouvement lateral, pivotement |
+| Agent                  | Domaine | Ce qu'il fait                                                                       |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------- |
+| **cyberstrike**        | General | Agent principal avec acces complet — reconnaissance, exploitation, rapports         |
+| **web-application**    | Web     | OWASP Top 10, methodologie WSTG, securite des API, tests de session                 |
+| **mobile-application** | Mobile  | Android/iOS, Frida/Objection, conformite MASTG/MASVS                                |
+| **cloud-security**     | Cloud   | AWS, Azure, GCP — erreurs de configuration IAM, benchmarks CIS, ressources exposees |
+| **internal-network**   | Reseau  | Active Directory, attaques Kerberos, mouvement lateral, pivotement                  |
 
 Plus **8 testeurs proxy specialises** qui interceptent et manipulent le trafic pour des classes de vulnerabilites ciblees :
 
@@ -137,13 +137,13 @@ Plus **8 testeurs proxy specialises** qui interceptent et manipulent le trafic p
 
 CyberStrike se connecte a des serveurs MCP specialises qui etendent ses capacites :
 
-| Serveur | Outils | Ce qu'il ajoute |
-|---------|--------|-----------------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Tests de securite bases sur le navigateur — XSS, CSRF, manipulation DOM, vol de cookies |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Audits de securite cloud — 60+ verifications sur AWS, Azure, GCP |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | Posture de securite GitHub — repo, org, actions, secrets, chaine d'approvisionnement |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | Renseignements CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Reconnaissance OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Serveur                                                                | Outils | Ce qu'il ajoute                                                                         |
+| ---------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39     | Tests de securite bases sur le navigateur — XSS, CSRF, manipulation DOM, vol de cookies |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38     | Audits de securite cloud — 60+ verifications sur AWS, Azure, GCP                        |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39     | Posture de securite GitHub — repo, org, actions, secrets, chaine d'approvisionnement    |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23     | Renseignements CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                          |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37     | Reconnaissance OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS           |
 
 Tous open source. Tous installables avec `npx`. Branchez-les sur CyberStrike ou utilisez-les de maniere autonome avec n'importe quel client MCP.
 
@@ -163,6 +163,7 @@ Bolt est le serveur d'execution d'outils a distance de CyberStrike. Au lieu d'ex
 ```
 
 **Comment ca marche :**
+
 - Deployez Bolt sur n'importe quel serveur avec votre boite a outils de pentest installee
 - Associez avec des cles Ed25519 — pas de mots de passe, pas de secrets partages
 - Les agents CyberStrike appellent les outils a distance via le protocole MCP
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 Les agents CyberStrike ont un acces direct a 30+ outils :
 
-| Categorie | Outils |
-|-----------|--------|
-| **Execution** | Shell (bash), lecture/ecriture/edition de fichiers, listage de repertoires |
-| **Decouverte** | Recuperation web, recherche web, recherche de code, glob, grep |
-| **Securite** | Rapports de vulnerabilites (format HackerOne), collecte de preuves |
-| **Proxy** | Interception HTTP/HTTPS, rejeu de requetes, analyse de trafic |
-| **Integration** | Serveurs MCP, outils distants Bolt, plugins personnalises |
+| Categorie       | Outils                                                                     |
+| --------------- | -------------------------------------------------------------------------- |
+| **Execution**   | Shell (bash), lecture/ecriture/edition de fichiers, listage de repertoires |
+| **Decouverte**  | Recuperation web, recherche web, recherche de code, glob, grep             |
+| **Securite**    | Rapports de vulnerabilites (format HackerOne), collecte de preuves         |
+| **Proxy**       | Interception HTTP/HTTPS, rejeu de requetes, analyse de trafic              |
+| **Integration** | Serveurs MCP, outils distants Bolt, plugins personnalises                  |
 
 Plus un **SDK de plugins** — creez vos propres agents et outils, enregistrez-les au moment de l'execution.
 
@@ -246,14 +247,14 @@ Lisez le [guide de contribution](./CONTRIBUTING.md) avant de soumettre une PR. T
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

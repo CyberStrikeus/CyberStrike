@@ -67,38 +67,48 @@ A junior tester does not ask "how do I test for XSS?" on their first day. They o
 Every checklist file follows the same template:
 
 ### Test ID and Name
+
 ```
 WSTG-INPV-05: Testing for SQL Injection
 ```
+
 Unique identifier for reference.
 
 ### High-Level Description
+
 2-3 sentence explanation of the vulnerability. At a level you can show to non-technical stakeholders.
 
 ### What to Check
+
 List of specific points to test. You check them off as you progress.
 
 ### How to Test
+
 Two formats:
 
 **Bash scripts** - For quick manual testing:
+
 ```bash
 sqlmap -u "https://target.com/page?id=1" --batch --level=3
 ```
 
 **Python classes** - For automated, repeatable testing:
+
 ```python
 tester = SQLInjectionTester("https://target.com")
 tester.run_tests()
 ```
 
 ### Remediation
+
 Fix recommendations for the development team. Code examples in multiple languages (Python, Java, PHP, Node.js).
 
 ### Risk Assessment
+
 CVSS scores and severity levels. Format ready to transfer directly to reports.
 
 ### CWE Mapping
+
 Weakness categories for compliance documentation.
 
 ---
@@ -169,11 +179,13 @@ Total: **120 test cases**
 OWASP WSTG is already a public document. Why use these checklists instead of reading that directly?
 
 ### What OWASP WSTG Has
+
 - Vulnerability descriptions
 - General test methodology
 - Conceptual knowledge
 
 ### What These Checklists Add
+
 - **Ready-to-run bash scripts** - Copy-paste and execute
 - **Python automation classes** - Import and use
 - **Tested payload collections** - Payloads that work in real tests
@@ -191,6 +203,7 @@ OWASP WSTG is a reference document. These checklists are a work tool.
 Found a new bypass technique? Discovered a more effective payload? Add it to the relevant checklist file. Let the whole team benefit.
 
 When updating:
+
 1. Test the payload, make sure it works
 2. Specify which environment it works in (WAF bypass, specific framework, etc.)
 3. Add date

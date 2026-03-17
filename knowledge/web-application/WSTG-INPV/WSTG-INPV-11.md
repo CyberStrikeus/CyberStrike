@@ -1,9 +1,11 @@
 # WSTG-INPV-11: Testing for Code Injection
 
 ## Test ID
+
 WSTG-INPV-11
 
 ## Test Name
+
 Testing for Code Injection
 
 ## High-Level Description
@@ -338,20 +340,20 @@ getattr(__import__('os'),'system')('id')
 
 ```javascript
 // Node.js Code Injection Payloads
-require('child_process').execSync('id').toString()
-global.process.mainModule.require('child_process').execSync('id').toString()
-this.constructor.constructor('return process')().mainModule.require('child_process').execSync('id').toString()
+require("child_process").execSync("id").toString()
+global.process.mainModule.require("child_process").execSync("id").toString()
+this.constructor.constructor("return process")().mainModule.require("child_process").execSync("id").toString()
 ```
 
 ---
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Payload injection |
-| Commix | Command/code injection |
-| Custom scripts | Targeted testing |
+| Tool           | Purpose                |
+| -------------- | ---------------------- |
+| Burp Suite     | Payload injection      |
+| Commix         | Command/code injection |
+| Custom scripts | Targeted testing       |
 
 ---
 
@@ -395,33 +397,33 @@ if (in_array($func, $allowed_functions)) {
 ```javascript
 // Node.js - Avoid eval and vm with user input
 // VULNERABLE
-eval(userInput);
+eval(userInput)
 
 // SECURE - Use sandboxed evaluation
-const { VM } = require('vm2');
+const { VM } = require("vm2")
 const vm = new VM({
-    timeout: 1000,
-    sandbox: {}
-});
-const result = vm.run(userInput);
+  timeout: 1000,
+  sandbox: {},
+})
+const result = vm.run(userInput)
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Direct code execution | 9.8 | Critical |
-| eval() with user input | 9.8 | Critical |
-| Arithmetic injection to RCE | 9.8 | Critical |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| Direct code execution       | 9.8  | Critical |
+| eval() with user input      | 9.8  | Critical |
+| Arithmetic injection to RCE | 9.8  | Critical |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                  |
+| ---------- | -------------------------------------- |
 | **CWE-94** | Improper Control of Generation of Code |
 
 ---

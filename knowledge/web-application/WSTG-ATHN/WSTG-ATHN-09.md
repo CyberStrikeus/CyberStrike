@@ -1,9 +1,11 @@
 # WSTG-ATHN-09: Testing for Weak Password Change or Reset Functionalities
 
 ## Test ID
+
 WSTG-ATHN-09
 
 ## Test Name
+
 Testing for Weak Password Change or Reset Functionalities
 
 ## High-Level Description
@@ -230,18 +232,18 @@ fi
 
 ### Token Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Sequencer** | Token randomness | Analyze reset tokens |
-| **Custom scripts** | Pattern detection | Token analysis |
-| **hashcat** | Token cracking | Weak token exploitation |
+| Tool               | Description       | Usage                   |
+| ------------------ | ----------------- | ----------------------- |
+| **Burp Sequencer** | Token randomness  | Analyze reset tokens    |
+| **Custom scripts** | Pattern detection | Token analysis          |
+| **hashcat**        | Token cracking    | Weak token exploitation |
 
 ### Testing
 
-| Tool | Description |
-|------|-------------|
+| Tool           | Description          |
+| -------------- | -------------------- |
 | **Burp Suite** | Request manipulation |
-| **OWASP ZAP** | Automated testing |
+| **OWASP ZAP**  | Automated testing    |
 
 ---
 
@@ -565,25 +567,25 @@ def change_password():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Predictable reset tokens | 9.8 | Critical |
-| Host header injection | 8.8 | High |
-| Token reuse allowed | 8.8 | High |
-| No current password required for change | 7.5 | High |
-| User enumeration via reset | 5.3 | Medium |
-| No session invalidation | 6.5 | Medium |
+| Finding                                 | CVSS | Severity |
+| --------------------------------------- | ---- | -------- |
+| Predictable reset tokens                | 9.8  | Critical |
+| Host header injection                   | 8.8  | High     |
+| Token reuse allowed                     | 8.8  | High     |
+| No current password required for change | 7.5  | High     |
+| User enumeration via reset              | 5.3  | Medium   |
+| No session invalidation                 | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-640** | Weak Password Recovery Mechanism | Token issues |
-| **CWE-620** | Unverified Password Change | No current password |
-| **CWE-204** | Observable Response Discrepancy | User enumeration |
-| **CWE-613** | Insufficient Session Expiration | No invalidation |
+| CWE ID      | Title                            | Description         |
+| ----------- | -------------------------------- | ------------------- |
+| **CWE-640** | Weak Password Recovery Mechanism | Token issues        |
+| **CWE-620** | Unverified Password Change       | No current password |
+| **CWE-204** | Observable Response Discrepancy  | User enumeration    |
+| **CWE-613** | Insufficient Session Expiration  | No invalidation     |
 
 ---
 

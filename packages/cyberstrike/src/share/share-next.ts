@@ -16,7 +16,8 @@ export namespace ShareNext {
     return Config.get().then((x) => x.enterprise?.url ?? "https://cybrstk.us")
   }
 
-  const disabled = process.env["CYBERSTRIKE_DISABLE_SHARE"] === "true" || process.env["CYBERSTRIKE_DISABLE_SHARE"] === "1"
+  const disabled =
+    process.env["CYBERSTRIKE_DISABLE_SHARE"] === "true" || process.env["CYBERSTRIKE_DISABLE_SHARE"] === "1"
 
   export async function init() {
     if (disabled) return

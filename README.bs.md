@@ -119,13 +119,13 @@ Vaši sigurnosni alati ne moraju raditi na vašem laptopu. Bolt je CyberStrike-o
 
 Prebacujte se između agenata pomoću `Tab`. Svaki je specijalista.
 
-| Agent | Fokus | Šta radi |
-|-------|-------|----------|
-| **cyberstrike** | Opšte | Primarni agent s punim pristupom — izviđanje, eksploatacija, izvještavanje |
-| **web-application** | Web | OWASP Top 10, WSTG metodologija, sigurnost API-ja, testiranje sesija |
-| **mobile-application** | Mobilno | Android/iOS, Frida/Objection, MASTG/MASVS usklađenost |
-| **cloud-security** | Oblak | AWS, Azure, GCP — IAM pogrešne konfiguracije, CIS standardi, izloženi resursi |
-| **internal-network** | Mreža | Active Directory, Kerberos napadi, lateralno kretanje, pivotiranje |
+| Agent                  | Fokus   | Šta radi                                                                      |
+| ---------------------- | ------- | ----------------------------------------------------------------------------- |
+| **cyberstrike**        | Opšte   | Primarni agent s punim pristupom — izviđanje, eksploatacija, izvještavanje    |
+| **web-application**    | Web     | OWASP Top 10, WSTG metodologija, sigurnost API-ja, testiranje sesija          |
+| **mobile-application** | Mobilno | Android/iOS, Frida/Objection, MASTG/MASVS usklađenost                         |
+| **cloud-security**     | Oblak   | AWS, Azure, GCP — IAM pogrešne konfiguracije, CIS standardi, izloženi resursi |
+| **internal-network**   | Mreža   | Active Directory, Kerberos napadi, lateralno kretanje, pivotiranje            |
 
 Plus **8 specijalizovanih proxy testera** koji presreću i manipulišu saobraćajem za ciljane klase ranjivosti:
 
@@ -137,13 +137,13 @@ Plus **8 specijalizovanih proxy testera** koji presreću i manipulišu saobraća
 
 CyberStrike se povezuje sa specijalizovanim MCP serverima koji proširuju njegove mogućnosti:
 
-| Server | Alati | Šta dodaje |
-|--------|-------|------------|
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Sigurnosno testiranje putem preglednika — XSS, CSRF, DOM manipulacija, krađa kolačića |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Sigurnosni auditi oblaka — 60+ provjera za AWS, Azure, GCP |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub sigurnosni položaj — repozitorij, organizacija, akcije, tajne, lanac snabdijevanja |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE obavještajna služba — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
-| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT izviđanje — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Server                                                                 | Alati | Šta dodaje                                                                                |
+| ---------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39    | Sigurnosno testiranje putem preglednika — XSS, CSRF, DOM manipulacija, krađa kolačića     |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38    | Sigurnosni auditi oblaka — 60+ provjera za AWS, Azure, GCP                                |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39    | GitHub sigurnosni položaj — repozitorij, organizacija, akcije, tajne, lanac snabdijevanja |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23    | CVE obavještajna služba — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                       |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37    | OSINT izviđanje — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS                  |
 
 Sve je otvorenog koda. Sve se može instalirati pomoću `npx`. Povežite ih s CyberStrike-om ili koristite samostalno s bilo kojim MCP klijentom.
 
@@ -163,6 +163,7 @@ Bolt je CyberStrike-ov server za udaljeno izvršavanje alata. Umjesto pokretanja
 ```
 
 **Kako funkcioniše:**
+
 - Postavite Bolt na bilo koji server s instaliranim pentest alatima
 - Uparite pomoću Ed25519 ključeva — bez lozinki, bez dijeljenih tajni
 - CyberStrike agenti pozivaju alate udaljeno putem MCP protokola
@@ -202,13 +203,13 @@ scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 
 CyberStrike agenti imaju direktan pristup za 30+ alata:
 
-| Kategorija | Alati |
-|------------|-------|
+| Kategorija      | Alati                                                                  |
+| --------------- | ---------------------------------------------------------------------- |
 | **Izvršavanje** | Shell (bash), čitanje/pisanje/uređivanje datoteka, pregled direktorija |
-| **Otkrivanje** | Web preuzimanje, web pretraga, pretraga koda, glob, grep |
-| **Sigurnost** | Izvještavanje o ranjivostima (HackerOne format), prikupljanje dokaza |
-| **Proxy** | HTTP/HTTPS presretanje, ponavljanje zahtjeva, analiza saobraćaja |
-| **Integracija** | MCP serveri, Bolt udaljeni alati, prilagođeni dodaci |
+| **Otkrivanje**  | Web preuzimanje, web pretraga, pretraga koda, glob, grep               |
+| **Sigurnost**   | Izvještavanje o ranjivostima (HackerOne format), prikupljanje dokaza   |
+| **Proxy**       | HTTP/HTTPS presretanje, ponavljanje zahtjeva, analiza saobraćaja       |
+| **Integracija** | MCP serveri, Bolt udaljeni alati, prilagođeni dodaci                   |
 
 Plus **SDK za dodatke** — napravite vlastite agente i alate, registrujte ih tokom izvršavanja.
 
@@ -246,14 +247,14 @@ Pročitajte [Vodič za doprinos](./CONTRIBUTING.md) prije slanja PR-a. Svi dopri
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project | Domain | Tools |
-|---|---|---|
-| **CyberStrike** | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | Browser-based security testing | 39 tools, Firefox, injection testing |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | Cloud security (AWS/Azure/GCP) | 38 tools, 60+ checks |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture | 39 tools, 45 checks |
-| [cve-mcp](https://github.com/badchars/cve-mcp) | Vulnerability intelligence | 23 tools, 5 sources |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server) | OSINT & reconnaissance | 37 tools, 12 sources |
+| Project                                                                | Domain                                  | Tools                                 |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
 
 ---
 

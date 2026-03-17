@@ -1,9 +1,11 @@
 # WSTG-SESS-06: Testing for Logout Functionality
 
 ## Test ID
+
 WSTG-SESS-06
 
 ## Test Name
+
 Testing for Logout Functionality
 
 ## High-Level Description
@@ -181,18 +183,18 @@ def logout():
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Session valid after logout | 6.5 | Medium |
-| Missing cache headers | 4.3 | Medium |
-| No server-side invalidation | 7.5 | High |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| Session valid after logout  | 6.5  | Medium   |
+| Missing cache headers       | 4.3  | Medium   |
+| No server-side invalidation | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                           |
+| ----------- | ------------------------------- |
 | **CWE-613** | Insufficient Session Expiration |
 
 ---

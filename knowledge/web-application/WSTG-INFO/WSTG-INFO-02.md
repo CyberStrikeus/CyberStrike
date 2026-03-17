@@ -1,9 +1,11 @@
 # WSTG-INFO-02: Fingerprint Web Server
 
 ## Test ID
+
 WSTG-INFO-02
 
 ## Test Name
+
 Fingerprint Web Server
 
 ## High-Level Description
@@ -56,19 +58,19 @@ wget --server-response --spider https://target.com 2>&1 | grep -i server
 
 #### Key Headers to Examine
 
-| Header | Information Revealed |
-|--------|---------------------|
-| `Server` | Web server software and version |
-| `X-Powered-By` | Backend technology (PHP, ASP.NET) |
-| `X-AspNet-Version` | ASP.NET version |
-| `X-AspNetMvc-Version` | ASP.NET MVC version |
-| `X-Generator` | CMS or framework information |
-| `X-Drupal-Cache` | Drupal CMS indicator |
-| `X-Varnish` | Varnish cache presence |
-| `Via` | Proxy server information |
-| `X-Cache` | CDN/Cache information |
-| `CF-Ray` | Cloudflare indicator |
-| `X-Amz-Cf-Id` | AWS CloudFront indicator |
+| Header                | Information Revealed              |
+| --------------------- | --------------------------------- |
+| `Server`              | Web server software and version   |
+| `X-Powered-By`        | Backend technology (PHP, ASP.NET) |
+| `X-AspNet-Version`    | ASP.NET version                   |
+| `X-AspNetMvc-Version` | ASP.NET MVC version               |
+| `X-Generator`         | CMS or framework information      |
+| `X-Drupal-Cache`      | Drupal CMS indicator              |
+| `X-Varnish`           | Varnish cache presence            |
+| `Via`                 | Proxy server information          |
+| `X-Cache`             | CDN/Cache information             |
+| `CF-Ray`              | Cloudflare indicator              |
+| `X-Amz-Cf-Id`         | AWS CloudFront indicator          |
 
 ### Step 2: Banner Grabbing
 
@@ -113,6 +115,7 @@ echo -e "HEAD / HTTP/1.1\r\nHost: target.com\r\n\r\n" | nc -w 5 target.com 80
 Different web servers return headers in characteristic orders:
 
 #### Apache Header Order
+
 ```
 Date
 Server
@@ -125,6 +128,7 @@ Content-Type
 ```
 
 #### nginx Header Order
+
 ```
 Server
 Date
@@ -137,6 +141,7 @@ Accept-Ranges
 ```
 
 #### IIS Header Order
+
 ```
 Content-Length
 Content-Type
@@ -165,13 +170,13 @@ python3 -c "print('GET /' + 'A'*5000 + ' HTTP/1.1\r\nHost: target.com\r\n\r\n')"
 
 #### Error Page Signatures
 
-| Server | Error Page Characteristics |
-|--------|---------------------------|
-| Apache | DOCTYPE HTML 2.0, "Apache" in footer |
-| nginx | Simple HTML, "nginx" in title/body |
-| IIS | Detailed error with "Microsoft-IIS" |
-| LiteSpeed | "LiteSpeed" branding |
-| lighttpd | XHTML format |
+| Server    | Error Page Characteristics           |
+| --------- | ------------------------------------ |
+| Apache    | DOCTYPE HTML 2.0, "Apache" in footer |
+| nginx     | Simple HTML, "nginx" in title/body   |
+| IIS       | Detailed error with "Microsoft-IIS"  |
+| LiteSpeed | "LiteSpeed" branding                 |
+| lighttpd  | XHTML format                         |
 
 ### Step 5: Default Page and File Analysis
 
@@ -220,26 +225,26 @@ curl -X OPTIONS -I https://target.com
 
 ### Command-Line Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nmap** | Network scanner with version detection | `nmap -sV target.com` |
-| **Nikto** | Web server scanner | `nikto -h target.com` |
-| **WhatWeb** | Web technology identifier | `whatweb target.com` |
-| **Wappalyzer CLI** | Technology profiler | `wappalyzer https://target.com` |
-| **httprint** | Web server fingerprinting | `httprint -h target.com -s signatures.txt` |
-| **curl** | HTTP client | `curl -I target.com` |
-| **httpx** | Fast HTTP toolkit | `echo target.com \| httpx -title -tech-detect` |
+| Tool               | Description                            | Usage                                          |
+| ------------------ | -------------------------------------- | ---------------------------------------------- |
+| **Nmap**           | Network scanner with version detection | `nmap -sV target.com`                          |
+| **Nikto**          | Web server scanner                     | `nikto -h target.com`                          |
+| **WhatWeb**        | Web technology identifier              | `whatweb target.com`                           |
+| **Wappalyzer CLI** | Technology profiler                    | `wappalyzer https://target.com`                |
+| **httprint**       | Web server fingerprinting              | `httprint -h target.com -s signatures.txt`     |
+| **curl**           | HTTP client                            | `curl -I target.com`                           |
+| **httpx**          | Fast HTTP toolkit                      | `echo target.com \| httpx -title -tech-detect` |
 
 ### Online Services
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Netcraft | netcraft.com | Server identification |
-| BuiltWith | builtwith.com | Technology profiler |
-| Wappalyzer | wappalyzer.com | Browser extension |
-| Shodan | shodan.io | Banner information |
-| Censys | censys.io | Certificate and banner data |
-| SecurityHeaders | securityheaders.com | Header analysis |
+| Service         | URL                 | Purpose                     |
+| --------------- | ------------------- | --------------------------- |
+| Netcraft        | netcraft.com        | Server identification       |
+| BuiltWith       | builtwith.com       | Technology profiler         |
+| Wappalyzer      | wappalyzer.com      | Browser extension           |
+| Shodan          | shodan.io           | Banner information          |
+| Censys          | censys.io           | Certificate and banner data |
+| SecurityHeaders | securityheaders.com | Header analysis             |
 
 ### Browser Extensions
 
@@ -456,52 +461,55 @@ Deploy a hardened reverse proxy (nginx, HAProxy) in front of application servers
 
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Accessible via internet |
-| Attack Complexity | Low | Simple techniques required |
-| Privileges Required | None | No authentication needed |
-| User Interaction | None | No user interaction required |
-| Scope | Unchanged | Impact scope unchanged |
-| Confidentiality | Low | Server version disclosure |
-| Integrity | None | No integrity impact |
-| Availability | None | No availability impact |
+| Metric              | Value     | Description                  |
+| ------------------- | --------- | ---------------------------- |
+| Attack Vector       | Network   | Accessible via internet      |
+| Attack Complexity   | Low       | Simple techniques required   |
+| Privileges Required | None      | No authentication needed     |
+| User Interaction    | None      | No user interaction required |
+| Scope               | Unchanged | Impact scope unchanged       |
+| Confidentiality     | Low       | Server version disclosure    |
+| Integrity           | None      | No integrity impact          |
+| Availability        | None      | No availability impact       |
 
 > **Note**: While fingerprinting itself is low severity, it enables further attacks. If an outdated vulnerable version is detected, the combined risk increases significantly.
 
 ### Severity Levels
 
-| Finding | Severity | Description |
-|---------|----------|-------------|
-| Server header visible | Info | General information |
-| Exact version disclosed | Low | Version number exposed |
-| Outdated version detected | Medium | Known vulnerabilities may exist |
-| Critically vulnerable version | High | Active exploits available |
-| Default pages exposed | Medium | Sensitive configuration visible |
+| Finding                       | Severity | Description                     |
+| ----------------------------- | -------- | ------------------------------- |
+| Server header visible         | Info     | General information             |
+| Exact version disclosed       | Low      | Version number exposed          |
+| Outdated version detected     | Medium   | Known vulnerabilities may exist |
+| Critically vulnerable version | High     | Active exploits available       |
+| Default pages exposed         | Medium   | Sensitive configuration visible |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor | Server version disclosure |
-| **CWE-16** | Configuration | Improper server configuration |
-| **CWE-693** | Protection Mechanism Failure | Missing security hardening |
+| CWE ID      | Title                                                      | Description                   |
+| ----------- | ---------------------------------------------------------- | ----------------------------- |
+| **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor | Server version disclosure     |
+| **CWE-16**  | Configuration                                              | Improper server configuration |
+| **CWE-693** | Protection Mechanism Failure                               | Missing security hardening    |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Fingerprint Web Server](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/02-Fingerprint_Web_Server)
 
 ### Tools Documentation
+
 - [Nmap Documentation](https://nmap.org/docs.html)
 - [Nikto Documentation](https://github.com/sullo/nikto/wiki)
 - [WhatWeb](https://github.com/urbanadventurer/WhatWeb)
 
 ### Additional Resources
+
 - [HTTP Headers - MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers)
 - [Apache Security Tips](https://httpd.apache.org/docs/current/misc/security_tips.html)
 - [nginx Security Controls](https://docs.nginx.com/nginx/admin-guide/security-controls/)

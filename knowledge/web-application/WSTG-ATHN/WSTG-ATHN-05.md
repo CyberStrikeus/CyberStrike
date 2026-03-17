@@ -1,9 +1,11 @@
 # WSTG-ATHN-05: Testing for Vulnerable Remember Password
 
 ## Test ID
+
 WSTG-ATHN-05
 
 ## Test Name
+
 Testing for Vulnerable Remember Password
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Testing for Vulnerable Remember Password
 
 ### Common Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Cleartext credentials | Password stored in cookie |
-| Predictable tokens | Sequential or guessable values |
-| No expiration | Tokens never expire |
-| Cross-device usage | Same token works everywhere |
-| No revocation | Cannot invalidate tokens |
+| Vulnerability         | Description                    |
+| --------------------- | ------------------------------ |
+| Cleartext credentials | Password stored in cookie      |
+| Predictable tokens    | Sequential or guessable values |
+| No expiration         | Tokens never expire            |
+| Cross-device usage    | Same token works everywhere    |
+| No revocation         | Cannot invalidate tokens       |
 
 ---
 
@@ -232,18 +234,18 @@ curl -sI "https://target.com/login" -X POST \
 
 ### Cookie Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Cookie inspection | Analyze token values |
-| **Browser DevTools** | Cookie viewer | Inspect cookie attributes |
-| **CyberChef** | Decoding | Decode token values |
+| Tool                 | Description       | Usage                     |
+| -------------------- | ----------------- | ------------------------- |
+| **Burp Suite**       | Cookie inspection | Analyze token values      |
+| **Browser DevTools** | Cookie viewer     | Inspect cookie attributes |
+| **CyberChef**        | Decoding          | Decode token values       |
 
 ### Token Analysis
 
-| Tool | Description |
-|------|-------------|
-| **jwt.io** | JWT decoder |
-| **Hashcat** | Hash analysis |
+| Tool               | Description      |
+| ------------------ | ---------------- |
+| **jwt.io**         | JWT decoder      |
+| **Hashcat**        | Hash analysis    |
 | **Custom scripts** | Pattern analysis |
 
 ---
@@ -567,24 +569,24 @@ def verify_and_rotate_token(token, user_agent, ip_address):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Cleartext password in cookie | 9.8 | Critical |
-| Predictable token generation | 8.8 | High |
-| Token works after logout | 7.5 | High |
-| Missing Secure flag | 5.3 | Medium |
-| Token never expires | 6.5 | Medium |
+| Finding                      | CVSS | Severity |
+| ---------------------------- | ---- | -------- |
+| Cleartext password in cookie | 9.8  | Critical |
+| Predictable token generation | 8.8  | High     |
+| Token works after logout     | 7.5  | High     |
+| Missing Secure flag          | 5.3  | Medium   |
+| Token never expires          | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                                      | Description        |
+| ----------- | ------------------------------------------ | ------------------ |
 | **CWE-312** | Cleartext Storage of Sensitive Information | Password in cookie |
-| **CWE-330** | Use of Insufficiently Random Values | Weak tokens |
-| **CWE-613** | Insufficient Session Expiration | No expiration |
-| **CWE-614** | Sensitive Cookie Without Secure Flag | Missing security |
+| **CWE-330** | Use of Insufficiently Random Values        | Weak tokens        |
+| **CWE-613** | Insufficient Session Expiration            | No expiration      |
+| **CWE-614** | Sensitive Cookie Without Secure Flag       | Missing security   |
 
 ---
 

@@ -15,7 +15,9 @@ export async function getLatestRelease(skip?: string) {
   const headers: Record<string, string> = { Accept: "application/vnd.github+json" }
   if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`
   else if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
-  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100", { headers }).then((res) => {
+  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100", {
+    headers,
+  }).then((res) => {
     if (!res.ok) throw new Error(res.statusText)
     return res.json()
   })
@@ -136,7 +138,10 @@ function getSection(areas: Set<string>): string {
   return "Core"
 }
 
-async function summarizeCommit(cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>, message: string): Promise<string> {
+async function summarizeCommit(
+  cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>,
+  message: string,
+): Promise<string> {
   console.log("summarizing commit:", message)
   const session = await cyberstrike.client.session.create()
   const result = await cyberstrike.client.session

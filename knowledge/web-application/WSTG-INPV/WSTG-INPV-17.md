@@ -1,9 +1,11 @@
 # WSTG-INPV-17: Testing for Host Header Injection
 
 ## Test ID
+
 WSTG-INPV-17
 
 ## Test Name
+
 Testing for Host Header Injection
 
 ## High-Level Description
@@ -290,11 +292,11 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Header manipulation |
-| curl | Manual testing |
-| Param Miner | Header discovery |
+| Tool        | Purpose             |
+| ----------- | ------------------- |
+| Burp Suite  | Header manipulation |
+| curl        | Manual testing      |
+| Param Miner | Header discovery    |
 
 ---
 
@@ -331,19 +333,19 @@ server {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Password reset poisoning | 8.1 | High |
-| Web cache poisoning | 7.5 | High |
-| Internal host access | 7.5 | High |
-| Host header reflection | 5.3 | Medium |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Password reset poisoning | 8.1  | High     |
+| Web cache poisoning      | 7.5  | High     |
+| Internal host access     | 7.5  | High     |
+| Host header reflection   | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                     |
+| ---------- | ------------------------- |
 | **CWE-20** | Improper Input Validation |
 
 ---

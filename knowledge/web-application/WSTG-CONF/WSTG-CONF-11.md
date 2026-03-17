@@ -1,9 +1,11 @@
 # WSTG-CONF-11: Test Cloud Storage
 
 ## Test ID
+
 WSTG-CONF-11
 
 ## Test Name
+
 Test Cloud Storage
 
 ## High-Level Description
@@ -26,12 +28,12 @@ Cloud storage services (AWS S3, Azure Blob Storage, Google Cloud Storage) are co
 
 ### Cloud Providers
 
-| Provider | Service | URL Pattern |
-|----------|---------|-------------|
-| AWS | S3 | `bucket.s3.amazonaws.com` |
-| Azure | Blob Storage | `account.blob.core.windows.net` |
-| Google | Cloud Storage | `storage.googleapis.com/bucket` |
-| DigitalOcean | Spaces | `bucket.region.digitaloceanspaces.com` |
+| Provider     | Service       | URL Pattern                            |
+| ------------ | ------------- | -------------------------------------- |
+| AWS          | S3            | `bucket.s3.amazonaws.com`              |
+| Azure        | Blob Storage  | `account.blob.core.windows.net`        |
+| Google       | Cloud Storage | `storage.googleapis.com/bucket`        |
+| DigitalOcean | Spaces        | `bucket.region.digitaloceanspaces.com` |
 
 ---
 
@@ -176,28 +178,28 @@ done
 
 ### AWS Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **AWS CLI** | Official AWS CLI | `aws s3 ls s3://bucket` |
-| **S3Scanner** | S3 bucket scanner | `s3scanner scan --bucket bucket-name` |
-| **AWSBucketDump** | Dump S3 buckets | `python AWSBucketDump.py -l buckets.txt` |
-| **Bucket Finder** | Enumerate buckets | `bucket_finder.rb wordlist` |
+| Tool              | Description       | Usage                                    |
+| ----------------- | ----------------- | ---------------------------------------- |
+| **AWS CLI**       | Official AWS CLI  | `aws s3 ls s3://bucket`                  |
+| **S3Scanner**     | S3 bucket scanner | `s3scanner scan --bucket bucket-name`    |
+| **AWSBucketDump** | Dump S3 buckets   | `python AWSBucketDump.py -l buckets.txt` |
+| **Bucket Finder** | Enumerate buckets | `bucket_finder.rb wordlist`              |
 
 ### Multi-Cloud Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **CloudBrute** | Multi-cloud enum | `cloudbrute -d target.com` |
-| **cloud_enum** | Cloud resource enum | `python3 cloud_enum.py -k target` |
-| **Grayhat Warfare** | Bucket search | Online service |
+| Tool                | Description         | Usage                             |
+| ------------------- | ------------------- | --------------------------------- |
+| **CloudBrute**      | Multi-cloud enum    | `cloudbrute -d target.com`        |
+| **cloud_enum**      | Cloud resource enum | `python3 cloud_enum.py -k target` |
+| **Grayhat Warfare** | Bucket search       | Online service                    |
 
 ### Azure/GCP Tools
 
-| Tool | Description |
-|------|-------------|
-| **Azure CLI** | `az storage blob list` |
-| **gsutil** | `gsutil ls gs://bucket` |
-| **MicroBurst** | Azure security toolkit |
+| Tool           | Description             |
+| -------------- | ----------------------- |
+| **Azure CLI**  | `az storage blob list`  |
+| **gsutil**     | `gsutil ls gs://bucket` |
+| **MicroBurst** | Azure security toolkit  |
 
 ---
 
@@ -304,24 +306,21 @@ s3scanner dump --bucket bucket-name --out-dir ./dump/
 ```json
 // Bucket Policy - Deny public access
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "DenyPublicAccess",
-            "Effect": "Deny",
-            "Principal": "*",
-            "Action": "s3:*",
-            "Resource": [
-                "arn:aws:s3:::bucket-name",
-                "arn:aws:s3:::bucket-name/*"
-            ],
-            "Condition": {
-                "Bool": {
-                    "aws:SecureTransport": "false"
-                }
-            }
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyPublicAccess",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": ["arn:aws:s3:::bucket-name", "arn:aws:s3:::bucket-name/*"],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
         }
-    ]
+      }
+    }
+  ]
 }
 ```
 
@@ -375,12 +374,12 @@ gsutil uniformbucketlevelaccess set on gs://bucket-name
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Publicly readable bucket with sensitive data | 9.8 | Critical |
-| Publicly writable bucket | 9.8 | Critical |
-| Publicly listable bucket | 7.5 | High |
-| Bucket exists (enumeration) | 3.7 | Low |
+| Finding                                      | CVSS | Severity |
+| -------------------------------------------- | ---- | -------- |
+| Publicly readable bucket with sensitive data | 9.8  | Critical |
+| Publicly writable bucket                     | 9.8  | Critical |
+| Publicly listable bucket                     | 7.5  | High     |
+| Bucket exists (enumeration)                  | 3.7  | Low      |
 
 **Critical Finding Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
 
@@ -388,11 +387,11 @@ gsutil uniformbucketlevelaccess set on gs://bucket-name
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                   | Description               |
+| ----------- | ----------------------- | ------------------------- |
 | **CWE-284** | Improper Access Control | Misconfigured bucket ACLs |
-| **CWE-200** | Information Exposure | Public data disclosure |
-| **CWE-306** | Missing Authentication | Unauthenticated access |
+| **CWE-200** | Information Exposure    | Public data disclosure    |
+| **CWE-306** | Missing Authentication  | Unauthenticated access    |
 
 ---
 

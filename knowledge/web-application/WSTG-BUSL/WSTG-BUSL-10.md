@@ -1,9 +1,11 @@
 # WSTG-BUSL-10: Test Payment Functionality
 
 ## Test ID
+
 WSTG-BUSL-10
 
 ## Test Name
+
 Test Payment Functionality
 
 ## High-Level Description
@@ -26,14 +28,14 @@ Payment functionality testing examines the security of e-commerce and financial 
 
 ### Attack Vectors
 
-| Vector | Impact |
-|--------|--------|
-| Price manipulation | Pay less than intended |
-| Quantity manipulation | Get more items |
-| Currency confusion | Exchange rate exploit |
-| Coupon stacking | Excessive discounts |
-| Payment bypass | Get items for free |
-| Refund fraud | Get money without return |
+| Vector                | Impact                   |
+| --------------------- | ------------------------ |
+| Price manipulation    | Pay less than intended   |
+| Quantity manipulation | Get more items           |
+| Currency confusion    | Exchange rate exploit    |
+| Coupon stacking       | Excessive discounts      |
+| Payment bypass        | Get items for free       |
+| Refund fraud          | Get money without return |
 
 ---
 
@@ -288,17 +290,17 @@ done
 
 ### Payment Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request manipulation | Modify payment parameters |
-| **Stripe CLI** | Payment testing | Test payment flows |
-| **PayPal Sandbox** | Payment testing | Test PayPal integration |
+| Tool               | Description          | Usage                     |
+| ------------------ | -------------------- | ------------------------- |
+| **Burp Suite**     | Request manipulation | Modify payment parameters |
+| **Stripe CLI**     | Payment testing      | Test payment flows        |
+| **PayPal Sandbox** | Payment testing      | Test PayPal integration   |
 
 ### Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Postman** | API testing |
+| Tool               | Description       |
+| ------------------ | ----------------- |
+| **Postman**        | API testing       |
 | **Custom scripts** | Automated testing |
 
 ---
@@ -724,24 +726,24 @@ class RefundProcessor:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Price manipulation to $0 | 9.8 | Critical |
-| Payment bypass | 9.8 | Critical |
-| Unlimited refund amount | 9.8 | Critical |
-| Coupon stacking abuse | 7.5 | High |
-| Quantity manipulation | 7.5 | High |
-| Cart modification after checkout | 8.8 | High |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| Price manipulation to $0         | 9.8  | Critical |
+| Payment bypass                   | 9.8  | Critical |
+| Unlimited refund amount          | 9.8  | Critical |
+| Coupon stacking abuse            | 7.5  | High     |
+| Quantity manipulation            | 7.5  | High     |
+| Cart modification after checkout | 8.8  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-20** | Improper Input Validation | Price/quantity not validated |
-| **CWE-841** | Improper Enforcement of Behavioral Workflow | Payment bypass |
-| **CWE-840** | Business Logic Errors | Financial logic flaws |
+| CWE ID      | Title                                       | Description                  |
+| ----------- | ------------------------------------------- | ---------------------------- |
+| **CWE-20**  | Improper Input Validation                   | Price/quantity not validated |
+| **CWE-841** | Improper Enforcement of Behavioral Workflow | Payment bypass               |
+| **CWE-840** | Business Logic Errors                       | Financial logic flaws        |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-INPV-05.1: Testing for SQL Injection - Oracle
 
 ## Test ID
+
 WSTG-INPV-05.1
 
 ## Test Name
+
 Testing for SQL Injection - Oracle
 
 ## High-Level Description
@@ -330,11 +332,11 @@ sqlmap -u "https://target.com/product?id=1" --dbms=oracle --os-shell
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| SQLMap | Automated Oracle SQLi |
-| Oracle SQL Developer | Database client |
-| Burp Suite | Manual testing |
+| Tool                 | Purpose               |
+| -------------------- | --------------------- |
+| SQLMap               | Automated Oracle SQLi |
+| Oracle SQL Developer | Database client       |
+| Burp Suite           | Manual testing        |
 
 ---
 
@@ -360,18 +362,18 @@ cursor.execute("SELECT * FROM users WHERE id = :id", {'id': user_id})
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Oracle SQLi with DBA privileges | 9.8 | Critical |
-| Oracle SQLi data extraction | 8.6 | High |
-| Oracle Blind SQLi | 8.6 | High |
+| Finding                         | CVSS | Severity |
+| ------------------------------- | ---- | -------- |
+| Oracle SQLi with DBA privileges | 9.8  | Critical |
+| Oracle SQLi data extraction     | 8.6  | High     |
+| Oracle Blind SQLi               | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title         |
+| ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
 ---

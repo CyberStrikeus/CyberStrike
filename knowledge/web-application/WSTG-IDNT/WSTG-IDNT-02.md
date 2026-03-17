@@ -1,9 +1,11 @@
 # WSTG-IDNT-02: Test User Registration Process
 
 ## Test ID
+
 WSTG-IDNT-02
 
 ## Test Name
+
 Test User Registration Process
 
 ## High-Level Description
@@ -25,13 +27,13 @@ The user registration process is a critical security boundary where new identiti
 
 ### Potential Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Weak verification | Easy to bypass identity checks |
-| No rate limiting | Mass account creation possible |
-| Parameter tampering | Role injection during registration |
-| Email verification bypass | Access without confirmation |
-| Information disclosure | Username enumeration |
+| Vulnerability             | Description                        |
+| ------------------------- | ---------------------------------- |
+| Weak verification         | Easy to bypass identity checks     |
+| No rate limiting          | Mass account creation possible     |
+| Parameter tampering       | Role injection during registration |
+| Email verification bypass | Access without confirmation        |
+| Information disclosure    | Username enumeration               |
 
 ---
 
@@ -241,19 +243,19 @@ curl -s -X POST "https://target.com/api/register" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
+| Tool           | Description          | Usage                          |
+| -------------- | -------------------- | ------------------------------ |
 | **Burp Suite** | Request interception | Modify registration parameters |
-| **curl** | Command-line HTTP | Scripted testing |
-| **Postman** | API testing | Collection-based tests |
+| **curl**       | Command-line HTTP    | Scripted testing               |
+| **Postman**    | API testing          | Collection-based tests         |
 
 ### Automated Testing
 
-| Tool | Description |
-|------|-------------|
+| Tool              | Description                 |
+| ----------------- | --------------------------- |
 | **Burp Intruder** | Fuzzing registration fields |
-| **OWASP ZAP** | Automated scanning |
-| **Nuclei** | Template-based testing |
+| **OWASP ZAP**     | Automated scanning          |
+| **Nuclei**        | Template-based testing      |
 
 ---
 
@@ -415,24 +417,24 @@ def register():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Role injection during registration | 9.8 | Critical |
-| Email verification bypass | 7.5 | High |
-| No rate limiting | 5.3 | Medium |
-| CAPTCHA bypass | 5.3 | Medium |
-| Weak input validation | 6.1 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| Role injection during registration | 9.8  | Critical |
+| Email verification bypass          | 7.5  | High     |
+| No rate limiting                   | 5.3  | Medium   |
+| CAPTCHA bypass                     | 5.3  | Medium   |
+| Weak input validation              | 6.1  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-287** | Improper Authentication | Weak identity verification |
-| **CWE-269** | Improper Privilege Management | Role injection |
-| **CWE-770** | Allocation Without Limits | No rate limiting |
-| **CWE-20** | Improper Input Validation | Insufficient validation |
+| CWE ID      | Title                         | Description                |
+| ----------- | ----------------------------- | -------------------------- |
+| **CWE-287** | Improper Authentication       | Weak identity verification |
+| **CWE-269** | Improper Privilege Management | Role injection             |
+| **CWE-770** | Allocation Without Limits     | No rate limiting           |
+| **CWE-20**  | Improper Input Validation     | Insufficient validation    |
 
 ---
 

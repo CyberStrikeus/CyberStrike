@@ -1,9 +1,11 @@
 # WSTG-INFO-01: Conduct Search Engine Discovery Reconnaissance for Information Leakage
 
 ## Test ID
+
 WSTG-INFO-01
 
 ## Test Name
+
 Conduct Search Engine Discovery Reconnaissance for Information Leakage
 
 ## High-Level Description
@@ -39,13 +41,13 @@ This test aims to identify sensitive information about the target organization t
 
 Each search engine uses different indexing algorithms. Use multiple engines for comprehensive results:
 
-| Search Engine | URL | Characteristics |
-|---------------|-----|-----------------|
-| Google | google.com | Most comprehensive index |
-| Bing | bing.com | Microsoft ecosystem integration |
-| DuckDuckGo | duckduckgo.com | Privacy-focused, aggregated results |
-| Yandex | yandex.com | Russia-based, different perspective |
-| Baidu | baidu.com | China-based |
+| Search Engine | URL            | Characteristics                     |
+| ------------- | -------------- | ----------------------------------- |
+| Google        | google.com     | Most comprehensive index            |
+| Bing          | bing.com       | Microsoft ecosystem integration     |
+| DuckDuckGo    | duckduckgo.com | Privacy-focused, aggregated results |
+| Yandex        | yandex.com     | Russia-based, different perspective |
+| Baidu         | baidu.com      | China-based                         |
 
 ### Step 2: Apply Basic Search Operators
 
@@ -153,28 +155,28 @@ filename:config.php "target.com"
 
 ### Automated Tools
 
-| Tool | Description | Installation/Usage |
-|------|-------------|-------------------|
-| **theHarvester** | Email, subdomain, host discovery | `theHarvester -d target.com -b all` |
-| **Recon-ng** | Web reconnaissance framework | `recon-ng` |
-| **Maltego** | OSINT and link analysis | GUI tool |
-| **SpiderFoot** | Automated OSINT | `spiderfoot -s target.com` |
-| **Photon** | Web crawler | `python3 photon.py -u https://target.com` |
-| **Google Dorking Tools** | Automated dork queries | Pagodo, GooFuzz |
-| **Amass** | Subdomain enumeration | `amass enum -d target.com` |
-| **Subfinder** | Subdomain discovery | `subfinder -d target.com` |
+| Tool                     | Description                      | Installation/Usage                        |
+| ------------------------ | -------------------------------- | ----------------------------------------- |
+| **theHarvester**         | Email, subdomain, host discovery | `theHarvester -d target.com -b all`       |
+| **Recon-ng**             | Web reconnaissance framework     | `recon-ng`                                |
+| **Maltego**              | OSINT and link analysis          | GUI tool                                  |
+| **SpiderFoot**           | Automated OSINT                  | `spiderfoot -s target.com`                |
+| **Photon**               | Web crawler                      | `python3 photon.py -u https://target.com` |
+| **Google Dorking Tools** | Automated dork queries           | Pagodo, GooFuzz                           |
+| **Amass**                | Subdomain enumeration            | `amass enum -d target.com`                |
+| **Subfinder**            | Subdomain discovery              | `subfinder -d target.com`                 |
 
 ### Online Services
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Wayback Machine | web.archive.org | Historical data |
-| Shodan | shodan.io | IoT/device search |
-| Censys | censys.io | Internet-wide scanning |
-| VirusTotal | virustotal.com | Domain intelligence |
-| SecurityTrails | securitytrails.com | DNS history |
-| DNSDumpster | dnsdumpster.com | DNS recon |
-| crt.sh | crt.sh | Certificate transparency |
+| Service         | URL                | Purpose                  |
+| --------------- | ------------------ | ------------------------ |
+| Wayback Machine | web.archive.org    | Historical data          |
+| Shodan          | shodan.io          | IoT/device search        |
+| Censys          | censys.io          | Internet-wide scanning   |
+| VirusTotal      | virustotal.com     | Domain intelligence      |
+| SecurityTrails  | securitytrails.com | DNS history              |
+| DNSDumpster     | dnsdumpster.com    | DNS recon                |
+| crt.sh          | crt.sh             | Certificate transparency |
 
 ---
 
@@ -281,6 +283,7 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
    - Never share production environment details on public resources
 
 2. **robots.txt Configuration**
+
    ```
    User-agent: *
    Disallow: /admin/
@@ -290,11 +293,13 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
    Disallow: /*.sql$
    Disallow: /*.bak$
    ```
+
    > **Note**: robots.txt does not provide security, it only guides well-behaved bots
 
 3. **Meta Tag Usage**
+
    ```html
-   <meta name="robots" content="noindex, nofollow">
+   <meta name="robots" content="noindex, nofollow" />
    ```
 
 4. **Authentication Controls**
@@ -332,50 +337,52 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
 
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Accessible via internet |
-| Attack Complexity | Low | No special skills required |
-| Privileges Required | None | No authentication needed |
-| User Interaction | None | No user interaction required |
-| Scope | Unchanged | Impact scope unchanged |
-| Confidentiality | Low | Limited information disclosure |
-| Integrity | None | No integrity impact |
-| Availability | None | No availability impact |
+| Metric              | Value     | Description                    |
+| ------------------- | --------- | ------------------------------ |
+| Attack Vector       | Network   | Accessible via internet        |
+| Attack Complexity   | Low       | No special skills required     |
+| Privileges Required | None      | No authentication needed       |
+| User Interaction    | None      | No user interaction required   |
+| Scope               | Unchanged | Impact scope unchanged         |
+| Confidentiality     | Low       | Limited information disclosure |
+| Integrity           | None      | No integrity impact            |
+| Availability        | None      | No availability impact         |
 
 > **Note**: CVSS score may vary based on the sensitivity of discovered information. Credential leaks can significantly increase the score (High/Critical).
 
 ### Severity Levels
 
-| Discovered Information | Severity | Example |
-|------------------------|----------|---------|
-| General info, public data | Info | Company address, general contact |
-| Internal configuration | Low | Subdomain list |
-| Potential attack vector | Medium | Admin panel URL, technology stack |
-| Credential information | High | API key, password |
-| Critical system access | Critical | Private key, admin credentials |
+| Discovered Information    | Severity | Example                           |
+| ------------------------- | -------- | --------------------------------- |
+| General info, public data | Info     | Company address, general contact  |
+| Internal configuration    | Low      | Subdomain list                    |
+| Potential attack vector   | Medium   | Admin panel URL, technology stack |
+| Credential information    | High     | API key, password                 |
+| Critical system access    | Critical | Private key, admin credentials    |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor | Disclosure of sensitive information to unauthorized parties |
-| **CWE-538** | Insertion of Sensitive Information into Externally-Accessible File or Directory | Adding sensitive info to externally accessible files |
-| **CWE-359** | Exposure of Private Personal Information to an Unauthorized Actor | Disclosure of personal information to unauthorized parties |
-| **CWE-312** | Cleartext Storage of Sensitive Information | Storing sensitive information without encryption |
-| **CWE-615** | Inclusion of Sensitive Information in Source Code Comments | Sensitive information in source code comments |
+| CWE ID      | Title                                                                           | Description                                                 |
+| ----------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **CWE-200** | Exposure of Sensitive Information to an Unauthorized Actor                      | Disclosure of sensitive information to unauthorized parties |
+| **CWE-538** | Insertion of Sensitive Information into Externally-Accessible File or Directory | Adding sensitive info to externally accessible files        |
+| **CWE-359** | Exposure of Private Personal Information to an Unauthorized Actor               | Disclosure of personal information to unauthorized parties  |
+| **CWE-312** | Cleartext Storage of Sensitive Information                                      | Storing sensitive information without encryption            |
+| **CWE-615** | Inclusion of Sensitive Information in Source Code Comments                      | Sensitive information in source code comments               |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Search Engine Discovery](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/01-Conduct_Search_Engine_Discovery_Reconnaissance_for_Information_Leakage)
 - [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
 
 ### Tools
+
 - [theHarvester](https://github.com/laramies/theHarvester)
 - [Amass](https://github.com/OWASP/Amass)
 - [Subfinder](https://github.com/projectdiscovery/subfinder)
@@ -383,6 +390,7 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
 - [SpiderFoot](https://github.com/smicallef/spiderfoot)
 
 ### Other Resources
+
 - [Google Hacking Database (GHDB)](https://www.exploit-db.com/google-hacking-database)
 - [Shodan](https://www.shodan.io/)
 - [Wayback Machine](https://web.archive.org/)

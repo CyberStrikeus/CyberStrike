@@ -1,9 +1,11 @@
 # WSTG-IDNT-03: Test Account Provisioning Process
 
 ## Test ID
+
 WSTG-IDNT-03
 
 ## Test Name
+
 Test Account Provisioning Process
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Account provisioning is the process by which user accounts are created, modified
 
 ### Account Lifecycle Stages
 
-| Stage | Security Consideration |
-|-------|------------------------|
-| Creation | Who can create accounts? Authorization required? |
-| Modification | Who can change roles/permissions? |
-| Suspension | Process for disabling accounts |
-| Deletion | Complete removal of access and data |
-| Review | Regular access reviews conducted? |
+| Stage        | Security Consideration                           |
+| ------------ | ------------------------------------------------ |
+| Creation     | Who can create accounts? Authorization required? |
+| Modification | Who can change roles/permissions?                |
+| Suspension   | Process for disabling accounts                   |
+| Deletion     | Complete removal of access and data              |
+| Review       | Regular access reviews conducted?                |
 
 ---
 
@@ -194,18 +196,18 @@ curl -s -X PUT "https://target.com/api/admin/users/5" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request interception | Analyze provisioning flow |
-| **Postman** | API testing | Test provisioning endpoints |
-| **curl** | Command-line HTTP | Scripted tests |
+| Tool           | Description          | Usage                       |
+| -------------- | -------------------- | --------------------------- |
+| **Burp Suite** | Request interception | Analyze provisioning flow   |
+| **Postman**    | API testing          | Test provisioning endpoints |
+| **curl**       | Command-line HTTP    | Scripted tests              |
 
 ### Automated Testing
 
-| Tool | Description |
-|------|-------------|
-| **Burp Autorize** | Authorization testing |
-| **OWASP ZAP** | Automated scanning |
+| Tool               | Description            |
+| ------------------ | ---------------------- |
+| **Burp Autorize**  | Authorization testing  |
+| **OWASP ZAP**      | Automated scanning     |
 | **Custom scripts** | Python/Bash automation |
 
 ---
@@ -427,24 +429,24 @@ def modify_user(user_id):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Unauthorized account creation | 9.8 | Critical |
-| Privilege escalation via provisioning | 8.8 | High |
-| Missing approval workflows | 6.5 | Medium |
-| Insufficient audit logging | 5.3 | Medium |
-| Self-privilege elevation | 8.8 | High |
+| Finding                               | CVSS | Severity |
+| ------------------------------------- | ---- | -------- |
+| Unauthorized account creation         | 9.8  | Critical |
+| Privilege escalation via provisioning | 8.8  | High     |
+| Missing approval workflows            | 6.5  | Medium   |
+| Insufficient audit logging            | 5.3  | Medium   |
+| Self-privilege elevation              | 8.8  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-269** | Improper Privilege Management | Privilege escalation |
-| **CWE-862** | Missing Authorization | No auth for provisioning |
-| **CWE-863** | Incorrect Authorization | Wrong privilege checks |
-| **CWE-778** | Insufficient Logging | Missing audit trail |
+| CWE ID      | Title                         | Description              |
+| ----------- | ----------------------------- | ------------------------ |
+| **CWE-269** | Improper Privilege Management | Privilege escalation     |
+| **CWE-862** | Missing Authorization         | No auth for provisioning |
+| **CWE-863** | Incorrect Authorization       | Wrong privilege checks   |
+| **CWE-778** | Insufficient Logging          | Missing audit trail      |
 
 ---
 

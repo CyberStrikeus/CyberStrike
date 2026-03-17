@@ -1,9 +1,11 @@
 # WSTG-INPV-04: Testing for HTTP Parameter Pollution (HPP)
 
 ## Test ID
+
 WSTG-INPV-04
 
 ## Test Name
+
 Testing for HTTP Parameter Pollution (HPP)
 
 ## High-Level Description
@@ -339,12 +341,12 @@ curl -s -X POST "$TARGET" \
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Parameter manipulation |
-| ParamMiner | Parameter discovery |
-| Arjun | Hidden parameter finder |
-| curl | Manual testing |
+| Tool       | Purpose                 |
+| ---------- | ----------------------- |
+| Burp Suite | Parameter manipulation  |
+| ParamMiner | Parameter discovery     |
+| Arjun      | Hidden parameter finder |
+| curl       | Manual testing          |
 
 ---
 
@@ -395,37 +397,37 @@ $param = $_GET['param'];
 
 ```javascript
 // Node.js/Express - Handle duplicates
-app.get('/api/action', (req, res) => {
-    const param = req.query.param;
+app.get("/api/action", (req, res) => {
+  const param = req.query.param
 
-    // Express returns array for duplicates
-    if (Array.isArray(param)) {
-        console.warn('HPP attempt:', param);
-        return res.status(400).send('Invalid request');
-    }
+  // Express returns array for duplicates
+  if (Array.isArray(param)) {
+    console.warn("HPP attempt:", param)
+    return res.status(400).send("Invalid request")
+  }
 
-    // Process single value
-    processParam(param);
-});
+  // Process single value
+  processParam(param)
+})
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| HPP leading to auth bypass | 8.1 | High |
-| HPP price/quantity manipulation | 7.5 | High |
-| HPP WAF bypass | 6.5 | Medium |
-| HPP logic manipulation | 5.5 | Medium |
+| Finding                         | CVSS | Severity |
+| ------------------------------- | ---- | -------- |
+| HPP leading to auth bypass      | 8.1  | High     |
+| HPP price/quantity manipulation | 7.5  | High     |
+| HPP WAF bypass                  | 6.5  | Medium   |
+| HPP logic manipulation          | 5.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                 |
+| ----------- | ------------------------------------- |
 | **CWE-235** | Improper Handling of Extra Parameters |
 
 ---

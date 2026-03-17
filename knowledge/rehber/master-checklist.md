@@ -5,6 +5,7 @@ This is the master guide for all penetration testing activities. Each category l
 ## Web Application Testing (WSTG)
 
 ### WSTG-INFO: Information Gathering (10 tests)
+
 - [ ] WSTG-INFO-01: Conduct Search Engine Discovery
 - [ ] WSTG-INFO-02: Fingerprint Web Server
 - [ ] WSTG-INFO-03: Review Webserver Metafiles
@@ -17,6 +18,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-INFO-10: Map Application Architecture
 
 ### WSTG-CONF: Configuration Testing (13 tests)
+
 - [ ] WSTG-CONF-01: Test Network Infrastructure Configuration
 - [ ] WSTG-CONF-02: Test Application Platform Configuration
 - [ ] WSTG-CONF-03: Test File Extensions Handling
@@ -32,6 +34,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-CONF-13: Test for Path Confusion
 
 ### WSTG-IDNT: Identity Management (5 tests)
+
 - [ ] WSTG-IDNT-01: Test Role Definitions
 - [ ] WSTG-IDNT-02: Test User Registration Process
 - [ ] WSTG-IDNT-03: Test Account Provisioning Process
@@ -39,6 +42,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-IDNT-05: Testing for Weak or Unenforced Username Policy
 
 ### WSTG-ATHN: Authentication Testing (11 tests)
+
 - [ ] WSTG-ATHN-01: Testing for Credentials Transported over Encrypted Channel
 - [ ] WSTG-ATHN-02: Testing for Default Credentials
 - [ ] WSTG-ATHN-03: Testing for Weak Lock Out Mechanism
@@ -52,6 +56,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-ATHN-11: Testing Multi-Factor Authentication
 
 ### WSTG-AUTHZ: Authorization Testing (7 tests)
+
 - [ ] WSTG-AUTHZ-01: Testing Directory Traversal File Include
 - [ ] WSTG-AUTHZ-02: Testing for Bypassing Authorization Schema
 - [ ] WSTG-AUTHZ-03: Testing for Privilege Escalation
@@ -61,6 +66,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-AUTHZ-07: Testing for Missing Function Level Access Control
 
 ### WSTG-SESS: Session Management (11 tests)
+
 - [ ] WSTG-SESS-01: Testing for Session Management Schema
 - [ ] WSTG-SESS-02: Testing for Cookies Attributes
 - [ ] WSTG-SESS-03: Testing for Session Fixation
@@ -74,6 +80,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-SESS-11: Testing for Session Termination
 
 ### WSTG-INPV: Input Validation (29 tests)
+
 - [ ] WSTG-INPV-01: Testing for Reflected Cross Site Scripting
 - [ ] WSTG-INPV-02: Testing for Stored Cross Site Scripting
 - [ ] WSTG-INPV-03: Testing for HTTP Verb Tampering
@@ -105,16 +112,19 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-INPV-29: Testing for Clickjacking
 
 ### WSTG-ERRH: Error Handling (2 tests)
+
 - [ ] WSTG-ERRH-01: Testing for Improper Error Handling
 - [ ] WSTG-ERRH-02: Testing for Stack Traces
 
 ### WSTG-CRYP: Cryptography (4 tests)
+
 - [ ] WSTG-CRYP-01: Testing for Weak Transport Layer Security
 - [ ] WSTG-CRYP-02: Testing for Padding Oracle
 - [ ] WSTG-CRYP-03: Testing for Sensitive Information Sent via Unencrypted Channels
 - [ ] WSTG-CRYP-04: Testing for Weak Encryption
 
 ### WSTG-BUSL: Business Logic (10 tests)
+
 - [ ] WSTG-BUSL-01: Test Business Logic Data Validation
 - [ ] WSTG-BUSL-02: Test Ability to Forge Requests
 - [ ] WSTG-BUSL-03: Test Integrity Checks
@@ -127,6 +137,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-BUSL-10: Test Payment Functionality
 
 ### WSTG-CLNT: Client-side Testing (14 tests)
+
 - [ ] WSTG-CLNT-01: Testing for DOM-Based Cross Site Scripting
 - [ ] WSTG-CLNT-02: Testing for JavaScript Execution
 - [ ] WSTG-CLNT-03: Testing for HTML Injection
@@ -143,6 +154,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] WSTG-CLNT-14: Testing for Reverse Tabnabbing
 
 ### WSTG-APIT: API Testing (4 tests)
+
 - [ ] WSTG-APIT-01: Testing GraphQL
 - [ ] WSTG-APIT-02: Testing for Improper Assets Management
 - [ ] WSTG-APIT-03: Testing for Mass Assignment
@@ -153,6 +165,7 @@ This is the master guide for all penetration testing activities. Each category l
 ## Cloud Security Testing
 
 ### AWS Security
+
 - [ ] IAM Policy Analysis
 - [ ] S3 Bucket Permissions
 - [ ] EC2 Security Groups
@@ -163,6 +176,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] Secrets Manager Configuration
 
 ### Azure Security
+
 - [ ] Azure AD Security
 - [ ] Blob Storage Permissions
 - [ ] RBAC Configuration
@@ -172,6 +186,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] Conditional Access Policies
 
 ### GCP Security
+
 - [ ] IAM Bindings Review
 - [ ] GCS Bucket ACLs
 - [ ] Compute Instance Service Accounts
@@ -184,12 +199,14 @@ This is the master guide for all penetration testing activities. Each category l
 ## Internal Network Testing
 
 ### Network Reconnaissance
+
 - [ ] Port Scanning
 - [ ] Service Enumeration
 - [ ] Network Mapping
 - [ ] SNMP Enumeration
 
 ### Active Directory
+
 - [ ] Domain Enumeration
 - [ ] User Enumeration
 - [ ] Group Enumeration
@@ -198,6 +215,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] Trust Relationships
 
 ### Credential Attacks
+
 - [ ] Kerberoasting
 - [ ] AS-REP Roasting
 - [ ] Password Spraying
@@ -205,6 +223,7 @@ This is the master guide for all penetration testing activities. Each category l
 - [ ] NTLM Relay
 
 ### Privilege Escalation
+
 - [ ] Local Admin to Domain Admin Paths
 - [ ] Unconstrained Delegation
 - [ ] Constrained Delegation
@@ -216,24 +235,28 @@ This is the master guide for all penetration testing activities. Each category l
 ## Bug Bounty Methodology
 
 ### Asset Discovery
+
 - [ ] Subdomain Enumeration
 - [ ] Port Scanning
 - [ ] Technology Fingerprinting
 - [ ] Content Discovery
 
 ### Historical Analysis
+
 - [ ] Wayback Machine
 - [ ] GAU URLs
 - [ ] Certificate Transparency
 - [ ] Historical DNS
 
 ### JavaScript Analysis
+
 - [ ] Endpoint Extraction
 - [ ] API Key Discovery
 - [ ] Secret Detection
 - [ ] Hidden Functionality
 
 ### Vulnerability Hunting
+
 - [ ] IDOR Testing
 - [ ] Authentication Bypass
 - [ ] Access Control Issues

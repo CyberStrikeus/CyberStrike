@@ -1,9 +1,11 @@
 # WSTG-INPV-05.7: Testing for ORM Injection
 
 ## Test ID
+
 WSTG-INPV-05.7
 
 ## Test Name
+
 Testing for ORM Injection
 
 ## High-Level Description
@@ -297,11 +299,11 @@ sort=name DESC; SELECT * FROM users;--
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Parameter fuzzing |
-| SQLMap | Some ORM injection detection |
-| Custom scripts | ORM-specific testing |
+| Tool           | Purpose                      |
+| -------------- | ---------------------------- |
+| Burp Suite     | Parameter fuzzing            |
+| SQLMap         | Some ORM injection detection |
+| Custom scripts | ORM-specific testing         |
 
 ---
 
@@ -346,19 +348,19 @@ cq.select(root).where(cb.equal(root.get("name"), name));
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| HQL/JPQL Injection | 8.6 | High |
-| Filter/Order Injection | 7.5 | High |
-| Raw SQL in ORM | 9.8 | Critical |
+| Finding                | CVSS | Severity |
+| ---------------------- | ---- | -------- |
+| HQL/JPQL Injection     | 8.6  | High     |
+| Filter/Order Injection | 7.5  | High     |
+| Raw SQL in ORM         | 9.8  | Critical |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-89** | SQL Injection |
+| CWE ID      | Title                                       |
+| ----------- | ------------------------------------------- |
+| **CWE-89**  | SQL Injection                               |
 | **CWE-943** | Improper Neutralization in Data Query Logic |
 
 ---

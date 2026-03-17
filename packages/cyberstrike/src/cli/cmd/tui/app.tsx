@@ -753,7 +753,9 @@ function App() {
         evt.preventDefault()
         evt.stopPropagation()
       }}
-      onMouseUp={Flag.CYBERSTRIKE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? undefined : () => Selection.copy(renderer, toast)}
+      onMouseUp={
+        Flag.CYBERSTRIKE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? undefined : () => Selection.copy(renderer, toast)
+      }
     >
       <Switch>
         <Match when={route.data.type === "home"}>

@@ -52,19 +52,25 @@ Bu dosya, HTTP ile gelen istekleri "kullanıcı input'u" gibi işleyip TUI chat'
 **Çözüm:**
 
 - **TUI + port (önerilen):** Varsayılan komut (TUI) ile port ver; hem sohbet arayüzü açılır hem sunucu o portta dinler. İlk mesajı istersen `--prompt` ile ver.
+
   ```bash
   bun run --conditions=browser ./src/index.ts --port 4096
   ```
+
   İlk mesajı da göndermek için:
+
   ```bash
   bun run --conditions=browser ./src/index.ts --port 4096 --prompt "ilk mesaj"
   ```
+
   Bu komutla TUI açılır, sohbet akışı normal devam eder. Ingest için aynı porta istek at:
+
   ```bash
   curl -X POST http://127.0.0.1:4096/session/ingest -H "Content-Type: application/json" -d '{"text":"Merhaba"}'
   ```
 
 - **Headless run + port:** Sadece mesaj gönderip cevabı terminalde görmek için (TUI yok):
+
   ```bash
   bun run --conditions=browser ./src/index.ts run --port 4096 "ilk mesaj"
   ```
@@ -83,8 +89,8 @@ Bu dosya, HTTP ile gelen istekleri "kullanıcı input'u" gibi işleyip TUI chat'
 
 ## Sıra özeti
 
-1. Ingest body şeması (zod) + route tanımı  
-2. Handler: session resolve/create → prompt input → SessionPrompt.prompt (async) → response sessionID  
-3. Route'u doğru yere (parametreli route'lardan önce) koy  
-4. TUI'da event ile güncelleme (kod yok, test)  
+1. Ingest body şeması (zod) + route tanımı
+2. Handler: session resolve/create → prompt input → SessionPrompt.prompt (async) → response sessionID
+3. Route'u doğru yere (parametreli route'lardan önce) koy
+4. TUI'da event ile güncelleme (kod yok, test)
 5. curl + TUI ile test

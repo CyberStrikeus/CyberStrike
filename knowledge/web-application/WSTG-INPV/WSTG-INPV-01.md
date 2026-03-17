@@ -1,9 +1,11 @@
 # WSTG-INPV-01: Testing for Reflected Cross-Site Scripting (XSS)
 
 ## Test ID
+
 WSTG-INPV-01
 
 ## Test Name
+
 Testing for Reflected Cross-Site Scripting (XSS)
 
 ## High-Level Description
@@ -342,13 +344,13 @@ BYPASS_PAYLOADS = [
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
+| Tool       | Purpose                       |
+| ---------- | ----------------------------- |
 | Burp Suite | Intercept and modify requests |
-| XSStrike | Automated XSS detection |
-| Dalfox | Fast XSS scanner |
-| XSS Hunter | Blind XSS detection |
-| OWASP ZAP | Web vulnerability scanner |
+| XSStrike   | Automated XSS detection       |
+| Dalfox     | Fast XSS scanner              |
+| XSS Hunter | Blind XSS detection           |
+| OWASP ZAP  | Web vulnerability scanner     |
 
 ---
 
@@ -377,31 +379,31 @@ def add_csp(response):
 ```javascript
 // JavaScript - Safe DOM manipulation
 // BAD - vulnerable to XSS
-element.innerHTML = userInput;
+element.innerHTML = userInput
 
 // GOOD - use textContent for text
-element.textContent = userInput;
+element.textContent = userInput
 
 // GOOD - use DOMPurify for HTML
-element.innerHTML = DOMPurify.sanitize(userInput);
+element.innerHTML = DOMPurify.sanitize(userInput)
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Reflected XSS (no filter) | 6.1 | Medium |
-| Reflected XSS (filter bypass) | 6.1 | Medium |
-| Reflected XSS in sensitive page | 7.1 | High |
+| Finding                         | CVSS | Severity |
+| ------------------------------- | ---- | -------- |
+| Reflected XSS (no filter)       | 6.1  | Medium   |
+| Reflected XSS (filter bypass)   | 6.1  | Medium   |
+| Reflected XSS in sensitive page | 7.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                       |
+| ---------- | ----------------------------------------------------------- |
 | **CWE-79** | Improper Neutralization of Input During Web Page Generation |
 
 ---

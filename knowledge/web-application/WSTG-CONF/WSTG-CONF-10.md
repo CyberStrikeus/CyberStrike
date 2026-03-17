@@ -1,9 +1,11 @@
 # WSTG-CONF-10: Test for Subdomain Takeover
 
 ## Test ID
+
 WSTG-CONF-10
 
 ## Test Name
+
 Test for Subdomain Takeover
 
 ## High-Level Description
@@ -23,18 +25,18 @@ Subdomain takeover occurs when a subdomain's DNS record points to an external se
 
 ### Vulnerable Services
 
-| Service | Vulnerable Indicator |
-|---------|---------------------|
+| Service      | Vulnerable Indicator                         |
+| ------------ | -------------------------------------------- |
 | GitHub Pages | 404 - "There isn't a GitHub Pages site here" |
-| Heroku | "No such app" |
-| AWS S3 | "NoSuchBucket" |
-| Azure | "404 Web Site not found" |
-| Shopify | "Sorry, this shop is currently unavailable" |
-| Tumblr | "There's nothing here" |
-| Fastly | "Fastly error: unknown domain" |
-| Pantheon | "404 error unknown site" |
-| Zendesk | "Help Center Closed" |
-| Unbounce | "The requested URL was not found" |
+| Heroku       | "No such app"                                |
+| AWS S3       | "NoSuchBucket"                               |
+| Azure        | "404 Web Site not found"                     |
+| Shopify      | "Sorry, this shop is currently unavailable"  |
+| Tumblr       | "There's nothing here"                       |
+| Fastly       | "Fastly error: unknown domain"               |
+| Pantheon     | "404 error unknown site"                     |
+| Zendesk      | "Help Center Closed"                         |
+| Unbounce     | "The requested URL was not found"            |
 
 ---
 
@@ -164,28 +166,28 @@ nuclei -l subdomains.txt -t http/takeovers/
 
 ### Subdomain Enumeration
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Amass** | Comprehensive enum | `amass enum -d target.com` |
-| **Subfinder** | Fast discovery | `subfinder -d target.com` |
-| **Assetfinder** | Asset discovery | `assetfinder target.com` |
+| Tool            | Description        | Usage                      |
+| --------------- | ------------------ | -------------------------- |
+| **Amass**       | Comprehensive enum | `amass enum -d target.com` |
+| **Subfinder**   | Fast discovery     | `subfinder -d target.com`  |
+| **Assetfinder** | Asset discovery    | `assetfinder target.com`   |
 
 ### Takeover Detection
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Subjack** | Takeover scanner | `subjack -w subs.txt -ssl` |
-| **Nuclei** | Template scanner | `nuclei -t takeovers/` |
-| **SubOver** | Takeover checker | `SubOver -l subs.txt` |
+| Tool         | Description        | Usage                          |
+| ------------ | ------------------ | ------------------------------ |
+| **Subjack**  | Takeover scanner   | `subjack -w subs.txt -ssl`     |
+| **Nuclei**   | Template scanner   | `nuclei -t takeovers/`         |
+| **SubOver**  | Takeover checker   | `SubOver -l subs.txt`          |
 | **tko-subs** | Takeover detection | `tko-subs -data providers.csv` |
 
 ### DNS Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **dig** | DNS lookup | `dig CNAME subdomain.target.com` |
-| **dnsrecon** | DNS enumeration | `dnsrecon -d target.com` |
-| **dnsx** | DNS toolkit | `dnsx -l subs.txt -cname` |
+| Tool         | Description     | Usage                            |
+| ------------ | --------------- | -------------------------------- |
+| **dig**      | DNS lookup      | `dig CNAME subdomain.target.com` |
+| **dnsrecon** | DNS enumeration | `dnsrecon -d target.com`         |
+| **dnsx**     | DNS toolkit     | `dnsx -l subs.txt -cname`        |
 
 ---
 
@@ -314,17 +316,18 @@ nuclei -l subdomains.txt -t http/takeovers/aws-bucket-takeover.yaml
 ### CVSS Score
 
 **Subdomain Takeover**
+
 - **Base Score**: 8.6 (High)
 - **Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Remote exploitation |
-| Attack Complexity | Low | Easy to exploit |
-| Privileges Required | None | No auth needed |
-| User Interaction | None | Passive attack |
-| Scope | Changed | Affects other components |
-| Confidentiality | High | Credential theft possible |
+| Metric              | Value   | Description               |
+| ------------------- | ------- | ------------------------- |
+| Attack Vector       | Network | Remote exploitation       |
+| Attack Complexity   | Low     | Easy to exploit           |
+| Privileges Required | None    | No auth needed            |
+| User Interaction    | None    | Passive attack            |
+| Scope               | Changed | Affects other components  |
+| Confidentiality     | High    | Credential theft possible |
 
 ### Impact
 
@@ -339,10 +342,10 @@ nuclei -l subdomains.txt -t http/takeovers/aws-bucket-takeover.yaml
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-284** | Improper Access Control | DNS record management |
-| **CWE-668** | Exposure of Resource to Wrong Sphere | Subdomain exposure |
+| CWE ID      | Title                                | Description           |
+| ----------- | ------------------------------------ | --------------------- |
+| **CWE-284** | Improper Access Control              | DNS record management |
+| **CWE-668** | Exposure of Resource to Wrong Sphere | Subdomain exposure    |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-CONF-03: Test File Extensions Handling for Sensitive Information
 
 ## Test ID
+
 WSTG-CONF-03
 
 ## Test Name
+
 Test File Extensions Handling for Sensitive Information
 
 ## High-Level Description
@@ -188,20 +190,20 @@ curl -s "https://target.com/config.php%00.jpg"
 
 ### Automated Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nikto** | Web scanner | `nikto -h target.com` |
-| **Dirb** | Directory brute-force | `dirb https://target.com` |
+| Tool         | Description                | Usage                                                       |
+| ------------ | -------------------------- | ----------------------------------------------------------- |
+| **Nikto**    | Web scanner                | `nikto -h target.com`                                       |
+| **Dirb**     | Directory brute-force      | `dirb https://target.com`                                   |
 | **Gobuster** | Directory/file enumeration | `gobuster dir -u target.com -w wordlist.txt -x bak,old,txt` |
-| **ffuf** | Fast fuzzer | `ffuf -u target.com/FUZZ -w wordlist.txt` |
+| **ffuf**     | Fast fuzzer                | `ffuf -u target.com/FUZZ -w wordlist.txt`                   |
 
 ### Specialized Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **git-dumper** | Git repository extraction | `git-dumper url output/` |
-| **svn-extractor** | SVN extraction | Extract SVN repos |
-| **GitTools** | Git exploitation | Multiple tools |
+| Tool              | Description               | Usage                    |
+| ----------------- | ------------------------- | ------------------------ |
+| **git-dumper**    | Git repository extraction | `git-dumper url output/` |
+| **svn-extractor** | SVN extraction            | Extract SVN repos        |
+| **GitTools**      | Git exploitation          | Multiple tools           |
 
 ---
 
@@ -407,14 +409,14 @@ find /var/www/html -name "*.swp" -delete
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Source code disclosure | 7.5 | High |
-| Database credentials in .inc | 9.8 | Critical |
-| .git directory exposed | 9.8 | Critical |
-| Backup files with credentials | 9.8 | Critical |
-| Configuration file readable | 7.5-9.8 | High-Critical |
-| SQL dump accessible | 9.8 | Critical |
+| Finding                       | CVSS    | Severity      |
+| ----------------------------- | ------- | ------------- |
+| Source code disclosure        | 7.5     | High          |
+| Database credentials in .inc  | 9.8     | Critical      |
+| .git directory exposed        | 9.8     | Critical      |
+| Backup files with credentials | 9.8     | Critical      |
+| Configuration file readable   | 7.5-9.8 | High-Critical |
+| SQL dump accessible           | 9.8     | Critical      |
 
 **Typical Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
 
@@ -422,12 +424,12 @@ find /var/www/html -name "*.swp" -delete
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Information Exposure | Sensitive file disclosure |
-| **CWE-219** | Storage of File with Sensitive Data Under Web Root | Files in wrong location |
-| **CWE-530** | Exposure of Backup File to an Unauthorized Control Sphere | Backup file exposure |
-| **CWE-538** | Insertion of Sensitive Information into Externally-Accessible File | Config in public files |
+| CWE ID      | Title                                                              | Description               |
+| ----------- | ------------------------------------------------------------------ | ------------------------- |
+| **CWE-200** | Information Exposure                                               | Sensitive file disclosure |
+| **CWE-219** | Storage of File with Sensitive Data Under Web Root                 | Files in wrong location   |
+| **CWE-530** | Exposure of Backup File to an Unauthorized Control Sphere          | Backup file exposure      |
+| **CWE-538** | Insertion of Sensitive Information into Externally-Accessible File | Config in public files    |
 
 ---
 

@@ -312,7 +312,8 @@ export function SessionHeader() {
   })
 
   const leftMount = createMemo(
-    () => document.getElementById("cyberstrike-titlebar-left") ?? document.getElementById("cyberstrike-titlebar-center"),
+    () =>
+      document.getElementById("cyberstrike-titlebar-left") ?? document.getElementById("cyberstrike-titlebar-center"),
   )
   const rightMount = createMemo(() => document.getElementById("cyberstrike-titlebar-right"))
 

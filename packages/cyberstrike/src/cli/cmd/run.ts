@@ -619,7 +619,11 @@ export const RunCommand = cmd({
           hostname: "127.0.0.1",
         })
         const baseUrl = server.url.toString().replace(/\/$/, "")
-        UI.println(UI.Style.TEXT_DIM + `Server listening at ${baseUrl} (ingest: POST ${baseUrl}/session/ingest)` + UI.Style.TEXT_NORMAL)
+        UI.println(
+          UI.Style.TEXT_DIM +
+            `Server listening at ${baseUrl} (ingest: POST ${baseUrl}/session/ingest)` +
+            UI.Style.TEXT_NORMAL,
+        )
         const sdk = createCyberstrikeClient({ baseUrl, directory: process.cwd() })
         return await execute(sdk)
       }

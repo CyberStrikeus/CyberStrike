@@ -135,7 +135,8 @@ export const dict = {
   "home.privacy.link": "隐私",
 
   "home.faq.q1": "什么是 CyberStrike？",
-  "home.faq.a1": "CyberStrike 是一个开源代理，帮助您使用任意 AI 模型编写和运行代码。它提供终端界面、桌面应用及 IDE 扩展。",
+  "home.faq.a1":
+    "CyberStrike 是一个开源代理，帮助您使用任意 AI 模型编写和运行代码。它提供终端界面、桌面应用及 IDE 扩展。",
   "home.faq.q2": "如何使用 CyberStrike？",
   "home.faq.a2.before": "最简单的入门方式是阅读",
   "home.faq.a2.link": "介绍",

@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-02: Testing for Bypassing Authorization Schema
 
 ## Test ID
+
 WSTG-AUTHZ-02
 
 ## Test Name
+
 Testing for Bypassing Authorization Schema
 
 ## High-Level Description
@@ -26,14 +28,14 @@ Authorization bypass occurs when an attacker gains access to resources or functi
 
 ### Common Bypass Techniques
 
-| Technique | Description |
-|-----------|-------------|
-| Parameter tampering | Changing user_id, role, etc. |
-| Forced browsing | Direct URL access |
-| HTTP method change | GET→POST, PUT→PATCH |
+| Technique           | Description                   |
+| ------------------- | ----------------------------- |
+| Parameter tampering | Changing user_id, role, etc.  |
+| Forced browsing     | Direct URL access             |
+| HTTP method change  | GET→POST, PUT→PATCH           |
 | Header manipulation | X-Original-URL, X-Rewrite-URL |
-| Case manipulation | /Admin vs /admin |
-| Path manipulation | /admin/../admin |
+| Case manipulation   | /Admin vs /admin              |
+| Path manipulation   | /admin/../admin               |
 
 ---
 
@@ -440,17 +442,17 @@ print(f"\nTotal vulnerabilities: {len(vulns)}")
 
 ### Authorization Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Autorize (Burp)** | Authorization testing | Auto-detect auth issues |
-| **AuthMatrix (Burp)** | Role-based testing | Matrix of permissions |
-| **Access Control Testing** | Manual testing | Systematic verification |
+| Tool                       | Description           | Usage                   |
+| -------------------------- | --------------------- | ----------------------- |
+| **Autorize (Burp)**        | Authorization testing | Auto-detect auth issues |
+| **AuthMatrix (Burp)**      | Role-based testing    | Matrix of permissions   |
+| **Access Control Testing** | Manual testing        | Systematic verification |
 
 ### Automation
 
-| Tool | Description |
-|------|-------------|
-| **Custom scripts** | Tailored testing |
+| Tool               | Description             |
+| ------------------ | ----------------------- |
+| **Custom scripts** | Tailored testing        |
 | **Postman/Newman** | API authorization tests |
 
 ---
@@ -610,23 +612,23 @@ can_access = policy.evaluate(
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Vertical privilege escalation | 8.8 | High |
-| Horizontal privilege escalation | 8.1 | High |
-| Missing authorization on sensitive endpoint | 7.5 | High |
-| Inconsistent authorization enforcement | 6.5 | Medium |
+| Finding                                     | CVSS | Severity |
+| ------------------------------------------- | ---- | -------- |
+| Vertical privilege escalation               | 8.8  | High     |
+| Horizontal privilege escalation             | 8.1  | High     |
+| Missing authorization on sensitive endpoint | 7.5  | High     |
+| Inconsistent authorization enforcement      | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-285** | Improper Authorization | Missing/weak auth checks |
-| **CWE-639** | Authorization Bypass Through User-Controlled Key | IDOR |
-| **CWE-862** | Missing Authorization | No auth check |
-| **CWE-863** | Incorrect Authorization | Wrong auth logic |
+| CWE ID      | Title                                            | Description              |
+| ----------- | ------------------------------------------------ | ------------------------ |
+| **CWE-285** | Improper Authorization                           | Missing/weak auth checks |
+| **CWE-639** | Authorization Bypass Through User-Controlled Key | IDOR                     |
+| **CWE-862** | Missing Authorization                            | No auth check            |
+| **CWE-863** | Incorrect Authorization                          | Wrong auth logic         |
 
 ---
 

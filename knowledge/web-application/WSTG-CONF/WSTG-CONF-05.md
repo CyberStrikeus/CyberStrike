@@ -1,9 +1,11 @@
 # WSTG-CONF-05: Enumerate Infrastructure and Application Admin Interfaces
 
 ## Test ID
+
 WSTG-CONF-05
 
 ## Test Name
+
 Enumerate Infrastructure and Application Admin Interfaces
 
 ## High-Level Description
@@ -195,26 +197,26 @@ curl -s https://target.com/login | grep -i 'type="hidden"'
 
 ### Directory Enumeration
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Gobuster** | Directory brute-force | `gobuster dir -u target.com -w admin-wordlist.txt` |
-| **ffuf** | Fast fuzzer | `ffuf -u target.com/FUZZ -w admin-paths.txt` |
-| **Dirb** | Directory scanner | `dirb https://target.com` |
-| **ZAP Forced Browse** | OWASP scanner | GUI-based |
+| Tool                  | Description           | Usage                                              |
+| --------------------- | --------------------- | -------------------------------------------------- |
+| **Gobuster**          | Directory brute-force | `gobuster dir -u target.com -w admin-wordlist.txt` |
+| **ffuf**              | Fast fuzzer           | `ffuf -u target.com/FUZZ -w admin-paths.txt`       |
+| **Dirb**              | Directory scanner     | `dirb https://target.com`                          |
+| **ZAP Forced Browse** | OWASP scanner         | GUI-based                                          |
 
 ### Port Scanning
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nmap** | Port scanner | `nmap -sV -p- target.com` |
+| Tool        | Description  | Usage                          |
+| ----------- | ------------ | ------------------------------ |
+| **Nmap**    | Port scanner | `nmap -sV -p- target.com`      |
 | **Masscan** | Fast scanner | `masscan -p1-65535 target.com` |
 
 ### Brute Force
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Hydra** | Password brute-force | `hydra -L users.txt -P pass.txt target.com http-form-post` |
-| **Burp Intruder** | Web brute-force | GUI-based |
+| Tool              | Description          | Usage                                                      |
+| ----------------- | -------------------- | ---------------------------------------------------------- |
+| **Hydra**         | Password brute-force | `hydra -L users.txt -P pass.txt target.com http-form-post` |
+| **Burp Intruder** | Web brute-force      | GUI-based                                                  |
 
 ---
 
@@ -328,22 +330,22 @@ location /admin {
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Admin panel with default creds | 9.8 | Critical |
-| Admin panel accessible externally | 7.5 | High |
-| Admin panel with weak auth | 8.8 | High |
-| Admin subdomain discovered | 5.3 | Medium |
+| Finding                           | CVSS | Severity |
+| --------------------------------- | ---- | -------- |
+| Admin panel with default creds    | 9.8  | Critical |
+| Admin panel accessible externally | 7.5  | High     |
+| Admin panel with weak auth        | 8.8  | High     |
+| Admin subdomain discovered        | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Information Exposure | Admin interface disclosure |
-| **CWE-284** | Improper Access Control | Insufficient protection |
-| **CWE-287** | Improper Authentication | Weak admin authentication |
+| CWE ID      | Title                   | Description                |
+| ----------- | ----------------------- | -------------------------- |
+| **CWE-200** | Information Exposure    | Admin interface disclosure |
+| **CWE-284** | Improper Access Control | Insufficient protection    |
+| **CWE-287** | Improper Authentication | Weak admin authentication  |
 
 ---
 

@@ -1,9 +1,11 @@
 # WSTG-INPV-09: Testing for XPath Injection
 
 ## Test ID
+
 WSTG-INPV-09
 
 ## Test Name
+
 Testing for XPath Injection
 
 ## High-Level Description
@@ -282,11 +284,11 @@ normalize-space(//user[1]/password)
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Manual testing |
+| Tool                 | Purpose              |
+| -------------------- | -------------------- |
+| Burp Suite           | Manual testing       |
 | XPath Blind Explorer | Automated extraction |
-| Custom scripts | Exploitation |
+| Custom scripts       | Exploitation         |
 
 ---
 
@@ -339,18 +341,18 @@ $xpath = "//user[username='$username']";
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| XPath authentication bypass | 9.8 | Critical |
-| XPath data extraction | 7.5 | High |
-| Blind XPath injection | 7.5 | High |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| XPath authentication bypass | 9.8  | Critical |
+| XPath data extraction       | 7.5  | High     |
+| Blind XPath injection       | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                    |
+| ----------- | -------------------------------------------------------- |
 | **CWE-643** | Improper Neutralization of Data within XPath Expressions |
 
 ---

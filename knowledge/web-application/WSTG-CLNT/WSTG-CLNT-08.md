@@ -1,9 +1,11 @@
 # WSTG-CLNT-08: Testing for Cross-Site Flashing
 
 ## Test ID
+
 WSTG-CLNT-08
 
 ## Test Name
+
 Testing for Cross-Site Flashing
 
 ## High-Level Description
@@ -78,10 +80,10 @@ done
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Wildcard crossdomain.xml | 5.3 | Medium |
-| XSF vulnerability | 6.1 | Medium |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Wildcard crossdomain.xml | 5.3  | Medium   |
+| XSF vulnerability        | 6.1  | Medium   |
 
 ---
 

@@ -64,4 +64,3 @@ const tasks = Object.entries(binaries).map(async ([name]) => {
 })
 await Promise.all(tasks)
 await $`cd ./${distDir} && bun pm pack && npm publish *.tgz --access public --tag ${Script.channel}`
-

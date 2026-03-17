@@ -1,9 +1,11 @@
 # WSTG-BUSL-02: Test Ability to Forge Requests
 
 ## Test ID
+
 WSTG-BUSL-02
 
 ## Test Name
+
 Test Ability to Forge Requests
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Request forgery testing examines whether an application properly validates the a
 
 ### Vulnerable Components
 
-| Component | Attack Vector |
-|-----------|---------------|
-| Session tokens | Prediction/brute-force |
-| Transaction IDs | Sequential enumeration |
-| CSRF tokens | Weak generation |
-| Order references | Manipulation |
-| Timestamps | Replay attacks |
+| Component        | Attack Vector          |
+| ---------------- | ---------------------- |
+| Session tokens   | Prediction/brute-force |
+| Transaction IDs  | Sequential enumeration |
+| CSRF tokens      | Weak generation        |
+| Order references | Manipulation           |
+| Timestamps       | Replay attacks         |
 
 ---
 
@@ -235,19 +237,19 @@ curl -s -X POST "https://target.com/register" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Request interception | Modify and replay |
-| **Burp Repeater** | Request replay | Test manipulations |
-| **Postman** | API testing | Collection-based tests |
+| Tool              | Description          | Usage                  |
+| ----------------- | -------------------- | ---------------------- |
+| **Burp Suite**    | Request interception | Modify and replay      |
+| **Burp Repeater** | Request replay       | Test manipulations     |
+| **Postman**       | API testing          | Collection-based tests |
 
 ### Analysis
 
-| Tool | Description |
-|------|-------------|
+| Tool               | Description               |
+| ------------------ | ------------------------- |
 | **Burp Sequencer** | Token randomness analysis |
-| **hashcat** | Hash cracking |
-| **CyberChef** | Encoding/decoding |
+| **hashcat**        | Hash cracking             |
+| **CyberChef**      | Encoding/decoding         |
 
 ---
 
@@ -542,24 +544,24 @@ def process_payment():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Replay attack on financial transactions | 9.8 | Critical |
-| Predictable transaction IDs | 8.8 | High |
-| Missing signature validation | 8.8 | High |
-| Weak nonce/token generation | 7.5 | High |
-| Timestamp validation bypass | 6.5 | Medium |
+| Finding                                 | CVSS | Severity |
+| --------------------------------------- | ---- | -------- |
+| Replay attack on financial transactions | 9.8  | Critical |
+| Predictable transaction IDs             | 8.8  | High     |
+| Missing signature validation            | 8.8  | High     |
+| Weak nonce/token generation             | 7.5  | High     |
+| Timestamp validation bypass             | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-352** | Cross-Site Request Forgery | Missing CSRF protection |
-| **CWE-294** | Authentication Bypass by Capture-replay | Replay attacks |
-| **CWE-330** | Use of Insufficiently Random Values | Predictable tokens |
-| **CWE-345** | Insufficient Verification of Data Authenticity | Missing integrity |
+| CWE ID      | Title                                          | Description             |
+| ----------- | ---------------------------------------------- | ----------------------- |
+| **CWE-352** | Cross-Site Request Forgery                     | Missing CSRF protection |
+| **CWE-294** | Authentication Bypass by Capture-replay        | Replay attacks          |
+| **CWE-330** | Use of Insufficiently Random Values            | Predictable tokens      |
+| **CWE-345** | Insufficient Verification of Data Authenticity | Missing integrity       |
 
 ---
 

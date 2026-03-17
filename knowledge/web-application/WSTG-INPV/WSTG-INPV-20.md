@@ -1,9 +1,11 @@
 # WSTG-INPV-20: Testing for Mass Assignment
 
 ## Test ID
+
 WSTG-INPV-20
 
 ## Test Name
+
 Testing for Mass Assignment
 
 ## High-Level Description
@@ -385,11 +387,11 @@ tester.run_tests(auth_token='your_jwt_token')
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite Param Miner | Parameter discovery |
-| Arjun | Hidden parameter finder |
-| Custom scripts | Targeted testing |
+| Tool                   | Purpose                 |
+| ---------------------- | ----------------------- |
+| Burp Suite Param Miner | Parameter discovery     |
+| Arjun                  | Hidden parameter finder |
+| Custom scripts         | Targeted testing        |
 
 ---
 
@@ -415,18 +417,18 @@ def update_profile():
 
 ```javascript
 // Node.js/Express - Allowlist pattern
-const allowedFields = ['name', 'email', 'bio'];
+const allowedFields = ["name", "email", "bio"]
 
-app.put('/profile', (req, res) => {
-    const updates = {};
-    for (const field of allowedFields) {
-        if (req.body[field] !== undefined) {
-            updates[field] = req.body[field];
-        }
+app.put("/profile", (req, res) => {
+  const updates = {}
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates[field] = req.body[field]
     }
-    // Only safe fields are used
-    User.update(userId, updates);
-});
+  }
+  // Only safe fields are used
+  User.update(userId, updates)
+})
 ```
 
 ```ruby
@@ -441,19 +443,19 @@ end
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Admin role assignment | 9.8 | Critical |
-| Price manipulation | 8.6 | High |
-| Account status bypass | 7.5 | High |
-| Timestamp manipulation | 4.3 | Medium |
+| Finding                | CVSS | Severity |
+| ---------------------- | ---- | -------- |
+| Admin role assignment  | 9.8  | Critical |
+| Price manipulation     | 8.6  | High     |
+| Account status bypass  | 7.5  | High     |
+| Timestamp manipulation | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                                          |
+| ----------- | ------------------------------------------------------------------------------ |
 | **CWE-915** | Improperly Controlled Modification of Dynamically-Determined Object Attributes |
 
 ---

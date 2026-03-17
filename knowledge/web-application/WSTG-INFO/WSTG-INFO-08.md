@@ -1,9 +1,11 @@
 # WSTG-INFO-08: Fingerprint Web Application Framework
 
 ## Test ID
+
 WSTG-INFO-08
 
 ## Test Name
+
 Fingerprint Web Application Framework
 
 ## High-Level Description
@@ -53,16 +55,16 @@ curl -sI https://target.com
 
 #### Common Framework Headers
 
-| Header | Value | Framework |
-|--------|-------|-----------|
-| X-Powered-By | PHP/7.4 | PHP |
-| X-Powered-By | ASP.NET | ASP.NET |
-| X-Powered-By | Express | Node.js/Express |
-| X-Drupal-Cache | HIT | Drupal |
-| X-Generator | Drupal 9 | Drupal |
-| X-Pingback | /xmlrpc.php | WordPress |
-| Server | Werkzeug | Flask |
-| Server | gunicorn | Python (often Django) |
+| Header         | Value       | Framework             |
+| -------------- | ----------- | --------------------- |
+| X-Powered-By   | PHP/7.4     | PHP                   |
+| X-Powered-By   | ASP.NET     | ASP.NET               |
+| X-Powered-By   | Express     | Node.js/Express       |
+| X-Drupal-Cache | HIT         | Drupal                |
+| X-Generator    | Drupal 9    | Drupal                |
+| X-Pingback     | /xmlrpc.php | WordPress             |
+| Server         | Werkzeug    | Flask                 |
+| Server         | gunicorn    | Python (often Django) |
 
 ### Step 2: Cookie Analysis
 
@@ -79,19 +81,19 @@ done
 
 #### Framework-Specific Cookies
 
-| Cookie Name | Framework |
-|-------------|-----------|
-| PHPSESSID | PHP |
-| ASP.NET_SessionId | ASP.NET |
-| JSESSIONID | Java |
-| csrftoken, sessionid | Django |
-| laravel_session | Laravel |
-| CAKEPHP | CakePHP |
-| ci_session | CodeIgniter |
-| wordpress_logged_in | WordPress |
-| Drupal.visitor | Drupal |
-| _rails_session | Ruby on Rails |
-| connect.sid | Express.js |
+| Cookie Name          | Framework     |
+| -------------------- | ------------- |
+| PHPSESSID            | PHP           |
+| ASP.NET_SessionId    | ASP.NET       |
+| JSESSIONID           | Java          |
+| csrftoken, sessionid | Django        |
+| laravel_session      | Laravel       |
+| CAKEPHP              | CakePHP       |
+| ci_session           | CodeIgniter   |
+| wordpress_logged_in  | WordPress     |
+| Drupal.visitor       | Drupal        |
+| \_rails_session      | Ruby on Rails |
+| connect.sid          | Express.js    |
 
 ### Step 3: HTML Source Analysis
 
@@ -110,23 +112,23 @@ curl -s https://target.com | grep -oE '<!--.*?-->' | head -20
 
 ```html
 <!-- WordPress -->
-<meta name="generator" content="WordPress 6.0">
-<link rel="stylesheet" href="/wp-content/themes/theme/style.css">
+<meta name="generator" content="WordPress 6.0" />
+<link rel="stylesheet" href="/wp-content/themes/theme/style.css" />
 <script src="/wp-includes/js/jquery/jquery.min.js"></script>
 
 <!-- Drupal -->
-<meta name="Generator" content="Drupal 9">
-<link rel="stylesheet" href="/sites/default/files/css/...">
+<meta name="Generator" content="Drupal 9" />
+<link rel="stylesheet" href="/sites/default/files/css/..." />
 
 <!-- Joomla -->
-<meta name="generator" content="Joomla! - Open Source Content Management">
+<meta name="generator" content="Joomla! - Open Source Content Management" />
 
 <!-- Django -->
-<input type="hidden" name="csrfmiddlewaretoken" value="...">
+<input type="hidden" name="csrfmiddlewaretoken" value="..." />
 
 <!-- Laravel -->
-<meta name="csrf-token" content="...">
-<input type="hidden" name="_token" value="...">
+<meta name="csrf-token" content="..." />
+<input type="hidden" name="_token" value="..." />
 ```
 
 ### Step 4: URL Structure and File Extensions
@@ -153,16 +155,16 @@ done
 
 #### Extension-Technology Mapping
 
-| Extension | Technology |
-|-----------|------------|
-| .php | PHP |
-| .asp, .aspx | ASP.NET |
-| .jsp, .jsf | Java |
-| .do | Java Struts |
-| .action | Java Struts 2 |
-| .cfm | ColdFusion |
-| .pl | Perl |
-| .py | Python (rare) |
+| Extension   | Technology    |
+| ----------- | ------------- |
+| .php        | PHP           |
+| .asp, .aspx | ASP.NET       |
+| .jsp, .jsf  | Java          |
+| .do         | Java Struts   |
+| .action     | Java Struts 2 |
+| .cfm        | ColdFusion    |
+| .pl         | Perl          |
+| .py         | Python (rare) |
 
 ### Step 5: Directory Structure Analysis
 
@@ -195,14 +197,14 @@ curl -s "https://target.com/index.php?test[]=1"
 
 #### Framework-Specific Error Pages
 
-| Error Pattern | Framework |
-|---------------|-----------|
-| "Fatal error: Uncaught" | PHP |
-| "Server Error in '/' Application" | ASP.NET |
-| "Whitelabel Error Page" | Spring Boot |
-| "DoesNotExist at /" | Django |
-| "Routing Error" | Ruby on Rails |
-| "Cannot GET /..." | Express.js |
+| Error Pattern                     | Framework     |
+| --------------------------------- | ------------- |
+| "Fatal error: Uncaught"           | PHP           |
+| "Server Error in '/' Application" | ASP.NET       |
+| "Whitelabel Error Page"           | Spring Boot   |
+| "DoesNotExist at /"               | Django        |
+| "Routing Error"                   | Ruby on Rails |
+| "Cannot GET /..."                 | Express.js    |
 
 ### Step 7: JavaScript Library Detection
 
@@ -261,31 +263,31 @@ nikto -h https://target.com
 
 ### Command-Line Tools
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **WhatWeb** | Web fingerprinting | `whatweb https://target.com` |
-| **Wappalyzer CLI** | Technology detection | `wappalyzer https://target.com` |
-| **Nikto** | Web scanner | `nikto -h target.com` |
-| **httpx** | HTTP toolkit | `echo target.com \| httpx -tech-detect` |
-| **Webanalyze** | Technology detection | `webanalyze -host target.com` |
+| Tool               | Description          | Usage                                   |
+| ------------------ | -------------------- | --------------------------------------- |
+| **WhatWeb**        | Web fingerprinting   | `whatweb https://target.com`            |
+| **Wappalyzer CLI** | Technology detection | `wappalyzer https://target.com`         |
+| **Nikto**          | Web scanner          | `nikto -h target.com`                   |
+| **httpx**          | HTTP toolkit         | `echo target.com \| httpx -tech-detect` |
+| **Webanalyze**     | Technology detection | `webanalyze -host target.com`           |
 
 ### Browser Extensions
 
-| Extension | Browser |
-|-----------|---------|
+| Extension  | Browser         |
+| ---------- | --------------- |
 | Wappalyzer | Chrome, Firefox |
-| BuiltWith | Chrome, Firefox |
-| Retire.js | Chrome, Firefox |
-| WhatRuns | Chrome |
+| BuiltWith  | Chrome, Firefox |
+| Retire.js  | Chrome, Firefox |
+| WhatRuns   | Chrome          |
 
 ### Online Services
 
-| Service | URL |
-|---------|-----|
-| BuiltWith | builtwith.com |
-| Netcraft | toolbar.netcraft.com |
-| W3Techs | w3techs.com |
-| SimilarTech | similartech.com |
+| Service     | URL                  |
+| ----------- | -------------------- |
+| BuiltWith   | builtwith.com        |
+| Netcraft    | toolbar.netcraft.com |
+| W3Techs     | w3techs.com          |
+| SimilarTech | similartech.com      |
 
 ---
 
@@ -449,6 +451,7 @@ DEBUG = False
 ### 5. Security Note
 
 > **Important**: Obscuring framework information is "security through obscurity" and should not be the primary defense. Focus on:
+>
 > - Keeping frameworks updated
 > - Proper security configuration
 > - Regular vulnerability scanning
@@ -464,42 +467,44 @@ DEBUG = False
 
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Internet accessible |
-| Attack Complexity | Low | Simple techniques |
-| Privileges Required | None | No authentication |
-| User Interaction | None | No interaction needed |
-| Confidentiality | Low | Technology disclosure |
-| Integrity | None | No integrity impact |
-| Availability | None | No availability impact |
+| Metric              | Value   | Description            |
+| ------------------- | ------- | ---------------------- |
+| Attack Vector       | Network | Internet accessible    |
+| Attack Complexity   | Low     | Simple techniques      |
+| Privileges Required | None    | No authentication      |
+| User Interaction    | None    | No interaction needed  |
+| Confidentiality     | Low     | Technology disclosure  |
+| Integrity           | None    | No integrity impact    |
+| Availability        | None    | No availability impact |
 
 ### Severity Based on Findings
 
-| Finding | Severity | Impact |
-|---------|----------|--------|
-| Framework version visible | Low | Aids targeted attacks |
-| Outdated framework detected | Medium-High | Known vulnerabilities |
-| Debug mode enabled | High | Detailed error info |
-| Default credentials possible | Critical | Direct access |
+| Finding                      | Severity    | Impact                |
+| ---------------------------- | ----------- | --------------------- |
+| Framework version visible    | Low         | Aids targeted attacks |
+| Outdated framework detected  | Medium-High | Known vulnerabilities |
+| Debug mode enabled           | High        | Detailed error info   |
+| Default credentials possible | Critical    | Direct access         |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-200** | Exposure of Sensitive Information | Technology disclosure |
-| **CWE-16** | Configuration | Improper configuration |
+| CWE ID      | Title                             | Description            |
+| ----------- | --------------------------------- | ---------------------- |
+| **CWE-200** | Exposure of Sensitive Information | Technology disclosure  |
+| **CWE-16**  | Configuration                     | Improper configuration |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Fingerprint Web Application Framework](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/08-Fingerprint_Web_Application_Framework)
 
 ### Tools
+
 - [WhatWeb](https://github.com/urbanadventurer/WhatWeb)
 - [Wappalyzer](https://www.wappalyzer.com/)
 - [BuiltWith](https://builtwith.com/)

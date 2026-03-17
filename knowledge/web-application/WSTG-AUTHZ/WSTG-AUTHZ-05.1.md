@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-05.1: Testing OAuth Authorization Server Weaknesses
 
 ## Test ID
+
 WSTG-AUTHZ-05.1
 
 ## Test Name
+
 Testing OAuth Authorization Server Weaknesses
 
 ## High-Level Description
@@ -26,13 +28,13 @@ The OAuth Authorization Server is responsible for authenticating users, obtainin
 
 ### Server-Side Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Weak token generation | Predictable tokens |
+| Vulnerability                 | Description                    |
+| ----------------------------- | ------------------------------ |
+| Weak token generation         | Predictable tokens             |
 | Insufficient token validation | Missing signature verification |
-| Client impersonation | Weak client authentication |
-| Token leakage | Logging, error messages |
-| Consent bypass | Auto-approval issues |
+| Client impersonation          | Weak client authentication     |
+| Token leakage                 | Logging, error messages        |
+| Consent bypass                | Auto-approval issues           |
 
 ---
 
@@ -396,18 +398,18 @@ done
 
 ### OAuth Server Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Traffic analysis | Intercept OAuth flows |
-| **Postman** | API testing | Test endpoints |
-| **oauth2-test-server** | Test server | Development testing |
+| Tool                   | Description      | Usage                 |
+| ---------------------- | ---------------- | --------------------- |
+| **Burp Suite**         | Traffic analysis | Intercept OAuth flows |
+| **Postman**            | API testing      | Test endpoints        |
+| **oauth2-test-server** | Test server      | Development testing   |
 
 ### Token Analysis
 
-| Tool | Description |
-|------|-------------|
-| **jwt.io** | JWT decoder |
-| **jwt_tool** | JWT security |
+| Tool            | Description        |
+| --------------- | ------------------ |
+| **jwt.io**      | JWT decoder        |
+| **jwt_tool**    | JWT security       |
 | **jwt-cracker** | Weak secret finder |
 
 ---
@@ -584,24 +586,24 @@ class ConsentManager:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Weak token generation | 9.1 | Critical |
-| Missing client authentication | 8.8 | High |
-| Consent bypass | 7.5 | High |
-| Token leakage in logs | 6.5 | Medium |
-| ROPC enabled | 6.5 | Medium |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| Weak token generation         | 9.1  | Critical |
+| Missing client authentication | 8.8  | High     |
+| Consent bypass                | 7.5  | High     |
+| Token leakage in logs         | 6.5  | Medium   |
+| ROPC enabled                  | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-330** | Insufficient Randomness | Weak tokens |
-| **CWE-287** | Improper Authentication | Client auth issues |
-| **CWE-862** | Missing Authorization | Consent bypass |
-| **CWE-532** | Information in Log Files | Token leakage |
+| CWE ID      | Title                    | Description        |
+| ----------- | ------------------------ | ------------------ |
+| **CWE-330** | Insufficient Randomness  | Weak tokens        |
+| **CWE-287** | Improper Authentication  | Client auth issues |
+| **CWE-862** | Missing Authorization    | Consent bypass     |
+| **CWE-532** | Information in Log Files | Token leakage      |
 
 ---
 

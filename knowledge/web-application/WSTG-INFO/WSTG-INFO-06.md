@@ -1,9 +1,11 @@
 # WSTG-INFO-06: Identify Application Entry Points
 
 ## Test ID
+
 WSTG-INFO-06
 
 ## Test Name
+
 Identify Application Entry Points
 
 ## High-Level Description
@@ -74,17 +76,17 @@ X-Requested-With: XMLHttpRequest
 
 #### Entry Points in GET Request
 
-| Location | Parameter | Value |
-|----------|-----------|-------|
-| Query String | query | test |
-| Query String | category | all |
-| Query String | page | 1 |
-| Query String | sort | desc |
-| Cookie | session | abc123 |
-| Cookie | preference | dark |
-| Header | User-Agent | Mozilla/5.0 |
-| Header | Referer | https://... |
-| Header | X-Requested-With | XMLHttpRequest |
+| Location     | Parameter        | Value          |
+| ------------ | ---------------- | -------------- |
+| Query String | query            | test           |
+| Query String | category         | all            |
+| Query String | page             | 1              |
+| Query String | sort             | desc           |
+| Cookie       | session          | abc123         |
+| Cookie       | preference       | dark           |
+| Header       | User-Agent       | Mozilla/5.0    |
+| Header       | Referer          | https://...    |
+| Header       | X-Requested-With | XMLHttpRequest |
 
 ### Step 3: Analyze POST Requests
 
@@ -99,13 +101,13 @@ product_id=100&quantity=2&price=50.00&discount_code=SAVE10&shipping=express
 
 #### Entry Points in POST Request
 
-| Location | Parameter | Value | Notes |
-|----------|-----------|-------|-------|
-| Body | product_id | 100 | Potential IDOR |
-| Body | quantity | 2 | Integer manipulation |
-| Body | price | 50.00 | Price tampering |
-| Body | discount_code | SAVE10 | Brute-force target |
-| Body | shipping | express | Business logic |
+| Location | Parameter     | Value   | Notes                |
+| -------- | ------------- | ------- | -------------------- |
+| Body     | product_id    | 100     | Potential IDOR       |
+| Body     | quantity      | 2       | Integer manipulation |
+| Body     | price         | 50.00   | Price tampering      |
+| Body     | discount_code | SAVE10  | Brute-force target   |
+| Body     | shipping      | express | Business logic       |
 
 ### Step 4: Analyze JSON/API Requests
 
@@ -130,15 +132,15 @@ X-API-Key: abcd1234
 
 #### Entry Points in JSON Request
 
-| Location | Parameter | Path | Type |
-|----------|-----------|------|------|
-| Header | Authorization | - | JWT Token |
-| Header | X-API-Key | - | API Key |
-| Body | username | $.username | String |
-| Body | email | $.email | Email |
-| Body | role | $.role | Enum |
-| Body | permissions | $.permissions[] | Array |
-| Body | source | $.metadata.source | Nested |
+| Location | Parameter     | Path              | Type      |
+| -------- | ------------- | ----------------- | --------- |
+| Header   | Authorization | -                 | JWT Token |
+| Header   | X-API-Key     | -                 | API Key   |
+| Body     | username      | $.username        | String    |
+| Body     | email         | $.email           | Email     |
+| Body     | role          | $.role            | Enum      |
+| Body     | permissions   | $.permissions[]   | Array     |
+| Body     | source        | $.metadata.source | Nested    |
 
 ### Step 5: Analyze RESTful URL Patterns
 
@@ -148,13 +150,13 @@ GET /api/users/123/orders/456/items
 
 #### URL Path Parameters
 
-| Segment | Type | Description |
-|---------|------|-------------|
-| users | Resource | User collection |
-| 123 | ID Parameter | User ID (IDOR test) |
-| orders | Resource | Orders collection |
-| 456 | ID Parameter | Order ID (IDOR test) |
-| items | Resource | Items sub-resource |
+| Segment | Type         | Description          |
+| ------- | ------------ | -------------------- |
+| users   | Resource     | User collection      |
+| 123     | ID Parameter | User ID (IDOR test)  |
+| orders  | Resource     | Orders collection    |
+| 456     | ID Parameter | Order ID (IDOR test) |
+| items   | Resource     | Items sub-resource   |
 
 ### Step 6: Analyze Response Headers
 
@@ -171,34 +173,34 @@ Content-Type: application/json
 
 #### Notable Response Elements
 
-| Header | Value | Security Note |
-|--------|-------|---------------|
-| Server | nginx/1.18.0 | Version disclosure |
-| Set-Cookie | session=... | Session management |
-| X-Debug-Mode | enabled | Debug info leak |
-| X-Request-ID | req-12345 | Tracking identifier |
+| Header       | Value        | Security Note       |
+| ------------ | ------------ | ------------------- |
+| Server       | nginx/1.18.0 | Version disclosure  |
+| Set-Cookie   | session=...  | Session management  |
+| X-Debug-Mode | enabled      | Debug info leak     |
+| X-Request-ID | req-12345    | Tracking identifier |
 
 ### Step 7: Document Hidden Form Fields
 
 ```html
 <form action="/checkout" method="POST">
-    <input type="hidden" name="csrf_token" value="abc123">
-    <input type="hidden" name="user_id" value="500">
-    <input type="hidden" name="base_price" value="100.00">
-    <input type="hidden" name="is_admin" value="false">
-    <input type="text" name="quantity" value="1">
-    <button type="submit">Purchase</button>
+  <input type="hidden" name="csrf_token" value="abc123" />
+  <input type="hidden" name="user_id" value="500" />
+  <input type="hidden" name="base_price" value="100.00" />
+  <input type="hidden" name="is_admin" value="false" />
+  <input type="text" name="quantity" value="1" />
+  <button type="submit">Purchase</button>
 </form>
 ```
 
 #### Hidden Field Analysis
 
-| Field | Value | Risk |
-|-------|-------|------|
-| csrf_token | abc123 | Token strength |
-| user_id | 500 | IDOR vulnerability |
-| base_price | 100.00 | Price manipulation |
-| is_admin | false | Privilege escalation |
+| Field      | Value  | Risk                 |
+| ---------- | ------ | -------------------- |
+| csrf_token | abc123 | Token strength       |
+| user_id    | 500    | IDOR vulnerability   |
+| base_price | 100.00 | Price manipulation   |
+| is_admin   | false  | Privilege escalation |
 
 ### Step 8: Map Multi-Step Processes
 
@@ -215,14 +217,14 @@ Document workflows that require multiple requests:
 
 #### Process Flow Entry Points
 
-| Step | Method | Key Parameters | State |
-|------|--------|----------------|-------|
-| 1 | GET | - | Unauthenticated |
-| 2 | POST | coupon_code | Cart active |
-| 3 | GET | - | Authenticated |
-| 4 | POST | address_id, new_address | Cart active |
-| 5 | POST | card_token, save_card | Address set |
-| 6 | POST | confirm_token | Payment ready |
+| Step | Method | Key Parameters          | State           |
+| ---- | ------ | ----------------------- | --------------- |
+| 1    | GET    | -                       | Unauthenticated |
+| 2    | POST   | coupon_code             | Cart active     |
+| 3    | GET    | -                       | Authenticated   |
+| 4    | POST   | address_id, new_address | Cart active     |
+| 5    | POST   | card_token, save_card   | Address set     |
+| 6    | POST   | confirm_token           | Payment ready   |
 
 ### Step 9: Identify WebSocket Endpoints
 
@@ -240,20 +242,20 @@ wss://target.com/secure-socket
 ```graphql
 # GraphQL query entry points
 query {
-    user(id: 123) {
-        name
-        email
-        orders {
-            id
-            total
-        }
+  user(id: 123) {
+    name
+    email
+    orders {
+      id
+      total
     }
+  }
 }
 
 mutation {
-    updateUser(id: 123, role: "admin") {
-        success
-    }
+  updateUser(id: 123, role: "admin") {
+    success
+  }
 }
 ```
 
@@ -263,32 +265,32 @@ mutation {
 
 ### Proxy Tools
 
-| Tool | Description | Key Feature |
-|------|-------------|-------------|
-| **Burp Suite** | Web proxy | Site map, parameter extraction |
-| **OWASP ZAP** | Open-source proxy | Automated spider, HUD |
-| **Fiddler** | Traffic inspector | .NET integration |
-| **mitmproxy** | CLI proxy | Scriptable interception |
-| **Charles Proxy** | macOS proxy | SSL proxying |
+| Tool              | Description       | Key Feature                    |
+| ----------------- | ----------------- | ------------------------------ |
+| **Burp Suite**    | Web proxy         | Site map, parameter extraction |
+| **OWASP ZAP**     | Open-source proxy | Automated spider, HUD          |
+| **Fiddler**       | Traffic inspector | .NET integration               |
+| **mitmproxy**     | CLI proxy         | Scriptable interception        |
+| **Charles Proxy** | macOS proxy       | SSL proxying                   |
 
 ### Automated Discovery
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Attack Surface Detector** | Source code analysis | `java -jar asd.jar <source>` |
-| **Param Miner** | Burp extension | Hidden parameter discovery |
-| **Arjun** | Parameter finder | `arjun -u https://target.com` |
-| **x8** | Hidden parameter discovery | `x8 -u https://target.com` |
-| **ParamSpider** | Parameter extraction | `paramspider -d target.com` |
+| Tool                        | Description                | Usage                         |
+| --------------------------- | -------------------------- | ----------------------------- |
+| **Attack Surface Detector** | Source code analysis       | `java -jar asd.jar <source>`  |
+| **Param Miner**             | Burp extension             | Hidden parameter discovery    |
+| **Arjun**                   | Parameter finder           | `arjun -u https://target.com` |
+| **x8**                      | Hidden parameter discovery | `x8 -u https://target.com`    |
+| **ParamSpider**             | Parameter extraction       | `paramspider -d target.com`   |
 
 ### API Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Postman** | API testing |
-| **Insomnia** | REST/GraphQL client |
+| Tool                | Description          |
+| ------------------- | -------------------- |
+| **Postman**         | API testing          |
+| **Insomnia**        | REST/GraphQL client  |
 | **GraphQL Voyager** | Schema visualization |
-| **Swagger UI** | OpenAPI testing |
+| **Swagger UI**      | OpenAPI testing      |
 
 ---
 
@@ -376,25 +378,27 @@ echo "Entry points saved to $OUTPUT_FILE"
 
 ### Entry Point Documentation Template
 
-```markdown
+````markdown
 ## Endpoint: /api/users/{id}
 
 ### Request
+
 - **Method**: PUT
 - **Authentication**: Required (Bearer token)
 - **Content-Type**: application/json
 
 ### Parameters
 
-| Name | Location | Type | Required | Description |
-|------|----------|------|----------|-------------|
-| id | URL Path | Integer | Yes | User ID |
-| Authorization | Header | String | Yes | JWT Token |
-| name | Body | String | No | Display name |
-| email | Body | String | No | Email address |
-| role | Body | Enum | No | user/admin |
+| Name          | Location | Type    | Required | Description   |
+| ------------- | -------- | ------- | -------- | ------------- |
+| id            | URL Path | Integer | Yes      | User ID       |
+| Authorization | Header   | String  | Yes      | JWT Token     |
+| name          | Body     | String  | No       | Display name  |
+| email         | Body     | String  | No       | Email address |
+| role          | Body     | Enum    | No       | user/admin    |
 
 ### Example Request
+
 ```json
 PUT /api/users/123
 Authorization: Bearer eyJ...
@@ -406,13 +410,16 @@ Content-Type: application/json
     "role": "user"
 }
 ```
+````
 
 ### Test Cases
+
 - [ ] IDOR: Try accessing other user IDs
 - [ ] Privilege escalation: Change role to admin
 - [ ] SQL injection in path parameter
 - [ ] Mass assignment via role field
-```
+
+````
 
 ---
 
@@ -431,17 +438,17 @@ def validate_user_input(data):
     }
     # Validate against schema
     return validate(data, schema)
-```
+````
 
 ### 2. Minimize Exposed Parameters
 
 ```html
 <!-- BAD: Exposing sensitive data -->
-<input type="hidden" name="price" value="100.00">
-<input type="hidden" name="is_admin" value="false">
+<input type="hidden" name="price" value="100.00" />
+<input type="hidden" name="is_admin" value="false" />
 
 <!-- GOOD: Server-side price lookup -->
-<input type="hidden" name="product_id" value="SKU123">
+<input type="hidden" name="product_id" value="SKU123" />
 <!-- Price calculated server-side based on product_id -->
 ```
 
@@ -493,48 +500,53 @@ server {
 This is a **reconnaissance/enumeration activity**, not a direct vulnerability. The CVSS score depends on what is discovered:
 
 **Entry Point Mapping (Info)**
+
 - Base Score: 0.0 (Informational)
 - This is a testing methodology, not a finding
 
 **Excessive Entry Points (Observation)**
+
 - Wide attack surface may indicate architectural concerns
 - Recommend minimizing unnecessary parameters
 
 ### Attack Surface Indicators
 
-| Observation | Risk Level | Implication |
-|-------------|------------|-------------|
-| < 20 parameters | Low | Minimal attack surface |
-| 20-50 parameters | Medium | Moderate attack surface |
-| 50-100 parameters | High | Large attack surface |
-| > 100 parameters | Critical | Extensive testing required |
+| Observation       | Risk Level | Implication                |
+| ----------------- | ---------- | -------------------------- |
+| < 20 parameters   | Low        | Minimal attack surface     |
+| 20-50 parameters  | Medium     | Moderate attack surface    |
+| 50-100 parameters | High       | Large attack surface       |
+| > 100 parameters  | Critical   | Extensive testing required |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Relevance |
-|--------|-------|-----------|
-| **CWE-20** | Improper Input Validation | Entry points require validation |
-| **CWE-284** | Improper Access Control | Entry point authorization |
-| **CWE-639** | Authorization Bypass Through User-Controlled Key | ID parameters in paths |
-| **CWE-352** | Cross-Site Request Forgery | Form entry points |
+| CWE ID      | Title                                            | Relevance                       |
+| ----------- | ------------------------------------------------ | ------------------------------- |
+| **CWE-20**  | Improper Input Validation                        | Entry points require validation |
+| **CWE-284** | Improper Access Control                          | Entry point authorization       |
+| **CWE-639** | Authorization Bypass Through User-Controlled Key | ID parameters in paths          |
+| **CWE-352** | Cross-Site Request Forgery                       | Form entry points               |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Identify Application Entry Points](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/06-Identify_Application_Entry_Points)
 - [OWASP Attack Surface Analysis Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.html)
 
 ### Tools
+
 - [Burp Suite](https://portswigger.net/burp)
 - [OWASP ZAP](https://www.zaproxy.org/)
 - [Arjun](https://github.com/s0md3v/Arjun)
 - [ParamSpider](https://github.com/devanshbatham/paramspider)
 
 ### Additional Resources
+
 - [Attack Surface Detector](https://github.com/secdec/attack-surface-detector-cli)
 - [Param Miner (Burp Extension)](https://portswigger.net/bappstore/17d2949a985c4b7ca092728dba871943)
 

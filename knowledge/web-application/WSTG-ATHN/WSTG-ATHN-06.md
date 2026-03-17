@@ -1,9 +1,11 @@
 # WSTG-ATHN-06: Testing for Browser Cache Weaknesses
 
 ## Test ID
+
 WSTG-ATHN-06
 
 ## Test Name
+
 Testing for Browser Cache Weaknesses
 
 ## High-Level Description
@@ -25,12 +27,12 @@ Browser cache weakness testing examines whether sensitive authentication and use
 
 ### Sensitive Data Locations
 
-| Location | Risk |
-|----------|------|
-| Browser cache | Offline access to pages |
-| Browser history | URL disclosure |
-| Form autocomplete | Credential exposure |
-| Back button | Post-logout access |
+| Location          | Risk                    |
+| ----------------- | ----------------------- |
+| Browser cache     | Offline access to pages |
+| Browser history   | URL disclosure          |
+| Form autocomplete | Credential exposure     |
+| Back button       | Post-logout access      |
 
 ---
 
@@ -213,17 +215,17 @@ fi
 
 ### Header Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | HTTP client | Check headers |
+| Tool                 | Description | Usage                  |
+| -------------------- | ----------- | ---------------------- |
+| **curl**             | HTTP client | Check headers          |
 | **Browser DevTools** | Network tab | Inspect cache behavior |
-| **Burp Suite** | Proxy | Analyze responses |
+| **Burp Suite**       | Proxy       | Analyze responses      |
 
 ### Cache Testing
 
-| Tool | Description |
-|------|-------------|
-| **Browser cache viewer** | Inspect cached content |
+| Tool                       | Description               |
+| -------------------------- | ------------------------- |
+| **Browser cache viewer**   | Inspect cached content    |
 | **Private/Incognito mode** | Test clean cache behavior |
 
 ---
@@ -417,17 +419,17 @@ location /api/ {
 ```html
 <!-- Login form -->
 <form method="POST" action="/login" autocomplete="off">
-    <input type="text" name="username" autocomplete="off">
-    <input type="password" name="password" autocomplete="off">
-    <button type="submit">Login</button>
+  <input type="text" name="username" autocomplete="off" />
+  <input type="password" name="password" autocomplete="off" />
+  <button type="submit">Login</button>
 </form>
 
 <!-- Password change form -->
 <form method="POST" action="/change-password" autocomplete="off">
-    <input type="password" name="current_password" autocomplete="current-password">
-    <input type="password" name="new_password" autocomplete="new-password">
-    <input type="password" name="confirm_password" autocomplete="new-password">
-    <button type="submit">Change Password</button>
+  <input type="password" name="current_password" autocomplete="current-password" />
+  <input type="password" name="new_password" autocomplete="new-password" />
+  <input type="password" name="confirm_password" autocomplete="new-password" />
+  <button type="submit">Change Password</button>
 </form>
 ```
 
@@ -436,25 +438,25 @@ location /api/ {
 ```javascript
 // Client-side: Clear sensitive data on logout
 function logout() {
-    // Clear any cached data
-    if (window.sessionStorage) {
-        sessionStorage.clear();
-    }
+  // Clear any cached data
+  if (window.sessionStorage) {
+    sessionStorage.clear()
+  }
 
-    if (window.localStorage) {
-        // Clear sensitive items
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('auth_token');
-    }
+  if (window.localStorage) {
+    // Clear sensitive items
+    localStorage.removeItem("user_data")
+    localStorage.removeItem("auth_token")
+  }
 
-    // Redirect to login with cache bypass
-    window.location.replace('/login?logout=1');
+  // Redirect to login with cache bypass
+  window.location.replace("/login?logout=1")
 
-    // Prevent back button
-    history.pushState(null, null, '/login');
-    window.addEventListener('popstate', function() {
-        history.pushState(null, null, '/login');
-    });
+  // Prevent back button
+  history.pushState(null, null, "/login")
+  window.addEventListener("popstate", function () {
+    history.pushState(null, null, "/login")
+  })
 }
 ```
 
@@ -483,22 +485,22 @@ def logout():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Cached credentials accessible | 6.5 | Medium |
-| Back button shows sensitive data | 5.3 | Medium |
-| Missing Cache-Control on sensitive pages | 4.3 | Medium |
-| Autocomplete enabled on password fields | 3.7 | Low |
+| Finding                                  | CVSS | Severity |
+| ---------------------------------------- | ---- | -------- |
+| Cached credentials accessible            | 6.5  | Medium   |
+| Back button shows sensitive data         | 5.3  | Medium   |
+| Missing Cache-Control on sensitive pages | 4.3  | Medium   |
+| Autocomplete enabled on password fields  | 3.7  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                                                     | Description           |
+| ----------- | --------------------------------------------------------- | --------------------- |
 | **CWE-525** | Use of Web Browser Cache Containing Sensitive Information | Cached sensitive data |
-| **CWE-524** | Use of Cache Containing Sensitive Information | General cache issue |
-| **CWE-200** | Exposure of Sensitive Information | Data disclosure |
+| **CWE-524** | Use of Cache Containing Sensitive Information             | General cache issue   |
+| **CWE-200** | Exposure of Sensitive Information                         | Data disclosure       |
 
 ---
 

@@ -1117,10 +1117,7 @@ export namespace Config {
         )
         .optional()
         .describe("MCP (Model Context Protocol) server configurations"),
-      bolt: z
-        .record(z.string(), Bolt)
-        .optional()
-        .describe("Bolt server configurations (Docker Kali containers)"),
+      bolt: z.record(z.string(), Bolt).optional().describe("Bolt server configurations (Docker Kali containers)"),
       formatter: z
         .union([
           z.literal(false),

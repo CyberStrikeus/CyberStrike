@@ -617,7 +617,8 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
     "chat.headers": async (input, output) => {
       if (input.model.providerID !== "openai") return
       output.headers.originator = "cyberstrike"
-      output.headers["User-Agent"] = `cyberstrike/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`
+      output.headers["User-Agent"] =
+        `cyberstrike/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`
       output.headers.session_id = input.sessionID
     },
   }
