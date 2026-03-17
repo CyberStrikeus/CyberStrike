@@ -6,13 +6,18 @@
   </picture>
 </p>
 
-<p align="center"><b>Nền tảng tác nhân an ninh tấn công được hỗ trợ bởi AI.</b></p>
+<h3 align="center">Tác nhân AI mã nguồn mở đầu tiên được xây dựng cho an ninh tấn công.</h3>
+
+<p align="center">
+  Pentest tự động ngay từ terminal — trinh sát, phát hiện lỗ hổng, khai thác và báo cáo.<br>
+  Một lệnh duy nhất. 13+ tác nhân chuyên biệt. 120+ kịch bản kiểm thử OWASP. Đội đỏ AI của bạn.
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
   <a href="https://github.com/CyberStrikeus/CyberStrike/actions/workflows/publish.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/CyberStrikeus/CyberStrike/publish.yml?style=flat-square&branch=dev" /></a>
   <a href="https://discord.gg/cyberstrike"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord&color=00ff41" /></a>
-  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
+  <a href="https://github.com/CyberStrikeus/CyberStrike/blob/dev/LICENSE"><img alt="Giấy phép" src="https://img.shields.io/badge/license-AGPL--3.0-00ff41?style=flat-square" /></a>
 </p>
 
 <p align="center">
@@ -43,20 +48,93 @@
 
 ---
 
-### CyberStrike là gì?
+### Tại sao chọn CyberStrike?
 
-CyberStrike là một tác nhân an ninh tấn công tự động, mã nguồn mở, chạy trực tiếp trong terminal của bạn. Nó đi kèm với hơn 13 tác nhân bảo mật chuyên biệt, hơn 120 ca kiểm thử OWASP, và hỗ trợ hơn 15 nhà cung cấp LLM. Chỉ cần trỏ vào mục tiêu, nó sẽ tự động thực hiện trinh sát, phát hiện lỗ hổng và tạo báo cáo — tất cả từ một giao diện TUI duy nhất.
+Kiểm thử bảo mật vẫn chủ yếu là thủ công. Pentester phải xử lý hàng chục công cụ, sao chép kết quả qua lại giữa các terminal, và tốn hàng giờ cho việc trinh sát lặp đi lặp lại trước khi chạm đến bề mặt tấn công thực sự. Thợ săn bug bounty đốt thời gian vào cùng một quy trình trinh sát cho mọi chương trình.
 
-### Tính năng
+**CyberStrike thay đổi điều đó.** Đây là một tác nhân AI tự động hiểu phương pháp luận an ninh tấn công — không chỉ chạy công cụ, mà còn suy luận về những gì cần kiểm thử, kết nối các phát hiện với nhau, và điều chỉnh cách tiếp cận dựa trên những gì nó khám phá. Hãy coi nó như một thành viên đội đỏ không biết mệt trong terminal của bạn — tuân theo OWASP WSTG, biết khi nào cần chuyển hướng, và viết báo cáo khi hoàn thành.
 
-- **Hơn 13 tác nhân bảo mật** — Ứng dụng web (OWASP WSTG), di động (MASTG/MASVS), đám mây (AWS/Azure/GCP), Active Directory/Kerberos, mạng, và 8 tác nhân kiểm thử proxy chuyên biệt (IDOR, injection, SSRF, vượt qua xác thực, và nhiều hơn nữa)
-- **Hơn 30 công cụ tích hợp sẵn** — Thực thi shell, yêu cầu HTTP, thao tác tệp, tìm kiếm mã nguồn, thu thập dữ liệu web, báo cáo lỗ hổng
-- **Bolt** — Máy chủ công cụ từ xa với giao thức MCP và ghép nối Ed25519. Chạy các công cụ bảo mật trên máy chủ từ xa, điều khiển chúng từ terminal của bạn
-- **Hệ sinh thái MCP** — Tích hợp chính thức: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
-- **Hơn 15 nhà cung cấp LLM** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, mô hình cục bộ qua các endpoint tương thích OpenAI, và nhiều hơn nữa
-- **Đa giao diện** — TUI (terminal), Web (SolidJS), Desktop (Tauri) — cùng một engine tác nhân ở mọi nơi
-- **Hỗ trợ LSP** — Tích hợp giao thức máy chủ ngôn ngữ cho quy trình làm việc trên IDE
-- **Hệ thống plugin** — Xây dựng các tác nhân và công cụ tùy chỉnh với SDK plugin
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "Chạy đánh giá OWASP WSTG đầy đủ trên https://target.com"
+```
+
+Nó là mã nguồn mở, hoạt động với bất kỳ nhà cung cấp LLM nào, và bạn sở hữu mọi thứ nó tạo ra.
+
+---
+
+### Điều gì khiến CyberStrike khác biệt
+
+<table>
+<tr>
+<td width="50%">
+
+**Tác nhân bảo mật chuyên biệt, không phải chatbot chung chung**
+
+CyberStrike đi kèm 13+ tác nhân được xây dựng riêng cho các lĩnh vực bảo mật. Mỗi tác nhân mang theo phương pháp luận chuyên ngành, kiến thức công cụ và các mẫu kiểm thử riêng. Tác nhân web-application tuân theo WSTG. Tác nhân cloud-security nắm rõ các chuẩn CIS. Tác nhân mobile sử dụng Frida và tuân theo MASTG/MASVS. Chúng không đoán mò — chúng tuân theo các framework đã được chứng minh.
+
+</td>
+<td width="50%">
+
+**Tự động, không chỉ hỗ trợ**
+
+Các công cụ AI khác chờ bạn chỉ dẫn bước tiếp theo. Tác nhân CyberStrike lên kế hoạch chuỗi tấn công nhiều bước, thực thi công cụ, phân tích kết quả, chuyển hướng khi phát hiện điều thú vị, và tạo báo cáo có bằng chứng. Bạn đặt mục tiêu — chúng xử lý phương pháp luận.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Bất kỳ LLM nào, không bị khóa nhà cung cấp**
+
+Hỗ trợ sẵn 15+ nhà cung cấp: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter — kể cả các mô hình cục bộ qua endpoint tương thích OpenAI. Chạy với Claude, GPT, Gemini, hoặc LLM tự host của riêng bạn. Khi các mô hình trở nên tốt hơn và rẻ hơn, CyberStrike cũng tốt hơn cùng chúng.
+
+</td>
+<td width="50%">
+
+**Thực thi công cụ từ xa với Bolt**
+
+Công cụ bảo mật của bạn không nhất thiết phải chạy trên laptop. Bolt là máy chủ công cụ từ xa của CyberStrike — triển khai nó trên VPS với bộ công cụ pentest của bạn, ghép nối bằng khóa Ed25519, và điều khiển mọi thứ từ terminal cục bộ qua giao thức MCP. Một giao diện TUI, nhiều máy chủ tấn công.
+
+</td>
+</tr>
+</table>
+
+---
+
+### Tác nhân
+
+Chuyển đổi giữa các tác nhân bằng phím `Tab`. Mỗi tác nhân là một chuyên gia.
+
+| Tác nhân | Lĩnh vực | Chức năng |
+|----------|----------|-----------|
+| **cyberstrike** | Tổng hợp | Tác nhân chính có toàn quyền truy cập — trinh sát, khai thác, báo cáo |
+| **web-application** | Web | OWASP Top 10, phương pháp WSTG, bảo mật API, kiểm thử phiên |
+| **mobile-application** | Di động | Android/iOS, Frida/Objection, tuân thủ MASTG/MASVS |
+| **cloud-security** | Đám mây | AWS, Azure, GCP — cấu hình sai IAM, chuẩn CIS, tài nguyên bị lộ |
+| **internal-network** | Mạng | Active Directory, tấn công Kerberos, di chuyển ngang, pivoting |
+
+Cộng thêm **8 proxy tester chuyên biệt** chặn và thao tác lưu lượng cho các lớp lỗ hổng mục tiêu:
+
+`IDOR` · `Authorization Bypass` · `Mass Assignment` · `Injection` · `Authentication` · `Business Logic` · `SSRF` · `File Attacks`
+
+---
+
+### Hệ sinh thái MCP
+
+CyberStrike kết nối với các máy chủ MCP chuyên biệt để mở rộng khả năng:
+
+| Máy chủ | Công cụ | Chức năng bổ sung |
+|---------|---------|-------------------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Kiểm thử bảo mật qua trình duyệt — XSS, CSRF, thao tác DOM, đánh cắp cookie |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Kiểm toán bảo mật đám mây — 60+ kiểm tra trên AWS, Azure, GCP |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | Tình trạng bảo mật GitHub — repo, tổ chức, actions, secrets, chuỗi cung ứng |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | Thông tin CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Trinh sát OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+
+Tất cả đều mã nguồn mở. Tất cả cài đặt được bằng `npx`. Kết nối chúng vào CyberStrike hoặc sử dụng độc lập với bất kỳ MCP client nào.
+
+---
 
 ### Cài đặt
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### Bắt đầu nhanh
+**Ứng dụng desktop** (macOS, Windows, Linux) — tải từ [trang phát hành](https://github.com/CyberStrikeus/CyberStrike/releases) hoặc:
 
 ```bash
-# Khởi chạy CyberStrike
-cyberstrike
-
-# Chọn nhà cung cấp LLM khi chạy lần đầu, sau đó:
-# "Chạy đánh giá OWASP WSTG đầy đủ trên https://target.com"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### Các tác nhân
+---
 
-Chuyển đổi giữa các tác nhân bằng phím `Tab` trong TUI.
+### Công cụ tích hợp sẵn
 
-| Tác nhân | Lĩnh vực | Mô tả |
-|----------|----------|-------|
-| **cyberstrike** | Tổng hợp | Tác nhân an ninh tấn công mặc định với toàn quyền truy cập |
-| **web-application** | Web | OWASP Top 10, phương pháp WSTG, bảo mật API |
-| **mobile-application** | Di động | Kiểm thử Android/iOS, Frida, MASTG/MASVS |
-| **cloud-security** | Đám mây | AWS, Azure, GCP, IAM, tiêu chuẩn CIS |
-| **internal-network** | Mạng | Active Directory, Kerberos, di chuyển ngang |
+Tác nhân CyberStrike có quyền truy cập trực tiếp vào 30+ công cụ:
 
-Cộng thêm 8 tác nhân **kiểm thử proxy** chuyên biệt cho các lớp lỗ hổng cụ thể: IDOR, ủy quyền, gán hàng loạt, injection, xác thực, logic nghiệp vụ, SSRF, và tấn công tệp.
+| Danh mục | Công cụ |
+|----------|---------|
+| **Thực thi** | Shell (bash), đọc/ghi/sửa file, liệt kê thư mục |
+| **Khám phá** | Tải web, tìm kiếm web, tìm kiếm mã nguồn, glob, grep |
+| **Bảo mật** | Báo cáo lỗ hổng (định dạng HackerOne), thu thập bằng chứng |
+| **Proxy** | Chặn HTTP/HTTPS, phát lại request, phân tích lưu lượng |
+| **Tích hợp** | Máy chủ MCP, công cụ từ xa Bolt, plugin tùy chỉnh |
 
-### Ứng dụng desktop
+Cộng thêm **plugin SDK** — xây dựng tác nhân và công cụ riêng của bạn, đăng ký chúng khi chạy.
 
-Có sẵn cho macOS, Windows và Linux. Tải xuống từ [trang phát hành](https://github.com/CyberStrikeus/CyberStrike/releases).
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### Đối tượng sử dụng
 
-### Tài liệu
+- **Pentester** — Tự động hóa các phần lặp đi lặp lại. Để tác nhân xử lý trinh sát và kiểm thử ban đầu trong khi bạn tập trung vào các chuỗi tấn công sáng tạo đòi hỏi trực giác con người.
+- **Thợ săn Bug Bounty** — Trinh sát nhanh hơn, phạm vi rộng hơn, phương pháp nhất quán trên mọi chương trình. CyberStrike không mệt mỏi lúc 3 giờ sáng.
+- **Đội ngũ bảo mật** — Chạy đánh giá OWASP có cấu trúc với phương pháp tái tạo được. Nhận báo cáo ánh xạ theo tiêu chuẩn mà đội tuân thủ của bạn hiểu được.
+- **Nhà nghiên cứu bảo mật** — Mở rộng CyberStrike bằng tác nhân tùy chỉnh và máy chủ MCP. Hệ thống plugin và giao thức MCP biến nó thành một nền tảng, không chỉ là một công cụ.
 
-- [Tài liệu](https://cyberstrike.io/docs)
-- [Đóng góp](./CONTRIBUTING.md)
-- [Quy tắc ứng xử](./CODE_OF_CONDUCT.md)
+---
+
+### Đóng góp
+
+CyberStrike được xây dựng bởi cộng đồng bảo mật, dành cho cộng đồng bảo mật. Chúng tôi hoan nghênh đóng góp trong các lĩnh vực:
+
+- **Tác nhân và kỹ năng bảo mật** — Phương pháp tấn công mới, mẫu kiểm thử, phát hiện lỗ hổng
+- **Máy chủ MCP** — Kết nối công cụ bảo mật và nguồn dữ liệu mới
+- **Cơ sở tri thức** — Hướng dẫn phương pháp WSTG, MASTG, PTES, CIS
+- **Cải thiện cốt lõi** — Hiệu năng, trải nghiệm người dùng, tích hợp nhà cung cấp, sửa lỗi
+
+Đọc [Hướng dẫn đóng góp](./CONTRIBUTING.md) trước khi gửi PR. Tất cả đóng góp phải tuân theo [chính sách sử dụng đạo đức](./CODE_OF_CONDUCT.md) của dự án — CyberStrike chỉ dành cho kiểm thử bảo mật được ủy quyền.
+
+---
 
 ### Giấy phép
 
-[AGPL-3.0-only](./LICENSE) — Giấy phép thương mại có sẵn qua [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
+[AGPL-3.0-only](./LICENSE) — Miễn phí cho sử dụng cá nhân và mã nguồn mở. Giấy phép thương mại có sẵn qua [contact@cyberstrike.io](mailto:contact@cyberstrike.io).
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>Được xây dựng bởi những hacker đã chán việc sao chép-dán giữa các terminal.</sub>
 </p>

@@ -6,7 +6,12 @@
   </picture>
 </p>
 
-<p align="center"><b>Yapay zeka destekli ofansif guvenlik ajan platformu.</b></p>
+<h3 align="center">Saldiri guvenlik icin insa edilmis ilk acik kaynakli yapay zeka ajani.</h3>
+
+<p align="center">
+  Terminalinizden otonom sizma testi — kesif, zafiyet tespiti, istismar ve raporlama.<br>
+  Tek komut. 13+ uzman ajan. 120+ OWASP test senaryosu. Yapay zeka kirmizi takim.
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
@@ -43,20 +48,93 @@
 
 ---
 
-### CyberStrike Nedir?
+### Neden CyberStrike?
 
-CyberStrike, terminalinizde calisan acik kaynakli, otonom bir ofansif guvenlik ajandir. 13'ten fazla uzmanlasmis guvenlik ajani, 120'den fazla OWASP test senaryosu ile birlikte gelir ve 15'ten fazla LLM saglayicisini destekler. Hedefe yonlendirin; kesif, zafiyet tespiti ve rapor olusturma islemlerini tek bir TUI uzerinden gerceklestirir.
+Guvenlik testleri hala buyuk olcude manuel yapiliyor. Sizma testcileri duzinelerce arac arasinda gidip geliyor, terminal ciktilarini kopyala-yapistir ile aktariyor ve asil saldiri yuzeyine dokunmadan once tekrarlayan kesif islemleriyle saatler harciyor. Bug bounty avcilari her program icin ayni kesif is akisina zaman ayirmak zorunda kaliyor.
 
-### Ozellikler
+**CyberStrike bunu degistiriyor.** Saldiri guvenlik metodolojisini anlayan otonom bir yapay zeka ajanidir — sadece arac calistirmakla kalmaz, neyi test etmesi gerektigini dusunur, bulgulari birbirine zincirlemeyi bilir ve kesfettiklerine gore yaklasimini uyarlar. Terminalinizde yorulmak bilmeyen bir kirmizi takim uyesi olarak dusunun — OWASP WSTG'yi takip eder, ne zaman yon degistirecegini bilir ve isi bittiginde raporu yazar.
 
-- **13+ Guvenlik Ajani** — Web uygulamasi (OWASP WSTG), mobil (MASTG/MASVS), bulut (AWS/Azure/GCP), Active Directory/Kerberos, ag ve 8 uzmanlasmis proxy test ajani (IDOR, enjeksiyon, SSRF, yetkilendirme atlama ve daha fazlasi)
-- **30+ Yerlesik Arac** — Kabuk calistirma, HTTP istekleri, dosya islemleri, kod arama, web kazima, zafiyet raporlama
-- **Bolt** — MCP protokolu ve Ed25519 eslestirme ile uzak arac sunucusu. Guvenlik araclarini uzak sunucularda calistirin, terminalinizden kontrol edin
-- **MCP Ekosistemi** — Birinci taraf entegrasyonlar: [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp), [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp), [github-security-mcp](https://github.com/badchars/github-security-mcp), [cve-mcp](https://github.com/badchars/cve-mcp), [osint-mcp](https://github.com/badchars/osint-mcp)
-- **15+ LLM Saglayicisi** — Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, DeepInfra, Mistral, OpenRouter, OpenAI uyumlu uc noktalar uzerinden yerel modeller ve daha fazlasi
-- **Coklu Arayuz** — TUI (terminal), Web (SolidJS), Masaustu (Tauri) — her yerde ayni ajan motoru
-- **LSP Destegi** — IDE tabanli is akislari icin dil sunucu protokolu entegrasyonu
-- **Eklenti Sistemi** — Eklenti SDK'si ile ozel ajanlar ve araclar olusturun
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "https://hedef.com uzerinde tam OWASP WSTG degerlendirmesi calistir"
+```
+
+Acik kaynaklidir, herhangi bir LLM saglayicisiyla calisir ve urettigi her sey size aittir.
+
+---
+
+### Farki Ne?
+
+<table>
+<tr>
+<td width="50%">
+
+**Genel Sohbet Degil, Uzmanlasmis Guvenlik Ajanlari**
+
+CyberStrike, guvenlik alanlari icin ozel olarak tasarlanmis 13+ ajanla gelir. Her ajan alana ozgu metodoloji, arac bilgisi ve test kaliplari tasir. Web uygulamasi ajani WSTG'yi takip eder. Bulut guvenligi ajani CIS kiyaslamalarini bilir. Mobil ajani Frida kullanir ve MASTG/MASVS standartlarina uyar. Tahmin yurutmezler — kanitlanmis cercelveleri uygularlar.
+
+</td>
+<td width="50%">
+
+**Sadece Yardimci Degil, Otonom**
+
+Diger yapay zeka araclari siradaki ne yapacaginizi soylemenizi bekler. CyberStrike ajanlari cok adimli saldiri zincirleri planlar, araclari calistirir, sonuclari analiz eder, ilginc bir sey buldugunda yon degistirir ve kanitlarla desteklenen raporlar uretir. Siz hedefi belirlersiniz — metodolojiyi onlar yurutur.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Herhangi Bir LLM, Bagimlilik Yok**
+
+Kutudan ciktigi gibi 15+ saglayici: Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, OpenRouter — hatta OpenAI uyumlu uc noktalar araciligiyla yerel modeller bile. Claude, GPT, Gemini veya kendi barindiginiz LLM ile calistirin. Modeller iyilestikce ve ucuzladikca, CyberStrike de onlarla birlikte gelisir.
+
+</td>
+<td width="50%">
+
+**Bolt ile Uzaktan Arac Calistirma**
+
+Guvenlik araclarinizin dizustu bilgisayarinizda calismasi gerekmez. Bolt, CyberStrike'in uzak arac sunucusudur — sizma testi arac setinizle bir VPS'e kurun, Ed25519 anahtarlariyla eslestirin ve MCP protokolu uzerinden her seyi yerel terminalinizden kontrol edin. Tek arayuz, birden fazla saldiri sunucusu.
+
+</td>
+</tr>
+</table>
+
+---
+
+### Ajanlar
+
+Ajanlar arasinda `Tab` ile gecis yapin. Her biri bir uzmandir.
+
+| Ajan | Odak | Ne Yapar |
+|------|------|----------|
+| **cyberstrike** | Genel | Tam erisimli birincil ajan — kesif, istismar, raporlama |
+| **web-application** | Web | OWASP Top 10, WSTG metodolojisi, API guvenligi, oturum testi |
+| **mobile-application** | Mobil | Android/iOS, Frida/Objection, MASTG/MASVS uyumlulugu |
+| **cloud-security** | Bulut | AWS, Azure, GCP — IAM yanlis yapilandirmalari, CIS kiyaslamalari, acik kaynaklar |
+| **internal-network** | Ag | Active Directory, Kerberos saldirilari, yanal hareket, pivotlama |
+
+Ayrica hedefli zafiyet siniflari icin trafigi yakalayip manipule eden **8 uzmanlasmis proxy test ajani**:
+
+`IDOR` · `Authorization Bypass` · `Mass Assignment` · `Injection` · `Authentication` · `Business Logic` · `SSRF` · `File Attacks`
+
+---
+
+### MCP Ekosistemi
+
+CyberStrike, yeteneklerini genisleten uzmanlasmis MCP sunucularina baglanir:
+
+| Sunucu | Arac | Ne Ekler |
+|--------|------|----------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | Tarayici tabanli guvenlik testi — XSS, CSRF, DOM manipulasyonu, cerez hirsizligi |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | Bulut guvenlik denetimleri — AWS, Azure, GCP genelinde 60+ kontrol |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub guvenlik durusu — repo, org, actions, secrets, tedarik zinciri |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE istihbarati — NVD, EPSS, CISA KEV, GitHub Advisory, OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+
+Hepsi acik kaynak. Hepsi `npx` ile kurulabilir. CyberStrike'a baglayin veya herhangi bir MCP istemcisiyle bagimsiz kullanin.
+
+---
 
 ### Kurulum
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### Hizli Baslangic
+**Masaustu uygulamasi** (macOS, Windows, Linux) — [surumler sayfasindan](https://github.com/CyberStrikeus/CyberStrike/releases) indirin veya:
 
 ```bash
-# CyberStrike'i baslatin
-cyberstrike
-
-# Ilk calistirmada LLM saglayicinizi secin, ardindan:
-# "https://hedef.com uzerinde tam bir OWASP WSTG degerlendirmesi calistir"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### Ajanlar
+---
 
-TUI'de `Tab` tusu ile ajanlar arasinda gecis yapin.
+### Yerlesik Araclar
 
-| Ajan | Alan | Aciklama |
-|------|------|----------|
-| **cyberstrike** | Genel | Varsayilan tam erisimli ofansif guvenlik ajani |
-| **web-application** | Web | OWASP Top 10, WSTG metodolojisi, API guvenligi |
-| **mobile-application** | Mobil | Android/iOS testi, Frida, MASTG/MASVS |
-| **cloud-security** | Bulut | AWS, Azure, GCP, IAM, CIS kiyaslama standartlari |
-| **internal-network** | Ag | Active Directory, Kerberos, yanal hareket |
+CyberStrike ajanlari 30+ araca dogrudan erisim saglar:
 
-Ayrica hedefli zafiyet siniflari icin 8 uzmanlasmis **proxy test** ajani: IDOR, yetkilendirme, toplu atama, enjeksiyon, kimlik dogrulama, is mantigi, SSRF ve dosya saldirilari.
+| Kategori | Araclar |
+|----------|---------|
+| **Calistirma** | Shell (bash), dosya okuma/yazma/duzenleme, dizin listeleme |
+| **Kesif** | Web getirme, web aramasi, kod aramasi, glob, grep |
+| **Guvenlik** | Zafiyet raporlama (HackerOne formati), kanit toplama |
+| **Proxy** | HTTP/HTTPS yakalama, istek tekrarlama, trafik analizi |
+| **Entegrasyon** | MCP sunuculari, Bolt uzak araclari, ozel eklentiler |
 
-### Masaustu Uygulamasi
+Ayrica bir **eklenti SDK'si** — kendi ajanlarinizi ve araclarinizi olusturun, calisma zamaninda kaydedin.
 
-macOS, Windows ve Linux icin mevcuttur. [Surumler sayfasindan](https://github.com/CyberStrikeus/CyberStrike/releases) indirin.
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### Kimler Icin?
 
-### Dokumantasyon
+- **Sizma Testcileri** — Tekrarlayan isleri otomatiklestirin. Ajanlar kesif ve ilk testleri hallederken siz insan sezgisi gerektiren yaratici saldiri zincirlerine odaklanin.
+- **Bug Bounty Avcilari** — Daha hizli kesif, daha genis kapsam, programlar arasi tutarli metodoloji. CyberStrike gece 3'te yorulmaz.
+- **Guvenlik Ekipleri** — Tekrarlanabilir metodolojiyle yapilandirilmis OWASP degerlendirmeleri calistirin. Uyumluluk ekibinizin anlayacagi standartlarla eslesen raporlar alin.
+- **Guvenlik Arastirmacilari** — Ozel ajanlar ve MCP sunuculariyla CyberStrike'i genisletin. Eklenti sistemi ve MCP protokolu onu sadece bir arac degil, bir platform yapar.
 
-- [Dokumantasyon](https://cyberstrike.io/docs)
-- [Katkida Bulunma](./CONTRIBUTING.md)
-- [Davranis Kurallari](./CODE_OF_CONDUCT.md)
+---
+
+### Katkida Bulunma
+
+CyberStrike, guvenlik toplulugu tarafindan, guvenlik toplulugu icin insa edilmistir. Su alanlarda katkilari memnuniyetle karsiliyoruz:
+
+- **Guvenlik ajanlari ve yetenekler** — Yeni saldiri metodolojileri, test kaliplari, zafiyet tespiti
+- **MCP sunuculari** — Yeni guvenlik araclari ve veri kaynaklari baglantisi
+- **Bilgi tabani** — WSTG, MASTG, PTES, CIS metodoloji kilavuzlari
+- **Cekirdek iyilestirmeler** — Performans, kullanici deneyimi, saglayici entegrasyonlari, hata duzeltmeleri
+
+PR gondermeden once [Katkida Bulunma Kilavuzu](./CONTRIBUTING.md)'nu okuyun. Tum katkilar projenin [etik kullanim politikasina](./CODE_OF_CONDUCT.md) uymalidir — CyberStrike yalnizca yetkili guvenlik testleri icindir.
+
+---
 
 ### Lisans
 
-[AGPL-3.0-only](./LICENSE) — Ticari lisanslama icin [contact@cyberstrike.io](mailto:contact@cyberstrike.io) adresiyle iletisime gecin.
+[AGPL-3.0-only](./LICENSE) — Kisisel ve acik kaynak kullanim icin ucretsizdir. Ticari lisanslama icin [contact@cyberstrike.io](mailto:contact@cyberstrike.io) ile iletisime gecin.
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>Terminaller arasinda kopyala-yapistir yapmaktan bikan hackerlar tarafindan insa edildi.</sub>
 </p>

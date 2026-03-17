@@ -6,7 +6,12 @@
   </picture>
 </p>
 
-<p align="center"><b>AI 驱动的攻击性安全智能体平台。</b></p>
+<h3 align="center">首个专为攻击性安全打造的开源 AI 智能体。</h3>
+
+<p align="center">
+  在终端中实现自主渗透测试 — 侦察、漏洞发现、漏洞利用和报告生成。<br>
+  一条命令。13+ 专业智能体。120+ OWASP 测试用例。你的 AI 红队。
+</p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/cyberstrike"><img alt="npm" src="https://img.shields.io/npm/v/cyberstrike?style=flat-square&color=00ff41" /></a>
@@ -43,20 +48,93 @@
 
 ---
 
-### 什么是 CyberStrike？
+### 为什么选择 CyberStrike？
 
-CyberStrike 是一个开源的自主攻击性安全智能体，运行在你的终端中。它内置 13+ 个专业安全智能体、120+ 个 OWASP 测试用例，并支持 15+ 个 LLM 提供商。只需指定目标，它就能自动完成侦察、漏洞发现和报告生成——一切都在一个终端界面中完成。
+安全测试至今仍以手动操作为主。渗透测试人员需要同时使用数十种工具，在终端之间复制粘贴输出结果，并在接触实际攻击面之前花费数小时进行重复性侦察。漏洞赏金猎人在每个项目上都要重复相同的侦察流程。
 
-### 功能特性
+**CyberStrike 改变了这一切。** 它是一个理解攻击性安全方法论的自主 AI 智能体 — 不仅仅是运行工具，而是推理应该测试什么，将发现串联起来，并根据发现的内容调整策略。你可以把它想象成终端中一个不知疲倦的红队成员，遵循 OWASP WSTG 方法论，知道何时转换策略，并在完成后自动撰写报告。
 
-- **13+ 个安全智能体** — Web 应用（OWASP WSTG）、移动端（MASTG/MASVS）、云安全（AWS/Azure/GCP）、Active Directory/Kerberos、网络，以及 8 个专业代理测试器（IDOR、注入、SSRF、认证绕过等）
-- **30+ 个内置工具** — Shell 执行、HTTP 请求、文件操作、代码搜索、网页抓取、漏洞报告
-- **Bolt** — 基于 MCP 协议和 Ed25519 配对的远程工具服务器。在远程服务器上运行安全工具，从终端进行控制
-- **MCP 生态系统** — 第一方集成：[hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)、[cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)、[github-security-mcp](https://github.com/badchars/github-security-mcp)、[cve-mcp](https://github.com/badchars/cve-mcp)、[osint-mcp](https://github.com/badchars/osint-mcp)
-- **15+ 个 LLM 提供商** — Anthropic、OpenAI、Google、Amazon Bedrock、Azure、Groq、DeepInfra、Mistral、OpenRouter、通过 OpenAI 兼容端点接入的本地模型等
-- **多界面** — TUI（终端）、Web（SolidJS）、桌面端（Tauri）——随处使用同一个智能体引擎
-- **LSP 支持** — 语言服务器协议集成，适用于 IDE 工作流
-- **插件系统** — 使用插件 SDK 构建自定义智能体和工具
+```bash
+npm i -g cyberstrike@latest && cyberstrike
+# "对 https://target.com 执行完整的 OWASP WSTG 评估"
+```
+
+它是开源的，支持任何 LLM 提供商，所有产出均归你所有。
+
+---
+
+### 独特之处
+
+<table>
+<tr>
+<td width="50%">
+
+**专业安全智能体，而非通用聊天**
+
+CyberStrike 配备了 13+ 个为安全领域专门构建的智能体。每个智能体都携带特定领域的方法论、工具知识和测试模式。Web 应用智能体遵循 WSTG。云安全智能体了解 CIS 基准。移动端智能体使用 Frida 并遵循 MASTG/MASVS。它们不靠猜测 — 而是遵循经过验证的框架。
+
+</td>
+<td width="50%">
+
+**自主行动，而非仅提供辅助**
+
+其他 AI 工具需要等你告诉它下一步做什么。CyberStrike 智能体能够规划多步攻击链、执行工具、分析结果、在发现有趣内容时灵活转向，并生成有证据支撑的报告。你设定目标 — 它们负责执行方法论。
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**任意 LLM，无厂商锁定**
+
+开箱即用支持 15+ 个提供商：Anthropic、OpenAI、Google、Amazon Bedrock、Azure、Groq、Mistral、OpenRouter — 甚至通过 OpenAI 兼容端点支持本地模型。使用 Claude、GPT、Gemini 或你自己托管的 LLM 运行。随着模型变得更强大、更便宜，CyberStrike 也会随之提升。
+
+</td>
+<td width="50%">
+
+**通过 Bolt 远程执行工具**
+
+你的安全工具不必在笔记本电脑上运行。Bolt 是 CyberStrike 的远程工具服务器 — 将它部署在装有渗透测试工具包的 VPS 上，使用 Ed25519 密钥配对，然后通过 MCP 协议从本地终端控制一切。一个 TUI，多台攻击服务器。
+
+</td>
+</tr>
+</table>
+
+---
+
+### 智能体
+
+使用 `Tab` 切换智能体。每个都是某一领域的专家。
+
+| 智能体 | 专注领域 | 功能描述 |
+|--------|---------|---------|
+| **cyberstrike** | 综合 | 全权限主智能体 — 侦察、漏洞利用、报告生成 |
+| **web-application** | Web | OWASP Top 10、WSTG 方法论、API 安全、会话测试 |
+| **mobile-application** | 移动端 | Android/iOS、Frida/Objection、MASTG/MASVS 合规 |
+| **cloud-security** | 云安全 | AWS、Azure、GCP — IAM 配置错误、CIS 基准、暴露资源 |
+| **internal-network** | 网络 | Active Directory、Kerberos 攻击、横向移动、跳板穿透 |
+
+另有 **8 个专业代理测试器**，可拦截和操纵流量以测试特定漏洞类别：
+
+`IDOR` · `授权绕过` · `批量赋值` · `注入` · `认证` · `业务逻辑` · `SSRF` · `文件攻击`
+
+---
+
+### MCP 生态系统
+
+CyberStrike 连接专业 MCP 服务器以扩展其能力：
+
+| 服务器 | 工具数 | 扩展能力 |
+|--------|-------|---------|
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp) | 39 | 基于浏览器的安全测试 — XSS、CSRF、DOM 操纵、Cookie 窃取 |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp) | 38 | 云安全审计 — 覆盖 AWS、Azure、GCP 的 60+ 项检查 |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39 | GitHub 安全态势 — 仓库、组织、Actions、密钥、供应链 |
+| [cve-mcp](https://github.com/badchars/cve-mcp) | 23 | CVE 情报 — NVD、EPSS、CISA KEV、GitHub Advisory、OSV |
+| [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT 侦察 — Shodan、VirusTotal、SecurityTrails、Censys、DNS、WHOIS |
+
+全部开源。均可通过 `npx` 安装。可接入 CyberStrike 使用，也可作为独立工具配合任何 MCP 客户端使用。
+
+---
 
 ### 安装
 
@@ -70,57 +148,66 @@ brew install CyberStrikeus/tap/cyberstrike
 # Windows
 scoop install cyberstrike
 
-# curl
+# curl (Linux/macOS)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
 
-### 快速开始
+**桌面应用**（macOS、Windows、Linux）— 从[发布页面](https://github.com/CyberStrikeus/CyberStrike/releases)下载，或：
 
 ```bash
-# 启动 CyberStrike
-cyberstrike
-
-# 首次运行时选择你的 LLM 提供商，然后：
-# "对 https://target.com 执行完整的 OWASP WSTG 评估"
+brew install --cask cyberstrike-desktop          # macOS
+scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
 ```
 
-### 智能体
+---
 
-在 TUI 中使用 `Tab` 键切换智能体。
+### 内置工具
 
-| 智能体 | 领域 | 描述 |
-|--------|------|------|
-| **cyberstrike** | 通用 | 默认全权限攻击性安全智能体 |
-| **web-application** | Web | OWASP Top 10、WSTG 方法论、API 安全 |
-| **mobile-application** | 移动端 | Android/iOS 测试、Frida、MASTG/MASVS |
-| **cloud-security** | 云 | AWS、Azure、GCP、IAM、CIS 基准 |
-| **internal-network** | 网络 | Active Directory、Kerberos、横向移动 |
+CyberStrike 智能体可直接使用 30+ 种工具：
 
-另外还有 8 个专业**代理测试器**智能体，针对特定漏洞类型：IDOR、授权、批量赋值、注入、认证、业务逻辑、SSRF 和文件攻击。
+| 类别 | 工具 |
+|------|------|
+| **执行** | Shell（bash）、文件读/写/编辑、目录列表 |
+| **发现** | 网页抓取、网络搜索、代码搜索、glob、grep |
+| **安全** | 漏洞报告（HackerOne 格式）、证据收集 |
+| **代理** | HTTP/HTTPS 拦截、请求重放、流量分析 |
+| **集成** | MCP 服务器、Bolt 远程工具、自定义插件 |
 
-### 桌面应用
+另有**插件 SDK** — 构建你自己的智能体和工具，运行时注册。
 
-支持 macOS、Windows 和 Linux。从[发布页面](https://github.com/CyberStrikeus/CyberStrike/releases)下载。
+---
 
-```bash
-# macOS
-brew install --cask cyberstrike-desktop
-# Windows
-scoop bucket add extras; scoop install extras/cyberstrike-desktop
-```
+### 适用人群
 
-### 文档
+- **渗透测试人员** — 自动化重复性工作。让智能体处理侦察和初始测试，而你专注于需要人类直觉的创造性攻击链。
+- **漏洞赏金猎人** — 更快的侦察、更广的覆盖、跨项目一致的方法论。CyberStrike 在凌晨三点也不会疲倦。
+- **安全团队** — 使用可复现的方法论运行结构化 OWASP 评估。获得符合合规团队理解的标准的报告。
+- **安全研究人员** — 使用自定义智能体和 MCP 服务器扩展 CyberStrike。插件系统和 MCP 协议使其成为一个平台，而不仅仅是一个工具。
 
-- [文档](https://cyberstrike.io/docs)
-- [贡献指南](./CONTRIBUTING.md)
-- [行为准则](./CODE_OF_CONDUCT.md)
+---
+
+### 参与贡献
+
+CyberStrike 由安全社区构建，为安全社区服务。我们欢迎以下方面的贡献：
+
+- **安全智能体与技能** — 新的攻击方法论、测试模式、漏洞检测
+- **MCP 服务器** — 连接新的安全工具和数据源
+- **知识库** — WSTG、MASTG、PTES、CIS 方法论指南
+- **核心改进** — 性能、用户体验、提供商集成、Bug 修复
+
+提交 PR 前请阅读[贡献指南](./CONTRIBUTING.md)。所有贡献必须遵循项目的[道德使用政策](./CODE_OF_CONDUCT.md) — CyberStrike 仅用于授权安全测试。
+
+---
 
 ### 许可证
 
-[AGPL-3.0-only](./LICENSE) — 商业许可请联系 [contact@cyberstrike.io](mailto:contact@cyberstrike.io)。
+[AGPL-3.0-only](./LICENSE) — 个人和开源使用免费。商业许可请联系 [contact@cyberstrike.io](mailto:contact@cyberstrike.io)。
 
 ---
 
 <p align="center">
-  <a href="https://discord.gg/cyberstrike">Discord</a> · <a href="https://x.com/cyberstrike">X.com</a> · <a href="https://cyberstrike.io">cyberstrike.io</a>
+  <a href="https://discord.gg/cyberstrike"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+</p>
+<p align="center">
+  <sub>由厌倦了在终端之间复制粘贴的黑客构建。</sub>
 </p>
