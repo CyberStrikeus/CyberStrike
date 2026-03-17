@@ -51,6 +51,7 @@
   <a href="#hva-gjør-det-annerledes">Hva gjør det annerledes</a> &bull;
   <a href="#agenter">Agenter</a> &bull;
   <a href="#mcp-økosystemet">MCP-økosystemet</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installasjon">Installasjon</a> &bull;
   <a href="#innebygde-verktøy">Innebygde verktøy</a> &bull;
   <a href="#hvem-er-dette-for">Hvem er dette for?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike kobler til spesialiserte MCP-servere som utvider funksjonaliteten:
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-rekognosering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Alt er åpen kildekode. Alt kan installeres med `npx`. Koble dem til CyberStrike eller bruk dem frittstående med en hvilken som helst MCP-klient.
+
+---
+
+### Bolt
+
+Bolt er CyberStrikes server for ekstern verktøykjøring. I stedet for å kjøre sikkerhetsverktøy på laptopen din, distribuer dem på en VPS (eller flere) og kontroller alt fra din lokale terminal.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Slik fungerer det:**
+- Distribuer Bolt på en hvilken som helst server med pentest-verktøysettet ditt installert
+- Par med Ed25519-nøkler — ingen passord, ingen delte hemmeligheter
+- CyberStrike-agenter kaller verktøy eksternt over MCP-protokollen
+- Resultater strømmes tilbake til ditt lokale TUI i sanntid
+- Administrer tilkoblinger fra TUI-et: legg til, fjern, overvåk status
+
+**Hvorfor det er viktig:** Angrepsflaten din forblir på dedikert infrastruktur. Kjør tunge skanninger fra en VPS med bedre båndbredde, hold verktøyene oppdatert på ett sted, og bytt mellom flere angrepsservere fra én terminal.
 
 ---
 

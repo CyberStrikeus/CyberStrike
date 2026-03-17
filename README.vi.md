@@ -51,6 +51,7 @@
   <a href="#điều-gì-khiến-cyberstrike-khác-biệt">Điều gì khiến CyberStrike khác biệt</a> &bull;
   <a href="#tác-nhân">Tác nhân</a> &bull;
   <a href="#hệ-sinh-thái-mcp">Hệ sinh thái MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#cài-đặt">Cài đặt</a> &bull;
   <a href="#công-cụ-tích-hợp-sẵn">Công cụ tích hợp sẵn</a> &bull;
   <a href="#đối-tượng-sử-dụng">Đối tượng sử dụng</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike kết nối với các máy chủ MCP chuyên biệt để mở rộ
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Trinh sát OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Tất cả đều mã nguồn mở. Tất cả cài đặt được bằng `npx`. Kết nối chúng vào CyberStrike hoặc sử dụng độc lập với bất kỳ MCP client nào.
+
+---
+
+### Bolt
+
+Bolt là máy chủ thực thi công cụ từ xa của CyberStrike. Thay vì chạy các công cụ bảo mật trên laptop, hãy triển khai chúng trên VPS (hoặc nhiều VPS) và điều khiển mọi thứ từ terminal cục bộ.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Cách hoạt động:**
+- Triển khai Bolt trên bất kỳ máy chủ nào đã cài đặt bộ công cụ pentest
+- Ghép nối bằng khóa Ed25519 — không mật khẩu, không bí mật chia sẻ
+- Tác nhân CyberStrike gọi công cụ từ xa qua giao thức MCP
+- Kết quả được truyền về TUI cục bộ theo thời gian thực
+- Quản lý kết nối từ TUI: thêm, xóa, giám sát trạng thái
+
+**Tại sao điều này quan trọng:** Hạ tầng tấn công của bạn được giữ trên máy chủ chuyên dụng. Chạy quét nặng từ VPS có băng thông tốt hơn, cập nhật công cụ tại một nơi duy nhất, và chuyển đổi giữa nhiều máy chủ tấn công từ một terminal.
 
 ---
 

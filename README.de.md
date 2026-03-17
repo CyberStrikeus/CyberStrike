@@ -51,6 +51,7 @@
   <a href="#was-macht-es-anders">Was macht es anders?</a> &bull;
   <a href="#agenten">Agenten</a> &bull;
   <a href="#mcp-oekosystem">MCP-Oekosystem</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installation">Installation</a> &bull;
   <a href="#integrierte-werkzeuge">Integrierte Werkzeuge</a> &bull;
   <a href="#fuer-wen-ist-das">Fuer wen ist das?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike verbindet sich mit spezialisierten MCP-Servern, die seine Faehigkeit
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-Aufklaerung — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Alle quelloffen. Alle installierbar mit `npx`. Verbinden Sie sie mit CyberStrike oder nutzen Sie sie eigenstaendig mit jedem MCP-Client.
+
+---
+
+### Bolt
+
+Bolt ist CyberStrikes Server fuer die Remote-Werkzeugausfuehrung. Anstatt Sicherheitswerkzeuge auf Ihrem Laptop auszufuehren, stellen Sie sie auf einem VPS (oder mehreren) bereit und steuern alles von Ihrem lokalen Terminal aus.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**So funktioniert es:**
+- Stellen Sie Bolt auf jedem Server mit Ihrem installierten Pentest-Toolkit bereit
+- Koppeln Sie mit Ed25519-Schluesseln — keine Passwoerter, keine geteilten Geheimnisse
+- CyberStrike-Agenten rufen Werkzeuge remote ueber das MCP-Protokoll auf
+- Ergebnisse werden in Echtzeit an Ihr lokales TUI gestreamt
+- Verwalten Sie Verbindungen ueber das TUI: hinzufuegen, entfernen, Status ueberwachen
+
+**Warum das wichtig ist:** Ihre Angriffsflaeche bleibt auf dedizierter Infrastruktur. Fuehren Sie umfangreiche Scans von einem VPS mit besserer Bandbreite aus, halten Sie Ihre Werkzeuge an einem Ort aktuell und wechseln Sie von einem einzigen Terminal zwischen mehreren Angriffsservern.
 
 ---
 

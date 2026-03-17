@@ -51,6 +51,7 @@
   <a href="#hvad-gør-det-anderledes">Hvad G&oslash;r Det Anderledes</a> &bull;
   <a href="#agenter">Agenter</a> &bull;
   <a href="#mcp-økosystem">MCP-&Oslash;kosystem</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installation">Installation</a> &bull;
   <a href="#indbyggede-værktøjer">Indbyggede V&aelig;rkt&oslash;jer</a> &bull;
   <a href="#hvem-er-det-til">Hvem Er Det Til?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike forbinder til specialiserede MCP-servere, der udvider dets funktiona
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT-rekognoscering — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Alle open source. Alle installerbare med `npx`. Tilslut dem til CyberStrike eller brug dem selvst&aelig;ndigt med enhver MCP-klient.
+
+---
+
+### Bolt
+
+Bolt er CyberStrikes server til fjerneksekvering af v&aelig;rkt&oslash;jer. I stedet for at k&oslash;re sikkerhedsv&aelig;rkt&oslash;jer p&aring; din b&aelig;rbare, deploy dem p&aring; en VPS (eller flere) og styr alt fra din lokale terminal.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**S&aring;dan fungerer det:**
+- Deploy Bolt p&aring; enhver server med dit pentest-toolkit installeret
+- Par med Ed25519-n&oslash;gler — ingen adgangskoder, ingen delte hemmeligheder
+- CyberStrike-agenter kalder v&aelig;rkt&oslash;jer eksternt via MCP-protokollen
+- Resultater streames tilbage til din lokale TUI i realtid
+- Administr&eacute;r forbindelser fra TUI'en: tilf&oslash;j, fjern, overv&aring;g status
+
+**Hvorfor det betyder noget:** Din angrebsflade forbliver p&aring; dedikeret infrastruktur. K&oslash;r tunge scanninger fra en VPS med bedre b&aring;ndbredde, hold dine v&aelig;rkt&oslash;jer opdaterede &eacute;t sted, og skift mellem flere angrebsservere fra &eacute;n terminal.
 
 ---
 

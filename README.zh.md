@@ -51,6 +51,7 @@
   <a href="#独特之处">独特之处</a> &bull;
   <a href="#智能体">智能体</a> &bull;
   <a href="#mcp-生态系统">MCP 生态系统</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#安装">安装</a> &bull;
   <a href="#内置工具">内置工具</a> &bull;
   <a href="#适用人群">适用人群</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike 连接专业 MCP 服务器以扩展其能力：
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT 侦察 — Shodan、VirusTotal、SecurityTrails、Censys、DNS、WHOIS |
 
 全部开源。均可通过 `npx` 安装。可接入 CyberStrike 使用，也可作为独立工具配合任何 MCP 客户端使用。
+
+---
+
+### Bolt
+
+Bolt 是 CyberStrike 的远程工具执行服务器。无需在笔记本电脑上运行安全工具，而是将它们部署到 VPS（或多台），然后从本地终端控制一切。
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**工作原理：**
+- 在任意已安装渗透测试工具包的服务器上部署 Bolt
+- 使用 Ed25519 密钥配对 — 无密码，无共享密钥
+- CyberStrike 智能体通过 MCP 协议远程调用工具
+- 结果实时流式传输到本地 TUI
+- 从 TUI 管理连接：添加、移除、监控状态
+
+**为什么重要：** 你的攻击基础设施保留在专用服务器上。从带宽更好的 VPS 运行重型扫描，在一个地方保持工具更新，从一个终端在多台攻击服务器之间切换。
 
 ---
 
