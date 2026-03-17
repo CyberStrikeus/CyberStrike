@@ -51,6 +51,7 @@
   <a href="#무엇이-다른가">무엇이 다른가</a> &bull;
   <a href="#에이전트">에이전트</a> &bull;
   <a href="#mcp-생태계">MCP 생태계</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#설치">설치</a> &bull;
   <a href="#내장-도구">내장 도구</a> &bull;
   <a href="#누구를-위한-것인가">누구를 위한 것인가</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike는 전문 MCP 서버에 연결하여 기능을 확장합니다:
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT 정찰 — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 모두 오픈 소스. 모두 `npx`로 설치 가능. CyberStrike에 연결하거나 모든 MCP 클라이언트에서 독립적으로 사용 가능합니다.
+
+---
+
+### Bolt
+
+Bolt는 CyberStrike의 원격 도구 실행 서버입니다. 보안 도구를 노트북에서 실행하는 대신, VPS(또는 여러 대)에 배포하고 로컬 터미널에서 모든 것을 제어하세요.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**작동 방식:**
+- 침투 테스트 도구가 설치된 모든 서버에 Bolt를 배포
+- Ed25519 키로 페어링 — 비밀번호 없음, 공유 시크릿 없음
+- CyberStrike 에이전트가 MCP 프로토콜을 통해 원격으로 도구 호출
+- 결과가 실시간으로 로컬 TUI에 스트리밍
+- TUI에서 연결 관리: 추가, 제거, 상태 모니터링
+
+**왜 중요한가:** 공격 면이 전용 인프라에 유지됩니다. 더 넓은 대역폭의 VPS에서 무거운 스캔을 실행하고, 한 곳에서 도구를 최신 상태로 유지하며, 단일 터미널에서 여러 공격 서버 간에 전환할 수 있습니다.
 
 ---
 

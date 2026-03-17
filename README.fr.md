@@ -51,6 +51,7 @@
   <a href="#ce-qui-le-differencie">Ce qui le differencie</a> &bull;
   <a href="#agents">Agents</a> &bull;
   <a href="#ecosysteme-mcp">Ecosysteme MCP</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#installation">Installation</a> &bull;
   <a href="#outils-integres">Outils integres</a> &bull;
   <a href="#a-qui-sadresse-t-il">A qui s'adresse-t-il ?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike se connecte a des serveurs MCP specialises qui etendent ses capacite
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | Reconnaissance OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Tous open source. Tous installables avec `npx`. Branchez-les sur CyberStrike ou utilisez-les de maniere autonome avec n'importe quel client MCP.
+
+---
+
+### Bolt
+
+Bolt est le serveur d'execution d'outils a distance de CyberStrike. Au lieu d'executer des outils de securite sur votre ordinateur portable, deployez-les sur un VPS (ou plusieurs) et controlez tout depuis votre terminal local.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Comment ca marche :**
+- Deployez Bolt sur n'importe quel serveur avec votre boite a outils de pentest installee
+- Associez avec des cles Ed25519 — pas de mots de passe, pas de secrets partages
+- Les agents CyberStrike appellent les outils a distance via le protocole MCP
+- Les resultats sont transmis en temps reel a votre TUI local
+- Gerez les connexions depuis le TUI : ajouter, supprimer, surveiller le statut
+
+**Pourquoi c'est important :** Votre surface d'attaque reste sur une infrastructure dediee. Lancez des scans lourds depuis un VPS avec une meilleure bande passante, gardez vos outils a jour en un seul endroit, et basculez entre plusieurs serveurs d'attaque depuis un seul terminal.
 
 ---
 

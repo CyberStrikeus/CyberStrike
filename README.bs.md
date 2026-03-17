@@ -51,6 +51,7 @@
   <a href="#po-čemu-se-razlikuje">Po čemu se razlikuje</a> &bull;
   <a href="#agenti">Agenti</a> &bull;
   <a href="#mcp-ekosistem">MCP ekosistem</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#instalacija">Instalacija</a> &bull;
   <a href="#ugrađeni-alati">Ugrađeni alati</a> &bull;
   <a href="#kome-je-ovo-namijenjeno">Kome je ovo namijenjeno?</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike se povezuje sa specijalizovanim MCP serverima koji proširuju njegov
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT izviđanje — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Sve je otvorenog koda. Sve se može instalirati pomoću `npx`. Povežite ih s CyberStrike-om ili koristite samostalno s bilo kojim MCP klijentom.
+
+---
+
+### Bolt
+
+Bolt je CyberStrike-ov server za udaljeno izvršavanje alata. Umjesto pokretanja sigurnosnih alata na vašem laptopu, postavite ih na VPS (ili više njih) i kontrolišite sve iz lokalnog terminala.
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**Kako funkcioniše:**
+- Postavite Bolt na bilo koji server s instaliranim pentest alatima
+- Uparite pomoću Ed25519 ključeva — bez lozinki, bez dijeljenih tajni
+- CyberStrike agenti pozivaju alate udaljeno putem MCP protokola
+- Rezultati se strimaju u vaš lokalni TUI u stvarnom vremenu
+- Upravljajte vezama iz TUI-a: dodavanje, uklanjanje, praćenje statusa
+
+**Zašto je to bitno:** Vaša napadačka površina ostaje na namjenskoj infrastrukturi. Pokrenite teška skeniranja s VPS-a s boljim propusnim opsegom, održavajte alate ažurnima na jednom mjestu i prebacujte se između više napadačkih servera iz jednog terminala.
 
 ---
 

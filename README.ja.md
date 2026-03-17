@@ -51,6 +51,7 @@
   <a href="#何が違うのか">何が違うのか</a> &bull;
   <a href="#エージェント">エージェント</a> &bull;
   <a href="#mcp-エコシステム">MCP エコシステム</a> &bull;
+  <a href="#bolt">Bolt</a> &bull;
   <a href="#インストール">インストール</a> &bull;
   <a href="#組み込みツール">組み込みツール</a> &bull;
   <a href="#誰のためのものか">誰のためのものか</a> &bull;
@@ -145,6 +146,30 @@ CyberStrike は専門の MCP サーバーに接続して機能を拡張します
 | [osint-mcp](https://github.com/badchars/osint-mcp) | 37 | OSINT 偵察 — Shodan、VirusTotal、SecurityTrails、Censys、DNS、WHOIS |
 
 すべてオープンソース。すべて `npx` でインストール可能。CyberStrike に接続するか、任意の MCP クライアントでスタンドアロンとして使用できます。
+
+---
+
+### Bolt
+
+Bolt は CyberStrike のリモートツール実行サーバーです。セキュリティツールをノートPCで実行する代わりに、VPS（または複数台）にデプロイし、ローカルターミナルからすべてを制御できます。
+
+```
+┌──────────────┐         MCP Protocol         ┌──────────────────┐
+│  Your Laptop │  ◄──── Ed25519 Auth ────►    │  VPS / Cloud     │
+│  CyberStrike │         over HTTPS           │  Bolt Server     │
+│  TUI         │                               │  nmap, nuclei,   │
+│              │  ◄──── Tool Results ────►     │  sqlmap, ffuf...  │
+└──────────────┘                               └──────────────────┘
+```
+
+**仕組み：**
+- ペンテストツールキットがインストールされた任意のサーバーに Bolt をデプロイ
+- Ed25519 鍵でペアリング — パスワード不要、共有シークレット不要
+- CyberStrike エージェントが MCP プロトコル経由でリモートからツールを呼び出し
+- 結果はリアルタイムでローカル TUI にストリーミング
+- TUI から接続を管理：追加、削除、ステータス監視
+
+**なぜ重要か：** 攻撃面は専用インフラストラクチャ上に留まります。より高帯域の VPS から重いスキャンを実行し、ツールを一箇所で最新に保ち、単一のターミナルから複数の攻撃サーバーを切り替えられます。
 
 ---
 
