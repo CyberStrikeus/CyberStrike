@@ -3,7 +3,7 @@
   "name": "@cyberstrike-io/plugin",
   "version": "1.1.4",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "typecheck": "tsgo --noEmit",
     "build": "tsc"

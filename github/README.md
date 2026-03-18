@@ -1,6 +1,6 @@
 # cyberstrike GitHub Action
 
-A GitHub Action that integrates [cyberstrike](https://cyberstrike.us) directly into your GitHub workflow.
+A GitHub Action that integrates [cyberstrike](https://cyberstrike.io) directly into your GitHub workflow.
 
 Mention `/cyberstrike` in your comment, and cyberstrike will execute tasks within your GitHub Actions runner.
 

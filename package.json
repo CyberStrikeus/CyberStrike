@@ -87,7 +87,7 @@
     "type": "git",
     "url": "https://github.com/CyberStrikeus/CyberStrike"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "prettier": {
     "semi": false,
     "printWidth": 120

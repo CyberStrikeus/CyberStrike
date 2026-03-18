@@ -259,7 +259,7 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 ---
 
 <p align="center">
-  <a href="https://discord.gg/snunAaHf6U"><b>Discord</b></a> · <a href="https://x.com/cyberstrike"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
+  <a href="https://discord.gg/snunAaHf6U"><b>Discord</b></a> · <a href="https://x.com/cyberstrikeio"><b>X.com</b></a> · <a href="https://cyberstrike.io"><b>cyberstrike.io</b></a>
 </p>
 <p align="center">
   <sub>Built by hackers who got tired of copy-pasting between terminals.</sub>
