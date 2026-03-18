@@ -35,7 +35,7 @@ export const subjects = createSubjects({
 
 const MY_THEME: Theme = {
   ...THEME_OPENAUTH,
-  logo: "https://cyberstrike.us/favicon-v3.svg",
+  logo: "https://cyberstrike.io/favicon-v3.svg",
 }
 
 export default {

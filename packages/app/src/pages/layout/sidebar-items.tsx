@@ -34,7 +34,7 @@ export const ProjectIcon = (props: { project: LocalProject; class?: string; noti
           fallback={name()}
           src={
             props.project.id === CYBERSTRIKE_PROJECT_ID
-              ? "https://cyberstrike.us/favicon.svg"
+              ? "https://cyberstrike.io/favicon.svg"
               : props.project.icon?.override
           }
           {...getAvatarColors(props.project.icon?.color)}

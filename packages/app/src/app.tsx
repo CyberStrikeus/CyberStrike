@@ -126,7 +126,7 @@ const resolveDefaultServerUrl = (props: {
 }) => {
   if (props.defaultUrl) return props.defaultUrl
   if (props.storedDefaultServerUrl) return props.storedDefaultServerUrl
-  if (props.hostname.includes("cyberstrike.us")) return "http://localhost:4096"
+  if (props.hostname.includes("cyberstrike.io")) return "http://localhost:4096"
   if (props.isDev) return `http://${props.devHost ?? "localhost"}:${props.devPort ?? "4096"}`
   return props.origin
 }

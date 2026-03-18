@@ -20977,9 +20977,9 @@
     "id": "cyberstrike",
     "env": ["CYBERSTRIKE_API_KEY"],
     "npm": "@ai-sdk/openai-compatible",
-    "api": "https://cyberstrike.us/zen/v1",
+    "api": "https://cyberstrike.io/zen/v1",
     "name": "CyberStrike Zen",
-    "doc": "https://cyberstrike.us/docs/zen",
+    "doc": "https://cyberstrike.io/docs/zen",
     "models": {
       "glm-4.7": {
         "id": "glm-4.7",

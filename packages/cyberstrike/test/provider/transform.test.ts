@@ -1210,7 +1210,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       providerID: "cyberstrike",
       api: {
         id: "cyberstrike-test",
-        url: "https://api.cyberstrike.us",
+        url: "https://api.cyberstrike.io",
         npm: "@ai-sdk/openai-compatible",
       },
     }
@@ -1244,7 +1244,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
       providerID: "cyberstrike",
       api: {
         id: "cyberstrike-test",
-        url: "https://api.cyberstrike.us",
+        url: "https://api.cyberstrike.io",
         npm: "@ai-sdk/openai-compatible",
       },
     }

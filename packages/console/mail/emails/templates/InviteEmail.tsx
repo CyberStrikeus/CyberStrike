@@ -15,7 +15,7 @@ import {
   buttonText,
 } from "../styles"
 
-const CONSOLE_URL = "https://cyberstrike.us/"
+const CONSOLE_URL = "https://cyberstrike.io/"
 
 interface InviteEmailProps {
   inviter: string

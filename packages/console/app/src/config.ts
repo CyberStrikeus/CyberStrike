@@ -3,7 +3,7 @@
  */
 export const config = {
   // Base URL
-  baseUrl: "https://cyberstrike.us",
+  baseUrl: "https://cyberstrike.io",
 
   // GitHub
   github: {

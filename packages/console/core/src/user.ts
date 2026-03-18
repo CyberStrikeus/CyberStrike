@@ -146,7 +146,7 @@ export namespace User {
             // @ts-ignore
             InviteEmail({
               inviter: emailInfo.inviterEmail,
-              assetsUrl: `https://cyberstrike.us/email`,
+              assetsUrl: `https://cyberstrike.io/email`,
               workspaceID: workspaceID,
               workspaceName: emailInfo.workspaceName,
             }),

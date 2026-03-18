@@ -27,7 +27,7 @@ const REPLACEMENTS: [string, string][] = [
   ["anomalyco/opencode", "CyberStrikeus/CyberStrike"],
 
   // Domain
-  ["opencode.ai", "cyberstrike.us"],
+  ["opencode.ai", "cyberstrike.io"],
   ["opncd.ai", "cybrstk.us"],
 
   // Desktop app identifier

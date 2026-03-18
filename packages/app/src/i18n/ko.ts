@@ -124,7 +124,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line2":
     "단일 API 키로 Claude, GPT, Gemini, GLM 등 다양한 모델에 액세스할 수 있습니다.",
   "provider.connect.cyberstrikeZen.visit.prefix": "다음 ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": "을 방문하여 API 키를 받으세요.",
   "provider.connect.oauth.code.visit.prefix": "다음 ",
   "provider.connect.oauth.code.visit.link": "이 링크",

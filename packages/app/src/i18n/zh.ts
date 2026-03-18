@@ -155,7 +155,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line1": "CyberStrike Zen 为你提供一组精选的可靠优化模型，用于代码智能体。",
   "provider.connect.cyberstrikeZen.line2": "只需一个 API 密钥，你就能使用 Claude、GPT、Gemini、GLM 等模型。",
   "provider.connect.cyberstrikeZen.visit.prefix": "访问 ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": " 获取你的 API 密钥。",
   "provider.connect.oauth.code.visit.prefix": "访问 ",
   "provider.connect.oauth.code.visit.link": "此链接",

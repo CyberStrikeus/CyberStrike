@@ -276,7 +276,7 @@ export function DialogConnectProvider(props: { provider: string }) {
               <div class="text-14-regular text-text-base">{language.t("provider.connect.cyberstrikeZen.line2")}</div>
               <div class="text-14-regular text-text-base">
                 {language.t("provider.connect.cyberstrikeZen.visit.prefix")}
-                <Link href="https://cyberstrike.us/zen" tabIndex={-1}>
+                <Link href="https://cyberstrike.io/zen" tabIndex={-1}>
                   {language.t("provider.connect.cyberstrikeZen.visit.link")}
                 </Link>
                 {language.t("provider.connect.cyberstrikeZen.visit.suffix")}
