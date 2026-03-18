@@ -79,9 +79,9 @@ export namespace Database {
   }
 
   function tableExists(sqlite: BunDatabase, table: string) {
-    const row = sqlite
-      .prepare(`SELECT count(*) as c FROM sqlite_master WHERE type='table' AND name=?`)
-      .get(table) as { c: number } | null
+    const row = sqlite.prepare(`SELECT count(*) as c FROM sqlite_master WHERE type='table' AND name=?`).get(table) as {
+      c: number
+    } | null
     return (row?.c ?? 0) > 0
   }
 
