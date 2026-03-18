@@ -113,7 +113,7 @@ export default function Home() {
             <h3 data-component="title">npm</h3>
             <button data-copy data-slot="button">
               <span>
-                npm install -g <strong>cyberstrike</strong>
+                npm install -g <strong>@cyberstrike-io/cyberstrike@latest</strong>
               </span>
               <CopyStatus />
             </button>
@@ -122,7 +122,7 @@ export default function Home() {
             <h3 data-component="title">bun</h3>
             <button data-copy data-slot="button">
               <span>
-                bun install -g <strong>cyberstrike</strong>
+                bun install -g <strong>@cyberstrike-io/cyberstrike@latest</strong>
               </span>
               <CopyStatus />
             </button>
