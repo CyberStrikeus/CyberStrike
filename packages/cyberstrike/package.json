@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "patch",
+  "version": "1.1.4",
   "name": "cyberstrike",
   "type": "module",
   "description": "The first open-source AI agent built for offensive security. Autonomous pentesting from your terminal.",

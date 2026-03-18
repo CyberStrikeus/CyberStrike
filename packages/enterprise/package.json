@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/enterprise",
-  "version": "patch",
+  "version": "1.1.4",
   "private": true,
   "type": "module",
   "license": "MIT",
