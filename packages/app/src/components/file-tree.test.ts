@@ -20,15 +20,15 @@ beforeAll(async () => {
       },
     }),
   }))
-  mock.module("@cyberstrikeus/ui/collapsible", () => ({
+  mock.module("@cyberstrike-io/ui/collapsible", () => ({
     Collapsible: {
       Trigger: (props: { children?: unknown }) => props.children,
       Content: (props: { children?: unknown }) => props.children,
     },
   }))
-  mock.module("@cyberstrikeus/ui/file-icon", () => ({ FileIcon: () => null }))
-  mock.module("@cyberstrikeus/ui/icon", () => ({ Icon: () => null }))
-  mock.module("@cyberstrikeus/ui/tooltip", () => ({ Tooltip: (props: { children?: unknown }) => props.children }))
+  mock.module("@cyberstrike-io/ui/file-icon", () => ({ FileIcon: () => null }))
+  mock.module("@cyberstrike-io/ui/icon", () => ({ Icon: () => null }))
+  mock.module("@cyberstrike-io/ui/tooltip", () => ({ Tooltip: (props: { children?: unknown }) => props.children }))
   const mod = await import("./file-tree")
   shouldListRoot = mod.shouldListRoot
   shouldListExpanded = mod.shouldListExpanded

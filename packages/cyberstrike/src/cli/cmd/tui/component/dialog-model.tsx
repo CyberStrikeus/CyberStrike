@@ -150,7 +150,9 @@ export function DialogModel(props: { providerID?: string }) {
       {
         value: { providerID: "__anthropic__" as string, modelID: "__anthropic__" as string },
         title: anthropicConnected ? "Change API Key" : "Setup Anthropic",
-        description: anthropicConnected ? "Update your Anthropic credentials" as string | undefined : "(Claude Opus, Sonnet, Haiku)" as string | undefined,
+        description: anthropicConnected
+          ? ("Update your Anthropic credentials" as string | undefined)
+          : ("(Claude Opus, Sonnet, Haiku)" as string | undefined),
         category: "Anthropic" as string | undefined,
         disabled: false,
         footer: undefined as string | undefined,
@@ -182,7 +184,15 @@ export function DialogModel(props: { providerID?: string }) {
       ]
     }
 
-    return [...favoriteOptions, ...recentOptions, ...anthropicOptions, ...localModels, ...providerOptions, ...popularProviders, addLocalOption]
+    return [
+      ...favoriteOptions,
+      ...recentOptions,
+      ...anthropicOptions,
+      ...localModels,
+      ...providerOptions,
+      ...popularProviders,
+      addLocalOption,
+    ]
   })
 
   const provider = createMemo(() =>

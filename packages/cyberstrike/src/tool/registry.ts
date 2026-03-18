@@ -17,7 +17,7 @@ import { Tool } from "./tool"
 import { Instance } from "../project/instance"
 import { Config } from "../config/config"
 import path from "path"
-import { type ToolContext as PluginToolContext, type ToolDefinition } from "@cyberstrikeus/plugin"
+import { type ToolContext as PluginToolContext, type ToolDefinition } from "@cyberstrike-io/plugin"
 import z from "zod"
 import { Plugin } from "../plugin"
 import { WebSearchTool } from "./websearch"
@@ -52,9 +52,13 @@ export namespace ToolRegistry {
     if (matches.length) await Config.waitForDependencies()
     for (const match of matches) {
       const namespace = path.basename(match, path.extname(match))
-      const mod = await import(match)
-      for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
-        custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
+      try {
+        const mod = await import(match)
+        for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
+          custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
+        }
+      } catch (e) {
+        log.info("skipping custom tool", { path: match, error: String(e) })
       }
     }
 

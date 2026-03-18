@@ -6,7 +6,7 @@ import { cmd } from "./cmd"
 import { Flag } from "../../flag/flag"
 import { bootstrap } from "../bootstrap"
 import { EOL } from "os"
-import { createCyberstrikeClient, type Message, type CyberstrikeClient, type ToolPart } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrikeClient, type Message, type CyberstrikeClient, type ToolPart } from "@cyberstrike-io/sdk/v2"
 import { Server } from "../../server/server"
 import { Provider } from "../../provider/provider"
 import { Agent } from "../../agent/agent"
@@ -619,7 +619,11 @@ export const RunCommand = cmd({
           hostname: "127.0.0.1",
         })
         const baseUrl = server.url.toString().replace(/\/$/, "")
-        UI.println(UI.Style.TEXT_DIM + `Server listening at ${baseUrl} (ingest: POST ${baseUrl}/session/ingest)` + UI.Style.TEXT_NORMAL)
+        UI.println(
+          UI.Style.TEXT_DIM +
+            `Server listening at ${baseUrl} (ingest: POST ${baseUrl}/session/ingest)` +
+            UI.Style.TEXT_NORMAL,
+        )
         const sdk = createCyberstrikeClient({ baseUrl, directory: process.cwd() })
         return await execute(sdk)
       }

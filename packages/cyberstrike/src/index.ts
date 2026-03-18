@@ -10,7 +10,7 @@ import { UninstallCommand } from "./cli/cmd/uninstall"
 import { ModelsCommand } from "./cli/cmd/models"
 import { UI } from "./cli/ui"
 import { Installation } from "./installation"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
 import { DebugCommand } from "./cli/cmd/debug"
@@ -175,7 +175,13 @@ try {
   }
 
   if (e instanceof Error && "specifier" in e) {
-    const re = e as Error & { code?: string; specifier?: string; referrer?: string; position?: unknown; importKind?: string }
+    const re = e as Error & {
+      code?: string
+      specifier?: string
+      referrer?: string
+      position?: unknown
+      importKind?: string
+    }
     Object.assign(data, {
       name: re.name,
       message: re.message,

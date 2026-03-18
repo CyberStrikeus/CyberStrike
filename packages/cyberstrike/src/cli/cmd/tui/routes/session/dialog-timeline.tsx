@@ -1,7 +1,7 @@
 import { createMemo, onMount } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { DialogSelect, type DialogSelectOption } from "@tui/ui/dialog-select"
-import type { TextPart } from "@cyberstrikeus/sdk/v2"
+import type { TextPart } from "@cyberstrike-io/sdk/v2"
 import { Locale } from "@/util/locale"
 import { DialogMessage } from "./dialog-message"
 import { useDialog } from "../../ui/dialog"

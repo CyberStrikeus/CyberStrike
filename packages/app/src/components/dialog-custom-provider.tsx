@@ -1,10 +1,10 @@
-import { Button } from "@cyberstrikeus/ui/button"
-import { useDialog } from "@cyberstrikeus/ui/context/dialog"
-import { Dialog } from "@cyberstrikeus/ui/dialog"
-import { IconButton } from "@cyberstrikeus/ui/icon-button"
-import { ProviderIcon } from "@cyberstrikeus/ui/provider-icon"
-import { TextField } from "@cyberstrikeus/ui/text-field"
-import { showToast } from "@cyberstrikeus/ui/toast"
+import { Button } from "@cyberstrike-io/ui/button"
+import { useDialog } from "@cyberstrike-io/ui/context/dialog"
+import { Dialog } from "@cyberstrike-io/ui/dialog"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
+import { TextField } from "@cyberstrike-io/ui/text-field"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { For } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Link } from "@/components/link"
@@ -292,7 +292,7 @@ export function DialogCustomProvider(props: Props) {
         <form onSubmit={save} class="px-2.5 pb-6 flex flex-col gap-6">
           <p class="text-14-regular text-text-base">
             {language.t("provider.custom.description.prefix")}
-            <Link href="https://cyberstrike.us/docs/providers/#custom-provider" tabIndex={-1}>
+            <Link href="https://cyberstrike.io/docs/providers/#custom-provider" tabIndex={-1}>
               {language.t("provider.custom.description.link")}
             </Link>
             {language.t("provider.custom.description.suffix")}

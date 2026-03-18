@@ -36,7 +36,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.health({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.health({\n  ...\n})"
           }
         ]
       }
@@ -61,7 +61,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.event({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.event({\n  ...\n})"
           }
         ]
       }
@@ -86,7 +86,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.config.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.config.get({\n  ...\n})"
           }
         ]
       },
@@ -128,7 +128,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.config.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.config.update({\n  ...\n})"
           }
         ]
       }
@@ -153,7 +153,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.dispose({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.dispose({\n  ...\n})"
           }
         ]
       }
@@ -207,7 +207,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.auth.set({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.auth.set({\n  ...\n})"
           }
         ]
       },
@@ -250,7 +250,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.auth.remove({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.auth.remove({\n  ...\n})"
           }
         ]
       }
@@ -287,7 +287,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.list({\n  ...\n})"
           }
         ]
       }
@@ -321,7 +321,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.current({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.current({\n  ...\n})"
           }
         ]
       }
@@ -420,7 +420,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.project.update({\n  ...\n})"
           }
         ]
       }
@@ -457,7 +457,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.list({\n  ...\n})"
           }
         ]
       },
@@ -534,7 +534,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.create({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.create({\n  ...\n})"
           }
         ]
       }
@@ -586,7 +586,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.get({\n  ...\n})"
           }
         ]
       },
@@ -662,7 +662,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.update({\n  ...\n})"
           }
         ]
       },
@@ -712,7 +712,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.remove({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.remove({\n  ...\n})"
           }
         ]
       }
@@ -764,7 +764,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.connect({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.pty.connect({\n  ...\n})"
           }
         ]
       }
@@ -798,7 +798,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.get({\n  ...\n})"
           }
         ]
       },
@@ -849,7 +849,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.update({\n  ...\n})"
           }
         ]
       }
@@ -901,7 +901,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.providers({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.config.providers({\n  ...\n})"
           }
         ]
       }
@@ -945,7 +945,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tool.ids({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tool.ids({\n  ...\n})"
           }
         ]
       }
@@ -1005,7 +1005,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tool.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tool.list({\n  ...\n})"
           }
         ]
       }
@@ -1058,7 +1058,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.create({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.create({\n  ...\n})"
           }
         ]
       },
@@ -1093,7 +1093,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.list({\n  ...\n})"
           }
         ]
       },
@@ -1144,7 +1144,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.remove({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.remove({\n  ...\n})"
           }
         ]
       }
@@ -1197,7 +1197,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.reset({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.worktree.reset({\n  ...\n})"
           }
         ]
       }
@@ -1237,7 +1237,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.experimental.resource.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.experimental.resource.list({\n  ...\n})"
           }
         ]
       }
@@ -1307,7 +1307,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.list({\n  ...\n})"
           }
         ]
       },
@@ -1370,7 +1370,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.create({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.create({\n  ...\n})"
           }
         ]
       }
@@ -1420,7 +1420,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.status({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.status({\n  ...\n})"
           }
         ]
       }
@@ -1484,7 +1484,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.get({\n  ...\n})"
           }
         ]
       },
@@ -1545,7 +1545,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.delete({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.delete({\n  ...\n})"
           }
         ]
       },
@@ -1627,7 +1627,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.update({\n  ...\n})"
           }
         ]
       }
@@ -1694,7 +1694,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.children({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.children({\n  ...\n})"
           }
         ]
       }
@@ -1760,7 +1760,899 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.todo({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.todo({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/vulnerability": {
+      "get": {
+        "operationId": "session.vulnerability",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          }
+        ],
+        "summary": "Get session vulnerabilities",
+        "description": "Retrieve the list of vulnerabilities reported for a specific session.",
+        "responses": {
+          "200": {
+            "description": "Vulnerability list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vulnerability"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.vulnerability({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/request": {
+      "get": {
+        "operationId": "session.request",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          }
+        ],
+        "summary": "Get session requests",
+        "description": "Retrieve the list of normalized HTTP requests tracked for a specific session.",
+        "responses": {
+          "200": {
+            "description": "Request list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Request"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.request({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/credentials": {
+      "get": {
+        "operationId": "session.webCredentials",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          }
+        ],
+        "summary": "Get web credentials",
+        "description": "Retrieve the list of credentials for web security testing in this session.",
+        "responses": {
+          "200": {
+            "description": "Credential list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebCredential"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.webCredentials({\n  ...\n})"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "session.addWebCredential",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          }
+        ],
+        "summary": "Add web credential",
+        "description": "Add a new credential for web security testing.",
+        "responses": {
+          "200": {
+            "description": "Created credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebCredential"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "headers": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "container_id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["label"]
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.addWebCredential({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/credentials/{credentialID}": {
+      "delete": {
+        "operationId": "session.deleteWebCredential",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "path",
+            "name": "credentialID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Credential ID"
+          }
+        ],
+        "summary": "Delete web credential",
+        "description": "Delete a credential from the session.",
+        "responses": {
+          "200": {
+            "description": "Successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.deleteWebCredential({\n  ...\n})"
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "session.updateWebCredential",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "path",
+            "name": "credentialID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Credential ID"
+          }
+        ],
+        "summary": "Update web credential",
+        "description": "Update a credential's value, label, or role. Used for token refresh.",
+        "responses": {
+          "200": {
+            "description": "Updated credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebCredential"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "headers": {
+                    "description": "Auth headers",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "label": {
+                    "description": "New label",
+                    "type": "string"
+                  },
+                  "container_id": {
+                    "description": "Container ID",
+                    "type": "string"
+                  },
+                  "role_id": {
+                    "description": "Role ID to link",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.updateWebCredential({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/roles": {
+      "get": {
+        "operationId": "session.webRoles",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get web roles",
+        "description": "Retrieve discovered roles for web security testing.",
+        "responses": {
+          "200": {
+            "description": "Role list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebRole"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.webRoles({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/objects": {
+      "get": {
+        "operationId": "session.webObjects",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get web objects",
+        "description": "Retrieve discovered data objects for web security testing.",
+        "responses": {
+          "200": {
+            "description": "Object list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebObject"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.webObjects({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/functions": {
+      "get": {
+        "operationId": "session.webFunctions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get web functions",
+        "description": "Retrieve discovered endpoint functions for web security testing.",
+        "responses": {
+          "200": {
+            "description": "Function list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebFunction"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.webFunctions({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/{sessionID}/web/retest-queue": {
+      "get": {
+        "operationId": "session.webRetestQueue",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get web retest queue",
+        "description": "Retrieve pending retests triggered by new discoveries.",
+        "responses": {
+          "200": {
+            "description": "Retest queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pending": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebRetest"
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "pending": {
+                          "type": "number"
+                        },
+                        "processing": {
+                          "type": "number"
+                        },
+                        "completed": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["pending", "processing", "completed"]
+                    }
+                  },
+                  "required": ["pending", "counts"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.webRetestQueue({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/session/ingest": {
+      "post": {
+        "operationId": "session.ingest",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Ingest message",
+        "description": "Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.",
+        "responses": {
+          "202": {
+            "description": "Message accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionID": {
+                      "description": "Session id (new or existing); use for follow-up ingest requests",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["sessionID"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "description": "Message text (treated as user input)",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sessionID": {
+                    "description": "Existing session id; omit or leave invalid to create a new session",
+                    "type": "string"
+                  },
+                  "agent": {
+                    "description": "Agent to use (default if omitted)",
+                    "type": "string"
+                  },
+                  "model": {
+                    "description": "Model to use (optional)",
+                    "type": "object",
+                    "properties": {
+                      "providerID": {
+                        "type": "string"
+                      },
+                      "modelID": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["providerID", "modelID"]
+                  },
+                  "credential_id": {
+                    "description": "Existing credential ID to use for this request",
+                    "type": "string"
+                  },
+                  "credential": {
+                    "description": "New credential to register with this request",
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "container_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["label"]
+                  },
+                  "response": {
+                    "description": "HTTP response data",
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "description": "HTTP status code",
+                        "type": "number"
+                      },
+                      "headers": {
+                        "description": "Response headers",
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "body": {
+                        "description": "Response body",
+                        "type": "string"
+                      }
+                    },
+                    "required": ["status", "headers", "body"]
+                  }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.ingest({\n  ...\n})"
           }
         ]
       }
@@ -1845,7 +2737,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.init({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.init({\n  ...\n})"
           }
         ]
       }
@@ -1903,7 +2795,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.fork({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.fork({\n  ...\n})"
           }
         ]
       }
@@ -1965,7 +2857,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.abort({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.abort({\n  ...\n})"
           }
         ]
       }
@@ -2027,7 +2919,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.share({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.share({\n  ...\n})"
           }
         ]
       },
@@ -2088,7 +2980,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.unshare({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.unshare({\n  ...\n})"
           }
         ]
       }
@@ -2142,7 +3034,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.diff({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.diff({\n  ...\n})"
           }
         ]
       }
@@ -2227,7 +3119,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.summarize({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.summarize({\n  ...\n})"
           }
         ]
       }
@@ -2312,7 +3204,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.messages({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.messages({\n  ...\n})"
           }
         ]
       },
@@ -2457,7 +3349,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.prompt({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.prompt({\n  ...\n})"
           }
         ]
       }
@@ -2541,7 +3433,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.message({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.message({\n  ...\n})"
           }
         ]
       }
@@ -2621,7 +3513,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.part.delete({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.part.delete({\n  ...\n})"
           }
         ]
       },
@@ -2708,7 +3600,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.part.update({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.part.update({\n  ...\n})"
           }
         ]
       }
@@ -2836,7 +3728,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.prompt_async({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.prompt_async({\n  ...\n})"
           }
         ]
       }
@@ -2974,7 +3866,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.command({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.command({\n  ...\n})"
           }
         ]
       }
@@ -3067,7 +3959,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.shell({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.shell({\n  ...\n})"
           }
         ]
       }
@@ -3149,7 +4041,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.revert({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.revert({\n  ...\n})"
           }
         ]
       }
@@ -3211,7 +4103,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.unrevert({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.unrevert({\n  ...\n})"
           }
         ]
       }
@@ -3298,7 +4190,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.respond({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.respond({\n  ...\n})"
           }
         ]
       }
@@ -3379,7 +4271,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.reply({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.reply({\n  ...\n})"
           }
         ]
       }
@@ -3416,7 +4308,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.permission.list({\n  ...\n})"
           }
         ]
       }
@@ -3453,7 +4345,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.list({\n  ...\n})"
           }
         ]
       }
@@ -3534,7 +4426,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.reply({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.reply({\n  ...\n})"
           }
         ]
       }
@@ -3596,7 +4488,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.reject({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.question.reject({\n  ...\n})"
           }
         ]
       }
@@ -3858,7 +4750,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.list({\n  ...\n})"
           }
         ]
       }
@@ -3901,7 +4793,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.auth({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.auth({\n  ...\n})"
           }
         ]
       }
@@ -3970,7 +4862,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.oauth.authorize({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.oauth.authorize({\n  ...\n})"
           }
         ]
       }
@@ -4043,7 +4935,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.oauth.callback({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.provider.oauth.callback({\n  ...\n})"
           }
         ]
       }
@@ -4139,7 +5031,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.text({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.text({\n  ...\n})"
           }
         ]
       }
@@ -4209,7 +5101,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.files({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.files({\n  ...\n})"
           }
         ]
       }
@@ -4254,7 +5146,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.symbols({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.find.symbols({\n  ...\n})"
           }
         ]
       }
@@ -4299,7 +5191,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.list({\n  ...\n})"
           }
         ]
       }
@@ -4341,7 +5233,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.read({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.read({\n  ...\n})"
           }
         ]
       }
@@ -4378,7 +5270,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.status({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.file.status({\n  ...\n})"
           }
         ]
       }
@@ -4418,7 +5310,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.status({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.status({\n  ...\n})"
           }
         ]
       },
@@ -4491,7 +5383,49 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.add({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.add({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/mcp/{name}": {
+      "delete": {
+        "operationId": "mcp.remove",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "summary": "Remove MCP server",
+        "description": "Disconnect and permanently remove an MCP server from configuration.",
+        "responses": {
+          "200": {
+            "description": "MCP server removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.remove({\n  ...\n})"
           }
         ]
       }
@@ -4560,7 +5494,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.start({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.start({\n  ...\n})"
           }
         ]
       },
@@ -4617,7 +5551,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.remove({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.remove({\n  ...\n})"
           }
         ]
       }
@@ -4695,7 +5629,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.callback({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.callback({\n  ...\n})"
           }
         ]
       }
@@ -4757,7 +5691,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.authenticate({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.auth.authenticate({\n  ...\n})"
           }
         ]
       }
@@ -4798,7 +5732,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.connect({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.connect({\n  ...\n})"
           }
         ]
       }
@@ -4839,7 +5773,318 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.disconnect({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.disconnect({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/bolt": {
+      "get": {
+        "operationId": "bolt.status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Get Bolt status",
+        "description": "Get the status of all Bolt servers.",
+        "responses": {
+          "200": {
+            "description": "Bolt server status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/MCPStatus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.status({\n  ...\n})"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "bolt.add",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Add Bolt server",
+        "description": "Dynamically add a new Bolt server.",
+        "responses": {
+          "200": {
+            "description": "Bolt server added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/MCPStatus"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "config": {
+                    "$ref": "#/components/schemas/BoltConfig"
+                  }
+                },
+                "required": ["name", "config"]
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.add({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/bolt/{name}/pair": {
+      "post": {
+        "operationId": "bolt.pair",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "name",
+            "required": true
+          }
+        ],
+        "summary": "Pair with Bolt server",
+        "description": "Pair with a Bolt server using Ed25519 key exchange. Requires admin token.",
+        "responses": {
+          "200": {
+            "description": "Bolt pairing successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "serverFingerprint": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["clientId", "serverFingerprint"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "description": "Bolt server URL",
+                    "type": "string"
+                  },
+                  "adminToken": {
+                    "description": "Admin token for pairing authorization",
+                    "type": "string"
+                  }
+                },
+                "required": ["url", "adminToken"]
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.pair({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/bolt/{name}/connect": {
+      "post": {
+        "operationId": "bolt.connect",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Connect a Bolt server",
+        "responses": {
+          "200": {
+            "description": "Bolt server connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.connect({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/bolt/{name}/disconnect": {
+      "post": {
+        "operationId": "bolt.disconnect",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Disconnect a Bolt server",
+        "responses": {
+          "200": {
+            "description": "Bolt server disconnected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.disconnect({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/bolt/{name}": {
+      "delete": {
+        "operationId": "bolt.remove",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Remove a Bolt server",
+        "description": "Disconnect and permanently remove a Bolt server from configuration.",
+        "responses": {
+          "200": {
+            "description": "Bolt server removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.bolt.remove({\n  ...\n})"
           }
         ]
       }
@@ -4898,7 +6143,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.appendPrompt({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.appendPrompt({\n  ...\n})"
           }
         ]
       }
@@ -4932,7 +6177,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openHelp({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openHelp({\n  ...\n})"
           }
         ]
       }
@@ -4966,7 +6211,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openSessions({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openSessions({\n  ...\n})"
           }
         ]
       }
@@ -5000,7 +6245,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openThemes({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openThemes({\n  ...\n})"
           }
         ]
       }
@@ -5034,7 +6279,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openModels({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.openModels({\n  ...\n})"
           }
         ]
       }
@@ -5068,7 +6313,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.submitPrompt({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.submitPrompt({\n  ...\n})"
           }
         ]
       }
@@ -5102,7 +6347,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.clearPrompt({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.clearPrompt({\n  ...\n})"
           }
         ]
       }
@@ -5161,7 +6406,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.executeCommand({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.executeCommand({\n  ...\n})"
           }
         ]
       }
@@ -5222,7 +6467,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.showToast({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.showToast({\n  ...\n})"
           }
         ]
       }
@@ -5288,7 +6533,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.publish({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.publish({\n  ...\n})"
           }
         ]
       }
@@ -5359,7 +6604,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.selectSession({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.selectSession({\n  ...\n})"
           }
         ]
       }
@@ -5400,7 +6645,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.control.next({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.control.next({\n  ...\n})"
           }
         ]
       }
@@ -5441,7 +6686,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.control.response({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.control.response({\n  ...\n})"
           }
         ]
       }
@@ -5475,7 +6720,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.instance.dispose({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.instance.dispose({\n  ...\n})"
           }
         ]
       }
@@ -5509,7 +6754,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.path.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.path.get({\n  ...\n})"
           }
         ]
       }
@@ -5543,7 +6788,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.vcs.get({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.vcs.get({\n  ...\n})"
           }
         ]
       }
@@ -5580,7 +6825,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.command.list({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.command.list({\n  ...\n})"
           }
         ]
       }
@@ -5657,7 +6902,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.log({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.log({\n  ...\n})"
           }
         ]
       }
@@ -5694,7 +6939,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.agents({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.agents({\n  ...\n})"
           }
         ]
       }
@@ -5746,7 +6991,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.skills({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.app.skills({\n  ...\n})"
           }
         ]
       }
@@ -5783,7 +7028,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.lsp.status({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.lsp.status({\n  ...\n})"
           }
         ]
       }
@@ -5820,7 +7065,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.formatter.status({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.formatter.status({\n  ...\n})"
           }
         ]
       }
@@ -5854,7 +7099,7 @@
         "x-codeSamples": [
           {
             "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrikeus/sdk\n\nconst client = createCyberstrikeClient()\nawait client.event.subscribe({\n  ...\n})"
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.event.subscribe({\n  ...\n})"
           }
         ]
       }
@@ -7771,6 +9016,166 @@
         },
         "required": ["type", "properties"]
       },
+      "Request": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "normalized_path": {
+            "type": "string"
+          },
+          "raw_request": {
+            "type": "string"
+          },
+          "body_hash": {
+            "type": "string"
+          },
+          "query_hash": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "processing", "processed"]
+          },
+          "response_status": {
+            "type": "number"
+          },
+          "response_headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "response_content_type": {
+            "type": "string"
+          },
+          "response_size": {
+            "type": "number"
+          },
+          "processed_response": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "method", "normalized_path", "status", "time"]
+      },
+      "Event.request.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "request.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "requests": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Request"
+                }
+              }
+            },
+            "required": ["sessionID", "requests"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebCredential": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "container_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "label", "headers", "time"]
+      },
+      "Event.web_credential.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_credential.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "credentials": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebCredential"
+                }
+              }
+            },
+            "required": ["sessionID", "credentials"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
       "Todo": {
         "type": "object",
         "properties": {
@@ -7810,6 +9215,98 @@
               }
             },
             "required": ["sessionID", "todos"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Vulnerability": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cwe_id": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "steps_to_reproduce": {
+            "type": "string"
+          },
+          "business_impact": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "poc": {
+            "type": "string"
+          },
+          "status": {
+            "default": "open",
+            "type": "string",
+            "enum": ["open", "fixed", "ignored"]
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["severity", "title", "description"]
+      },
+      "Event.vulnerability.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "vulnerability.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "vulnerabilities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Vulnerability"
+                }
+              }
+            },
+            "required": ["sessionID", "vulnerabilities"]
           }
         },
         "required": ["type", "properties"]
@@ -7966,6 +9463,339 @@
               }
             },
             "required": ["mcpName", "url"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebRole": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "number"
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "time"]
+      },
+      "Event.web_role.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_role.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebRole"
+                }
+              }
+            },
+            "required": ["sessionID", "roles"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebRetest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trigger_type": {
+            "type": "string",
+            "enum": ["new_role", "new_object_value", "new_credential"]
+          },
+          "trigger_source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed"]
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "request_id", "trigger_type", "trigger_source", "status", "priority", "time"]
+      },
+      "Event.web_retest.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_retest.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "queue": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebRetest"
+                }
+              }
+            },
+            "required": ["sessionID", "queue"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sensitive_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "time"]
+      },
+      "Event.web_object.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_object.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebObject"
+                }
+              }
+            },
+            "required": ["sessionID", "objects"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebObjectValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "object_id", "field_name", "value", "time"]
+      },
+      "Event.web_object_value.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_object_value.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "objectID": {
+                "type": "string"
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebObjectValue"
+                }
+              }
+            },
+            "required": ["sessionID", "objectID", "values"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebFunction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "action_type": {
+            "type": "string",
+            "enum": ["create", "read", "update", "delete"]
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "action_type", "request_id", "time"]
+      },
+      "Event.web_function.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_function.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebFunction"
+                }
+              }
+            },
+            "required": ["sessionID", "functions"]
           }
         },
         "required": ["type", "properties"]
@@ -8492,7 +10322,16 @@
             "$ref": "#/components/schemas/Event.file.watcher.updated"
           },
           {
+            "$ref": "#/components/schemas/Event.request.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_credential.updated"
+          },
+          {
             "$ref": "#/components/schemas/Event.todo.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.vulnerability.updated"
           },
           {
             "$ref": "#/components/schemas/Event.tui.prompt.append"
@@ -8511,6 +10350,21 @@
           },
           {
             "$ref": "#/components/schemas/Event.mcp.browser.open.failed"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_role.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_retest.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_object.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_object_value.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_function.updated"
           },
           {
             "$ref": "#/components/schemas/Event.command.executed"
@@ -9143,6 +10997,9 @@
               "todoread": {
                 "$ref": "#/components/schemas/PermissionActionConfig"
               },
+              "report_vulnerability": {
+                "$ref": "#/components/schemas/PermissionActionConfig"
+              },
               "question": {
                 "$ref": "#/components/schemas/PermissionActionConfig"
               },
@@ -9609,6 +11466,27 @@
         "required": ["type", "url"],
         "additionalProperties": false
       },
+      "BoltConfig": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "Bolt server URL (e.g. http://myserver:3001)",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Enable or disable the Bolt server on startup",
+            "type": "boolean"
+          },
+          "timeout": {
+            "description": "Timeout in ms for Bolt server requests. Defaults to 30000 (30 seconds) if not specified.",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
       "LayoutConfig": {
         "description": "@deprecated Always uses stretch layout.",
         "type": "string",
@@ -9662,7 +11540,7 @@
             "$ref": "#/components/schemas/ServerConfig"
           },
           "command": {
-            "description": "Command configuration, see https://cyberstrike.us/docs/commands",
+            "description": "Command configuration, see https://cyberstrike.io/docs/commands",
             "type": "object",
             "propertyNames": {
               "type": "string"
@@ -9773,7 +11651,7 @@
             "type": "string"
           },
           "default_agent": {
-            "description": "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.",
+            "description": "Default agent to use when none is specified. Must be a primary agent. Falls back to 'cyberstrike' if not set or if the specified agent is invalid.",
             "type": "string"
           },
           "username": {
@@ -9784,10 +11662,7 @@
             "description": "@deprecated Use `agent` field instead.",
             "type": "object",
             "properties": {
-              "build": {
-                "$ref": "#/components/schemas/AgentConfig"
-              },
-              "plan": {
+              "cyberstrike": {
                 "$ref": "#/components/schemas/AgentConfig"
               }
             },
@@ -9796,13 +11671,10 @@
             }
           },
           "agent": {
-            "description": "Agent configuration, see https://cyberstrike.us/docs/agents",
+            "description": "Agent configuration, see https://cyberstrike.io/docs/agents",
             "type": "object",
             "properties": {
-              "plan": {
-                "$ref": "#/components/schemas/AgentConfig"
-              },
-              "build": {
+              "cyberstrike": {
                 "$ref": "#/components/schemas/AgentConfig"
               },
               "general": {
@@ -9864,6 +11736,16 @@
                   "additionalProperties": false
                 }
               ]
+            }
+          },
+          "bolt": {
+            "description": "Bolt server configurations (Docker Kali containers)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BoltConfig"
             }
           },
           "formatter": {
@@ -11038,6 +12920,12 @@
           "prompt": {
             "type": "string"
           },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "options": {
             "type": "object",
             "propertyNames": {
@@ -11049,6 +12937,9 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991
+          },
+          "prependRequestContext": {
+            "type": "boolean"
           }
         },
         "required": ["name", "mode", "permission", "options"]

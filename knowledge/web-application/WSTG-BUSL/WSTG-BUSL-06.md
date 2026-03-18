@@ -1,9 +1,11 @@
 # WSTG-BUSL-06: Test Circumvention of Work Flows
 
 ## Test ID
+
 WSTG-BUSL-06
 
 ## Test Name
+
 Testing for the Circumvention of Work Flows
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Workflow circumvention testing examines whether an application properly enforces
 
 ### Common Workflow Vulnerabilities
 
-| Vulnerability | Example |
-|---------------|---------|
-| Step skipping | Skip payment, go directly to order confirmation |
-| Step repetition | Repeat discount application |
-| State manipulation | Change order after payment |
-| Direct access | Access confirmation page without completing flow |
-| Parallel execution | Start multiple flows, complete one |
+| Vulnerability      | Example                                          |
+| ------------------ | ------------------------------------------------ |
+| Step skipping      | Skip payment, go directly to order confirmation  |
+| Step repetition    | Repeat discount application                      |
+| State manipulation | Change order after payment                       |
+| Direct access      | Access confirmation page without completing flow |
+| Parallel execution | Start multiple flows, complete one               |
 
 ---
 
@@ -214,18 +216,18 @@ curl -s "https://target.com/api/sensitive-data" \
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Intercept workflow | Modify/replay requests |
-| **Postman** | API workflow testing | Collection runners |
-| **Browser DevTools** | Monitor state changes | Track tokens/cookies |
+| Tool                 | Description           | Usage                  |
+| -------------------- | --------------------- | ---------------------- |
+| **Burp Suite**       | Intercept workflow    | Modify/replay requests |
+| **Postman**          | API workflow testing  | Collection runners     |
+| **Browser DevTools** | Monitor state changes | Track tokens/cookies   |
 
 ### Automated
 
-| Tool | Description |
-|------|-------------|
-| **Burp Macros** | Automate multi-step flows |
-| **Custom scripts** | Workflow fuzzing |
+| Tool               | Description               |
+| ------------------ | ------------------------- |
+| **Burp Macros**    | Automate multi-step flows |
+| **Custom scripts** | Workflow fuzzing          |
 
 ---
 
@@ -568,23 +570,23 @@ class WorkflowTracker:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Payment step bypass | 9.8 | Critical |
-| Verification step bypass | 8.8 | High |
-| Discount application after payment | 7.5 | High |
-| Onboarding bypass | 6.5 | Medium |
-| Step modification after completion | 6.5 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| Payment step bypass                | 9.8  | Critical |
+| Verification step bypass           | 8.8  | High     |
+| Discount application after payment | 7.5  | High     |
+| Onboarding bypass                  | 6.5  | Medium   |
+| Step modification after completion | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-841** | Improper Enforcement of Behavioral Workflow | Workflow bypass |
-| **CWE-306** | Missing Authentication for Critical Function | Step skipping |
-| **CWE-840** | Business Logic Errors | Logic flaw exploitation |
+| CWE ID      | Title                                        | Description             |
+| ----------- | -------------------------------------------- | ----------------------- |
+| **CWE-841** | Improper Enforcement of Behavioral Workflow  | Workflow bypass         |
+| **CWE-306** | Missing Authentication for Critical Function | Step skipping           |
+| **CWE-840** | Business Logic Errors                        | Logic flaw exploitation |
 
 ---
 

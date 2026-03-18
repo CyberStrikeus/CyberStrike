@@ -1,9 +1,11 @@
 # WSTG-CRYP-04: Testing for Weak Encryption
 
 ## Test ID
+
 WSTG-CRYP-04
 
 ## Test Name
+
 Testing for Weak Encryption
 
 ## High-Level Description
@@ -170,11 +172,11 @@ def check_password_hash_strength(api_endpoint, test_password):
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| **hashcat** | Hash identification and cracking |
-| **john** | Password hash analysis |
-| **CyberChef** | Crypto analysis |
+| Tool          | Description                      |
+| ------------- | -------------------------------- |
+| **hashcat**   | Hash identification and cracking |
+| **john**      | Password hash analysis           |
+| **CyberChef** | Crypto analysis                  |
 
 ---
 
@@ -212,22 +214,22 @@ if bcrypt.checkpw(password.encode(), stored_hash):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| MD5/SHA1 for passwords | 7.5 | High |
-| ECB mode encryption | 5.3 | Medium |
-| Hardcoded keys | 7.5 | High |
-| DES/3DES encryption | 5.3 | Medium |
+| Finding                | CVSS | Severity |
+| ---------------------- | ---- | -------- |
+| MD5/SHA1 for passwords | 7.5  | High     |
+| ECB mode encryption    | 5.3  | Medium   |
+| Hardcoded keys         | 7.5  | High     |
+| DES/3DES encryption    | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                          |
+| ----------- | ---------------------------------------------- |
 | **CWE-327** | Use of Broken or Risky Cryptographic Algorithm |
-| **CWE-328** | Reversible One-Way Hash |
-| **CWE-329** | Not Using a Random IV with CBC Mode |
+| **CWE-328** | Reversible One-Way Hash                        |
+| **CWE-329** | Not Using a Random IV with CBC Mode            |
 
 ---
 

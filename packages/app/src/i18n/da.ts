@@ -132,7 +132,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line2":
     "Med en enkelt API-nøgle får du adgang til modeller som Claude, GPT, Gemini, GLM og flere.",
   "provider.connect.cyberstrikeZen.visit.prefix": "Besøg ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": " for at hente din API-nøgle.",
   "provider.connect.oauth.code.visit.prefix": "Besøg ",
   "provider.connect.oauth.code.visit.link": "dette link",
@@ -454,7 +454,8 @@ export const dict = {
   "error.chain.didYouMean": "Mente du: {{suggestions}}",
   "error.chain.modelNotFound": "Model ikke fundet: {{provider}}/{{model}}",
   "error.chain.checkConfig": "Tjek dine konfigurations (cyberstrike.json) udbyder/modelnavne",
-  "error.chain.mcpFailed": 'MCP-server "{{name}}" fejlede. Bemærk, CyberStrike understøtter ikke MCP-godkendelse endnu.',
+  "error.chain.mcpFailed":
+    'MCP-server "{{name}}" fejlede. Bemærk, CyberStrike understøtter ikke MCP-godkendelse endnu.',
   "error.chain.providerAuthFailed": "Udbydergodkendelse mislykkedes ({{provider}}): {{message}}",
   "error.chain.providerInitFailed":
     'Kunne ikke initialisere udbyder "{{provider}}". Tjek legitimationsoplysninger og konfiguration.',

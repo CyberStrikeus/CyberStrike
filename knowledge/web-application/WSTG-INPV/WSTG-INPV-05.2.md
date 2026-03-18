@@ -1,9 +1,11 @@
 # WSTG-INPV-05.2: Testing for SQL Injection - MySQL
 
 ## Test ID
+
 WSTG-INPV-05.2
 
 ## Test Name
+
 Testing for SQL Injection - MySQL
 
 ## High-Level Description
@@ -385,12 +387,12 @@ sqlmap -u "https://target.com/product?id=1" --dbms=mysql --technique=T  # Time-b
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| SQLMap | Automated MySQL SQLi |
-| MySQL Client | Database client |
-| Burp Suite | Manual testing |
-| MySQL Workbench | GUI client |
+| Tool            | Purpose              |
+| --------------- | -------------------- |
+| SQLMap          | Automated MySQL SQLi |
+| MySQL Client    | Database client      |
+| Burp Suite      | Manual testing       |
+| MySQL Workbench | GUI client           |
 
 ---
 
@@ -421,18 +423,18 @@ cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| MySQL SQLi with FILE privilege | 9.8 | Critical |
-| MySQL SQLi data extraction | 8.6 | High |
-| MySQL Blind SQLi | 8.6 | High |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| MySQL SQLi with FILE privilege | 9.8  | Critical |
+| MySQL SQLi data extraction     | 8.6  | High     |
+| MySQL Blind SQLi               | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title         |
+| ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
 ---

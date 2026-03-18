@@ -120,7 +120,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line2":
     "Avec une seule clé API, vous aurez accès à des modèles tels que Claude, GPT, Gemini, GLM et plus encore.",
   "provider.connect.cyberstrikeZen.visit.prefix": "Visitez ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": " pour récupérer votre clé API.",
   "provider.connect.oauth.code.visit.prefix": "Visitez ",
   "provider.connect.oauth.code.visit.link": "ce lien",

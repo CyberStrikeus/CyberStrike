@@ -1,14 +1,14 @@
 {
-  "name": "@cyberstrikeus/slack",
-  "version": "1.2.2",
+  "name": "@cyberstrike-io/slack",
+  "version": "1.1.4",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "bun run src/index.ts",
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@cyberstrikeus/sdk": "workspace:*",
+    "@cyberstrike-io/sdk": "workspace:*",
     "@slack/bolt": "^3.17.1"
   },
   "devDependencies": {

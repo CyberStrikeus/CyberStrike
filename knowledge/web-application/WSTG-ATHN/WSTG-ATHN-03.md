@@ -1,9 +1,11 @@
 # WSTG-ATHN-03: Testing for Weak Lock Out Mechanism
 
 ## Test ID
+
 WSTG-ATHN-03
 
 ## Test Name
+
 Testing for Weak Lock Out Mechanism
 
 ## High-Level Description
@@ -25,13 +27,13 @@ Account lockout mechanisms are designed to protect against brute-force password 
 
 ### Bypass Techniques
 
-| Technique | Description |
-|-----------|-------------|
-| IP rotation | Different IPs reset counter |
-| Session rotation | New sessions reset counter |
-| Username variation | Case changes bypass counter |
-| Simultaneous attacks | Race conditions |
-| Alternative endpoints | Different login paths |
+| Technique             | Description                 |
+| --------------------- | --------------------------- |
+| IP rotation           | Different IPs reset counter |
+| Session rotation      | New sessions reset counter  |
+| Username variation    | Case changes bypass counter |
+| Simultaneous attacks  | Race conditions             |
+| Alternative endpoints | Different login paths       |
 
 ---
 
@@ -268,18 +270,18 @@ echo "Invalid username response: $invalid_response"
 
 ### Brute Force Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Hydra** | Fast brute-forcer | `hydra -l admin -P wordlist.txt target http-post` |
-| **Burp Intruder** | Request repeater | Test lockout behavior |
-| **Custom scripts** | Targeted testing | Control timing and sources |
+| Tool               | Description       | Usage                                             |
+| ------------------ | ----------------- | ------------------------------------------------- |
+| **Hydra**          | Fast brute-forcer | `hydra -l admin -P wordlist.txt target http-post` |
+| **Burp Intruder**  | Request repeater  | Test lockout behavior                             |
+| **Custom scripts** | Targeted testing  | Control timing and sources                        |
 
 ### Analysis
 
-| Tool | Description |
-|------|-------------|
+| Tool           | Description         |
+| -------------- | ------------------- |
 | **Burp Suite** | Response comparison |
-| **OWASP ZAP** | Automated scanning |
+| **OWASP ZAP**  | Automated scanning  |
 
 ---
 
@@ -573,23 +575,23 @@ class SmartLockout:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No account lockout | 7.5 | High |
-| Lockout bypass via IP rotation | 6.5 | Medium |
-| Lockout bypass via username variation | 6.5 | Medium |
-| Account enumeration via lockout | 5.3 | Medium |
-| Very high lockout threshold (>20) | 5.3 | Medium |
+| Finding                               | CVSS | Severity |
+| ------------------------------------- | ---- | -------- |
+| No account lockout                    | 7.5  | High     |
+| Lockout bypass via IP rotation        | 6.5  | Medium   |
+| Lockout bypass via username variation | 6.5  | Medium   |
+| Account enumeration via lockout       | 5.3  | Medium   |
+| Very high lockout threshold (>20)     | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Missing/weak lockout |
-| **CWE-799** | Improper Control of Interaction Frequency | No rate limiting |
-| **CWE-204** | Observable Response Discrepancy | Enumeration via lockout |
+| CWE ID      | Title                                                     | Description             |
+| ----------- | --------------------------------------------------------- | ----------------------- |
+| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | Missing/weak lockout    |
+| **CWE-799** | Improper Control of Interaction Frequency                 | No rate limiting        |
+| **CWE-204** | Observable Response Discrepancy                           | Enumeration via lockout |
 
 ---
 

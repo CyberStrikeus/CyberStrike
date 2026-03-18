@@ -15,13 +15,15 @@ Usage: install.sh [options]
 
 Options:
     -h, --help              Display this help message
-    -v, --version <version> Install a specific version (e.g., 1.0.180)
+    -v, --version <version> Install a specific version (e.g., 1.1.3)
+    -B, --beta              Install the latest beta/pre-release version
     -b, --binary <path>     Install from a local binary instead of downloading
         --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
 
 Examples:
-    curl -fsSL https://cyberstrike.us/install | bash
-    curl -fsSL https://cyberstrike.us/install | bash -s -- --version 1.0.180
+    curl -fsSL https://cyberstrike.io/install.sh | bash
+    curl -fsSL https://cyberstrike.io/install.sh | bash -s -- --beta
+    curl -fsSL https://cyberstrike.io/install.sh | bash -s -- --version 1.1.3
     ./install --binary /path/to/cyberstrike
 EOF
 }
@@ -29,6 +31,7 @@ EOF
 requested_version=${VERSION:-}
 no_modify_path=false
 binary_path=""
+channel="stable"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -53,6 +56,10 @@ while [[ $# -gt 0 ]]; do
                 echo -e "${RED}Error: --binary requires a path argument${NC}"
                 exit 1
             fi
+            ;;
+        -B|--beta)
+            channel="beta"
+            shift
             ;;
         --no-modify-path)
             no_modify_path=true
@@ -181,13 +188,18 @@ else
     fi
 
     if [ -z "$requested_version" ]; then
-        url="https://github.com/CyberStrikeus/CyberStrike/releases/latest/download/$filename"
-        specific_version=$(curl -s https://api.github.com/repos/CyberStrikeus/CyberStrike/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+        if [ "$channel" = "beta" ]; then
+            # Fetch latest pre-release
+            specific_version=$(curl -s https://api.github.com/repos/CyberStrikeus/CyberStrike/releases | sed -n '/"tag_name":/{s/.*"v\([^"]*\)".*/\1/p;q;}')
+        else
+            specific_version=$(curl -s https://api.github.com/repos/CyberStrikeus/CyberStrike/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+        fi
 
         if [[ $? -ne 0 || -z "$specific_version" ]]; then
             echo -e "${RED}Failed to fetch version information${NC}"
             exit 1
         fi
+        url="https://github.com/CyberStrikeus/CyberStrike/releases/download/v${specific_version}/$filename"
     else
         # Strip leading 'v' if present
         requested_version="${requested_version#v}"
@@ -455,6 +467,6 @@ echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
 echo -e "cyberstrike      ${MUTED}# Run command${NC}"
 echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://cyberstrike.us/docs"
+echo -e "${MUTED}For more information visit ${NC}https://cyberstrike.io/docs"
 echo -e ""
 echo -e ""

@@ -4,7 +4,7 @@ import { Portal, useKeyboard, useRenderer, useTerminalDimensions, type JSX } fro
 import type { TextareaRenderable } from "@opentui/core"
 import { useKeybind } from "../../context/keybind"
 import { useTheme, selectedForeground } from "../../context/theme"
-import type { PermissionRequest } from "@cyberstrikeus/sdk/v2"
+import type { PermissionRequest } from "@cyberstrike-io/sdk/v2"
 import { useSDK } from "../../context/sdk"
 import { SplitBorder } from "../../component/border"
 import { useSync } from "../../context/sync"
@@ -151,7 +151,9 @@ export function PermissionPrompt(props: { request: PermissionRequest }) {
               </Match>
               <Match when={true}>
                 <box paddingLeft={1} gap={1}>
-                  <text fg={theme.textMuted}>This will allow the following patterns until CyberStrike is restarted</text>
+                  <text fg={theme.textMuted}>
+                    This will allow the following patterns until CyberStrike is restarted
+                  </text>
                   <box>
                     <For each={props.request.always}>
                       {(pattern) => (

@@ -1,9 +1,11 @@
 # WSTG-SESS-05: Testing for Cross Site Request Forgery (CSRF)
 
 ## Test ID
+
 WSTG-SESS-05
 
 ## Test Name
+
 Testing for Cross Site Request Forgery (CSRF)
 
 ## High-Level Description
@@ -329,18 +331,18 @@ def validate_origin():
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No CSRF protection | 8.8 | High |
-| Token not validated | 8.8 | High |
-| GET for state changes | 6.5 | Medium |
+| Finding               | CVSS | Severity |
+| --------------------- | ---- | -------- |
+| No CSRF protection    | 8.8  | High     |
+| Token not validated   | 8.8  | High     |
+| GET for state changes | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                             |
+| ----------- | --------------------------------- |
 | **CWE-352** | Cross-Site Request Forgery (CSRF) |
 
 ---

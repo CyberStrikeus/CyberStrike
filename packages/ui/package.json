@@ -1,8 +1,8 @@
 {
-  "name": "@cyberstrikeus/ui",
-  "version": "1.2.2",
+  "name": "@cyberstrike-io/ui",
+  "version": "1.1.4",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "exports": {
     "./*": "./src/components/*.tsx",
     "./i18n/*": "./src/i18n/*.ts",
@@ -41,8 +41,8 @@
   },
   "dependencies": {
     "@kobalte/core": "catalog:",
-    "@cyberstrikeus/sdk": "workspace:*",
-    "@cyberstrikeus/util": "workspace:*",
+    "@cyberstrike-io/sdk": "workspace:*",
+    "@cyberstrike-io/util": "workspace:*",
     "@pierre/diffs": "catalog:",
     "@shikijs/transformers": "3.9.2",
     "@solid-primitives/bounds": "0.1.3",

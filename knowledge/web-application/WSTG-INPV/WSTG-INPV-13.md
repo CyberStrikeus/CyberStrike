@@ -1,9 +1,11 @@
 # WSTG-INPV-13: Testing for Format String Injection
 
 ## Test ID
+
 WSTG-INPV-13
 
 ## Test Name
+
 Testing for Format String Injection
 
 ## High-Level Description
@@ -280,11 +282,11 @@ AAAA%08x.%08x.%08x.%08x.%08x
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
+| Tool       | Purpose           |
+| ---------- | ----------------- |
 | Burp Suite | Parameter fuzzing |
-| fuzzers | Automated testing |
-| gdb/lldb | Binary analysis |
+| fuzzers    | Automated testing |
+| gdb/lldb   | Binary analysis   |
 
 ---
 
@@ -315,18 +317,18 @@ print(f"{user_input}")
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Format string RCE | 9.8 | Critical |
-| Memory disclosure | 7.5 | High |
-| Application crash | 7.5 | High |
+| Finding           | CVSS | Severity |
+| ----------------- | ---- | -------- |
+| Format string RCE | 9.8  | Critical |
+| Memory disclosure | 7.5  | High     |
+| Application crash | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                      |
+| ----------- | ------------------------------------------ |
 | **CWE-134** | Use of Externally-Controlled Format String |
 
 ---

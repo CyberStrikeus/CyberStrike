@@ -46,8 +46,8 @@ The [vouch/denounce system](CONTRIBUTING.md#trust--vouch-system) is used to mana
 
 Report violations by:
 
-- Contacting a maintainer on [Discord](https://cyberstrike.us/discord)
-- Emailing **conduct@cyberstrike.us**
+- Contacting a maintainer on [Discord](https://cyberstrike.io/discord)
+- Emailing **conduct@cyberstrike.io**
 - Using GitHub's reporting tools
 
 All reports will be reviewed and investigated. Reporters' identities will be kept confidential.

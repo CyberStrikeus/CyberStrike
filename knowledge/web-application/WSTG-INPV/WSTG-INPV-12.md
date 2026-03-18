@@ -1,9 +1,11 @@
 # WSTG-INPV-12: Testing for Command Injection
 
 ## Test ID
+
 WSTG-INPV-12
 
 ## Test Name
+
 Testing for Command Injection
 
 ## High-Level Description
@@ -349,11 +351,11 @@ w"h"o"am"i
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Commix | Automated command injection |
-| Burp Collaborator | OOB detection |
-| Custom scripts | Targeted testing |
+| Tool              | Purpose                     |
+| ----------------- | --------------------------- |
+| Commix            | Automated command injection |
+| Burp Collaborator | OOB detection               |
+| Custom scripts    | Targeted testing            |
 
 ---
 
@@ -401,18 +403,18 @@ if (preg_match('/^[a-zA-Z0-9.-]+$/', $_GET['host'])) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Direct command execution | 9.8 | Critical |
-| Blind command injection | 9.8 | Critical |
-| OOB command injection | 9.8 | Critical |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Direct command execution | 9.8  | Critical |
+| Blind command injection  | 9.8  | Critical |
+| OOB command injection    | 9.8  | Critical |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                             |
+| ---------- | ----------------------------------------------------------------- |
 | **CWE-78** | Improper Neutralization of Special Elements used in an OS Command |
 
 ---

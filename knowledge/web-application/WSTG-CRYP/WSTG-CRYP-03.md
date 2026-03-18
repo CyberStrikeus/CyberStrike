@@ -1,9 +1,11 @@
 # WSTG-CRYP-03: Testing for Sensitive Information Sent via Unencrypted Channels
 
 ## Test ID
+
 WSTG-CRYP-03
 
 ## Test Name
+
 Testing for Sensitive Information Sent via Unencrypted Channels
 
 ## High-Level Description
@@ -256,21 +258,21 @@ add_header Content-Security-Policy "upgrade-insecure-requests";
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Credentials over HTTP | 7.5 | High |
-| Session token over HTTP | 7.5 | High |
-| Missing HSTS | 4.3 | Medium |
-| Mixed content | 4.3 | Medium |
+| Finding                 | CVSS | Severity |
+| ----------------------- | ---- | -------- |
+| Credentials over HTTP   | 7.5  | High     |
+| Session token over HTTP | 7.5  | High     |
+| Missing HSTS            | 4.3  | Medium   |
+| Mixed content           | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                           |
+| ----------- | ----------------------------------------------- |
 | **CWE-319** | Cleartext Transmission of Sensitive Information |
-| **CWE-311** | Missing Encryption of Sensitive Data |
+| **CWE-311** | Missing Encryption of Sensitive Data            |
 
 ---
 

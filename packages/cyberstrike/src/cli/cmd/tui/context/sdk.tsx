@@ -1,4 +1,4 @@
-import { createCyberstrikeClient, type Event } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2"
 import { createSimpleContext } from "./helper"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup, onMount } from "solid-js"

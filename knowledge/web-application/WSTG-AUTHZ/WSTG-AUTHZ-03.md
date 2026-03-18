@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-03: Testing for Privilege Escalation
 
 ## Test ID
+
 WSTG-AUTHZ-03
 
 ## Test Name
+
 Testing for Privilege Escalation
 
 ## High-Level Description
@@ -493,19 +495,19 @@ print(f"Function-level access: {len(func_vulns)} findings")
 
 ### JWT Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **jwt.io** | JWT decoder | Analyze token structure |
-| **jwt_tool** | JWT testing | `python3 jwt_tool.py TOKEN` |
-| **jwt-cracker** | Brute-force secret | Weak secret testing |
+| Tool            | Description        | Usage                       |
+| --------------- | ------------------ | --------------------------- |
+| **jwt.io**      | JWT decoder        | Analyze token structure     |
+| **jwt_tool**    | JWT testing        | `python3 jwt_tool.py TOKEN` |
+| **jwt-cracker** | Brute-force secret | Weak secret testing         |
 
 ### Authorization Testing
 
-| Tool | Description |
-|------|-------------|
-| **Autorize (Burp)** | Auto-detect auth issues |
-| **AuthMatrix (Burp)** | Role-based testing |
-| **JSON Web Token Attacker (Burp)** | JWT attacks |
+| Tool                               | Description             |
+| ---------------------------------- | ----------------------- |
+| **Autorize (Burp)**                | Auto-detect auth issues |
+| **AuthMatrix (Burp)**              | Role-based testing      |
+| **JSON Web Token Attacker (Burp)** | JWT attacks             |
 
 ---
 
@@ -639,24 +641,24 @@ class SecureJWT:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Vertical privilege escalation to admin | 9.8 | Critical |
-| Role parameter injection | 8.8 | High |
-| JWT algorithm confusion | 8.1 | High |
-| Mass assignment to elevated role | 8.1 | High |
-| Horizontal privilege escalation | 7.5 | High |
+| Finding                                | CVSS | Severity |
+| -------------------------------------- | ---- | -------- |
+| Vertical privilege escalation to admin | 9.8  | Critical |
+| Role parameter injection               | 8.8  | High     |
+| JWT algorithm confusion                | 8.1  | High     |
+| Mass assignment to elevated role       | 8.1  | High     |
+| Horizontal privilege escalation        | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-269** | Improper Privilege Management | Privilege escalation |
-| **CWE-266** | Incorrect Privilege Assignment | Wrong privileges |
-| **CWE-285** | Improper Authorization | Weak authorization |
-| **CWE-915** | Mass Assignment | Unprotected fields |
+| CWE ID      | Title                          | Description          |
+| ----------- | ------------------------------ | -------------------- |
+| **CWE-269** | Improper Privilege Management  | Privilege escalation |
+| **CWE-266** | Incorrect Privilege Assignment | Wrong privileges     |
+| **CWE-285** | Improper Authorization         | Weak authorization   |
+| **CWE-915** | Mass Assignment                | Unprotected fields   |
 
 ---
 

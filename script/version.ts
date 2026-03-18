@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { Script } from "@cyberstrikeus/script"
+import { Script } from "@cyberstrike-io/script"
 import { $ } from "bun"
 import { buildNotes, getLatestRelease } from "./changelog"
 

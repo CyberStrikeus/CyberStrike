@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-05.2: Testing OAuth Client Weaknesses
 
 ## Test ID
+
 WSTG-AUTHZ-05.2
 
 ## Test Name
+
 Testing OAuth Client Weaknesses
 
 ## High-Level Description
@@ -26,14 +28,14 @@ OAuth clients (also known as relying parties) are applications that use OAuth to
 
 ### Common Client Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Insecure token storage | Tokens in localStorage |
-| Missing state validation | CSRF vulnerability |
-| Token in URL | Referrer leakage |
-| Missing PKCE | Authorization code interception |
-| Open redirect | redirect_uri manipulation |
-| XSS token theft | JavaScript access to tokens |
+| Vulnerability            | Description                     |
+| ------------------------ | ------------------------------- |
+| Insecure token storage   | Tokens in localStorage          |
+| Missing state validation | CSRF vulnerability              |
+| Token in URL             | Referrer leakage                |
+| Missing PKCE             | Authorization code interception |
+| Open redirect            | redirect_uri manipulation       |
+| XSS token theft          | JavaScript access to tokens     |
 
 ---
 
@@ -65,24 +67,21 @@ grep -iE "code=|token=|access_token=|state=" browser_history.txt
 // Browser console tests for token storage
 
 // Check localStorage
-console.log("localStorage tokens:");
+console.log("localStorage tokens:")
 for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.toLowerCase().includes('token') ||
-        key.toLowerCase().includes('auth') ||
-        key.toLowerCase().includes('jwt')) {
-        console.log(`${key}: ${localStorage.getItem(key)}`);
-    }
+  const key = localStorage.key(i)
+  if (key.toLowerCase().includes("token") || key.toLowerCase().includes("auth") || key.toLowerCase().includes("jwt")) {
+    console.log(`${key}: ${localStorage.getItem(key)}`)
+  }
 }
 
 // Check sessionStorage
-console.log("\nsessionStorage tokens:");
+console.log("\nsessionStorage tokens:")
 for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (key.toLowerCase().includes('token') ||
-        key.toLowerCase().includes('auth')) {
-        console.log(`${key}: ${sessionStorage.getItem(key)}`);
-    }
+  const key = sessionStorage.key(i)
+  if (key.toLowerCase().includes("token") || key.toLowerCase().includes("auth")) {
+    console.log(`${key}: ${sessionStorage.getItem(key)}`)
+  }
 }
 
 // Check if tokens are accessible via XSS
@@ -471,19 +470,19 @@ tester.generate_report()
 
 ### Client Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
+| Tool                 | Description      | Usage              |
+| -------------------- | ---------------- | ------------------ |
 | **Browser DevTools** | Traffic analysis | Monitor OAuth flow |
-| **Burp Suite** | Proxy | Intercept requests |
-| **OWASP ZAP** | Security scanner | Automated testing |
+| **Burp Suite**       | Proxy            | Intercept requests |
+| **OWASP ZAP**        | Security scanner | Automated testing  |
 
 ### Mobile Testing
 
-| Tool | Description |
-|------|-------------|
-| **Frida** | Dynamic instrumentation |
-| **objection** | Mobile exploration |
-| **MobSF** | Static analysis |
+| Tool          | Description             |
+| ------------- | ----------------------- |
+| **Frida**     | Dynamic instrumentation |
+| **objection** | Mobile exploration      |
+| **MobSF**     | Static analysis         |
 
 ---
 
@@ -500,47 +499,37 @@ tester.generate_report()
 // and encrypt sensitive data
 
 class SecureTokenStorage {
-    constructor(encryptionKey) {
-        this.key = encryptionKey;
-    }
+  constructor(encryptionKey) {
+    this.key = encryptionKey
+  }
 
-    async store(token) {
-        // Encrypt before storing
-        const encrypted = await this.encrypt(token);
-        sessionStorage.setItem('auth_token', encrypted);
-    }
+  async store(token) {
+    // Encrypt before storing
+    const encrypted = await this.encrypt(token)
+    sessionStorage.setItem("auth_token", encrypted)
+  }
 
-    async retrieve() {
-        const encrypted = sessionStorage.getItem('auth_token');
-        if (!encrypted) return null;
-        return await this.decrypt(encrypted);
-    }
+  async retrieve() {
+    const encrypted = sessionStorage.getItem("auth_token")
+    if (!encrypted) return null
+    return await this.decrypt(encrypted)
+  }
 
-    clear() {
-        sessionStorage.removeItem('auth_token');
-    }
+  clear() {
+    sessionStorage.removeItem("auth_token")
+  }
 
-    async encrypt(data) {
-        const encoder = new TextEncoder();
-        const dataBuffer = encoder.encode(data);
+  async encrypt(data) {
+    const encoder = new TextEncoder()
+    const dataBuffer = encoder.encode(data)
 
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await crypto.subtle.importKey(
-            'raw',
-            encoder.encode(this.key),
-            'AES-GCM',
-            false,
-            ['encrypt']
-        );
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const key = await crypto.subtle.importKey("raw", encoder.encode(this.key), "AES-GCM", false, ["encrypt"])
 
-        const encrypted = await crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            key,
-            dataBuffer
-        );
+    const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, dataBuffer)
 
-        return btoa(String.fromCharCode(...iv) + String.fromCharCode(...new Uint8Array(encrypted)));
-    }
+    return btoa(String.fromCharCode(...iv) + String.fromCharCode(...new Uint8Array(encrypted)))
+  }
 }
 ```
 
@@ -597,58 +586,58 @@ def oauth_callback():
 
 ```javascript
 class PKCEManager {
-    static async generateCodeVerifier() {
-        const array = new Uint8Array(32);
-        crypto.getRandomValues(array);
-        return this.base64URLEncode(array);
+  static async generateCodeVerifier() {
+    const array = new Uint8Array(32)
+    crypto.getRandomValues(array)
+    return this.base64URLEncode(array)
+  }
+
+  static async generateCodeChallenge(verifier) {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(verifier)
+    const hash = await crypto.subtle.digest("SHA-256", data)
+    return this.base64URLEncode(new Uint8Array(hash))
+  }
+
+  static base64URLEncode(buffer) {
+    return btoa(String.fromCharCode(...buffer))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "")
+  }
+
+  static async initializeAuth() {
+    const codeVerifier = await this.generateCodeVerifier()
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier)
+
+    // Store verifier in session
+    sessionStorage.setItem("code_verifier", codeVerifier)
+
+    return {
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
     }
+  }
 
-    static async generateCodeChallenge(verifier) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(verifier);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return this.base64URLEncode(new Uint8Array(hash));
-    }
-
-    static base64URLEncode(buffer) {
-        return btoa(String.fromCharCode(...buffer))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
-
-    static async initializeAuth() {
-        const codeVerifier = await this.generateCodeVerifier();
-        const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-
-        // Store verifier in session
-        sessionStorage.setItem('code_verifier', codeVerifier);
-
-        return {
-            code_challenge: codeChallenge,
-            code_challenge_method: 'S256'
-        };
-    }
-
-    static getCodeVerifier() {
-        const verifier = sessionStorage.getItem('code_verifier');
-        sessionStorage.removeItem('code_verifier');
-        return verifier;
-    }
+  static getCodeVerifier() {
+    const verifier = sessionStorage.getItem("code_verifier")
+    sessionStorage.removeItem("code_verifier")
+    return verifier
+  }
 }
 
 // Usage
 async function startOAuth() {
-    const pkce = await PKCEManager.initializeAuth();
+  const pkce = await PKCEManager.initializeAuth()
 
-    const authUrl = new URL('https://auth.example.com/authorize');
-    authUrl.searchParams.set('client_id', CLIENT_ID);
-    authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('code_challenge', pkce.code_challenge);
-    authUrl.searchParams.set('code_challenge_method', pkce.code_challenge_method);
+  const authUrl = new URL("https://auth.example.com/authorize")
+  authUrl.searchParams.set("client_id", CLIENT_ID)
+  authUrl.searchParams.set("redirect_uri", REDIRECT_URI)
+  authUrl.searchParams.set("response_type", "code")
+  authUrl.searchParams.set("code_challenge", pkce.code_challenge)
+  authUrl.searchParams.set("code_challenge_method", pkce.code_challenge_method)
 
-    window.location = authUrl.toString();
+  window.location = authUrl.toString()
 }
 ```
 
@@ -699,24 +688,24 @@ def oauth_callback():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Token in localStorage (XSS accessible) | 6.5 | Medium |
-| Missing state validation (CSRF) | 8.8 | High |
-| Missing PKCE (public client) | 7.5 | High |
-| Open redirect post-auth | 6.1 | Medium |
-| Token in URL (referrer leak) | 6.5 | Medium |
+| Finding                                | CVSS | Severity |
+| -------------------------------------- | ---- | -------- |
+| Token in localStorage (XSS accessible) | 6.5  | Medium   |
+| Missing state validation (CSRF)        | 8.8  | High     |
+| Missing PKCE (public client)           | 7.5  | High     |
+| Open redirect post-auth                | 6.1  | Medium   |
+| Token in URL (referrer leak)           | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-352** | CSRF | Missing state |
-| **CWE-601** | Open Redirect | Unsafe redirects |
-| **CWE-922** | Insecure Storage | Token storage |
-| **CWE-200** | Information Exposure | Token leakage |
+| CWE ID      | Title                | Description      |
+| ----------- | -------------------- | ---------------- |
+| **CWE-352** | CSRF                 | Missing state    |
+| **CWE-601** | Open Redirect        | Unsafe redirects |
+| **CWE-922** | Insecure Storage     | Token storage    |
+| **CWE-200** | Information Exposure | Token leakage    |
 
 ---
 

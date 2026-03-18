@@ -18,12 +18,8 @@ export function AnthropicSetupFlow() {
       placeholder="sk-ant-..."
       description={
         <box gap={1}>
-          <text fg={theme.textMuted}>
-            Enter your API key (starts with sk-ant-api...)
-          </text>
-          <text fg={theme.primary}>
-            https://console.anthropic.com/settings/keys
-          </text>
+          <text fg={theme.textMuted}>Enter your API key (starts with sk-ant-api...)</text>
+          <text fg={theme.primary}>https://console.anthropic.com/settings/keys</text>
         </box>
       }
       onConfirm={async (value) => {

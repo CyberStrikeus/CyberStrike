@@ -143,7 +143,8 @@ export const dict = {
   "home.faq.a2.before": "가장 쉬운 시작 방법은",
   "home.faq.a2.link": "소개",
   "home.faq.q3": "CyberStrike를 사용하려면 별도의 AI 구독이 필요한가요?",
-  "home.faq.a3.p1": "꼭 그렇지는 않습니다. CyberStrike에는 계정 없이도 사용할 수 있는 무료 모델 세트가 포함되어 있습니다.",
+  "home.faq.a3.p1":
+    "꼭 그렇지는 않습니다. CyberStrike에는 계정 없이도 사용할 수 있는 무료 모델 세트가 포함되어 있습니다.",
   "home.faq.a3.p2.beforeZen": "이 외에도,",
   "home.faq.a3.p2.afterZen": " 계정을 생성하여 인기 있는 코딩 모델들을 사용할 수 있습니다.",
   "home.faq.a3.p3": "Zen 사용을 권장하지만, CyberStrike는 OpenAI, Anthropic, xAI 등 모든 인기 제공자와도 작동합니다.",
@@ -499,7 +500,8 @@ export const dict = {
     "꼭 그렇지는 않지만, 아마도 필요할 것입니다. CyberStrike를 유료 제공자에 연결하려면 AI 구독이 필요할 수 있습니다. 하지만",
   "download.faq.a3.localLink": "로컬 모델",
   "download.faq.a3.afterLocal.beforeZen": "은 무료로 사용할 수 있습니다. 우리는",
-  "download.faq.a3.afterZen": " 사용을 권장하지만, CyberStrike는 OpenAI, Anthropic, xAI 등 모든 인기 제공자와 작동합니다.",
+  "download.faq.a3.afterZen":
+    " 사용을 권장하지만, CyberStrike는 OpenAI, Anthropic, xAI 등 모든 인기 제공자와 작동합니다.",
 
   "download.faq.a5.p1": "CyberStrike는 100% 무료로 사용할 수 있습니다.",
   "download.faq.a5.p2.beforeZen":

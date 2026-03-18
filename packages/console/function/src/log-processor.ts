@@ -1,4 +1,4 @@
-import { Resource } from "@cyberstrikeus/console-resource"
+import { Resource } from "@cyberstrike-io/console-resource"
 import type { TraceItem } from "@cloudflare/workers-types"
 
 export default {

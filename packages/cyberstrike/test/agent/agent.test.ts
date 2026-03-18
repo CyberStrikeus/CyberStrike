@@ -18,8 +18,7 @@ test("returns default native agents when no config", async () => {
     fn: async () => {
       const agents = await Agent.list()
       const names = agents.map((a) => a.name)
-      expect(names).toContain("build")
-      expect(names).toContain("plan")
+      expect(names).toContain("cyberstrike")
       expect(names).toContain("general")
       expect(names).toContain("explore")
       expect(names).toContain("compaction")
@@ -29,32 +28,29 @@ test("returns default native agents when no config", async () => {
   })
 })
 
-test("build agent has correct default properties", async () => {
+test("cyberstrike agent has correct default properties", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build).toBeDefined()
-      expect(build?.mode).toBe("primary")
-      expect(build?.native).toBe(true)
-      expect(evalPerm(build, "edit")).toBe("allow")
-      expect(evalPerm(build, "bash")).toBe("allow")
+      const cs = await Agent.get("cyberstrike")
+      expect(cs).toBeDefined()
+      expect(cs?.mode).toBe("primary")
+      expect(cs?.native).toBe(true)
+      expect(evalPerm(cs, "edit")).toBe("allow")
+      expect(evalPerm(cs, "bash")).toBe("allow")
     },
   })
 })
 
-test("plan agent denies edits except .cyberstrike/plans/*", async () => {
+test("explore agent denies edits", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const plan = await Agent.get("plan")
-      expect(plan).toBeDefined()
-      // Wildcard is denied
-      expect(evalPerm(plan, "edit")).toBe("deny")
-      // But specific path is allowed
-      expect(PermissionNext.evaluate("edit", ".cyberstrike/plans/foo.md", plan!.permission).action).toBe("allow")
+      const explore = await Agent.get("explore")
+      expect(explore).toBeDefined()
+      expect(evalPerm(explore, "edit")).toBe("deny")
     },
   })
 })
@@ -138,9 +134,9 @@ test("custom agent config overrides native agent properties", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           model: "anthropic/claude-3",
-          description: "Custom build agent",
+          description: "Custom cyberstrike agent",
           temperature: 0.7,
           color: "#FF0000",
         },
@@ -150,14 +146,14 @@ test("custom agent config overrides native agent properties", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build).toBeDefined()
-      expect(build?.model?.providerID).toBe("anthropic")
-      expect(build?.model?.modelID).toBe("claude-3")
-      expect(build?.description).toBe("Custom build agent")
-      expect(build?.temperature).toBe(0.7)
-      expect(build?.color).toBe("#FF0000")
-      expect(build?.native).toBe(true)
+      const cs = await Agent.get("cyberstrike")
+      expect(cs).toBeDefined()
+      expect(cs?.model?.providerID).toBe("anthropic")
+      expect(cs?.model?.modelID).toBe("claude-3")
+      expect(cs?.description).toBe("Custom cyberstrike agent")
+      expect(cs?.temperature).toBe(0.7)
+      expect(cs?.color).toBe("#FF0000")
+      expect(cs?.native).toBe(true)
     },
   })
 })
@@ -186,7 +182,7 @@ test("agent permission config merges with defaults", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           permission: {
             bash: {
               "rm -rf *": "deny",
@@ -199,12 +195,12 @@ test("agent permission config merges with defaults", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build).toBeDefined()
+      const cs = await Agent.get("cyberstrike")
+      expect(cs).toBeDefined()
       // Specific pattern is denied
-      expect(PermissionNext.evaluate("bash", "rm -rf *", build!.permission).action).toBe("deny")
+      expect(PermissionNext.evaluate("bash", "rm -rf *", cs!.permission).action).toBe("deny")
       // Edit still allowed
-      expect(evalPerm(build, "edit")).toBe("allow")
+      expect(evalPerm(cs, "edit")).toBe("allow")
     },
   })
 })
@@ -220,9 +216,9 @@ test("global permission config applies to all agents", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build).toBeDefined()
-      expect(evalPerm(build, "bash")).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(cs).toBeDefined()
+      expect(evalPerm(cs, "bash")).toBe("deny")
     },
   })
 })
@@ -231,18 +227,18 @@ test("agent steps/maxSteps config sets steps property", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: { steps: 50 },
-        plan: { maxSteps: 100 },
+        cyberstrike: { steps: 50 },
+        general: { maxSteps: 100 },
       },
     },
   })
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      const plan = await Agent.get("plan")
-      expect(build?.steps).toBe(50)
-      expect(plan?.steps).toBe(100)
+      const cs = await Agent.get("cyberstrike")
+      const general = await Agent.get("general")
+      expect(cs?.steps).toBe(50)
+      expect(general?.steps).toBe(100)
     },
   })
 })
@@ -268,15 +264,15 @@ test("agent name can be overridden", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: { name: "Builder" },
+        cyberstrike: { name: "Striker" },
       },
     },
   })
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build?.name).toBe("Builder")
+      const cs = await Agent.get("cyberstrike")
+      expect(cs?.name).toBe("Striker")
     },
   })
 })
@@ -285,15 +281,15 @@ test("agent prompt can be set from config", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: { prompt: "Custom system prompt" },
+        cyberstrike: { prompt: "Custom system prompt" },
       },
     },
   })
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build?.prompt).toBe("Custom system prompt")
+      const cs = await Agent.get("cyberstrike")
+      expect(cs?.prompt).toBe("Custom system prompt")
     },
   })
 })
@@ -302,7 +298,7 @@ test("unknown agent properties are placed into options", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           random_property: "hello",
           another_random: 123,
         },
@@ -312,9 +308,9 @@ test("unknown agent properties are placed into options", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build?.options.random_property).toBe("hello")
-      expect(build?.options.another_random).toBe(123)
+      const cs = await Agent.get("cyberstrike")
+      expect(cs?.options.random_property).toBe("hello")
+      expect(cs?.options.another_random).toBe(123)
     },
   })
 })
@@ -323,7 +319,7 @@ test("agent options merge correctly", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           options: {
             custom_option: true,
             another_option: "value",
@@ -335,9 +331,9 @@ test("agent options merge correctly", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(build?.options.custom_option).toBe(true)
-      expect(build?.options.another_option).toBe("value")
+      const cs = await Agent.get("cyberstrike")
+      expect(cs?.options.custom_option).toBe(true)
+      expect(cs?.options.another_option).toBe("value")
     },
   })
 })
@@ -386,9 +382,9 @@ test("default permission includes doom_loop and external_directory as ask", asyn
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(evalPerm(build, "doom_loop")).toBe("ask")
-      expect(evalPerm(build, "external_directory")).toBe("ask")
+      const cs = await Agent.get("cyberstrike")
+      expect(evalPerm(cs, "doom_loop")).toBe("ask")
+      expect(evalPerm(cs, "external_directory")).toBe("ask")
     },
   })
 })
@@ -398,8 +394,8 @@ test("webfetch is allowed by default", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(evalPerm(build, "webfetch")).toBe("allow")
+      const cs = await Agent.get("cyberstrike")
+      expect(evalPerm(cs, "webfetch")).toBe("allow")
     },
   })
 })
@@ -408,7 +404,7 @@ test("legacy tools config converts to permissions", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           tools: {
             bash: false,
             read: false,
@@ -420,9 +416,9 @@ test("legacy tools config converts to permissions", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(evalPerm(build, "bash")).toBe("deny")
-      expect(evalPerm(build, "read")).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(evalPerm(cs, "bash")).toBe("deny")
+      expect(evalPerm(cs, "read")).toBe("deny")
     },
   })
 })
@@ -431,7 +427,7 @@ test("legacy tools config maps write/edit/patch/multiedit to edit permission", a
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           tools: {
             write: false,
           },
@@ -442,8 +438,8 @@ test("legacy tools config maps write/edit/patch/multiedit to edit permission", a
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(evalPerm(build, "edit")).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(evalPerm(cs, "edit")).toBe("deny")
     },
   })
 })
@@ -460,10 +456,10 @@ test("Truncate.GLOB is allowed even when user denies external_directory globally
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, build!.permission).action).toBe("allow")
-      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, build!.permission).action).toBe("deny")
-      expect(PermissionNext.evaluate("external_directory", "/some/other/path", build!.permission).action).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, cs!.permission).action).toBe("allow")
+      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, cs!.permission).action).toBe("deny")
+      expect(PermissionNext.evaluate("external_directory", "/some/other/path", cs!.permission).action).toBe("deny")
     },
   })
 })
@@ -473,7 +469,7 @@ test("Truncate.GLOB is allowed even when user denies external_directory per-agen
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: {
+        cyberstrike: {
           permission: {
             external_directory: "deny",
           },
@@ -484,10 +480,10 @@ test("Truncate.GLOB is allowed even when user denies external_directory per-agen
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, build!.permission).action).toBe("allow")
-      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, build!.permission).action).toBe("deny")
-      expect(PermissionNext.evaluate("external_directory", "/some/other/path", build!.permission).action).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, cs!.permission).action).toBe("allow")
+      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, cs!.permission).action).toBe("deny")
+      expect(PermissionNext.evaluate("external_directory", "/some/other/path", cs!.permission).action).toBe("deny")
     },
   })
 })
@@ -507,9 +503,9 @@ test("explicit Truncate.GLOB deny is respected", async () => {
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      const build = await Agent.get("build")
-      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, build!.permission).action).toBe("deny")
-      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, build!.permission).action).toBe("deny")
+      const cs = await Agent.get("cyberstrike")
+      expect(PermissionNext.evaluate("external_directory", Truncate.GLOB, cs!.permission).action).toBe("deny")
+      expect(PermissionNext.evaluate("external_directory", Truncate.DIR, cs!.permission).action).toBe("deny")
     },
   })
 })
@@ -539,10 +535,10 @@ description: Permission skill.
     await Instance.provide({
       directory: tmp.path,
       fn: async () => {
-        const build = await Agent.get("build")
+        const cs = await Agent.get("cyberstrike")
         const skillDir = path.join(tmp.path, ".cyberstrike", "skill", "perm-skill")
         const target = path.join(skillDir, "reference", "notes.md")
-        expect(PermissionNext.evaluate("external_directory", target, build!.permission).action).toBe("allow")
+        expect(PermissionNext.evaluate("external_directory", target, cs!.permission).action).toBe("allow")
       },
     })
   } finally {
@@ -550,28 +546,34 @@ description: Permission skill.
   }
 })
 
-test("defaultAgent returns build when no default_agent config", async () => {
+test("defaultAgent returns cyberstrike when no default_agent config", async () => {
   await using tmp = await tmpdir()
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
       const agent = await Agent.defaultAgent()
-      expect(agent).toBe("build")
+      expect(agent).toBe("cyberstrike")
     },
   })
 })
 
-test("defaultAgent respects default_agent config set to plan", async () => {
+test("defaultAgent respects default_agent config set to general", async () => {
   await using tmp = await tmpdir({
     config: {
-      default_agent: "plan",
+      default_agent: "my_primary",
+      agent: {
+        my_primary: {
+          description: "Custom primary agent",
+          mode: "primary",
+        },
+      },
     },
   })
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
       const agent = await Agent.defaultAgent()
-      expect(agent).toBe("plan")
+      expect(agent).toBe("my_primary")
     },
   })
 })
@@ -619,7 +621,7 @@ test("defaultAgent throws when default_agent points to hidden agent", async () =
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "compaction" is hidden')
+      await expect(Agent.defaultAgent()).rejects.toThrow('default agent "compaction" is a subagent')
     },
   })
 })
@@ -638,11 +640,15 @@ test("defaultAgent throws when default_agent points to non-existent agent", asyn
   })
 })
 
-test("defaultAgent returns plan when build is disabled and default_agent not set", async () => {
+test("defaultAgent returns next primary when cyberstrike is disabled", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: { disable: true },
+        cyberstrike: { disable: true },
+        fallback: {
+          description: "Fallback agent",
+          mode: "primary",
+        },
       },
     },
   })
@@ -650,8 +656,8 @@ test("defaultAgent returns plan when build is disabled and default_agent not set
     directory: tmp.path,
     fn: async () => {
       const agent = await Agent.defaultAgent()
-      // build is disabled, so it should return plan (next primary agent)
-      expect(agent).toBe("plan")
+      // cyberstrike is disabled, so it should return the next primary agent
+      expect(agent).toBe("fallback")
     },
   })
 })
@@ -660,15 +666,14 @@ test("defaultAgent throws when all primary agents are disabled", async () => {
   await using tmp = await tmpdir({
     config: {
       agent: {
-        build: { disable: true },
-        plan: { disable: true },
+        cyberstrike: { disable: true },
       },
     },
   })
   await Instance.provide({
     directory: tmp.path,
     fn: async () => {
-      // build and plan are disabled, no primary-capable agents remain
+      // cyberstrike is the only primary agent, disabled = no primary visible agents remain
       await expect(Agent.defaultAgent()).rejects.toThrow("no primary visible agent found")
     },
   })

@@ -1,9 +1,11 @@
 # WSTG-CONF-13: Test for Path Confusion
 
 ## Test ID
+
 WSTG-CONF-13
 
 ## Test Name
+
 Test for Path Confusion
 
 ## High-Level Description
@@ -26,12 +28,12 @@ Path confusion vulnerabilities arise when web servers, application frameworks, o
 
 ### Attack Vectors
 
-| Attack | Description |
-|--------|-------------|
-| Web Cache Deception | Cache stores sensitive responses |
-| Path Traversal | Access unauthorized files |
-| Security Bypass | Bypass authentication/authorization |
-| Cache Poisoning | Poison cache with malicious content |
+| Attack              | Description                         |
+| ------------------- | ----------------------------------- |
+| Web Cache Deception | Cache stores sensitive responses    |
+| Path Traversal      | Access unauthorized files           |
+| Security Bypass     | Bypass authentication/authorization |
+| Cache Poisoning     | Poison cache with malicious content |
 
 ---
 
@@ -168,18 +170,18 @@ curl -sI "https://target.com/user/dashboard" | grep -i "vary"
 
 ### Manual Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **curl** | HTTP client | Path manipulation testing |
-| **Burp Suite** | Web proxy | Path fuzzing |
-| **OWASP ZAP** | Web scanner | Automated testing |
+| Tool           | Description | Usage                     |
+| -------------- | ----------- | ------------------------- |
+| **curl**       | HTTP client | Path manipulation testing |
+| **Burp Suite** | Web proxy   | Path fuzzing              |
+| **OWASP ZAP**  | Web scanner | Automated testing         |
 
 ### Specialized Tools
 
-| Tool | Description |
-|------|-------------|
-| **Web Cache Deception Scanner** | Burp extension |
-| **ParamMiner** | Hidden parameter discovery |
+| Tool                            | Description                |
+| ------------------------------- | -------------------------- |
+| **Web Cache Deception Scanner** | Burp extension             |
+| **ParamMiner**                  | Hidden parameter discovery |
 
 ---
 
@@ -351,22 +353,22 @@ def normalize_path(path):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Web Cache Deception (sensitive data) | 7.5 | High |
-| Path confusion bypassing auth | 8.8 | High |
-| Path confusion information disclosure | 5.3 | Medium |
-| Inconsistent path handling | 3.7 | Low |
+| Finding                               | CVSS | Severity |
+| ------------------------------------- | ---- | -------- |
+| Web Cache Deception (sensitive data)  | 7.5  | High     |
+| Path confusion bypassing auth         | 8.8  | High     |
+| Path confusion information disclosure | 5.3  | Medium   |
+| Inconsistent path handling            | 3.7  | Low      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-436** | Interpretation Conflict | Path interpretation differences |
-| **CWE-525** | Use of Web Browser Cache | Cache deception |
-| **CWE-22** | Path Traversal | Unauthorized file access |
+| CWE ID      | Title                    | Description                     |
+| ----------- | ------------------------ | ------------------------------- |
+| **CWE-436** | Interpretation Conflict  | Path interpretation differences |
+| **CWE-525** | Use of Web Browser Cache | Cache deception                 |
+| **CWE-22**  | Path Traversal           | Unauthorized file access        |
 
 ---
 

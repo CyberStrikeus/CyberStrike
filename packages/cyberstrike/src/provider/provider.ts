@@ -8,7 +8,7 @@ import { Log } from "../util/log"
 import { BunProc } from "../bun"
 import { Plugin } from "../plugin"
 import { ModelsDev } from "./models"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { Auth } from "../auth"
 import { Env } from "../env"
 import { Instance } from "../project/instance"
@@ -89,13 +89,60 @@ export namespace Provider {
     options?: Record<string, any>
   }>
 
+  // Claude Code billing header constants (2026-03-17)
+  const CC_VERSION = "2.1.76"
+  const CC_BILLING_SALT = "59cf53e54c78"
+
+  function sampleJsCodeUnit(text: string, idx: number): string {
+    let i = 0
+    for (let c = 0; c < text.length; c++) {
+      const code = text.charCodeAt(c)
+      if (code >= 0xd800 && code <= 0xdbff) {
+        // surrogate pair = 2 UTF-16 units
+        if (i === idx) return text.charAt(c)
+        if (i + 1 === idx) return text.charAt(c + 1)
+        i += 2
+        c++ // skip low surrogate
+      } else {
+        if (i === idx) return text.charAt(c)
+        i++
+      }
+    }
+    return "0"
+  }
+
+  function firstUserMessageText(messages: Array<{ role: string; content: any }>): string {
+    const msg = messages.find((m) => m.role === "user")
+    if (!msg) return ""
+    if (typeof msg.content === "string") return msg.content
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.type === "text" && typeof block.text === "string") return block.text
+        if (typeof block === "string") return block
+      }
+    }
+    return ""
+  }
+
+  async function ccBillingHeader(messages: Array<{ role: string; content: any }>): Promise<string> {
+    const text = firstUserMessageText(messages)
+    const sampled = [4, 7, 20].map((idx) => sampleJsCodeUnit(text, idx)).join("")
+    const data = new TextEncoder().encode(`${CC_BILLING_SALT}${sampled}${CC_VERSION}`)
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+    return `x-anthropic-billing-header: cc_version=${CC_VERSION}.${hashHex.slice(0, 3)}; cc_entrypoint=cli; cch=00000;`
+  }
+
   const CUSTOM_LOADERS: Record<string, CustomLoader> = {
     async anthropic(input) {
       // Check if the stored key is an OAuth Access Token (sk-ant-oat*)
       // OAT tokens require Authorization: Bearer + Claude Code identity headers
       // @ai-sdk/anthropic doesn't support authToken, so we use custom fetch
       const auth = await Auth.get(input.id)
-      const key = input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
+      const key =
+        input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
       const isOAT = key?.startsWith("sk-ant-oat")
 
       if (isOAT) {
@@ -106,14 +153,57 @@ export namespace Provider {
             headers: {
               "anthropic-beta":
                 "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
-              "user-agent": "claude-cli/2.1.34",
+              "user-agent": `claude-code/${CC_VERSION}`,
               "x-app": "cli",
             },
             fetch: async (url: any, init?: any) => {
               const headers = new Headers(init?.headers)
               headers.delete("x-api-key")
               headers.set("Authorization", `Bearer ${key}`)
-              return fetch(url, { ...init, headers })
+              let body = init?.body
+              if (body && typeof body === "string") {
+                try {
+                  const parsed = JSON.parse(body)
+                  // Strip cache_control from request body
+                  if (Array.isArray(parsed.system)) {
+                    for (const block of parsed.system) {
+                      delete block.cache_control
+                    }
+                  }
+                  if (Array.isArray(parsed.messages)) {
+                    for (const msg of parsed.messages) {
+                      if (Array.isArray(msg.content)) {
+                        for (const part of msg.content) {
+                          delete part.cache_control
+                        }
+                      }
+                    }
+                  }
+                  // Prepend billing header as first system text block
+                  const billing = await ccBillingHeader(parsed.messages || [])
+                  const billingBlock = { type: "text", text: billing }
+                  if (Array.isArray(parsed.system)) {
+                    parsed.system.unshift(billingBlock)
+                  } else if (typeof parsed.system === "string" && parsed.system.trim()) {
+                    parsed.system = [billingBlock, { type: "text", text: parsed.system }]
+                  } else {
+                    parsed.system = [billingBlock]
+                  }
+                  // Strip ephemeral scope from system cache_control
+                  if (Array.isArray(parsed.system)) {
+                    for (const block of parsed.system) {
+                      if (block.cache_control?.ephemeral) {
+                        delete block.cache_control.ephemeral.scope
+                      }
+                      if (block.cache_control?.type === "ephemeral") {
+                        delete block.cache_control.scope
+                      }
+                    }
+                  }
+                  body = JSON.stringify(parsed)
+                } catch {}
+              }
+              return fetch(url, { ...init, headers, body })
             },
           },
         }

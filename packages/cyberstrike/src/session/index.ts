@@ -1,4 +1,4 @@
-import { Slug } from "@cyberstrikeus/util/slug"
+import { Slug } from "@cyberstrike-io/util/slug"
 import path from "path"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
@@ -548,11 +548,7 @@ export namespace Session {
     let current = sessionID
     for (let i = 0; i < 10; i++) {
       const row = Database.use((db) =>
-        db
-          .select({ parent_id: SessionTable.parent_id })
-          .from(SessionTable)
-          .where(eq(SessionTable.id, current))
-          .get(),
+        db.select({ parent_id: SessionTable.parent_id }).from(SessionTable).where(eq(SessionTable.id, current)).get(),
       )
       if (!row?.parent_id) return current
       current = row.parent_id

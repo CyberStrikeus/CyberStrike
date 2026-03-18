@@ -1,10 +1,10 @@
 # cyberstrike VS Code Extension
 
-A Visual Studio Code extension that integrates [cyberstrike](https://cyberstrike.us) directly into your development workflow.
+A Visual Studio Code extension that integrates [cyberstrike](https://cyberstrike.io) directly into your development workflow.
 
 ## Prerequisites
 
-This extension requires the [cyberstrike CLI](https://cyberstrike.us) to be installed on your system. Visit [cyberstrike.us](https://cyberstrike.us) for installation instructions.
+This extension requires the [cyberstrike CLI](https://cyberstrike.io) to be installed on your system. Visit [cyberstrike.io](https://cyberstrike.io) for installation instructions.
 
 ## Features
 

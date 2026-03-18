@@ -1,5 +1,5 @@
-import { createCyberstrikeClient } from "@cyberstrikeus/sdk/v2/client"
-import { base64Encode } from "@cyberstrikeus/util/encode"
+import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
+import { base64Encode } from "@cyberstrike-io/util/encode"
 
 export const serverHost = process.env.PLAYWRIGHT_SERVER_HOST ?? "localhost"
 export const serverPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"

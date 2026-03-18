@@ -65,7 +65,7 @@ const notify: Platform["notify"] = async (title, description, href) => {
 
   const notification = new Notification(title, {
     body: description ?? "",
-    icon: "https://cyberstrike.us/favicon-96x96-v3.png",
+    icon: "https://cyberstrike.io/favicon-96x96-v3.png",
   })
 
   notification.onclick = () => {

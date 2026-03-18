@@ -135,8 +135,7 @@ export function DialogWebContext(props: { sessionID: string }) {
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={theme.text}>
-          Web context · {titleSuffix()} ({items().length})
-          <Show when={mode() === "detail"}> · Detail</Show>
+          Web context · {titleSuffix()} ({items().length})<Show when={mode() === "detail"}> · Detail</Show>
         </text>
         <text fg={theme.textMuted} onMouseUp={() => dialog.clear()}>
           esc
@@ -244,7 +243,7 @@ export function DialogWebContext(props: { sessionID: string }) {
       <box paddingTop={1}>
         <text fg={theme.textMuted}>
           <Show when={mode() === "detail"} fallback="←→ Section  ↑↓ Navigate  Enter Details  Esc Close">
-            Enter Back  Esc Close
+            Enter Back Esc Close
           </Show>
         </text>
       </box>
@@ -378,7 +377,8 @@ function EndpointDetail(props: { item: Record<string, unknown> }) {
   const { theme } = useTheme()
   const item = props.item
   const statusColor =
-    { queued: theme.textMuted, processing: theme.warning, processed: theme.success }[item.status as string] ?? theme.text
+    { queued: theme.textMuted, processing: theme.warning, processed: theme.success }[item.status as string] ??
+    theme.text
   return (
     <box gap={1}>
       <box flexDirection="row" gap={1}>
@@ -426,7 +426,14 @@ function EndpointDetail(props: { item: Record<string, unknown> }) {
         </box>
       </Show>
       <Show when={item.time}>
-        <DetailLine label="Updated" value={item.time && (item.time as { updated?: number }).updated ? new Date((item.time as { updated: number }).updated).toISOString() : undefined} />
+        <DetailLine
+          label="Updated"
+          value={
+            item.time && (item.time as { updated?: number }).updated
+              ? new Date((item.time as { updated: number }).updated).toISOString()
+              : undefined
+          }
+        />
       </Show>
     </box>
   )
@@ -446,7 +453,14 @@ function RoleDetail(props: { item: Record<string, unknown> }) {
       <DetailLine label="ID" value={item.id as string} />
       <DetailLine label="Discovered from" value={item.discovered_from as string} />
       <Show when={item.time}>
-        <DetailLine label="Updated" value={item.time && (item.time as { updated?: number }).updated ? new Date((item.time as { updated: number }).updated).toISOString() : undefined} />
+        <DetailLine
+          label="Updated"
+          value={
+            item.time && (item.time as { updated?: number }).updated
+              ? new Date((item.time as { updated: number }).updated).toISOString()
+              : undefined
+          }
+        />
       </Show>
     </box>
   )
@@ -478,7 +492,14 @@ function CredentialDetail(props: { item: Record<string, unknown> }) {
         </box>
       </Show>
       <Show when={item.time}>
-        <DetailLine label="Updated" value={item.time && (item.time as { updated?: number }).updated ? new Date((item.time as { updated: number }).updated).toISOString() : undefined} />
+        <DetailLine
+          label="Updated"
+          value={
+            item.time && (item.time as { updated?: number }).updated
+              ? new Date((item.time as { updated: number }).updated).toISOString()
+              : undefined
+          }
+        />
       </Show>
     </box>
   )
@@ -522,7 +543,14 @@ function ObjectDetail(props: { item: Record<string, unknown> }) {
         </box>
       </Show>
       <Show when={item.time}>
-        <DetailLine label="Updated" value={item.time && (item.time as { updated?: number }).updated ? new Date((item.time as { updated: number }).updated).toISOString() : undefined} />
+        <DetailLine
+          label="Updated"
+          value={
+            item.time && (item.time as { updated?: number }).updated
+              ? new Date((item.time as { updated: number }).updated).toISOString()
+              : undefined
+          }
+        />
       </Show>
     </box>
   )
@@ -532,7 +560,9 @@ function FunctionDetail(props: { item: Record<string, unknown> }) {
   const { theme } = useTheme()
   const item = props.item
   const color =
-    { create: theme.success, read: theme.accent, update: theme.warning, delete: theme.error }[item.action_type as string] ?? theme.text
+    { create: theme.success, read: theme.accent, update: theme.warning, delete: theme.error }[
+      item.action_type as string
+    ] ?? theme.text
   const objects = item.objects as string[] | undefined
   return (
     <box gap={1}>
@@ -554,9 +584,15 @@ function FunctionDetail(props: { item: Record<string, unknown> }) {
         </box>
       </Show>
       <Show when={item.time}>
-        <DetailLine label="Updated" value={item.time && (item.time as { updated?: number }).updated ? new Date((item.time as { updated: number }).updated).toISOString() : undefined} />
+        <DetailLine
+          label="Updated"
+          value={
+            item.time && (item.time as { updated?: number }).updated
+              ? new Date((item.time as { updated: number }).updated).toISOString()
+              : undefined
+          }
+        />
       </Show>
     </box>
   )
 }
-

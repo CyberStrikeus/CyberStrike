@@ -1,9 +1,11 @@
 # WSTG-SESS-09: Testing for Session Hijacking
 
 ## Test ID
+
 WSTG-SESS-09
 
 ## Test Name
+
 Testing for Session Hijacking
 
 ## High-Level Description
@@ -196,19 +198,19 @@ def change_password():
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No session binding | 5.3 | Medium |
-| No re-auth for sensitive ops | 5.3 | Medium |
-| Session accessible via XSS | 7.5 | High |
+| Finding                      | CVSS | Severity |
+| ---------------------------- | ---- | -------- |
+| No session binding           | 5.3  | Medium   |
+| No re-auth for sensitive ops | 5.3  | Medium   |
+| Session accessible via XSS   | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-384** | Session Fixation |
+| CWE ID      | Title                   |
+| ----------- | ----------------------- |
+| **CWE-384** | Session Fixation        |
 | **CWE-287** | Improper Authentication |
 
 ---

@@ -5,7 +5,7 @@ import z from "zod"
 import { Identifier } from "../id/id"
 import { Log } from "../util/log"
 import { Instance } from "../project/instance"
-import { lazy } from "@cyberstrikeus/util/lazy"
+import { lazy } from "@cyberstrike-io/util/lazy"
 import { Shell } from "@/shell/shell"
 import { Plugin } from "@/plugin"
 

@@ -1,4 +1,4 @@
-import type { Hooks, PluginInput } from "@cyberstrikeus/plugin"
+import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { Log } from "../util/log"
 import { Installation } from "../installation"
 import { Auth, OAUTH_DUMMY_KEY } from "../auth"
@@ -617,7 +617,8 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
     "chat.headers": async (input, output) => {
       if (input.model.providerID !== "openai") return
       output.headers.originator = "cyberstrike"
-      output.headers["User-Agent"] = `cyberstrike/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`
+      output.headers["User-Agent"] =
+        `cyberstrike/${Installation.VERSION} (${os.platform()} ${os.release()}; ${os.arch()})`
       output.headers.session_id = input.sessionID
     },
   }

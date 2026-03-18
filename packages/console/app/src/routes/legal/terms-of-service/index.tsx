@@ -24,9 +24,9 @@ export default function TermsOfService() {
               <p class="effective-date">Effective date: Dec 16, 2025</p>
 
               <p>
-                Welcome to CyberStrike. Please read on to learn the rules and restrictions that govern your use of CyberStrike
-                (the "Services"). If you have any questions, comments, or concerns regarding these terms or the
-                Services, please contact us at:
+                Welcome to CyberStrike. Please read on to learn the rules and restrictions that govern your use of
+                CyberStrike (the "Services"). If you have any questions, comments, or concerns regarding these terms or
+                the Services, please contact us at:
               </p>
 
               <p>
@@ -35,10 +35,10 @@ export default function TermsOfService() {
 
               <p>
                 These Terms of Use (the "Terms") are a binding contract between you and{" "}
-                <strong>ANOMALY INNOVATIONS, INC.</strong> ("CyberStrike," "we" and "us"). Your use of the Services in any
-                way means that you agree to all of these Terms, and these Terms will remain in effect while you use the
-                Services. These Terms include the provisions in this document as well as those in the Privacy Policy{" "}
-                <a href={language.route("/legal/privacy-policy")}>https://cyberstrike.us/legal/privacy-policy</a>.{" "}
+                <strong>ANOMALY INNOVATIONS, INC.</strong> ("CyberStrike," "we" and "us"). Your use of the Services in
+                any way means that you agree to all of these Terms, and these Terms will remain in effect while you use
+                the Services. These Terms include the provisions in this document as well as those in the Privacy Policy{" "}
+                <a href={language.route("/legal/privacy-policy")}>https://cyberstrike.io/legal/privacy-policy</a>.{" "}
                 <strong>
                   Your use of or participation in certain Services may also be subject to additional policies, rules
                   and/or conditions ("Additional Terms"), which are incorporated herein by reference, and you understand
@@ -81,7 +81,7 @@ export default function TermsOfService() {
               <p>
                 We are constantly trying to improve our Services, so these Terms may need to change along with our
                 Services. We reserve the right to change the Terms at any time, but if we do, we will place a notice on
-                our site located at cyberstrike.us, send you an email, and/or notify you by some other means.
+                our site located at cyberstrike.io, send you an email, and/or notify you by some other means.
               </p>
 
               <p>
@@ -97,9 +97,9 @@ export default function TermsOfService() {
 
               <h2 id="what-about-my-privacy">What about my privacy?</h2>
               <p>
-                CyberStrike takes the privacy of its users very seriously. For the current CyberStrike Privacy Policy, please
-                click here{" "}
-                <a href="https://cyberstrike.us/legal/privacy-policy">https://cyberstrike.us/legal/privacy-policy</a>.
+                CyberStrike takes the privacy of its users very seriously. For the current CyberStrike Privacy Policy,
+                please click here{" "}
+                <a href="https://cyberstrike.io/legal/privacy-policy">https://cyberstrike.io/legal/privacy-policy</a>.
               </p>
 
               <h3>Children's Online Privacy Protection Act</h3>
@@ -262,7 +262,7 @@ export default function TermsOfService() {
               <p>
                 Certain of our Services, including Zen, may be subject to payments now or in the future (the "Paid
                 Services"). Please see our Paid Services page{" "}
-                <a href={language.route("/zen")}>https://cyberstrike.us/zen</a> for a description of the current Paid
+                <a href={language.route("/zen")}>https://cyberstrike.io/zen</a> for a description of the current Paid
                 Services. Please note that any payment terms presented to you in the process of using or signing up for
                 a Paid Service are deemed part of these Terms.
               </p>
@@ -303,7 +303,7 @@ export default function TermsOfService() {
                 CONFIRMED BY US) THAT YOU HAVE TERMINATED THIS AUTHORIZATION OR WISH TO CHANGE YOUR PAYMENT METHOD. SUCH
                 NOTICE WILL NOT AFFECT CHARGES SUBMITTED BEFORE WE REASONABLY COULD ACT. TO TERMINATE YOUR AUTHORIZATION
                 OR CHANGE YOUR PAYMENT METHOD, GO TO ACCOUNT SETTINGS{" "}
-                <a href="https://cyberstrike.us/auth">https://cyberstrike.us/auth</a>.
+                <a href="https://cyberstrike.io/auth">https://cyberstrike.io/auth</a>.
               </p>
 
               <h3>Free Trials and Other Promotions</h3>
@@ -318,15 +318,15 @@ export default function TermsOfService() {
               <h2 id="what-if-i-want-to-stop">What if I want to stop using the Services?</h2>
               <p>
                 You're free to do that at any time; please refer to our Privacy Policy{" "}
-                <a href={language.route("/legal/privacy-policy")}>https://cyberstrike.us/legal/privacy-policy</a>, as well
-                as the licenses above, to understand how we treat information you provide to us after you have stopped
-                using our Services.
+                <a href={language.route("/legal/privacy-policy")}>https://cyberstrike.io/legal/privacy-policy</a>, as
+                well as the licenses above, to understand how we treat information you provide to us after you have
+                stopped using our Services.
               </p>
 
               <p>
-                CyberStrike is also free to terminate (or suspend access to) your use of the Services for any reason in our
-                discretion, including your breach of these Terms. CyberStrike has the sole right to decide whether you are
-                in violation of any of the restrictions set forth in these Terms.
+                CyberStrike is also free to terminate (or suspend access to) your use of the Services for any reason in
+                our discretion, including your breach of these Terms. CyberStrike has the sole right to decide whether
+                you are in violation of any of the restrictions set forth in these Terms.
               </p>
 
               <p>
@@ -340,21 +340,22 @@ export default function TermsOfService() {
 
               <h3>Warranty Disclaimer</h3>
               <p>
-                CyberStrike and its licensors, suppliers, partners, parent, subsidiaries or affiliated entities, and each
-                of their respective officers, directors, members, employees, consultants, contract employees,
-                representatives and agents, and each of their respective successors and assigns (CyberStrike and all such
-                parties together, the "CyberStrike Parties") make no representations or warranties concerning the Services,
-                including without limitation regarding any Content contained in or accessed through the Services, and
-                the CyberStrike Parties will not be responsible or liable for the accuracy, copyright compliance, legality,
-                or decency of material contained in or accessed through the Services or any claims, actions, suits
-                procedures, costs, expenses, damages or liabilities arising out of use of, or in any way related to your
-                participation in, the Services. The CyberStrike Parties make no representations or warranties regarding
-                suggestions or recommendations of services or products offered or purchased through or in connection
-                with the Services. THE SERVICES AND CONTENT ARE PROVIDED BY CYBERSTRIKE (AND ITS LICENSORS AND SUPPLIERS)
-                ON AN "AS-IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT
-                LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT,
-                OR THAT USE OF THE SERVICES WILL BE UNINTERRUPTED OR ERROR-FREE. SOME STATES DO NOT ALLOW LIMITATIONS ON
-                HOW LONG AN IMPLIED WARRANTY LASTS, SO THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU.
+                CyberStrike and its licensors, suppliers, partners, parent, subsidiaries or affiliated entities, and
+                each of their respective officers, directors, members, employees, consultants, contract employees,
+                representatives and agents, and each of their respective successors and assigns (CyberStrike and all
+                such parties together, the "CyberStrike Parties") make no representations or warranties concerning the
+                Services, including without limitation regarding any Content contained in or accessed through the
+                Services, and the CyberStrike Parties will not be responsible or liable for the accuracy, copyright
+                compliance, legality, or decency of material contained in or accessed through the Services or any
+                claims, actions, suits procedures, costs, expenses, damages or liabilities arising out of use of, or in
+                any way related to your participation in, the Services. The CyberStrike Parties make no representations
+                or warranties regarding suggestions or recommendations of services or products offered or purchased
+                through or in connection with the Services. THE SERVICES AND CONTENT ARE PROVIDED BY CYBERSTRIKE (AND
+                ITS LICENSORS AND SUPPLIERS) ON AN "AS-IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+                IMPLIED, INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+                PURPOSE, NON-INFRINGEMENT, OR THAT USE OF THE SERVICES WILL BE UNINTERRUPTED OR ERROR-FREE. SOME STATES
+                DO NOT ALLOW LIMITATIONS ON HOW LONG AN IMPLIED WARRANTY LASTS, SO THE ABOVE LIMITATIONS MAY NOT APPLY
+                TO YOU.
               </p>
 
               <h3 id="limitation-of-liability">Limitation of Liability</h3>
@@ -399,12 +400,12 @@ export default function TermsOfService() {
               <h3 id="arbitration-agreement">Arbitration Agreement</h3>
               <p>
                 Please read the following ARBITRATION AGREEMENT carefully because it requires you to arbitrate certain
-                disputes and claims with CyberStrike and limits the manner in which you can seek relief from CyberStrike. Both
-                you and CyberStrike acknowledge and agree that for the purposes of any dispute arising out of or relating
-                to the subject matter of these Terms, CyberStrike's officers, directors, employees and independent
-                contractors ("Personnel") are third-party beneficiaries of these Terms, and that upon your acceptance of
-                these Terms, Personnel will have the right (and will be deemed to have accepted the right) to enforce
-                these Terms against you as the third-party beneficiary hereof.
+                disputes and claims with CyberStrike and limits the manner in which you can seek relief from
+                CyberStrike. Both you and CyberStrike acknowledge and agree that for the purposes of any dispute arising
+                out of or relating to the subject matter of these Terms, CyberStrike's officers, directors, employees
+                and independent contractors ("Personnel") are third-party beneficiaries of these Terms, and that upon
+                your acceptance of these Terms, Personnel will have the right (and will be deemed to have accepted the
+                right) to enforce these Terms against you as the third-party beneficiary hereof.
               </p>
 
               <h4>Arbitration Rules; Applicability of Arbitration Agreement</h4>
@@ -422,29 +423,29 @@ export default function TermsOfService() {
 
               <h4>Costs of Arbitration</h4>
               <p>
-                The Rules will govern payment of all arbitration fees. CyberStrike will pay all arbitration fees for claims
-                less than seventy-five thousand ($75,000) dollars. CyberStrike will not seek its attorneys' fees and costs
-                in arbitration unless the arbitrator determines that your claim is frivolous.
+                The Rules will govern payment of all arbitration fees. CyberStrike will pay all arbitration fees for
+                claims less than seventy-five thousand ($75,000) dollars. CyberStrike will not seek its attorneys' fees
+                and costs in arbitration unless the arbitrator determines that your claim is frivolous.
               </p>
 
               <h4>Small Claims Court; Infringement</h4>
               <p>
-                Either you or CyberStrike may assert claims, if they qualify, in small claims court in New Castle County,
-                Delaware or any United States county where you live or work. Furthermore, notwithstanding the foregoing
-                obligation to arbitrate disputes, each party shall have the right to pursue injunctive or other
-                equitable relief at any time, from any court of competent jurisdiction, to prevent the actual or
+                Either you or CyberStrike may assert claims, if they qualify, in small claims court in New Castle
+                County, Delaware or any United States county where you live or work. Furthermore, notwithstanding the
+                foregoing obligation to arbitrate disputes, each party shall have the right to pursue injunctive or
+                other equitable relief at any time, from any court of competent jurisdiction, to prevent the actual or
                 threatened infringement, misappropriation or violation of a party's copyrights, trademarks, trade
                 secrets, patents or other intellectual property rights.
               </p>
 
               <h4>Waiver of Jury Trial</h4>
               <p>
-                YOU AND CYBERSTRIKE WAIVE ANY CONSTITUTIONAL AND STATUTORY RIGHTS TO GO TO COURT AND HAVE A TRIAL IN FRONT
-                OF A JUDGE OR JURY. You and CyberStrike are instead choosing to have claims and disputes resolved by
-                arbitration. Arbitration procedures are typically more limited, more efficient, and less costly than
+                YOU AND CYBERSTRIKE WAIVE ANY CONSTITUTIONAL AND STATUTORY RIGHTS TO GO TO COURT AND HAVE A TRIAL IN
+                FRONT OF A JUDGE OR JURY. You and CyberStrike are instead choosing to have claims and disputes resolved
+                by arbitration. Arbitration procedures are typically more limited, more efficient, and less costly than
                 rules applicable in court and are subject to very limited review by a court. In any litigation between
-                you and CyberStrike over whether to vacate or enforce an arbitration award, YOU AND CYBERSTRIKE WAIVE ALL
-                RIGHTS TO A JURY TRIAL, and elect instead to have the dispute be resolved by a judge.
+                you and CyberStrike over whether to vacate or enforce an arbitration award, YOU AND CYBERSTRIKE WAIVE
+                ALL RIGHTS TO A JURY TRIAL, and elect instead to have the dispute be resolved by a judge.
               </p>
 
               <h4 id="waiver-of-class">Waiver of Class or Consolidated Actions</h4>
@@ -453,8 +454,8 @@ export default function TermsOfService() {
                 ON AN INDIVIDUAL BASIS AND NOT ON A CLASS BASIS. CLAIMS OF MORE THAN ONE CUSTOMER OR USER CANNOT BE
                 ARBITRATED OR LITIGATED JOINTLY OR CONSOLIDATED WITH THOSE OF ANY OTHER CUSTOMER OR USER. If however,
                 this waiver of class or consolidated actions is deemed invalid or unenforceable, neither you nor
-                CyberStrike is entitled to arbitration; instead all claims and disputes will be resolved in a court as set
-                forth in (g) below.
+                CyberStrike is entitled to arbitration; instead all claims and disputes will be resolved in a court as
+                set forth in (g) below.
               </p>
 
               <h4>Opt-out</h4>
@@ -492,17 +493,17 @@ export default function TermsOfService() {
                 sees fit. The failure of either you or us to exercise, in any way, any right herein shall not be deemed
                 a waiver of any further rights hereunder. If any provision of these Terms are found to be unenforceable
                 or invalid, that provision will be limited or eliminated, to the minimum extent necessary, so that these
-                Terms shall otherwise remain in full force and effect and enforceable. You and CyberStrike agree that these
-                Terms are the complete and exclusive statement of the mutual understanding between you and CyberStrike, and
-                that these Terms supersede and cancel all previous written and oral agreements, communications and other
-                understandings relating to the subject matter of these Terms. You hereby acknowledge and agree that you
-                are not an employee, agent, partner, or joint venture of CyberStrike, and you do not have any authority of
-                any kind to bind CyberStrike in any respect whatsoever.
+                Terms shall otherwise remain in full force and effect and enforceable. You and CyberStrike agree that
+                these Terms are the complete and exclusive statement of the mutual understanding between you and
+                CyberStrike, and that these Terms supersede and cancel all previous written and oral agreements,
+                communications and other understandings relating to the subject matter of these Terms. You hereby
+                acknowledge and agree that you are not an employee, agent, partner, or joint venture of CyberStrike, and
+                you do not have any authority of any kind to bind CyberStrike in any respect whatsoever.
               </p>
 
               <p>
-                Except as expressly set forth in the section above regarding the arbitration agreement, you and CyberStrike
-                agree there are no third-party beneficiaries intended under these Terms.
+                Except as expressly set forth in the section above regarding the arbitration agreement, you and
+                CyberStrike agree there are no third-party beneficiaries intended under these Terms.
               </p>
             </article>
           </section>

@@ -122,7 +122,9 @@ function McpActions(props: { name: string }) {
         if (option.value === "delete") {
           dialog.replace(() => (
             <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
-              <text attributes={TextAttributes.BOLD} fg={theme.text}>Deleting {props.name}...</text>
+              <text attributes={TextAttributes.BOLD} fg={theme.text}>
+                Deleting {props.name}...
+              </text>
             </box>
           ))
           try {
@@ -200,11 +202,7 @@ function McpRemoteUrlStep(props: { error?: string }) {
     <DialogPrompt
       title="URL"
       placeholder="https://mcp.example.com/sse"
-      description={
-        props.error
-          ? () => <text fg={theme.error}>{props.error}</text>
-          : undefined
-      }
+      description={props.error ? () => <text fg={theme.error}>{props.error}</text> : undefined}
       onConfirm={(value) => {
         if (!value) return
         try {
@@ -226,9 +224,7 @@ function McpLocalEnvStep(props: { command: string[]; defaultName: string }) {
     <DialogPrompt
       title="Environment variables (optional)"
       placeholder="KEY=VALUE, KEY2=VALUE2"
-      description={() => (
-        <text fg={useTheme().theme.textMuted}>Comma-separated KEY=VALUE pairs, or leave empty</text>
-      )}
+      description={() => <text fg={useTheme().theme.textMuted}>Comma-separated KEY=VALUE pairs, or leave empty</text>}
       onConfirm={(value) => {
         const env = parseEnvVars(value || "")
         dialog.replace(() => (
@@ -262,12 +258,16 @@ function McpNameStep(props: McpNameStepProps) {
       title="Server name"
       placeholder={props.defaultName}
       onConfirm={async (value) => {
-        const name = (value || props.defaultName).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "")
+        const name = (value || props.defaultName)
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, "-")
+          .replace(/^-|-$/g, "")
         if (!name) return
 
-        const config = props.type === "local"
-          ? { type: "local" as const, command: props.command!, environment: props.environment }
-          : { type: "remote" as const, url: props.url! }
+        const config =
+          props.type === "local"
+            ? { type: "local" as const, command: props.command!, environment: props.environment }
+            : { type: "remote" as const, url: props.url! }
 
         // Check if MCP already exists
         const existing = sync.data.mcp?.[name]
@@ -417,9 +417,8 @@ function BoltTokenStep(props: { url: string; error?: string }) {
       onConfirm={(value) => {
         if (!value) return
         const url = new URL(props.url)
-        const defaultName = url.hostname === "localhost" || url.hostname === "127.0.0.1"
-          ? "bolt"
-          : url.hostname.replace(/\./g, "-")
+        const defaultName =
+          url.hostname === "localhost" || url.hostname === "127.0.0.1" ? "bolt" : url.hostname.replace(/\./g, "-")
         dialog.replace(() => <BoltNameStep url={props.url} adminToken={value} defaultName={defaultName} />)
       }}
     />
@@ -436,7 +435,10 @@ function BoltNameStep(props: { url: string; adminToken: string; defaultName: str
       title="Server name"
       placeholder={props.defaultName}
       onConfirm={async (value) => {
-        const name = (value || props.defaultName).toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "")
+        const name = (value || props.defaultName)
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, "-")
+          .replace(/^-|-$/g, "")
         if (!name) return
 
         // Check duplicate name
@@ -449,7 +451,7 @@ function BoltNameStep(props: { url: string; adminToken: string; defaultName: str
         try {
           const cfgRes = await sdk.fetch(`${sdk.url}/config`)
           if (cfgRes.ok) {
-            const cfg = await cfgRes.json() as any
+            const cfg = (await cfgRes.json()) as any
             const inputOrigin = new URL(props.url).origin
             for (const [existing, bolt] of Object.entries(cfg.bolt ?? {}) as [string, any][]) {
               if (bolt.url && new URL(bolt.url).origin === inputOrigin) {
@@ -538,7 +540,9 @@ function BoltActions(props: { name: string }) {
         if (option.value === "delete") {
           dialog.replace(() => (
             <box paddingLeft={2} paddingRight={2} gap={1} paddingBottom={1}>
-              <text attributes={TextAttributes.BOLD} fg={theme.text}>Deleting {props.name}...</text>
+              <text attributes={TextAttributes.BOLD} fg={theme.text}>
+                Deleting {props.name}...
+              </text>
             </box>
           ))
           try {
@@ -602,7 +606,7 @@ export function DialogBolt() {
 
         setLoading(option.value)
         try {
-          const action = (sync.data.bolt?.[option.value]?.status === "disabled") ? "connect" : "disconnect"
+          const action = sync.data.bolt?.[option.value]?.status === "disabled" ? "connect" : "disconnect"
           await sdk.fetch(`${sdk.url}/bolt/${option.value}/${action}`, { method: "POST" })
           const statusRes = await sdk.fetch(`${sdk.url}/bolt`)
           if (statusRes.ok) {
@@ -721,7 +725,10 @@ function nameFromPath(filepath: string): string {
 function parseEnvVars(input: string): Record<string, string> {
   const env: Record<string, string> = {}
   if (!input.trim()) return env
-  const pairs = input.split(",").map((s) => s.trim()).filter(Boolean)
+  const pairs = input
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
   for (const pair of pairs) {
     const eq = pair.indexOf("=")
     if (eq > 0) {

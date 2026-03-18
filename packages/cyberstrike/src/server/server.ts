@@ -9,7 +9,7 @@ import { proxy } from "hono/proxy"
 import { basicAuth } from "hono/basic-auth"
 import z from "zod"
 import { Provider } from "../provider/provider"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { LSP } from "../lsp"
 import { Format } from "../format"
 import { TuiRoutes } from "./routes/tui"
@@ -595,8 +595,8 @@ export namespace Server {
         return undefined
       }
     }
-    const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port)
-    if (!server) throw new Error(`Failed to start server on port ${opts.port}`)
+    const server = tryServe(opts.port || 4096) ?? tryServe(0)
+    if (!server) throw new Error(`Failed to start server`)
 
     _url = server.url
 

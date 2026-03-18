@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-05: Testing for OAuth Weaknesses
 
 ## Test ID
+
 WSTG-AUTHZ-05
 
 ## Test Name
+
 Testing for OAuth Weaknesses
 
 ## High-Level Description
@@ -26,14 +28,14 @@ OAuth 2.0 is an authorization framework that enables applications to obtain limi
 
 ### Common Vulnerabilities
 
-| Vulnerability | Description |
-|---------------|-------------|
-| Open redirect | Unvalidated redirect_uri |
-| CSRF | Missing/weak state parameter |
-| Token leakage | Tokens in URL/referrer |
-| Authorization code injection | Reusing codes |
-| Scope escalation | Accessing beyond granted scope |
-| Implicit grant issues | Token in URL fragment |
+| Vulnerability                | Description                    |
+| ---------------------------- | ------------------------------ |
+| Open redirect                | Unvalidated redirect_uri       |
+| CSRF                         | Missing/weak state parameter   |
+| Token leakage                | Tokens in URL/referrer         |
+| Authorization code injection | Reusing codes                  |
+| Scope escalation             | Accessing beyond granted scope |
+| Implicit grant issues        | Token in URL fragment          |
 
 ---
 
@@ -482,20 +484,20 @@ tester.generate_report()
 
 ### OAuth Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Traffic interception | Analyze OAuth flows |
-| **OWASP ZAP** | Security scanner | OAuth testing |
-| **oauth-tools** | OAuth testing | Specialized tests |
-| **Postman** | API testing | OAuth flows |
+| Tool            | Description          | Usage               |
+| --------------- | -------------------- | ------------------- |
+| **Burp Suite**  | Traffic interception | Analyze OAuth flows |
+| **OWASP ZAP**   | Security scanner     | OAuth testing       |
+| **oauth-tools** | OAuth testing        | Specialized tests   |
+| **Postman**     | API testing          | OAuth flows         |
 
 ### Token Analysis
 
-| Tool | Description |
-|------|-------------|
-| **jwt.io** | JWT decoder |
-| **jwt_tool** | JWT attacks |
-| **jq** | JSON parsing |
+| Tool         | Description  |
+| ------------ | ------------ |
+| **jwt.io**   | JWT decoder  |
+| **jwt_tool** | JWT attacks  |
+| **jq**       | JSON parsing |
 
 ---
 
@@ -648,25 +650,25 @@ def token():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Open redirect in OAuth | 6.1 | Medium |
-| Missing state (CSRF) | 8.8 | High |
-| Authorization code reuse | 7.5 | High |
-| Token in URL (leakage) | 6.5 | Medium |
-| Missing PKCE | 7.5 | High |
-| Scope escalation | 8.1 | High |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| Open redirect in OAuth   | 6.1  | Medium   |
+| Missing state (CSRF)     | 8.8  | High     |
+| Authorization code reuse | 7.5  | High     |
+| Token in URL (leakage)   | 6.5  | Medium   |
+| Missing PKCE             | 7.5  | High     |
+| Scope escalation         | 8.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-601** | Open Redirect | redirect_uri bypass |
-| **CWE-352** | CSRF | Missing state parameter |
-| **CWE-200** | Information Exposure | Token leakage |
-| **CWE-285** | Improper Authorization | Scope issues |
+| CWE ID      | Title                  | Description             |
+| ----------- | ---------------------- | ----------------------- |
+| **CWE-601** | Open Redirect          | redirect_uri bypass     |
+| **CWE-352** | CSRF                   | Missing state parameter |
+| **CWE-200** | Information Exposure   | Token leakage           |
+| **CWE-285** | Improper Authorization | Scope issues            |
 
 ---
 

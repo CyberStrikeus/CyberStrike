@@ -1,9 +1,11 @@
 # WSTG-SESS-10: Testing JSON Web Tokens (JWT)
 
 ## Test ID
+
 WSTG-SESS-10
 
 ## Test Name
+
 Testing JSON Web Tokens
 
 ## High-Level Description
@@ -224,11 +226,11 @@ tester.test_sensitive_data()
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| **jwt.io** | JWT decoder |
+| Tool         | Description          |
+| ------------ | -------------------- |
+| **jwt.io**   | JWT decoder          |
 | **jwt_tool** | JWT security testing |
-| **hashcat** | Secret brute-forcing |
+| **hashcat**  | Secret brute-forcing |
 
 ---
 
@@ -272,21 +274,21 @@ def verify_token(token):
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Algorithm none bypass | 9.8 | Critical |
-| Weak secret | 9.8 | Critical |
-| No signature validation | 9.8 | Critical |
-| Missing expiration | 5.3 | Medium |
-| Sensitive data in payload | 5.3 | Medium |
+| Finding                   | CVSS | Severity |
+| ------------------------- | ---- | -------- |
+| Algorithm none bypass     | 9.8  | Critical |
+| Weak secret               | 9.8  | Critical |
+| No signature validation   | 9.8  | Critical |
+| Missing expiration        | 5.3  | Medium   |
+| Sensitive data in payload | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-347** | Improper Verification of Cryptographic Signature |
+| CWE ID      | Title                                                 |
+| ----------- | ----------------------------------------------------- |
+| **CWE-347** | Improper Verification of Cryptographic Signature      |
 | **CWE-757** | Selection of Less-Secure Algorithm During Negotiation |
 
 ---

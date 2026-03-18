@@ -1,9 +1,11 @@
 # WSTG-ATHN-02: Testing for Default Credentials
 
 ## Test ID
+
 WSTG-ATHN-02
 
 ## Test Name
+
 Testing for Default Credentials
 
 ## High-Level Description
@@ -25,17 +27,17 @@ Many applications, devices, and services ship with default or well-known credent
 
 ### Common Default Credentials
 
-| Application | Username | Password |
-|-------------|----------|----------|
-| Tomcat | admin, tomcat | admin, tomcat, s3cret |
-| Jenkins | admin | admin (or no password) |
-| WordPress | admin | admin |
-| Joomla | admin | admin |
-| MySQL | root | (empty), root, mysql |
-| PostgreSQL | postgres | postgres |
-| MongoDB | admin | (no auth by default) |
-| Redis | - | (no auth by default) |
-| Elasticsearch | elastic | changeme |
+| Application   | Username      | Password               |
+| ------------- | ------------- | ---------------------- |
+| Tomcat        | admin, tomcat | admin, tomcat, s3cret  |
+| Jenkins       | admin         | admin (or no password) |
+| WordPress     | admin         | admin                  |
+| Joomla        | admin         | admin                  |
+| MySQL         | root          | (empty), root, mysql   |
+| PostgreSQL    | postgres      | postgres               |
+| MongoDB       | admin         | (no auth by default)   |
+| Redis         | -             | (no auth by default)   |
+| Elasticsearch | elastic       | changeme               |
 
 ---
 
@@ -199,18 +201,18 @@ curl -u admin:password "https://target.com" -s -o /dev/null -w "%{http_code}"
 
 ### Credential Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Hydra** | Password cracker | `hydra -L users.txt -P pass.txt target http-post` |
+| Tool       | Description           | Usage                                               |
+| ---------- | --------------------- | --------------------------------------------------- |
+| **Hydra**  | Password cracker      | `hydra -L users.txt -P pass.txt target http-post`   |
 | **Medusa** | Parallel brute-forcer | `medusa -h target -U users.txt -P pass.txt -M http` |
-| **Ncrack** | Network auth cracker | `ncrack target -U users.txt -P pass.txt` |
+| **Ncrack** | Network auth cracker  | `ncrack target -U users.txt -P pass.txt`            |
 
 ### Default Credential Lists
 
-| Resource | Description |
-|----------|-------------|
-| **SecLists** | Default credentials lists |
-| **CIRT.net** | Default password database |
+| Resource         | Description                   |
+| ---------------- | ----------------------------- |
+| **SecLists**     | Default credentials lists     |
+| **CIRT.net**     | Default password database     |
 | **DefaultCreds** | Default credential repository |
 
 ---
@@ -519,12 +521,12 @@ def login():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Admin access with default credentials | 9.8 | Critical |
-| Database with default/no password | 9.8 | Critical |
-| Application default account active | 8.8 | High |
-| Default API key accepted | 8.8 | High |
+| Finding                               | CVSS | Severity |
+| ------------------------------------- | ---- | -------- |
+| Admin access with default credentials | 9.8  | Critical |
+| Database with default/no password     | 9.8  | Critical |
+| Application default account active    | 8.8  | High     |
+| Default API key accepted              | 8.8  | High     |
 
 **Attack Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
 
@@ -532,11 +534,11 @@ def login():
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-1392** | Use of Default Credentials | Default username/password |
-| **CWE-798** | Use of Hard-coded Credentials | Embedded credentials |
-| **CWE-287** | Improper Authentication | Authentication bypass |
+| CWE ID       | Title                         | Description               |
+| ------------ | ----------------------------- | ------------------------- |
+| **CWE-1392** | Use of Default Credentials    | Default username/password |
+| **CWE-798**  | Use of Hard-coded Credentials | Embedded credentials      |
+| **CWE-287**  | Improper Authentication       | Authentication bypass     |
 
 ---
 

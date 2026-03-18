@@ -132,7 +132,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line2":
     "ด้วยคีย์ API เดียวคุณจะได้รับการเข้าถึงโมเดล เช่น Claude, GPT, Gemini, GLM และอื่น ๆ",
   "provider.connect.cyberstrikeZen.visit.prefix": "เยี่ยมชม ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": " เพื่อรวบรวมคีย์ API ของคุณ",
   "provider.connect.oauth.code.visit.prefix": "เยี่ยมชม ",
   "provider.connect.oauth.code.visit.link": "ลิงก์นี้",
@@ -454,7 +454,8 @@ export const dict = {
   "error.chain.didYouMean": "คุณหมายถึง: {{suggestions}}",
   "error.chain.modelNotFound": "ไม่พบโมเดล: {{provider}}/{{model}}",
   "error.chain.checkConfig": "ตรวจสอบการกำหนดค่าของคุณ (cyberstrike.json) ชื่อผู้ให้บริการ/โมเดล",
-  "error.chain.mcpFailed": 'เซิร์ฟเวอร์ MCP "{{name}}" ล้มเหลว โปรดทราบว่า CyberStrike ยังไม่รองรับการตรวจสอบสิทธิ์ MCP',
+  "error.chain.mcpFailed":
+    'เซิร์ฟเวอร์ MCP "{{name}}" ล้มเหลว โปรดทราบว่า CyberStrike ยังไม่รองรับการตรวจสอบสิทธิ์ MCP',
   "error.chain.providerAuthFailed": "การตรวจสอบสิทธิ์ผู้ให้บริการล้มเหลว ({{provider}}): {{message}}",
   "error.chain.providerInitFailed": 'ไม่สามารถเริ่มต้นผู้ให้บริการ "{{provider}}" ตรวจสอบข้อมูลรับรองและการกำหนดค่า',
   "error.chain.configJsonInvalid": "ไฟล์กำหนดค่าที่ {{path}} ไม่ใช่ JSON(C) ที่ถูกต้อง",

@@ -692,6 +692,60 @@ export type EventFileWatcherUpdated = {
   }
 }
 
+export type Request = {
+  id: string
+  session_id: string
+  credential_id?: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  normalized_path: string
+  raw_request?: string
+  body_hash?: string
+  query_hash?: string
+  status: "queued" | "processing" | "processed"
+  response_status?: number
+  response_headers?: {
+    [key: string]: string
+  }
+  response_content_type?: string
+  response_size?: number
+  processed_response?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventRequestUpdated = {
+  type: "request.updated"
+  properties: {
+    sessionID: string
+    requests: Array<Request>
+  }
+}
+
+export type WebCredential = {
+  id: string
+  session_id: string
+  label: string
+  headers: {
+    [key: string]: string
+  }
+  container_id?: string
+  role_id?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebCredentialUpdated = {
+  type: "web_credential.updated"
+  properties: {
+    sessionID: string
+    credentials: Array<WebCredential>
+  }
+}
+
 export type Todo = {
   /**
    * Brief description of the task
@@ -724,8 +778,10 @@ export type Vulnerability = {
   file?: string
   line_start?: number
   line_end?: number
-  evidence?: string
+  steps_to_reproduce?: string
+  business_impact?: string
   recommendation?: string
+  poc?: string
   status?: "open" | "fixed" | "ignored"
   message_id?: string
   time?: {
@@ -808,6 +864,115 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
+  }
+}
+
+export type WebRole = {
+  id: string
+  session_id: string
+  name: string
+  level?: number
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRoleUpdated = {
+  type: "web_role.updated"
+  properties: {
+    sessionID: string
+    roles: Array<WebRole>
+  }
+}
+
+export type WebRetest = {
+  id: string
+  session_id: string
+  request_id: string
+  trigger_type: "new_role" | "new_object_value" | "new_credential"
+  trigger_source: string
+  status: "pending" | "processing" | "completed"
+  priority: "high" | "medium" | "low"
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRetestUpdated = {
+  type: "web_retest.updated"
+  properties: {
+    sessionID: string
+    queue: Array<WebRetest>
+  }
+}
+
+export type WebObject = {
+  id: string
+  session_id: string
+  name: string
+  fields?: Array<string>
+  sensitive_fields?: Array<string>
+  id_fields?: Array<string>
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectUpdated = {
+  type: "web_object.updated"
+  properties: {
+    sessionID: string
+    objects: Array<WebObject>
+  }
+}
+
+export type WebObjectValue = {
+  id: string
+  session_id: string
+  object_id: string
+  field_name: string
+  value: string
+  credential_id?: string
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectValueUpdated = {
+  type: "web_object_value.updated"
+  properties: {
+    sessionID: string
+    objectID: string
+    values: Array<WebObjectValue>
+  }
+}
+
+export type WebFunction = {
+  id: string
+  session_id: string
+  name: string
+  action_type: "create" | "read" | "update" | "delete"
+  request_id: string
+  role_id?: string
+  objects?: Array<string>
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebFunctionUpdated = {
+  type: "web_function.updated"
+  properties: {
+    sessionID: string
+    functions: Array<WebFunction>
   }
 }
 
@@ -914,28 +1079,6 @@ export type EventVcsBranchUpdated = {
   }
 }
 
-export type Request = {
-  id: string
-  session_id: string
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
-  normalized_path: string
-  body_hash?: string
-  query_hash?: string
-  status: "queued" | "processing" | "processed"
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventRequestUpdated = {
-  type: "request.updated"
-  properties: {
-    sessionID: string
-    requests: Array<Request>
-  }
-}
-
 export type Pty = {
   id: string
   title: string
@@ -1014,6 +1157,8 @@ export type Event =
   | EventQuestionRejected
   | EventSessionCompacted
   | EventFileWatcherUpdated
+  | EventRequestUpdated
+  | EventWebCredentialUpdated
   | EventTodoUpdated
   | EventVulnerabilityUpdated
   | EventTuiPromptAppend
@@ -1022,6 +1167,11 @@ export type Event =
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
+  | EventWebRoleUpdated
+  | EventWebRetestUpdated
+  | EventWebObjectUpdated
+  | EventWebObjectValueUpdated
+  | EventWebFunctionUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -1029,7 +1179,6 @@ export type Event =
   | EventSessionDiff
   | EventSessionError
   | EventVcsBranchUpdated
-  | EventRequestUpdated
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
@@ -1714,6 +1863,21 @@ export type McpRemoteConfig = {
   timeout?: number
 }
 
+export type BoltConfig = {
+  /**
+   * Bolt server URL (e.g. http://myserver:3001)
+   */
+  url: string
+  /**
+   * Enable or disable the Bolt server on startup
+   */
+  enabled?: boolean
+  /**
+   * Timeout in ms for Bolt server requests. Defaults to 30000 (30 seconds) if not specified.
+   */
+  timeout?: number
+}
+
 /**
  * @deprecated Always uses stretch layout.
  */
@@ -1812,7 +1976,7 @@ export type Config = {
    */
   small_model?: string
   /**
-   * Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.
+   * Default agent to use when none is specified. Must be a primary agent. Falls back to 'cyberstrike' if not set or if the specified agent is invalid.
    */
   default_agent?: string
   /**
@@ -1823,16 +1987,14 @@ export type Config = {
    * @deprecated Use `agent` field instead.
    */
   mode?: {
-    build?: AgentConfig
-    plan?: AgentConfig
+    cyberstrike?: AgentConfig
     [key: string]: AgentConfig | undefined
   }
   /**
    * Agent configuration, see https://cyberstrike.io/docs/agents
    */
   agent?: {
-    plan?: AgentConfig
-    build?: AgentConfig
+    cyberstrike?: AgentConfig
     general?: AgentConfig
     explore?: AgentConfig
     title?: AgentConfig
@@ -1856,6 +2018,12 @@ export type Config = {
       | {
           enabled: boolean
         }
+  }
+  /**
+   * Bolt server configurations (Docker Kali containers)
+   */
+  bolt?: {
+    [key: string]: BoltConfig
   }
   formatter?:
     | false
@@ -2282,6 +2450,7 @@ export type Agent = {
     [key: string]: unknown
   }
   steps?: number
+  prependRequestContext?: boolean
 }
 
 export type LspStatus = {
@@ -3286,6 +3455,324 @@ export type SessionRequestResponses = {
 
 export type SessionRequestResponse = SessionRequestResponses[keyof SessionRequestResponses]
 
+export type SessionWebCredentialsData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/credentials"
+}
+
+export type SessionWebCredentialsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebCredentialsError = SessionWebCredentialsErrors[keyof SessionWebCredentialsErrors]
+
+export type SessionWebCredentialsResponses = {
+  /**
+   * Credential list
+   */
+  200: Array<WebCredential>
+}
+
+export type SessionWebCredentialsResponse = SessionWebCredentialsResponses[keyof SessionWebCredentialsResponses]
+
+export type SessionAddWebCredentialData = {
+  body?: {
+    label: string
+    headers?: {
+      [key: string]: string
+    }
+    container_id?: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/credentials"
+}
+
+export type SessionAddWebCredentialErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionAddWebCredentialError = SessionAddWebCredentialErrors[keyof SessionAddWebCredentialErrors]
+
+export type SessionAddWebCredentialResponses = {
+  /**
+   * Created credential
+   */
+  200: WebCredential
+}
+
+export type SessionAddWebCredentialResponse = SessionAddWebCredentialResponses[keyof SessionAddWebCredentialResponses]
+
+export type SessionDeleteWebCredentialData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+    /**
+     * Credential ID
+     */
+    credentialID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/credentials/{credentialID}"
+}
+
+export type SessionDeleteWebCredentialErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionDeleteWebCredentialError = SessionDeleteWebCredentialErrors[keyof SessionDeleteWebCredentialErrors]
+
+export type SessionDeleteWebCredentialResponses = {
+  /**
+   * Successfully deleted
+   */
+  200: boolean
+}
+
+export type SessionDeleteWebCredentialResponse =
+  SessionDeleteWebCredentialResponses[keyof SessionDeleteWebCredentialResponses]
+
+export type SessionUpdateWebCredentialData = {
+  body?: {
+    /**
+     * Auth headers
+     */
+    headers?: {
+      [key: string]: string
+    }
+    /**
+     * New label
+     */
+    label?: string
+    /**
+     * Container ID
+     */
+    container_id?: string
+    /**
+     * Role ID to link
+     */
+    role_id?: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+    /**
+     * Credential ID
+     */
+    credentialID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/credentials/{credentialID}"
+}
+
+export type SessionUpdateWebCredentialErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionUpdateWebCredentialError = SessionUpdateWebCredentialErrors[keyof SessionUpdateWebCredentialErrors]
+
+export type SessionUpdateWebCredentialResponses = {
+  /**
+   * Updated credential
+   */
+  200: WebCredential
+}
+
+export type SessionUpdateWebCredentialResponse =
+  SessionUpdateWebCredentialResponses[keyof SessionUpdateWebCredentialResponses]
+
+export type SessionWebRolesData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/roles"
+}
+
+export type SessionWebRolesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebRolesError = SessionWebRolesErrors[keyof SessionWebRolesErrors]
+
+export type SessionWebRolesResponses = {
+  /**
+   * Role list
+   */
+  200: Array<WebRole>
+}
+
+export type SessionWebRolesResponse = SessionWebRolesResponses[keyof SessionWebRolesResponses]
+
+export type SessionWebObjectsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/objects"
+}
+
+export type SessionWebObjectsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebObjectsError = SessionWebObjectsErrors[keyof SessionWebObjectsErrors]
+
+export type SessionWebObjectsResponses = {
+  /**
+   * Object list
+   */
+  200: Array<WebObject>
+}
+
+export type SessionWebObjectsResponse = SessionWebObjectsResponses[keyof SessionWebObjectsResponses]
+
+export type SessionWebFunctionsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/functions"
+}
+
+export type SessionWebFunctionsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebFunctionsError = SessionWebFunctionsErrors[keyof SessionWebFunctionsErrors]
+
+export type SessionWebFunctionsResponses = {
+  /**
+   * Function list
+   */
+  200: Array<WebFunction>
+}
+
+export type SessionWebFunctionsResponse = SessionWebFunctionsResponses[keyof SessionWebFunctionsResponses]
+
+export type SessionWebRetestQueueData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/retest-queue"
+}
+
+export type SessionWebRetestQueueErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebRetestQueueError = SessionWebRetestQueueErrors[keyof SessionWebRetestQueueErrors]
+
+export type SessionWebRetestQueueResponses = {
+  /**
+   * Retest queue
+   */
+  200: {
+    pending: Array<WebRetest>
+    counts: {
+      pending: number
+      processing: number
+      completed: number
+    }
+  }
+}
+
+export type SessionWebRetestQueueResponse = SessionWebRetestQueueResponses[keyof SessionWebRetestQueueResponses]
+
 export type SessionIngestData = {
   body?: {
     /**
@@ -3306,6 +3793,39 @@ export type SessionIngestData = {
     model?: {
       providerID: string
       modelID: string
+    }
+    /**
+     * Existing credential ID to use for this request
+     */
+    credential_id?: string
+    /**
+     * New credential to register with this request
+     */
+    credential?: {
+      label: string
+      headers?: {
+        [key: string]: string
+      }
+      container_id?: string
+    }
+    /**
+     * HTTP response data
+     */
+    response?: {
+      /**
+       * HTTP status code
+       */
+      status: number
+      /**
+       * Response headers
+       */
+      headers: {
+        [key: string]: string
+      }
+      /**
+       * Response body
+       */
+      body: string
     }
   }
   path?: never
@@ -4558,6 +5078,26 @@ export type McpAddResponses = {
 
 export type McpAddResponse = McpAddResponses[keyof McpAddResponses]
 
+export type McpRemoveData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/mcp/{name}"
+}
+
+export type McpRemoveResponses = {
+  /**
+   * MCP server removed
+   */
+  200: boolean
+}
+
+export type McpRemoveResponse = McpRemoveResponses[keyof McpRemoveResponses]
+
 export type McpAuthRemoveData = {
   body?: never
   path: {
@@ -4737,6 +5277,159 @@ export type McpDisconnectResponses = {
 }
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
+
+export type BoltStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/bolt"
+}
+
+export type BoltStatusResponses = {
+  /**
+   * Bolt server status
+   */
+  200: {
+    [key: string]: McpStatus
+  }
+}
+
+export type BoltStatusResponse = BoltStatusResponses[keyof BoltStatusResponses]
+
+export type BoltAddData = {
+  body?: {
+    name: string
+    config: BoltConfig
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/bolt"
+}
+
+export type BoltAddErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BoltAddError = BoltAddErrors[keyof BoltAddErrors]
+
+export type BoltAddResponses = {
+  /**
+   * Bolt server added successfully
+   */
+  200: {
+    [key: string]: McpStatus
+  }
+}
+
+export type BoltAddResponse = BoltAddResponses[keyof BoltAddResponses]
+
+export type BoltPairData = {
+  body?: {
+    /**
+     * Bolt server URL
+     */
+    url: string
+    /**
+     * Admin token for pairing authorization
+     */
+    adminToken: string
+  }
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/bolt/{name}/pair"
+}
+
+export type BoltPairErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type BoltPairError = BoltPairErrors[keyof BoltPairErrors]
+
+export type BoltPairResponses = {
+  /**
+   * Bolt pairing successful
+   */
+  200: {
+    clientId: string
+    serverFingerprint: string
+  }
+}
+
+export type BoltPairResponse = BoltPairResponses[keyof BoltPairResponses]
+
+export type BoltConnectData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/bolt/{name}/connect"
+}
+
+export type BoltConnectResponses = {
+  /**
+   * Bolt server connected
+   */
+  200: boolean
+}
+
+export type BoltConnectResponse = BoltConnectResponses[keyof BoltConnectResponses]
+
+export type BoltDisconnectData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/bolt/{name}/disconnect"
+}
+
+export type BoltDisconnectResponses = {
+  /**
+   * Bolt server disconnected
+   */
+  200: boolean
+}
+
+export type BoltDisconnectResponse = BoltDisconnectResponses[keyof BoltDisconnectResponses]
+
+export type BoltRemoveData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/bolt/{name}"
+}
+
+export type BoltRemoveResponses = {
+  /**
+   * Bolt server removed
+   */
+  200: boolean
+}
+
+export type BoltRemoveResponse = BoltRemoveResponses[keyof BoltRemoveResponses]
 
 export type TuiAppendPromptData = {
   body?: {

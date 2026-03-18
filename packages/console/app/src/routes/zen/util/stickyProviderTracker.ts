@@ -1,4 +1,4 @@
-import { Resource } from "@cyberstrikeus/console-resource"
+import { Resource } from "@cyberstrike-io/console-resource"
 
 export function createStickyTracker(stickyProvider: "strict" | "prefer" | undefined, session: string) {
   if (!stickyProvider) return

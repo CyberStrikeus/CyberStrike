@@ -1,9 +1,11 @@
 # WSTG-CONF-01: Test Network Infrastructure Configuration
 
 ## Test ID
+
 WSTG-CONF-01
 
 ## Test Name
+
 Test Network Infrastructure Configuration
 
 ## High-Level Description
@@ -87,17 +89,17 @@ nmap -sV -p 8080,8443,9090,10000,2082,2083,2086,2087 target.com
 
 #### Common Default Credentials
 
-| Service | Username | Password |
-|---------|----------|----------|
-| Tomcat | admin | admin |
-| Tomcat | tomcat | tomcat |
-| Jenkins | admin | admin |
-| JBoss | admin | admin |
-| WebLogic | weblogic | weblogic |
-| phpMyAdmin | root | (empty) |
-| MongoDB | (none) | (none) |
-| Redis | (none) | (none) |
-| Elasticsearch | elastic | changeme |
+| Service       | Username | Password |
+| ------------- | -------- | -------- |
+| Tomcat        | admin    | admin    |
+| Tomcat        | tomcat   | tomcat   |
+| Jenkins       | admin    | admin    |
+| JBoss         | admin    | admin    |
+| WebLogic      | weblogic | weblogic |
+| phpMyAdmin    | root     | (empty)  |
+| MongoDB       | (none)   | (none)   |
+| Redis         | (none)   | (none)   |
+| Elasticsearch | elastic  | changeme |
 
 ```bash
 # Test Tomcat default credentials
@@ -142,36 +144,36 @@ curl -s https://target.com | grep -iE 'debug|trace|stack'
 
 ### Vulnerability Scanners
 
-| Tool | Type | Usage |
-|------|------|-------|
-| **Nessus** | Commercial | Comprehensive vulnerability scanning |
-| **OpenVAS** | Open Source | Network vulnerability scanning |
-| **Qualys** | Commercial | Cloud-based scanning |
-| **Nexpose** | Commercial | Vulnerability management |
+| Tool        | Type        | Usage                                |
+| ----------- | ----------- | ------------------------------------ |
+| **Nessus**  | Commercial  | Comprehensive vulnerability scanning |
+| **OpenVAS** | Open Source | Network vulnerability scanning       |
+| **Qualys**  | Commercial  | Cloud-based scanning                 |
+| **Nexpose** | Commercial  | Vulnerability management             |
 
 ### Network Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nmap** | Port/service scanner | `nmap -sV -sC target.com` |
-| **Masscan** | Fast port scanner | `masscan -p1-65535 target.com` |
-| **Zmap** | Internet scanner | Large-scale scanning |
+| Tool        | Description          | Usage                          |
+| ----------- | -------------------- | ------------------------------ |
+| **Nmap**    | Port/service scanner | `nmap -sV -sC target.com`      |
+| **Masscan** | Fast port scanner    | `masscan -p1-65535 target.com` |
+| **Zmap**    | Internet scanner     | Large-scale scanning           |
 
 ### Web Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nikto** | Web server scanner | `nikto -h target.com` |
-| **Nuclei** | Template-based scanner | `nuclei -u target.com` |
-| **WPScan** | WordPress scanner | `wpscan --url target.com` |
+| Tool       | Description            | Usage                     |
+| ---------- | ---------------------- | ------------------------- |
+| **Nikto**  | Web server scanner     | `nikto -h target.com`     |
+| **Nuclei** | Template-based scanner | `nuclei -u target.com`    |
+| **WPScan** | WordPress scanner      | `wpscan --url target.com` |
 
 ### SSL/TLS Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **testssl.sh** | SSL testing | `testssl.sh target.com` |
-| **sslyze** | SSL analysis | `sslyze target.com` |
-| **SSL Labs** | Online testing | ssllabs.com |
+| Tool           | Description    | Usage                   |
+| -------------- | -------------- | ----------------------- |
+| **testssl.sh** | SSL testing    | `testssl.sh target.com` |
+| **sslyze**     | SSL analysis   | `sslyze target.com`     |
+| **SSL Labs**   | Online testing | ssllabs.com             |
 
 ---
 
@@ -283,24 +285,24 @@ iptables -A INPUT -p tcp --dport 22 -j DROP
 
 Variable based on findings. Common scenarios:
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Default credentials on admin panel | 9.8 | Critical |
-| Unpatched critical vulnerability | 9.8 | Critical |
-| Exposed database port | 7.5 | High |
-| Missing security headers | 5.3 | Medium |
-| Version disclosure | 5.3 | Medium |
+| Finding                            | CVSS | Severity |
+| ---------------------------------- | ---- | -------- |
+| Default credentials on admin panel | 9.8  | Critical |
+| Unpatched critical vulnerability   | 9.8  | Critical |
+| Exposed database port              | 7.5  | High     |
+| Missing security headers           | 5.3  | Medium   |
+| Version disclosure                 | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-16** | Configuration | Improper configuration |
-| **CWE-200** | Information Exposure | Version/config disclosure |
-| **CWE-287** | Improper Authentication | Default credentials |
-| **CWE-693** | Protection Mechanism Failure | Missing hardening |
+| CWE ID      | Title                        | Description               |
+| ----------- | ---------------------------- | ------------------------- |
+| **CWE-16**  | Configuration                | Improper configuration    |
+| **CWE-200** | Information Exposure         | Version/config disclosure |
+| **CWE-287** | Improper Authentication      | Default credentials       |
+| **CWE-693** | Protection Mechanism Failure | Missing hardening         |
 
 ---
 

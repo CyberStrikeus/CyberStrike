@@ -1,9 +1,11 @@
 # WSTG-ATHN-08: Testing for Weak Security Question Answer
 
 ## Test ID
+
 WSTG-ATHN-08
 
 ## Test Name
+
 Testing for Weak Security Question Answer
 
 ## High-Level Description
@@ -25,14 +27,14 @@ Security questions are often used as a secondary authentication mechanism for pa
 
 ### Question Categories
 
-| Category | Risk Level |
-|----------|------------|
-| Mother's maiden name | High (public records) |
-| Pet's name | High (social media) |
-| School name | High (LinkedIn) |
-| City of birth | High (public) |
-| Favorite color | High (limited options) |
-| Custom questions | Low-Medium |
+| Category             | Risk Level             |
+| -------------------- | ---------------------- |
+| Mother's maiden name | High (public records)  |
+| Pet's name           | High (social media)    |
+| School name          | High (LinkedIn)        |
+| City of birth        | High (public)          |
+| Favorite color       | High (limited options) |
+| Custom questions     | Low-Medium             |
 
 ---
 
@@ -194,18 +196,18 @@ curl -s "https://target.com/api/security-question?email=victim@example.com"
 
 ### Answer Guessing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Intruder** | Automated guessing | Wordlist attacks |
-| **Custom scripts** | Targeted attacks | Common answers |
-| **OSINT tools** | Research | Social media mining |
+| Tool               | Description        | Usage               |
+| ------------------ | ------------------ | ------------------- |
+| **Burp Intruder**  | Automated guessing | Wordlist attacks    |
+| **Custom scripts** | Targeted attacks   | Common answers      |
+| **OSINT tools**    | Research           | Social media mining |
 
 ### Research
 
-| Source | Information |
-|--------|-------------|
-| **Social media** | Pets, favorites |
-| **LinkedIn** | Schools, employers |
+| Source             | Information              |
+| ------------------ | ------------------------ |
+| **Social media**   | Pets, favorites          |
+| **LinkedIn**       | Schools, employers       |
 | **Public records** | Birth city, maiden names |
 
 ---
@@ -454,23 +456,23 @@ class DynamicKBA:
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Single easily guessable question | 8.8 | High |
-| No rate limiting on attempts | 7.5 | High |
-| Questions revealed without auth | 5.3 | Medium |
-| Very short answers allowed | 5.3 | Medium |
-| Only one question required | 6.5 | Medium |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| Single easily guessable question | 8.8  | High     |
+| No rate limiting on attempts     | 7.5  | High     |
+| Questions revealed without auth  | 5.3  | Medium   |
+| Very short answers allowed       | 5.3  | Medium   |
+| Only one question required       | 6.5  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-640** | Weak Password Recovery Mechanism for Forgotten Password | Security questions |
-| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | No rate limiting |
-| **CWE-521** | Weak Password Requirements | Weak answer policy |
+| CWE ID      | Title                                                     | Description        |
+| ----------- | --------------------------------------------------------- | ------------------ |
+| **CWE-640** | Weak Password Recovery Mechanism for Forgotten Password   | Security questions |
+| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | No rate limiting   |
+| **CWE-521** | Weak Password Requirements                                | Weak answer policy |
 
 ---
 

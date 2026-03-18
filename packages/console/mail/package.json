@@ -1,6 +1,6 @@
 {
-  "name": "@cyberstrikeus/console-mail",
-  "version": "1.2.2",
+  "name": "@cyberstrike-io/console-mail",
+  "version": "1.1.4",
   "dependencies": {
     "@jsx-email/all": "2.2.3",
     "@jsx-email/cli": "1.4.3",
@@ -18,5 +18,5 @@
     "dev": "email preview emails/templates"
   },
   "type": "module",
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }

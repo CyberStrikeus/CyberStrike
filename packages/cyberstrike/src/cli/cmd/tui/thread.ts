@@ -7,7 +7,7 @@ import { UI } from "@/cli/ui"
 import { iife } from "@/util/iife"
 import { Log } from "@/util/log"
 import { withNetworkOptions, resolveNetworkOptions } from "@/cli/network"
-import type { Event } from "@cyberstrikeus/sdk/v2"
+import type { Event } from "@cyberstrike-io/sdk/v2"
 import type { EventSource } from "./context/sdk"
 import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 
@@ -150,8 +150,14 @@ export const TuiThreadCommand = cmd({
 
       if (shouldStartServer) {
         // Start HTTP server for external access
-        const server = await client.call("server", networkOpts)
-        url = server.url
+        try {
+          const server = await client.call("server", networkOpts)
+          url = server.url
+        } catch (e) {
+          UI.error(`Failed to start server on port ${networkOpts.port}. The port may already be in use.`)
+          process.exitCode = 1
+          return
+        }
       } else {
         // Use direct RPC communication (no HTTP)
         url = "http://cyberstrike.internal"

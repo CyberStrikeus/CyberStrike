@@ -118,10 +118,10 @@ export default function Download() {
             <div data-component="section-content">
               <button
                 data-component="cli-row"
-                onClick={handleCopyClick("curl -fsSL https://cyberstrike.us/install | bash")}
+                onClick={handleCopyClick("curl -fsSL https://cyberstrike.io/install | bash")}
               >
                 <code>
-                  curl -fsSL https://<strong>cyberstrike.us/install</strong> | bash
+                  curl -fsSL https://<strong>cyberstrike.io/install</strong> | bash
                 </code>
                 <CopyStatus />
               </button>

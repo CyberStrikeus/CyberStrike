@@ -1,5 +1,5 @@
 import type { McpServer } from "@agentclientprotocol/sdk"
-import type { CyberstrikeClient } from "@cyberstrikeus/sdk/v2"
+import type { CyberstrikeClient } from "@cyberstrike-io/sdk/v2"
 
 export interface ACPSessionState {
   id: string

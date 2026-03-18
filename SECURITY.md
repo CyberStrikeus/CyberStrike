@@ -26,24 +26,24 @@ CyberStrike connects to external MCP servers (hackbrowser-mcp, cloud-audit-mcp, 
 
 ### Out of Scope
 
-| Category | Rationale |
-|----------|-----------|
-| **Server access when opted-in** | If you enable server mode, API access is expected behavior |
-| **Sandbox escapes** | The permission system is not a sandbox (see above) |
-| **LLM provider data handling** | Data sent to your configured LLM provider is governed by their policies |
-| **MCP server behavior** | External MCP servers you configure are outside our trust boundary |
-| **Malicious config files** | Users control their own config; modifying it is not an attack vector |
-| **Security tool output** | Tools like nmap, nuclei, etc. produce expected offensive security output |
+| Category                        | Rationale                                                                |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| **Server access when opted-in** | If you enable server mode, API access is expected behavior               |
+| **Sandbox escapes**             | The permission system is not a sandbox (see above)                       |
+| **LLM provider data handling**  | Data sent to your configured LLM provider is governed by their policies  |
+| **MCP server behavior**         | External MCP servers you configure are outside our trust boundary        |
+| **Malicious config files**      | Users control their own config; modifying it is not an attack vector     |
+| **Security tool output**        | Tools like nmap, nuclei, etc. produce expected offensive security output |
 
 ---
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| Latest release | Yes |
+| Version        | Supported   |
+| -------------- | ----------- |
+| Latest release | Yes         |
 | Previous minor | Best effort |
-| Older versions | No |
+| Older versions | No          |
 
 We recommend always running the latest version.
 
@@ -58,6 +58,7 @@ To report a security issue, please use the GitHub Security Advisory ["Report a V
 The team will send a response indicating the next steps in handling your report. After the initial reply, we will keep you informed of progress towards a fix and full announcement, and may ask for additional information.
 
 **Please do NOT:**
+
 - Open a public GitHub issue for security vulnerabilities
 - Post vulnerability details on Discord or social media
 - Exploit vulnerabilities beyond what is necessary to demonstrate the issue

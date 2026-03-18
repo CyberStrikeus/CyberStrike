@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun"
-import { createCyberstrike } from "@cyberstrikeus/sdk/v2"
+import { createCyberstrike } from "@cyberstrike-io/sdk/v2"
 import { parseArgs } from "util"
-import { Script } from "@cyberstrikeus/script"
+import { Script } from "@cyberstrike-io/script"
 
 type Release = {
   tag_name: string
@@ -12,7 +12,12 @@ type Release = {
 }
 
 export async function getLatestRelease(skip?: string) {
-  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100").then((res) => {
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json" }
+  if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`
+  else if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
+  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100", {
+    headers,
+  }).then((res) => {
     if (!res.ok) throw new Error(res.statusText)
     return res.json()
   })
@@ -53,7 +58,7 @@ export async function getCommits(from: string, to: string): Promise<Commit[]> {
 
   // Get commits that touch the relevant packages
   const log =
-    await $`git log ${fromRef}..${toRef} --oneline --format="%H" -- packages/cyberstrike packages/sdk packages/plugin packages/desktop packages/app sdks/vscode packages/extensions github`.text()
+    await $`git log ${fromRef}..${toRef} --oneline --format="%H" -- packages/cyberstrike packages/sdk packages/plugin packages/app sdks/vscode packages/extensions github`.text()
   const hashes = log.split("\n").filter(Boolean)
 
   const commits: Commit[] = []
@@ -70,8 +75,6 @@ export async function getCommits(from: string, to: string): Promise<Commit[]> {
     for (const file of files.split("\n").filter(Boolean)) {
       if (file.startsWith("packages/cyberstrike/src/cli/cmd/")) areas.add("tui")
       else if (file.startsWith("packages/cyberstrike/")) areas.add("core")
-      else if (file.startsWith("packages/desktop/src-tauri/")) areas.add("tauri")
-      else if (file.startsWith("packages/desktop/")) areas.add("app")
       else if (file.startsWith("packages/app/")) areas.add("app")
       else if (file.startsWith("packages/sdk/")) areas.add("sdk")
       else if (file.startsWith("packages/plugin/")) areas.add("plugin")
@@ -118,8 +121,7 @@ function filterRevertedCommits(commits: Commit[]): Commit[] {
 const sections = {
   core: "Core",
   tui: "TUI",
-  app: "Desktop",
-  tauri: "Desktop",
+  app: "Web",
   sdk: "SDK",
   plugin: "SDK",
   "extensions/zed": "Extensions",
@@ -129,14 +131,17 @@ const sections = {
 
 function getSection(areas: Set<string>): string {
   // Priority order for multi-area commits
-  const priority = ["core", "tui", "app", "tauri", "sdk", "plugin", "extensions/zed", "extensions/vscode", "github"]
+  const priority = ["core", "tui", "app", "sdk", "plugin", "extensions/zed", "extensions/vscode", "github"]
   for (const area of priority) {
     if (areas.has(area)) return sections[area as keyof typeof sections]
   }
   return "Core"
 }
 
-async function summarizeCommit(cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>, message: string): Promise<string> {
+async function summarizeCommit(
+  cyberstrike: Awaited<ReturnType<typeof createCyberstrike>>,
+  message: string,
+): Promise<string> {
   console.log("summarizing commit:", message)
   const session = await cyberstrike.client.session.create()
   const result = await cyberstrike.client.session
@@ -185,7 +190,7 @@ export async function generateChangelog(commits: Commit[], cyberstrike: Awaited<
     grouped.get(section)!.push(entry)
   }
 
-  const sectionOrder = ["Core", "TUI", "Desktop", "SDK", "Extensions"]
+  const sectionOrder = ["Core", "TUI", "Web", "SDK", "Extensions"]
   const lines: string[] = []
   for (const section of sectionOrder) {
     const entries = grouped.get(section)
@@ -227,27 +232,35 @@ export async function buildNotes(from: string, to: string) {
 
   console.log("generating changelog since " + from)
 
-  const cyberstrike = await createCyberstrike({ port: 0 })
   const notes: string[] = []
 
   try {
-    const lines = await generateChangelog(commits, cyberstrike)
-    notes.push(...lines)
-    console.log("---- Generated Changelog ----")
-    console.log(notes.join("\n"))
-    console.log("-----------------------------")
-  } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
-      console.log("Changelog generation timed out, using raw commits")
-      for (const commit of commits) {
-        const attribution = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
-        notes.push(`- ${commit.message}${attribution}`)
+    const cyberstrike = await createCyberstrike({ port: 0 })
+    try {
+      const lines = await generateChangelog(commits, cyberstrike)
+      notes.push(...lines)
+      console.log("---- Generated Changelog ----")
+      console.log(notes.join("\n"))
+      console.log("-----------------------------")
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        console.log("Changelog generation timed out, using raw commits")
+        for (const commit of commits) {
+          const attribution = commit.author && !team.includes(commit.author) ? ` (@${commit.author})` : ""
+          notes.push(`- ${commit.message}${attribution}`)
+        }
+      } else {
+        throw error
       }
-    } else {
-      throw error
+    } finally {
+      await cyberstrike.server.close()
     }
-  } finally {
-    await cyberstrike.server.close()
+  } catch (error) {
+    console.log("Could not start cyberstrike for changelog generation, using raw commits:", (error as Error).message)
+    for (const commit of commits) {
+      const attribution = commit.author && !Script.team.includes(commit.author) ? ` (@${commit.author})` : ""
+      notes.push(`- ${commit.message}${attribution}`)
+    }
   }
   console.log("changelog generation complete")
 

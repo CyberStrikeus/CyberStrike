@@ -26,7 +26,7 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
     await Bun.write(
       path.join(dirpath, "cyberstrike.json"),
       JSON.stringify({
-        $schema: "https://cyberstrike.us/config.json",
+        $schema: "https://cyberstrike.io/config.json",
         ...options.config,
       }),
     )

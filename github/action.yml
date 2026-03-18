@@ -31,7 +31,7 @@ inputs:
     required: false
 
   oidc_base_url:
-    description: "Base URL for OIDC token exchange API. Only required when running a custom GitHub App install. Defaults to https://api.cyberstrike.us"
+    description: "Base URL for OIDC token exchange API. Only required when running a custom GitHub App install. Defaults to https://api.cyberstrike.io"
     required: false
 
 runs:
@@ -54,7 +54,7 @@ runs:
     - name: Install cyberstrike
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: curl -fsSL https://cyberstrike.us/install | bash
+      run: curl -fsSL https://cyberstrike.io/install | bash
 
     - name: Add cyberstrike to PATH
       shell: bash

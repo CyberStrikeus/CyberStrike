@@ -1,9 +1,11 @@
 # WSTG-INPV-05.3: Testing for SQL Injection - SQL Server
 
 ## Test ID
+
 WSTG-INPV-05.3
 
 ## Test Name
+
 Testing for SQL Injection - SQL Server (MSSQL)
 
 ## High-Level Description
@@ -387,12 +389,12 @@ sqlmap -u "https://target.com/product?id=1" --dbms=mssql --priv-esc
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| SQLMap | Automated MSSQL SQLi |
-| SQL Server Management Studio | Database client |
-| Burp Suite | Manual testing |
-| PowerUpSQL | MSSQL audit tool |
+| Tool                         | Purpose              |
+| ---------------------------- | -------------------- |
+| SQLMap                       | Automated MSSQL SQLi |
+| SQL Server Management Studio | Database client      |
+| Burp Suite                   | Manual testing       |
+| PowerUpSQL                   | MSSQL audit tool     |
 
 ---
 
@@ -415,18 +417,18 @@ cursor.execute("SELECT * FROM users WHERE id = ?", user_id)
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| MSSQL SQLi with xp_cmdshell | 10.0 | Critical |
-| MSSQL SQLi with SA privileges | 9.8 | Critical |
-| MSSQL SQLi data extraction | 8.6 | High |
+| Finding                       | CVSS | Severity |
+| ----------------------------- | ---- | -------- |
+| MSSQL SQLi with xp_cmdshell   | 10.0 | Critical |
+| MSSQL SQLi with SA privileges | 9.8  | Critical |
+| MSSQL SQLi data extraction    | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title         |
+| ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
 ---

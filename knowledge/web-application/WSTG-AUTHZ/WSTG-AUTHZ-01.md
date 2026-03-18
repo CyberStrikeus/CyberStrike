@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-01: Testing Directory Traversal File Include
 
 ## Test ID
+
 WSTG-AUTHZ-01
 
 ## Test Name
+
 Testing Directory Traversal File Include
 
 ## High-Level Description
@@ -26,15 +28,15 @@ Directory traversal (also known as path traversal) is a vulnerability that allow
 
 ### Common Targets
 
-| Target File | Purpose |
-|-------------|---------|
-| `/etc/passwd` | Linux user accounts |
-| `/etc/shadow` | Linux password hashes |
-| `C:\Windows\win.ini` | Windows system file |
-| `C:\Windows\System32\config\SAM` | Windows credentials |
-| `/var/log/apache2/access.log` | Web server logs |
-| `WEB-INF/web.xml` | Java app config |
-| `.env` | Environment variables |
+| Target File                      | Purpose               |
+| -------------------------------- | --------------------- |
+| `/etc/passwd`                    | Linux user accounts   |
+| `/etc/shadow`                    | Linux password hashes |
+| `C:\Windows\win.ini`             | Windows system file   |
+| `C:\Windows\System32\config\SAM` | Windows credentials   |
+| `/var/log/apache2/access.log`    | Web server logs       |
+| `WEB-INF/web.xml`                | Java app config       |
+| `.env`                           | Environment variables |
 
 ---
 
@@ -277,19 +279,19 @@ if __name__ == "__main__":
 
 ### Automated Scanners
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Intruder with traversal payloads | Automated testing |
-| **dotdotpwn** | Directory traversal fuzzer | `dotdotpwn -m http -h target.com` |
-| **dirsearch** | Web path scanner | Path discovery |
-| **wfuzz** | Web fuzzer | `wfuzz -c -w traversal.txt -u "URL?file=FUZZ"` |
+| Tool           | Description                      | Usage                                          |
+| -------------- | -------------------------------- | ---------------------------------------------- |
+| **Burp Suite** | Intruder with traversal payloads | Automated testing                              |
+| **dotdotpwn**  | Directory traversal fuzzer       | `dotdotpwn -m http -h target.com`              |
+| **dirsearch**  | Web path scanner                 | Path discovery                                 |
+| **wfuzz**      | Web fuzzer                       | `wfuzz -c -w traversal.txt -u "URL?file=FUZZ"` |
 
 ### Wordlists
 
-| Wordlist | Source |
-|----------|--------|
-| `traversal.txt` | SecLists |
-| `LFI-gracefulsecurity-linux.txt` | SecLists |
+| Wordlist                           | Source   |
+| ---------------------------------- | -------- |
+| `traversal.txt`                    | SecLists |
+| `LFI-gracefulsecurity-linux.txt`   | SecLists |
 | `LFI-gracefulsecurity-windows.txt` | SecLists |
 
 ---
@@ -368,30 +370,30 @@ public class SecureFileHandler {
 ### 3. Node.js Implementation
 
 ```javascript
-const path = require('path');
-const fs = require('fs');
+const path = require("path")
+const fs = require("fs")
 
 function secureFileAccess(userInput, baseDirectory) {
-    // Whitelist validation
-    if (!/^[a-zA-Z0-9_\-\.]+$/.test(userInput)) {
-        throw new Error('Invalid filename');
-    }
+  // Whitelist validation
+  if (!/^[a-zA-Z0-9_\-\.]+$/.test(userInput)) {
+    throw new Error("Invalid filename")
+  }
 
-    // Resolve paths
-    const basePath = path.resolve(baseDirectory);
-    const requestedPath = path.resolve(baseDirectory, userInput);
+  // Resolve paths
+  const basePath = path.resolve(baseDirectory)
+  const requestedPath = path.resolve(baseDirectory, userInput)
 
-    // Check path is within base directory
-    if (!requestedPath.startsWith(basePath + path.sep)) {
-        throw new Error('Path traversal detected');
-    }
+  // Check path is within base directory
+  if (!requestedPath.startsWith(basePath + path.sep)) {
+    throw new Error("Path traversal detected")
+  }
 
-    // Verify file exists
-    if (!fs.existsSync(requestedPath) || !fs.statSync(requestedPath).isFile()) {
-        throw new Error('File not found');
-    }
+  // Verify file exists
+  if (!fs.existsSync(requestedPath) || !fs.statSync(requestedPath).isFile()) {
+    throw new Error("File not found")
+  }
 
-    return requestedPath;
+  return requestedPath
 }
 ```
 
@@ -422,23 +424,23 @@ def download_file(file_id):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Read arbitrary system files | 7.5 | High |
-| Read application config/secrets | 8.6 | High |
-| Access to source code | 6.5 | Medium |
-| Limited file disclosure | 5.3 | Medium |
+| Finding                         | CVSS | Severity |
+| ------------------------------- | ---- | -------- |
+| Read arbitrary system files     | 7.5  | High     |
+| Read application config/secrets | 8.6  | High     |
+| Access to source code           | 6.5  | Medium   |
+| Limited file disclosure         | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-22** | Improper Limitation of a Pathname to a Restricted Directory | Path traversal |
-| **CWE-23** | Relative Path Traversal | Using ../ to escape |
-| **CWE-36** | Absolute Path Traversal | Using absolute paths |
-| **CWE-73** | External Control of File Name or Path | User controls path |
+| CWE ID     | Title                                                       | Description          |
+| ---------- | ----------------------------------------------------------- | -------------------- |
+| **CWE-22** | Improper Limitation of a Pathname to a Restricted Directory | Path traversal       |
+| **CWE-23** | Relative Path Traversal                                     | Using ../ to escape  |
+| **CWE-36** | Absolute Path Traversal                                     | Using absolute paths |
+| **CWE-73** | External Control of File Name or Path                       | User controls path   |
 
 ---
 

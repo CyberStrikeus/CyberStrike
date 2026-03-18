@@ -11,7 +11,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import { Config } from "../config/config"
 import { Log } from "../util/log"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import z from "zod/v4"
 import { Instance } from "../project/instance"
 import path from "node:path"
@@ -594,9 +594,7 @@ export namespace MCP {
       })
       const errMsg = error instanceof Error ? error.message : String(error)
       const isAuthError = /unauthorized|unknown client|needs.*pair/i.test(errMsg)
-      status = isAuthError
-        ? { status: "needs_auth" as const }
-        : { status: "failed" as const, error: errMsg }
+      status = isAuthError ? { status: "needs_auth" as const } : { status: "failed" as const, error: errMsg }
     }
 
     if (!status) {
@@ -799,7 +797,11 @@ export namespace MCP {
       files.push(...found)
     }
     // .cyberstrike directory config files
-    for await (const dir of Filesystem.up({ targets: [".cyberstrike"], start: Instance.directory, stop: Instance.worktree })) {
+    for await (const dir of Filesystem.up({
+      targets: [".cyberstrike"],
+      start: Instance.directory,
+      stop: Instance.worktree,
+    })) {
       for (const filename of ["cyberstrike.jsonc", "cyberstrike.json"]) {
         files.push(path.join(dir, filename))
       }

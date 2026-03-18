@@ -1,11 +1,11 @@
-import { TextField } from "@cyberstrikeus/ui/text-field"
-import { Logo } from "@cyberstrikeus/ui/logo"
-import { Button } from "@cyberstrikeus/ui/button"
+import { TextField } from "@cyberstrike-io/ui/text-field"
+import { Logo } from "@cyberstrike-io/ui/logo"
+import { Button } from "@cyberstrike-io/ui/button"
 import { Component, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
-import { Icon } from "@cyberstrikeus/ui/icon"
+import { Icon } from "@cyberstrike-io/ui/icon"
 
 export type InitError = {
   name: string
@@ -299,7 +299,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
             <button
               type="button"
               class="flex items-center text-text-interactive-base gap-1"
-              onClick={() => platform.openLink("https://cyberstrike.us/desktop-feedback")}
+              onClick={() => platform.openLink("https://cyberstrike.io/desktop-feedback")}
             >
               <div>{language.t("error.page.report.discord")}</div>
               <Icon name="discord" class="text-text-interactive-base" />

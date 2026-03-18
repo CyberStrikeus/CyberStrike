@@ -8,8 +8,8 @@ import {
   type DragEvent,
 } from "@thisbeyond/solid-dnd"
 import { ConstrainDragXAxis } from "@/utils/solid-dnd"
-import { IconButton } from "@cyberstrikeus/ui/icon-button"
-import { Tooltip, TooltipKeybind } from "@cyberstrikeus/ui/tooltip"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
 import { type LocalProject } from "@/context/layout"
 import { sidebarExpanded } from "./sidebar-shell-helpers"
 

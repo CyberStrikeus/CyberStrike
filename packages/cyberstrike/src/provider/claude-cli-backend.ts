@@ -59,10 +59,7 @@ function normalizeModel(modelId: string): string {
   return MODEL_ALIASES[normalized] ?? MODEL_ALIASES[modelId] ?? modelId
 }
 
-export async function runClaudeCli(
-  prompt: string,
-  options: ClaudeCliOptions = {},
-): Promise<ClaudeCliResponse> {
+export async function runClaudeCli(prompt: string, options: ClaudeCliOptions = {}): Promise<ClaudeCliResponse> {
   if (!isClaudeCliInstalled()) {
     throw new Error("Claude Code CLI is not installed. Please install it first: https://claude.ai/download")
   }

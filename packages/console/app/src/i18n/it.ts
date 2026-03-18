@@ -226,7 +226,8 @@ export const dict = {
   "zen.problem.item2": "Collaborare con i provider per garantire che vengano consegnati correttamente",
   "zen.problem.item3": "Benchmark di tutte le combinazioni modello-provider che raccomandiamo",
   "zen.how.title": "Come funziona Zen",
-  "zen.how.body": "Anche se ti consigliamo di utilizzare Zen con CyberStrike, puoi utilizzare Zen con qualsiasi agente.",
+  "zen.how.body":
+    "Anche se ti consigliamo di utilizzare Zen con CyberStrike, puoi utilizzare Zen con qualsiasi agente.",
   "zen.how.step1.title": "Iscriviti e aggiungi un saldo di $20",
   "zen.how.step1.beforeLink": "segui le",
   "zen.how.step1.link": "istruzioni di configurazione",
@@ -513,7 +514,8 @@ export const dict = {
     "Eventuali costi aggiuntivi proverranno dal tuo abbonamento a un provider di modelli. Mentre CyberStrike funziona con qualsiasi provider di modelli, raccomandiamo di usare",
   "download.faq.a5.p2.afterZen": ".",
 
-  "download.faq.a6.p1": "I tuoi dati e informazioni sono archiviati solo quando crei link condivisibili in CyberStrike.",
+  "download.faq.a6.p1":
+    "I tuoi dati e informazioni sono archiviati solo quando crei link condivisibili in CyberStrike.",
   "download.faq.a6.p2.beforeShare": "Scopri di più sulle",
   "download.faq.a6.shareLink": "pagine condivise",
 

@@ -160,11 +160,7 @@ export namespace BoltAuth {
   /**
    * Perform a fetch request with Ed25519 signature authentication.
    */
-  export async function signedFetch(
-    creds: Credentials,
-    url: string,
-    init?: RequestInit,
-  ): Promise<Response> {
+  export async function signedFetch(creds: Credentials, url: string, init?: RequestInit): Promise<Response> {
     const parsed = new URL(url)
     const method = (init?.method ?? "GET").toUpperCase()
     const body = typeof init?.body === "string" ? init.body : ""

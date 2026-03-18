@@ -7,12 +7,12 @@ import {
   type ProviderListResponse,
   type QuestionRequest,
   createCyberstrikeClient,
-} from "@cyberstrikeus/sdk/v2/client"
+} from "@cyberstrike-io/sdk/v2/client"
 import { batch } from "solid-js"
 import { reconcile, type SetStoreFunction, type Store } from "solid-js/store"
-import { retry } from "@cyberstrikeus/util/retry"
-import { getFilename } from "@cyberstrikeus/util/path"
-import { showToast } from "@cyberstrikeus/ui/toast"
+import { retry } from "@cyberstrike-io/util/retry"
+import { getFilename } from "@cyberstrike-io/util/path"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { cmp, normalizeProviderList } from "./utils"
 import type { State, VcsCache } from "./types"
 

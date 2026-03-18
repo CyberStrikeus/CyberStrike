@@ -1,9 +1,11 @@
 # WSTG-INFO-10: Map Application Architecture
 
 ## Test ID
+
 WSTG-INFO-10
 
 ## Test Name
+
 Map Application Architecture
 
 ## High-Level Description
@@ -77,13 +79,13 @@ whatweb https://target.com
 
 #### PaaS Indicators
 
-| Pattern | Platform |
-|---------|----------|
-| *.azurewebsites.net | Azure App Service |
-| *.herokuapp.com | Heroku |
-| *.appspot.com | Google App Engine |
-| *.elasticbeanstalk.com | AWS Elastic Beanstalk |
-| *.cloudfunctions.net | Google Cloud Functions |
+| Pattern                 | Platform               |
+| ----------------------- | ---------------------- |
+| \*.azurewebsites.net    | Azure App Service      |
+| \*.herokuapp.com        | Heroku                 |
+| \*.appspot.com          | Google App Engine      |
+| \*.elasticbeanstalk.com | AWS Elastic Beanstalk  |
+| \*.cloudfunctions.net   | Google Cloud Functions |
 
 ```bash
 # Check DNS for cloud indicators
@@ -96,14 +98,14 @@ curl -sI https://target.com | grep -iE 'x-azure|x-amz|x-goog|x-heroku'
 
 #### Serverless Indicators
 
-| Header | Platform |
-|--------|----------|
-| X-Amz-Cf-Id | AWS CloudFront |
-| X-Amz-Request-Id | AWS API Gateway |
-| X-Amz-Invocation-Type | AWS Lambda |
-| X-Ms-Request-Id | Azure Functions |
-| Server: Kestrel | Azure/.NET |
-| X-Cloud-Trace-Context | Google Cloud |
+| Header                | Platform        |
+| --------------------- | --------------- |
+| X-Amz-Cf-Id           | AWS CloudFront  |
+| X-Amz-Request-Id      | AWS API Gateway |
+| X-Amz-Invocation-Type | AWS Lambda      |
+| X-Ms-Request-Id       | Azure Functions |
+| Server: Kestrel       | Azure/.NET      |
+| X-Cloud-Trace-Context | Google Cloud    |
 
 ### Step 3: Database Detection
 
@@ -123,13 +125,13 @@ nmap -sV -p 3306,5432,1433,1521,27017,6379,9200 target.com
 
 #### Database Error Fingerprinting
 
-| Error Pattern | Database |
-|---------------|----------|
-| "MySQL server" | MySQL |
-| "PostgreSQL" | PostgreSQL |
-| "ORA-" | Oracle |
-| "Microsoft SQL Server" | MSSQL |
-| "MongoDB" | MongoDB |
+| Error Pattern          | Database   |
+| ---------------------- | ---------- |
+| "MySQL server"         | MySQL      |
+| "PostgreSQL"           | PostgreSQL |
+| "ORA-"                 | Oracle     |
+| "Microsoft SQL Server" | MSSQL      |
+| "MongoDB"              | MongoDB    |
 
 ```bash
 # Trigger errors to identify database
@@ -153,15 +155,15 @@ curl -sI https://target.com | grep -i 'set-cookie'
 
 #### Load Balancer Indicators
 
-| Indicator | Load Balancer |
-|-----------|---------------|
-| BIGipServer cookie | F5 BIG-IP |
-| AWSALB/AWSALBCORS cookie | AWS ALB |
-| X-Amz-Cf-Id header | AWS CloudFront |
-| X-Cache header | Various |
-| Via header | Proxy/LB |
+| Indicator                   | Load Balancer     |
+| --------------------------- | ----------------- |
+| BIGipServer cookie          | F5 BIG-IP         |
+| AWSALB/AWSALBCORS cookie    | AWS ALB           |
+| X-Amz-Cf-Id header          | AWS CloudFront    |
+| X-Cache header              | Various           |
+| Via header                  | Proxy/LB          |
 | Inconsistent Server headers | Multiple backends |
-| Varying response times | Distribution |
+| Varying response times      | Distribution      |
 
 ### Step 5: CDN Detection
 
@@ -175,14 +177,14 @@ curl -sI https://target.com | grep -iE 'cf-ray|x-cdn|x-cache|x-amz-cf|akamai|fas
 
 #### CDN Indicators
 
-| Header/Pattern | CDN |
-|----------------|-----|
-| CF-Ray | Cloudflare |
-| X-Amz-Cf-Id | AWS CloudFront |
-| X-Akamai-* | Akamai |
-| X-Fastly-* | Fastly |
-| X-CDN | Generic CDN |
-| Server: cloudflare | Cloudflare |
+| Header/Pattern     | CDN            |
+| ------------------ | -------------- |
+| CF-Ray             | Cloudflare     |
+| X-Amz-Cf-Id        | AWS CloudFront |
+| X-Akamai-\*        | Akamai         |
+| X-Fastly-\*        | Fastly         |
+| X-CDN              | Generic CDN    |
+| Server: cloudflare | Cloudflare     |
 
 ### Step 6: Reverse Proxy Detection
 
@@ -215,14 +217,14 @@ curl -sI "https://target.com/?id=<script>" | grep -iE 'waf|firewall|blocked|forb
 
 #### WAF Signatures
 
-| Response/Header | WAF |
-|-----------------|-----|
-| "Blocked by Cloudflare" | Cloudflare |
-| "ModSecurity" | ModSecurity |
-| "Request blocked" | Various |
-| "AWS WAF" | AWS WAF |
-| X-Sucuri-ID | Sucuri |
-| X-CDN: Imperva | Imperva |
+| Response/Header         | WAF         |
+| ----------------------- | ----------- |
+| "Blocked by Cloudflare" | Cloudflare  |
+| "ModSecurity"           | ModSecurity |
+| "Request blocked"       | Various     |
+| "AWS WAF"               | AWS WAF     |
+| X-Sucuri-ID             | Sucuri      |
+| X-CDN: Imperva          | Imperva     |
 
 ### Step 8: Authentication Architecture
 
@@ -239,14 +241,14 @@ curl -s https://target.com/login | grep -iE 'mfa|2fa|authenticator|otp'
 
 #### Authentication Indicators
 
-| Pattern | Mechanism |
-|---------|-----------|
-| WWW-Authenticate: Basic | HTTP Basic Auth |
-| WWW-Authenticate: NTLM | NTLM/AD |
-| WWW-Authenticate: Negotiate | Kerberos |
-| /adfs/ in URL | ADFS |
-| accounts.google.com redirect | Google OAuth |
-| login.microsoftonline.com | Azure AD |
+| Pattern                      | Mechanism       |
+| ---------------------------- | --------------- |
+| WWW-Authenticate: Basic      | HTTP Basic Auth |
+| WWW-Authenticate: NTLM       | NTLM/AD         |
+| WWW-Authenticate: Negotiate  | Kerberos        |
+| /adfs/ in URL                | ADFS            |
+| accounts.google.com redirect | Google OAuth    |
+| login.microsoftonline.com    | Azure AD        |
 
 ### Step 9: Microservices Detection
 
@@ -290,34 +292,34 @@ Create a visual representation:
 
 ### Network Scanning
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nmap** | Port/service scanner | `nmap -sV -p- target.com` |
-| **Masscan** | Fast port scanner | `masscan -p1-65535 target.com` |
-| **Shodan** | Internet-wide scanning | `shodan host target_ip` |
+| Tool        | Description            | Usage                          |
+| ----------- | ---------------------- | ------------------------------ |
+| **Nmap**    | Port/service scanner   | `nmap -sV -p- target.com`      |
+| **Masscan** | Fast port scanner      | `masscan -p1-65535 target.com` |
+| **Shodan**  | Internet-wide scanning | `shodan host target_ip`        |
 
 ### Web Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **WhatWeb** | Technology detection | `whatweb target.com` |
-| **Wappalyzer** | Stack identification | Browser extension |
-| **httpx** | HTTP probing | `httpx -tech-detect` |
+| Tool           | Description          | Usage                |
+| -------------- | -------------------- | -------------------- |
+| **WhatWeb**    | Technology detection | `whatweb target.com` |
+| **Wappalyzer** | Stack identification | Browser extension    |
+| **httpx**      | HTTP probing         | `httpx -tech-detect` |
 
 ### DNS/Network
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **dig** | DNS lookup | `dig target.com ANY` |
-| **whois** | Registration info | `whois target.com` |
-| **traceroute** | Network path | `traceroute target.com` |
+| Tool           | Description       | Usage                   |
+| -------------- | ----------------- | ----------------------- |
+| **dig**        | DNS lookup        | `dig target.com ANY`    |
+| **whois**      | Registration info | `whois target.com`      |
+| **traceroute** | Network path      | `traceroute target.com` |
 
 ### WAF Detection
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **wafw00f** | WAF fingerprinting | `wafw00f https://target.com` |
-| **nmap http-waf-detect** | WAF detection | `nmap --script http-waf-detect` |
+| Tool                     | Description        | Usage                           |
+| ------------------------ | ------------------ | ------------------------------- |
+| **wafw00f**              | WAF fingerprinting | `wafw00f https://target.com`    |
+| **nmap http-waf-detect** | WAF detection      | `nmap --script http-waf-detect` |
 
 ---
 
@@ -466,6 +468,7 @@ proxy_hide_header Server;
 ### 5. Documentation
 
 Maintain accurate architecture documentation:
+
 - Network diagrams
 - Data flow diagrams
 - Component inventory
@@ -485,32 +488,34 @@ This is a **reconnaissance activity**, not a direct vulnerability.
 
 ### Finding Severity
 
-| Finding | Severity | Impact |
-|---------|----------|--------|
-| Architecture visible | Info | Reconnaissance data |
-| Database ports exposed | High | Direct attack vector |
-| No WAF detected | Medium | Reduced protection |
-| Admin interfaces exposed | High | Attack target |
-| Internal IPs disclosed | Medium | Network mapping |
+| Finding                  | Severity | Impact               |
+| ------------------------ | -------- | -------------------- |
+| Architecture visible     | Info     | Reconnaissance data  |
+| Database ports exposed   | High     | Direct attack vector |
+| No WAF detected          | Medium   | Reduced protection   |
+| Admin interfaces exposed | High     | Attack target        |
+| Internal IPs disclosed   | Medium   | Network mapping      |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                             | Description             |
+| ----------- | --------------------------------- | ----------------------- |
 | **CWE-200** | Exposure of Sensitive Information | Architecture disclosure |
-| **CWE-16** | Configuration | Network misconfig |
-| **CWE-693** | Protection Mechanism Failure | Missing security layers |
+| **CWE-16**  | Configuration                     | Network misconfig       |
+| **CWE-693** | Protection Mechanism Failure      | Missing security layers |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Map Application Architecture](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/10-Map_Application_Architecture)
 
 ### Tools
+
 - [Nmap](https://nmap.org/)
 - [wafw00f](https://github.com/EnableSecurity/wafw00f)
 - [WhatWeb](https://github.com/urbanadventurer/WhatWeb)

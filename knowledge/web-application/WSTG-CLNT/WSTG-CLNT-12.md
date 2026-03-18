@@ -1,9 +1,11 @@
 # WSTG-CLNT-12: Testing Browser Storage
 
 ## Test ID
+
 WSTG-CLNT-12
 
 ## Test Name
+
 Testing Browser Storage
 
 ## High-Level Description
@@ -31,32 +33,32 @@ Browser storage mechanisms (localStorage, sessionStorage, IndexedDB, cookies) ca
 // Browser console - Enumerate all storage
 
 // Check localStorage
-console.log("=== localStorage ===");
+console.log("=== localStorage ===")
 for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    const value = localStorage.getItem(key);
-    console.log(`${key}: ${value.substring(0, 100)}...`);
+  const key = localStorage.key(i)
+  const value = localStorage.getItem(key)
+  console.log(`${key}: ${value.substring(0, 100)}...`)
 }
 
 // Check sessionStorage
-console.log("\n=== sessionStorage ===");
+console.log("\n=== sessionStorage ===")
 for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    const value = sessionStorage.getItem(key);
-    console.log(`${key}: ${value.substring(0, 100)}...`);
+  const key = sessionStorage.key(i)
+  const value = sessionStorage.getItem(key)
+  console.log(`${key}: ${value.substring(0, 100)}...`)
 }
 
 // Check cookies
-console.log("\n=== Cookies ===");
-document.cookie.split(';').forEach(cookie => {
-    console.log(cookie.trim());
-});
+console.log("\n=== Cookies ===")
+document.cookie.split(";").forEach((cookie) => {
+  console.log(cookie.trim())
+})
 
 // Check IndexedDB databases
-console.log("\n=== IndexedDB ===");
-indexedDB.databases().then(dbs => {
-    dbs.forEach(db => console.log(`Database: ${db.name}`));
-});
+console.log("\n=== IndexedDB ===")
+indexedDB.databases().then((dbs) => {
+  dbs.forEach((db) => console.log(`Database: ${db.name}`))
+})
 ```
 
 ### Step 2: Storage Security Analyzer
@@ -303,42 +305,42 @@ tester.run_tests()
 ```javascript
 // Analyze IndexedDB contents
 async function analyzeIndexedDB() {
-    const databases = await indexedDB.databases();
+  const databases = await indexedDB.databases()
 
-    for (const dbInfo of databases) {
-        console.log(`\n=== Database: ${dbInfo.name} ===`);
+  for (const dbInfo of databases) {
+    console.log(`\n=== Database: ${dbInfo.name} ===`)
 
-        const request = indexedDB.open(dbInfo.name);
+    const request = indexedDB.open(dbInfo.name)
 
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            const storeNames = db.objectStoreNames;
+    request.onsuccess = function (event) {
+      const db = event.target.result
+      const storeNames = db.objectStoreNames
 
-            console.log('Object Stores:', Array.from(storeNames));
+      console.log("Object Stores:", Array.from(storeNames))
 
-            for (const storeName of storeNames) {
-                const transaction = db.transaction(storeName, 'readonly');
-                const store = transaction.objectStore(storeName);
-                const getAllRequest = store.getAll();
+      for (const storeName of storeNames) {
+        const transaction = db.transaction(storeName, "readonly")
+        const store = transaction.objectStore(storeName)
+        const getAllRequest = store.getAll()
 
-                getAllRequest.onsuccess = function() {
-                    console.log(`\nStore: ${storeName}`);
-                    console.log('Records:', getAllRequest.result.length);
+        getAllRequest.onsuccess = function () {
+          console.log(`\nStore: ${storeName}`)
+          console.log("Records:", getAllRequest.result.length)
 
-                    // Check for sensitive data
-                    getAllRequest.result.forEach((record, i) => {
-                        const str = JSON.stringify(record);
-                        if (str.match(/password|token|secret|key|auth/i)) {
-                            console.log(`[!] Potential sensitive data in record ${i}`);
-                        }
-                    });
-                };
+          // Check for sensitive data
+          getAllRequest.result.forEach((record, i) => {
+            const str = JSON.stringify(record)
+            if (str.match(/password|token|secret|key|auth/i)) {
+              console.log(`[!] Potential sensitive data in record ${i}`)
             }
-        };
+          })
+        }
+      }
     }
+  }
 }
 
-analyzeIndexedDB();
+analyzeIndexedDB()
 ```
 
 ### Step 4: Cookie Analysis Script
@@ -373,12 +375,12 @@ done
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Browser DevTools (Application tab) | View all storage |
-| EditThisCookie | Cookie editor extension |
-| Selenium/Puppeteer | Automated storage analysis |
-| Burp Suite | Cookie analysis |
+| Tool                               | Purpose                    |
+| ---------------------------------- | -------------------------- |
+| Browser DevTools (Application tab) | View all storage           |
+| EditThisCookie                     | Cookie editor extension    |
+| Selenium/Puppeteer                 | Automated storage analysis |
+| Burp Suite                         | Cookie analysis            |
 
 ---
 
@@ -470,24 +472,24 @@ function secureLogout() {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Credentials in localStorage | 7.5 | High |
-| Session token in localStorage | 7.5 | High |
-| Sensitive cookie without HttpOnly | 6.1 | Medium |
-| Missing Secure flag on sensitive cookie | 5.3 | Medium |
-| PII in browser storage | 5.3 | Medium |
+| Finding                                 | CVSS | Severity |
+| --------------------------------------- | ---- | -------- |
+| Credentials in localStorage             | 7.5  | High     |
+| Session token in localStorage           | 7.5  | High     |
+| Sensitive cookie without HttpOnly       | 6.1  | Medium   |
+| Missing Secure flag on sensitive cookie | 5.3  | Medium   |
+| PII in browser storage                  | 5.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-922** | Insecure Storage of Sensitive Information |
-| **CWE-312** | Cleartext Storage of Sensitive Information |
-| **CWE-1004** | Sensitive Cookie Without 'HttpOnly' Flag |
-| **CWE-614** | Sensitive Cookie in HTTPS Session Without 'Secure' Attribute |
+| CWE ID       | Title                                                        |
+| ------------ | ------------------------------------------------------------ |
+| **CWE-922**  | Insecure Storage of Sensitive Information                    |
+| **CWE-312**  | Cleartext Storage of Sensitive Information                   |
+| **CWE-1004** | Sensitive Cookie Without 'HttpOnly' Flag                     |
+| **CWE-614**  | Sensitive Cookie in HTTPS Session Without 'Secure' Attribute |
 
 ---
 

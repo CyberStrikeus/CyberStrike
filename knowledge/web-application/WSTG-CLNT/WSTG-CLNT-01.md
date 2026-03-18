@@ -1,9 +1,11 @@
 # WSTG-CLNT-01: Testing for DOM-Based Cross Site Scripting
 
 ## Test ID
+
 WSTG-CLNT-01
 
 ## Test Name
+
 Testing for DOM-Based Cross Site Scripting
 
 ## High-Level Description
@@ -15,6 +17,7 @@ DOM-based XSS occurs when client-side JavaScript processes data from untrusted s
 ## What to Check
 
 ### Sources (User Input)
+
 - [ ] document.URL
 - [ ] document.location
 - [ ] document.referrer
@@ -24,6 +27,7 @@ DOM-based XSS occurs when client-side JavaScript processes data from untrusted s
 - [ ] URL hash (location.hash)
 
 ### Sinks (Dangerous Functions)
+
 - [ ] document.write()
 - [ ] innerHTML/outerHTML
 - [ ] eval()
@@ -44,31 +48,31 @@ DOM-based XSS occurs when client-side JavaScript processes data from untrusted s
 
 // Common source patterns
 const sources = [
-    'location.hash',
-    'location.search',
-    'location.href',
-    'document.URL',
-    'document.referrer',
-    'window.name',
-    'localStorage',
-    'sessionStorage'
-];
+  "location.hash",
+  "location.search",
+  "location.href",
+  "document.URL",
+  "document.referrer",
+  "window.name",
+  "localStorage",
+  "sessionStorage",
+]
 
 // Common sink patterns
 const sinks = [
-    'innerHTML',
-    'outerHTML',
-    'document.write',
-    'eval(',
-    'setTimeout(',
-    'setInterval(',
-    '.html(',
-    '.append(',
-    'location.href',
-    'location.replace'
-];
+  "innerHTML",
+  "outerHTML",
+  "document.write",
+  "eval(",
+  "setTimeout(",
+  "setInterval(",
+  ".html(",
+  ".append(",
+  "location.href",
+  "location.replace",
+]
 
-console.log("Check JS files for these patterns");
+console.log("Check JS files for these patterns")
 ```
 
 ### Step 2: Test URL-Based DOM XSS
@@ -254,25 +258,25 @@ tester.close()
 // Paste in browser console on target page
 
 // Test 1: Check if hash is used unsafely
-location.hash = "<img src=x onerror=alert('hash-xss')>";
+location.hash = "<img src=x onerror=alert('hash-xss')>"
 
 // Test 2: Check postMessage handler
-window.postMessage("<img src=x onerror=alert('postMessage')>", "*");
+window.postMessage("<img src=x onerror=alert('postMessage')>", "*")
 
 // Test 3: Check localStorage handling
-localStorage.setItem('test', '<img src=x onerror=alert("storage")>');
-location.reload();
+localStorage.setItem("test", '<img src=x onerror=alert("storage")>')
+location.reload()
 ```
 
 ---
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
+| Tool                   | Description               |
+| ---------------------- | ------------------------- |
 | **DOM Invader (Burp)** | Automated DOM XSS testing |
-| **Browser DevTools** | Manual analysis |
-| **Selenium** | Automated browser testing |
+| **Browser DevTools**   | Manual analysis           |
+| **Selenium**           | Automated browser testing |
 
 ---
 
@@ -282,49 +286,49 @@ location.reload();
 
 ```javascript
 // UNSAFE - Direct HTML insertion
-element.innerHTML = userInput;
+element.innerHTML = userInput
 
 // SAFE - Text content (no HTML parsing)
-element.textContent = userInput;
+element.textContent = userInput
 
 // SAFE - Create elements programmatically
-const div = document.createElement('div');
-div.textContent = userInput;
-parent.appendChild(div);
+const div = document.createElement("div")
+div.textContent = userInput
+parent.appendChild(div)
 
 // SAFE - Use DOMPurify for HTML
-element.innerHTML = DOMPurify.sanitize(userInput);
+element.innerHTML = DOMPurify.sanitize(userInput)
 ```
 
 ### Avoid Dangerous Sinks
 
 ```javascript
 // AVOID
-eval(userInput);
-document.write(userInput);
-element.innerHTML = userInput;
+eval(userInput)
+document.write(userInput)
+element.innerHTML = userInput
 
 // USE INSTEAD
-JSON.parse(userInput);  // For JSON data
-element.textContent = userInput;  // For text
+JSON.parse(userInput) // For JSON data
+element.textContent = userInput // For text
 ```
 
 ---
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| DOM XSS via hash | 6.1 | Medium |
-| DOM XSS via query param | 6.1 | Medium |
-| DOM XSS with session theft | 8.1 | High |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| DOM XSS via hash           | 6.1  | Medium   |
+| DOM XSS via query param    | 6.1  | Medium   |
+| DOM XSS with session theft | 8.1  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                       |
+| ---------- | ----------------------------------------------------------- |
 | **CWE-79** | Improper Neutralization of Input During Web Page Generation |
 
 ---

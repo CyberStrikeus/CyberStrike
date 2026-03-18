@@ -34,7 +34,7 @@ jobs:
         run: bun install
 
       - name: Install cyberstrike
-        run: curl -fsSL https://cyberstrike.us/install | bash
+        run: curl -fsSL https://cyberstrike.io/install | bash
 
       - name: Build prompt
         env:

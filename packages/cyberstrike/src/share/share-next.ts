@@ -7,7 +7,7 @@ import { MessageV2 } from "@/session/message-v2"
 import { Database, eq } from "@/storage/db"
 import { SessionShareTable } from "./share.sql"
 import { Log } from "@/util/log"
-import type * as SDK from "@cyberstrikeus/sdk/v2"
+import type * as SDK from "@cyberstrike-io/sdk/v2"
 
 export namespace ShareNext {
   const log = Log.create({ service: "share-next" })
@@ -16,7 +16,8 @@ export namespace ShareNext {
     return Config.get().then((x) => x.enterprise?.url ?? "https://cybrstk.us")
   }
 
-  const disabled = process.env["CYBERSTRIKE_DISABLE_SHARE"] === "true" || process.env["CYBERSTRIKE_DISABLE_SHARE"] === "1"
+  const disabled =
+    process.env["CYBERSTRIKE_DISABLE_SHARE"] === "true" || process.env["CYBERSTRIKE_DISABLE_SHARE"] === "1"
 
   export async function init() {
     if (disabled) return

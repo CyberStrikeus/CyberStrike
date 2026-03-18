@@ -1,9 +1,11 @@
 # WSTG-INFO-04: Enumerate Applications on Webserver
 
 ## Test ID
+
 WSTG-INFO-04
 
 ## Test Name
+
 Enumerate Applications on Webserver
 
 ## High-Level Description
@@ -70,22 +72,22 @@ masscan -p0-65535 target.com --rate=1000 --banners
 
 #### Common Web Service Ports
 
-| Port | Common Service |
-|------|----------------|
-| 80 | HTTP |
-| 443 | HTTPS |
-| 8080 | HTTP Proxy/Tomcat |
-| 8443 | HTTPS Alt |
+| Port | Common Service      |
+| ---- | ------------------- |
+| 80   | HTTP                |
+| 443  | HTTPS               |
+| 8080 | HTTP Proxy/Tomcat   |
+| 8443 | HTTPS Alt           |
 | 8000 | Development servers |
-| 3000 | Node.js/React |
-| 4443 | HTTPS Alt |
-| 5000 | Flask/Development |
-| 9000 | PHP-FPM/SonarQube |
-| 9443 | WSO2/VMware |
-| 8888 | Jupyter/Alt HTTP |
-| 8081 | HTTP Alt |
-| 4000 | Development |
-| 5001 | Development |
+| 3000 | Node.js/React       |
+| 4443 | HTTPS Alt           |
+| 5000 | Flask/Development   |
+| 9000 | PHP-FPM/SonarQube   |
+| 9443 | WSO2/VMware         |
+| 8888 | Jupyter/Alt HTTP    |
+| 8081 | HTTP Alt            |
+| 4000 | Development         |
+| 5001 | Development         |
 
 ### Step 2: Non-Standard URL Enumeration
 
@@ -281,51 +283,51 @@ eyewitness --web -f urls.txt -d output/
 
 ### Port Scanning
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Nmap** | Network scanner | `nmap -sV -p- target.com` |
-| **Masscan** | Fast port scanner | `masscan -p0-65535 target.com` |
-| **RustScan** | Fast scanner + Nmap | `rustscan -a target.com` |
-| **Zmap** | Internet-wide scanner | `zmap -p 80 target.com/24` |
+| Tool         | Description           | Usage                          |
+| ------------ | --------------------- | ------------------------------ |
+| **Nmap**     | Network scanner       | `nmap -sV -p- target.com`      |
+| **Masscan**  | Fast port scanner     | `masscan -p0-65535 target.com` |
+| **RustScan** | Fast scanner + Nmap   | `rustscan -a target.com`       |
+| **Zmap**     | Internet-wide scanner | `zmap -p 80 target.com/24`     |
 
 ### Directory/Application Discovery
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Gobuster** | Directory brute-forcer | `gobuster dir -u target.com -w wordlist.txt` |
-| **ffuf** | Fast web fuzzer | `ffuf -u target.com/FUZZ -w wordlist.txt` |
-| **Dirsearch** | Directory scanner | `dirsearch -u target.com` |
-| **Feroxbuster** | Recursive scanner | `feroxbuster -u target.com` |
-| **Dirb** | Directory scanner | `dirb https://target.com` |
+| Tool            | Description            | Usage                                        |
+| --------------- | ---------------------- | -------------------------------------------- |
+| **Gobuster**    | Directory brute-forcer | `gobuster dir -u target.com -w wordlist.txt` |
+| **ffuf**        | Fast web fuzzer        | `ffuf -u target.com/FUZZ -w wordlist.txt`    |
+| **Dirsearch**   | Directory scanner      | `dirsearch -u target.com`                    |
+| **Feroxbuster** | Recursive scanner      | `feroxbuster -u target.com`                  |
+| **Dirb**        | Directory scanner      | `dirb https://target.com`                    |
 
 ### Subdomain/Virtual Host Discovery
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Amass** | Subdomain enumeration | `amass enum -d target.com` |
-| **Subfinder** | Subdomain discovery | `subfinder -d target.com` |
-| **DNSRecon** | DNS enumeration | `dnsrecon -d target.com` |
-| **Sublist3r** | Subdomain enumeration | `sublist3r -d target.com` |
-| **Assetfinder** | Find domains | `assetfinder target.com` |
+| Tool            | Description           | Usage                      |
+| --------------- | --------------------- | -------------------------- |
+| **Amass**       | Subdomain enumeration | `amass enum -d target.com` |
+| **Subfinder**   | Subdomain discovery   | `subfinder -d target.com`  |
+| **DNSRecon**    | DNS enumeration       | `dnsrecon -d target.com`   |
+| **Sublist3r**   | Subdomain enumeration | `sublist3r -d target.com`  |
+| **Assetfinder** | Find domains          | `assetfinder target.com`   |
 
 ### Verification/Analysis
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **httpx** | HTTP toolkit | `cat hosts.txt \| httpx` |
-| **EyeWitness** | Screenshot tool | `eyewitness -f urls.txt` |
-| **Aquatone** | Screenshot tool | `cat hosts.txt \| aquatone` |
-| **WhatWeb** | Tech identifier | `whatweb target.com` |
+| Tool           | Description     | Usage                       |
+| -------------- | --------------- | --------------------------- |
+| **httpx**      | HTTP toolkit    | `cat hosts.txt \| httpx`    |
+| **EyeWitness** | Screenshot tool | `eyewitness -f urls.txt`    |
+| **Aquatone**   | Screenshot tool | `cat hosts.txt \| aquatone` |
+| **WhatWeb**    | Tech identifier | `whatweb target.com`        |
 
 ### Online Services
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Shodan | shodan.io | Host discovery |
-| Censys | censys.io | Certificate search |
-| crt.sh | crt.sh | CT logs |
-| ViewDNS | viewdns.info | Reverse IP |
-| SecurityTrails | securitytrails.com | DNS history |
+| Service        | URL                | Purpose            |
+| -------------- | ------------------ | ------------------ |
+| Shodan         | shodan.io          | Host discovery     |
+| Censys         | censys.io          | Certificate search |
+| crt.sh         | crt.sh             | CT logs            |
+| ViewDNS        | viewdns.info       | Reverse IP         |
+| SecurityTrails | securitytrails.com | DNS history        |
 
 ---
 
@@ -496,52 +498,55 @@ server {
 
 **CVSS Vector**: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-| Metric | Value | Description |
-|--------|-------|-------------|
-| Attack Vector | Network | Accessible via internet |
-| Attack Complexity | Low | Standard enumeration techniques |
-| Privileges Required | None | No authentication needed |
-| User Interaction | None | No user interaction required |
-| Scope | Unchanged | Impact scope unchanged |
-| Confidentiality | Low | Application existence disclosure |
-| Integrity | None | No integrity impact |
-| Availability | None | No availability impact |
+| Metric              | Value     | Description                      |
+| ------------------- | --------- | -------------------------------- |
+| Attack Vector       | Network   | Accessible via internet          |
+| Attack Complexity   | Low       | Standard enumeration techniques  |
+| Privileges Required | None      | No authentication needed         |
+| User Interaction    | None      | No user interaction required     |
+| Scope               | Unchanged | Impact scope unchanged           |
+| Confidentiality     | Low       | Application existence disclosure |
+| Integrity           | None      | No integrity impact              |
+| Availability        | None      | No availability impact           |
 
 ### Severity Levels
 
-| Finding | Severity | Description |
-|---------|----------|-------------|
-| Public applications discovered | Info | Normal discovery |
-| Admin interface on non-standard port | Low | Obscurity is not security |
-| Unprotected admin interface | High | Direct administrative access |
-| Development/staging exposed | Medium | Potentially vulnerable apps |
-| Undocumented applications | Medium | Shadow IT risk |
+| Finding                              | Severity | Description                  |
+| ------------------------------------ | -------- | ---------------------------- |
+| Public applications discovered       | Info     | Normal discovery             |
+| Admin interface on non-standard port | Low      | Obscurity is not security    |
+| Unprotected admin interface          | High     | Direct administrative access |
+| Development/staging exposed          | Medium   | Potentially vulnerable apps  |
+| Undocumented applications            | Medium   | Shadow IT risk               |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
+| CWE ID      | Title                             | Description                        |
+| ----------- | --------------------------------- | ---------------------------------- |
 | **CWE-200** | Exposure of Sensitive Information | Application enumeration disclosure |
-| **CWE-16** | Configuration | Improper server configuration |
-| **CWE-693** | Protection Mechanism Failure | Lack of access controls |
-| **CWE-284** | Improper Access Control | Insufficient access restrictions |
+| **CWE-16**  | Configuration                     | Improper server configuration      |
+| **CWE-693** | Protection Mechanism Failure      | Lack of access controls            |
+| **CWE-284** | Improper Access Control           | Insufficient access restrictions   |
 
 ---
 
 ## References
 
 ### OWASP References
+
 - [OWASP WSTG - Enumerate Applications on Webserver](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/04-Enumerate_Applications_on_Webserver)
 
 ### Tools Documentation
+
 - [Nmap Documentation](https://nmap.org/docs.html)
 - [Gobuster GitHub](https://github.com/OJ/gobuster)
 - [Amass GitHub](https://github.com/owasp-amass/amass)
 - [ffuf GitHub](https://github.com/ffuf/ffuf)
 
 ### Wordlists
+
 - [SecLists](https://github.com/danielmiessler/SecLists)
 - [Assetnote Wordlists](https://wordlists.assetnote.io/)
 

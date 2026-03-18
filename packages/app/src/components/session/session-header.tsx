@@ -9,20 +9,20 @@ import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import { useSync } from "@/context/sync"
 import { useGlobalSDK } from "@/context/global-sdk"
-import { getFilename } from "@cyberstrikeus/util/path"
+import { getFilename } from "@cyberstrike-io/util/path"
 import { decode64 } from "@/utils/base64"
 import { Persist, persisted } from "@/utils/persist"
 
-import { Icon } from "@cyberstrikeus/ui/icon"
-import { IconButton } from "@cyberstrikeus/ui/icon-button"
-import { Button } from "@cyberstrikeus/ui/button"
-import { AppIcon } from "@cyberstrikeus/ui/app-icon"
-import { DropdownMenu } from "@cyberstrikeus/ui/dropdown-menu"
-import { Tooltip, TooltipKeybind } from "@cyberstrikeus/ui/tooltip"
-import { Popover } from "@cyberstrikeus/ui/popover"
-import { TextField } from "@cyberstrikeus/ui/text-field"
-import { Keybind } from "@cyberstrikeus/ui/keybind"
-import { showToast } from "@cyberstrikeus/ui/toast"
+import { Icon } from "@cyberstrike-io/ui/icon"
+import { IconButton } from "@cyberstrike-io/ui/icon-button"
+import { Button } from "@cyberstrike-io/ui/button"
+import { AppIcon } from "@cyberstrike-io/ui/app-icon"
+import { DropdownMenu } from "@cyberstrike-io/ui/dropdown-menu"
+import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
+import { Popover } from "@cyberstrike-io/ui/popover"
+import { TextField } from "@cyberstrike-io/ui/text-field"
+import { Keybind } from "@cyberstrike-io/ui/keybind"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { StatusPopover } from "../status-popover"
 
 const OPEN_APPS = [
@@ -312,7 +312,8 @@ export function SessionHeader() {
   })
 
   const leftMount = createMemo(
-    () => document.getElementById("cyberstrike-titlebar-left") ?? document.getElementById("cyberstrike-titlebar-center"),
+    () =>
+      document.getElementById("cyberstrike-titlebar-left") ?? document.getElementById("cyberstrike-titlebar-center"),
   )
   const rightMount = createMemo(() => document.getElementById("cyberstrike-titlebar-right"))
 

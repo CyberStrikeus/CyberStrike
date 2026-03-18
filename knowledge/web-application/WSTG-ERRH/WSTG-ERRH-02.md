@@ -1,9 +1,11 @@
 # WSTG-ERRH-02: Testing for Stack Traces
 
 ## Test ID
+
 WSTG-ERRH-02
 
 ## Test Name
+
 Testing for Stack Traces
 
 ## High-Level Description
@@ -238,20 +240,20 @@ error_log = /var/log/php/error.log
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Full stack trace in production | 5.3 | Medium |
-| Debug mode enabled | 7.5 | High |
-| Framework debug page | 7.5 | High |
+| Finding                        | CVSS | Severity |
+| ------------------------------ | ---- | -------- |
+| Full stack trace in production | 5.3  | Medium   |
+| Debug mode enabled             | 7.5  | High     |
+| Framework debug page           | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                        |
+| ----------- | ------------------------------------------------------------ |
 | **CWE-209** | Generation of Error Message Containing Sensitive Information |
-| **CWE-215** | Insertion of Sensitive Information Into Debugging Code |
+| **CWE-215** | Insertion of Sensitive Information Into Debugging Code       |
 
 ---
 

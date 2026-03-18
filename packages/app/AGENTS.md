@@ -4,7 +4,7 @@
 
 ## Local Dev
 
-- `cyberstrike dev web` proxies `https://app.cyberstrike.us`, so local UI/CSS changes will not show there.
+- `cyberstrike dev web` proxies `https://app.cyberstrike.io`, so local UI/CSS changes will not show there.
 - For local UI changes, run the backend and app dev servers separately.
 - Backend (from `packages/cyberstrike`): `bun run --conditions=browser ./src/index.ts serve --port 4096`
 - App (from `packages/app`): `bun dev -- --port 4444`

@@ -138,7 +138,7 @@ export namespace User {
             .then((rows) => rows[0]),
         )
 
-        const { InviteEmail } = await import("@cyberstrikeus/console-mail/InviteEmail.jsx")
+        const { InviteEmail } = await import("@cyberstrike-io/console-mail/InviteEmail.jsx")
         await AWS.sendEmail({
           to: email,
           subject: `You've been invited to join the ${emailInfo.workspaceName} workspace on CyberStrike`,
@@ -146,7 +146,7 @@ export namespace User {
             // @ts-ignore
             InviteEmail({
               inviter: emailInfo.inviterEmail,
-              assetsUrl: `https://cyberstrike.us/email`,
+              assetsUrl: `https://cyberstrike.io/email`,
               workspaceID: workspaceID,
               workspaceName: emailInfo.workspaceName,
             }),

@@ -1,9 +1,11 @@
 # WSTG-INPV-14: Testing for Incubated Vulnerabilities
 
 ## Test ID
+
 WSTG-INPV-14
 
 ## Test Name
+
 Testing for Incubated Vulnerabilities
 
 ## High-Level Description
@@ -337,11 +339,11 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
+| Tool              | Purpose                |
+| ----------------- | ---------------------- |
 | Burp Collaborator | OOB callback detection |
-| XSS Hunter | Blind XSS detection |
-| Custom scripts | Payload tracking |
+| XSS Hunter        | Blind XSS detection    |
+| Custom scripts    | Payload tracking       |
 
 ---
 
@@ -370,20 +372,20 @@ cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Stored XSS in admin panel | 8.4 | High |
-| Second-order SQL injection | 8.6 | High |
-| Incubated command injection | 9.8 | Critical |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| Stored XSS in admin panel   | 8.4  | High     |
+| Second-order SQL injection  | 8.6  | High     |
+| Incubated command injection | 9.8  | Critical |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                |
+| ---------- | -------------------- |
 | **CWE-79** | Cross-Site Scripting |
-| **CWE-89** | SQL Injection |
+| **CWE-89** | SQL Injection        |
 
 ---
 

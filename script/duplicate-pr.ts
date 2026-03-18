@@ -2,7 +2,7 @@
 
 import path from "path"
 import { pathToFileURL } from "bun"
-import { createCyberstrike } from "@cyberstrikeus/sdk"
+import { createCyberstrike } from "@cyberstrike-io/sdk"
 import { parseArgs } from "util"
 
 async function main() {

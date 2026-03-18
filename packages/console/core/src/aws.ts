@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { Resource } from "@cyberstrikeus/console-resource"
+import { Resource } from "@cyberstrike-io/console-resource"
 import { AwsClient } from "aws4fetch"
 import { fn } from "./util/fn"
 

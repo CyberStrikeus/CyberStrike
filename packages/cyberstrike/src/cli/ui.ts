@@ -1,6 +1,6 @@
 import z from "zod"
 import { EOL } from "os"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { colorize } from "./logo"
 
 export namespace UI {

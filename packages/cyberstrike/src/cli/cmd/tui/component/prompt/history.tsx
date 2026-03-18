@@ -5,7 +5,7 @@ import { createStore, produce } from "solid-js/store"
 import { clone } from "remeda"
 import { createSimpleContext } from "../../context/helper"
 import { appendFile, writeFile } from "fs/promises"
-import type { AgentPart, FilePart, TextPart } from "@cyberstrikeus/sdk/v2"
+import type { AgentPart, FilePart, TextPart } from "@cyberstrike-io/sdk/v2"
 
 export type PromptInfo = {
   input: string

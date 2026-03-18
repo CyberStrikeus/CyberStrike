@@ -1,9 +1,11 @@
 # WSTG-INPV-06: Testing for LDAP Injection
 
 ## Test ID
+
 WSTG-INPV-06
 
 ## Test Name
+
 Testing for LDAP Injection
 
 ## High-Level Description
@@ -334,12 +336,12 @@ cn=admin,dc=example)(&(objectClass=*
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Manual testing |
-| ldapsearch | LDAP client |
-| Apache Directory Studio | LDAP browser |
-| Custom scripts | Automated testing |
+| Tool                    | Purpose           |
+| ----------------------- | ----------------- |
+| Burp Suite              | Manual testing    |
+| ldapsearch              | LDAP client       |
+| Apache Directory Studio | LDAP browser      |
+| Custom scripts          | Automated testing |
 
 ---
 
@@ -381,19 +383,19 @@ $filter = "(&(uid=$safe_username)(objectClass=user))";
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| LDAP authentication bypass | 9.8 | Critical |
-| LDAP data extraction | 7.5 | High |
-| LDAP filter injection | 7.5 | High |
-| LDAP error disclosure | 4.3 | Medium |
+| Finding                    | CVSS | Severity |
+| -------------------------- | ---- | -------- |
+| LDAP authentication bypass | 9.8  | Critical |
+| LDAP data extraction       | 7.5  | High     |
+| LDAP filter injection      | 7.5  | High     |
+| LDAP error disclosure      | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                             |
+| ---------- | ----------------------------------------------------------------- |
 | **CWE-90** | Improper Neutralization of Special Elements used in an LDAP Query |
 
 ---

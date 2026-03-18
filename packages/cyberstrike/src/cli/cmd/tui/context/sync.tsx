@@ -17,17 +17,17 @@ import type {
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
-} from "@cyberstrikeus/sdk/v2"
+} from "@cyberstrike-io/sdk/v2"
 import { createStore, produce, reconcile } from "solid-js/store"
 import { useSDK } from "@tui/context/sdk"
-import { Binary } from "@cyberstrikeus/util/binary"
+import { Binary } from "@cyberstrike-io/util/binary"
 import { createSimpleContext } from "./helper"
 import type { Snapshot } from "@/snapshot"
 import { useExit } from "./exit"
 import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
-import type { Path } from "@cyberstrikeus/sdk"
+import type { Path } from "@cyberstrike-io/sdk"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
@@ -497,7 +497,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
             sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
-            sdk.fetch(`${sdk.url}/bolt`).then((r) => r.json()).then((x) => setStore("bolt", reconcile(x as any))).catch(() => {}),
+            sdk
+              .fetch(`${sdk.url}/bolt`)
+              .then((r) => r.json())
+              .then((x) => setStore("bolt", reconcile(x as any)))
+              .catch(() => {}),
             sdk.client.experimental.resource.list().then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
             sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
             sdk.client.session.status().then((x) => {

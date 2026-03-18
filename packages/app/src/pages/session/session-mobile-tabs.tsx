@@ -1,5 +1,5 @@
 import { Show } from "solid-js"
-import { Tabs } from "@cyberstrikeus/ui/tabs"
+import { Tabs } from "@cyberstrike-io/ui/tabs"
 
 export function SessionMobileTabs(props: {
   open: boolean

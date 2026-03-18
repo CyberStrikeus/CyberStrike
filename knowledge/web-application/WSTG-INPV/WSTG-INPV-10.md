@@ -1,9 +1,11 @@
 # WSTG-INPV-10: Testing for IMAP/SMTP Injection
 
 ## Test ID
+
 WSTG-INPV-10
 
 ## Test Name
+
 Testing for IMAP/SMTP Injection
 
 ## High-Level Description
@@ -293,12 +295,12 @@ QUIT
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | Intercept and modify |
-| Telnet | Direct SMTP/IMAP testing |
-| swaks | SMTP testing |
-| Custom scripts | Automated testing |
+| Tool           | Purpose                  |
+| -------------- | ------------------------ |
+| Burp Suite     | Intercept and modify     |
+| Telnet         | Direct SMTP/IMAP testing |
+| swaks          | SMTP testing             |
+| Custom scripts | Automated testing        |
 
 ---
 
@@ -362,20 +364,20 @@ $headers .= "Reply-To: " . sanitize_email_header($email) . "\r\n";
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| IMAP command injection | 9.1 | Critical |
-| SMTP command injection | 8.1 | High |
-| Email header injection | 6.5 | Medium |
-| From address spoofing | 4.3 | Medium |
+| Finding                | CVSS | Severity |
+| ---------------------- | ---- | -------- |
+| IMAP command injection | 9.1  | Critical |
+| SMTP command injection | 8.1  | High     |
+| Email header injection | 6.5  | Medium   |
+| From address spoofing  | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
-| **CWE-93** | Improper Neutralization of CRLF Sequences |
+| CWE ID     | Title                                                       |
+| ---------- | ----------------------------------------------------------- |
+| **CWE-93** | Improper Neutralization of CRLF Sequences                   |
 | **CWE-88** | Improper Neutralization of Argument Delimiters in a Command |
 
 ---

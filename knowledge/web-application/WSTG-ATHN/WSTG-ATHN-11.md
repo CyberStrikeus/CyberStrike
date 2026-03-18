@@ -1,9 +1,11 @@
 # WSTG-ATHN-11: Testing Multi-Factor Authentication (MFA)
 
 ## Test ID
+
 WSTG-ATHN-11
 
 ## Test Name
+
 Testing Multi-Factor Authentication (MFA)
 
 ## High-Level Description
@@ -26,13 +28,13 @@ Multi-Factor Authentication adds an additional layer of security beyond password
 
 ### Common Weaknesses
 
-| Weakness | Description |
-|----------|-------------|
-| Direct page access | Bypass MFA by accessing post-auth pages |
+| Weakness              | Description                             |
+| --------------------- | --------------------------------------- |
+| Direct page access    | Bypass MFA by accessing post-auth pages |
 | Response manipulation | Change response to indicate MFA success |
-| Brute force OTP | No rate limiting on attempts |
-| Weak OTP generation | Predictable codes |
-| Backup code reuse | Codes not single-use |
+| Brute force OTP       | No rate limiting on attempts            |
+| Weak OTP generation   | Predictable codes                       |
+| Backup code reuse     | Codes not single-use                    |
 
 ---
 
@@ -253,18 +255,18 @@ print(f"2-minute future code: {response.status_code}")
 
 ### MFA Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Suite** | Response manipulation | MFA bypass testing |
-| **pyotp** | TOTP testing | Code generation/analysis |
-| **Custom scripts** | Automated testing | OTP brute force |
+| Tool               | Description           | Usage                    |
+| ------------------ | --------------------- | ------------------------ |
+| **Burp Suite**     | Response manipulation | MFA bypass testing       |
+| **pyotp**          | TOTP testing          | Code generation/analysis |
+| **Custom scripts** | Automated testing     | OTP brute force          |
 
 ### Analysis
 
-| Tool | Description |
-|------|-------------|
-| **oathtool** | TOTP/HOTP generation |
-| **Python** | Custom analysis scripts |
+| Tool         | Description             |
+| ------------ | ----------------------- |
+| **oathtool** | TOTP/HOTP generation    |
+| **Python**   | Custom analysis scripts |
 
 ---
 
@@ -635,23 +637,23 @@ def disable_mfa():
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| MFA bypass via direct access | 9.8 | Critical |
-| No rate limiting on OTP | 8.8 | High |
-| Backup code reuse | 7.5 | High |
-| Wide TOTP time window | 5.3 | Medium |
-| MFA disable without verification | 7.5 | High |
+| Finding                          | CVSS | Severity |
+| -------------------------------- | ---- | -------- |
+| MFA bypass via direct access     | 9.8  | Critical |
+| No rate limiting on OTP          | 8.8  | High     |
+| Backup code reuse                | 7.5  | High     |
+| Wide TOTP time window            | 5.3  | Medium   |
+| MFA disable without verification | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-308** | Use of Single-factor Authentication | MFA bypass |
-| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | OTP brute force |
-| **CWE-287** | Improper Authentication | MFA implementation flaws |
+| CWE ID      | Title                                                     | Description              |
+| ----------- | --------------------------------------------------------- | ------------------------ |
+| **CWE-308** | Use of Single-factor Authentication                       | MFA bypass               |
+| **CWE-307** | Improper Restriction of Excessive Authentication Attempts | OTP brute force          |
+| **CWE-287** | Improper Authentication                                   | MFA implementation flaws |
 
 ---
 

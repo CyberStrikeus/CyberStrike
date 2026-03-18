@@ -1,4 +1,4 @@
-import type { Message, Part } from "@cyberstrikeus/sdk/v2/client"
+import type { Message, Part } from "@cyberstrike-io/sdk/v2/client"
 
 export type SessionContextBreakdownKey = "system" | "user" | "assistant" | "tool" | "other"
 

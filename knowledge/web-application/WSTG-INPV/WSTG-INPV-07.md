@@ -1,9 +1,11 @@
 # WSTG-INPV-07: Testing for XML Injection
 
 ## Test ID
+
 WSTG-INPV-07
 
 ## Test Name
+
 Testing for XML Injection
 
 ## High-Level Description
@@ -368,11 +370,11 @@ tester.run_tests()
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| Burp Suite | XXE testing |
-| XXEinjector | Automated XXE |
-| OXML_XXE | Office XXE |
+| Tool                   | Purpose           |
+| ---------------------- | ----------------- |
+| Burp Suite             | XXE testing       |
+| XXEinjector            | Automated XXE     |
+| OXML_XXE               | Office XXE        |
 | xxe-recursive-download | File exfiltration |
 
 ---
@@ -411,21 +413,21 @@ $dom->loadXML($xml, LIBXML_NOENT | LIBXML_DTDLOAD);
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| XXE file read | 9.1 | Critical |
-| XXE SSRF | 9.1 | Critical |
-| Blind XXE | 7.5 | High |
-| XML DoS (Billion Laughs) | 7.5 | High |
+| Finding                  | CVSS | Severity |
+| ------------------------ | ---- | -------- |
+| XXE file read            | 9.1  | Critical |
+| XXE SSRF                 | 9.1  | Critical |
+| Blind XXE                | 7.5  | High     |
+| XML DoS (Billion Laughs) | 7.5  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID      | Title                                                 |
+| ----------- | ----------------------------------------------------- |
 | **CWE-611** | Improper Restriction of XML External Entity Reference |
-| **CWE-91** | XML Injection |
+| **CWE-91**  | XML Injection                                         |
 
 ---
 

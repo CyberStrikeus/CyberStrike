@@ -1,9 +1,11 @@
 # WSTG-AUTHZ-04: Testing for Insecure Direct Object References (IDOR)
 
 ## Test ID
+
 WSTG-AUTHZ-04
 
 ## Test Name
+
 Testing for Insecure Direct Object References (IDOR)
 
 ## High-Level Description
@@ -28,13 +30,13 @@ Insecure Direct Object References (IDOR) occur when an application uses user-sup
 
 ### IDOR Locations
 
-| Location | Example |
-|----------|---------|
-| URL path | `/api/users/123/profile` |
-| Query string | `/download?file_id=456` |
-| Request body | `{"user_id": 789}` |
-| Headers | `X-User-ID: 123` |
-| Cookies | `user_id=123` |
+| Location     | Example                  |
+| ------------ | ------------------------ |
+| URL path     | `/api/users/123/profile` |
+| Query string | `/download?file_id=456`  |
+| Request body | `{"user_id": 789}`       |
+| Headers      | `X-User-ID: 123`         |
+| Cookies      | `user_id=123`            |
 
 ---
 
@@ -486,19 +488,19 @@ curl -s -X POST "https://target.com/graphql" \
 
 ### IDOR Testing
 
-| Tool | Description | Usage |
-|------|-------------|-------|
-| **Burp Intruder** | ID enumeration | Numeric/payload fuzzing |
-| **Autorize (Burp)** | Authorization testing | Compare responses |
-| **OWASP ZAP** | Active scanning | Automated testing |
-| **Postman** | API testing | Collection runner |
+| Tool                | Description           | Usage                   |
+| ------------------- | --------------------- | ----------------------- |
+| **Burp Intruder**   | ID enumeration        | Numeric/payload fuzzing |
+| **Autorize (Burp)** | Authorization testing | Compare responses       |
+| **OWASP ZAP**       | Active scanning       | Automated testing       |
+| **Postman**         | API testing           | Collection runner       |
 
 ### ID Discovery
 
-| Tool | Description |
-|------|-------------|
-| **Burp Logger++** | Request logging |
-| **ParamMiner** | Parameter discovery |
+| Tool                    | Description           |
+| ----------------------- | --------------------- |
+| **Burp Logger++**       | Request logging       |
+| **ParamMiner**          | Parameter discovery   |
 | **JavaScript analysis** | Extract IDs from code |
 
 ---
@@ -652,24 +654,24 @@ class Document(db.Model):
 
 ### CVSS Score
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| Read other users' sensitive data (PII, financial) | 7.5 | High |
-| Modify other users' data | 8.1 | High |
-| Delete other users' resources | 8.1 | High |
-| Access administrative resources | 8.8 | High |
-| Read non-sensitive data | 4.3 | Medium |
+| Finding                                           | CVSS | Severity |
+| ------------------------------------------------- | ---- | -------- |
+| Read other users' sensitive data (PII, financial) | 7.5  | High     |
+| Modify other users' data                          | 8.1  | High     |
+| Delete other users' resources                     | 8.1  | High     |
+| Access administrative resources                   | 8.8  | High     |
+| Read non-sensitive data                           | 4.3  | Medium   |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title | Description |
-|--------|-------|-------------|
-| **CWE-639** | Authorization Bypass Through User-Controlled Key | Core IDOR issue |
-| **CWE-284** | Improper Access Control | Broken access control |
-| **CWE-862** | Missing Authorization | No authorization check |
-| **CWE-863** | Incorrect Authorization | Wrong authorization |
+| CWE ID      | Title                                            | Description            |
+| ----------- | ------------------------------------------------ | ---------------------- |
+| **CWE-639** | Authorization Bypass Through User-Controlled Key | Core IDOR issue        |
+| **CWE-284** | Improper Access Control                          | Broken access control  |
+| **CWE-862** | Missing Authorization                            | No authorization check |
+| **CWE-863** | Incorrect Authorization                          | Wrong authorization    |
 
 ---
 

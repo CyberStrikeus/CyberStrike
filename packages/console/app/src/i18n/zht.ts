@@ -493,7 +493,8 @@ export const dict = {
   "download.faq.a3.afterZen": "，但 CyberStrike 同樣支援 OpenAI、Anthropic、xAI 等所有主流供應商。",
 
   "download.faq.a5.p1": "CyberStrike 100% 免費使用。",
-  "download.faq.a5.p2.beforeZen": "額外費用來自你對模型供應商的訂閱。雖然 CyberStrike 支援任何模型供應商，但我們建議使用",
+  "download.faq.a5.p2.beforeZen":
+    "額外費用來自你對模型供應商的訂閱。雖然 CyberStrike 支援任何模型供應商，但我們建議使用",
   "download.faq.a5.p2.afterZen": "。",
 
   "download.faq.a6.p1": "你的資料與資訊只會在你於 CyberStrike 中建立可分享連結時被儲存。",

@@ -1,8 +1,19 @@
-import { and, Database, eq, gte, inArray, isNull, lt, or, sql, sum } from "@cyberstrikeus/console-core/drizzle/index.js"
-import { UsageTable } from "@cyberstrikeus/console-core/schema/billing.sql.js"
-import { KeyTable } from "@cyberstrikeus/console-core/schema/key.sql.js"
-import { UserTable } from "@cyberstrikeus/console-core/schema/user.sql.js"
-import { AuthTable } from "@cyberstrikeus/console-core/schema/auth.sql.js"
+import {
+  and,
+  Database,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  or,
+  sql,
+  sum,
+} from "@cyberstrike-io/console-core/drizzle/index.js"
+import { UsageTable } from "@cyberstrike-io/console-core/schema/billing.sql.js"
+import { KeyTable } from "@cyberstrike-io/console-core/schema/key.sql.js"
+import { UserTable } from "@cyberstrike-io/console-core/schema/user.sql.js"
+import { AuthTable } from "@cyberstrike-io/console-core/schema/auth.sql.js"
 import { useParams } from "@solidjs/router"
 import { createEffect, createMemo, onCleanup, Show, For } from "solid-js"
 import { createStore } from "solid-js/store"

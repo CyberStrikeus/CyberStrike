@@ -16,9 +16,7 @@
           "name": "Ingest (new session)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"Merhaba, bu bir test mesajı.\"\n}"
@@ -44,9 +42,7 @@
           "name": "Ingest (existing session)",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"İkinci mesaj.\",\n  \"sessionID\": \"{{sessionID}}\"\n}"
@@ -59,9 +55,7 @@
           "name": "Ingest with agent",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"Web uygulamasını tara.\",\n  \"agent\": \"proxy-agent\"\n}"
@@ -95,9 +89,7 @@
           "name": "Create session",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Test session\"\n}"
@@ -131,9 +123,7 @@
           "name": "Send message",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"parts\": [\n    { \"type\": \"text\", \"text\": \"Merhaba\" }\n  ]\n}"

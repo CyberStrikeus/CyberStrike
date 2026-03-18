@@ -1,15 +1,15 @@
-import type { Hooks, PluginInput, Plugin as PluginInstance } from "@cyberstrikeus/plugin"
+import type { Hooks, PluginInput, Plugin as PluginInstance } from "@cyberstrike-io/plugin"
 import { Config } from "../config/config"
 import { Bus } from "../bus"
 import { Log } from "../util/log"
-import { createCyberstrikeClient } from "@cyberstrikeus/sdk"
+import { createCyberstrikeClient } from "@cyberstrike-io/sdk"
 import { Server } from "../server/server"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
 import { Flag } from "../flag/flag"
 import { CodexAuthPlugin } from "./codex"
 import { Session } from "../session"
-import { NamedError } from "@cyberstrikeus/util/error"
+import { NamedError } from "@cyberstrike-io/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
 
@@ -19,7 +19,11 @@ export namespace Plugin {
   const BUILTIN: string[] = []
 
   // Built-in plugins that are directly imported (not installed from npm)
-  const INTERNAL_PLUGINS: PluginInstance[] = [CodexAuthPlugin, CopilotAuthPlugin, GitlabAuthPlugin as unknown as PluginInstance]
+  const INTERNAL_PLUGINS: PluginInstance[] = [
+    CodexAuthPlugin,
+    CopilotAuthPlugin,
+    GitlabAuthPlugin as unknown as PluginInstance,
+  ]
 
   const state = Instance.state(async () => {
     const client = createCyberstrikeClient({

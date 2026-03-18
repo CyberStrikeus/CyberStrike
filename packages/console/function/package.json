@@ -1,10 +1,10 @@
 {
-  "name": "@cyberstrikeus/console-function",
-  "version": "1.2.2",
+  "name": "@cyberstrike-io/console-function",
+  "version": "1.1.4",
   "$schema": "https://json.schemastore.org/package.json",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "typecheck": "tsgo --noEmit"
   },
@@ -21,8 +21,8 @@
     "@ai-sdk/openai": "2.0.2",
     "@ai-sdk/openai-compatible": "1.0.1",
     "@hono/zod-validator": "catalog:",
-    "@cyberstrikeus/console-core": "workspace:*",
-    "@cyberstrikeus/console-resource": "workspace:*",
+    "@cyberstrike-io/console-core": "workspace:*",
+    "@cyberstrike-io/console-resource": "workspace:*",
     "@openauthjs/openauth": "0.0.0-20250322224806",
     "ai": "catalog:",
     "hono": "catalog:",

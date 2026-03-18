@@ -132,7 +132,7 @@ export const dict = {
   "provider.connect.cyberstrikeZen.line2":
     "Sa jednim API ključem dobijaš pristup modelima kao što su Claude, GPT, Gemini, GLM i drugi.",
   "provider.connect.cyberstrikeZen.visit.prefix": "Posjeti ",
-  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.us/zen",
+  "provider.connect.cyberstrikeZen.visit.link": "cyberstrike.io/zen",
   "provider.connect.cyberstrikeZen.visit.suffix": " da preuzmeš svoj API ključ.",
   "provider.connect.oauth.code.visit.prefix": "Posjeti ",
   "provider.connect.oauth.code.visit.link": "ovaj link",
@@ -457,7 +457,8 @@ export const dict = {
   "error.chain.didYouMean": "Da li si mislio: {{suggestions}}",
   "error.chain.modelNotFound": "Model nije pronađen: {{provider}}/{{model}}",
   "error.chain.checkConfig": "Provjeri konfiguraciju (cyberstrike.json) provider/model names",
-  "error.chain.mcpFailed": 'MCP server "{{name}}" nije uspio. Napomena: CyberStrike još ne podržava MCP autentifikaciju.',
+  "error.chain.mcpFailed":
+    'MCP server "{{name}}" nije uspio. Napomena: CyberStrike još ne podržava MCP autentifikaciju.',
   "error.chain.providerAuthFailed": "Autentifikacija provajdera nije uspjela ({{provider}}): {{message}}",
   "error.chain.providerInitFailed":
     'Neuspjelo inicijalizovanje provajdera "{{provider}}". Provjeri kredencijale i konfiguraciju.',

@@ -1,9 +1,11 @@
 # WSTG-INPV-05: Testing for SQL Injection
 
 ## Test ID
+
 WSTG-INPV-05
 
 ## Test Name
+
 Testing for SQL Injection
 
 ## High-Level Description
@@ -459,13 +461,13 @@ WAF_BYPASS_PAYLOADS = [
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| SQLMap | Automated SQL injection |
-| Burp Suite | Manual testing |
-| Havij | SQL injection automation |
-| jSQL Injection | GUI-based SQLi tool |
-| NoSQLMap | NoSQL injection |
+| Tool           | Purpose                  |
+| -------------- | ------------------------ |
+| SQLMap         | Automated SQL injection  |
+| Burp Suite     | Manual testing           |
+| Havij          | SQL injection automation |
+| jSQL Injection | GUI-based SQLi tool      |
+| NoSQLMap       | NoSQL injection          |
 
 ---
 
@@ -524,19 +526,19 @@ $result = $stmt->fetchAll();
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| SQL Injection (unauthenticated) | 9.8 | Critical |
-| SQL Injection (authenticated) | 8.8 | High |
-| Blind SQL Injection | 8.6 | High |
-| Second-order SQL Injection | 8.6 | High |
+| Finding                         | CVSS | Severity |
+| ------------------------------- | ---- | -------- |
+| SQL Injection (unauthenticated) | 9.8  | Critical |
+| SQL Injection (authenticated)   | 8.8  | High     |
+| Blind SQL Injection             | 8.6  | High     |
+| Second-order SQL Injection      | 8.6  | High     |
 
 ---
 
 ## CWE Categories
 
-| CWE ID | Title |
-|--------|-------|
+| CWE ID     | Title                                                              |
+| ---------- | ------------------------------------------------------------------ |
 | **CWE-89** | Improper Neutralization of Special Elements used in an SQL Command |
 
 ---

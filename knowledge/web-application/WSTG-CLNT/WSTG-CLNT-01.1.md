@@ -1,9 +1,11 @@
 # WSTG-CLNT-01.1: Testing for Self DOM-Based XSS
 
 ## Test ID
+
 WSTG-CLNT-01.1
 
 ## Test Name
+
 Testing for Self DOM-Based XSS
 
 ## High-Level Description
@@ -33,8 +35,8 @@ Self DOM-Based XSS (also called Self-XSS) occurs when users are tricked into exe
 // "Stop! This is a browser feature intended for developers..."
 
 // Check if console commands are restricted
-console.log("test");
-eval("alert(1)");
+console.log("test")
+eval("alert(1)")
 ```
 
 ### Step 2: Test Input Field Exploitation
@@ -44,7 +46,7 @@ eval("alert(1)");
 // Some apps process pasted content unsafely
 
 // In browser console:
-document.querySelector('input[type="text"]').value = "<script>alert(1)</script>";
+document.querySelector('input[type="text"]').value = "<script>alert(1)</script>"
 // Check if it gets executed when form is submitted
 ```
 
@@ -54,10 +56,10 @@ document.querySelector('input[type="text"]').value = "<script>alert(1)</script>"
 
 ```javascript
 // Add console warning
-if (typeof console !== 'undefined') {
-    console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
-    console.log('%cThis is a browser feature for developers.', 'font-size: 20px;');
-    console.log('%cIf someone told you to paste something here, it is likely a scam.', 'font-size: 16px;');
+if (typeof console !== "undefined") {
+  console.log("%cStop!", "color: red; font-size: 50px; font-weight: bold;")
+  console.log("%cThis is a browser feature for developers.", "font-size: 20px;")
+  console.log("%cIf someone told you to paste something here, it is likely a scam.", "font-size: 16px;")
 }
 ```
 
@@ -65,9 +67,9 @@ if (typeof console !== 'undefined') {
 
 ## Risk Assessment
 
-| Finding | CVSS | Severity |
-|---------|------|----------|
-| No self-XSS warning | 3.5 | Low |
+| Finding             | CVSS | Severity |
+| ------------------- | ---- | -------- |
+| No self-XSS warning | 3.5  | Low      |
 
 ---
 

@@ -1,18 +1,18 @@
 import type { APIEvent } from "@solidjs/start/server"
-import { and, Database, eq, isNull, lt, or, sql } from "@cyberstrikeus/console-core/drizzle/index.js"
-import { KeyTable } from "@cyberstrikeus/console-core/schema/key.sql.js"
-import { BillingTable, SubscriptionTable, UsageTable } from "@cyberstrikeus/console-core/schema/billing.sql.js"
-import { centsToMicroCents } from "@cyberstrikeus/console-core/util/price.js"
-import { getWeekBounds } from "@cyberstrikeus/console-core/util/date.js"
-import { Identifier } from "@cyberstrikeus/console-core/identifier.js"
-import { Billing } from "@cyberstrikeus/console-core/billing.js"
-import { Actor } from "@cyberstrikeus/console-core/actor.js"
-import { WorkspaceTable } from "@cyberstrikeus/console-core/schema/workspace.sql.js"
-import { ZenData } from "@cyberstrikeus/console-core/model.js"
-import { Black, BlackData } from "@cyberstrikeus/console-core/black.js"
-import { UserTable } from "@cyberstrikeus/console-core/schema/user.sql.js"
-import { ModelTable } from "@cyberstrikeus/console-core/schema/model.sql.js"
-import { ProviderTable } from "@cyberstrikeus/console-core/schema/provider.sql.js"
+import { and, Database, eq, isNull, lt, or, sql } from "@cyberstrike-io/console-core/drizzle/index.js"
+import { KeyTable } from "@cyberstrike-io/console-core/schema/key.sql.js"
+import { BillingTable, SubscriptionTable, UsageTable } from "@cyberstrike-io/console-core/schema/billing.sql.js"
+import { centsToMicroCents } from "@cyberstrike-io/console-core/util/price.js"
+import { getWeekBounds } from "@cyberstrike-io/console-core/util/date.js"
+import { Identifier } from "@cyberstrike-io/console-core/identifier.js"
+import { Billing } from "@cyberstrike-io/console-core/billing.js"
+import { Actor } from "@cyberstrike-io/console-core/actor.js"
+import { WorkspaceTable } from "@cyberstrike-io/console-core/schema/workspace.sql.js"
+import { ZenData } from "@cyberstrike-io/console-core/model.js"
+import { Black, BlackData } from "@cyberstrike-io/console-core/black.js"
+import { UserTable } from "@cyberstrike-io/console-core/schema/user.sql.js"
+import { ModelTable } from "@cyberstrike-io/console-core/schema/model.sql.js"
+import { ProviderTable } from "@cyberstrike-io/console-core/schema/provider.sql.js"
 import { logger } from "./logger"
 import {
   AuthError,
@@ -573,11 +573,11 @@ export async function handler(
     const billing = authInfo.billing
     if (!billing.paymentMethodID)
       throw new CreditsError(
-        `No payment method. Add a payment method here: https://cyberstrike.us/workspace/${authInfo.workspaceID}/billing`,
+        `No payment method. Add a payment method here: https://cyberstrike.io/workspace/${authInfo.workspaceID}/billing`,
       )
     if (billing.balance <= 0)
       throw new CreditsError(
-        `Insufficient balance. Manage your billing here: https://cyberstrike.us/workspace/${authInfo.workspaceID}/billing`,
+        `Insufficient balance. Manage your billing here: https://cyberstrike.io/workspace/${authInfo.workspaceID}/billing`,
       )
 
     const now = new Date()
@@ -592,7 +592,7 @@ export async function handler(
       currentMonth === billing.timeMonthlyUsageUpdated.getUTCMonth()
     )
       throw new MonthlyLimitError(
-        `Your workspace has reached its monthly spending limit of $${billing.monthlyLimit}. Manage your limits here: https://cyberstrike.us/workspace/${authInfo.workspaceID}/billing`,
+        `Your workspace has reached its monthly spending limit of $${billing.monthlyLimit}. Manage your limits here: https://cyberstrike.io/workspace/${authInfo.workspaceID}/billing`,
       )
 
     if (
@@ -604,7 +604,7 @@ export async function handler(
       currentMonth === authInfo.user.timeMonthlyUsageUpdated.getUTCMonth()
     )
       throw new UserLimitError(
-        `You have reached your monthly spending limit of $${authInfo.user.monthlyLimit}. Manage your limits here: https://cyberstrike.us/workspace/${authInfo.workspaceID}/members`,
+        `You have reached your monthly spending limit of $${authInfo.user.monthlyLimit}. Manage your limits here: https://cyberstrike.io/workspace/${authInfo.workspaceID}/members`,
       )
 
     return "balance"
