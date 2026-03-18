@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
 
               <p>
                 Remember that your use of CyberStrike is at all times subject to our Terms of Use,{" "}
-                <a href={language.route("/legal/terms-of-service")}>https://cyberstrike.us/legal/terms-of-service</a>,
+                <a href={language.route("/legal/terms-of-service")}>https://cyberstrike.io/legal/terms-of-service</a>,
                 which incorporates this Privacy Policy. Any terms we use in this Policy without defining them have the
                 definitions given to them in the Terms of Use.
               </p>

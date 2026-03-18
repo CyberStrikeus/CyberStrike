@@ -19,7 +19,7 @@ jobs:
       - uses: ./.github/actions/setup-bun
 
       - name: Install cyberstrike
-        run: curl -fsSL https://cyberstrike.us/install | bash
+        run: curl -fsSL https://cyberstrike.io/install | bash
 
       - name: Check duplicates and compliance
         env:

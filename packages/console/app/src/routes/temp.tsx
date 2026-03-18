@@ -67,7 +67,7 @@ export default function Home() {
               <span>
                 <span>curl -fsSL </span>
                 <span data-slot="protocol">https://</span>
-                <span data-slot="highlight">cyberstrike.us/install</span>
+                <span data-slot="highlight">cyberstrike.io/install</span>
                 <span> | bash</span>
               </span>
               <CopyStatus />
@@ -164,7 +164,7 @@ export default function Home() {
             <a href="https://github.com/CyberStrikeus/CyberStrike">{i18n.t("footer.github")}</a>
           </div>
           <div data-slot="cell">
-            <a href="https://cyberstrike.us/discord">{i18n.t("footer.discord")}</a>
+            <a href="https://cyberstrike.io/discord">{i18n.t("footer.discord")}</a>
           </div>
         </footer>
       </div>

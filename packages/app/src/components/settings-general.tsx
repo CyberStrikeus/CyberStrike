@@ -201,7 +201,7 @@ export const SettingsGeneral: Component = () => {
           description={
             <>
               {language.t("settings.general.row.theme.description")}{" "}
-              <Link href="https://cyberstrike.us/docs/themes/">{language.t("common.learnMore")}</Link>
+              <Link href="https://cyberstrike.io/docs/themes/">{language.t("common.learnMore")}</Link>
             </>
           }
         >
