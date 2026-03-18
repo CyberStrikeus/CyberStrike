@@ -595,8 +595,8 @@ export namespace Server {
         return undefined
       }
     }
-    const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port)
-    if (!server) throw new Error(`Failed to start server on port ${opts.port}`)
+    const server = tryServe(opts.port || 4096) ?? tryServe(0)
+    if (!server) throw new Error(`Failed to start server`)
 
     _url = server.url
 

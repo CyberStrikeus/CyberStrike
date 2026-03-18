@@ -150,8 +150,14 @@ export const TuiThreadCommand = cmd({
 
       if (shouldStartServer) {
         // Start HTTP server for external access
-        const server = await client.call("server", networkOpts)
-        url = server.url
+        try {
+          const server = await client.call("server", networkOpts)
+          url = server.url
+        } catch (e) {
+          UI.error(`Failed to start server on port ${networkOpts.port}. The port may already be in use.`)
+          process.exitCode = 1
+          return
+        }
       } else {
         // Use direct RPC communication (no HTTP)
         url = "http://cyberstrike.internal"
