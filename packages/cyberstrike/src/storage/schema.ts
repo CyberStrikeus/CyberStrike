@@ -7,6 +7,12 @@ export {
   VulnerabilityTable,
   PermissionTable,
   RequestTable,
+  WebCredentialTable,
+  WebRoleTable,
+  WebObjectTable,
+  WebObjectValueTable,
+  WebFunctionTable,
+  WebRetestQueueTable,
 } from "../session/session.sql"
 export { SessionShareTable } from "../share/share.sql"
 export { ProjectTable } from "../project/project.sql"

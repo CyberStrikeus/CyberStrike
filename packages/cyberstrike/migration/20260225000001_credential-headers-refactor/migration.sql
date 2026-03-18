@@ -12,14 +12,14 @@ CREATE TABLE IF NOT EXISTS web_credential_new (
   time_created INTEGER NOT NULL,
   time_updated INTEGER NOT NULL
 );
-
+--> statement-breakpoint
 -- Step 2: Migrate data from old table to new
 INSERT INTO web_credential_new (id, session_id, label, headers, container_id, role_id, time_created, time_updated)
-SELECT 
+SELECT
   id,
   session_id,
   label,
-  CASE 
+  CASE
     WHEN type = 'bearer' OR type = 'jwt' THEN json_object('Authorization', 'Bearer ' || value)
     WHEN type = 'cookie' THEN json_object('Cookie', value)
     WHEN type = 'api_key' THEN json_object('X-API-Key', value)
@@ -31,13 +31,14 @@ SELECT
   time_created,
   time_updated
 FROM web_credential;
-
+--> statement-breakpoint
 -- Step 3: Drop old table
 DROP TABLE web_credential;
-
+--> statement-breakpoint
 -- Step 4: Rename new table to original name
 ALTER TABLE web_credential_new RENAME TO web_credential;
-
+--> statement-breakpoint
 -- Step 5: Create indexes
 CREATE INDEX IF NOT EXISTS web_credential_session_idx ON web_credential(session_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS web_credential_container_idx ON web_credential(container_id);
