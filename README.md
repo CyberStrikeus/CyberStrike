@@ -90,22 +90,22 @@ CyberStrike isn't just a wrapper around an LLM. It's an intelligence layer that 
 
 **15+ LLM providers supported out of the box:**
 
-| Provider | Models | Notes |
-|----------|--------|-------|
-| **Anthropic** | Claude 4.5, Claude 4 | Best performance with extended thinking |
-| **OpenAI** | GPT-4.1, o3, o4-mini | Full tool-use support |
-| **Google** | Gemini 2.5 Pro/Flash | Long context for large codebases |
-| **Amazon Bedrock** | All Bedrock models | IAM auth, no API keys needed |
-| **Azure OpenAI** | All Azure-hosted models | Enterprise deployments |
-| **Groq** | LLaMA, Mixtral | Ultra-fast inference |
-| **Mistral** | Mistral Large, Codestral | European data residency |
-| **DeepSeek** | DeepSeek V3, R1 | Cost-effective alternative |
-| **OpenRouter** | 100+ models | Single API, any model |
-| **Together AI** | Open-source models | Fine-tuning support |
-| **Ollama** | Any GGUF model | Fully offline, local-only |
-| **LM Studio** | Any local model | Desktop GUI + API server |
-| **vLLM** | Any HuggingFace model | Self-hosted, GPU-optimized |
-| **Any OpenAI-compatible** | — | Custom endpoints welcome |
+| Provider                  | Models                   | Notes                                   |
+| ------------------------- | ------------------------ | --------------------------------------- |
+| **Anthropic**             | Claude 4.5, Claude 4     | Best performance with extended thinking |
+| **OpenAI**                | GPT-4.1, o3, o4-mini     | Full tool-use support                   |
+| **Google**                | Gemini 2.5 Pro/Flash     | Long context for large codebases        |
+| **Amazon Bedrock**        | All Bedrock models       | IAM auth, no API keys needed            |
+| **Azure OpenAI**          | All Azure-hosted models  | Enterprise deployments                  |
+| **Groq**                  | LLaMA, Mixtral           | Ultra-fast inference                    |
+| **Mistral**               | Mistral Large, Codestral | European data residency                 |
+| **DeepSeek**              | DeepSeek V3, R1          | Cost-effective alternative              |
+| **OpenRouter**            | 100+ models              | Single API, any model                   |
+| **Together AI**           | Open-source models       | Fine-tuning support                     |
+| **Ollama**                | Any GGUF model           | Fully offline, local-only               |
+| **LM Studio**             | Any local model          | Desktop GUI + API server                |
+| **vLLM**                  | Any HuggingFace model    | Self-hosted, GPU-optimized              |
+| **Any OpenAI-compatible** | —                        | Custom endpoints welcome                |
 
 > **Air-gapped environments?** Run CyberStrike entirely offline with Ollama or LM Studio. No data leaves your machine — ever.
 
