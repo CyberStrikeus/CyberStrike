@@ -19,6 +19,10 @@ for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: "./dist" }
   binaries[scopedBinName] = binPkg.version
 }
 console.log("binaries", binaries)
+if (Object.keys(binaries).length === 0) {
+  console.error("No binary packages found in dist/. Run build.ts first.")
+  process.exit(1)
+}
 const version = Object.values(binaries)[0]
 
 await $`mkdir -p ./${distDir}`

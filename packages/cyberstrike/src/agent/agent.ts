@@ -18,6 +18,8 @@ import PROMPT_CLOUD_SECURITY from "./prompt/cloud-security.txt"
 import PROMPT_INTERNAL_NETWORK from "./prompt/internal-network.txt"
 import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
+import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
+import PROMPT_GENERAL from "./prompt/general.txt"
 
 // New folder-based agent imports
 import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
@@ -114,6 +116,7 @@ export namespace Agent {
       cyberstrike: {
         name: "cyberstrike",
         description: "The default CyberStrike agent. AI-powered offensive security with full tool access.",
+        prompt: PROMPT_CYBERSTRIKE,
         options: {},
         permission: PermissionNext.merge(
           defaults,
@@ -128,6 +131,7 @@ export namespace Agent {
       general: {
         name: "general",
         description: `General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.`,
+        prompt: PROMPT_GENERAL,
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
