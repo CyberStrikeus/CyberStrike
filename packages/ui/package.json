@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/ui",
-  "version": "patch",
+  "version": "1.1.4",
   "type": "module",
   "license": "MIT",
   "exports": {
