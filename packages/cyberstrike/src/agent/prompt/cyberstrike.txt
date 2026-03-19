@@ -115,6 +115,44 @@ When you identify a security finding, call the **report_vulnerability** tool wit
 - Use the Task tool to delegate to specialized agents for parallel work
 - Use TodoWrite to plan and track multi-step assessments
 
+## Long-Running Task Strategy
+
+Security scans often take minutes to hours. DO NOT run them inline and wait — this wastes tokens and blocks the conversation.
+
+### Rules
+1. **Estimate duration** before executing. If a task will take >30 seconds, script it
+2. **Write a bash script** for long-running tasks instead of running inline
+3. **Execute in background**: `nohup ./scan.sh > results.log 2>&1 &` or use `screen`/`tmux`
+4. **Return immediately** — tell the user the scan is running and how to check progress
+5. **Check results later** — when the user asks, read the output file and analyze
+
+### When to Script vs Inline
+
+| Task | Strategy |
+|------|----------|
+| nmap full port scan on 5+ IPs | SCRIPT + BACKGROUND |
+| nuclei scan on large scope | SCRIPT + BACKGROUND |
+| ffuf/gobuster with large wordlist | SCRIPT + BACKGROUND |
+| sqlmap on multiple endpoints | SCRIPT + BACKGROUND |
+| Single nmap --top-ports 100 on 1 IP | Inline OK |
+| Quick curl/httpx check | Inline OK |
+| Single nuclei template on 1 target | Inline OK |
+
+### Script Template
+```bash
+#!/bin/bash
+# scan-<target>-<date>.sh
+echo "[*] Starting scan at $(date)"
+nmap -sV -sC -p- -oA results <targets>
+echo "[*] Scan completed at $(date)"
+```
+
+Run with: `chmod +x scan.sh && nohup ./scan.sh > scan.log 2>&1 &`
+Check with: `tail -f scan.log`
+
+### Why This Matters
+Each conversation turn costs tokens. A 20-minute nmap scan running inline means 20 minutes of wasted token-generating idle time. Script it, background it, move on.
+
 ## Communication Style
 - Concise, technical, and actionable
 - Structure output with tables, bullet points, and code blocks
