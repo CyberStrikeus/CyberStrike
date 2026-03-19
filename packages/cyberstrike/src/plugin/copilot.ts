@@ -10,6 +10,29 @@ function normalizeDomain(url: string) {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "")
 }
 
+const GITHUB_ENTERPRISE_DOMAIN_PATTERN = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)+$/
+
+function validateEnterpriseDomain(domain: string): string | undefined {
+  if (!GITHUB_ENTERPRISE_DOMAIN_PATTERN.test(domain)) {
+    return "Invalid domain format"
+  }
+  // Prevent SSRF via internal/loopback addresses
+  const lower = domain.toLowerCase()
+  if (
+    lower === "localhost" ||
+    lower.startsWith("127.") ||
+    lower.startsWith("10.") ||
+    lower.startsWith("192.168.") ||
+    lower.startsWith("169.254.") ||
+    lower === "0.0.0.0" ||
+    lower.endsWith(".internal") ||
+    lower.endsWith(".local")
+  ) {
+    return "Internal or loopback addresses are not allowed"
+  }
+  return undefined
+}
+
 function getUrls(domain: string) {
   return {
     DEVICE_CODE_URL: `https://${domain}/login/device/code`,
@@ -173,6 +196,8 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
                 try {
                   const url = value.includes("://") ? new URL(value) : new URL(`https://${value}`)
                   if (!url.hostname) return "Please enter a valid URL or domain"
+                  const domainError = validateEnterpriseDomain(normalizeDomain(value))
+                  if (domainError) return domainError
                   return undefined
                 } catch {
                   return "Please enter a valid URL (e.g., company.ghe.com or https://company.ghe.com)"
@@ -188,7 +213,10 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
 
             if (deploymentType === "enterprise") {
               const enterpriseUrl = inputs.enterpriseUrl
-              domain = normalizeDomain(enterpriseUrl!)
+              if (!enterpriseUrl) throw new Error("Enterprise URL is required")
+              domain = normalizeDomain(enterpriseUrl)
+              const domainError = validateEnterpriseDomain(domain)
+              if (domainError) throw new Error(`Invalid enterprise URL: ${domainError}`)
               actualProvider = "github-copilot-enterprise"
             }
 
