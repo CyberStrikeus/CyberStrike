@@ -163,6 +163,15 @@ function ServerForm(props: ServerFormProps) {
           />
         </div>
       </div>
+      <Button
+        variant="primary"
+        size="large"
+        disabled={props.busy || !props.value.trim()}
+        onClick={props.onSubmit}
+        class="mt-1"
+      >
+        {props.busy ? language.t("dialog.server.add.checking") : language.t("dialog.server.add.button")}
+      </Button>
     </div>
   )
 }
