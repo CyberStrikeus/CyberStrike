@@ -6,36 +6,32 @@ import { List } from "@cyberstrike-io/ui/list"
 import { Button } from "@cyberstrike-io/ui/button"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
 import { TextField } from "@cyberstrike-io/ui/text-field"
-import { normalizeServerUrl, useServer } from "@/context/server"
+import { normalizeServerUrl, ServerConnection, useServer } from "@/context/server"
 import { usePlatform } from "@/context/platform"
 import { useNavigate } from "@solidjs/router"
 import { useLanguage } from "@/context/language"
 import { DropdownMenu } from "@cyberstrike-io/ui/dropdown-menu"
-import { useGlobalSDK } from "@/context/global-sdk"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { ServerRow } from "@/components/server/server-row"
-import { checkServerHealth, type ServerHealth } from "@/utils/server-health"
+import { useCheckServerHealth, type ServerHealth } from "@/utils/server-health"
 
-interface AddRowProps {
-  value: string
-  placeholder: string
-  adding: boolean
-  error: string
-  status: boolean | undefined
-  onChange: (value: string) => void
-  onKeyDown: (event: KeyboardEvent) => void
-  onBlur: () => void
-}
+const DEFAULT_USERNAME = "cyberstrike"
 
-interface EditRowProps {
+interface ServerFormProps {
   value: string
+  name: string
+  username: string
+  password: string
   placeholder: string
   busy: boolean
   error: string
   status: boolean | undefined
   onChange: (value: string) => void
-  onKeyDown: (event: KeyboardEvent) => void
-  onBlur: () => void
+  onNameChange: (value: string) => void
+  onUsernameChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onSubmit: () => void
+  onBack: () => void
 }
 
 function showRequestError(language: ReturnType<typeof useLanguage>, err: unknown) {
@@ -74,7 +70,9 @@ function useDefaultServer(platform: ReturnType<typeof usePlatform>, language: Re
   return { defaultUrl, canDefault, setDefault }
 }
 
-function useServerPreview(fetcher: typeof fetch) {
+function useServerPreview() {
+  const checkServerHealth = useCheckServerHealth()
+
   const looksComplete = (value: string) => {
     const normalized = normalizeServerUrl(value)
     if (!normalized) return false
@@ -84,56 +82,100 @@ function useServerPreview(fetcher: typeof fetch) {
     return host.includes(".") || host.includes(":")
   }
 
-  const previewStatus = async (value: string, setStatus: (value: boolean | undefined) => void) => {
+  const previewStatus = async (
+    value: string,
+    username: string,
+    password: string,
+    setStatus: (value: boolean | undefined) => void,
+  ) => {
     setStatus(undefined)
     if (!looksComplete(value)) return
     const normalized = normalizeServerUrl(value)
     if (!normalized) return
-    const result = await checkServerHealth(normalized, fetcher)
+    const http: ServerConnection.HttpBase = { url: normalized }
+    if (username) http.username = username
+    if (password) http.password = password
+    const result = await checkServerHealth(http)
     setStatus(result.healthy)
   }
 
   return { previewStatus }
 }
 
-function AddRow(props: AddRowProps) {
+function ServerForm(props: ServerFormProps) {
+  const language = useLanguage()
+  const keyDown = (event: KeyboardEvent) => {
+    event.stopPropagation()
+    if (event.key === "Escape") {
+      event.preventDefault()
+      props.onBack()
+      return
+    }
+    if (event.key !== "Enter" || event.isComposing) return
+    event.preventDefault()
+    props.onSubmit()
+  }
+
   return (
-    <div class="flex items-center px-4 min-h-14 py-3 min-w-0 flex-1">
-      <div class="flex-1 min-w-0 [&_[data-slot=input-wrapper]]:relative">
-        <div
-          classList={{
-            "size-1.5 rounded-full absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none": true,
-            "bg-icon-success-base": props.status === true,
-            "bg-icon-critical-base": props.status === false,
-            "bg-border-weak-base": props.status === undefined,
-          }}
-          ref={(el) => {
-            // Position relative to input-wrapper
-            requestAnimationFrame(() => {
-              const wrapper = el.parentElement?.querySelector('[data-slot="input-wrapper"]')
-              if (wrapper instanceof HTMLElement) {
-                wrapper.appendChild(el)
-              }
-            })
-          }}
-        />
+    <div class="px-5">
+      <div class="bg-surface-base rounded-md p-5 flex flex-col gap-3">
+        <div class="flex-1 min-w-0 [&_[data-slot=input-wrapper]]:relative">
+          <TextField
+            type="text"
+            label={language.t("dialog.server.add.url")}
+            placeholder={props.placeholder}
+            value={props.value}
+            autofocus
+            validationState={props.error ? "invalid" : "valid"}
+            error={props.error}
+            disabled={props.busy}
+            onChange={props.onChange}
+            onKeyDown={keyDown}
+          />
+        </div>
         <TextField
           type="text"
-          hideLabel
-          placeholder={props.placeholder}
-          value={props.value}
-          autofocus
-          validationState={props.error ? "invalid" : "valid"}
-          error={props.error}
-          disabled={props.adding}
-          onChange={props.onChange}
-          onKeyDown={props.onKeyDown}
-          onBlur={props.onBlur}
-          class="pl-7"
+          label={language.t("dialog.server.add.name")}
+          placeholder={language.t("dialog.server.add.namePlaceholder")}
+          value={props.name}
+          disabled={props.busy}
+          onChange={props.onNameChange}
+          onKeyDown={keyDown}
         />
+        <div class="grid grid-cols-2 gap-2 min-w-0">
+          <TextField
+            type="text"
+            label={language.t("dialog.server.add.username")}
+            placeholder={language.t("dialog.server.add.usernamePlaceholder")}
+            value={props.username}
+            disabled={props.busy}
+            onChange={props.onUsernameChange}
+            onKeyDown={keyDown}
+          />
+          <TextField
+            type="password"
+            label={language.t("dialog.server.add.password")}
+            placeholder={language.t("dialog.server.add.passwordPlaceholder")}
+            value={props.password}
+            disabled={props.busy}
+            onChange={props.onPasswordChange}
+            onKeyDown={keyDown}
+          />
+        </div>
       </div>
     </div>
   )
+}
+
+interface EditRowProps {
+  value: string
+  placeholder: string
+  busy: boolean
+  error: string
+  status: boolean | undefined
+  onChange: (value: string) => void
+  onKeyDown: (event: KeyboardEvent) => void
+  onBlur: () => void
 }
 
 function EditRow(props: EditRowProps) {
@@ -171,16 +213,18 @@ export function DialogSelectServer() {
   const dialog = useDialog()
   const server = useServer()
   const platform = usePlatform()
-  const globalSDK = useGlobalSDK()
   const language = useLanguage()
-  const fetcher = platform.fetch ?? globalThis.fetch
+  const checkServerHealth = useCheckServerHealth()
   const { defaultUrl, canDefault, setDefault } = useDefaultServer(platform, language)
-  const { previewStatus } = useServerPreview(fetcher)
+  const { previewStatus } = useServerPreview()
   let listRoot: HTMLDivElement | undefined
   const [store, setStore] = createStore({
     status: {} as Record<string, ServerHealth | undefined>,
     addServer: {
       url: "",
+      name: "",
+      username: DEFAULT_USERNAME,
+      password: "",
       adding: false,
       error: "",
       showForm: false,
@@ -189,6 +233,9 @@ export function DialogSelectServer() {
     editServer: {
       id: undefined as string | undefined,
       value: "",
+      name: "",
+      username: "",
+      password: "",
       error: "",
       busy: false,
       status: undefined as boolean | undefined,
@@ -198,9 +245,13 @@ export function DialogSelectServer() {
   const resetAdd = () => {
     setStore("addServer", {
       url: "",
+      name: "",
+      username: DEFAULT_USERNAME,
+      password: "",
       error: "",
       showForm: false,
       status: undefined,
+      adding: false,
     })
   }
 
@@ -208,36 +259,40 @@ export function DialogSelectServer() {
     setStore("editServer", {
       id: undefined,
       value: "",
+      name: "",
+      username: "",
+      password: "",
       error: "",
       status: undefined,
       busy: false,
     })
   }
 
-  const replaceServer = (original: string, next: string) => {
-    const active = server.url
-    const nextActive = active === original ? next : active
-
-    server.add(next)
+  const replaceServer = (original: ServerConnection.Any, next: ServerConnection.Http) => {
+    const active = server.key
+    const newConn = server.add(next)
+    if (!newConn) return
+    const nextActive = active === ServerConnection.key(original) ? ServerConnection.key(newConn) : active
     if (nextActive) server.setActive(nextActive)
-    server.remove(original)
+    server.remove(ServerConnection.key(original))
   }
 
   const items = createMemo(() => {
-    const current = server.url
+    const current = server.current
     const list = server.list
     if (!current) return list
-    if (!list.includes(current)) return [current, ...list]
-    return [current, ...list.filter((x) => x !== current)]
+    const currentKey = ServerConnection.key(current)
+    if (!list.find((x) => ServerConnection.key(x) === currentKey)) return [current, ...list]
+    return [current, ...list.filter((x) => ServerConnection.key(x) !== currentKey)]
   })
 
-  const current = createMemo(() => items().find((x) => x === server.url) ?? items()[0])
+  const current = createMemo(() => items().find((x) => ServerConnection.key(x) === server.key) ?? items()[0])
 
   const sortedItems = createMemo(() => {
     const list = items()
     if (!list.length) return list
     const active = current()
-    const order = new Map(list.map((url, index) => [url, index] as const))
+    const order = new Map(list.map((conn, index) => [conn, index] as const))
     const rank = (value?: ServerHealth) => {
       if (value?.healthy === true) return 0
       if (value?.healthy === false) return 2
@@ -246,7 +301,7 @@ export function DialogSelectServer() {
     return list.slice().sort((a, b) => {
       if (a === active) return -1
       if (b === active) return 1
-      const diff = rank(store.status[a]) - rank(store.status[b])
+      const diff = rank(store.status[ServerConnection.key(a)]) - rank(store.status[ServerConnection.key(b)])
       if (diff !== 0) return diff
       return (order.get(a) ?? 0) - (order.get(b) ?? 0)
     })
@@ -255,8 +310,8 @@ export function DialogSelectServer() {
   async function refreshHealth() {
     const results: Record<string, ServerHealth> = {}
     await Promise.all(
-      items().map(async (url) => {
-        results[url] = await checkServerHealth(url, fetcher)
+      items().map(async (conn) => {
+        results[ServerConnection.key(conn)] = await checkServerHealth(conn.http)
       }),
     )
     setStore("status", reconcile(results))
@@ -269,22 +324,46 @@ export function DialogSelectServer() {
     onCleanup(() => clearInterval(interval))
   })
 
-  async function select(value: string, persist?: boolean) {
-    if (!persist && store.status[value]?.healthy === false) return
+  async function select(conn: ServerConnection.Any, persist?: boolean) {
+    const k = ServerConnection.key(conn)
+    if (!persist && store.status[k]?.healthy === false) return
     dialog.close()
-    if (persist) {
-      server.add(value)
+    if (persist && conn.type === "http") {
+      server.add(conn)
       navigate("/")
       return
     }
-    server.setActive(value)
+    server.setActive(k)
     navigate("/")
   }
 
   const handleAddChange = (value: string) => {
     if (store.addServer.adding) return
     setStore("addServer", { url: value, error: "" })
-    void previewStatus(value, (next) => setStore("addServer", { status: next }))
+    void previewStatus(value, store.addServer.username, store.addServer.password, (next) =>
+      setStore("addServer", { status: next }),
+    )
+  }
+
+  const handleAddNameChange = (value: string) => {
+    if (store.addServer.adding) return
+    setStore("addServer", { name: value, error: "" })
+  }
+
+  const handleAddUsernameChange = (value: string) => {
+    if (store.addServer.adding) return
+    setStore("addServer", { username: value, error: "" })
+    void previewStatus(store.addServer.url, value, store.addServer.password, (next) =>
+      setStore("addServer", { status: next }),
+    )
+  }
+
+  const handleAddPasswordChange = (value: string) => {
+    if (store.addServer.adding) return
+    setStore("addServer", { password: value, error: "" })
+    void previewStatus(store.addServer.url, store.addServer.username, value, (next) =>
+      setStore("addServer", { status: next }),
+    )
   }
 
   const scrollListToBottom = () => {
@@ -298,12 +377,14 @@ export function DialogSelectServer() {
   const handleEditChange = (value: string) => {
     if (store.editServer.busy) return
     setStore("editServer", { value, error: "" })
-    void previewStatus(value, (next) => setStore("editServer", { status: next }))
+    void previewStatus(value, store.editServer.username, store.editServer.password, (next) =>
+      setStore("editServer", { status: next }),
+    )
   }
 
-  async function handleAdd(value: string) {
+  async function handleAdd() {
     if (store.addServer.adding) return
-    const normalized = normalizeServerUrl(value)
+    const normalized = normalizeServerUrl(store.addServer.url)
     if (!normalized) {
       resetAdd()
       return
@@ -311,7 +392,15 @@ export function DialogSelectServer() {
 
     setStore("addServer", { adding: true, error: "" })
 
-    const result = await checkServerHealth(normalized, fetcher)
+    const conn: ServerConnection.Http = {
+      type: "http",
+      http: { url: normalized },
+    }
+    if (store.addServer.name.trim()) conn.displayName = store.addServer.name.trim()
+    if (store.addServer.password) conn.http.password = store.addServer.password
+    if (store.addServer.password && store.addServer.username) conn.http.username = store.addServer.username
+
+    const result = await checkServerHealth(conn.http)
     setStore("addServer", { adding: false })
 
     if (!result.healthy) {
@@ -320,10 +409,10 @@ export function DialogSelectServer() {
     }
 
     resetAdd()
-    await select(normalized, true)
+    await select(conn, true)
   }
 
-  async function handleEdit(original: string, value: string) {
+  async function handleEdit(original: ServerConnection.Any, value: string) {
     if (store.editServer.busy) return
     const normalized = normalizeServerUrl(value)
     if (!normalized) {
@@ -331,14 +420,22 @@ export function DialogSelectServer() {
       return
     }
 
-    if (normalized === original) {
+    if (normalized === original.http.url) {
       resetEdit()
       return
     }
 
     setStore("editServer", { busy: true, error: "" })
 
-    const result = await checkServerHealth(normalized, fetcher)
+    const conn: ServerConnection.Http = {
+      type: "http",
+      http: { url: normalized },
+    }
+    if (store.editServer.name.trim()) conn.displayName = store.editServer.name.trim()
+    if (store.editServer.password) conn.http.password = store.editServer.password
+    if (store.editServer.password && store.editServer.username) conn.http.username = store.editServer.username
+
+    const result = await checkServerHealth(conn.http)
     setStore("editServer", { busy: false })
 
     if (!result.healthy) {
@@ -346,27 +443,11 @@ export function DialogSelectServer() {
       return
     }
 
-    replaceServer(original, normalized)
-
+    replaceServer(original, conn)
     resetEdit()
   }
 
-  const handleAddKey = (event: KeyboardEvent) => {
-    event.stopPropagation()
-    if (event.key !== "Enter" || event.isComposing) return
-    event.preventDefault()
-    handleAdd(store.addServer.url)
-  }
-
-  const blurAdd = () => {
-    if (!store.addServer.url.trim()) {
-      resetAdd()
-      return
-    }
-    handleAdd(store.addServer.url)
-  }
-
-  const handleEditKey = (event: KeyboardEvent, original: string) => {
+  const handleEditKey = (event: KeyboardEvent, original: ServerConnection.Any) => {
     event.stopPropagation()
     if (event.key === "Escape") {
       event.preventDefault()
@@ -378,9 +459,10 @@ export function DialogSelectServer() {
     handleEdit(original, store.editServer.value)
   }
 
-  async function handleRemove(url: string) {
-    server.remove(url)
-    if ((await platform.getDefaultServerUrl?.()) === url) {
+  async function handleRemove(conn: ServerConnection.Any) {
+    const k = ServerConnection.key(conn)
+    server.remove(k)
+    if ((await platform.getDefaultServerUrl?.()) === k) {
       platform.setDefaultServerUrl?.(null)
     }
   }
@@ -394,7 +476,7 @@ export function DialogSelectServer() {
             noInitialSelection
             emptyMessage={language.t("dialog.server.empty")}
             items={sortedItems}
-            key={(x) => x}
+            key={(x) => ServerConnection.key(x)}
             onSelect={(x) => {
               if (x) select(x)
             }}
@@ -409,26 +491,33 @@ export function DialogSelectServer() {
               store.addServer.showForm
                 ? {
                     render: () => (
-                      <AddRow
+                      <ServerForm
                         value={store.addServer.url}
+                        name={store.addServer.name}
+                        username={store.addServer.username}
+                        password={store.addServer.password}
                         placeholder={language.t("dialog.server.add.placeholder")}
-                        adding={store.addServer.adding}
+                        busy={store.addServer.adding}
                         error={store.addServer.error}
                         status={store.addServer.status}
                         onChange={handleAddChange}
-                        onKeyDown={handleAddKey}
-                        onBlur={blurAdd}
+                        onNameChange={handleAddNameChange}
+                        onUsernameChange={handleAddUsernameChange}
+                        onPasswordChange={handleAddPasswordChange}
+                        onSubmit={handleAdd}
+                        onBack={resetAdd}
                       />
                     ),
                   }
                 : undefined
             }
           >
-            {(i) => {
+            {(conn) => {
+              const k = ServerConnection.key(conn)
               return (
                 <div class="flex items-center gap-3 min-w-0 flex-1 group/item">
                   <Show
-                    when={store.editServer.id !== i}
+                    when={store.editServer.id !== k}
                     fallback={
                       <EditRow
                         value={store.editServer.value}
@@ -437,18 +526,18 @@ export function DialogSelectServer() {
                         error={store.editServer.error}
                         status={store.editServer.status}
                         onChange={handleEditChange}
-                        onKeyDown={(event) => handleEditKey(event, i)}
-                        onBlur={() => handleEdit(i, store.editServer.value)}
+                        onKeyDown={(event) => handleEditKey(event, conn)}
+                        onBlur={() => handleEdit(conn, store.editServer.value)}
                       />
                     }
                   >
                     <ServerRow
-                      url={i}
-                      status={store.status[i]}
-                      dimmed={store.status[i]?.healthy === false}
+                      conn={conn}
+                      status={store.status[k]}
+                      dimmed={store.status[k]?.healthy === false}
                       class="flex items-center gap-3 px-4 min-w-0 flex-1"
                       badge={
-                        <Show when={defaultUrl() === i}>
+                        <Show when={defaultUrl() === k}>
                           <span class="text-text-weak bg-surface-base text-14-regular px-1.5 rounded-xs">
                             {language.t("dialog.server.status.default")}
                           </span>
@@ -456,9 +545,9 @@ export function DialogSelectServer() {
                       }
                     />
                   </Show>
-                  <Show when={store.editServer.id !== i}>
+                  <Show when={store.editServer.id !== k}>
                     <div class="flex items-center justify-center gap-5 pl-4">
-                      <Show when={current() === i}>
+                      <Show when={current() === conn}>
                         <p class="text-text-weak text-12-regular">{language.t("dialog.server.current")}</p>
                       </Show>
 
@@ -476,23 +565,26 @@ export function DialogSelectServer() {
                             <DropdownMenu.Item
                               onSelect={() => {
                                 setStore("editServer", {
-                                  id: i,
-                                  value: i,
+                                  id: k,
+                                  value: conn.http.url,
+                                  name: conn.displayName ?? "",
+                                  username: conn.http.username ?? "",
+                                  password: conn.http.password ?? "",
                                   error: "",
-                                  status: store.status[i]?.healthy,
+                                  status: store.status[k]?.healthy,
                                 })
                               }}
                             >
                               <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.edit")}</DropdownMenu.ItemLabel>
                             </DropdownMenu.Item>
-                            <Show when={canDefault() && defaultUrl() !== i}>
-                              <DropdownMenu.Item onSelect={() => setDefault(i)}>
+                            <Show when={canDefault() && defaultUrl() !== k}>
+                              <DropdownMenu.Item onSelect={() => setDefault(k)}>
                                 <DropdownMenu.ItemLabel>
                                   {language.t("dialog.server.menu.default")}
                                 </DropdownMenu.ItemLabel>
                               </DropdownMenu.Item>
                             </Show>
-                            <Show when={canDefault() && defaultUrl() === i}>
+                            <Show when={canDefault() && defaultUrl() === k}>
                               <DropdownMenu.Item onSelect={() => setDefault(null)}>
                                 <DropdownMenu.ItemLabel>
                                   {language.t("dialog.server.menu.defaultRemove")}
@@ -501,7 +593,7 @@ export function DialogSelectServer() {
                             </Show>
                             <DropdownMenu.Separator />
                             <DropdownMenu.Item
-                              onSelect={() => handleRemove(i)}
+                              onSelect={() => handleRemove(conn)}
                               class="text-text-on-critical-base hover:bg-surface-critical-weak"
                             >
                               <DropdownMenu.ItemLabel>{language.t("dialog.server.menu.delete")}</DropdownMenu.ItemLabel>
@@ -523,7 +615,7 @@ export function DialogSelectServer() {
             icon="plus-small"
             size="large"
             onClick={() => {
-              setStore("addServer", { showForm: true, url: "", error: "" })
+              setStore("addServer", { showForm: true, url: "", name: "", username: DEFAULT_USERNAME, password: "", error: "" })
               scrollListToBottom()
             }}
             class="py-1.5 pl-1.5 pr-3 flex items-center gap-1.5"

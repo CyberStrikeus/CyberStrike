@@ -7,7 +7,6 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { streamSSE } from "hono/streaming"
 import { proxy } from "hono/proxy"
-import { basicAuth } from "hono/basic-auth"
 import z from "zod"
 import { Provider } from "../provider/provider"
 import { NamedError } from "@cyberstrike-io/util/error"
@@ -81,13 +80,36 @@ export namespace Server {
           })
         })
         .use((c, next) => {
-          // Allow CORS preflight requests to succeed without auth.
-          // Browser clients sending Authorization headers will preflight with OPTIONS.
           if (c.req.method === "OPTIONS") return next()
           const password = Flag.CYBERSTRIKE_SERVER_PASSWORD
           if (!password) return next()
+          // Local requests are trusted — password protects remote access (CF tunnel etc.)
+          // Socket IP identifies the TCP peer; proxy headers detect forwarded requests.
+          // cloudflared always sets X-Forwarded-For/CF-Connecting-IP, so proxied
+          // requests are caught even though cloudflared connects from loopback.
+          const ip = (c.env as { requestIP?: (req: Request) => { address: string } | null })?.requestIP?.(c.req.raw)
+          const addr = ip?.address
+          const loopback = addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1"
+          const proxied = !!c.req.header("x-forwarded-for") || !!c.req.header("cf-connecting-ip")
+          if (loopback && !proxied) return next()
+          // Skip auth for web UI static assets so the SPA can load in remote mode
+          const p = c.req.path
+          if (p === "/" || p.startsWith("/assets/") || /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)) return next()
+          // Manual Basic auth check — intentionally omit WWW-Authenticate header
+          // so browsers don't show native auth dialog. The web UI uses its own form.
           const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
-          return basicAuth({ username, password })(c, next)
+          const header = c.req.header("authorization")
+          if (header) {
+            const match = /^Basic\s+(.+)$/i.exec(header)
+            if (match) {
+              try {
+                const decoded = atob(match[1])
+                const sep = decoded.indexOf(":")
+                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password) return next()
+              } catch {}
+            }
+          }
+          return c.json({ error: "Unauthorized" }, 401)
         })
         .use(async (c, next) => {
           const skipLogging = c.req.path === "/log"

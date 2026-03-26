@@ -9,7 +9,8 @@ export const ServeCommand = cmd({
   describe: "starts a headless cyberstrike server",
   handler: async (args) => {
     if (!Flag.CYBERSTRIKE_SERVER_PASSWORD) {
-      console.log("Warning: CYBERSTRIKE_SERVER_PASSWORD is not set; server is unsecured.")
+      console.error("Error: CYBERSTRIKE_SERVER_PASSWORD is required.\nSet it with: export CYBERSTRIKE_SERVER_PASSWORD=yourpassword")
+      process.exit(1)
     }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)

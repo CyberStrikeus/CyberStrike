@@ -10,12 +10,12 @@ import { Icon } from "@cyberstrike-io/ui/icon"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
-import { normalizeServerUrl, useServer } from "@/context/server"
+import { normalizeServerUrl, ServerConnection, useServer } from "@/context/server"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
 import { DialogSelectServer } from "./dialog-select-server"
 import { ServerRow } from "@/components/server/server-row"
-import { checkServerHealth, type ServerHealth } from "@/utils/server-health"
+import { useCheckServerHealth, type ServerHealth } from "@/utils/server-health"
 
 const pollMs = 10_000
 
@@ -32,12 +32,12 @@ const pluginEmptyMessage = (value: string, file: string): JSXElement => {
 }
 
 const listServersByHealth = (
-  list: string[],
-  active: string | undefined,
+  list: ServerConnection.Any[],
+  activeKey: string | undefined,
   status: Record<string, ServerHealth | undefined>,
 ) => {
   if (!list.length) return list
-  const order = new Map(list.map((url, index) => [url, index] as const))
+  const order = new Map(list.map((conn, index) => [conn, index] as const))
   const rank = (value?: ServerHealth) => {
     if (value?.healthy === true) return 0
     if (value?.healthy === false) return 2
@@ -45,15 +45,18 @@ const listServersByHealth = (
   }
 
   return list.slice().sort((a, b) => {
-    if (a === active) return -1
-    if (b === active) return 1
-    const diff = rank(status[a]) - rank(status[b])
+    const ka = ServerConnection.key(a)
+    const kb = ServerConnection.key(b)
+    if (ka === activeKey) return -1
+    if (kb === activeKey) return 1
+    const diff = rank(status[ka]) - rank(status[kb])
     if (diff !== 0) return diff
     return (order.get(a) ?? 0) - (order.get(b) ?? 0)
   })
 }
 
-const useServerHealth = (servers: Accessor<string[]>, fetcher: typeof fetch) => {
+const useServerHealth = (servers: Accessor<ServerConnection.Any[]>) => {
+  const checkServerHealth = useCheckServerHealth()
   const [status, setStatus] = createStore({} as Record<string, ServerHealth | undefined>)
 
   createEffect(() => {
@@ -63,8 +66,8 @@ const useServerHealth = (servers: Accessor<string[]>, fetcher: typeof fetch) => 
     const refresh = async () => {
       const results: Record<string, ServerHealth> = {}
       await Promise.all(
-        list.map(async (url) => {
-          results[url] = await checkServerHealth(url, fetcher)
+        list.map(async (conn) => {
+          results[ServerConnection.key(conn)] = await checkServerHealth(conn.http)
         }),
       )
       if (dead) return
@@ -161,16 +164,16 @@ export function StatusPopover() {
   const language = useLanguage()
   const navigate = useNavigate()
 
-  const fetcher = platform.fetch ?? globalThis.fetch
   const servers = createMemo(() => {
-    const current = server.url
+    const current = server.current
     const list = server.list
     if (!current) return list
-    if (!list.includes(current)) return [current, ...list]
-    return [current, ...list.filter((item) => item !== current)]
+    const currentKey = ServerConnection.key(current)
+    if (!list.find((x) => ServerConnection.key(x) === currentKey)) return [current, ...list]
+    return [current, ...list.filter((x) => ServerConnection.key(x) !== currentKey)]
   })
-  const health = useServerHealth(servers, fetcher)
-  const sortedServers = createMemo(() => listServersByHealth(servers(), server.url, health))
+  const health = useServerHealth(servers)
+  const sortedServers = createMemo(() => listServersByHealth(servers(), server.key, health))
   const mcp = useMcpToggle({ sync, sdk, language })
   const defaultServer = useDefaultServerUrl(platform.getDefaultServerUrl)
   const mcpNames = createMemo(() => Object.keys(sync.data.mcp ?? {}).sort((a, b) => a.localeCompare(b)))
@@ -249,8 +252,9 @@ export function StatusPopover() {
             <div class="flex flex-col px-2 pb-2">
               <div class="flex flex-col p-3 bg-background-base rounded-sm min-h-14">
                 <For each={sortedServers()}>
-                  {(url) => {
-                    const isBlocked = () => health[url]?.healthy === false
+                  {(conn) => {
+                    const k = ServerConnection.key(conn)
+                    const isBlocked = () => health[k]?.healthy === false
                     return (
                       <button
                         type="button"
@@ -262,19 +266,19 @@ export function StatusPopover() {
                         aria-disabled={isBlocked()}
                         onClick={() => {
                           if (isBlocked()) return
-                          server.setActive(url)
+                          server.setActive(k)
                           navigate("/")
                         }}
                       >
                         <ServerRow
-                          url={url}
-                          status={health[url]}
+                          conn={conn}
+                          status={health[k]}
                           dimmed={isBlocked()}
                           class="flex items-center gap-2 w-full min-w-0"
                           nameClass="text-14-regular text-text-base truncate"
                           versionClass="text-12-regular text-text-weak truncate"
                           badge={
-                            <Show when={url === defaultServer.url()}>
+                            <Show when={k === defaultServer.url()}>
                               <span class="text-11-regular text-text-base bg-surface-base px-1.5 py-0.5 rounded-md">
                                 {language.t("common.default")}
                               </span>
@@ -282,7 +286,7 @@ export function StatusPopover() {
                           }
                         >
                           <div class="flex-1" />
-                          <Show when={url === server.url}>
+                          <Show when={k === server.key}>
                             <Icon name="check" size="small" class="text-icon-weak shrink-0" />
                           </Show>
                         </ServerRow>

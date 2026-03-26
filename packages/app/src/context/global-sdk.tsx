@@ -1,7 +1,8 @@
-import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2/client"
+import type { Event } from "@cyberstrike-io/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
+import { createSdkForServer } from "@/utils/server"
 import { usePlatform } from "./platform"
 import { useServer } from "./server"
 
@@ -12,20 +13,13 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
     const platform = usePlatform()
     const abort = new AbortController()
 
-    const password = typeof window === "undefined" ? undefined : window.__CYBERSTRIKE__?.serverPassword
-
-    const auth = (() => {
-      if (!password) return
-      if (!server.isLocal()) return
-      return {
-        Authorization: `Basic ${btoa(`cyberstrike:${password}`)}`,
-      }
-    })()
+    const currentServer = server.current
+    if (!currentServer) throw new Error("No server available")
 
     const eventFetch = (() => {
       if (!platform.fetch) return
       try {
-        const url = new URL(server.url)
+        const url = new URL(currentServer.http.url)
         const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1"
         if (url.protocol === "http:" && !loopback) return platform.fetch
       } catch {
@@ -33,11 +27,10 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       }
     })()
 
-    const eventSdk = createCyberstrikeClient({
-      baseUrl: server.url,
+    const eventSdk = createSdkForServer({
       signal: abort.signal,
       fetch: eventFetch,
-      headers: eventFetch ? undefined : auth,
+      server: currentServer.http,
     })
     const emitter = createGlobalEmitter<{
       [key: string]: Event
@@ -102,7 +95,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
               if (streamErrorLogged) return
               streamErrorLogged = true
               console.error("[global-sdk] event stream error", {
-                url: server.url,
+                url: currentServer.http.url,
                 fetch: eventFetch ? "platform" : "webview",
                 error,
               })
@@ -133,7 +126,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
           if (!streamErrorLogged) {
             streamErrorLogged = true
             console.error("[global-sdk] event stream failed", {
-              url: server.url,
+              url: currentServer.http.url,
               fetch: eventFetch ? "platform" : "webview",
               error,
             })
@@ -150,12 +143,25 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       flush()
     })
 
-    const sdk = createCyberstrikeClient({
-      baseUrl: server.url,
+    const sdk = createSdkForServer({
+      server: currentServer.http,
       fetch: platform.fetch,
       throwOnError: true,
     })
 
-    return { url: server.url, client: sdk, event: emitter }
+    return {
+      url: currentServer.http.url,
+      client: sdk,
+      event: emitter,
+      createClient(opts: Omit<Parameters<typeof createSdkForServer>[0], "server" | "fetch">) {
+        const s = server.current
+        if (!s) throw new Error("Server not available")
+        return createSdkForServer({
+          server: s.http,
+          fetch: platform.fetch,
+          ...opts,
+        })
+      },
+    }
   },
 })
