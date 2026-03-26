@@ -1,3 +1,4 @@
+import path from "node:path"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Log } from "../util/log"
@@ -50,6 +51,7 @@ export namespace Server {
 
   let _url: URL | undefined
   let _corsWhitelist: string[] = []
+  let _webDistDir: string | null | undefined
 
   export function url(): URL {
     return _url ?? new URL("http://localhost:4096")
@@ -118,8 +120,8 @@ export namespace Server {
               )
                 return input
 
-              // *.cyberstrike.io (https only, adjust if needed)
-              if (/^https:\/\/([a-z0-9-]+\.)*cyberstrike\.ai$/.test(input)) {
+              // *.cyberstrike.io (https only)
+              if (/^https:\/\/([a-z0-9-]+\.)*cyberstrike\.io$/.test(input)) {
                 return input
               }
               if (_corsWhitelist.includes(input)) {
@@ -541,20 +543,64 @@ export namespace Server {
           },
         )
         .all("/*", async (c) => {
-          const path = c.req.path
+          const reqPath = c.req.path
+          const csp =
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data: http: https: ws: wss:"
 
-          const response = await proxy(`https://app.cyberstrike.io${path}`, {
-            ...c.req,
-            headers: {
-              ...c.req.raw.headers,
-              host: "app.cyberstrike.io",
-            },
-          })
-          response.headers.set(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data:",
-          )
-          return response
+          // Resolve web UI dist directory (cached after first lookup)
+          if (_webDistDir === undefined) {
+            const candidates = [
+              // 1. ~/.cyberstrike/web/ (installed/production)
+              path.join(Global.Path.data, "web"),
+              // 2. Workspace-relative (dev: running from repo root)
+              path.join(process.cwd(), "packages", "app", "dist"),
+              // 3. Relative to source (dev: import.meta.url)
+              (() => { try { return new URL("../../../app/dist", import.meta.url).pathname } catch { return "" } })(),
+            ]
+            for (const dir of candidates) {
+              if (!dir) continue
+              const check = Bun.file(path.join(dir, "index.html"))
+              if (await check.exists()) { _webDistDir = dir; break }
+            }
+            if (_webDistDir === undefined) _webDistDir = null
+          }
+          const distDir = _webDistDir
+
+          // Try local dist/ first (bundled web UI)
+          if (distDir) {
+            const filePath = reqPath === "/" ? "/index.html" : reqPath
+            const file = Bun.file(path.join(distDir, filePath))
+            if (await file.exists()) {
+              const response = new Response(file)
+              response.headers.set("Content-Security-Policy", csp)
+              return response
+            }
+
+            // SPA fallback — serve index.html for client-side routes
+            const index = Bun.file(path.join(distDir, "index.html"))
+            if (await index.exists()) {
+              const response = new Response(index, {
+                headers: { "Content-Type": "text/html;charset=UTF-8" },
+              })
+              response.headers.set("Content-Security-Policy", csp)
+              return response
+            }
+          }
+
+          // Remote fallback — proxy to app.cyberstrike.io if deployed
+          try {
+            const response = await proxy(`https://app.cyberstrike.io${reqPath}`, {
+              ...c.req,
+              headers: {
+                ...c.req.raw.headers,
+                host: "app.cyberstrike.io",
+              },
+            })
+            response.headers.set("Content-Security-Policy", csp)
+            return response
+          } catch {
+            return c.json({ error: "Web UI not available. Run 'bun run build' in packages/app/ or deploy app.cyberstrike.io" }, 503)
+          }
         }) as unknown as Hono,
   )
 

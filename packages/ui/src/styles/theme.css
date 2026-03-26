@@ -1,6 +1,6 @@
 :root {
-  --font-family-sans: "Inter", "Inter Fallback";
-  --font-family-sans--font-feature-settings: "ss03" 1;
+  --font-family-sans: "Space Grotesk Variable", "Inter", "Inter Fallback", system-ui, sans-serif;
+  --font-family-sans--font-feature-settings: normal;
   --font-family-mono: "IBM Plex Mono", "IBM Plex Mono Fallback";
   --font-family-mono--font-feature-settings: "ss01" 1;
 
