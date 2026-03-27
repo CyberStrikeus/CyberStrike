@@ -173,6 +173,8 @@ export function createChildStoreManager(input: {
             session_status: {},
             session_diff: {},
             todo: {},
+            vulnerability: {},
+            bolt: {},
             permission: {},
             question: {},
             mcp: {},

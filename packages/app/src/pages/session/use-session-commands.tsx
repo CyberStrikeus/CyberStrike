@@ -14,6 +14,8 @@ import { useTerminal } from "@/context/terminal"
 import { DialogSelectFile } from "@/components/dialog-select-file"
 import { DialogSelectModel } from "@/components/dialog-select-model"
 import { DialogSelectMcp } from "@/components/dialog-select-mcp"
+import { DialogSelectBolt } from "@/components/dialog-select-bolt"
+import { DialogSelectVulnerability } from "@/components/dialog-select-vulnerability"
 import { DialogFork } from "@/components/dialog-fork"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { findLast } from "@cyberstrike-io/util/array"
@@ -143,7 +145,7 @@ export const useSessionCommands = (input: SessionCommandContext) => {
     viewCommand({
       id: "review.toggle",
       title: input.language.t("command.review.toggle"),
-      keybind: "mod+shift+r",
+      keybind: "mod+shift+e",
       onSelect: () => input.view().reviewPanel.toggle(),
     }),
     viewCommand({
@@ -218,6 +220,20 @@ export const useSessionCommands = (input: SessionCommandContext) => {
       keybind: "mod+;",
       slash: "mcp",
       onSelect: () => input.dialog.show(() => <DialogSelectMcp />),
+    }),
+    mcpCommand({
+      id: "bolt.toggle",
+      title: input.language.t("command.bolt.toggle"),
+      description: input.language.t("command.bolt.toggle.description"),
+      slash: "bolt",
+      onSelect: () => input.dialog.show(() => <DialogSelectBolt />),
+    }),
+    mcpCommand({
+      id: "vulnerability.view",
+      title: input.language.t("command.vulnerability.view"),
+      description: input.language.t("command.vulnerability.view.description"),
+      slash: "vulns",
+      onSelect: () => input.dialog.show(() => <DialogSelectVulnerability />),
     }),
     agentCommand({
       id: "agent.cycle",

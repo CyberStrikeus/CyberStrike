@@ -109,6 +109,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const inflight = new Map<string, Promise<void>>()
     const inflightDiff = new Map<string, Promise<void>>()
     const inflightTodo = new Map<string, Promise<void>>()
+    const inflightVuln = new Map<string, Promise<void>>()
     const [meta, setMeta] = createStore({
       limit: {} as Record<string, number>,
       complete: {} as Record<string, boolean>,
@@ -295,6 +296,19 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           return runInflight(inflightTodo, key, () =>
             retry(() => client.session.todo({ sessionID })).then((todo) => {
               setStore("todo", sessionID, reconcile(todo.data ?? [], { key: "id" }))
+            }),
+          )
+        },
+        async vulnerability(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.vulnerability[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightVuln, key, () =>
+            retry(() => client.session.vulnerability({ sessionID })).then((result) => {
+              setStore("vulnerability", sessionID, reconcile(result.data ?? [], { key: "id" }))
             }),
           )
         },

@@ -1,13 +1,17 @@
-import { For, Match, Show, Switch, createMemo, onCleanup, type JSX, type ValidComponent } from "solid-js"
+import { createEffect, For, Match, Show, Switch, createMemo, createSignal, onCleanup, type JSX, type ValidComponent } from "solid-js"
+import { useParams } from "@solidjs/router"
 import { Tabs } from "@cyberstrike-io/ui/tabs"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
 import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
 import { ResizeHandle } from "@cyberstrike-io/ui/resize-handle"
 import { Mark } from "@cyberstrike-io/ui/logo"
+import { Switch as Toggle } from "@cyberstrike-io/ui/switch"
 import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { SessionContextTab, SortableTab, FileVisual } from "@/components/session"
 import { DialogSelectFile } from "@/components/dialog-select-file"
+import { DialogSelectMcp } from "@/components/dialog-select-mcp"
+import { DialogSelectBolt } from "@/components/dialog-select-bolt"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import { StickyAddButton } from "@/pages/session/review-tab"
@@ -21,7 +25,291 @@ import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { useSync } from "@/context/sync"
-import type { Message, UserMessage } from "@cyberstrike-io/sdk/v2/client"
+import { useSDK } from "@/context/sdk"
+import { Icon } from "@cyberstrike-io/ui/icon"
+import type { Message, UserMessage, Vulnerability } from "@cyberstrike-io/sdk/v2/client"
+
+const statusDot = (status: string) => {
+  if (status === "connected") return "bg-icon-success-base"
+  if (status === "failed") return "bg-icon-danger-base"
+  if (status === "needs_auth") return "bg-icon-warning-base"
+  return "bg-surface-inset-base"
+}
+
+function McpPanelList() {
+  const sync = useSync()
+  const sdk = useSDK()
+  const dialog = useDialog()
+  const language = useLanguage()
+  const [loading, setLoading] = createSignal<string | null>(null)
+
+  const items = createMemo(() =>
+    Object.entries(sync.data.mcp ?? {})
+      .map(([name, s]) => ({ name, status: s.status }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  )
+
+  const toggle = async (name: string) => {
+    if (loading()) return
+    setLoading(name)
+    try {
+      const s = sync.data.mcp[name]
+      if (s?.status === "connected") await sdk.client.mcp.disconnect({ name })
+      else await sdk.client.mcp.connect({ name })
+      const result = await sdk.client.mcp.status()
+      if (result.data) sync.set("mcp", result.data)
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+          {language.t("dialog.mcp.title")}
+        </span>
+        <IconButton
+          icon="plus-small"
+          variant="ghost"
+          size="small"
+          onClick={() => dialog.show(() => <DialogSelectMcp />)}
+        />
+      </div>
+      <Show when={items().length === 0}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.mcp.empty")}
+        </div>
+      </Show>
+      <For each={items()}>
+        {(i) => (
+          <div
+            class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base cursor-pointer"
+            onClick={() => toggle(i.name)}
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
+              <span class="text-12-regular truncate">{i.name}</span>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Toggle
+                checked={i.status === "connected"}
+                disabled={loading() === i.name}
+                onChange={() => toggle(i.name)}
+              />
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
+
+function BoltPanelList() {
+  const sync = useSync()
+  const sdk = useSDK()
+  const dialog = useDialog()
+  const language = useLanguage()
+  const [loading, setLoading] = createSignal<string | null>(null)
+
+  const items = createMemo(() =>
+    Object.entries(sync.data.bolt ?? {})
+      .map(([name, s]) => ({ name, status: s.status }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  )
+
+  const toggle = async (name: string) => {
+    if (loading()) return
+    setLoading(name)
+    try {
+      const s = sync.data.bolt[name]
+      if (s?.status === "connected") await sdk.client.bolt.disconnect({ name })
+      else await sdk.client.bolt.connect({ name })
+      const result = await sdk.client.bolt.status()
+      if (result.data) sync.set("bolt", result.data)
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+          {language.t("dialog.bolt.title")}
+        </span>
+        <IconButton
+          icon="plus-small"
+          variant="ghost"
+          size="small"
+          onClick={() => dialog.show(() => <DialogSelectBolt />)}
+        />
+      </div>
+      <Show when={items().length === 0}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.bolt.empty")}
+        </div>
+      </Show>
+      <For each={items()}>
+        {(i) => (
+          <div
+            class="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-surface-raised-base cursor-pointer"
+            onClick={() => toggle(i.name)}
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot(i.status)}`} />
+              <span class="text-12-regular truncate">{i.name}</span>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Toggle
+                checked={i.status === "connected"}
+                disabled={loading() === i.name}
+                onChange={() => toggle(i.name)}
+              />
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
+
+const severityDot = (severity: Vulnerability["severity"]) => {
+  if (severity === "critical") return "bg-icon-critical-base"
+  if (severity === "high") return "bg-icon-warning-base"
+  if (severity === "medium") return "bg-icon-accent-base"
+  return "bg-border-weak-base"
+}
+
+const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const
+
+function VulnsPanelList() {
+  const sync = useSync()
+  const language = useLanguage()
+  const params = useParams()
+
+  const sessionID = () => params.id ?? ""
+
+  createEffect(() => {
+    const id = sessionID()
+    if (!id) return
+    void sync.session.vulnerability(id)
+  })
+
+  const items = createMemo(() => {
+    const id = sessionID()
+    if (!id) return []
+    const list = sync.data.vulnerability?.[id] ?? []
+    return list.slice().sort((a, b) => {
+      const sa = severityOrder[a.severity] ?? 4
+      const sb = severityOrder[b.severity] ?? 4
+      if (sa !== sb) return sa - sb
+      return (a.title ?? "").localeCompare(b.title ?? "")
+    })
+  })
+
+  const openCount = createMemo(() => items().filter((v) => v.status !== "fixed" && v.status !== "ignored").length)
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+          {language.t("dialog.vulnerability.title")} ({openCount()})
+        </span>
+      </div>
+      <Show when={!sessionID()}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.vulnerability.noSession")}
+        </div>
+      </Show>
+      <Show when={sessionID() && items().length === 0}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.vulnerability.empty")}
+        </div>
+      </Show>
+      <For each={items()}>
+        {(v) => (
+          <div
+            class="flex items-start gap-2 px-2 py-1 rounded"
+            classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
+          >
+            <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
+            <div class="flex flex-col min-w-0 flex-1">
+              <span class="text-12-regular truncate">{v.title}</span>
+              <span class="text-11-regular text-text-weaker truncate">
+                {v.severity.toUpperCase()}
+                {v.cwe_id ? ` · ${v.cwe_id}` : ""}
+                {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
+              </span>
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
+
+function TodoPanelList() {
+  const sync = useSync()
+  const language = useLanguage()
+  const params = useParams()
+
+  const sessionID = () => params.id ?? ""
+
+  createEffect(() => {
+    const id = sessionID()
+    if (!id) return
+    void sync.session.todo(id)
+  })
+
+  const items = createMemo(() => {
+    const id = sessionID()
+    if (!id) return []
+    return sync.data.todo[id] ?? []
+  })
+
+  const activeCount = createMemo(() => items().filter((t) => t.status !== "completed" && t.status !== "cancelled").length)
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+          {language.t("dialog.todo.title")} ({activeCount()})
+        </span>
+      </div>
+      <Show when={!sessionID()}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.todo.noSession")}
+        </div>
+      </Show>
+      <Show when={sessionID() && items().length === 0}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {language.t("dialog.todo.empty")}
+        </div>
+      </Show>
+      <For each={items()}>
+        {(t) => (
+          <div
+            class="flex items-start gap-2 px-2 py-1 rounded"
+            classList={{ "opacity-50": t.status === "completed" || t.status === "cancelled" }}
+          >
+            <Icon
+              name={t.status === "completed" ? "check" : t.status === "in_progress" ? "dash" : "circle-check"}
+              size="small"
+              classList={{
+                "shrink-0 mt-0.5": true,
+                "text-icon-success-base": t.status === "completed",
+                "text-icon-warning-base": t.status === "in_progress",
+                "text-icon-weak": t.status === "pending" || t.status === "cancelled",
+              }}
+            />
+            <span class="text-12-regular">{t.content}</span>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
 
 type SessionSidePanelViewModel = {
   messages: () => Message[]
@@ -88,10 +376,7 @@ export function SessionSidePanel(props: {
       >
         <Show when={props.reviewOpen}>
           <div class="flex-1 min-w-0 h-full">
-            <Show
-              when={props.layout.fileTree.opened() && props.fileTreeTab() === "changes"}
-              fallback={
-                <DragDropProvider
+            <DragDropProvider
                   onDragStart={props.onDragStart}
                   onDragEnd={props.onDragEnd}
                   onDragOver={props.onDragOver}
@@ -142,6 +427,18 @@ export function SessionSidePanel(props: {
                             </div>
                           </Tabs.Trigger>
                         </Show>
+                        <Tabs.Trigger value="mcp-panel">
+                          <div class="flex items-center gap-1.5">MCP</div>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="bolt-panel">
+                          <div class="flex items-center gap-1.5">Bolt</div>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="vulns-panel">
+                          <div class="flex items-center gap-1.5">Vulns</div>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="todo-panel">
+                          <div class="flex items-center gap-1.5">Todo</div>
+                        </Tabs.Trigger>
                         <SortableProvider ids={openedTabs()}>
                           <For each={openedTabs()}>
                             {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
@@ -203,6 +500,38 @@ export function SessionSidePanel(props: {
                       </Tabs.Content>
                     </Show>
 
+                    <Tabs.Content value="mcp-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={props.activeTab() === "mcp-panel"}>
+                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                          <McpPanelList />
+                        </div>
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="bolt-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={props.activeTab() === "bolt-panel"}>
+                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                          <BoltPanelList />
+                        </div>
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={props.activeTab() === "vulns-panel"}>
+                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                          <VulnsPanelList />
+                        </div>
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="todo-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={props.activeTab() === "todo-panel"}>
+                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                          <TodoPanelList />
+                        </div>
+                      </Show>
+                    </Tabs.Content>
+
                     <Show when={props.activeFileTab()} keyed>
                       {(tab) => (
                         <FileTabContent
@@ -233,10 +562,6 @@ export function SessionSidePanel(props: {
                     </Show>
                   </DragOverlay>
                 </DragDropProvider>
-              }
-            >
-              {props.reviewPanel()}
-            </Show>
           </div>
         </Show>
 

@@ -10,6 +10,7 @@ import type {
   Session,
   SessionStatus,
   Todo,
+  Vulnerability,
 } from "@cyberstrike-io/sdk/v2/client"
 import type { State, VcsCache } from "./types"
 import { trimSessions } from "./session-trim"
@@ -149,6 +150,11 @@ export function applyDirectoryEvent(input: {
     case "todo.updated": {
       const props = event.properties as { sessionID: string; todos: Todo[] }
       input.setStore("todo", props.sessionID, reconcile(props.todos, { key: "id" }))
+      break
+    }
+    case "vulnerability.updated": {
+      const props = event.properties as { sessionID: string; vulnerabilities: Vulnerability[] }
+      input.setStore("vulnerability", props.sessionID, reconcile(props.vulnerabilities, { key: "id" }))
       break
     }
     case "session.status": {
