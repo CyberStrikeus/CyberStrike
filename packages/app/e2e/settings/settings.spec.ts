@@ -102,7 +102,7 @@ test("changing theme persists in localStorage", async ({ page, gotoSession }) =>
   })
 
   expect(storedThemeId).not.toBeNull()
-  expect(storedThemeId).not.toBe("oc-1")
+  expect(storedThemeId).not.toBe("cs-1")
 
   const dataTheme = await page.evaluate(() => {
     return document.documentElement.getAttribute("data-theme")
