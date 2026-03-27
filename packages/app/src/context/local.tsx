@@ -35,6 +35,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
 
     const agent = (() => {
       const list = createMemo(() => sync.data.agent.filter((x) => x.mode !== "subagent" && !x.hidden))
+      const all = createMemo(() => sync.data.agent.filter((x) => !x.hidden))
       const [store, setStore] = createStore<{
         current?: string
       }>({
@@ -42,22 +43,23 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       })
       return {
         list,
+        all,
         current() {
-          const available = list()
-          if (available.length === 0) return undefined
-          return available.find((x) => x.name === store.current) ?? available[0]
+          const visible = all()
+          if (visible.length === 0) return undefined
+          return visible.find((x) => x.name === store.current) ?? list()[0] ?? visible[0]
         },
         set(name: string | undefined) {
-          const available = list()
-          if (available.length === 0) {
+          const visible = all()
+          if (visible.length === 0) {
             setStore("current", undefined)
             return
           }
-          if (name && available.some((x) => x.name === name)) {
+          if (name && visible.some((x) => x.name === name)) {
             setStore("current", name)
             return
           }
-          setStore("current", available[0].name)
+          setStore("current", list()[0]?.name ?? visible[0].name)
         },
         move(direction: 1 | -1) {
           const available = list()

@@ -302,12 +302,14 @@ export function AssistantMessageDisplay(props: { message: AssistantMessage; part
 }
 
 export function UserMessageDisplay(props: { message: UserMessage; parts: PartType[] }) {
+  const data = useData()
   const dialog = useDialog()
   const i18n = useI18n()
   const [copied, setCopied] = createSignal(false)
   const [expanded, setExpanded] = createSignal(false)
   const [canExpand, setCanExpand] = createSignal(false)
   let textRef: HTMLDivElement | undefined
+  const color = createMemo(() => data.agentColor?.(props.message.agent))
 
   const updateCanExpand = () => {
     const el = textRef
@@ -370,7 +372,13 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
   }
 
   return (
-    <div data-component="user-message" data-expanded={expanded()} data-can-expand={canExpand()}>
+    <div
+      data-component="user-message"
+      data-expanded={expanded()}
+      data-can-expand={canExpand()}
+      data-agent-color={!!color()}
+      style={{ "border-left": color() ? `3px solid ${color()}` : undefined }}
+    >
       <Show when={attachments().length > 0}>
         <div data-slot="user-message-attachments">
           <For each={attachments()}>

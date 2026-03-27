@@ -16,6 +16,7 @@ import { DialogSelectModel } from "@/components/dialog-select-model"
 import { DialogSelectMcp } from "@/components/dialog-select-mcp"
 import { DialogSelectBolt } from "@/components/dialog-select-bolt"
 import { DialogSelectVulnerability } from "@/components/dialog-select-vulnerability"
+import { DialogSelectAgent } from "@/components/dialog-select-agent"
 import { DialogFork } from "@/components/dialog-fork"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { findLast } from "@cyberstrike-io/util/array"
@@ -234,6 +235,13 @@ export const useSessionCommands = (input: SessionCommandContext) => {
       description: input.language.t("command.vulnerability.view.description"),
       slash: "vulns",
       onSelect: () => input.dialog.show(() => <DialogSelectVulnerability />),
+    }),
+    agentCommand({
+      id: "agent.list",
+      title: input.language.t("command.agent.list"),
+      description: input.language.t("command.agent.list.description"),
+      slash: "agents",
+      onSelect: () => input.dialog.show(() => <DialogSelectAgent />),
     }),
     agentCommand({
       id: "agent.cycle",

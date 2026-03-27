@@ -23,6 +23,7 @@ import { Button } from "@cyberstrike-io/ui/button"
 import { Icon } from "@cyberstrike-io/ui/icon"
 import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
 import type { IconName } from "@cyberstrike-io/ui/icons/provider"
+import { agentColor } from "@/utils/agent"
 import { Tooltip, TooltipKeybind } from "@cyberstrike-io/ui/tooltip"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
 import { Select } from "@cyberstrike-io/ui/select"
@@ -349,7 +350,15 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       .filter((agent) => !agent.hidden && agent.mode !== "primary")
       .map((agent): AtOption => ({ type: "agent", name: agent.name, display: agent.name })),
   )
-  const agentNames = createMemo(() => local.agent.list().map((agent) => agent.name))
+  const agentNames = createMemo(() => local.agent.all().map((agent) => agent.name))
+
+  const currentAgentColor = createMemo(() => {
+    const agent = local.agent.current()
+    if (!agent) return undefined
+    const primary = sync.data.agent.filter((a) => a.mode !== "subagent" && !a.hidden)
+    const idx = primary.findIndex((a) => a.name === agent.name)
+    return agentColor(agent.name, agent.color, idx >= 0 ? idx : undefined)
+  })
 
   const handleAtSelect = (option: AtOption | undefined) => {
     if (!option) return
@@ -1063,6 +1072,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     class={`capitalize ${local.model.variant.list().length > 0 ? "max-w-full" : "max-w-[120px]"}`}
                     valueClass="truncate"
                     variant="ghost"
+                    triggerStyle={{
+                      "border": `1px solid color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 50%, transparent)`,
+                      "background": `color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 12%, transparent)`,
+                    }}
                   />
                 </TooltipKeybind>
                 <Show
