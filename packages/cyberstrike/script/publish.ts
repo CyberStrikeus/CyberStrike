@@ -30,6 +30,16 @@ await $`cp -r ./bin ./${distDir}/bin`
 await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
 await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
 
+// Bundle web UI if available (built by publish workflow build-app job)
+const webDistPath = "../../packages/app/dist"
+const webDestPath = `./${distDir}/web`
+if (await Bun.file(`${webDistPath}/index.html`).exists()) {
+  await $`cp -r ${webDistPath} ${webDestPath}`
+  console.log("Bundled web UI into npm package")
+} else {
+  console.warn("Warning: Web UI dist not found — npm package will not include web UI")
+}
+
 await Bun.file(`./${distDir}/package.json`).write(
   JSON.stringify(
     {
