@@ -25,7 +25,11 @@ const env = {
 const CHANNEL = await (async () => {
   if (env.CYBERSTRIKE_CHANNEL) return env.CYBERSTRIKE_CHANNEL
   if (env.CYBERSTRIKE_BUMP) return "latest"
-  if (env.CYBERSTRIKE_VERSION && !env.CYBERSTRIKE_VERSION.startsWith("0.0.0-")) return "latest"
+  if (env.CYBERSTRIKE_VERSION && !env.CYBERSTRIKE_VERSION.startsWith("0.0.0-")) {
+    // Extract prerelease tag from semver (e.g. "1.1.6-beta.1" → "beta")
+    const pre = env.CYBERSTRIKE_VERSION.match(/-([a-z]+)/i)?.[1]
+    return pre ?? "latest"
+  }
   return await $`git branch --show-current`.text().then((x) => x.trim())
 })()
 const IS_PREVIEW = CHANNEL !== "latest"
