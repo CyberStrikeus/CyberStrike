@@ -110,11 +110,18 @@ function copyDirSync(src, dest) {
   }
 }
 
+function xdgDataDir() {
+  // Match xdg-basedir: XDG_DATA_HOME or ~/.local/share
+  const xdg = process.env.XDG_DATA_HOME
+  if (xdg) return xdg
+  return path.join(os.homedir(), ".local", "share")
+}
+
 function installWebUI() {
   const webSrc = path.join(__dirname, "web")
   if (!fs.existsSync(path.join(webSrc, "index.html"))) return
 
-  const dataDir = process.env.CYBERSTRIKE_DATA_DIR || path.join(os.homedir(), ".cyberstrike")
+  const dataDir = path.join(xdgDataDir(), "cyberstrike")
   const webDest = path.join(dataDir, "web")
 
   // Remove old web UI before copying
