@@ -80,7 +80,7 @@ export namespace Server {
             status: 500,
           })
         })
-        .use((c, next) => {
+        .use(async (c, next) => {
           if (c.req.method === "OPTIONS") return next()
           const password = Flag.CYBERSTRIKE_SERVER_PASSWORD
           if (!password) return next()

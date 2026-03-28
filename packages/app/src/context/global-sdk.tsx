@@ -1,14 +1,24 @@
-import type { Event } from "@cyberstrike-io/sdk/v2/client"
+import type { Event, CyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
+import type { GlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
 import { createSdkForServer } from "@/utils/server"
 import { usePlatform } from "./platform"
 import { useServer } from "./server"
 
+export type CreateClientOpts = Omit<Parameters<typeof createSdkForServer>[0], "server" | "fetch">
+
+export type GlobalSDKValue = {
+  url: string
+  client: CyberstrikeClient
+  event: GlobalEmitter<{ [key: string]: Event }>
+  createClient: (opts: CreateClientOpts) => CyberstrikeClient
+}
+
 export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleContext({
   name: "GlobalSDK",
-  init: () => {
+  init: (): GlobalSDKValue => {
     const server = useServer()
     const platform = usePlatform()
     const abort = new AbortController()
@@ -231,7 +241,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       url: currentServer.http.url,
       client: sdk,
       event: emitter,
-      createClient(opts: Omit<Parameters<typeof createSdkForServer>[0], "server" | "fetch">) {
+      createClient(opts: CreateClientOpts): CyberstrikeClient {
         const s = server.current
         if (!s) throw new Error("Server not available")
         return createSdkForServer({
