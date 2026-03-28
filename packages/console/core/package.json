@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@cyberstrike-io/console-core",
-  "version": "1.1.4",
+  "version": "1.1.6-beta.1",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
