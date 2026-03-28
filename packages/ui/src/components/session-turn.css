@@ -256,6 +256,21 @@
     color: var(--text-weak);
   }
 
+  [data-slot="session-turn-agent-metadata"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-x-small);
+    line-height: var(--line-height-normal);
+    color: var(--text-base);
+    padding: 8px 0 4px;
+  }
+
+  [data-slot="session-turn-agent-metadata-dim"] {
+    color: var(--text-dimmed-base);
+  }
+
   [data-slot="session-turn-markdown"],
   [data-slot="session-turn-accordion"] [data-slot="accordion-content"] {
     -webkit-user-select: text;

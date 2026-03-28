@@ -1,14 +1,24 @@
-Use this tool to read the current to-do list for the session. This tool should be used proactively and frequently to ensure that you are aware of
-the status of the current task list. You should make use of this tool as often as possible, especially in the following situations:
-- At the beginning of conversations to see what's pending
-- Before starting new tasks to prioritize work
-- When the user asks about previous tasks or plans
-- Whenever you're uncertain about what to do next
-- After completing tasks to update your understanding of remaining work
-- After every few messages to ensure you're on track
+Read the current pentest operation plan for this session. This returns your active attack roadmap — all pending tests, in-progress exploits, completed findings, and cancelled items.
 
-Usage:
-- This tool takes in no parameters. So leave the input blank or empty. DO NOT include a dummy object, placeholder string or a key like "input" or "empty". LEAVE IT BLANK.
-- Returns a list of todo items with their status, priority, and content
-- Use this information to track progress and plan next steps
-- If no todos exist yet, an empty list will be returned
+Use this tool PROACTIVELY and FREQUENTLY. Your todo list is your operational memory. Without it, you lose track of discovered attack surface, confirmed vulnerabilities awaiting escalation, and planned test cases.
+
+## When to Use
+
+- **Every conversation start**: Read todos before doing anything else. Resume where you left off.
+- **After reconnaissance**: Check if new findings overlap with or invalidate existing todos.
+- **After completing a test**: Read to pick the next highest-priority item.
+- **After web context updates**: Cross-reference new proxy traffic (endpoints, credentials, roles) with existing todos.
+- **After vulnerability confirmation**: Read to plan escalation — confirmed vulns should trigger new high-priority todos via todowrite.
+- **When deciding what to do next**: The todo list drives your prioritization. High-priority pending items first.
+- **Every 3-5 tool calls**: Stay synchronized. The todo list may have been updated by parallel operations.
+
+## What You Get Back
+
+A list of todo items, each with:
+- **content**: The specific test or action to perform
+- **status**: pending (queued), in_progress (active), completed (done), cancelled (dropped)
+- **priority**: high (exploit chains, confirmed vulns, auth bypass), medium (potential vulns, stack-specific tests), low (informational, hardening)
+
+## Usage
+
+This tool takes NO parameters. Leave the input blank or empty. DO NOT include a dummy object, placeholder string, or a key like "input". LEAVE IT BLANK.

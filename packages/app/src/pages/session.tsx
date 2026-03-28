@@ -268,6 +268,11 @@ export default function Page() {
     const next = normalizeTab(value)
     tabs().open(next)
 
+    if (panelTabSet.has(next)) {
+      openReviewPanel()
+      return
+    }
+
     const path = file.pathFromTab(next)
     if (!path) return
     file.load(path)
@@ -876,14 +881,15 @@ export default function Page() {
   }
 
   const contextOpen = createMemo(() => tabs().active() === "context" || tabs().all().includes("context"))
+  const panelTabSet = new Set(["mcp-panel", "bolt-panel", "vulns-panel", "todo-panel"])
   const openedTabs = createMemo(() =>
     tabs()
       .all()
-      .filter((tab) => tab !== "context" && tab !== "review"),
+      .filter((tab) => tab !== "context" && tab !== "review" && !panelTabSet.has(tab)),
   )
 
   const mobileChanges = createMemo(() => !isDesktop() && store.mobileTab === "changes")
-  const reviewTab = createMemo(() => isDesktop() && !layout.fileTree.opened())
+  const reviewTab = createMemo(() => isDesktop())
 
   const fileTreeTab = () => layout.fileTree.tab()
   const setFileTreeTab = (value: "changes" | "all") => layout.fileTree.setTab(value)
@@ -1166,6 +1172,7 @@ export default function Page() {
     const active = tabs().active()
     if (active === "context") return "context"
     if (active === "review" && reviewTab()) return "review"
+    if (active && panelTabSet.has(active)) return active
     if (active && file.pathFromTab(active)) return normalizeTab(active)
 
     const first = openedTabs()[0]

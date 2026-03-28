@@ -1,11 +1,11 @@
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
-import { batch, createEffect, createMemo, onCleanup } from "solid-js"
+import { type Accessor, batch, createEffect, createMemo, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
-import { usePlatform } from "@/context/platform"
 import { Persist, persisted } from "@/utils/persist"
-import { checkServerHealth } from "@/utils/server-health"
+import { useCheckServerHealth } from "@/utils/server-health"
 
 type StoredProject = { worktree: string; expanded: boolean }
+type StoredServer = string | ServerConnection.HttpBase | ServerConnection.Http
 const HEALTH_POLL_INTERVAL_MS = 10_000
 
 export function normalizeServerUrl(input: string) {
@@ -15,58 +15,117 @@ export function normalizeServerUrl(input: string) {
   return withProtocol.replace(/\/+$/, "")
 }
 
+export function serverName(conn?: ServerConnection.Any, ignoreDisplayName = false) {
+  if (!conn) return ""
+  if (conn.displayName && !ignoreDisplayName) return conn.displayName
+  return conn.http.url.replace(/^https?:\/\//, "").replace(/\/+$/, "")
+}
+
+/** @deprecated use serverName(conn) instead */
 export function serverDisplayName(url: string) {
   if (!url) return ""
   return url.replace(/^https?:\/\//, "").replace(/\/+$/, "")
 }
 
-function projectsKey(url: string) {
-  if (!url) return ""
+function projectsKey(key: ServerConnection.Key) {
+  if (!key) return ""
+  if (isLocalHost(key)) return "local"
+  return key
+}
+
+function isLocalHost(url: string) {
   const host = url.replace(/^https?:\/\//, "").split(":")[0]
   if (host === "localhost" || host === "127.0.0.1") return "local"
-  return url
 }
+
+export namespace ServerConnection {
+  type Base = { displayName?: string }
+
+  export type HttpBase = {
+    url: string
+    username?: string
+    password?: string
+  }
+
+  export type Http = {
+    type: "http"
+    http: HttpBase
+  } & Base
+
+  export type Any = Http
+
+  export const key = (conn: Any): Key => {
+    return Key.make(conn.http.url)
+  }
+
+  export type Key = string & { _brand: "Key" }
+  export const Key = { make: (v: string) => v as Key }
+}
+
+const url = (x: StoredServer) => (typeof x === "string" ? x : "type" in x ? x.http.url : x.url)
 
 export const { use: useServer, provider: ServerProvider } = createSimpleContext({
   name: "Server",
   init: (props: { defaultUrl: string; isSidecar?: boolean }) => {
-    const platform = usePlatform()
+    const checkServerHealth = useCheckServerHealth()
 
     const [store, setStore, _, ready] = persisted(
       Persist.global("server", ["server.v3"]),
       createStore({
-        list: [] as string[],
+        list: [] as StoredServer[],
         currentSidecarUrl: "",
         projects: {} as Record<string, StoredProject[]>,
         lastProject: {} as Record<string, string>,
       }),
     )
 
+    const allServers = createMemo((): Array<ServerConnection.Any> => {
+      const servers = store.list.map((value) =>
+        typeof value === "string"
+          ? { type: "http" as const, http: { url: value } }
+          : "type" in value
+            ? value
+            : { type: "http" as const, http: value },
+      )
+
+      const deduped = new Map(
+        servers.map((conn) => [ServerConnection.key(conn), conn]),
+      )
+
+      return [...deduped.values()]
+    })
+
     const [state, setState] = createStore({
-      active: "",
+      active: "" as ServerConnection.Key | "",
       healthy: undefined as boolean | undefined,
     })
 
     const healthy = () => state.healthy
 
-    const defaultUrl = () => normalizeServerUrl(props.defaultUrl)
+    const defaultKey = () => {
+      const normalized = normalizeServerUrl(props.defaultUrl)
+      return normalized ? ServerConnection.Key.make(normalized) : ("" as ServerConnection.Key)
+    }
 
     function reconcileStartup() {
-      const fallback = defaultUrl()
+      const fallback = defaultKey()
       if (!fallback) return
 
       const previousSidecarUrl = normalizeServerUrl(store.currentSidecarUrl)
-      const list = previousSidecarUrl ? store.list.filter((url) => url !== previousSidecarUrl) : store.list
+      const list = previousSidecarUrl ? store.list.filter((x) => url(x) !== previousSidecarUrl) : store.list
       if (!props.isSidecar) {
+        const exists = list.some((x) => url(x) === fallback)
+        const nextList = exists ? list : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
         batch(() => {
-          setStore("list", list)
+          setStore("list", nextList)
           if (store.currentSidecarUrl) setStore("currentSidecarUrl", "")
           setState("active", fallback)
         })
         return
       }
 
-      const nextList = list.includes(fallback) ? list : [...list, fallback]
+      const exists = list.some((x) => url(x) === fallback)
+      const nextList = exists ? list : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
       batch(() => {
         setStore("list", nextList)
         setStore("currentSidecarUrl", fallback)
@@ -74,33 +133,14 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       })
     }
 
-    function updateServerList(url: string, remove = false) {
-      if (remove) {
-        const list = store.list.filter((x) => x !== url)
-        const next = state.active === url ? (list[0] ?? defaultUrl() ?? "") : state.active
-        batch(() => {
-          setStore("list", list)
-          setState("active", next)
-        })
-        return
-      }
-
-      batch(() => {
-        if (!store.list.includes(url)) {
-          setStore("list", store.list.length, url)
-        }
-        setState("active", url)
-      })
-    }
-
-    function startHealthPolling(url: string) {
+    function startHealthPolling(conn: ServerConnection.Any) {
       let alive = true
       let busy = false
 
       const run = () => {
         if (busy) return
         busy = true
-        void check(url)
+        void check(conn)
           .then((next) => {
             if (!alive) return
             setState("healthy", next)
@@ -118,22 +158,36 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       }
     }
 
-    function setActive(input: string) {
-      const url = normalizeServerUrl(input)
-      if (!url) return
-      setState("active", url)
+    function setActive(input: ServerConnection.Key | string) {
+      const key = input as ServerConnection.Key
+      if (state.active !== key) setState("active", key)
     }
 
-    function add(input: string) {
-      const url = normalizeServerUrl(input)
-      if (!url) return
-      updateServerList(url)
+    function add(input: ServerConnection.Http) {
+      const normalized = normalizeServerUrl(input.http.url)
+      if (!normalized) return
+      const conn = { ...input, http: { ...input.http, url: normalized } }
+      return batch(() => {
+        const existing = store.list.findIndex((x) => url(x) === normalized)
+        if (existing !== -1) {
+          setStore("list", existing, conn)
+        } else {
+          setStore("list", store.list.length, conn)
+        }
+        setState("active", ServerConnection.key(conn))
+        return conn
+      })
     }
 
-    function remove(input: string) {
-      const url = normalizeServerUrl(input)
-      if (!url) return
-      updateServerList(url, true)
+    function remove(key: ServerConnection.Key | string) {
+      const list = store.list.filter((x) => url(x) !== key)
+      batch(() => {
+        setStore("list", list)
+        if (state.active === key) {
+          const next = list[0]
+          setState("active", next ? ServerConnection.Key.make(url(next)) : defaultKey())
+        }
+      })
     }
 
     createEffect(() => {
@@ -144,33 +198,45 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
 
     const isReady = createMemo(() => ready() && !!state.active)
 
-    const fetcher = platform.fetch ?? globalThis.fetch
-    const check = (url: string) => checkServerHealth(url, fetcher).then((x) => x.healthy)
+    const check = (conn: ServerConnection.Any) => checkServerHealth(conn.http).then((x) => x.healthy)
+
+    const current: Accessor<ServerConnection.Any | undefined> = createMemo(
+      () => allServers().find((s) => ServerConnection.key(s) === state.active) ?? allServers()[0],
+    )
 
     createEffect(() => {
-      const url = state.active
-      if (!url) return
+      const c = current()
+      if (!c) return
 
       setState("healthy", undefined)
-      onCleanup(startHealthPolling(url))
+      onCleanup(startHealthPolling(c))
     })
 
-    const origin = createMemo(() => projectsKey(state.active))
+    const origin = createMemo(() => projectsKey(state.active as ServerConnection.Key))
     const projectsList = createMemo(() => store.projects[origin()] ?? [])
-    const isLocal = createMemo(() => origin() === "local")
+    const isLocal = createMemo(() => {
+      const c = current()
+      return c ? !!isLocalHost(c.http.url) : false
+    })
 
     return {
       ready: isReady,
       healthy,
       isLocal,
+      get key() {
+        return state.active as ServerConnection.Key
+      },
       get url() {
-        return state.active
+        return current()?.http.url ?? ""
       },
       get name() {
-        return serverDisplayName(state.active)
+        return serverName(current())
       },
       get list() {
-        return store.list
+        return allServers()
+      },
+      get current() {
+        return current()
       },
       setActive,
       add,
@@ -178,56 +244,56 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       projects: {
         list: projectsList,
         open(directory: string) {
-          const key = origin()
-          if (!key) return
-          const current = store.projects[key] ?? []
-          if (current.find((x) => x.worktree === directory)) return
-          setStore("projects", key, [{ worktree: directory, expanded: true }, ...current])
+          const k = origin()
+          if (!k) return
+          const cur = store.projects[k] ?? []
+          if (cur.find((x) => x.worktree === directory)) return
+          setStore("projects", k, [{ worktree: directory, expanded: true }, ...cur])
         },
         close(directory: string) {
-          const key = origin()
-          if (!key) return
-          const current = store.projects[key] ?? []
+          const k = origin()
+          if (!k) return
+          const cur = store.projects[k] ?? []
           setStore(
             "projects",
-            key,
-            current.filter((x) => x.worktree !== directory),
+            k,
+            cur.filter((x) => x.worktree !== directory),
           )
         },
         expand(directory: string) {
-          const key = origin()
-          if (!key) return
-          const current = store.projects[key] ?? []
-          const index = current.findIndex((x) => x.worktree === directory)
-          if (index !== -1) setStore("projects", key, index, "expanded", true)
+          const k = origin()
+          if (!k) return
+          const cur = store.projects[k] ?? []
+          const index = cur.findIndex((x) => x.worktree === directory)
+          if (index !== -1) setStore("projects", k, index, "expanded", true)
         },
         collapse(directory: string) {
-          const key = origin()
-          if (!key) return
-          const current = store.projects[key] ?? []
-          const index = current.findIndex((x) => x.worktree === directory)
-          if (index !== -1) setStore("projects", key, index, "expanded", false)
+          const k = origin()
+          if (!k) return
+          const cur = store.projects[k] ?? []
+          const index = cur.findIndex((x) => x.worktree === directory)
+          if (index !== -1) setStore("projects", k, index, "expanded", false)
         },
         move(directory: string, toIndex: number) {
-          const key = origin()
-          if (!key) return
-          const current = store.projects[key] ?? []
-          const fromIndex = current.findIndex((x) => x.worktree === directory)
+          const k = origin()
+          if (!k) return
+          const cur = store.projects[k] ?? []
+          const fromIndex = cur.findIndex((x) => x.worktree === directory)
           if (fromIndex === -1 || fromIndex === toIndex) return
-          const result = [...current]
+          const result = [...cur]
           const [item] = result.splice(fromIndex, 1)
           result.splice(toIndex, 0, item)
-          setStore("projects", key, result)
+          setStore("projects", k, result)
         },
         last() {
-          const key = origin()
-          if (!key) return
-          return store.lastProject[key]
+          const k = origin()
+          if (!k) return
+          return store.lastProject[k]
         },
         touch(directory: string) {
-          const key = origin()
-          if (!key) return
-          setStore("lastProject", key, directory)
+          const k = origin()
+          if (!k) return
+          setStore("lastProject", k, directory)
         },
       },
     }

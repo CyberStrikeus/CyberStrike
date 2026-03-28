@@ -1,6 +1,8 @@
 import { A, useNavigate, useParams } from "@solidjs/router"
 import { useGlobalSync } from "@/context/global-sync"
+import { useGlobalSDK } from "@/context/global-sdk"
 import { useLanguage } from "@/context/language"
+import { decode64 } from "@/utils/base64"
 import { useLayout, type LocalProject, getAvatarColors } from "@/context/layout"
 import { useNotification } from "@/context/notification"
 import { base64Encode } from "@cyberstrike-io/util/encode"
@@ -349,18 +351,42 @@ export const NewSessionItem = (props: {
 }): JSX.Element => {
   const layout = useLayout()
   const language = useLanguage()
+  const navigate = useNavigate()
+  const globalSDK = useGlobalSDK()
   const label = language.t("command.session.new")
   const tooltip = () => props.mobile || !props.sidebarExpanded()
+
+  const handleClick = (e: Event) => {
+    e.preventDefault()
+    e.stopPropagation()
+    props.setHoverSession(undefined)
+    if (!layout.sidebar.opened()) props.clearHoverProjectSoon()
+    const directory = decode64(props.slug)
+    if (!directory) {
+      navigate(`/${props.slug}/session`)
+      return
+    }
+    const client = globalSDK.createClient({ directory, throwOnError: true })
+    client.session
+      .create()
+      .then((result) => {
+        const session = result.data
+        if (session) {
+          navigate(`/${props.slug}/session/${session.id}`)
+          return
+        }
+        navigate(`/${props.slug}/session`)
+      })
+      .catch(() => {
+        navigate(`/${props.slug}/session`)
+      })
+  }
+
   const item = (
-    <A
-      href={`/${props.slug}/session`}
-      end
-      class={`flex items-center justify-between gap-3 min-w-0 text-left w-full focus:outline-none ${props.dense ? "py-0.5" : "py-1"}`}
-      onClick={() => {
-        props.setHoverSession(undefined)
-        if (layout.sidebar.opened()) return
-        props.clearHoverProjectSoon()
-      }}
+    <button
+      type="button"
+      class={`flex items-center justify-between gap-3 min-w-0 text-left w-full focus:outline-none cursor-pointer ${props.dense ? "py-0.5" : "py-1"}`}
+      on:click={handleClick}
     >
       <div class="flex items-center gap-1 w-full">
         <div class="shrink-0 size-6 flex items-center justify-center">
@@ -370,7 +396,7 @@ export const NewSessionItem = (props: {
           {label}
         </span>
       </div>
-    </A>
+    </button>
   )
 
   return (

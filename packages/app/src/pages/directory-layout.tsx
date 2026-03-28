@@ -10,12 +10,20 @@ import type { QuestionAnswer } from "@cyberstrike-io/sdk/v2"
 import { decode64 } from "@/utils/base64"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { useLanguage } from "@/context/language"
+import { agentColor } from "@/utils/agent"
 
 function DirectoryDataProvider(props: ParentProps<{ directory: string }>) {
   const params = useParams()
   const navigate = useNavigate()
   const sync = useSync()
   const sdk = useSDK()
+
+  const resolveAgentColor = (name: string) => {
+    const visible = sync.data.agent.filter((a) => a.mode !== "subagent" && !a.hidden)
+    const index = visible.findIndex((a) => a.name === name)
+    const agent = index >= 0 ? visible[index] : sync.data.agent.find((a) => a.name === name)
+    return agentColor(name, agent?.color, index >= 0 ? index : undefined)
+  }
 
   return (
     <DataProvider
@@ -31,6 +39,7 @@ function DirectoryDataProvider(props: ParentProps<{ directory: string }>) {
       onNavigateToSession={(sessionID: string) => navigate(`/${params.dir}/session/${sessionID}`)}
       onSessionHref={(sessionID: string) => `/${params.dir}/session/${sessionID}`}
       onSyncSession={(sessionID: string) => sync.session.sync(sessionID)}
+      agentColor={resolveAgentColor}
     >
       <LocalProvider>{props.children}</LocalProvider>
     </DataProvider>

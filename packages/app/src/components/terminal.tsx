@@ -2,6 +2,7 @@ import type { Ghostty, Terminal as Term, FitAddon } from "ghostty-web"
 import { ComponentProps, createEffect, createSignal, onCleanup, onMount, splitProps } from "solid-js"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
 import { monoFontFamily, useSettings } from "@/context/settings"
 import { parseKeybind, matchKeybind } from "@/context/command"
 import { SerializeAddon } from "@/addons/serialize"
@@ -145,6 +146,7 @@ const persistTerminal = (input: {
 export const Terminal = (props: TerminalProps) => {
   const platform = usePlatform()
   const sdk = useSDK()
+  const server = useServer()
   const settings = useSettings()
   const theme = useTheme()
   const language = useLanguage()
@@ -428,10 +430,9 @@ export const Terminal = (props: TerminalProps) => {
       url.searchParams.set("directory", sdk.directory)
       url.searchParams.set("cursor", String(start !== undefined ? start : local.pty.buffer ? -1 : 0))
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
-      if (window.__CYBERSTRIKE__?.serverPassword) {
-        url.username = "cyberstrike"
-        url.password = window.__CYBERSTRIKE__?.serverPassword
-      }
+      const auth = server.current?.http
+      url.username = auth?.username ?? "cyberstrike"
+      url.password = auth?.password ?? ""
       const socket = new WebSocket(url)
       socket.binaryType = "arraybuffer"
       ws = socket
