@@ -282,35 +282,55 @@ export default function Layout(props: ParentProps) {
 
   const useUpdatePolling = () =>
     onMount(() => {
-      if (!platform.checkUpdate || !platform.update || !platform.restart) return
-
       let toastId: number | undefined
       let interval: ReturnType<typeof setInterval> | undefined
 
-      const pollUpdate = () =>
-        platform.checkUpdate!().then(({ updateAvailable, version }) => {
-          if (!updateAvailable) return
-          if (toastId !== undefined) return
-          toastId = showToast({
-            persistent: true,
-            icon: "download",
-            title: language.t("toast.update.title"),
-            description: language.t("toast.update.description", { version: version ?? "" }),
-            actions: [
-              {
-                label: language.t("toast.update.action.installRestart"),
-                onClick: async () => {
-                  await platform.update!()
-                  await platform.restart!()
-                },
-              },
-              {
-                label: language.t("toast.update.action.notYet"),
-                onClick: "dismiss",
-              },
-            ],
+      const showUpdateToast = (version: string, canAutoUpdate: boolean) => {
+        if (toastId !== undefined) return
+        const actions: Array<{ label: string; onClick: (() => Promise<void>) | "dismiss" }> = []
+        if (canAutoUpdate && platform.update && platform.restart) {
+          const u = platform.update
+          const r = platform.restart
+          actions.push({
+            label: language.t("toast.update.action.installRestart"),
+            onClick: async () => {
+              await u()
+              await r()
+            },
           })
+        }
+        actions.push({
+          label: language.t("toast.update.action.notYet"),
+          onClick: "dismiss",
         })
+        toastId = showToast({
+          persistent: true,
+          icon: "download",
+          title: language.t("toast.update.title"),
+          description: language.t("toast.update.description", { version }),
+          actions,
+        })
+      }
+
+      const pollUpdate = () => {
+        // Desktop (Tauri): use platform.checkUpdate with auto-install support
+        const check = platform.checkUpdate
+        const doUpdate = platform.update
+        if (check && doUpdate) {
+          return check().then(({ updateAvailable, version }) => {
+            if (updateAvailable) showUpdateToast(version ?? "", true)
+          })
+        }
+        // Browser: poll server version-check endpoint
+        const s = server.current
+        if (!s) return Promise.resolve()
+        return fetch(`${s.http.url}/global/version-check`)
+          .then((r) => r.json())
+          .then((data: { updateAvailable?: boolean; latest?: string }) => {
+            if (data.updateAvailable && data.latest) showUpdateToast(data.latest, false)
+          })
+          .catch(() => {})
+      }
 
       createEffect(() => {
         if (!settings.ready()) return

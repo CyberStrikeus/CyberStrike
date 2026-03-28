@@ -5,6 +5,7 @@ import { Installation } from "../../installation"
 
 export const UpgradeCommand = {
   command: "upgrade [target]",
+  aliases: ["update"],
   describe: "upgrade cyberstrike to the latest or a specific version",
   builder: (yargs: Argv) => {
     return yargs
