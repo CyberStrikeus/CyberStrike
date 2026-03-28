@@ -54,6 +54,16 @@ function McpPanelList() {
   const language = useLanguage()
   const [loading, setLoading] = createSignal<string | null>(null)
 
+  // Fetch MCP status on mount — bootstrap may not have completed yet
+  createEffect(() => {
+    sdk.client.mcp
+      .status()
+      .then((x) => {
+        if (x.data) sync.set("mcp", x.data)
+      })
+      .catch(() => {})
+  })
+
   const items = createMemo(() =>
     Object.entries(sync.data.mcp ?? {})
       .map(([name, s]) => ({ name, status: s.status }))
@@ -118,6 +128,16 @@ function BoltPanelList() {
   const dialog = useDialog()
   const language = useLanguage()
   const [loading, setLoading] = createSignal<string | null>(null)
+
+  // Fetch Bolt status on mount — bootstrap may not have completed yet
+  createEffect(() => {
+    sdk.client.bolt
+      .status()
+      .then((x) => {
+        if (x.data) sync.set("bolt", x.data)
+      })
+      .catch(() => {})
+  })
 
   const items = createMemo(() =>
     Object.entries(sync.data.bolt ?? {})
