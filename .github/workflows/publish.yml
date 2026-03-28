@@ -109,8 +109,9 @@ jobs:
       - name: Fallback git config
         if: steps.committer.outcome == 'failure'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "cyberstrike[bot]"
+          git config --global user.email "cyberstrike[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.PUBLISH_TOKEN }}@github.com/${{ github.repository }}"
 
       - uses: actions/download-artifact@v4
         with:
@@ -121,6 +122,6 @@ jobs:
         env:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
-          GITHUB_TOKEN: ${{ steps.committer.outputs.token || github.token }}
+          GITHUB_TOKEN: ${{ steps.committer.outputs.token || secrets.PUBLISH_TOKEN || github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: false
