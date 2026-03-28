@@ -49,6 +49,7 @@ import type {
   GlobalDisposeResponses,
   GlobalEventResponses,
   GlobalHealthResponses,
+  GlobalVersionCheckResponses,
   InstanceDisposeResponses,
   LspStatusResponses,
   McpAddErrors,
@@ -298,6 +299,18 @@ export class Global extends HeyApiClient {
   public health<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
     return (options?.client ?? this.client).get<GlobalHealthResponses, unknown, ThrowOnError>({
       url: "/global/health",
+      ...options,
+    })
+  }
+
+  /**
+   * Check for updates
+   *
+   * Check if a newer version of CyberStrike is available.
+   */
+  public versionCheck<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<GlobalVersionCheckResponses, unknown, ThrowOnError>({
+      url: "/global/version-check",
       ...options,
     })
   }

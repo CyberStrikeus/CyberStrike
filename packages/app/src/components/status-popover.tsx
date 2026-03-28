@@ -121,9 +121,6 @@ const useDefaultServerUrl = (
   return { url, refresh: () => setTick((value) => value + 1) }
 }
 
-
-
-
 export function StatusPopover() {
   const sync = useSync()
   const sdk = useSDK()

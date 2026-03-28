@@ -2485,6 +2485,26 @@ export type GlobalHealthResponses = {
 
 export type GlobalHealthResponse = GlobalHealthResponses[keyof GlobalHealthResponses]
 
+export type GlobalVersionCheckData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/version-check"
+}
+
+export type GlobalVersionCheckResponses = {
+  /**
+   * Version check result
+   */
+  200: {
+    version: string
+    latest?: string
+    updateAvailable: boolean
+  }
+}
+
+export type GlobalVersionCheckResponse = GlobalVersionCheckResponses[keyof GlobalVersionCheckResponses]
+
 export type GlobalEventData = {
   body?: never
   path?: never

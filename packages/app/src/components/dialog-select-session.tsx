@@ -63,9 +63,7 @@ export const DialogSelectSession: Component = () => {
             <div class="flex items-center gap-2 min-w-0">
               <span class="truncate">{s.title}</span>
               {s.current && (
-                <span class="text-11-regular text-text-weaker shrink-0">
-                  {language.t("dialog.session.current")}
-                </span>
+                <span class="text-11-regular text-text-weaker shrink-0">{language.t("dialog.session.current")}</span>
               )}
             </div>
             <span class="text-11-regular text-text-weaker shrink-0">

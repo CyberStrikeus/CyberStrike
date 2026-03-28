@@ -88,9 +88,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
             : { type: "http" as const, http: value },
       )
 
-      const deduped = new Map(
-        servers.map((conn) => [ServerConnection.key(conn), conn]),
-      )
+      const deduped = new Map(servers.map((conn) => [ServerConnection.key(conn), conn]))
 
       return [...deduped.values()]
     })
@@ -115,7 +113,9 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       const list = previousSidecarUrl ? store.list.filter((x) => url(x) !== previousSidecarUrl) : store.list
       if (!props.isSidecar) {
         const exists = list.some((x) => url(x) === fallback)
-        const nextList = exists ? list : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
+        const nextList = exists
+          ? list
+          : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
         batch(() => {
           setStore("list", nextList)
           if (store.currentSidecarUrl) setStore("currentSidecarUrl", "")
@@ -125,7 +125,9 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       }
 
       const exists = list.some((x) => url(x) === fallback)
-      const nextList = exists ? list : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
+      const nextList = exists
+        ? list
+        : [...list, { type: "http" as const, http: { url: fallback } } satisfies ServerConnection.Http]
       batch(() => {
         setStore("list", nextList)
         setStore("currentSidecarUrl", fallback)

@@ -73,14 +73,12 @@ export function DialogSelectAgent() {
               style={{
                 "border-left": `3px solid ${item.color}`,
                 "padding-left": "10px",
-                "margin": "-6px -8px",
+                margin: "-6px -8px",
                 "padding-top": "6px",
                 "padding-bottom": "6px",
                 "padding-right": "8px",
                 "border-radius": "var(--radius-md)",
-                "background": hovered()
-                  ? `color-mix(in srgb, ${item.color} 18%, transparent)`
-                  : undefined,
+                background: hovered() ? `color-mix(in srgb, ${item.color} 18%, transparent)` : undefined,
               }}
             >
               <div class="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -90,9 +88,7 @@ export function DialogSelectAgent() {
                     <span class="text-11-regular text-text-weaker">{language.t("dialog.agent.current")}</span>
                   )}
                 </div>
-                {item.description && (
-                  <span class="text-11-regular text-text-weaker truncate">{item.description}</span>
-                )}
+                {item.description && <span class="text-11-regular text-text-weaker truncate">{item.description}</span>}
               </div>
               <span
                 class="text-11-regular shrink-0"
