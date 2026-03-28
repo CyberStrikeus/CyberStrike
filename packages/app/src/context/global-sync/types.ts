@@ -16,6 +16,7 @@ import type {
   SessionStatus,
   Todo,
   VcsInfo,
+  Vulnerability,
 } from "@cyberstrike-io/sdk/v2/client"
 import type { Accessor } from "solid-js"
 import type { SetStoreFunction, Store } from "solid-js/store"
@@ -51,6 +52,27 @@ export type State = {
   }
   todo: {
     [sessionID: string]: Todo[]
+  }
+  vulnerability: {
+    [sessionID: string]: Vulnerability[]
+  }
+  request: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_credential: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_role: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_object: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_function: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  bolt: {
+    [name: string]: McpStatus
   }
   permission: {
     [sessionID: string]: PermissionRequest[]

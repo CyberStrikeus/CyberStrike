@@ -791,6 +791,30 @@ export function SessionTurn(
                         </div>
                       </div>
                     </Show>
+                    <Show when={!working() && lastAssistantMessage()}>
+                      {(assistant) => {
+                        const agentName = () => message()?.agent ?? ""
+                        const agentColorValue = () => data.agentColor?.(agentName())
+                        const mode = () => assistant().mode ?? agentName()
+                        const label = () => {
+                          const v = mode()
+                          if (!v) return ""
+                          return v.charAt(0).toUpperCase() + v.slice(1)
+                        }
+                        return (
+                          <div data-slot="session-turn-agent-metadata">
+                            <span style={{ color: agentColorValue() }}>▣</span>
+                            <span>{label()}</span>
+                            <span data-slot="session-turn-agent-metadata-dim">·</span>
+                            <span data-slot="session-turn-agent-metadata-dim">{assistant().modelID}</span>
+                            <Show when={store.duration}>
+                              <span data-slot="session-turn-agent-metadata-dim">·</span>
+                              <span data-slot="session-turn-agent-metadata-dim">{store.duration}</span>
+                            </Show>
+                          </div>
+                        )
+                      }}
+                    </Show>
                     <Show when={error() && !props.stepsExpanded}>
                       <Card variant="error" class="error-card">
                         {errorText()}

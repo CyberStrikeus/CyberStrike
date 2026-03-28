@@ -1,4 +1,5 @@
 // @refresh reload
+import "@fontsource-variable/space-grotesk"
 import { render } from "solid-js/web"
 import { AppBaseProviders, AppInterface } from "@/app"
 import { Platform, PlatformProvider } from "@/context/platform"
