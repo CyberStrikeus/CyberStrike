@@ -1,25 +1,31 @@
-import { createCyberstrikeClient, type Event } from "@cyberstrike-io/sdk/v2/client"
+import type { Event, CyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
-import { createEffect, createMemo, onCleanup, type Accessor } from "solid-js"
+import type { GlobalEmitter } from "@solid-primitives/event-bus"
+import { type Accessor, createEffect, createMemo, onCleanup } from "solid-js"
 import { useGlobalSDK } from "./global-sdk"
-import { usePlatform } from "./platform"
+import type { CreateClientOpts } from "./global-sdk"
 
 type SDKEventMap = {
   [key in Event["type"]]: Extract<Event, { type: key }>
 }
 
+export type SDKValue = {
+  readonly directory: string
+  readonly client: CyberstrikeClient
+  event: GlobalEmitter<SDKEventMap>
+  readonly url: string
+  createClient: (opts: CreateClientOpts) => CyberstrikeClient
+}
+
 export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
   name: "SDK",
-  init: (props: { directory: Accessor<string> }) => {
-    const platform = usePlatform()
+  init: (props: { directory: Accessor<string> }): SDKValue => {
     const globalSDK = useGlobalSDK()
 
     const directory = createMemo(props.directory)
     const client = createMemo(() =>
-      createCyberstrikeClient({
-        baseUrl: globalSDK.url,
-        fetch: platform.fetch,
+      globalSDK.createClient({
         directory: directory(),
         throwOnError: true,
       }),
@@ -44,6 +50,9 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       event: emitter,
       get url() {
         return globalSDK.url
+      },
+      createClient(opts: CreateClientOpts) {
+        return globalSDK.createClient(opts)
       },
     }
   },

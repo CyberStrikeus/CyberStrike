@@ -14,7 +14,7 @@ const STORAGE_KEYS = {
   THEME_CSS_DARK: "cyberstrike-theme-css-dark",
 } as const
 
-const THEME_STYLE_ID = "oc-theme"
+const THEME_STYLE_ID = "cs-theme"
 
 function ensureThemeStyleElement(): HTMLStyleElement {
   const existing = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null
@@ -35,7 +35,7 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const tokens = resolveThemeVariant(variant, isDark)
   const css = themeToCss(tokens)
 
-  if (themeId !== "oc-1") {
+  if (themeId !== "cs-1") {
     try {
       localStorage.setItem(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, css)
     } catch {}
@@ -47,14 +47,14 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   ${css}
 }`
 
-  document.getElementById("oc-theme-preload")?.remove()
+  document.getElementById("cs-theme-preload")?.remove()
   ensureThemeStyleElement().textContent = fullCss
   document.documentElement.dataset.theme = themeId
   document.documentElement.dataset.colorScheme = mode
 }
 
 function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
-  if (themeId === "oc-1") return
+  if (themeId === "cs-1") return
   for (const mode of ["light", "dark"] as const) {
     const isDark = mode === "dark"
     const variant = isDark ? theme.dark : theme.light
@@ -71,7 +71,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   init: (props: { defaultTheme?: string }) => {
     const [store, setStore] = createStore({
       themes: DEFAULT_THEMES as Record<string, DesktopTheme>,
-      themeId: props.defaultTheme ?? "oc-1",
+      themeId: props.defaultTheme ?? "cs-1",
       colorScheme: "system" as ColorScheme,
       mode: getSystemMode(),
       previewThemeId: null as string | null,

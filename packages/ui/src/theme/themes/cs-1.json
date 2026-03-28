@@ -1,7 +1,7 @@
 {
   "$schema": "https://cyberstrike.io/desktop-theme.json",
-  "name": "OC-1",
-  "id": "oc-1",
+  "name": "CS-1",
+  "id": "cs-1",
   "light": {
     "seeds": {
       "neutral": "#8e8b8b",

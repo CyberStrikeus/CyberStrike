@@ -1,10 +1,10 @@
 import { Tooltip } from "@cyberstrike-io/ui/tooltip"
-import { JSXElement, ParentProps, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
-import { serverDisplayName } from "@/context/server"
+import { type JSXElement, type ParentProps, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import { type ServerConnection, serverName } from "@/context/server"
 import type { ServerHealth } from "@/utils/server-health"
 
 interface ServerRowProps extends ParentProps {
-  url: string
+  conn: ServerConnection.Any
   status?: ServerHealth
   class?: string
   nameClass?: string
@@ -17,7 +17,7 @@ export function ServerRow(props: ServerRowProps) {
   const [truncated, setTruncated] = createSignal(false)
   let nameRef: HTMLSpanElement | undefined
   let versionRef: HTMLSpanElement | undefined
-  const name = createMemo(() => serverDisplayName(props.url))
+  const name = createMemo(() => serverName(props.conn))
 
   const check = () => {
     const nameTruncated = nameRef ? nameRef.scrollWidth > nameRef.clientWidth : false
@@ -27,7 +27,7 @@ export function ServerRow(props: ServerRowProps) {
 
   createEffect(() => {
     name()
-    props.url
+    props.conn.http.url
     props.status?.version
     queueMicrotask(check)
   })
@@ -43,15 +43,21 @@ export function ServerRow(props: ServerRowProps) {
 
   const tooltipValue = () => (
     <span class="flex items-center gap-2">
-      <span>{name()}</span>
+      <span>{serverName(props.conn, true)}</span>
       <Show when={props.status?.version}>
-        <span class="text-text-invert-base">{props.status?.version}</span>
+        <span class="text-text-invert-weak">v{props.status?.version}</span>
       </Show>
     </span>
   )
 
   return (
-    <Tooltip value={tooltipValue()} placement="top" inactive={!truncated()}>
+    <Tooltip
+      class="flex-1 min-w-0"
+      value={tooltipValue()}
+      contentStyle={{ "max-width": "none", "white-space": "nowrap" }}
+      placement="top-start"
+      inactive={!truncated() && !props.conn.displayName}
+    >
       <div class={props.class} classList={{ "opacity-50": props.dimmed }}>
         <div
           classList={{
@@ -66,7 +72,7 @@ export function ServerRow(props: ServerRowProps) {
         </span>
         <Show when={props.status?.version}>
           <span ref={versionRef} class={props.versionClass ?? "text-text-weak text-14-regular truncate"}>
-            {props.status?.version}
+            v{props.status?.version}
           </span>
         </Show>
         {props.badge}

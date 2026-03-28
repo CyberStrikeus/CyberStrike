@@ -15,7 +15,7 @@ describe("checkServerHealth", () => {
         headers: { "content-type": "application/json" },
       })) as unknown as typeof globalThis.fetch
 
-    const result = await checkServerHealth("http://localhost:4096", fetch)
+    const result = await checkServerHealth({ url: "http://localhost:4096" }, fetch)
 
     expect(result).toEqual({ healthy: true, version: "1.2.3" })
   })
@@ -25,7 +25,7 @@ describe("checkServerHealth", () => {
       throw new Error("network")
     }) as unknown as typeof globalThis.fetch
 
-    const result = await checkServerHealth("http://localhost:4096", fetch)
+    const result = await checkServerHealth({ url: "http://localhost:4096" }, fetch)
 
     expect(result).toEqual({ healthy: false })
   })
@@ -51,7 +51,7 @@ describe("checkServerHealth", () => {
         )
       })) as unknown as typeof globalThis.fetch
 
-    const result = await checkServerHealth("http://localhost:4096", fetch, { timeoutMs: 10 }).finally(() => {
+    const result = await checkServerHealth({ url: "http://localhost:4096" }, fetch, { timeoutMs: 10 }).finally(() => {
       if (timeout) Object.defineProperty(AbortSignal, "timeout", timeout)
       if (!timeout) Reflect.deleteProperty(AbortSignal, "timeout")
     })
@@ -71,7 +71,7 @@ describe("checkServerHealth", () => {
     }) as unknown as typeof globalThis.fetch
 
     const abort = new AbortController()
-    await checkServerHealth("http://localhost:4096", fetch, { signal: abort.signal })
+    await checkServerHealth({ url: "http://localhost:4096" }, fetch, { signal: abort.signal })
 
     expect(signal).toBe(abort.signal)
   })
@@ -87,7 +87,7 @@ describe("checkServerHealth", () => {
       })
     }) as unknown as typeof globalThis.fetch
 
-    const result = await checkServerHealth("http://localhost:4096", fetch, {
+    const result = await checkServerHealth({ url: "http://localhost:4096" }, fetch, {
       retryCount: 2,
       retryDelayMs: 1,
     })
@@ -103,7 +103,7 @@ describe("checkServerHealth", () => {
       throw new TypeError("network")
     }) as unknown as typeof globalThis.fetch
 
-    const result = await checkServerHealth("http://localhost:4096", fetch, {
+    const result = await checkServerHealth({ url: "http://localhost:4096" }, fetch, {
       retryCount: 2,
       retryDelayMs: 1,
     })

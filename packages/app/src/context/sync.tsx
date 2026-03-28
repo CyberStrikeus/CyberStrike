@@ -109,6 +109,12 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const inflight = new Map<string, Promise<void>>()
     const inflightDiff = new Map<string, Promise<void>>()
     const inflightTodo = new Map<string, Promise<void>>()
+    const inflightVuln = new Map<string, Promise<void>>()
+    const inflightReq = new Map<string, Promise<void>>()
+    const inflightWebCred = new Map<string, Promise<void>>()
+    const inflightWebRole = new Map<string, Promise<void>>()
+    const inflightWebObj = new Map<string, Promise<void>>()
+    const inflightWebFunc = new Map<string, Promise<void>>()
     const [meta, setMeta] = createStore({
       limit: {} as Record<string, number>,
       complete: {} as Record<string, boolean>,
@@ -295,6 +301,84 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           return runInflight(inflightTodo, key, () =>
             retry(() => client.session.todo({ sessionID })).then((todo) => {
               setStore("todo", sessionID, reconcile(todo.data ?? [], { key: "id" }))
+            }),
+          )
+        },
+        async vulnerability(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.vulnerability[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightVuln, key, () =>
+            retry(() => client.session.vulnerability({ sessionID })).then((result) => {
+              setStore("vulnerability", sessionID, reconcile(result.data ?? [], { key: "id" }))
+            }),
+          )
+        },
+        async request(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.request[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightReq, key, () =>
+            retry(() => client.session.request({ sessionID })).then((result) => {
+              setStore("request", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+            }),
+          )
+        },
+        async webCredentials(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.web_credential[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightWebCred, key, () =>
+            retry(() => client.session.webCredentials({ sessionID })).then((result) => {
+              setStore("web_credential", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+            }),
+          )
+        },
+        async webRoles(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.web_role[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightWebRole, key, () =>
+            retry(() => client.session.webRoles({ sessionID })).then((result) => {
+              setStore("web_role", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+            }),
+          )
+        },
+        async webObjects(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.web_object[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightWebObj, key, () =>
+            retry(() => client.session.webObjects({ sessionID })).then((result) => {
+              setStore("web_object", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+            }),
+          )
+        },
+        async webFunctions(sessionID: string) {
+          const directory = sdk.directory
+          const client = sdk.client
+          const [store, setStore] = globalSync.child(directory)
+          if (store.web_function[sessionID] !== undefined) return
+
+          const key = keyFor(directory, sessionID)
+          return runInflight(inflightWebFunc, key, () =>
+            retry(() => client.session.webFunctions({ sessionID })).then((result) => {
+              setStore("web_function", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
             }),
           )
         },
