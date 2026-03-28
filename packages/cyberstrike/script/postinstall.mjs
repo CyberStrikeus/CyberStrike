@@ -97,12 +97,42 @@ function symlinkBinary(sourcePath, binaryName) {
   }
 }
 
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const destPath = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath)
+    } else {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
+function installWebUI() {
+  const webSrc = path.join(__dirname, "web")
+  if (!fs.existsSync(path.join(webSrc, "index.html"))) return
+
+  const dataDir = process.env.CYBERSTRIKE_DATA_DIR || path.join(os.homedir(), ".cyberstrike")
+  const webDest = path.join(dataDir, "web")
+
+  // Remove old web UI before copying
+  if (fs.existsSync(webDest)) {
+    fs.rmSync(webDest, { recursive: true, force: true })
+  }
+
+  copyDirSync(webSrc, webDest)
+  console.log(`Web UI installed to ${webDest}`)
+}
+
 async function main() {
   try {
     if (os.platform() === "win32") {
       // On Windows, the .exe is already included in the package and bin field points to it
       // No postinstall setup needed
       console.log("Windows detected: binary setup not needed (using packaged .exe)")
+      installWebUI()
       return
     }
 
@@ -111,6 +141,8 @@ async function main() {
     const { binaryPath } = findBinary()
     console.log(`Platform binary verified at: ${binaryPath}`)
     console.log("Wrapper script will handle binary execution")
+
+    installWebUI()
   } catch (error) {
     console.error("Failed to setup cyberstrike binary:", error.message)
     process.exit(1)
