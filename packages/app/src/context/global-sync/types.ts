@@ -56,6 +56,21 @@ export type State = {
   vulnerability: {
     [sessionID: string]: Vulnerability[]
   }
+  request: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_credential: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_role: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_object: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
+  web_function: {
+    [sessionID: string]: Record<string, unknown>[]
+  }
   bolt: {
     [name: string]: McpStatus
   }

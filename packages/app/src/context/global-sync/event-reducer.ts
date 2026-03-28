@@ -48,7 +48,12 @@ function cleanupSessionCaches(store: Store<State>, setStore: SetStoreFunction<St
     store.todo[sessionID] !== undefined ||
     store.permission[sessionID] !== undefined ||
     store.question[sessionID] !== undefined ||
-    store.session_status[sessionID] !== undefined
+    store.session_status[sessionID] !== undefined ||
+    store.request[sessionID] !== undefined ||
+    store.web_credential[sessionID] !== undefined ||
+    store.web_role[sessionID] !== undefined ||
+    store.web_object[sessionID] !== undefined ||
+    store.web_function[sessionID] !== undefined
   if (!hasAny) return
   setStore(
     produce((draft) => {
@@ -66,6 +71,11 @@ function cleanupSessionCaches(store: Store<State>, setStore: SetStoreFunction<St
       delete draft.permission[sessionID]
       delete draft.question[sessionID]
       delete draft.session_status[sessionID]
+      delete draft.request[sessionID]
+      delete draft.web_credential[sessionID]
+      delete draft.web_role[sessionID]
+      delete draft.web_object[sessionID]
+      delete draft.web_function[sessionID]
     }),
   )
 }
@@ -155,6 +165,31 @@ export function applyDirectoryEvent(input: {
     case "vulnerability.updated": {
       const props = event.properties as { sessionID: string; vulnerabilities: Vulnerability[] }
       input.setStore("vulnerability", props.sessionID, reconcile(props.vulnerabilities, { key: "id" }))
+      break
+    }
+    case "request.updated": {
+      const props = event.properties as { sessionID: string; requests: Record<string, unknown>[] }
+      input.setStore("request", props.sessionID, reconcile(props.requests, { key: "id" }))
+      break
+    }
+    case "web_credential.updated": {
+      const props = event.properties as { sessionID: string; credentials: Record<string, unknown>[] }
+      input.setStore("web_credential", props.sessionID, reconcile(props.credentials, { key: "id" }))
+      break
+    }
+    case "web_role.updated": {
+      const props = event.properties as { sessionID: string; roles: Record<string, unknown>[] }
+      input.setStore("web_role", props.sessionID, reconcile(props.roles, { key: "id" }))
+      break
+    }
+    case "web_object.updated": {
+      const props = event.properties as { sessionID: string; objects: Record<string, unknown>[] }
+      input.setStore("web_object", props.sessionID, reconcile(props.objects, { key: "id" }))
+      break
+    }
+    case "web_function.updated": {
+      const props = event.properties as { sessionID: string; functions: Record<string, unknown>[] }
+      input.setStore("web_function", props.sessionID, reconcile(props.functions, { key: "id" }))
       break
     }
     case "session.status": {

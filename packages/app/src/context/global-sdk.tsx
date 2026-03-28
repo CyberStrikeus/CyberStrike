@@ -16,22 +16,6 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
     const currentServer = server.current
     if (!currentServer) throw new Error("No server available")
 
-    const eventFetch = (() => {
-      if (!platform.fetch) return
-      try {
-        const url = new URL(currentServer.http.url)
-        const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1"
-        if (url.protocol === "http:" && !loopback) return platform.fetch
-      } catch {
-        return
-      }
-    })()
-
-    const eventSdk = createSdkForServer({
-      signal: abort.signal,
-      fetch: eventFetch,
-      server: currentServer.http,
-    })
     const emitter = createGlobalEmitter<{
       [key: string]: Event
     }>()
@@ -85,58 +69,152 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
     }
 
     let streamErrorLogged = false
+
+    const enqueue = (directory: string, payload: Event) => {
+      streamErrorLogged = false
+      const k = key(directory, payload)
+      if (k) {
+        const i = coalesced.get(k)
+        if (i !== undefined) {
+          queue[i] = { directory, payload }
+          return
+        }
+        coalesced.set(k, queue.length)
+      }
+      queue.push({ directory, payload })
+      schedule()
+    }
+
     const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-    void (async () => {
-      while (!abort.signal.aborted) {
-        try {
-          const events = await eventSdk.global.event({
-            onSseError: (error) => {
-              if (streamErrorLogged) return
+    // Browser: use fetch + manual TextDecoder (avoids TextDecoderStream/pipeThrough Firefox issues)
+    // Tauri: use SDK fetch-based SSE (supports platform.fetch override)
+    if (!platform.fetch) {
+      const eventUrl = `${currentServer.http.url}/global/event`
+
+      const parseSseChunks = (raw: string): { events: Array<{ data: string }>; rest: string } => {
+        const events: Array<{ data: string }> = []
+        const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+        const chunks = normalized.split("\n\n")
+        const rest = chunks.pop() ?? ""
+        for (const chunk of chunks) {
+          const lines = chunk.split("\n")
+          const dataLines: string[] = []
+          for (const line of lines) {
+            if (line.startsWith("data:")) dataLines.push(line.replace(/^data:\s*/, ""))
+          }
+          if (dataLines.length) events.push({ data: dataLines.join("\n") })
+        }
+        return { events, rest }
+      }
+
+      void (async () => {
+        while (!abort.signal.aborted) {
+          try {
+            const response = await fetch(eventUrl, { signal: abort.signal })
+            if (!response.ok) throw new Error(`SSE ${response.status}`)
+            if (!response.body) throw new Error("No body")
+
+            streamErrorLogged = false
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let buf = ""
+            let yielded = Date.now()
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                buf += decoder.decode(value, { stream: true })
+                const parsed = parseSseChunks(buf)
+                buf = parsed.rest
+                for (const ev of parsed.events) {
+                  try {
+                    const data = JSON.parse(ev.data)
+                    const directory = data.directory ?? "global"
+                    const payload = data.payload
+                    if (payload) enqueue(directory, payload)
+                  } catch {}
+                }
+                if (Date.now() - yielded < STREAM_YIELD_MS) continue
+                yielded = Date.now()
+                await wait(0)
+              }
+            } finally {
+              reader.releaseLock()
+            }
+          } catch (error) {
+            if (abort.signal.aborted) return
+            if (!streamErrorLogged) {
               streamErrorLogged = true
               console.error("[global-sdk] event stream error", {
+                url: currentServer.http.url,
+                error,
+              })
+            }
+          }
+
+          if (abort.signal.aborted) return
+          await wait(RECONNECT_DELAY_MS)
+        }
+      })().finally(flush)
+    } else {
+      const eventFetch = (() => {
+        try {
+          const url = new URL(currentServer.http.url)
+          const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1"
+          if (url.protocol === "http:" && !loopback) return platform.fetch
+        } catch {
+          return
+        }
+      })()
+
+      const eventSdk = createSdkForServer({
+        signal: abort.signal,
+        fetch: eventFetch,
+        server: currentServer.http,
+      })
+
+      void (async () => {
+        while (!abort.signal.aborted) {
+          try {
+            const events = await eventSdk.global.event({
+              onSseError: (error) => {
+                if (streamErrorLogged) return
+                streamErrorLogged = true
+                console.error("[global-sdk] event stream error", {
+                  url: currentServer.http.url,
+                  fetch: eventFetch ? "platform" : "webview",
+                  error,
+                })
+              },
+            })
+            let yielded = Date.now()
+            for await (const event of events.stream) {
+              const directory = event.directory ?? "global"
+              const payload = event.payload
+              enqueue(directory, payload)
+
+              if (Date.now() - yielded < STREAM_YIELD_MS) continue
+              yielded = Date.now()
+              await wait(0)
+            }
+          } catch (error) {
+            if (!streamErrorLogged) {
+              streamErrorLogged = true
+              console.error("[global-sdk] event stream failed", {
                 url: currentServer.http.url,
                 fetch: eventFetch ? "platform" : "webview",
                 error,
               })
-            },
-          })
-          let yielded = Date.now()
-          for await (const event of events.stream) {
-            streamErrorLogged = false
-            const directory = event.directory ?? "global"
-            const payload = event.payload
-            const k = key(directory, payload)
-            if (k) {
-              const i = coalesced.get(k)
-              if (i !== undefined) {
-                queue[i] = { directory, payload }
-                continue
-              }
-              coalesced.set(k, queue.length)
             }
-            queue.push({ directory, payload })
-            schedule()
+          }
 
-            if (Date.now() - yielded < STREAM_YIELD_MS) continue
-            yielded = Date.now()
-            await wait(0)
-          }
-        } catch (error) {
-          if (!streamErrorLogged) {
-            streamErrorLogged = true
-            console.error("[global-sdk] event stream failed", {
-              url: currentServer.http.url,
-              fetch: eventFetch ? "platform" : "webview",
-              error,
-            })
-          }
+          if (abort.signal.aborted) return
+          await wait(RECONNECT_DELAY_MS)
         }
-
-        if (abort.signal.aborted) return
-        await wait(RECONNECT_DELAY_MS)
-      }
-    })().finally(flush)
+      })().finally(flush)
+    }
 
     onCleanup(() => {
       abort.abort()

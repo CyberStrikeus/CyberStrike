@@ -43,6 +43,7 @@ export const dict = {
   "command.language.set": "Use language: {{language}}",
 
   "command.session.new": "New session",
+  "command.session.list": "Switch session",
   "command.file.open": "Open file",
   "command.tab.close": "Close tab",
   "command.context.addSelection": "Add selection to context",
@@ -333,6 +334,15 @@ export const dict = {
   "dialog.todo.title": "Todo",
   "dialog.todo.empty": "No tasks",
   "dialog.todo.noSession": "Select a session to view tasks",
+
+  "dialog.session.title": "Sessions",
+  "dialog.session.description": "{{total}} sessions",
+  "dialog.session.empty": "No sessions found",
+  "dialog.session.current": "(current)",
+
+  "dialog.web.title": "Web Context",
+  "dialog.web.empty": "No web context data for this session",
+  "dialog.web.noSession": "Select a session to view web context",
 
   "dialog.lsp.empty": "LSPs auto-detected from file types",
   "dialog.plugins.empty": "Plugins configured in cyberstrike.json",

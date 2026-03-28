@@ -51,6 +51,7 @@ export namespace Server {
   let _url: URL | undefined
   let _corsWhitelist: string[] = []
   let _webDistDir: string | null | undefined
+  export let lastActiveDirectory: string | undefined
 
   export function url(): URL {
     return _url ?? new URL("http://localhost:4096")
@@ -219,7 +220,20 @@ export namespace Server {
         )
         .use(async (c, next) => {
           if (c.req.path === "/log") return next()
-          const raw = c.req.query("directory") || c.req.header("x-cyberstrike-directory") || process.cwd()
+          const explicit = c.req.query("directory") || c.req.header("x-cyberstrike-directory")
+          // Remember the last directory from web UI requests
+          if (explicit) {
+            Server.lastActiveDirectory = (() => {
+              try {
+                return decodeURIComponent(explicit)
+              } catch {
+                return explicit
+              }
+            })()
+          }
+          // For requests without directory (e.g. browser extension ingest),
+          // use the last active web UI directory if available
+          const raw = explicit || Server.lastActiveDirectory || process.cwd()
           const directory = (() => {
             try {
               return decodeURIComponent(raw)
@@ -567,7 +581,7 @@ export namespace Server {
         .all("/*", async (c) => {
           const reqPath = c.req.path
           const csp =
-            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data: http: https: ws: wss:"
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data: http: https: ws: wss:"
 
           // Resolve web UI dist directory (cached after first lookup)
           if (_webDistDir === undefined) {
@@ -595,6 +609,8 @@ export namespace Server {
             if (await file.exists()) {
               const response = new Response(file)
               response.headers.set("Content-Security-Policy", csp)
+              const isHTML = filePath.endsWith(".html") || filePath === "/"
+              if (isHTML) response.headers.set("Cache-Control", "no-cache")
               return response
             }
 
@@ -605,6 +621,7 @@ export namespace Server {
                 headers: { "Content-Type": "text/html;charset=UTF-8" },
               })
               response.headers.set("Content-Security-Policy", csp)
+              response.headers.set("Cache-Control", "no-cache")
               return response
             }
           }

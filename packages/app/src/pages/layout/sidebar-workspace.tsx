@@ -15,7 +15,9 @@ import { Tooltip } from "@cyberstrike-io/ui/tooltip"
 import { type Session } from "@cyberstrike-io/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
 import { useGlobalSync } from "@/context/global-sync"
+import { useGlobalSDK } from "@/context/global-sdk"
 import { useLanguage } from "@/context/language"
+import { showToast } from "@cyberstrike-io/ui/toast"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
 import { childMapByParent, sortedRootSessions } from "./helpers"
 
@@ -308,6 +310,7 @@ export const SortableWorkspace = (props: {
   const navigate = useNavigate()
   const params = useParams()
   const globalSync = useGlobalSync()
+  const globalSDK = useGlobalSDK()
   const language = useLanguage()
   const sortable = createSortable(props.directory)
   const [workspaceStore, setWorkspaceStore] = globalSync.child(props.directory, { bootstrap: false })
@@ -337,6 +340,27 @@ export const SortableWorkspace = (props: {
   const loadMore = async () => {
     setWorkspaceStore("limit", (limit) => (limit ?? 0) + 5)
     await globalSync.project.loadSessions(props.directory)
+  }
+
+  const createNewSession = async () => {
+    const client = globalSDK.createClient({
+      directory: props.directory,
+      throwOnError: true,
+    })
+    try {
+      const result = await client.session.create()
+      const session = result.data
+      if (session) {
+        navigate(`/${slug()}/session/${session.id}`)
+        return
+      }
+    } catch (err) {
+      showToast({
+        title: language.t("prompt.toast.sessionCreateFailed.title"),
+        description: err instanceof Error ? err.message : language.t("common.requestFailed"),
+      })
+    }
+    navigate(`/${slug()}/session`)
   }
 
   const workspaceEditActive = createMemo(() => props.ctx.editorOpen(`workspace:${props.directory}`))
@@ -437,7 +461,7 @@ export const SortableWorkspace = (props: {
                 root={props.project.worktree}
                 setHoverSession={props.ctx.setHoverSession}
                 clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-                navigateToNewSession={() => navigate(`/${slug()}/session`)}
+                navigateToNewSession={createNewSession}
               />
             </div>
           </div>

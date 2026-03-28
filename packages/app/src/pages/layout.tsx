@@ -1798,7 +1798,26 @@ export default function Layout(props: ParentProps) {
                             size="large"
                             icon="plus-small"
                             class="w-full"
-                            onClick={() => navigateWithSidebarReset(`/${base64Encode(p().worktree)}/session`)}
+                            onClick={() => {
+                              const directory = p().worktree
+                              const slug = base64Encode(directory)
+                              const client = globalSDK.createClient({ directory, throwOnError: true })
+                              clearSidebarHoverState()
+                              layout.mobileSidebar.hide()
+                              client.session
+                                .create()
+                                .then((result) => {
+                                  const session = result.data
+                                  if (session) {
+                                    navigate(`/${slug}/session/${session.id}`)
+                                    return
+                                  }
+                                  navigate(`/${slug}/session`)
+                                })
+                                .catch(() => {
+                                  navigate(`/${slug}/session`)
+                                })
+                            }}
                           >
                             {language.t("command.session.new")}
                           </Button>

@@ -17,6 +17,7 @@ import { DialogSelectMcp } from "@/components/dialog-select-mcp"
 import { DialogSelectBolt } from "@/components/dialog-select-bolt"
 import { DialogSelectVulnerability } from "@/components/dialog-select-vulnerability"
 import { DialogSelectAgent } from "@/components/dialog-select-agent"
+import { DialogSelectSession } from "@/components/dialog-select-session"
 import { DialogFork } from "@/components/dialog-fork"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { findLast } from "@cyberstrike-io/util/array"
@@ -78,7 +79,24 @@ export const useSessionCommands = (input: SessionCommandContext) => {
       title: input.language.t("command.session.new"),
       keybind: "mod+shift+s",
       slash: "new",
-      onSelect: () => input.navigate(`/${input.params.dir}/session`),
+      onSelect: async () => {
+        try {
+          const result = await input.sdk.client.session.create()
+          const session = result.data
+          if (session) {
+            input.navigate(`/${input.params.dir}/session/${session.id}`)
+            return
+          }
+        } catch {}
+        input.navigate(`/${input.params.dir}/session`)
+      },
+    }),
+    sessionCommand({
+      id: "session.list",
+      title: input.language.t("command.session.list"),
+      keybind: "mod+shift+l",
+      slash: "sessions",
+      onSelect: () => input.dialog.show(() => <DialogSelectSession />),
     }),
   ])
 
