@@ -337,7 +337,7 @@ export const DialogSelectMcp: Component = () => {
                 setError("")
               }}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleLocalCommand()
               }}
             />
@@ -361,7 +361,7 @@ export const DialogSelectMcp: Component = () => {
               value={env()}
               onChange={setEnv}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleLocalEnv()
               }}
             />
@@ -390,7 +390,7 @@ export const DialogSelectMcp: Component = () => {
                 setError("")
               }}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleRemoteUrl()
               }}
             />
@@ -419,7 +419,7 @@ export const DialogSelectMcp: Component = () => {
                 setError("")
               }}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleName()
               }}
             />

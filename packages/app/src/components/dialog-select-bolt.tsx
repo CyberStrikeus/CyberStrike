@@ -151,7 +151,7 @@ export const DialogSelectBolt: Component = () => {
 
       // 2. Persist bolt config
       await sdk.client.config.update({
-        config: { bolt: { [name]: { url: boltUrl() } } } as Parameters<typeof sdk.client.config.update>[0]["config"],
+        config: { bolt: { [name]: { url: boltUrl() } } } as NonNullable<Parameters<typeof sdk.client.config.update>[0]>["config"],
       })
 
       // 3. Connect via bolt route
@@ -260,7 +260,7 @@ export const DialogSelectBolt: Component = () => {
                 setError("")
               }}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleUrl()
               }}
             />
@@ -284,7 +284,7 @@ export const DialogSelectBolt: Component = () => {
               value={adminToken()}
               onChange={setAdminToken}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleToken()
               }}
             />
@@ -313,7 +313,7 @@ export const DialogSelectBolt: Component = () => {
                 setError("")
               }}
               autofocus
-              onKeyDown={(e) => {
+              onKeyDown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") handleName()
               }}
             />

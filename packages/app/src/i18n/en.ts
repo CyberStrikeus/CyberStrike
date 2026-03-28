@@ -328,6 +328,7 @@ export const dict = {
   "dialog.bolt.add.back": "Back",
 
   "dialog.vulnerability.title": "Vulnerabilities",
+  "dialog.vulnerability.description": "{{open}} open of {{total}} total",
   "dialog.vulnerability.empty": "No vulnerabilities found",
   "dialog.vulnerability.noSession": "Select a session to view vulnerabilities",
 

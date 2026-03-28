@@ -303,7 +303,7 @@ function VulnsPanelList() {
                       {severityLabel(v.severity)}
                     </span>
                     <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                      {statusLabel(v.status)}
+                      {statusLabel(v.status ?? "open")}
                     </span>
                     <Show when={v.cwe_id}>
                       <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
