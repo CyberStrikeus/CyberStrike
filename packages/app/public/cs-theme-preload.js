@@ -9,12 +9,12 @@
   document.documentElement.dataset.theme = themeId
   document.documentElement.dataset.colorScheme = mode
 
-  if (themeId === "oc-1") return
+  if (themeId === "cs-1") return
 
   var css = localStorage.getItem("cyberstrike-theme-css-" + themeId + "-" + mode)
   if (css) {
     var style = document.createElement("style")
-    style.id = "oc-theme-preload"
+    style.id = "cs-theme-preload"
     style.textContent =
       ":root{color-scheme:" +
       mode +

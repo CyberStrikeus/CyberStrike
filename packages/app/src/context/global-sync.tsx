@@ -132,9 +132,7 @@ function createGlobalSync() {
   const sdkFor = (directory: string) => {
     const cached = sdkCache.get(directory)
     if (cached) return cached
-    const sdk = createCyberstrikeClient({
-      baseUrl: globalSDK.url,
-      fetch: platform.fetch,
+    const sdk = globalSDK.createClient({
       directory,
       throwOnError: true,
     })

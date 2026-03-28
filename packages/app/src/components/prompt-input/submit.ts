@@ -1,6 +1,6 @@
 import { Accessor } from "solid-js"
 import { useNavigate, useParams } from "@solidjs/router"
-import { createCyberstrikeClient, type Message } from "@cyberstrike-io/sdk/v2/client"
+import type { Message } from "@cyberstrike-io/sdk/v2/client"
 import { showToast } from "@cyberstrike-io/ui/toast"
 import { base64Encode } from "@cyberstrike-io/util/encode"
 import { useLocal } from "@/context/local"
@@ -171,9 +171,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       }
 
       if (sessionDirectory !== projectDirectory) {
-        client = createCyberstrikeClient({
-          baseUrl: sdk.url,
-          fetch: platform.fetch,
+        client = sdk.createClient({
           directory: sessionDirectory,
           throwOnError: true,
         })

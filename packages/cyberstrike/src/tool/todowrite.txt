@@ -1,167 +1,344 @@
-Use this tool to create and manage a structured task list for your current coding session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
-It also helps the user understand the progress of the task and overall progress of their requests.
+Use this tool to create and manage your pentest operation plan. The todo list is your dynamic attack roadmap — it tracks reconnaissance findings, test milestones, exploitation progress, and follow-up actions across the entire engagement. The user sees this list in real-time in the side panel, so it must always reflect the current state of the operation.
+
+This is NOT a generic task list. This is your pentest execution tracker. Every discovered endpoint, credential, role, tech stack component, and vulnerability should influence what's on this list. You are an autonomous offensive security agent — the todo list is how you plan, prioritize, and demonstrate thoroughness.
 
 ## When to Use This Tool
-Use this tool proactively in these scenarios:
 
-1. Complex multistep tasks - When a task requires 3 or more distinct steps or actions
-2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
-3. User explicitly requests todo list - When the user directly asks you to use the todo list
-4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
-5. After receiving new instructions - Immediately capture user requirements as todos. Feel free to edit the todo list based on new information.
-6. After completing a task - Mark it complete and add any new follow-up tasks
-7. When you start working on a new task, mark the todo as in_progress. Ideally you should only have one todo as in_progress at a time. Complete existing tasks before starting new ones.
+Use this tool PROACTIVELY and AGGRESSIVELY. You should be updating your todo list constantly as you discover new information. Specifically:
+
+### 1. Session Start — Initial Reconnaissance Plan
+The moment you begin a pentest session, create an initial todo list based on available context:
+- What is the target? (web app, cloud environment, internal network, mobile app)
+- What reconnaissance steps are needed?
+- What tools should be deployed first?
+
+### 2. Tech Stack Detection — Generate Test Plan
+When you identify the target's technology stack, IMMEDIATELY update your todo list with stack-specific test cases. This is one of the most critical uses of the todo system. Examples:
+
+**Node.js / Express detected:**
+- Test prototype pollution via __proto__ and constructor.prototype
+- Check for SSRF through server-side fetch/axios calls
+- Test path traversal in express.static or sendFile
+- Check for NoSQL injection in MongoDB queries
+- Test JWT implementation flaws (none algorithm, key confusion, weak secrets)
+- Check for exposed .env files and source maps
+
+**Next.js / React SSR detected:**
+- Test Server Actions for injection and auth bypass
+- Check middleware bypass via _next/data routes
+- Test getServerSideProps/getStaticProps data exposure
+- Check for client-side prototype pollution in hydration
+- Test API routes for missing auth middleware
+
+**Spring Boot / Java detected:**
+- Check actuator endpoints exposure (/actuator/env, /actuator/heapdump)
+- Test for SpEL injection in error handlers and forms
+- Check deserialization endpoints (Java serialized objects, XML)
+- Test for JNDI injection (Log4Shell variants)
+- Check Spring Security filter chain bypass
+
+**Django / Python detected:**
+- Test debug mode exposure (ALLOWED_HOSTS bypass)
+- Check for ORM injection via extra() and raw()
+- Test SSTI in Jinja2/Django template engine
+- Check for pickle deserialization in sessions/caches
+- Test Django admin brute force and enumeration
+
+**PHP / Laravel detected:**
+- Test for file inclusion (LFI/RFI) via include/require
+- Check for SQL injection in raw queries and whereRaw
+- Test deserialization via unserialize()
+- Check for exposed .env and storage/ directory
+- Test debug mode (APP_DEBUG=true) information disclosure
+
+**WordPress detected:**
+- Enumerate plugins and themes for known CVEs
+- Test xmlrpc.php for brute force and SSRF
+- Check wp-cron.php abuse vectors
+- Test REST API user enumeration (/wp-json/wp/v2/users)
+- Check for directory listing in uploads/plugins/themes
+
+**Ruby on Rails detected:**
+- Test for mass assignment (unpermitted parameters)
+- Check for SSTI in ERB templates
+- Test for SQL injection in where() with string interpolation
+- Check for insecure deserialization (Marshal.load, YAML.load)
+- Test for open redirects in redirect_to
+
+**ASP.NET detected:**
+- Test for ViewState deserialization attacks
+- Check for padding oracle on encrypted cookies
+- Test for path traversal via tilde (~) short filenames
+- Check for debug endpoints and trace.axd
+- Test for SQL injection in parameterized query bypass
+
+**GraphQL detected:**
+- Test introspection query for schema disclosure
+- Check for batch query DoS (query depth/complexity)
+- Test for IDOR through node/relay ID enumeration
+- Check for injection in custom resolvers
+- Test authorization bypass on nested field access
+
+**gRPC / Protobuf detected:**
+- Test for reflection service exposure
+- Check for auth bypass on unary/streaming calls
+- Test for message manipulation (field injection)
+- Check for insecure plaintext channels
+
+### 3. Endpoint Discovery — Attack Surface Mapping
+Every time a new endpoint, API route, or resource is discovered, evaluate whether it warrants a new todo:
+- Admin panels → "Test admin authentication bypass and privilege escalation"
+- File upload endpoints → "Test unrestricted file upload, extension bypass, path traversal"
+- Search functionality → "Test for SQL injection, XSS, and LDAP injection in search"
+- Password reset → "Test password reset token prediction, brute force, account takeover"
+- Payment/checkout → "Test price manipulation, race conditions, negative quantity"
+- Export/download → "Test for SSRF, path traversal, and IDOR in file retrieval"
+- WebSocket endpoints → "Test for CSWSH, injection, and auth bypass on WS connections"
+- OAuth/SSO flows → "Test for open redirect, state parameter bypass, token leakage"
+
+### 4. Credential & Role Discovery — Escalation Planning
+When you discover credentials, API keys, tokens, or user roles:
+- New role found → "Test horizontal access: can [role] access [other role]'s resources?"
+- API key found → "Test API key scope — enumerate accessible endpoints and data"
+- JWT token → "Decode JWT, test none algorithm, test key confusion, brute force secret"
+- Session cookie → "Test session fixation, replay across contexts, expiration"
+- Admin credential → "Use admin access to map hidden functionality and internal APIs"
+
+### 5. Vulnerability Confirmation — Exploit Chain Planning
+When a vulnerability is confirmed:
+- SQLi confirmed → "Escalate: extract database schema, dump credentials, test for RCE via stacked queries or INTO OUTFILE"
+- XSS confirmed → "Escalate: craft session hijack payload, test for stored XSS propagation, attempt admin account takeover"
+- SSRF confirmed → "Escalate: probe internal network (169.254.169.254, 127.0.0.1, internal services), test for cloud metadata access"
+- IDOR confirmed → "Escalate: enumerate all accessible objects, test for write/delete IDOR, test cross-tenant access"
+- Auth bypass confirmed → "Map all functionality accessible without authentication, test for privilege escalation"
+- File upload confirmed → "Escalate: test webshell upload, polyglot files, directory traversal in filename"
+
+### 6. Web Context Updates (Relay/Proxy Traffic)
+When the Firefox extension sends captured HTTP traffic:
+- New request captured → evaluate if endpoint needs testing
+- New credential extracted → add auth bypass and privilege escalation todos
+- New role detected → add horizontal privilege testing todos
+- New object/entity found → add IDOR and mass assignment todos
+- New function (CRUD) detected → add business logic and authorization todos
+
+### 7. Cloud Security Assessments
+When performing cloud pentesting:
+- AWS account → "Check IAM policies, S3 bucket permissions, Lambda env vars, EC2 metadata, ECS task roles"
+- Azure tenant → "Enumerate AD, check RBAC, test storage accounts, check App Service config"
+- GCP project → "Check IAM bindings, GCS buckets, compute metadata, service account keys"
+- Kubernetes → "Test RBAC, check pod security policies, test service account token access"
+
+### 8. Internal Network / Active Directory
+When performing internal network assessments:
+- Domain found → "Run BloodHound collection, enumerate users/groups/GPOs"
+- Service discovered → "Test for known CVEs, default credentials, version-specific exploits"
+- Kerberos service → "Test Kerberoasting, AS-REP roasting, constrained delegation"
+- SMB share found → "Enumerate share permissions, check for sensitive files, test null session"
+- LLMNR/NBT-NS response → "Capture and relay hashes, test for credential exposure"
+
+### 9. Mobile Application Testing
+When testing mobile apps:
+- APK/IPA obtained → "Decompile, analyze AndroidManifest/Info.plist, check for hardcoded secrets"
+- API endpoints found → "Test API without cert pinning, check for auth bypass, test IDOR"
+- Local storage → "Check for sensitive data in SharedPreferences/Keychain/SQLite"
+- Root/jailbreak detection → "Bypass detection with Frida, test app behavior without protection"
+- Deep links → "Test for deep link hijacking and intent injection"
+
+## How to Structure Todo Items
+
+Each todo should be specific, actionable, and include enough context to execute:
+
+**GOOD todo items:**
+- "Test SQLi in /api/users?search= parameter — single quote causes 500 error, try UNION-based and blind payloads"
+- "Enumerate S3 bucket 'app-uploads-prod' — public listing confirmed, check for write access and sensitive files"
+- "Replay admin GET /api/admin/users request with user-role cookie — test horizontal privilege escalation"
+- "Brute force JWT secret for HS256 token — header shows alg:HS256, test with jwt-cracker and common wordlists"
+
+**BAD todo items:**
+- "Test the application" (too vague)
+- "Check for vulnerabilities" (not actionable)
+- "Do security testing" (no specific target)
+
+## Priority Assignment
+
+Assign priorities based on exploitability and impact:
+
+- **high**: Confirmed vulnerabilities awaiting escalation, authentication bypasses, RCE vectors, credential exposure, data exfiltration paths, anything that could lead to full compromise
+- **medium**: Potential vulnerabilities needing confirmation, access control issues, information disclosure, misconfigurations that need further testing, tech-stack-specific test cases
+- **low**: Informational findings, best practice violations, hardening recommendations, cleanup tasks, documentation
+
+## Task States
+
+- **pending**: Identified but not yet started — queued for testing
+- **in_progress**: Currently being tested — only ONE at a time
+- **completed**: Test finished — finding documented or confirmed negative
+- **cancelled**: No longer relevant (e.g., endpoint removed, out of scope, duplicate)
+
+## Critical Rules
+
+1. **Always update after discovery**: When reconnaissance reveals new attack surface, immediately add corresponding test items. Never sit on information without planning next steps.
+
+2. **Prioritize exploit chains**: When a vulnerability is confirmed, immediately add escalation todos. A single SQLi is a finding — SQLi → credential dump → admin access → RCE is a kill chain.
+
+3. **Track negative results too**: Mark tests as completed even when no vulnerability is found. This shows thoroughness and prevents re-testing.
+
+4. **Adapt to context**: Your todo list should evolve as the engagement progresses. Early items focus on recon and enumeration. Middle items focus on testing and exploitation. Late items focus on escalation and reporting.
+
+5. **One in_progress at a time**: Focus. Complete or block the current test before starting a new one.
+
+6. **Read todos frequently**: Use todoread at the start of each conversation turn and after completing tasks. The todo list is your memory across conversation turns.
+
+7. **Never exceed 25 items**: If you have more than 25 pending items, consolidate related items or cancel low-priority ones. A focused list is more effective than an overwhelming one.
+
+8. **Cross-reference with web context**: When the proxy/relay provides captured traffic (requests, credentials, roles, objects, functions), cross-reference with your todo list. New web context should generate new todos or update existing ones.
+
+## Examples
+
+<example>
+Target: E-commerce web application running Next.js 14, PostgreSQL, Stripe payments
+
+*Initial todo list after tech stack detection:*
+1. [high] Enumerate all API routes via Next.js convention (/api/*, Server Actions)
+2. [high] Test Server Actions for auth bypass — check if auth middleware applies to all actions
+3. [high] Test payment flow: price manipulation, race conditions on checkout, negative quantities
+4. [medium] Check _next/data routes for auth bypass on getServerSideProps data
+5. [medium] Test PostgreSQL injection in search, filter, and sort parameters
+6. [medium] Check for exposed source maps and .env in production build
+7. [medium] Test IDOR on user profile, order history, and address endpoints
+8. [medium] Check Stripe webhook signature validation — test for unsigned event injection
+9. [low] Verify CORS policy, CSP headers, cookie flags (Secure, HttpOnly, SameSite)
+10. [low] Check for client-side prototype pollution in React hydration
+
+*After discovering admin panel at /admin:*
+11. [high] Test /admin authentication — brute force, default credentials, auth bypass
+12. [high] Test admin Server Actions for privilege escalation from regular user
+13. [medium] Map admin-only API routes and test with regular user session
+
+*After confirming SQLi in /api/products?category=:*
+14. [high] ESCALATE SQLi: extract pg_tables schema, enumerate all tables
+15. [high] ESCALATE SQLi: dump users table — extract credentials and API keys
+16. [high] ESCALATE SQLi: test for RCE via pg_read_file or COPY ... PROGRAM
+
+<reasoning>
+The todo list evolved through three phases:
+1. Tech stack detection generated framework-specific test cases
+2. New attack surface (admin panel) generated targeted auth testing items
+3. Confirmed vulnerability (SQLi) generated escalation items prioritized as high
+Each phase built on previous discoveries, creating an exploit chain narrative.
+</reasoning>
+</example>
+
+<example>
+Target: AWS cloud infrastructure assessment (authorized pentest)
+
+*Initial todo list:*
+1. [high] Enumerate IAM users, roles, and policies — check for wildcard permissions
+2. [high] Check S3 buckets for public access, misconfigured ACLs, and sensitive data
+3. [high] Test EC2 instance metadata access (169.254.169.254) from application layer
+4. [medium] Check Lambda function environment variables for hardcoded secrets
+5. [medium] Enumerate ECS/EKS task roles and pod service accounts
+6. [medium] Check CloudTrail and GuardDuty — are security monitoring gaps exploitable?
+7. [medium] Test cross-account access via AssumeRole trust policies
+8. [low] Review Security Groups for overly permissive inbound/outbound rules
+9. [low] Check for unused access keys older than 90 days
+
+*After finding S3 bucket with write access:*
+10. [high] ESCALATE: Upload test file to confirm write, check if bucket serves static content (stored XSS potential)
+11. [high] Test if S3 bucket is used as CloudFront origin — potential for cache poisoning
+12. [medium] Enumerate all objects in bucket, check for backups, logs, credentials
+
+<reasoning>
+Cloud assessments follow a systematic enumeration-first approach.
+IAM and storage are highest priority because they most commonly lead to full compromise.
+Discovery of write access to S3 immediately generated escalation items.
+</reasoning>
+</example>
+
+<example>
+Target: Internal network pentest — Active Directory environment
+
+*Initial todo list:*
+1. [high] Run network scan — identify live hosts, open ports, services
+2. [high] Enumerate AD: domain controllers, users, groups, GPOs via LDAP/BloodHound
+3. [high] Test LLMNR/NBT-NS poisoning with Responder — capture NTLMv2 hashes
+4. [medium] Check for Kerberoastable service accounts (SPN-enabled accounts)
+5. [medium] Test AS-REP roasting — enumerate accounts without pre-auth
+6. [medium] Check for password spraying targets (lockout policy first)
+7. [medium] Enumerate SMB shares — null session, guest access, sensitive files
+8. [low] Check for outdated protocols (SMBv1, LLMNR, NTLMv1)
+
+*After capturing NTLMv2 hash:*
+9. [high] Crack NTLMv2 hash with hashcat — rule-based attack with rockyou + corporate wordlist
+10. [high] If cracked: test credential reuse across services (RDP, WinRM, SMB, MSSQL)
+11. [high] Run BloodHound shortest path analysis from compromised account to Domain Admin
+
+*After gaining initial foothold:*
+12. [high] Dump LSASS for cached credentials (Mimikatz/pypykatz)
+13. [high] Check for Kerberos delegation (unconstrained, constrained, RBCD)
+14. [high] Test lateral movement: pass-the-hash, overpass-the-hash, pass-the-ticket
+15. [medium] Enumerate local admin rights on other machines from compromised account
+
+<reasoning>
+Internal network pentests follow a progressive access model:
+1. Passive reconnaissance (LLMNR, network scanning)
+2. Initial access (hash capture, password spray)
+3. Lateral movement (credential reuse, pass-the-hash)
+4. Privilege escalation (domain escalation paths)
+Each phase generates todos for the next phase.
+</reasoning>
+</example>
+
+<example>
+Target: Android mobile banking application
+
+*Initial todo list:*
+1. [high] Decompile APK with apktool/jadx — analyze AndroidManifest.xml
+2. [high] Check for hardcoded API keys, secrets, and credentials in decompiled source
+3. [high] Test API endpoints without certificate pinning — bypass with Frida/Objection
+4. [medium] Check local storage (SharedPreferences, SQLite) for sensitive data at rest
+5. [medium] Test deep links and intent filters for hijacking
+6. [medium] Analyze exported activities/services/receivers for unauthorized access
+7. [medium] Test root/jailbreak detection bypass with Frida scripts
+8. [low] Check for WebView vulnerabilities (JavaScript bridge, file:// access)
+9. [low] Verify proper TLS configuration and certificate validation
+
+*After finding hardcoded API key:*
+10. [high] Test API key scope — enumerate all accessible endpoints
+11. [high] Check if API key provides access to other users' data
+12. [medium] Search for additional keys/tokens in obfuscated code sections
+
+<reasoning>
+Mobile testing combines static analysis (decompilation, code review) with
+dynamic analysis (traffic interception, Frida hooking). Hardcoded secrets
+immediately escalate to API abuse testing.
+</reasoning>
+</example>
+
+<example>
+Proxy/Relay traffic analysis — Firefox extension captured 47 requests
+
+*After processing web context:*
+1. [high] Test IDOR on GET /api/users/{id} — captured for user ID 1042, try sequential IDs
+2. [high] Test mass assignment on PUT /api/users/profile — add role, isAdmin, balance fields
+3. [high] Replay admin POST /api/admin/config with regular user cookie — test authz
+4. [medium] Test SQLi on GET /api/products?search= — reflected in SQL-like error message
+5. [medium] Test CSRF on POST /api/transfer — no CSRF token observed in request
+6. [medium] Check JWT from Authorization header — decode, test alg:none and key confusion
+7. [low] Verify rate limiting on POST /api/auth/login — no X-RateLimit headers observed
+8. [low] Test for CORS misconfiguration — Origin header reflected in Access-Control-Allow-Origin
+
+<reasoning>
+Proxy traffic provides concrete attack surface. Each captured endpoint with
+interesting characteristics (user IDs, admin routes, auth tokens, missing
+security headers) generates a specific, testable todo item.
+</reasoning>
+</example>
 
 ## When NOT to Use This Tool
 
-Skip using this tool when:
-1. There is only a single, straightforward task
-2. The task is trivial and tracking it provides no organizational benefit
-3. The task can be completed in less than 3 trivial steps
-4. The task is purely conversational or informational
+Skip using this tool only when:
+1. The user asks a single, simple question about a specific vulnerability or technique
+2. You are performing a quick single-command lookup (e.g., checking a CVE, reading a file)
+3. The task has fewer than 3 steps and requires no follow-up
 
-NOTE that you should not use this tool if there is only one trivial task to do. In this case you are better off just doing the task directly.
-
-## Examples of When to Use the Todo List
-
-<example>
-User: I want to add a dark mode toggle to the application settings. Make sure you run the tests and build when you're done!
-Assistant: I'll help add a dark mode toggle to your application settings. Let me create a todo list to track this implementation.
-*Creates todo list with the following items:*
-1. Create dark mode toggle component in Settings page
-2. Add dark mode state management (context/store)
-3. Implement CSS-in-JS styles for dark theme
-4. Update existing components to support theme switching
-5. Run tests and build process, addressing any failures or errors that occur
-*Begins working on the first task*
-
-<reasoning>
-The assistant used the todo list because:
-1. Adding dark mode is a multi-step feature requiring UI, state management, and styling changes
-2. The user explicitly requested tests and build be run afterward
-3. The assistant inferred that tests and build need to pass by adding "Ensure tests and build succeed" as the final task
-</reasoning>
-</example>
-
-<example>
-User: Help me rename the function getCwd to getCurrentWorkingDirectory across my project
-Assistant: Let me first search through your codebase to find all occurrences of 'getCwd'.
-*Uses grep or search tools to locate all instances of getCwd in the codebase*
-Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
-*Creates todo list with specific items for each file that needs updating*
-
-<reasoning>
-The assistant used the todo list because:
-1. First, the assistant searched to understand the scope of the task
-2. Upon finding multiple occurrences across different files, it determined this was a complex task with multiple steps
-3. The todo list helps ensure every instance is tracked and updated systematically
-4. This approach prevents missing any occurrences and maintains code consistency
-</reasoning>
-</example>
-
-
-<example>
-User: I need to implement these features for my e-commerce site: user registration, product catalog, shopping cart, and checkout flow.
-Assistant: I'll help implement these features. First, let's add all the features to the todo list.
-*Creates a todo list breaking down each feature into specific tasks based on the project architecture*
-Assistant: Let's start with user registration. This will involve creating database models, API endpoints, and frontend forms that integrate with your existing authentication system.
-
-<reasoning>
-The assistant used the todo list because:
-1. The user provided multiple complex features to implement in a comma separated list
-2. The todo list helps organize these large features into manageable tasks
-3. This approach allows for tracking progress across the entire implementation
-</reasoning>
-</example>
-
-<example>
-User: Can you help optimize my React application? It's rendering slowly and has performance issues.</user>
-Assistant: I'll help optimize your React application. First, let me examine your codebase to identify potential performance bottlenecks.
-*Reviews component structure, render patterns, state management, and data fetching*
-Assistant: After analyzing your codebase, I've identified several performance issues. Let me create a todo list to track our optimization efforts.
-*Creates todo list with items like: 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*
-Let's start by implementing memoization for the expensive calculations in your ProductList component.</assistant>
-
-<reasoning>
-The assistant used the todo list because:
-1. First, the assistant examined the codebase to identify specific performance issues
-2. Based on this analysis, it identified multiple optimization opportunities
-3. Performance optimization is a non-trivial task requiring multiple steps
-4. The todo list helps methodically track improvements across different components
-5. This systematic approach ensures all performance bottlenecks are addressed
-</reasoning>
-</example>
-
-## Examples of When NOT to Use the Todo List
-
-<example>
-User: How do I print 'Hello World' in Python?
-Assistant: In Python, you can print "Hello World" with this simple code:
-
-python
-print("Hello World")
-
-This will output the text "Hello World" to the console when executed.</assistant>
-
-<reasoning>
-The assistant did not use the todo list because this is a single, trivial task that can be completed in one step. There's no need to track multiple tasks or steps for such a straightforward request.
-</reasoning>
-</example>
-
-<example>
-User: What does the git status command do?
-Assistant: The git status command shows the current state of your working directory and staging area. It displays which changes have been staged, which haven't, and which files aren't being tracked by Git. This is a fundamental command for understanding the current state of your repository before making commits.
-
-<reasoning>
-The assistant did not use the todo list because this is an informational request with no actual coding task to complete. The user is simply asking for an explanation, not for the assistant to perform multiple steps or tasks.
-</reasoning>
-</example>
-
-<example>
-User: Can you add a comment to the calculateTotal function to explain what it does?
-Assistant: Sure, let me add a comment to the calculateTotal function to explain what it does.
-* Uses the Edit tool to add a comment to the calculateTotal function *
-
-<reasoning>
-The assistant did not use the todo list because this is a single, straightforward task confined to one location in the code. Adding a comment doesn't require tracking multiple steps or systematic organization.
-</reasoning>
-</example>
-
-<example>
-User: Run npm install for me and tell me what happens.
-Assistant: I'll run the npm install command for you.
-
-*Executes: npm install*
-
-The command completed successfully. Here's the output:
-[Output of npm install command]
-
-All dependencies have been installed according to your package.json file.
-
-<reasoning>
-The assistant did not use the todo list because this is a single command execution with immediate results. There are no multiple steps to track or organize, making the todo list unnecessary for this straightforward task.
-</reasoning>
-</example>
-
-## Task States and Management
-
-1. **Task States**: Use these states to track progress:
-   - pending: Task not yet started
-   - in_progress: Currently working on (limit to ONE task at a time)
-   - completed: Task finished successfully
-   - cancelled: Task no longer needed
-
-2. **Task Management**:
-   - Update task status in real-time as you work
-   - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
-   - Only have ONE task in_progress at any time
-   - Complete current tasks before starting new ones
-   - Cancel tasks that become irrelevant
-
-3. **Task Breakdown**:
-   - Create specific, actionable items
-   - Break complex tasks into smaller, manageable steps
-   - Use clear, descriptive task names
-
-When in doubt, use this tool. Being proactive with task management demonstrates attentiveness and ensures you complete all requirements successfully.
-
+For ALL pentest operations, assessment workflows, and multi-step security tasks — USE THIS TOOL. A pentest without a plan is just random clicking.

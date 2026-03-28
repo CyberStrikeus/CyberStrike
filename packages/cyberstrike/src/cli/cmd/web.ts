@@ -34,7 +34,8 @@ export const WebCommand = cmd({
   describe: "start cyberstrike server and open web interface",
   handler: async (args) => {
     if (!Flag.CYBERSTRIKE_SERVER_PASSWORD) {
-      UI.println(UI.Style.TEXT_WARNING_BOLD + "!  " + "CYBERSTRIKE_SERVER_PASSWORD is not set; server is unsecured.")
+      UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + "CYBERSTRIKE_SERVER_PASSWORD is required. Set it with: export CYBERSTRIKE_SERVER_PASSWORD=yourpassword")
+      process.exit(1)
     }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)

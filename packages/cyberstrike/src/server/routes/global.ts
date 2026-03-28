@@ -39,6 +39,39 @@ export const GlobalRoutes = lazy(() =>
       },
     )
     .get(
+      "/version-check",
+      describeRoute({
+        summary: "Check for updates",
+        description: "Check if a newer version of CyberStrike is available.",
+        operationId: "global.versionCheck",
+        responses: {
+          200: {
+            description: "Version check result",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    version: z.string(),
+                    latest: z.string().optional(),
+                    updateAvailable: z.boolean(),
+                  }),
+                ),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        const latest = await Installation.latest().catch(() => undefined)
+        const updateAvailable = !!latest && latest !== Installation.VERSION
+        return c.json({
+          version: Installation.VERSION,
+          latest,
+          updateAvailable,
+        })
+      },
+    )
+    .get(
       "/event",
       describeRoute({
         summary: "Get global events",
