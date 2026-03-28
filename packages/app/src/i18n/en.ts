@@ -317,7 +317,7 @@ export const dict = {
   "dialog.bolt.add.url": "Bolt URL",
   "dialog.bolt.add.urlDescription": "URL of the Bolt server (Docker container)",
   "dialog.bolt.add.token": "Admin Token",
-  "dialog.bolt.add.tokenDescription": "From: docker logs bolt | grep \"Admin token\"",
+  "dialog.bolt.add.tokenDescription": 'From: docker logs bolt | grep "Admin token"',
   "dialog.bolt.add.name": "Server Name",
   "dialog.bolt.add.pair": "Pair",
   "dialog.bolt.add.pairing": "Pairing...",

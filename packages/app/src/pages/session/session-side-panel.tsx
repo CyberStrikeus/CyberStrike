@@ -1,4 +1,15 @@
-import { createEffect, For, Match, Show, Switch, createMemo, createSignal, onCleanup, type JSX, type ValidComponent } from "solid-js"
+import {
+  createEffect,
+  For,
+  Match,
+  Show,
+  Switch,
+  createMemo,
+  createSignal,
+  onCleanup,
+  type JSX,
+  type ValidComponent,
+} from "solid-js"
 import { useParams } from "@solidjs/router"
 import { Tabs } from "@cyberstrike-io/ui/tabs"
 import { IconButton } from "@cyberstrike-io/ui/icon-button"
@@ -66,9 +77,7 @@ function McpPanelList() {
   return (
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          {language.t("dialog.mcp.title")}
-        </span>
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.mcp.title")}</span>
         <IconButton
           icon="plus-small"
           variant="ghost"
@@ -77,9 +86,7 @@ function McpPanelList() {
         />
       </div>
       <Show when={items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.mcp.empty")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.mcp.empty")}</div>
       </Show>
       <For each={items()}>
         {(i) => (
@@ -135,9 +142,7 @@ function BoltPanelList() {
   return (
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          {language.t("dialog.bolt.title")}
-        </span>
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">{language.t("dialog.bolt.title")}</span>
         <IconButton
           icon="plus-small"
           variant="ghost"
@@ -146,9 +151,7 @@ function BoltPanelList() {
         />
       </div>
       <Show when={items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.bolt.empty")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.bolt.empty")}</div>
       </Show>
       <For each={items()}>
         {(i) => (
@@ -275,10 +278,7 @@ function VulnsPanelList() {
               class="flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
               classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
             >
-              <div
-                class="flex items-start gap-2 px-2 py-1.5 cursor-pointer"
-                on:click={() => toggle(id())}
-              >
+              <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
                 <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
                 <div class="flex flex-col min-w-0 flex-1">
                   <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
@@ -355,7 +355,9 @@ function TodoPanelList() {
     return sync.data.todo[id] ?? []
   })
 
-  const activeCount = createMemo(() => items().filter((t) => t.status !== "completed" && t.status !== "cancelled").length)
+  const activeCount = createMemo(
+    () => items().filter((t) => t.status !== "completed" && t.status !== "cancelled").length,
+  )
 
   return (
     <div class="flex flex-col gap-0.5">
@@ -365,14 +367,10 @@ function TodoPanelList() {
         </span>
       </div>
       <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.todo.noSession")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.todo.noSession")}</div>
       </Show>
       <Show when={sessionID() && items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.todo.empty")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.todo.empty")}</div>
       </Show>
       <For each={items()}>
         {(t) => (
@@ -456,11 +454,13 @@ function WebContextPanelList() {
   const totalCount = createMemo(() => {
     const id = sessionID()
     if (!id) return 0
-    return (sync.data.request[id]?.length ?? 0) +
+    return (
+      (sync.data.request[id]?.length ?? 0) +
       (sync.data.web_role[id]?.length ?? 0) +
       (sync.data.web_credential[id]?.length ?? 0) +
       (sync.data.web_object[id]?.length ?? 0) +
       (sync.data.web_function[id]?.length ?? 0)
+    )
   })
 
   return (
@@ -490,14 +490,10 @@ function WebContextPanelList() {
       </div>
 
       <Show when={!sessionID()}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.web.noSession")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.web.noSession")}</div>
       </Show>
       <Show when={sessionID() && items().length === 0}>
-        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
-          {language.t("dialog.web.empty")}
-        </div>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.web.empty")}</div>
       </Show>
       <For each={items()}>
         {(item) => {
@@ -523,7 +519,7 @@ function WebContextPanelList() {
               <Show when={section() === "credentials"}>
                 <span class="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 bg-icon-success-base" />
                 <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-accent shrink-0">{v.type as string ?? "auth"}</span>
+                  <span class="text-12-medium text-text-accent shrink-0">{(v.type as string) ?? "auth"}</span>
                   <span class="text-12-regular truncate">{v.label as string}</span>
                 </div>
               </Show>
@@ -541,7 +537,9 @@ function WebContextPanelList() {
                   }}
                 />
                 <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-weaker shrink-0">{String(v.action_type).charAt(0).toUpperCase()}</span>
+                  <span class="text-12-medium text-text-weaker shrink-0">
+                    {String(v.action_type).charAt(0).toUpperCase()}
+                  </span>
                   <span class="text-12-regular truncate">{v.name as string}</span>
                 </div>
               </Show>
@@ -619,202 +617,200 @@ export function SessionSidePanel(props: {
         <Show when={props.reviewOpen}>
           <div class="flex-1 min-w-0 h-full">
             <DragDropProvider
-                  onDragStart={props.onDragStart}
-                  onDragEnd={props.onDragEnd}
-                  onDragOver={props.onDragOver}
-                  collisionDetector={closestCenter}
-                >
-                  <DragDropSensors />
-                  <ConstrainDragYAxis />
-                  <Tabs value={props.activeTab()} onChange={props.openTab}>
-                    <div class="sticky top-0 shrink-0 flex">
-                      <Tabs.List
-                        ref={(el: HTMLDivElement) => {
-                          const stop = createFileTabListSync({ el, contextOpen: props.contextOpen })
-                          onCleanup(stop)
-                        }}
-                      >
-                        <Show when={props.reviewTab}>
-                          <Tabs.Trigger value="review" classes={{ button: "!pl-6" }}>
-                            <div class="flex items-center gap-1.5">
-                              <div>{props.language.t("session.tab.review")}</div>
-                              <Show when={props.hasReview}>
-                                <div class="text-12-medium text-text-strong h-4 px-2 flex flex-col items-center justify-center rounded-full bg-surface-base">
-                                  {props.reviewCount}
-                                </div>
-                              </Show>
-                            </div>
-                          </Tabs.Trigger>
-                        </Show>
-                        <Show when={props.contextOpen()}>
-                          <Tabs.Trigger
-                            value="context"
-                            closeButton={
-                              <Tooltip value={props.language.t("common.closeTab")} placement="bottom">
-                                <IconButton
-                                  icon="close-small"
-                                  variant="ghost"
-                                  class="h-5 w-5"
-                                  onClick={() => props.tabs().close("context")}
-                                  aria-label={props.language.t("common.closeTab")}
-                                />
-                              </Tooltip>
-                            }
-                            hideCloseButton
-                            onMiddleClick={() => props.tabs().close("context")}
-                          >
-                            <div class="flex items-center gap-2">
-                              <SessionContextUsage variant="indicator" />
-                              <div>{props.language.t("session.tab.context")}</div>
-                            </div>
-                          </Tabs.Trigger>
-                        </Show>
-                        <Tabs.Trigger value="mcp-panel">
-                          <div class="flex items-center gap-1.5">MCP</div>
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="bolt-panel">
-                          <div class="flex items-center gap-1.5">Bolt</div>
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="vulns-panel">
-                          <div class="flex items-center gap-1.5">Vulns</div>
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="web-panel">
-                          <div class="flex items-center gap-1.5">Web</div>
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="todo-panel">
-                          <div class="flex items-center gap-1.5">Todo</div>
-                        </Tabs.Trigger>
-                        <SortableProvider ids={openedTabs()}>
-                          <For each={openedTabs()}>
-                            {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
-                          </For>
-                        </SortableProvider>
-                        <StickyAddButton>
-                          <TooltipKeybind
-                            title={props.language.t("command.file.open")}
-                            keybind={props.command.keybind("file.open")}
-                            class="flex items-center"
-                          >
-                            <IconButton
-                              icon="plus-small"
-                              variant="ghost"
-                              iconSize="large"
-                              onClick={() =>
-                                props.dialog.show(() => (
-                                  <DialogSelectFile mode="files" onOpenFile={props.showAllFiles} />
-                                ))
-                              }
-                              aria-label={props.language.t("command.file.open")}
-                            />
-                          </TooltipKeybind>
-                        </StickyAddButton>
-                      </Tabs.List>
-                    </div>
-
+              onDragStart={props.onDragStart}
+              onDragEnd={props.onDragEnd}
+              onDragOver={props.onDragOver}
+              collisionDetector={closestCenter}
+            >
+              <DragDropSensors />
+              <ConstrainDragYAxis />
+              <Tabs value={props.activeTab()} onChange={props.openTab}>
+                <div class="sticky top-0 shrink-0 flex">
+                  <Tabs.List
+                    ref={(el: HTMLDivElement) => {
+                      const stop = createFileTabListSync({ el, contextOpen: props.contextOpen })
+                      onCleanup(stop)
+                    }}
+                  >
                     <Show when={props.reviewTab}>
-                      <Tabs.Content value="review" class="flex flex-col h-full overflow-hidden contain-strict">
-                        <Show when={props.activeTab() === "review"}>{props.reviewPanel()}</Show>
-                      </Tabs.Content>
-                    </Show>
-
-                    <Tabs.Content value="empty" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "empty"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                          <div class="h-full px-6 pb-42 flex flex-col items-center justify-center text-center gap-6">
-                            <Mark class="w-14 opacity-10" />
-                            <div class="text-14-regular text-text-weak max-w-56">
-                              {props.language.t("session.files.selectToOpen")}
+                      <Tabs.Trigger value="review" classes={{ button: "!pl-6" }}>
+                        <div class="flex items-center gap-1.5">
+                          <div>{props.language.t("session.tab.review")}</div>
+                          <Show when={props.hasReview}>
+                            <div class="text-12-medium text-text-strong h-4 px-2 flex flex-col items-center justify-center rounded-full bg-surface-base">
+                              {props.reviewCount}
                             </div>
-                          </div>
+                          </Show>
                         </div>
-                      </Show>
-                    </Tabs.Content>
-
+                      </Tabs.Trigger>
+                    </Show>
                     <Show when={props.contextOpen()}>
-                      <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
-                        <Show when={props.activeTab() === "context"}>
-                          <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                            <SessionContextTab
-                              messages={props.vm.messages}
-                              visibleUserMessages={props.vm.visibleUserMessages}
-                              view={props.vm.view}
-                              info={props.vm.info}
+                      <Tabs.Trigger
+                        value="context"
+                        closeButton={
+                          <Tooltip value={props.language.t("common.closeTab")} placement="bottom">
+                            <IconButton
+                              icon="close-small"
+                              variant="ghost"
+                              class="h-5 w-5"
+                              onClick={() => props.tabs().close("context")}
+                              aria-label={props.language.t("common.closeTab")}
                             />
-                          </div>
-                        </Show>
-                      </Tabs.Content>
+                          </Tooltip>
+                        }
+                        hideCloseButton
+                        onMiddleClick={() => props.tabs().close("context")}
+                      >
+                        <div class="flex items-center gap-2">
+                          <SessionContextUsage variant="indicator" />
+                          <div>{props.language.t("session.tab.context")}</div>
+                        </div>
+                      </Tabs.Trigger>
                     </Show>
-
-                    <Tabs.Content value="mcp-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "mcp-panel"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                          <McpPanelList />
-                        </div>
-                      </Show>
-                    </Tabs.Content>
-
-                    <Tabs.Content value="bolt-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "bolt-panel"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                          <BoltPanelList />
-                        </div>
-                      </Show>
-                    </Tabs.Content>
-
-                    <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "vulns-panel"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                          <VulnsPanelList />
-                        </div>
-                      </Show>
-                    </Tabs.Content>
-
-                    <Tabs.Content value="web-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "web-panel"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                          <WebContextPanelList />
-                        </div>
-                      </Show>
-                    </Tabs.Content>
-
-                    <Tabs.Content value="todo-panel" class="flex flex-col h-full overflow-hidden contain-strict">
-                      <Show when={props.activeTab() === "todo-panel"}>
-                        <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
-                          <TodoPanelList />
-                        </div>
-                      </Show>
-                    </Tabs.Content>
-
-                    <Show when={props.activeFileTab()} keyed>
-                      {(tab) => (
-                        <FileTabContent
-                          tab={tab}
-                          activeTab={props.activeTab}
-                          tabs={props.tabs}
-                          view={props.vm.view}
-                          handoffFiles={props.handoffFiles}
-                          file={props.file}
-                          comments={props.comments}
-                          language={props.language}
-                          codeComponent={props.codeComponent}
-                          addCommentToContext={props.addCommentToContext}
+                    <Tabs.Trigger value="mcp-panel">
+                      <div class="flex items-center gap-1.5">MCP</div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="bolt-panel">
+                      <div class="flex items-center gap-1.5">Bolt</div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="vulns-panel">
+                      <div class="flex items-center gap-1.5">Vulns</div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="web-panel">
+                      <div class="flex items-center gap-1.5">Web</div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="todo-panel">
+                      <div class="flex items-center gap-1.5">Todo</div>
+                    </Tabs.Trigger>
+                    <SortableProvider ids={openedTabs()}>
+                      <For each={openedTabs()}>
+                        {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
+                      </For>
+                    </SortableProvider>
+                    <StickyAddButton>
+                      <TooltipKeybind
+                        title={props.language.t("command.file.open")}
+                        keybind={props.command.keybind("file.open")}
+                        class="flex items-center"
+                      >
+                        <IconButton
+                          icon="plus-small"
+                          variant="ghost"
+                          iconSize="large"
+                          onClick={() =>
+                            props.dialog.show(() => <DialogSelectFile mode="files" onOpenFile={props.showAllFiles} />)
+                          }
+                          aria-label={props.language.t("command.file.open")}
                         />
-                      )}
+                      </TooltipKeybind>
+                    </StickyAddButton>
+                  </Tabs.List>
+                </div>
+
+                <Show when={props.reviewTab}>
+                  <Tabs.Content value="review" class="flex flex-col h-full overflow-hidden contain-strict">
+                    <Show when={props.activeTab() === "review"}>{props.reviewPanel()}</Show>
+                  </Tabs.Content>
+                </Show>
+
+                <Tabs.Content value="empty" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "empty"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                      <div class="h-full px-6 pb-42 flex flex-col items-center justify-center text-center gap-6">
+                        <Mark class="w-14 opacity-10" />
+                        <div class="text-14-regular text-text-weak max-w-56">
+                          {props.language.t("session.files.selectToOpen")}
+                        </div>
+                      </div>
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Show when={props.contextOpen()}>
+                  <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
+                    <Show when={props.activeTab() === "context"}>
+                      <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
+                        <SessionContextTab
+                          messages={props.vm.messages}
+                          visibleUserMessages={props.vm.visibleUserMessages}
+                          view={props.vm.view}
+                          info={props.vm.info}
+                        />
+                      </div>
                     </Show>
-                  </Tabs>
-                  <DragOverlay>
-                    <Show when={props.activeDraggable()}>
-                      {(tab) => {
-                        const path = createMemo(() => props.file.pathFromTab(tab()))
-                        return (
-                          <div class="relative px-6 h-12 flex items-center bg-background-stronger border-x border-border-weak-base border-b border-b-transparent">
-                            <Show when={path()}>{(p) => <FileVisual active path={p()} />}</Show>
-                          </div>
-                        )
-                      }}
-                    </Show>
-                  </DragOverlay>
-                </DragDropProvider>
+                  </Tabs.Content>
+                </Show>
+
+                <Tabs.Content value="mcp-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "mcp-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <McpPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="bolt-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "bolt-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <BoltPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "vulns-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <VulnsPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="web-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "web-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <WebContextPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="todo-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "todo-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <TodoPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Show when={props.activeFileTab()} keyed>
+                  {(tab) => (
+                    <FileTabContent
+                      tab={tab}
+                      activeTab={props.activeTab}
+                      tabs={props.tabs}
+                      view={props.vm.view}
+                      handoffFiles={props.handoffFiles}
+                      file={props.file}
+                      comments={props.comments}
+                      language={props.language}
+                      codeComponent={props.codeComponent}
+                      addCommentToContext={props.addCommentToContext}
+                    />
+                  )}
+                </Show>
+              </Tabs>
+              <DragOverlay>
+                <Show when={props.activeDraggable()}>
+                  {(tab) => {
+                    const path = createMemo(() => props.file.pathFromTab(tab()))
+                    return (
+                      <div class="relative px-6 h-12 flex items-center bg-background-stronger border-x border-border-weak-base border-b border-b-transparent">
+                        <Show when={path()}>{(p) => <FileVisual active path={p()} />}</Show>
+                      </div>
+                    )
+                  }}
+                </Show>
+              </DragOverlay>
+            </DragDropProvider>
           </div>
         </Show>
 

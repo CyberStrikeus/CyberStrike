@@ -95,7 +95,12 @@ export namespace Server {
           if (loopback && !proxied) return next()
           // Skip auth for web UI static assets so the SPA can load in remote mode
           const p = c.req.path
-          if (p === "/" || p.startsWith("/assets/") || /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)) return next()
+          if (
+            p === "/" ||
+            p.startsWith("/assets/") ||
+            /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)
+          )
+            return next()
           // Manual Basic auth check — intentionally omit WWW-Authenticate header
           // so browsers don't show native auth dialog. The web UI uses its own form.
           const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
@@ -106,7 +111,8 @@ export namespace Server {
               try {
                 const decoded = atob(match[1])
                 const sep = decoded.indexOf(":")
-                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password) return next()
+                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
+                  return next()
               } catch {}
             }
           }
@@ -591,12 +597,21 @@ export namespace Server {
               // 2. Workspace-relative (dev: running from repo root)
               path.join(process.cwd(), "packages", "app", "dist"),
               // 3. Relative to source (dev: import.meta.url)
-              (() => { try { return new URL("../../../app/dist", import.meta.url).pathname } catch { return "" } })(),
+              (() => {
+                try {
+                  return new URL("../../../app/dist", import.meta.url).pathname
+                } catch {
+                  return ""
+                }
+              })(),
             ]
             for (const dir of candidates) {
               if (!dir) continue
               const check = Bun.file(path.join(dir, "index.html"))
-              if (await check.exists()) { _webDistDir = dir; break }
+              if (await check.exists()) {
+                _webDistDir = dir
+                break
+              }
             }
             if (_webDistDir === undefined) _webDistDir = null
           }
@@ -638,7 +653,10 @@ export namespace Server {
             response.headers.set("Content-Security-Policy", csp)
             return response
           } catch {
-            return c.json({ error: "Web UI not available. Run 'bun run build' in packages/app/ or deploy app.cyberstrike.io" }, 503)
+            return c.json(
+              { error: "Web UI not available. Run 'bun run build' in packages/app/ or deploy app.cyberstrike.io" },
+              503,
+            )
           }
         }) as unknown as Hono,
   )

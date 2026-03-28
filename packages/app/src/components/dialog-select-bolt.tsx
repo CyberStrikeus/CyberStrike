@@ -72,7 +72,8 @@ export const DialogSelectBolt: Component = () => {
       await sdk.client.bolt.remove({ name })
       const result = await sdk.client.bolt.status()
       if (result.data) sync.set("bolt", result.data)
-    } catch {} finally {
+    } catch {
+    } finally {
       setLoading(null)
     }
   }
@@ -93,10 +94,22 @@ export const DialogSelectBolt: Component = () => {
   const back = () => {
     setError("")
     const s = step()
-    if (s === "url") { setStep("list"); return }
-    if (s === "token") { setStep("url"); return }
-    if (s === "name") { setStep("token"); return }
-    if (s === "done") { setStep("list"); return }
+    if (s === "url") {
+      setStep("list")
+      return
+    }
+    if (s === "token") {
+      setStep("url")
+      return
+    }
+    if (s === "name") {
+      setStep("token")
+      return
+    }
+    if (s === "done") {
+      setStep("list")
+      return
+    }
     setStep("list")
   }
 
@@ -151,7 +164,9 @@ export const DialogSelectBolt: Component = () => {
 
       // 2. Persist bolt config
       await sdk.client.config.update({
-        config: { bolt: { [name]: { url: boltUrl() } } } as NonNullable<Parameters<typeof sdk.client.config.update>[0]>["config"],
+        config: { bolt: { [name]: { url: boltUrl() } } } as NonNullable<
+          Parameters<typeof sdk.client.config.update>[0]
+        >["config"],
       })
 
       // 3. Connect via bolt route
@@ -182,7 +197,8 @@ export const DialogSelectBolt: Component = () => {
   }
 
   const description = () => {
-    if (step() === "list") return language.t("dialog.bolt.description", { enabled: enabledCount(), total: totalCount() })
+    if (step() === "list")
+      return language.t("dialog.bolt.description", { enabled: enabledCount(), total: totalCount() })
     return undefined
   }
 

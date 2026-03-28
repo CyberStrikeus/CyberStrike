@@ -21,10 +21,8 @@ const statusLabels = {
 
 function deriveName(command: string[]): string {
   const runner = command[0]
-  if ((runner === "npx" || runner === "bunx") && command.length > 1)
-    return command[1].replace(/^@[^/]+\//, "")
-  if (runner === "bun" && command[1] === "run" && command.length > 2)
-    return nameFromPath(command[2])
+  if ((runner === "npx" || runner === "bunx") && command.length > 1) return command[1].replace(/^@[^/]+\//, "")
+  if (runner === "bun" && command[1] === "run" && command.length > 2) return nameFromPath(command[2])
   if (runner === "node" && command.length > 1) return nameFromPath(command[1])
   if (command.length === 1) return nameFromPath(runner)
   const file = command.slice(1).find((a) => !a.startsWith("-"))
@@ -113,7 +111,8 @@ export const DialogSelectMcp: Component = () => {
       await sdk.client.mcp.remove({ name })
       const result = await sdk.client.mcp.status()
       if (result.data) sync.set("mcp", result.data)
-    } catch {} finally {
+    } catch {
+    } finally {
       setLoading(null)
     }
   }
@@ -136,15 +135,30 @@ export const DialogSelectMcp: Component = () => {
   const back = () => {
     setError("")
     const s = step()
-    if (s === "add-type") { setStep("list"); return }
-    if (s === "local-command") { setStep("add-type"); return }
-    if (s === "local-env") { setStep("local-command"); return }
-    if (s === "remote-url") { setStep("add-type"); return }
+    if (s === "add-type") {
+      setStep("list")
+      return
+    }
+    if (s === "local-command") {
+      setStep("add-type")
+      return
+    }
+    if (s === "local-env") {
+      setStep("local-command")
+      return
+    }
+    if (s === "remote-url") {
+      setStep("add-type")
+      return
+    }
     if (s === "name") {
       setStep(addType() === "local" ? "local-env" : "remote-url")
       return
     }
-    if (s === "done") { setStep("list"); return }
+    if (s === "done") {
+      setStep("list")
+      return
+    }
     setStep("list")
   }
 
