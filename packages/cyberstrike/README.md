@@ -14,6 +14,7 @@
   <a href="#intelligence-layer">Intelligence Layer</a> &bull;
   <a href="#what-makes-it-different">What Makes It Different</a> &bull;
   <a href="#agents">Agents</a> &bull;
+  <a href="#web-ui--remote-access">Web UI</a> &bull;
   <a href="#bolt--remote-tool-execution">Bolt</a> &bull;
   <a href="#mcp-ecosystem">MCP Ecosystem</a> &bull;
   <a href="#installation">Installation</a> &bull;
@@ -140,6 +141,21 @@ Each proxy tester follows a structured methodology: intercept traffic, identify 
 
 ---
 
+### Web UI & Remote Access
+
+Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, and vulnerability findings from any browser. Access from anywhere with Cloudflare Tunnel — zero open ports, end-to-end encryption, password-protected API. Your data stays on your machine.
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD=your-secure-password
+cyberstrike web
+```
+
+Use **[app.cyberstrike.io](https://app.cyberstrike.io)** (static page, no backend) or self-host from `packages/app/dist/`.
+
+See the [full README](https://github.com/CyberStrikeus/CyberStrike#web-ui--remote-access) for the complete security model.
+
+---
+
 ### Bolt — Remote Tool Execution
 
 Bolt is CyberStrike's remote tool server. Deploy it on any VPS, cloud instance, or Docker container — then control it from your local terminal over MCP protocol with Ed25519 authentication.
@@ -219,15 +235,6 @@ scoop install cyberstrike
 # Linux / macOS (curl)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
-
-**Desktop app** (macOS, Windows, Linux) — built with Tauri for native performance:
-
-```bash
-brew install --cask cyberstrike-desktop          # macOS
-scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
-```
-
-Or download directly from the [releases page](https://github.com/CyberStrikeus/CyberStrike/releases).
 
 ---
 

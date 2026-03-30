@@ -44,6 +44,7 @@
   <a href="#intelligence-layer">Intelligence Layer</a> &bull;
   <a href="#what-makes-it-different">What Makes It Different</a> &bull;
   <a href="#agents">Agents</a> &bull;
+  <a href="#web-ui--remote-access">Web UI</a> &bull;
   <a href="#bolt--remote-tool-execution">Bolt</a> &bull;
   <a href="#mcp-ecosystem">MCP Ecosystem</a> &bull;
   <a href="#installation">Installation</a> &bull;
@@ -170,6 +171,44 @@ Each proxy tester follows a structured methodology: intercept traffic, identify 
 
 ---
 
+### Web UI & Remote Access
+
+CyberStrike includes a full web interface. Run `cyberstrike web` and control your agents, MCP servers, Bolt connections, and vulnerability findings from any browser.
+
+**Access from anywhere with Cloudflare Tunnel:**
+
+```
+Browser ──HTTPS──▶ Cloudflare Tunnel ──encrypted──▶ cloudflared (localhost) ──▶ CyberStrike Server
+```
+
+```bash
+export CYBERSTRIKE_SERVER_PASSWORD=your-secure-password
+cyberstrike web
+# In another terminal:
+cloudflared tunnel --url http://localhost:4096 run your-tunnel
+```
+
+**Why this is secure:**
+
+- **Zero open ports** — CyberStrike binds to `localhost:4096`. `cloudflared` makes an outbound-only connection to Cloudflare's edge. No firewall rules, no port forwarding needed.
+- **End-to-end encryption** — Browser to Cloudflare edge is TLS. Cloudflare edge to your machine is an encrypted tunnel. No plaintext leaves your network.
+- **Password-protected API** — Every API request requires Basic Auth. Local requests on `localhost` bypass auth for convenience; remote requests via CF tunnel always require credentials (detects `X-Forwarded-For` / `CF-Connecting-IP`).
+- **Your data stays local** — LLM inference runs on your hardware. CyberStrike processes everything locally. The tunnel is just a secure pipe.
+
+**What's in the Web UI:**
+
+| Tab | What It Does |
+|-----|-------------|
+| **Chat** | Full conversation with all 13+ security agents |
+| **MCP** | Live MCP server status, health, and tool counts |
+| **Bolt** | Bolt remote server connection monitoring |
+| **Vulnerabilities** | Discovered vulns with severity, PoC, and impact |
+| **Web Context** | Endpoints, roles, credentials from Firefox Capture |
+
+**[app.cyberstrike.io](https://app.cyberstrike.io)** is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.
+
+---
+
 ### Bolt — Remote Tool Execution
 
 Bolt is CyberStrike's remote tool server. Deploy it on any VPS, cloud instance, or Docker container — then control it from your local terminal over MCP protocol with Ed25519 authentication.
@@ -249,15 +288,6 @@ scoop install cyberstrike
 # Linux / macOS (curl)
 curl -fsSL https://cyberstrike.io/install | bash
 ```
-
-**Desktop app** (macOS, Windows, Linux) — built with Tauri for native performance:
-
-```bash
-brew install --cask cyberstrike-desktop          # macOS
-scoop bucket add extras; scoop install extras/cyberstrike-desktop  # Windows
-```
-
-Or download directly from the [releases page](https://github.com/CyberStrikeus/CyberStrike/releases).
 
 ---
 
