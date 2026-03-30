@@ -197,13 +197,13 @@ cloudflared tunnel --url http://localhost:4096 run your-tunnel
 
 **What's in the Web UI:**
 
-| Tab | What It Does |
-|-----|-------------|
-| **Chat** | Full conversation with all 13+ security agents |
-| **MCP** | Live MCP server status, health, and tool counts |
-| **Bolt** | Bolt remote server connection monitoring |
-| **Vulnerabilities** | Discovered vulns with severity, PoC, and impact |
-| **Web Context** | Endpoints, roles, credentials from Firefox Capture |
+| Tab                 | What It Does                                       |
+| ------------------- | -------------------------------------------------- |
+| **Chat**            | Full conversation with all 13+ security agents     |
+| **MCP**             | Live MCP server status, health, and tool counts    |
+| **Bolt**            | Bolt remote server connection monitoring           |
+| **Vulnerabilities** | Discovered vulns with severity, PoC, and impact    |
+| **Web Context**     | Endpoints, roles, credentials from Firefox Capture |
 
 **[app.cyberstrike.io](https://app.cyberstrike.io)** is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.
 
