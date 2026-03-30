@@ -80,6 +80,32 @@ export namespace Server {
             status: 500,
           })
         })
+        .use(
+          cors({
+            origin(input) {
+              if (!input) return
+
+              if (input.startsWith("http://localhost:")) return input
+              if (input.startsWith("http://127.0.0.1:")) return input
+              if (
+                input === "tauri://localhost" ||
+                input === "http://tauri.localhost" ||
+                input === "https://tauri.localhost"
+              )
+                return input
+
+              // *.cyberstrike.io (https only)
+              if (/^https:\/\/([a-z0-9-]+\.)*cyberstrike\.io$/.test(input)) {
+                return input
+              }
+              if (_corsWhitelist.includes(input)) {
+                return input
+              }
+
+              return
+            },
+          }),
+        )
         .use(async (c, next) => {
           if (c.req.method === "OPTIONS") return next()
           const password = Flag.CYBERSTRIKE_SERVER_PASSWORD
@@ -135,32 +161,6 @@ export namespace Server {
             timer.stop()
           }
         })
-        .use(
-          cors({
-            origin(input) {
-              if (!input) return
-
-              if (input.startsWith("http://localhost:")) return input
-              if (input.startsWith("http://127.0.0.1:")) return input
-              if (
-                input === "tauri://localhost" ||
-                input === "http://tauri.localhost" ||
-                input === "https://tauri.localhost"
-              )
-                return input
-
-              // *.cyberstrike.io (https only)
-              if (/^https:\/\/([a-z0-9-]+\.)*cyberstrike\.io$/.test(input)) {
-                return input
-              }
-              if (_corsWhitelist.includes(input)) {
-                return input
-              }
-
-              return
-            },
-          }),
-        )
         .route("/global", GlobalRoutes())
         .put(
           "/auth/:providerID",

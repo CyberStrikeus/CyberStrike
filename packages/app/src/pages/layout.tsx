@@ -324,7 +324,10 @@ export default function Layout(props: ParentProps) {
         // Browser: poll server version-check endpoint
         const s = server.current
         if (!s) return Promise.resolve()
-        return fetch(`${s.http.url}/global/version-check`)
+        const headers: Record<string, string> = {}
+        if (s.http.password)
+          headers["Authorization"] = `Basic ${btoa(`${s.http.username ?? "cyberstrike"}:${s.http.password}`)}`
+        return fetch(`${s.http.url}/global/version-check`, { headers })
           .then((r) => r.json())
           .then((data: { updateAvailable?: boolean; latest?: string }) => {
             if (data.updateAvailable && data.latest) showUpdateToast(data.latest, false)
