@@ -6,11 +6,10 @@ import { parseArgs } from "util"
 import { Script } from "@cyberstrike-io/script"
 
 export async function getLatestRelease(skip?: string) {
-  const data = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike")
-    .then((res) => {
-      if (!res.ok) throw new Error(res.statusText)
-      return res.json()
-    })
+  const data = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike").then((res) => {
+    if (!res.ok) throw new Error(res.statusText)
+    return res.json()
+  })
   const latest = (data as any)["dist-tags"]?.latest
   if (!latest) throw new Error("No published version found on npm")
   const target = skip?.replace(/^v/, "")
