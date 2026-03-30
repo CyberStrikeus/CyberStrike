@@ -331,7 +331,10 @@ export function StatusPopover() {
                         classList={{
                           "size-1.5 rounded-full shrink-0": true,
                           "bg-icon-success-base": mcpStatus(name) === "connected",
-                          "bg-icon-critical-base": mcpStatus(name) === "failed" || mcpStatus(name) === "needs_auth" || mcpStatus(name) === "needs_client_registration",
+                          "bg-icon-critical-base":
+                            mcpStatus(name) === "failed" ||
+                            mcpStatus(name) === "needs_auth" ||
+                            mcpStatus(name) === "needs_client_registration",
                           "bg-border-weak-base": mcpStatus(name) === "disabled",
                         }}
                       />
