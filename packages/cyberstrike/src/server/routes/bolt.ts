@@ -58,6 +58,7 @@ export const BoltRoutes = lazy(() =>
       async (c) => {
         const { name, config } = c.req.valid("json")
         const result = await MCP.addBolt(name, config)
+        await Config.updateGlobal({ bolt: { [name]: config } })
         return c.json(result.status)
       },
     )

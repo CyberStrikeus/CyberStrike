@@ -54,6 +54,25 @@ jobs:
       release: ${{ steps.version.outputs.release }}
       tag: ${{ steps.version.outputs.tag }}
 
+  build-app:
+    needs: version
+    runs-on: ubuntu-24.04
+    if: github.repository == 'CyberStrikeus/CyberStrike'
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Build Web UI
+        run: bun install && bun turbo build --filter=@cyberstrike-io/app
+        env:
+          CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cyberstrike-web
+          path: packages/app/dist
+
   build-cli:
     needs: version
     runs-on: ubuntu-24.04
@@ -86,7 +105,8 @@ jobs:
     needs:
       - version
       - build-cli
-    if: ${{ !cancelled() && needs.build-cli.result == 'success' }}
+      - build-app
+    if: ${{ !cancelled() && needs.build-cli.result == 'success' && needs.build-app.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
@@ -109,18 +129,24 @@ jobs:
       - name: Fallback git config
         if: steps.committer.outcome == 'failure'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "cyberstrike[bot]"
+          git config --global user.email "cyberstrike[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.PUBLISH_TOKEN }}@github.com/${{ github.repository }}"
 
       - uses: actions/download-artifact@v4
         with:
           name: cyberstrike-cli
           path: packages/cyberstrike/dist
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: cyberstrike-web
+          path: packages/app/dist
+
       - run: ./script/publish.ts
         env:
           CYBERSTRIKE_VERSION: ${{ needs.version.outputs.version }}
           CYBERSTRIKE_RELEASE: ${{ needs.version.outputs.release }}
-          GITHUB_TOKEN: ${{ steps.committer.outputs.token || github.token }}
+          GITHUB_TOKEN: ${{ steps.committer.outputs.token || secrets.PUBLISH_TOKEN || github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: false

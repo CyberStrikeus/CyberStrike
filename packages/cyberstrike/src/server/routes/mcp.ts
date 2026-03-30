@@ -57,6 +57,7 @@ export const McpRoutes = lazy(() =>
       async (c) => {
         const { name, config } = c.req.valid("json")
         const result = await MCP.add(name, config)
+        await Config.updateGlobal({ mcp: { [name]: config } })
         return c.json(result.status)
       },
     )

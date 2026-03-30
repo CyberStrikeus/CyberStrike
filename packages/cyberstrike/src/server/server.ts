@@ -80,55 +80,6 @@ export namespace Server {
             status: 500,
           })
         })
-        .use(async (c, next) => {
-          if (c.req.method === "OPTIONS") return next()
-          const password = Flag.CYBERSTRIKE_SERVER_PASSWORD
-          if (!password) return next()
-          // Local requests are trusted — password protects remote access (CF tunnel etc.)
-          // Socket IP identifies the TCP peer; proxy headers detect forwarded requests.
-          // cloudflared always sets X-Forwarded-For/CF-Connecting-IP, so proxied
-          // requests are caught even though cloudflared connects from loopback.
-          const ip = (c.env as { requestIP?: (req: Request) => { address: string } | null })?.requestIP?.(c.req.raw)
-          const addr = ip?.address
-          const loopback = addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1"
-          const proxied = !!c.req.header("x-forwarded-for") || !!c.req.header("cf-connecting-ip")
-          if (loopback && !proxied) return next()
-          // Skip auth for web UI static assets so the SPA can load in remote mode
-          const p = c.req.path
-          if (p === "/" || p.startsWith("/assets/") || /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)) return next()
-          // Manual Basic auth check — intentionally omit WWW-Authenticate header
-          // so browsers don't show native auth dialog. The web UI uses its own form.
-          const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
-          const header = c.req.header("authorization")
-          if (header) {
-            const match = /^Basic\s+(.+)$/i.exec(header)
-            if (match) {
-              try {
-                const decoded = atob(match[1])
-                const sep = decoded.indexOf(":")
-                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password) return next()
-              } catch {}
-            }
-          }
-          return c.json({ error: "Unauthorized" }, 401)
-        })
-        .use(async (c, next) => {
-          const skipLogging = c.req.path === "/log"
-          if (!skipLogging) {
-            log.info("request", {
-              method: c.req.method,
-              path: c.req.path,
-            })
-          }
-          const timer = log.time("request", {
-            method: c.req.method,
-            path: c.req.path,
-          })
-          await next()
-          if (!skipLogging) {
-            timer.stop()
-          }
-        })
         .use(
           cors({
             origin(input) {
@@ -155,6 +106,61 @@ export namespace Server {
             },
           }),
         )
+        .use(async (c, next) => {
+          if (c.req.method === "OPTIONS") return next()
+          const password = Flag.CYBERSTRIKE_SERVER_PASSWORD
+          if (!password) return next()
+          // Local requests are trusted — password protects remote access (CF tunnel etc.)
+          // Socket IP identifies the TCP peer; proxy headers detect forwarded requests.
+          // cloudflared always sets X-Forwarded-For/CF-Connecting-IP, so proxied
+          // requests are caught even though cloudflared connects from loopback.
+          const ip = (c.env as { requestIP?: (req: Request) => { address: string } | null })?.requestIP?.(c.req.raw)
+          const addr = ip?.address
+          const loopback = addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1"
+          const proxied = !!c.req.header("x-forwarded-for") || !!c.req.header("cf-connecting-ip")
+          if (loopback && !proxied) return next()
+          // Skip auth for web UI static assets so the SPA can load in remote mode
+          const p = c.req.path
+          if (
+            p === "/" ||
+            p.startsWith("/assets/") ||
+            /\.(html|js|css|png|jpg|svg|ico|woff2?|ttf|webmanifest|map)$/i.test(p)
+          )
+            return next()
+          // Manual Basic auth check — intentionally omit WWW-Authenticate header
+          // so browsers don't show native auth dialog. The web UI uses its own form.
+          const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
+          const header = c.req.header("authorization")
+          if (header) {
+            const match = /^Basic\s+(.+)$/i.exec(header)
+            if (match) {
+              try {
+                const decoded = atob(match[1])
+                const sep = decoded.indexOf(":")
+                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
+                  return next()
+              } catch {}
+            }
+          }
+          return c.json({ error: "Unauthorized" }, 401)
+        })
+        .use(async (c, next) => {
+          const skipLogging = c.req.path === "/log"
+          if (!skipLogging) {
+            log.info("request", {
+              method: c.req.method,
+              path: c.req.path,
+            })
+          }
+          const timer = log.time("request", {
+            method: c.req.method,
+            path: c.req.path,
+          })
+          await next()
+          if (!skipLogging) {
+            timer.stop()
+          }
+        })
         .route("/global", GlobalRoutes())
         .put(
           "/auth/:providerID",
@@ -591,12 +597,21 @@ export namespace Server {
               // 2. Workspace-relative (dev: running from repo root)
               path.join(process.cwd(), "packages", "app", "dist"),
               // 3. Relative to source (dev: import.meta.url)
-              (() => { try { return new URL("../../../app/dist", import.meta.url).pathname } catch { return "" } })(),
+              (() => {
+                try {
+                  return new URL("../../../app/dist", import.meta.url).pathname
+                } catch {
+                  return ""
+                }
+              })(),
             ]
             for (const dir of candidates) {
               if (!dir) continue
               const check = Bun.file(path.join(dir, "index.html"))
-              if (await check.exists()) { _webDistDir = dir; break }
+              if (await check.exists()) {
+                _webDistDir = dir
+                break
+              }
             }
             if (_webDistDir === undefined) _webDistDir = null
           }
@@ -638,7 +653,10 @@ export namespace Server {
             response.headers.set("Content-Security-Policy", csp)
             return response
           } catch {
-            return c.json({ error: "Web UI not available. Run 'bun run build' in packages/app/ or deploy app.cyberstrike.io" }, 503)
+            return c.json(
+              { error: "Web UI not available. Run 'bun run build' in packages/app/ or deploy app.cyberstrike.io" },
+              503,
+            )
           }
         }) as unknown as Hono,
   )

@@ -41,6 +41,43 @@
         ]
       }
     },
+    "/global/version-check": {
+      "get": {
+        "operationId": "global.versionCheck",
+        "summary": "Check for updates",
+        "description": "Check if a newer version of CyberStrike is available.",
+        "responses": {
+          "200": {
+            "description": "Version check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "latest": {
+                      "type": "string"
+                    },
+                    "updateAvailable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["version", "updateAvailable"]
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.versionCheck({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/global/event": {
       "get": {
         "operationId": "global.event",

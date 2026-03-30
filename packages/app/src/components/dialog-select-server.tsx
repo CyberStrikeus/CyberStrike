@@ -624,7 +624,14 @@ export function DialogSelectServer() {
             icon="plus-small"
             size="large"
             onClick={() => {
-              setStore("addServer", { showForm: true, url: "", name: "", username: DEFAULT_USERNAME, password: "", error: "" })
+              setStore("addServer", {
+                showForm: true,
+                url: "",
+                name: "",
+                username: DEFAULT_USERNAME,
+                password: "",
+                error: "",
+              })
               scrollListToBottom()
             }}
             class="py-1.5 pl-1.5 pr-3 flex items-center gap-1.5"

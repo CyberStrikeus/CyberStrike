@@ -339,7 +339,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const key = keyFor(directory, sessionID)
           return runInflight(inflightWebCred, key, () =>
             retry(() => client.session.webCredentials({ sessionID })).then((result) => {
-              setStore("web_credential", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+              setStore(
+                "web_credential",
+                sessionID,
+                reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }),
+              )
             }),
           )
         },
@@ -352,7 +356,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const key = keyFor(directory, sessionID)
           return runInflight(inflightWebRole, key, () =>
             retry(() => client.session.webRoles({ sessionID })).then((result) => {
-              setStore("web_role", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+              setStore(
+                "web_role",
+                sessionID,
+                reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }),
+              )
             }),
           )
         },
@@ -365,7 +373,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const key = keyFor(directory, sessionID)
           return runInflight(inflightWebObj, key, () =>
             retry(() => client.session.webObjects({ sessionID })).then((result) => {
-              setStore("web_object", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+              setStore(
+                "web_object",
+                sessionID,
+                reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }),
+              )
             }),
           )
         },
@@ -378,7 +390,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           const key = keyFor(directory, sessionID)
           return runInflight(inflightWebFunc, key, () =>
             retry(() => client.session.webFunctions({ sessionID })).then((result) => {
-              setStore("web_function", sessionID, reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }))
+              setStore(
+                "web_function",
+                sessionID,
+                reconcile((result.data ?? []) as Record<string, unknown>[], { key: "id" }),
+              )
             }),
           )
         },

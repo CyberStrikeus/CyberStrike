@@ -1073,8 +1073,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     valueClass="truncate"
                     variant="ghost"
                     triggerStyle={{
-                      "border": `1px solid color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 50%, transparent)`,
-                      "background": `color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 12%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 50%, transparent)`,
+                      background: `color-mix(in srgb, ${currentAgentColor() ?? "transparent"} 12%, transparent)`,
                     }}
                   />
                 </TooltipKeybind>
