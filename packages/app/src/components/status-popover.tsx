@@ -143,6 +143,8 @@ export function StatusPopover() {
   const defaultServer = useDefaultServerUrl(platform.getDefaultServerUrl)
   const mcpNames = createMemo(() => Object.keys(sync.data.mcp ?? {}).sort((a, b) => a.localeCompare(b)))
   const mcpStatus = (name: string) => sync.data.mcp?.[name]?.status
+  const boltNames = createMemo(() => Object.keys(sync.data.bolt ?? {}).sort((a, b) => a.localeCompare(b)))
+  const boltStatus = (name: string) => sync.data.bolt?.[name]?.status
   const lspItems = createMemo(() => sync.data.lsp ?? [])
   const lspCount = createMemo(() => lspItems().length)
   const plugins = createMemo(() => sync.data.config.plugin ?? [])
@@ -210,6 +212,11 @@ export function StatusPopover() {
             <Show when={mcpNames().length > 0}>
               <Tabs.Trigger value="mcp" data-slot="tab" class="text-12-regular">
                 {mcpNames().length} {language.t("status.popover.tab.mcp")}
+              </Tabs.Trigger>
+            </Show>
+            <Show when={boltNames().length > 0}>
+              <Tabs.Trigger value="bolt" data-slot="tab" class="text-12-regular">
+                {boltNames().length} {language.t("status.popover.tab.bolt")}
               </Tabs.Trigger>
             </Show>
           </Tabs.List>
@@ -340,6 +347,28 @@ export function StatusPopover() {
                       />
                       <span class="text-14-regular text-text-base truncate">{name}</span>
                       <span class="text-12-regular text-text-weak ml-auto">{mcpStatus(name)}</span>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </div>
+          </Tabs.Content>
+          <Tabs.Content value="bolt">
+            <div class="flex flex-col px-2 pb-2">
+              <div class="flex flex-col p-3 bg-background-base rounded-sm min-h-14">
+                <For each={boltNames()}>
+                  {(name) => (
+                    <div class="flex items-center gap-2 w-full px-2 py-1">
+                      <div
+                        classList={{
+                          "size-1.5 rounded-full shrink-0": true,
+                          "bg-icon-success-base": boltStatus(name) === "connected",
+                          "bg-icon-critical-base": boltStatus(name) === "failed" || boltStatus(name) === "needs_auth" || boltStatus(name) === "needs_client_registration",
+                          "bg-border-weak-base": boltStatus(name) === "disabled",
+                        }}
+                      />
+                      <span class="text-14-regular text-text-base truncate">{name}</span>
+                      <span class="text-12-regular text-text-weak ml-auto">{boltStatus(name)}</span>
                     </div>
                   )}
                 </For>
