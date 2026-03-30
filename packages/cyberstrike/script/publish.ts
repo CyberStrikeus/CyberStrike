@@ -29,7 +29,7 @@ await $`mkdir -p ./${distDir}`
 await $`cp -r ./bin ./${distDir}/bin`
 await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
 await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
-await Bun.file(`./${distDir}/README.md`).write(await Bun.file("../README.md").text())
+await Bun.file(`./${distDir}/README.md`).write(await Bun.file("./README.md").text())
 
 // Bundle web UI if available (built by publish workflow build-app job)
 const webDistPath = "../../packages/app/dist"
