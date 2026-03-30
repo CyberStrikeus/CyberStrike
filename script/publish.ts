@@ -57,8 +57,8 @@ await $`bun install`
 await import(`../packages/sdk/js/script/build.ts`)
 
 if (Script.release) {
-  await $`git commit -am "release: v${Script.version}"`
-  await $`git tag v${Script.version}`
+  await $`git commit -am "release: v${Script.version}"`.nothrow()
+  await $`git tag v${Script.version}`.nothrow()
   await $`git fetch origin`
   await $`git cherry-pick HEAD..origin/dev`.nothrow()
   await $`git push origin HEAD --tags --no-verify --force-with-lease`
