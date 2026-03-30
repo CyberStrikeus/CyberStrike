@@ -142,8 +142,14 @@ export async function bootstrapDirectory(input: {
     input.sdk.command.list().then((x) => input.setStore("command", x.data ?? [])),
     input.sdk.session.status().then((x) => input.setStore("session_status", x.data!)),
     input.loadSessions(input.directory),
-    input.sdk.mcp.status().then((x) => input.setStore("mcp", x.data!)),
-    input.sdk.bolt.status().then((x) => input.setStore("bolt", x.data ?? {})).catch(() => {}),
+    input.sdk.mcp
+      .status()
+      .then((x) => input.setStore("mcp", x.data ?? {}))
+      .catch(() => {}),
+    input.sdk.bolt
+      .status()
+      .then((x) => input.setStore("bolt", x.data ?? {}))
+      .catch(() => {}),
     input.sdk.lsp.status().then((x) => input.setStore("lsp", x.data!)),
     input.sdk.vcs.get().then((x) => {
       const next = x.data ?? input.store.vcs

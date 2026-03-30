@@ -1392,7 +1392,7 @@ export namespace Config {
     await Instance.dispose()
   }
 
-  function globalConfigFile() {
+  export function globalConfigFile() {
     const candidates = ["cyberstrike.jsonc", "cyberstrike.json", "config.json"].map((file) =>
       path.join(Global.Path.config, file),
     )

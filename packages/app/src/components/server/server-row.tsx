@@ -1,5 +1,14 @@
 import { Tooltip } from "@cyberstrike-io/ui/tooltip"
-import { type JSXElement, type ParentProps, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import {
+  type JSXElement,
+  type ParentProps,
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+} from "solid-js"
 import { type ServerConnection, serverName } from "@/context/server"
 import type { ServerHealth } from "@/utils/server-health"
 
