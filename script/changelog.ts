@@ -5,34 +5,24 @@ import { createCyberstrike } from "@cyberstrike-io/sdk/v2"
 import { parseArgs } from "util"
 import { Script } from "@cyberstrike-io/script"
 
-type Release = {
-  tag_name: string
-  draft: boolean
-  prerelease: boolean
-}
-
 export async function getLatestRelease(skip?: string) {
-  const headers: Record<string, string> = { Accept: "application/vnd.github+json" }
-  if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`
-  else if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
-  const data = await fetch("https://api.github.com/repos/CyberStrikeus/CyberStrike/releases?per_page=100", {
-    headers,
-  }).then((res) => {
-    if (!res.ok) throw new Error(res.statusText)
-    return res.json()
-  })
-
-  const releases = data as Release[]
+  const data = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike")
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText)
+      return res.json()
+    })
+  const latest = (data as any)["dist-tags"]?.latest
+  if (!latest) throw new Error("No published version found on npm")
   const target = skip?.replace(/^v/, "")
-
-  for (const release of releases) {
-    if (release.draft) continue
-    const tag = release.tag_name.replace(/^v/, "")
-    if (target && tag === target) continue
-    return tag
+  if (target && latest === target) {
+    const versions = Object.keys((data as any).versions ?? {})
+      .filter((v) => !v.includes("-"))
+      .sort((a, b) => (a < b ? 1 : -1))
+    const fallback = versions.find((v) => v !== target)
+    if (!fallback) throw new Error("No previous version found on npm")
+    return fallback
   }
-
-  throw new Error("No releases found")
+  return latest
 }
 
 type Commit = {
