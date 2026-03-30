@@ -123,7 +123,8 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
           try {
             const headers: Record<string, string> = {}
             if (currentServer.http.password)
-              headers["Authorization"] = `Basic ${btoa(`${currentServer.http.username ?? "cyberstrike"}:${currentServer.http.password}`)}`
+              headers["Authorization"] =
+                `Basic ${btoa(`${currentServer.http.username ?? "cyberstrike"}:${currentServer.http.password}`)}`
             const response = await fetch(eventUrl, { signal: abort.signal, headers })
             if (!response.ok) throw new Error(`SSE ${response.status}`)
             if (!response.body) throw new Error("No body")
