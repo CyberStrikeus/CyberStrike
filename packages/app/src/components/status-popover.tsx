@@ -363,7 +363,10 @@ export function StatusPopover() {
                         classList={{
                           "size-1.5 rounded-full shrink-0": true,
                           "bg-icon-success-base": boltStatus(name) === "connected",
-                          "bg-icon-critical-base": boltStatus(name) === "failed" || boltStatus(name) === "needs_auth" || boltStatus(name) === "needs_client_registration",
+                          "bg-icon-critical-base":
+                            boltStatus(name) === "failed" ||
+                            boltStatus(name) === "needs_auth" ||
+                            boltStatus(name) === "needs_client_registration",
                           "bg-border-weak-base": boltStatus(name) === "disabled",
                         }}
                       />
