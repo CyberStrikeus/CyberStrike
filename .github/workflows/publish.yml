@@ -5,13 +5,14 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Bump major, minor, or patch"
+        description: "Bump major, minor, patch, or beta"
         required: false
         type: choice
         options:
           - major
           - minor
           - patch
+          - beta
       version:
         description: "Override version (optional)"
         required: false
