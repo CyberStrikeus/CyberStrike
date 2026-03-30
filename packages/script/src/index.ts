@@ -40,11 +40,10 @@ const VERSION = await (async () => {
   if (IS_PREVIEW && env.CYBERSTRIKE_BUMP !== "beta")
     return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
 
-  const registry = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike")
-    .then((res) => {
-      if (!res.ok) throw new Error(res.statusText)
-      return res.json()
-    }) as { "dist-tags": Record<string, string>; versions: Record<string, unknown> }
+  const registry = (await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike").then((res) => {
+    if (!res.ok) throw new Error(res.statusText)
+    return res.json()
+  })) as { "dist-tags": Record<string, string>; versions: Record<string, unknown> }
 
   if (env.CYBERSTRIKE_BUMP === "beta") {
     const latest = registry["dist-tags"]?.latest
