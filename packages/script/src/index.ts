@@ -24,6 +24,7 @@ const env = {
 }
 const CHANNEL = await (async () => {
   if (env.CYBERSTRIKE_CHANNEL) return env.CYBERSTRIKE_CHANNEL
+  if (env.CYBERSTRIKE_BUMP === "beta") return "beta"
   if (env.CYBERSTRIKE_BUMP) return "latest"
   if (env.CYBERSTRIKE_VERSION && !env.CYBERSTRIKE_VERSION.startsWith("0.0.0-")) {
     // Extract prerelease tag from semver (e.g. "1.1.6-beta.1" → "beta")
@@ -36,13 +37,38 @@ const IS_PREVIEW = CHANNEL !== "latest"
 
 const VERSION = await (async () => {
   if (env.CYBERSTRIKE_VERSION) return env.CYBERSTRIKE_VERSION
-  if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
-  const version = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike/latest")
+  if (IS_PREVIEW && env.CYBERSTRIKE_BUMP !== "beta")
+    return `0.0.0-${CHANNEL}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
+
+  const registry = await fetch("https://registry.npmjs.org/@cyberstrike-io%2Fcyberstrike")
     .then((res) => {
       if (!res.ok) throw new Error(res.statusText)
       return res.json()
-    })
-    .then((data: any) => data.version)
+    }) as { "dist-tags": Record<string, string>; versions: Record<string, unknown> }
+
+  if (env.CYBERSTRIKE_BUMP === "beta") {
+    const latest = registry["dist-tags"]?.latest
+    if (!latest) throw new Error("No published latest version found on npm")
+    const [major, minor, patch] = latest.split(".").map((x: string) => Number(x) || 0)
+
+    const beta = registry["dist-tags"]?.beta
+    if (beta) {
+      const betaMatch = beta.match(/^(\d+)\.(\d+)\.(\d+)-beta\.(\d+)$/)
+      if (betaMatch) {
+        const [, bMaj, bMin, bPatch, bNum] = betaMatch
+        const sameMajor = Number(bMaj) === major
+        const sameMinor = Number(bMin) === minor
+        const samePatch = Number(bPatch) === patch + 1
+        if (sameMajor && sameMinor && samePatch) {
+          return `${bMaj}.${bMin}.${bPatch}-beta.${Number(bNum) + 1}`
+        }
+      }
+    }
+    return `${major}.${minor}.${patch + 1}-beta.0`
+  }
+
+  const version = registry["dist-tags"]?.latest
+  if (!version) throw new Error("No published latest version found on npm")
   const [major, minor, patch] = version.split(".").map((x: string) => Number(x) || 0)
   const t = env.CYBERSTRIKE_BUMP?.toLowerCase()
   if (t === "major") return `${major + 1}.0.0`
