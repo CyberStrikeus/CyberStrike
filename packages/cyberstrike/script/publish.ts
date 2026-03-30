@@ -29,6 +29,7 @@ await $`mkdir -p ./${distDir}`
 await $`cp -r ./bin ./${distDir}/bin`
 await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
 await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
+await Bun.file(`./${distDir}/README.md`).write(await Bun.file("../README.md").text())
 
 // Bundle web UI if available (built by publish workflow build-app job)
 const webDistPath = "../../packages/app/dist"
@@ -54,7 +55,7 @@ await Bun.file(`./${distDir}/package.json`).write(
       version: version,
       license: pkg.license,
       keywords: pkg.keywords,
-      homepage: "https://github.com/CyberStrikeus/CyberStrike",
+      homepage: "https://cyberstrike.io",
       repository: {
         type: "git",
         url: "https://github.com/CyberStrikeus/CyberStrike.git",
