@@ -207,6 +207,11 @@ export function StatusPopover() {
               {pluginCount() > 0 ? `${pluginCount()} ` : ""}
               {language.t("status.popover.tab.plugins")}
             </Tabs.Trigger>
+            <Show when={mcpNames().length > 0}>
+              <Tabs.Trigger value="mcp" data-slot="tab" class="text-12-regular">
+                {mcpNames().length} {language.t("status.popover.tab.mcp")}
+              </Tabs.Trigger>
+            </Show>
           </Tabs.List>
 
           <Tabs.Content value="servers">
@@ -313,6 +318,28 @@ export function StatusPopover() {
                     )}
                   </For>
                 </Show>
+              </div>
+            </div>
+          </Tabs.Content>
+          <Tabs.Content value="mcp">
+            <div class="flex flex-col px-2 pb-2">
+              <div class="flex flex-col p-3 bg-background-base rounded-sm min-h-14">
+                <For each={mcpNames()}>
+                  {(name) => (
+                    <div class="flex items-center gap-2 w-full px-2 py-1">
+                      <div
+                        classList={{
+                          "size-1.5 rounded-full shrink-0": true,
+                          "bg-icon-success-base": mcpStatus(name) === "connected",
+                          "bg-icon-critical-base": mcpStatus(name) === "failed" || mcpStatus(name) === "needs_auth" || mcpStatus(name) === "needs_client_registration",
+                          "bg-border-weak-base": mcpStatus(name) === "disabled",
+                        }}
+                      />
+                      <span class="text-14-regular text-text-base truncate">{name}</span>
+                      <span class="text-12-regular text-text-weak ml-auto">{mcpStatus(name)}</span>
+                    </div>
+                  )}
+                </For>
               </div>
             </div>
           </Tabs.Content>
