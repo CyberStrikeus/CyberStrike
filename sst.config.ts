@@ -15,7 +15,9 @@ export default $config({
   },
   async run() {
     await import("./infra/app.js")
-    if (process.env.STRIPE_SECRET_KEY && process.env.PLANETSCALE_SERVICE_TOKEN) await import("./infra/console.js")
-    await import("./infra/enterprise.js")
+    if (process.env.STRIPE_SECRET_KEY && process.env.PLANETSCALE_SERVICE_TOKEN)
+      await import("./infra/console.js")
+    if (process.env.CYBERSTRIKE_ENTERPRISE)
+      await import("./infra/enterprise.js")
   },
 })
