@@ -806,6 +806,9 @@ export namespace MCP {
         files.push(path.join(dir, filename))
       }
     }
+    // Global config file
+    const globalFile = Config.globalConfigFile()
+    if (!files.includes(globalFile)) files.push(globalFile)
     return files
   }
 
