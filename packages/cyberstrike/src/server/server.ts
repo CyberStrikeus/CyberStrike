@@ -104,6 +104,8 @@ export namespace Server {
 
               return
             },
+            credentials: true,
+            allowHeaders: ["Authorization", "Content-Type"],
           }),
         )
         .use(async (c, next) => {

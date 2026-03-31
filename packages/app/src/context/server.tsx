@@ -96,9 +96,11 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     const [state, setState] = createStore({
       active: "" as ServerConnection.Key | "",
       healthy: undefined as boolean | undefined,
+      needsAuth: false,
     })
 
     const healthy = () => state.healthy
+    const needsAuth = () => state.needsAuth
 
     const defaultKey = () => {
       const normalized = normalizeServerUrl(props.defaultUrl)
@@ -143,9 +145,10 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
         if (busy) return
         busy = true
         void check(conn)
-          .then((next) => {
+          .then((result) => {
             if (!alive) return
-            setState("healthy", next)
+            setState("healthy", result.healthy)
+            setState("needsAuth", result.needsAuth === true)
           })
           .finally(() => {
             busy = false
@@ -200,7 +203,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
 
     const isReady = createMemo(() => ready() && !!state.active)
 
-    const check = (conn: ServerConnection.Any) => checkServerHealth(conn.http).then((x) => x.healthy)
+    const check = (conn: ServerConnection.Any) => checkServerHealth(conn.http)
 
     const current: Accessor<ServerConnection.Any | undefined> = createMemo(
       () => allServers().find((s) => ServerConnection.key(s) === state.active) ?? allServers()[0],
@@ -221,9 +224,21 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       return c ? !!isLocalHost(c.http.url) : false
     })
 
+    function updateCredentials(username: string, password: string) {
+      const c = current()
+      if (!c) return
+      const updated: ServerConnection.Http = {
+        type: "http",
+        http: { ...c.http, username, password },
+        displayName: c.displayName,
+      }
+      add(updated)
+    }
+
     return {
       ready: isReady,
       healthy,
+      needsAuth,
       isLocal,
       get key() {
         return state.active as ServerConnection.Key
@@ -243,6 +258,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       setActive,
       add,
       remove,
+      updateCredentials,
       projects: {
         list: projectsList,
         open(directory: string) {

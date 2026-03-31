@@ -2,7 +2,7 @@ import { usePlatform } from "@/context/platform"
 import type { ServerConnection } from "@/context/server"
 import { createSdkForServer } from "./server"
 
-export type ServerHealth = { healthy: boolean; version?: string }
+export type ServerHealth = { healthy: boolean; version?: string; needsAuth?: boolean }
 
 interface CheckServerHealthOptions {
   timeoutMs?: number
@@ -80,15 +80,21 @@ export async function checkServerHealth(
       .then(() => attempt(count + 1))
       .catch(() => ({ healthy: false }))
   }
-  const attempt = (count: number): Promise<ServerHealth> =>
-    createSdkForServer({
-      server,
-      fetch,
-      signal,
-    })
-      .global.health()
-      .then((x) => (x.error ? next(count, x.error) : { healthy: x.data?.healthy === true, version: x.data?.version }))
-      .catch((error) => next(count, error))
+  const _fetch = fetch
+  const attempt = async (count: number): Promise<ServerHealth> => {
+    try {
+      const headers: Record<string, string> = { Accept: "application/json" }
+      if (server.password)
+        headers["Authorization"] = `Basic ${btoa(`${server.username ?? "cyberstrike"}:${server.password}`)}`
+      const res = await _fetch(`${server.url}/global/health`, { signal, headers })
+      if (res.status === 401) return { healthy: false, needsAuth: true }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json()) as { healthy?: boolean; version?: string }
+      return { healthy: data?.healthy === true, version: data?.version }
+    } catch (error) {
+      return next(count, error)
+    }
+  }
   return attempt(0).finally(() => timeout?.clear?.())
 }
 
