@@ -1,6 +1,6 @@
 import { usePlatform } from "@/context/platform"
 import type { ServerConnection } from "@/context/server"
-import { createSdkForServer } from "./server"
+import { basicAuth, createSdkForServer } from "./server"
 
 export type ServerHealth = { healthy: boolean; version?: string; needsAuth?: boolean }
 
@@ -85,7 +85,7 @@ export async function checkServerHealth(
     try {
       const headers: Record<string, string> = { Accept: "application/json" }
       if (server.password)
-        headers["Authorization"] = `Basic ${btoa(`${server.username ?? "cyberstrike"}:${server.password}`)}`
+        headers["Authorization"] = basicAuth(server.username ?? "cyberstrike", server.password)
       const res = await _fetch(`${server.url}/global/health`, { signal, headers })
       if (res.status === 401) return { healthy: false, needsAuth: true }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)

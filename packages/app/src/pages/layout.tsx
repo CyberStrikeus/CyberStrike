@@ -56,6 +56,7 @@ import { DialogSelectDirectory } from "@/components/dialog-select-directory"
 import { DialogEditProject } from "@/components/dialog-edit-project"
 import { Titlebar } from "@/components/titlebar"
 import { useServer } from "@/context/server"
+import { basicAuth } from "@/utils/server"
 import { useLanguage, type Locale } from "@/context/language"
 import {
   childMapByParent,
@@ -326,7 +327,7 @@ export default function Layout(props: ParentProps) {
         if (!s) return Promise.resolve()
         const headers: Record<string, string> = {}
         if (s.http.password)
-          headers["Authorization"] = `Basic ${btoa(`${s.http.username ?? "cyberstrike"}:${s.http.password}`)}`
+          headers["Authorization"] = basicAuth(s.http.username ?? "cyberstrike", s.http.password!)
         return fetch(`${s.http.url}/global/version-check`, { headers })
           .then((r) => r.json())
           .then((data: { updateAvailable?: boolean; latest?: string }) => {
