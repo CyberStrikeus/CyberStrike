@@ -96,9 +96,11 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     const [state, setState] = createStore({
       active: "" as ServerConnection.Key | "",
       healthy: undefined as boolean | undefined,
+      needsAuth: false,
     })
 
     const healthy = () => state.healthy
+    const needsAuth = () => state.needsAuth
 
     const defaultKey = () => {
       const normalized = normalizeServerUrl(props.defaultUrl)
@@ -107,7 +109,13 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
 
     function reconcileStartup() {
       const fallback = defaultKey()
-      if (!fallback) return
+      if (!fallback) {
+        const first = store.list[0]
+        if (first) {
+          setState("active", ServerConnection.Key.make(url(first)))
+        }
+        return
+      }
 
       const previousSidecarUrl = normalizeServerUrl(store.currentSidecarUrl)
       const list = previousSidecarUrl ? store.list.filter((x) => url(x) !== previousSidecarUrl) : store.list
@@ -146,6 +154,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
           .then((result) => {
             if (!alive) return
             setState("healthy", result.healthy)
+            setState("needsAuth", !!result.needsAuth)
           })
           .finally(() => {
             busy = false
@@ -224,6 +233,7 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     return {
       ready: isReady,
       healthy,
+      needsAuth,
       isLocal,
       get key() {
         return state.active as ServerConnection.Key

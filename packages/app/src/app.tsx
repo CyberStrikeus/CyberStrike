@@ -1,5 +1,5 @@
 import "@/index.css"
-import { ErrorBoundary, Show, Suspense, lazy, type JSX, type ParentProps } from "solid-js"
+import { createMemo, ErrorBoundary, Show, Suspense, lazy, type JSX, type ParentProps } from "solid-js"
 import { Router, Route, Navigate } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
 import { Font } from "@cyberstrike-io/ui/font"
@@ -15,6 +15,7 @@ import { PermissionProvider } from "@/context/permission"
 import { LayoutProvider } from "@/context/layout"
 import { GlobalSDKProvider } from "@/context/global-sdk"
 import { normalizeServerUrl, ServerProvider, useServer } from "@/context/server"
+import { HubConnectScreen } from "@/components/hub-connect"
 import { SettingsProvider } from "@/context/settings"
 import { TerminalProvider } from "@/context/terminal"
 import { PromptProvider } from "@/context/prompt"
@@ -126,7 +127,7 @@ const resolveDefaultServerUrl = (props: {
 }) => {
   if (props.defaultUrl) return props.defaultUrl
   if (props.storedDefaultServerUrl) return props.storedDefaultServerUrl
-  if (props.hostname.includes("cyberstrike.io")) return "http://localhost:4096"
+  if (props.hostname.includes("cyberstrike.io")) return ""
   if (props.isDev) return `http://${props.devHost ?? "localhost"}:${props.devPort ?? "4096"}`
   return props.origin
 }
@@ -154,10 +155,24 @@ export function AppBaseProviders(props: ParentProps) {
   )
 }
 
-function ServerKey(props: ParentProps) {
+function HubGate(props: ParentProps & { active: boolean }) {
   const server = useServer()
   return (
-    <Show when={server.url} keyed>
+    <Show when={!props.active || server.current} fallback={<HubConnectScreen />}>
+      {props.children}
+    </Show>
+  )
+}
+
+function ServerKey(props: ParentProps) {
+  const server = useServer()
+  const key = createMemo(() => {
+    const c = server.current
+    if (!c) return ""
+    return `${c.http.url}\n${c.http.username ?? ""}\n${c.http.password ?? ""}`
+  })
+  return (
+    <Show when={key()} keyed>
       {props.children}
     </Show>
   )
@@ -166,6 +181,7 @@ function ServerKey(props: ParentProps) {
 export function AppInterface(props: { defaultUrl?: string; children?: JSX.Element; isSidecar?: boolean }) {
   const platform = usePlatform()
   const storedDefaultServerUrl = getStoredDefaultServerUrl(platform)
+  const isHub = !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
   const defaultServerUrl = resolveDefaultServerUrl({
     defaultUrl: props.defaultUrl,
     storedDefaultServerUrl,
@@ -178,21 +194,23 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
 
   return (
     <ServerProvider defaultUrl={defaultServerUrl} isSidecar={props.isSidecar}>
-      <ServerKey>
-        <GlobalSDKProvider>
-          <GlobalSyncProvider>
-            <Router
-              root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
-            >
-              <Route path="/" component={HomeRoute} />
-              <Route path="/:dir" component={DirectoryLayout}>
-                <Route path="/" component={SessionIndexRoute} />
-                <Route path="/session/:id?" component={SessionRoute} />
-              </Route>
-            </Router>
-          </GlobalSyncProvider>
-        </GlobalSDKProvider>
-      </ServerKey>
+      <HubGate active={isHub}>
+        <ServerKey>
+          <GlobalSDKProvider>
+            <GlobalSyncProvider>
+              <Router
+                root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
+              >
+                <Route path="/" component={HomeRoute} />
+                <Route path="/:dir" component={DirectoryLayout}>
+                  <Route path="/" component={SessionIndexRoute} />
+                  <Route path="/session/:id?" component={SessionRoute} />
+                </Route>
+              </Router>
+            </GlobalSyncProvider>
+          </GlobalSDKProvider>
+        </ServerKey>
+      </HubGate>
     </ServerProvider>
   )
 }
