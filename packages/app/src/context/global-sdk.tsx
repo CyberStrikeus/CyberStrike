@@ -3,7 +3,7 @@ import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import type { GlobalEmitter } from "@solid-primitives/event-bus"
 import { batch, onCleanup } from "solid-js"
-import { createSdkForServer } from "@/utils/server"
+import { basicAuth, createSdkForServer } from "@/utils/server"
 import { usePlatform } from "./platform"
 import { useServer } from "./server"
 
@@ -124,7 +124,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
             const headers: Record<string, string> = {}
             if (currentServer.http.password)
               headers["Authorization"] =
-                `Basic ${btoa(`${currentServer.http.username ?? "cyberstrike"}:${currentServer.http.password}`)}`
+                basicAuth(currentServer.http.username ?? "cyberstrike", currentServer.http.password!)
             const response = await fetch(eventUrl, { signal: abort.signal, headers })
             if (!response.ok) throw new Error(`SSE ${response.status}`)
             if (!response.body) throw new Error("No body")
