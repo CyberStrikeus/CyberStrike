@@ -77,6 +77,23 @@ export namespace Config {
     // 6) Inline config (CYBERSTRIKE_CONFIG_CONTENT)
     // Managed config directory is enterprise-only and always overrides everything above.
     let result: Info = {}
+
+    // Built-in security MCP servers (lowest precedence — user config overrides)
+    result.mcp = {
+      "github-security": {
+        type: "local",
+        command: ["npx", "-y", "github-security-mcp"],
+      },
+      "cve": {
+        type: "local",
+        command: ["npx", "-y", "cve-mcp"],
+      },
+      "osint": {
+        type: "local",
+        command: ["npx", "-y", "osint-mcp-server"],
+      },
+    }
+
     for (const [key, value] of Object.entries(auth)) {
       if (value.type === "wellknown") {
         process.env[value.key] = value.token
