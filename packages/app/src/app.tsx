@@ -1,5 +1,5 @@
 import "@/index.css"
-import { ErrorBoundary, Show, Suspense, lazy, type JSX, type ParentProps } from "solid-js"
+import { ErrorBoundary, Show, Suspense, createEffect, createSignal, lazy, type JSX, type ParentProps } from "solid-js"
 import { Router, Route, Navigate } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
 import { Font } from "@cyberstrike-io/ui/font"
@@ -15,6 +15,8 @@ import { PermissionProvider } from "@/context/permission"
 import { LayoutProvider } from "@/context/layout"
 import { GlobalSDKProvider } from "@/context/global-sdk"
 import { normalizeServerUrl, ServerProvider, useServer } from "@/context/server"
+import { Button } from "@cyberstrike-io/ui/button"
+import { Mark } from "@cyberstrike-io/ui/logo"
 import { SettingsProvider } from "@/context/settings"
 import { TerminalProvider } from "@/context/terminal"
 import { PromptProvider } from "@/context/prompt"
@@ -163,6 +165,76 @@ function ServerKey(props: ParentProps) {
   )
 }
 
+function AuthGate(props: ParentProps) {
+  const server = useServer()
+  const language = useLanguage()
+  const [username, setUsername] = createSignal("cyberstrike")
+  const [password, setPassword] = createSignal("")
+  const [error, setError] = createSignal("")
+  const [submitted, setSubmitted] = createSignal(false)
+
+  createEffect(() => {
+    if (!submitted()) return
+    if (server.healthy() === undefined) return
+    if (server.needsAuth()) {
+      setError(language.t("auth.gate.error"))
+      setSubmitted(false)
+    } else {
+      setSubmitted(false)
+    }
+  })
+
+  const submit = () => {
+    if (!password()) return
+    setError("")
+    setSubmitted(true)
+    server.updateCredentials(username(), password())
+  }
+
+  const keyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") submit()
+  }
+
+  return (
+    <Show when={server.needsAuth()} fallback={props.children}>
+      <div class="flex items-center justify-center h-dvh bg-background-base">
+        <div class="flex flex-col gap-4 w-full max-w-xs px-4">
+          <div class="flex flex-col items-center gap-3 mb-2">
+            <Mark class="w-12 opacity-30" />
+            <h1 class="text-20-medium text-text-strong">{language.t("auth.gate.title")}</h1>
+            <p class="text-14-regular text-text-weak text-center">{language.t("auth.gate.description")}</p>
+          </div>
+          <div class="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder={language.t("auth.gate.username")}
+              value={username()}
+              onInput={(e) => setUsername(e.currentTarget.value)}
+              onKeyDown={keyDown}
+              class="w-full px-3 py-2 rounded-md border border-border-base bg-surface-base text-14-regular text-text-strong outline-none focus:border-border-focus"
+            />
+            <input
+              type="password"
+              placeholder={language.t("auth.gate.password")}
+              value={password()}
+              onInput={(e) => setPassword(e.currentTarget.value)}
+              onKeyDown={keyDown}
+              autofocus
+              class="w-full px-3 py-2 rounded-md border border-border-base bg-surface-base text-14-regular text-text-strong outline-none focus:border-border-focus"
+            />
+          </div>
+          <Show when={error()}>
+            <p class="text-12-regular text-text-danger-base text-center">{error()}</p>
+          </Show>
+          <Button variant="primary" size="large" onClick={submit} disabled={submitted() || !password()}>
+            {submitted() ? language.t("auth.gate.checking") : language.t("auth.gate.submit")}
+          </Button>
+        </div>
+      </div>
+    </Show>
+  )
+}
+
 export function AppInterface(props: { defaultUrl?: string; children?: JSX.Element; isSidecar?: boolean }) {
   const platform = usePlatform()
   const storedDefaultServerUrl = getStoredDefaultServerUrl(platform)
@@ -179,8 +251,9 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
   return (
     <ServerProvider defaultUrl={defaultServerUrl} isSidecar={props.isSidecar}>
       <ServerKey>
-        <GlobalSDKProvider>
-          <GlobalSyncProvider>
+        <AuthGate>
+          <GlobalSDKProvider>
+            <GlobalSyncProvider>
             <Router
               root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
             >
@@ -190,8 +263,9 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
                 <Route path="/session/:id?" component={SessionRoute} />
               </Route>
             </Router>
-          </GlobalSyncProvider>
-        </GlobalSDKProvider>
+            </GlobalSyncProvider>
+          </GlobalSDKProvider>
+        </AuthGate>
       </ServerKey>
     </ServerProvider>
   )
