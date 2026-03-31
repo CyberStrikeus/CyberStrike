@@ -506,14 +506,6 @@ export const dict = {
   "error.page.report.discord": "on Discord",
   "error.page.version": "Version: {{version}}",
 
-  "auth.gate.title": "Authentication Required",
-  "auth.gate.description": "This server requires credentials to connect.",
-  "auth.gate.username": "Username",
-  "auth.gate.password": "Password",
-  "auth.gate.submit": "Connect",
-  "auth.gate.checking": "Connecting...",
-  "auth.gate.error": "Invalid credentials. Please try again.",
-
   "error.dev.rootNotFound":
     "Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?",
 

@@ -96,11 +96,9 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     const [state, setState] = createStore({
       active: "" as ServerConnection.Key | "",
       healthy: undefined as boolean | undefined,
-      needsAuth: false,
     })
 
     const healthy = () => state.healthy
-    const needsAuth = () => state.needsAuth
 
     const defaultKey = () => {
       const normalized = normalizeServerUrl(props.defaultUrl)
@@ -148,7 +146,6 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
           .then((result) => {
             if (!alive) return
             setState("healthy", result.healthy)
-            setState("needsAuth", result.needsAuth === true)
           })
           .finally(() => {
             busy = false
@@ -224,21 +221,9 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       return c ? !!isLocalHost(c.http.url) : false
     })
 
-    function updateCredentials(username: string, password: string) {
-      const c = current()
-      if (!c) return
-      const updated: ServerConnection.Http = {
-        type: "http",
-        http: { ...c.http, username, password },
-        displayName: c.displayName,
-      }
-      add(updated)
-    }
-
     return {
       ready: isReady,
       healthy,
-      needsAuth,
       isLocal,
       get key() {
         return state.active as ServerConnection.Key
@@ -258,7 +243,6 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       setActive,
       add,
       remove,
-      updateCredentials,
       projects: {
         list: projectsList,
         open(directory: string) {
