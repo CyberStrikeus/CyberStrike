@@ -254,15 +254,15 @@ export function AppInterface(props: { defaultUrl?: string; children?: JSX.Elemen
         <AuthGate>
           <GlobalSDKProvider>
             <GlobalSyncProvider>
-            <Router
-              root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
-            >
-              <Route path="/" component={HomeRoute} />
-              <Route path="/:dir" component={DirectoryLayout}>
-                <Route path="/" component={SessionIndexRoute} />
-                <Route path="/session/:id?" component={SessionRoute} />
-              </Route>
-            </Router>
+              <Router
+                root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
+              >
+                <Route path="/" component={HomeRoute} />
+                <Route path="/:dir" component={DirectoryLayout}>
+                  <Route path="/" component={SessionIndexRoute} />
+                  <Route path="/session/:id?" component={SessionRoute} />
+                </Route>
+              </Router>
             </GlobalSyncProvider>
           </GlobalSDKProvider>
         </AuthGate>
