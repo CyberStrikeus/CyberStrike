@@ -124,6 +124,12 @@ export default function Layout(props: ParentProps) {
   const colorSchemeLabel = (scheme: ColorScheme) => language.t(colorSchemeKey[scheme])
   const currentDir = createMemo(() => decode64(params.dir) ?? "")
 
+  createEffect(() => {
+    if (server.needsAuth()) {
+      dialog.show(() => <DialogSelectServer />)
+    }
+  })
+
   const [state, setState] = createStore({
     autoselect: !initialDirectory,
     busyWorkspaces: {} as Record<string, boolean>,
