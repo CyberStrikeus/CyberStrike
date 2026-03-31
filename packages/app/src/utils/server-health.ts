@@ -84,8 +84,7 @@ export async function checkServerHealth(
   const attempt = async (count: number): Promise<ServerHealth> => {
     try {
       const headers: Record<string, string> = { Accept: "application/json" }
-      if (server.password)
-        headers["Authorization"] = basicAuth(server.username ?? "cyberstrike", server.password)
+      if (server.password) headers["Authorization"] = basicAuth(server.username ?? "cyberstrike", server.password)
       const res = await _fetch(`${server.url}/global/health`, { signal, headers })
       if (res.status === 401) return { healthy: false, needsAuth: true }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
