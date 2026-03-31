@@ -84,11 +84,11 @@ export namespace Config {
         type: "local",
         command: ["npx", "-y", "github-security-mcp"],
       },
-      "cve": {
+      cve: {
         type: "local",
         command: ["npx", "-y", "cve-mcp"],
       },
-      "osint": {
+      osint: {
         type: "local",
         command: ["npx", "-y", "osint-mcp-server"],
       },
