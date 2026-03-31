@@ -326,8 +326,7 @@ export default function Layout(props: ParentProps) {
         const s = server.current
         if (!s) return Promise.resolve()
         const headers: Record<string, string> = {}
-        if (s.http.password)
-          headers["Authorization"] = basicAuth(s.http.username ?? "cyberstrike", s.http.password!)
+        if (s.http.password) headers["Authorization"] = basicAuth(s.http.username ?? "cyberstrike", s.http.password!)
         return fetch(`${s.http.url}/global/version-check`, { headers })
           .then((r) => r.json())
           .then((data: { updateAvailable?: boolean; latest?: string }) => {
