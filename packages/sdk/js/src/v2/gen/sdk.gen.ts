@@ -47,6 +47,7 @@ import type {
   GlobalConfigUpdateErrors,
   GlobalConfigUpdateResponses,
   GlobalDisposeResponses,
+  GlobalEventPollResponses,
   GlobalEventResponses,
   GlobalHealthResponses,
   GlobalVersionCheckResponses,
@@ -252,6 +253,20 @@ class HeyApiRegistry<T> {
   }
 }
 
+export class Event extends HeyApiClient {
+  /**
+   * Poll global events
+   *
+   * Long-poll for global events. Returns collected events as JSON array. Use when SSE streaming is unavailable (e.g. behind Cloudflare tunnel).
+   */
+  public poll<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<GlobalEventPollResponses, unknown, ThrowOnError>({
+      url: "/global/event/poll",
+      ...options,
+    })
+  }
+}
+
 export class Config extends HeyApiClient {
   /**
    * Get global configuration
@@ -337,6 +352,11 @@ export class Global extends HeyApiClient {
       url: "/global/dispose",
       ...options,
     })
+  }
+
+  private _event?: Event
+  get event2(): Event {
+    return (this._event ??= new Event({ client: this.client }))
   }
 
   private _config?: Config
@@ -3847,7 +3867,7 @@ export class Formatter extends HeyApiClient {
   }
 }
 
-export class Event extends HeyApiClient {
+export class Event2 extends HeyApiClient {
   /**
    * Subscribe to events
    *
@@ -4001,8 +4021,8 @@ export class CyberstrikeClient extends HeyApiClient {
     return (this._formatter ??= new Formatter({ client: this.client }))
   }
 
-  private _event?: Event
-  get event(): Event {
-    return (this._event ??= new Event({ client: this.client }))
+  private _event?: Event2
+  get event(): Event2 {
+    return (this._event ??= new Event2({ client: this.client }))
   }
 }

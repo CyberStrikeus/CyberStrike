@@ -50,6 +50,7 @@ export namespace Server {
 
   let _url: URL | undefined
   let _corsWhitelist: string[] = []
+  let _serveWebUI = true
   let _webDistDir: string | null | undefined
   export let lastActiveDirectory: string | undefined
 
@@ -105,7 +106,7 @@ export namespace Server {
               return
             },
             credentials: true,
-            allowHeaders: ["Authorization", "Content-Type"],
+            allowHeaders: ["Authorization", "Content-Type", "x-cyberstrike-directory"],
           }),
         )
         .use(async (c, next) => {
@@ -549,8 +550,13 @@ export namespace Server {
           }),
           async (c) => {
             log.info("event connected")
+            c.header("Cache-Control", "no-cache, no-transform")
+            c.header("X-Accel-Buffering", "no")
+            c.header("Connection", "keep-alive")
             return streamSSE(c, async (stream) => {
-              stream.writeSSE({
+              // Flush ~32KB padding to push through proxy buffers (Cloudflare tunnel, Nginx, etc.)
+              for (let i = 0; i < 8; i++) await stream.write(`: ${" ".repeat(4000)}\n`)
+              await stream.writeSSE({
                 data: JSON.stringify({
                   type: "server.connected",
                   properties: {},
@@ -587,6 +593,9 @@ export namespace Server {
           },
         )
         .all("/*", async (c) => {
+          // In serve (API-only) mode, don't serve web UI — let app.cyberstrike.io handle it
+          if (!_serveWebUI) return c.json({ error: "API-only mode. Use app.cyberstrike.io or 'cyberstrike web' for the web interface." }, 404)
+
           const reqPath = c.req.path
           const csp =
             "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data: http: https: ws: wss:"
@@ -684,8 +693,10 @@ export namespace Server {
     mdns?: boolean
     mdnsDomain?: string
     cors?: string[]
+    webUI?: boolean
   }) {
     _corsWhitelist = opts.cors ?? []
+    _serveWebUI = opts.webUI !== false
 
     const args = {
       hostname: opts.hostname,

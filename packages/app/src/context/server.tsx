@@ -110,9 +110,10 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     function reconcileStartup() {
       const fallback = defaultKey()
       if (!fallback) {
-        const first = store.list[0]
-        if (first) {
-          setState("active", ServerConnection.Key.make(url(first)))
+        // Prefer non-localhost server (HTTPS origins can't reach localhost due to PNA)
+        const preferred = store.list.find((x) => !isLocalHost(url(x))) ?? store.list[0]
+        if (preferred) {
+          setState("active", ServerConnection.Key.make(url(preferred)))
         }
         return
       }
@@ -144,6 +145,11 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
     }
 
     function startHealthPolling(conn: ServerConnection.Any) {
+      // HTTPS origins cannot reach HTTP localhost (Chrome PNA blocks it)
+      if (typeof window !== "undefined" && window.location.protocol === "https:" && isLocalHost(conn.http.url)) {
+        setState("healthy", false)
+        return () => {}
+      }
       let alive = true
       let busy = false
 
@@ -207,7 +213,13 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       reconcileStartup()
     })
 
-    const isReady = createMemo(() => ready() && !!state.active)
+    const isReady = createMemo(() => {
+      if (!ready()) return false
+      // In hub mode (no defaultUrl, no stored servers), ready even without active server
+      // so HubGate can render and show the connect screen
+      if (!state.active && !props.defaultUrl && store.list.length === 0) return true
+      return !!state.active
+    })
 
     const check = (conn: ServerConnection.Any) => checkServerHealth(conn.http)
 

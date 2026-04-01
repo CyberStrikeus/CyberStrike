@@ -15,8 +15,9 @@ export const ServeCommand = cmd({
       process.exit(1)
     }
     const opts = await resolveNetworkOptions(args)
-    const server = Server.listen(opts)
+    const server = Server.listen({ ...opts, webUI: false })
     console.log(`cyberstrike server listening on http://${server.hostname}:${server.port}`)
+    console.log(`API-only mode — connect from app.cyberstrike.io or use 'cyberstrike web' for built-in UI`)
     await new Promise(() => {})
     await server.stop()
   },

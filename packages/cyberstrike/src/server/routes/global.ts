@@ -99,8 +99,13 @@ export const GlobalRoutes = lazy(() =>
       }),
       async (c) => {
         log.info("global event connected")
+        c.header("Cache-Control", "no-cache, no-transform")
+        c.header("X-Accel-Buffering", "no")
+        c.header("Connection", "keep-alive")
         return streamSSE(c, async (stream) => {
-          stream.writeSSE({
+          // Flush ~32KB padding to push through proxy buffers (Cloudflare tunnel, Nginx, etc.)
+          for (let i = 0; i < 8; i++) await stream.write(`: ${" ".repeat(4000)}\n`)
+          await stream.writeSSE({
             data: JSON.stringify({
               payload: {
                 type: "server.connected",
@@ -136,6 +141,55 @@ export const GlobalRoutes = lazy(() =>
             })
           })
         })
+      },
+    )
+    .get(
+      "/event/poll",
+      describeRoute({
+        summary: "Poll global events",
+        description: "Long-poll for global events. Returns collected events as JSON array. Use when SSE streaming is unavailable (e.g. behind Cloudflare tunnel).",
+        operationId: "global.event.poll",
+        responses: {
+          200: {
+            description: "Collected events",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.array(
+                    z.object({
+                      directory: z.string().optional(),
+                      payload: BusEvent.payloads(),
+                    }),
+                  ),
+                ),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        const events: Array<{ directory?: string; payload: unknown }> = []
+        const handler = (event: any) => events.push(event)
+        GlobalBus.on("event", handler)
+        try {
+          // Wait up to 5s, resolve early once events arrive
+          await new Promise<void>((resolve) => {
+            const check = setInterval(() => {
+              if (events.length > 0) {
+                clearInterval(check)
+                clearTimeout(timeout)
+                resolve()
+              }
+            }, 100)
+            const timeout = setTimeout(() => {
+              clearInterval(check)
+              resolve()
+            }, 5000)
+          })
+        } finally {
+          GlobalBus.off("event", handler)
+        }
+        return c.json(events)
       },
     )
     .get(
