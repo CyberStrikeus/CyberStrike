@@ -21,6 +21,10 @@ export namespace ProviderError {
     /context[_ ]length[_ ]exceeded/i, // Generic fallback
   ]
 
+  function isServerError(status?: number) {
+    return !!status && status >= 500
+  }
+
   function isOpenAiErrorRetryable(e: APICallError) {
     const status = e.statusCode
     if (!status) return e.isRetryable
@@ -180,7 +184,7 @@ export namespace ProviderError {
       statusCode: input.error.statusCode,
       isRetryable: input.providerID.startsWith("openai")
         ? isOpenAiErrorRetryable(input.error)
-        : input.error.isRetryable,
+        : input.error.isRetryable || isServerError(input.error.statusCode),
       responseHeaders: input.error.responseHeaders,
       responseBody: input.error.responseBody,
       metadata,
