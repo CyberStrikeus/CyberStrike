@@ -178,39 +178,77 @@ function ServerForm(props: ServerFormProps) {
 
 interface EditRowProps {
   value: string
+  name: string
+  username: string
+  password: string
   placeholder: string
   busy: boolean
   error: string
   status: boolean | undefined
   onChange: (value: string) => void
+  onNameChange: (value: string) => void
+  onUsernameChange: (value: string) => void
+  onPasswordChange: (value: string) => void
   onKeyDown: (event: KeyboardEvent) => void
   onBlur: () => void
 }
 
 function EditRow(props: EditRowProps) {
+  const language = useLanguage()
   return (
-    <div class="flex items-center gap-3 px-4 min-w-0 flex-1" onClick={(event) => event.stopPropagation()}>
-      <div
-        classList={{
-          "size-1.5 rounded-full shrink-0": true,
-          "bg-icon-success-base": props.status === true,
-          "bg-icon-critical-base": props.status === false,
-          "bg-border-weak-base": props.status === undefined,
-        }}
+    <div class="flex flex-col gap-2 px-4 min-w-0 flex-1 py-2" onClick={(event) => event.stopPropagation()}>
+      <div class="flex items-center gap-3 min-w-0">
+        <div
+          classList={{
+            "size-1.5 rounded-full shrink-0": true,
+            "bg-icon-success-base": props.status === true,
+            "bg-icon-critical-base": props.status === false,
+            "bg-border-weak-base": props.status === undefined,
+          }}
+        />
+        <div class="flex-1 min-w-0">
+          <TextField
+            type="text"
+            hideLabel
+            placeholder={props.placeholder}
+            value={props.value}
+            autofocus
+            validationState={props.error ? "invalid" : "valid"}
+            error={props.error}
+            disabled={props.busy}
+            onChange={props.onChange}
+            onKeyDown={props.onKeyDown}
+            onBlur={props.onBlur}
+          />
+        </div>
+      </div>
+      <TextField
+        type="text"
+        label={language.t("dialog.server.add.name")}
+        placeholder={language.t("dialog.server.add.namePlaceholder")}
+        value={props.name}
+        disabled={props.busy}
+        onChange={props.onNameChange}
+        onKeyDown={props.onKeyDown}
       />
-      <div class="flex-1 min-w-0">
+      <div class="grid grid-cols-2 gap-2 min-w-0">
         <TextField
           type="text"
-          hideLabel
-          placeholder={props.placeholder}
-          value={props.value}
-          autofocus
-          validationState={props.error ? "invalid" : "valid"}
-          error={props.error}
+          label={language.t("dialog.server.add.username")}
+          placeholder={language.t("dialog.server.add.usernamePlaceholder")}
+          value={props.username}
           disabled={props.busy}
-          onChange={props.onChange}
+          onChange={props.onUsernameChange}
           onKeyDown={props.onKeyDown}
-          onBlur={props.onBlur}
+        />
+        <TextField
+          type="password"
+          label={language.t("dialog.server.add.password")}
+          placeholder={language.t("dialog.server.add.passwordPlaceholder")}
+          value={props.password}
+          disabled={props.busy}
+          onChange={props.onPasswordChange}
+          onKeyDown={props.onKeyDown}
         />
       </div>
     </div>
@@ -333,6 +371,23 @@ export function DialogSelectServer() {
     onCleanup(() => clearInterval(interval))
   })
 
+  createEffect(() => {
+    if (!server.needsAuth()) return
+    const conn = server.current
+    if (!conn) return
+    const k = ServerConnection.key(conn)
+    if (store.editServer.id === k) return
+    setStore("editServer", {
+      id: k,
+      value: conn.http.url,
+      name: conn.displayName ?? "",
+      username: conn.http.username ?? DEFAULT_USERNAME,
+      password: conn.http.password ?? "",
+      error: "",
+      status: false,
+    })
+  })
+
   async function select(conn: ServerConnection.Any, persist?: boolean) {
     const k = ServerConnection.key(conn)
     if (!persist && store.status[k]?.healthy === false) return
@@ -429,7 +484,11 @@ export function DialogSelectServer() {
       return
     }
 
-    if (normalized === original.http.url) {
+    const sameUrl = normalized === original.http.url
+    const sameName = (store.editServer.name.trim() || "") === (original.displayName || "")
+    const sameUser = (store.editServer.username || "") === (original.http.username || "")
+    const samePass = (store.editServer.password || "") === (original.http.password || "")
+    if (sameUrl && sameName && sameUser && samePass) {
       resetEdit()
       return
     }
@@ -495,7 +554,7 @@ export function DialogSelectServer() {
               }
             }}
             divider={true}
-            class="px-5 [&_[data-slot=list-search-wrapper]]:w-full [&_[data-slot=list-scroll]]:max-h-[300px] [&_[data-slot=list-scroll]]:overflow-y-auto [&_[data-slot=list-items]]:bg-surface-raised-base [&_[data-slot=list-items]]:rounded-md [&_[data-slot=list-item]]:h-14 [&_[data-slot=list-item]]:p-3 [&_[data-slot=list-item]]:!bg-transparent [&_[data-slot=list-item-add]]:px-0"
+            class="px-5 [&_[data-slot=list-search-wrapper]]:w-full [&_[data-slot=list-scroll]]:max-h-[300px] [&_[data-slot=list-scroll]]:overflow-y-auto [&_[data-slot=list-items]]:bg-surface-raised-base [&_[data-slot=list-items]]:rounded-md [&_[data-slot=list-item]]:min-h-14 [&_[data-slot=list-item]]:p-3 [&_[data-slot=list-item]]:!bg-transparent [&_[data-slot=list-item-add]]:px-0"
             add={
               store.addServer.showForm
                 ? {
@@ -530,11 +589,27 @@ export function DialogSelectServer() {
                     fallback={
                       <EditRow
                         value={store.editServer.value}
+                        name={store.editServer.name}
+                        username={store.editServer.username}
+                        password={store.editServer.password}
                         placeholder={language.t("dialog.server.add.placeholder")}
                         busy={store.editServer.busy}
                         error={store.editServer.error}
                         status={store.editServer.status}
                         onChange={handleEditChange}
+                        onNameChange={(v) => setStore("editServer", "name", v)}
+                        onUsernameChange={(v) => {
+                          setStore("editServer", "username", v)
+                          void previewStatus(store.editServer.value, v, store.editServer.password, (next) =>
+                            setStore("editServer", { status: next }),
+                          )
+                        }}
+                        onPasswordChange={(v) => {
+                          setStore("editServer", "password", v)
+                          void previewStatus(store.editServer.value, store.editServer.username, v, (next) =>
+                            setStore("editServer", { status: next }),
+                          )
+                        }}
                         onKeyDown={(event) => handleEditKey(event, conn)}
                         onBlur={() => handleEdit(conn, store.editServer.value)}
                       />
