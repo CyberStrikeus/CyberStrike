@@ -162,14 +162,7 @@ export const DialogSelectBolt: Component = () => {
       // 1. Pair with Bolt server (Ed25519 key exchange)
       await sdk.client.bolt.pair({ name, url: boltUrl(), adminToken: adminToken() })
 
-      // 2. Persist bolt config
-      await sdk.client.config.update({
-        config: { bolt: { [name]: { url: boltUrl() } } } as NonNullable<
-          Parameters<typeof sdk.client.config.update>[0]
-        >["config"],
-      })
-
-      // 3. Connect via bolt route
+      // 2. Connect via bolt route (also persists to global config)
       await sdk.client.bolt.add({ name, config: { url: boltUrl() } })
 
       // 4. Refresh status

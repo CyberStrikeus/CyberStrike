@@ -216,7 +216,6 @@ export const DialogSelectMcp: Component = () => {
         return
       }
 
-      await sdk.client.config.update({ config: { mcp: { [name]: config } } })
       const status = await sdk.client.mcp.status()
       if (status.data) sync.set("mcp", status.data)
       setDoneInfo({ name, status: serverStatus })
