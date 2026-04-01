@@ -594,7 +594,11 @@ export namespace Server {
         )
         .all("/*", async (c) => {
           // In serve (API-only) mode, don't serve web UI — let app.cyberstrike.io handle it
-          if (!_serveWebUI) return c.json({ error: "API-only mode. Use app.cyberstrike.io or 'cyberstrike web' for the web interface." }, 404)
+          if (!_serveWebUI)
+            return c.json(
+              { error: "API-only mode. Use app.cyberstrike.io or 'cyberstrike web' for the web interface." },
+              404,
+            )
 
           const reqPath = c.req.path
           const csp =

@@ -103,6 +103,43 @@
         ]
       }
     },
+    "/global/event/poll": {
+      "get": {
+        "operationId": "global.event.poll",
+        "summary": "Poll global events",
+        "description": "Long-poll for global events. Returns collected events as JSON array. Use when SSE streaming is unavailable (e.g. behind Cloudflare tunnel).",
+        "responses": {
+          "200": {
+            "description": "Collected events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "directory": {
+                        "type": "string"
+                      },
+                      "payload": {
+                        "$ref": "#/components/schemas/Event"
+                      }
+                    },
+                    "required": ["payload"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.global.event.poll({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/global/config": {
       "get": {
         "operationId": "global.config.get",

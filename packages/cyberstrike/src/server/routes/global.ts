@@ -147,7 +147,8 @@ export const GlobalRoutes = lazy(() =>
       "/event/poll",
       describeRoute({
         summary: "Poll global events",
-        description: "Long-poll for global events. Returns collected events as JSON array. Use when SSE streaming is unavailable (e.g. behind Cloudflare tunnel).",
+        description:
+          "Long-poll for global events. Returns collected events as JSON array. Use when SSE streaming is unavailable (e.g. behind Cloudflare tunnel).",
         operationId: "global.event.poll",
         responses: {
           200: {
