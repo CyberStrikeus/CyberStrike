@@ -190,8 +190,7 @@ function ServerKey(props: ParentProps) {
 export function AppInterface(props: { defaultUrl?: string; children?: JSX.Element; isSidecar?: boolean }) {
   const platform = usePlatform()
   const storedDefaultServerUrl = getStoredDefaultServerUrl(platform)
-  const isHub =
-    !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
+  const isHub = !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
   if (isHub) console.info("[cyberstrike] hub mode:", location.hostname)
   const defaultServerUrl = resolveDefaultServerUrl({
     defaultUrl: props.defaultUrl,

@@ -65,9 +65,7 @@ export function HubConnectScreen() {
               <div class="text-14-medium text-text-strong">
                 {state.busy ? language.t("hub.connect.connecting") : language.t("hub.connect.localhost")}
               </div>
-              <div class="text-12-regular text-text-weak mt-0.5">
-                {language.t("hub.connect.localhost.description")}
-              </div>
+              <div class="text-12-regular text-text-weak mt-0.5">{language.t("hub.connect.localhost.description")}</div>
             </button>
             <button
               class="w-full p-4 rounded-md bg-surface-raised-base hover:bg-surface-base-hover text-left transition-colors"
@@ -75,9 +73,7 @@ export function HubConnectScreen() {
               onClick={() => setState({ mode: "remote", error: "" })}
             >
               <div class="text-14-medium text-text-strong">{language.t("hub.connect.remote")}</div>
-              <div class="text-12-regular text-text-weak mt-0.5">
-                {language.t("hub.connect.remote.description")}
-              </div>
+              <div class="text-12-regular text-text-weak mt-0.5">{language.t("hub.connect.remote.description")}</div>
             </button>
           </Show>
 
