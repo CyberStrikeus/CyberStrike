@@ -101,6 +101,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
     // Tauri: use SDK fetch-based SSE (supports platform.fetch override)
     if (!platform.fetch) {
       const eventUrl = `${currentServer.http.url}/global/event`
+      const pollUrl = `${currentServer.http.url}/global/event/poll`
 
       const parseSseChunks = (raw: string): { events: Array<{ data: string }>; rest: string } => {
         const events: Array<{ data: string }> = []
@@ -118,16 +119,62 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
         return { events, rest }
       }
 
-      void (async () => {
+      const authHeaders = (): Record<string, string> => {
+        const headers: Record<string, string> = {}
+        if (currentServer.http.password)
+          headers["Authorization"] = basicAuth(
+            currentServer.http.username ?? "cyberstrike",
+            currentServer.http.password!,
+          )
+        return headers
+      }
+
+      const SSE_FAIL_THRESHOLD = 2
+      let sseFailCount = 0
+
+      // Skip SSE entirely for cross-origin connections (CF tunnel, etc.)
+      const isCrossOrigin = (() => {
+        try {
+          return new URL(eventUrl).origin !== window.location.origin
+        } catch {
+          return false
+        }
+      })()
+
+      const pollEvents = async () => {
         while (!abort.signal.aborted) {
           try {
-            const headers: Record<string, string> = {}
-            if (currentServer.http.password)
-              headers["Authorization"] = basicAuth(
-                currentServer.http.username ?? "cyberstrike",
-                currentServer.http.password!,
-              )
-            const response = await fetch(eventUrl, { signal: abort.signal, headers })
+            const response = await fetch(pollUrl, { signal: abort.signal, headers: authHeaders() })
+            if (!response.ok) throw new Error(`Poll ${response.status}`)
+            const events = (await response.json()) as Array<{ directory?: string; payload: unknown }>
+            for (const event of events) {
+              const directory = event.directory ?? "global"
+              const payload = event.payload
+              if (payload) enqueue(directory, payload as Event)
+            }
+          } catch (error) {
+            if (abort.signal.aborted) return
+            if (!streamErrorLogged) {
+              streamErrorLogged = true
+              console.error("[global-sdk] event poll error", { url: currentServer.http.url, error })
+            }
+            await wait(RECONNECT_DELAY_MS)
+          }
+        }
+      }
+
+      void (async () => {
+        while (!abort.signal.aborted) {
+          // Skip SSE for cross-origin or after repeated failures
+          if (isCrossOrigin || sseFailCount >= SSE_FAIL_THRESHOLD) {
+            if (isCrossOrigin) console.info("[global-sdk] cross-origin detected, using long polling")
+            else console.info("[global-sdk] SSE unavailable, switching to long polling")
+            await pollEvents()
+            return
+          }
+
+          try {
+            const response = await fetch(eventUrl, { signal: abort.signal, headers: authHeaders() })
             if (!response.ok) throw new Error(`SSE ${response.status}`)
             if (!response.body) throw new Error("No body")
 
@@ -136,6 +183,12 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
             const decoder = new TextDecoder()
             let buf = ""
             let yielded = Date.now()
+            let receivedData = false
+
+            // Abort SSE if no data within 5s (proxy buffering detection)
+            const dataTimeout = setTimeout(() => {
+              if (!receivedData) reader.cancel()
+            }, 5000)
 
             try {
               while (true) {
@@ -145,6 +198,10 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
                 const parsed = parseSseChunks(buf)
                 buf = parsed.rest
                 for (const ev of parsed.events) {
+                  if (!receivedData) {
+                    receivedData = true
+                    sseFailCount = 0
+                  }
                   try {
                     const data = JSON.parse(ev.data)
                     const directory = data.directory ?? "global"
@@ -157,15 +214,19 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
                 await wait(0)
               }
             } finally {
+              clearTimeout(dataTimeout)
               reader.releaseLock()
             }
+            if (!receivedData) throw new Error("SSE stream closed without data")
           } catch (error) {
             if (abort.signal.aborted) return
+            sseFailCount++
             if (!streamErrorLogged) {
               streamErrorLogged = true
               console.error("[global-sdk] event stream error", {
                 url: currentServer.http.url,
                 error,
+                failCount: sseFailCount,
               })
             }
           }

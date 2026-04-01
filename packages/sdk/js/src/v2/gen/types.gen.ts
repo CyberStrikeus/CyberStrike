@@ -2521,6 +2521,25 @@ export type GlobalEventResponses = {
 
 export type GlobalEventResponse = GlobalEventResponses[keyof GlobalEventResponses]
 
+export type GlobalEventPollData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/event/poll"
+}
+
+export type GlobalEventPollResponses = {
+  /**
+   * Collected events
+   */
+  200: Array<{
+    directory?: string
+    payload: Event
+  }>
+}
+
+export type GlobalEventPollResponse = GlobalEventPollResponses[keyof GlobalEventPollResponses]
+
 export type GlobalConfigGetData = {
   body?: never
   path?: never

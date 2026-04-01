@@ -1,5 +1,5 @@
 import "@/index.css"
-import { createMemo, ErrorBoundary, Show, Suspense, lazy, type JSX, type ParentProps } from "solid-js"
+import { createMemo, ErrorBoundary, Match, Show, Suspense, Switch, lazy, type JSX, type ParentProps } from "solid-js"
 import { Router, Route, Navigate } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
 import { Font } from "@cyberstrike-io/ui/font"
@@ -126,8 +126,9 @@ const resolveDefaultServerUrl = (props: {
   devPort?: string
 }) => {
   if (props.defaultUrl) return props.defaultUrl
-  if (props.storedDefaultServerUrl) return props.storedDefaultServerUrl
+  // Hub mode: always show connect screen (storedDefault may point to stale localhost)
   if (props.hostname.includes("cyberstrike.io")) return ""
+  if (props.storedDefaultServerUrl) return props.storedDefaultServerUrl
   if (props.isDev) return `http://${props.devHost ?? "localhost"}:${props.devPort ?? "4096"}`
   return props.origin
 }
@@ -157,10 +158,18 @@ export function AppBaseProviders(props: ParentProps) {
 
 function HubGate(props: ParentProps & { active: boolean }) {
   const server = useServer()
+  const gate = createMemo(() => {
+    if (!props.active) return "pass"
+    if (!server.current) return "connect"
+    return server.healthy() === true ? "pass" : "connect"
+  })
   return (
-    <Show when={!props.active || server.current} fallback={<HubConnectScreen />}>
-      {props.children}
-    </Show>
+    <Switch>
+      <Match when={gate() === "pass"}>{props.children}</Match>
+      <Match when={gate() === "connect"}>
+        <HubConnectScreen />
+      </Match>
+    </Switch>
   )
 }
 
@@ -181,7 +190,9 @@ function ServerKey(props: ParentProps) {
 export function AppInterface(props: { defaultUrl?: string; children?: JSX.Element; isSidecar?: boolean }) {
   const platform = usePlatform()
   const storedDefaultServerUrl = getStoredDefaultServerUrl(platform)
-  const isHub = !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
+  const isHub =
+    !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
+  if (isHub) console.info("[cyberstrike] hub mode:", location.hostname)
   const defaultServerUrl = resolveDefaultServerUrl({
     defaultUrl: props.defaultUrl,
     storedDefaultServerUrl,
