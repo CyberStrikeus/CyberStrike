@@ -138,7 +138,7 @@ export namespace Server {
             const match = /^Basic\s+(.+)$/i.exec(header)
             if (match) {
               try {
-                const decoded = atob(match[1])
+                const decoded = new TextDecoder().decode(Uint8Array.from(atob(match[1]), (c) => c.charCodeAt(0)))
                 const sep = decoded.indexOf(":")
                 if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
                   return next()
