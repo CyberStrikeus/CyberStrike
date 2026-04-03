@@ -675,7 +675,12 @@ export namespace MCP {
           if (!res.ok) return
 
           const data = (await res.json()) as {
-            plugins: Array<{ name: string; type: string; version: string; tools: Array<{ name: string; description: string }> }>
+            plugins: Array<{
+              name: string
+              type: string
+              version: string
+              tools: Array<{ name: string; description: string }>
+            }>
             mcpServers: Array<{ name: string; type: string; tools: Array<{ name: string; description: string }> }>
           }
 
