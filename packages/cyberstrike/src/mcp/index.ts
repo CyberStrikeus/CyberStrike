@@ -638,6 +638,74 @@ export namespace MCP {
     return result
   }
 
+  export const BoltToolGroup = z
+    .object({
+      boltServer: z.string(),
+      name: z.string(),
+      type: z.enum(["plugin", "mcp-server"]),
+      version: z.string().optional(),
+      tools: z.array(
+        z.object({
+          name: z.string(),
+          description: z.string(),
+        }),
+      ),
+    })
+    .meta({ ref: "BoltToolGroup" })
+  export type BoltToolGroup = z.infer<typeof BoltToolGroup>
+
+  export async function boltToolGroups(): Promise<BoltToolGroup[]> {
+    const s = await state()
+    const cfg = await Config.get()
+    const boltCfg = cfg.bolt ?? {}
+    const result: BoltToolGroup[] = []
+
+    await Promise.all(
+      Object.entries(boltCfg).map(async ([key, bolt]) => {
+        if (s.status[key]?.status !== "connected") return
+
+        const creds = await BoltAuth.getCredentials(key)
+        if (!creds) return
+
+        try {
+          const url = `${bolt.url.replace(/\/+$/, "")}/tools`
+          const res = await BoltAuth.signedFetch(creds, url, {
+            signal: AbortSignal.timeout(10_000),
+          })
+          if (!res.ok) return
+
+          const data = (await res.json()) as {
+            plugins: Array<{ name: string; type: string; version: string; tools: Array<{ name: string; description: string }> }>
+            mcpServers: Array<{ name: string; type: string; tools: Array<{ name: string; description: string }> }>
+          }
+
+          for (const plugin of data.plugins ?? []) {
+            result.push({
+              boltServer: key,
+              name: plugin.name,
+              type: "plugin",
+              version: plugin.version,
+              tools: plugin.tools,
+            })
+          }
+
+          for (const server of data.mcpServers ?? []) {
+            result.push({
+              boltServer: key,
+              name: server.name,
+              type: "mcp-server",
+              tools: server.tools,
+            })
+          }
+        } catch (err) {
+          log.error("failed to fetch bolt tools", { key, error: err })
+        }
+      }),
+    )
+
+    return result
+  }
+
   export async function boltStatus() {
     const s = await state()
     const cfg = await Config.get()
