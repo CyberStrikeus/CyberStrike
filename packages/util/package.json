@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/util",
-  "version": "1.1.8",
+  "version": "1.1.6",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
