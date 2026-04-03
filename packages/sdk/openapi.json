@@ -5462,6 +5462,43 @@
         ]
       }
     },
+    "/mcp/bolt-tools": {
+      "get": {
+        "operationId": "mcp.boltTools",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Get Bolt tool groups",
+        "description": "Get plugins and MCP servers from all connected Bolt servers.",
+        "responses": {
+          "200": {
+            "description": "Bolt tool groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoltToolGroup"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.mcp.boltTools({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/mcp/{name}": {
       "delete": {
         "operationId": "mcp.remove",
@@ -12873,6 +12910,40 @@
             "$ref": "#/components/schemas/MCPStatusNeedsClientRegistration"
           }
         ]
+      },
+      "BoltToolGroup": {
+        "type": "object",
+        "properties": {
+          "boltServer": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["plugin", "mcp-server"]
+          },
+          "version": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "description"]
+            }
+          }
+        },
+        "required": ["boltServer", "name", "type", "tools"]
       },
       "Path": {
         "type": "object",
