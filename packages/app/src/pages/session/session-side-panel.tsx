@@ -53,6 +53,15 @@ function McpPanelList() {
   const dialog = useDialog()
   const language = useLanguage()
   const [loading, setLoading] = createSignal<string | null>(null)
+  const [boltGroups, setBoltGroups] = createSignal<
+    Array<{
+      boltServer: string
+      name: string
+      type: string
+      version?: string
+      tools: Array<{ name: string; description: string }>
+    }>
+  >([])
 
   // Fetch MCP status on mount — bootstrap may not have completed yet
   createEffect(() => {
@@ -60,6 +69,17 @@ function McpPanelList() {
       .status()
       .then((x) => {
         if (x.data) sync.set("mcp", x.data)
+      })
+      .catch(() => {})
+  })
+
+  // Fetch Bolt tool groups (re-fetch when bolt status changes)
+  createEffect(() => {
+    const _ = sync.data.bolt
+    sdk.client.mcp
+      .boltTools()
+      .then((x) => {
+        if (x.data) setBoltGroups(x.data)
       })
       .catch(() => {})
   })
@@ -95,7 +115,7 @@ function McpPanelList() {
           onClick={() => dialog.show(() => <DialogSelectMcp />)}
         />
       </div>
-      <Show when={items().length === 0}>
+      <Show when={items().length === 0 && boltGroups().length === 0}>
         <div class="px-2 py-3 text-center text-12-regular text-text-weak">{language.t("dialog.mcp.empty")}</div>
       </Show>
       <For each={items()}>
@@ -118,6 +138,36 @@ function McpPanelList() {
           </div>
         )}
       </For>
+      <Show when={boltGroups().length > 0}>
+        <div class="px-2 py-1 mt-1 border-t border-border-weak-base">
+          <span class="text-11-medium text-text-weaker uppercase tracking-wider">From Bolt</span>
+        </div>
+        <For each={boltGroups()}>
+          {(g) => (
+            <div
+              class="flex items-center justify-between gap-2 px-2 py-1 rounded"
+              classList={{ "opacity-40": g.tools.length === 0 }}
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <span
+                  class="w-1.5 h-1.5 rounded-full shrink-0"
+                  classList={{
+                    "bg-icon-success-base": g.tools.length > 0,
+                    "bg-surface-inset-base": g.tools.length === 0,
+                  }}
+                />
+                <span class="text-12-regular truncate">{g.name}</span>
+                <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker shrink-0">
+                  {g.boltServer}
+                </span>
+              </div>
+              <span class="text-11-regular text-text-weaker shrink-0">
+                {g.tools.length} {g.tools.length === 1 ? "tool" : "tools"}
+              </span>
+            </div>
+          )}
+        </For>
+      </Show>
     </div>
   )
 }

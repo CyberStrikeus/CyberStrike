@@ -61,6 +61,27 @@ export const McpRoutes = lazy(() =>
         return c.json(result.status)
       },
     )
+    .get(
+      "/bolt-tools",
+      describeRoute({
+        summary: "Get Bolt tool groups",
+        description: "Get plugins and MCP servers from all connected Bolt servers.",
+        operationId: "mcp.boltTools",
+        responses: {
+          200: {
+            description: "Bolt tool groups",
+            content: {
+              "application/json": {
+                schema: resolver(z.array(MCP.BoltToolGroup)),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        return c.json(await MCP.boltToolGroups())
+      },
+    )
     .delete(
       "/:name",
       describeRoute({

@@ -63,6 +63,7 @@ import type {
   McpAuthRemoveResponses,
   McpAuthStartErrors,
   McpAuthStartResponses,
+  McpBoltToolsResponses,
   McpConnectResponses,
   McpDisconnectResponses,
   McpLocalConfig,
@@ -3022,6 +3023,25 @@ export class Mcp extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Get Bolt tool groups
+   *
+   * Get plugins and MCP servers from all connected Bolt servers.
+   */
+  public boltTools<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<McpBoltToolsResponses, unknown, ThrowOnError>({
+      url: "/mcp/bolt-tools",
+      ...options,
+      ...params,
     })
   }
 

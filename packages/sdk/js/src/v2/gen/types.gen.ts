@@ -2406,6 +2406,17 @@ export type McpStatus =
   | McpStatusNeedsAuth
   | McpStatusNeedsClientRegistration
 
+export type BoltToolGroup = {
+  boltServer: string
+  name: string
+  type: "plugin" | "mcp-server"
+  version?: string
+  tools: Array<{
+    name: string
+    description: string
+  }>
+}
+
 export type Path = {
   home: string
   state: string
@@ -5116,6 +5127,24 @@ export type McpAddResponses = {
 }
 
 export type McpAddResponse = McpAddResponses[keyof McpAddResponses]
+
+export type McpBoltToolsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/mcp/bolt-tools"
+}
+
+export type McpBoltToolsResponses = {
+  /**
+   * Bolt tool groups
+   */
+  200: Array<BoltToolGroup>
+}
+
+export type McpBoltToolsResponse = McpBoltToolsResponses[keyof McpBoltToolsResponses]
 
 export type McpRemoveData = {
   body?: never
