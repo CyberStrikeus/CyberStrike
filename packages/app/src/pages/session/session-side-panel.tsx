@@ -429,9 +429,16 @@ function SkillsPanelList() {
     const raw = sync.data.skill ?? []
     const q = search().toLowerCase()
     const filtered = q
-      ? raw.filter((s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q))
+      ? raw.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            s.description.toLowerCase().includes(q) ||
+            (s.category ?? "").toLowerCase().includes(q),
+        )
       : raw
-    return filtered.slice().sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.name.localeCompare(b.name))
+    return filtered
+      .slice()
+      .sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.name.localeCompare(b.name))
   })
 
   const categories = createMemo(() => {
@@ -484,9 +491,7 @@ function SkillsPanelList() {
   return (
     <div class="flex flex-col gap-0.5">
       <div class="flex items-center justify-between px-2 py-1">
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
-          Skills ({items().length})
-        </span>
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">Skills ({items().length})</span>
       </div>
       <div class="px-2 pb-1">
         <input
