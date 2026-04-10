@@ -74,6 +74,16 @@ export type State = {
   bolt: {
     [name: string]: McpStatus
   }
+  skill: Array<{
+    name: string
+    description: string
+    verified?: string
+    category?: string
+    owasp_id?: string
+    tech_stack?: string[]
+    cwe_ids?: string[]
+    chains_with?: string[]
+  }>
   permission: {
     [sessionID: string]: PermissionRequest[]
   }

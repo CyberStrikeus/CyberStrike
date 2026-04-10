@@ -7,7 +7,6 @@ import type {
   AppAgentsResponses,
   AppLogErrors,
   AppLogResponses,
-  AppSkillsResponses,
   Auth as Auth3,
   AuthRemoveErrors,
   AuthRemoveResponses,
@@ -175,6 +174,21 @@ import type {
   SessionWebRetestQueueResponses,
   SessionWebRolesErrors,
   SessionWebRolesResponses,
+  SkillChainErrors,
+  SkillChainResponses,
+  SkillContextResponses,
+  SkillDisableResponses,
+  SkillEnableResponses,
+  SkillGetErrors,
+  SkillGetResponses,
+  SkillInstallErrors,
+  SkillInstallResponses,
+  SkillListResponses,
+  SkillRemoveErrors,
+  SkillRemoveResponses,
+  SkillSearchResponses,
+  SkillVerifyErrors,
+  SkillVerifyResponses,
   SubtaskPartInput,
   TextPartInput,
   ToolIdsErrors,
@@ -3824,21 +3838,305 @@ export class App extends HeyApiClient {
       ...params,
     })
   }
+}
 
+export class Skill extends HeyApiClient {
   /**
    * List skills
    *
-   * Get a list of all available skills in the CyberStrike system.
+   * Get all available skills with verification status.
    */
-  public skills<ThrowOnError extends boolean = false>(
+  public list<ThrowOnError extends boolean = false>(
     parameters?: {
       directory?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
     const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
-    return (options?.client ?? this.client).get<AppSkillsResponses, unknown, ThrowOnError>({
+    return (options?.client ?? this.client).get<SkillListResponses, unknown, ThrowOnError>({
       url: "/skill",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Search skills
+   *
+   * Search skills by keyword, tech stack, CWE, or category.
+   */
+  public search<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      q?: string
+      tech?: string
+      cwe?: string
+      category?: string
+      tag?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "q" },
+            { in: "query", key: "tech" },
+            { in: "query", key: "cwe" },
+            { in: "query", key: "category" },
+            { in: "query", key: "tag" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SkillSearchResponses, unknown, ThrowOnError>({
+      url: "/skill/search",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get loaded skills
+   *
+   * Get skills currently loaded in agent context.
+   */
+  public context<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<SkillContextResponses, unknown, ThrowOnError>({
+      url: "/skill/context",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Kill chain analysis
+   *
+   * Analyze findings for kill chain opportunities.
+   */
+  public chain<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      findings?: Array<{
+        skill_id: string
+        severity: "info" | "low" | "medium" | "high" | "critical"
+        cwe_id?: string
+        tech_stack?: Array<string>
+      }>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "findings" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SkillChainResponses, SkillChainErrors, ThrowOnError>({
+      url: "/skill/chain",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Remove a skill
+   *
+   * Remove a locally cached remote skill.
+   */
+  public remove<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<SkillRemoveResponses, SkillRemoveErrors, ThrowOnError>({
+      url: "/skill/{name}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get skill detail
+   *
+   * Get a single skill with full content.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SkillGetResponses, SkillGetErrors, ThrowOnError>({
+      url: "/skill/{name}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Verify skill integrity
+   *
+   * Re-verify a skill's SHA-256 hash and signature.
+   */
+  public verify<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SkillVerifyResponses, SkillVerifyErrors, ThrowOnError>({
+      url: "/skill/{name}/verify",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Install skill from URL
+   *
+   * Download and install a skill from a remote URL or registry.
+   */
+  public install<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      url?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "url" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SkillInstallResponses, SkillInstallErrors, ThrowOnError>({
+      url: "/skill/install",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Enable a skill
+   *
+   * Remove a skill from the disabled list in config.
+   */
+  public enable<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SkillEnableResponses, unknown, ThrowOnError>({
+      url: "/skill/{name}/enable",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Disable a skill
+   *
+   * Add a skill to the disabled list in config.
+   */
+  public disable<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SkillDisableResponses, unknown, ThrowOnError>({
+      url: "/skill/{name}/disable",
       ...options,
       ...params,
     })
@@ -4029,6 +4327,11 @@ export class CyberstrikeClient extends HeyApiClient {
   private _app?: App
   get app(): App {
     return (this._app ??= new App({ client: this.client }))
+  }
+
+  private _skill?: Skill
+  get skill(): Skill {
+    return (this._skill ??= new Skill({ client: this.client }))
   }
 
   private _lsp?: Lsp

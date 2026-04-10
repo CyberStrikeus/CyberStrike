@@ -3,6 +3,9 @@ name: wstg-logic-client-api
 description: WSTG business logic, client-side, and API security testing
 tags: [logic, client-side, api, graphql, cors, websocket, wstg]
 version: "1.0"
+sha256: 9d141ed627a973039446d43b767dbab34480a44c969e8f57bba95e5a1ea3c7b6
+signature: q93kkTC2JhwfHCuGw+cDCKOX/bBYdMBabo6+0x62T6zJaA6jZL2WPMm4WDZOiS8669nPtZrTqcKdNxXZQ9D8Ag==
+signed_by: cyberstrike-official
 ---
 
 # Business Logic, Client-Side & API Testing (WSTG-BUSL + CLNT + APIT)

@@ -3,6 +3,9 @@ name: kerberos-attacks
 description: Kerberos protocol attack techniques and exploitation
 tags: [kerberos, ad, windows, tickets]
 version: "1.0"
+sha256: 9efc19493d29cd27ae7ee06d8741b8da83126ca0ac6a705e62812595260eec97
+signature: Jvfw/owpJW/GrcEUHnVggVWM+0um563qnWfRuzubJUmb66GARnBVHXQ3JfhQ0/JxjXkusaBySaJ/qvzaQEjXDA==
+signed_by: cyberstrike-official
 ---
 
 # Kerberos Attack Techniques

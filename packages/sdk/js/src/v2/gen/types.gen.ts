@@ -1941,6 +1941,10 @@ export type Config = {
      * URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)
      */
     urls?: Array<string>
+    /**
+     * Skill names to disable (will not be loaded by agents)
+     */
+    disabled?: Array<string>
   }
   watcher?: {
     ignore?: Array<string>
@@ -5929,7 +5933,7 @@ export type AppAgentsResponses = {
 
 export type AppAgentsResponse = AppAgentsResponses[keyof AppAgentsResponses]
 
-export type AppSkillsData = {
+export type SkillListData = {
   body?: never
   path?: never
   query?: {
@@ -5938,19 +5942,318 @@ export type AppSkillsData = {
   url: "/skill"
 }
 
-export type AppSkillsResponses = {
+export type SkillListResponses = {
   /**
    * List of skills
    */
   200: Array<{
     name: string
     description: string
-    location: string
-    content: string
+    verified?: string
+    category?: string
+    owasp_id?: string
+    version?: string
+    author?: string
+    tags?: Array<string>
+    tech_stack?: Array<string>
+    cwe_ids?: Array<string>
+    chains_with?: Array<string>
   }>
 }
 
-export type AppSkillsResponse = AppSkillsResponses[keyof AppSkillsResponses]
+export type SkillListResponse = SkillListResponses[keyof SkillListResponses]
+
+export type SkillSearchData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    q?: string
+    tech?: string
+    cwe?: string
+    category?: string
+    tag?: string
+  }
+  url: "/skill/search"
+}
+
+export type SkillSearchResponses = {
+  /**
+   * Search results
+   */
+  200: Array<{
+    name: string
+    description: string
+    verified?: string
+    category?: string
+    owasp_id?: string
+    version?: string
+    author?: string
+    tags?: Array<string>
+    tech_stack?: Array<string>
+    cwe_ids?: Array<string>
+    chains_with?: Array<string>
+  }>
+}
+
+export type SkillSearchResponse = SkillSearchResponses[keyof SkillSearchResponses]
+
+export type SkillContextData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/skill/context"
+}
+
+export type SkillContextResponses = {
+  /**
+   * Context state
+   */
+  200: {
+    active: Array<string>
+    tokens: number
+  }
+}
+
+export type SkillContextResponse = SkillContextResponses[keyof SkillContextResponses]
+
+export type SkillChainData = {
+  body?: {
+    findings: Array<{
+      skill_id: string
+      severity: "info" | "low" | "medium" | "high" | "critical"
+      cwe_id?: string
+      tech_stack?: Array<string>
+    }>
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/skill/chain"
+}
+
+export type SkillChainErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SkillChainError = SkillChainErrors[keyof SkillChainErrors]
+
+export type SkillChainResponses = {
+  /**
+   * Kill chain analysis results
+   */
+  200: {
+    chains: Array<{
+      skills: Array<string>
+      combined_severity: string
+      description: string
+      next_steps: Array<string>
+    }>
+    summary: string
+  }
+}
+
+export type SkillChainResponse = SkillChainResponses[keyof SkillChainResponses]
+
+export type SkillRemoveData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/skill/{name}"
+}
+
+export type SkillRemoveErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SkillRemoveError = SkillRemoveErrors[keyof SkillRemoveErrors]
+
+export type SkillRemoveResponses = {
+  /**
+   * Removal result
+   */
+  200: {
+    removed: boolean
+    name: string
+  }
+}
+
+export type SkillRemoveResponse = SkillRemoveResponses[keyof SkillRemoveResponses]
+
+export type SkillGetData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/skill/{name}"
+}
+
+export type SkillGetErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SkillGetError = SkillGetErrors[keyof SkillGetErrors]
+
+export type SkillGetResponses = {
+  /**
+   * Skill detail
+   */
+  200: {
+    name: string
+    description: string
+    location: string
+    content: string
+    version?: string
+    author?: string
+    tags?: Array<string>
+    sha256?: string
+    signature?: string
+    signed_by?: string
+    verified?: "official" | "community" | "unverified" | "tampered"
+    category?: string
+    owasp_id?: string
+    tech_stack?: Array<string>
+    cwe_ids?: Array<string>
+    chains_with?: Array<string>
+    prerequisites?: Array<string>
+    severity_boost?: {
+      [key: string]: string
+    }
+  }
+}
+
+export type SkillGetResponse = SkillGetResponses[keyof SkillGetResponses]
+
+export type SkillVerifyData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/skill/{name}/verify"
+}
+
+export type SkillVerifyErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SkillVerifyError = SkillVerifyErrors[keyof SkillVerifyErrors]
+
+export type SkillVerifyResponses = {
+  /**
+   * Verification result
+   */
+  200: {
+    name: string
+    verified: string
+  }
+}
+
+export type SkillVerifyResponse = SkillVerifyResponses[keyof SkillVerifyResponses]
+
+export type SkillInstallData = {
+  body?: {
+    /**
+     * URL to skill registry or individual skill
+     */
+    url: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/skill/install"
+}
+
+export type SkillInstallErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SkillInstallError = SkillInstallErrors[keyof SkillInstallErrors]
+
+export type SkillInstallResponses = {
+  /**
+   * Installed skill names
+   */
+  200: {
+    installed: Array<string>
+  }
+}
+
+export type SkillInstallResponse = SkillInstallResponses[keyof SkillInstallResponses]
+
+export type SkillEnableData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/skill/{name}/enable"
+}
+
+export type SkillEnableResponses = {
+  /**
+   * Enable result
+   */
+  200: {
+    name: string
+    enabled: boolean
+  }
+}
+
+export type SkillEnableResponse = SkillEnableResponses[keyof SkillEnableResponses]
+
+export type SkillDisableData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/skill/{name}/disable"
+}
+
+export type SkillDisableResponses = {
+  /**
+   * Disable result
+   */
+  200: {
+    name: string
+    enabled: boolean
+  }
+}
+
+export type SkillDisableResponse = SkillDisableResponses[keyof SkillDisableResponses]
 
 export type LspStatusData = {
   body?: never
