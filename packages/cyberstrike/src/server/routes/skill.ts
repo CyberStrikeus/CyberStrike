@@ -48,7 +48,21 @@ export const SkillRoutes = lazy(() =>
       }),
       async (c) => {
         const skills = await Skill.all()
-        return c.json(skills)
+        return c.json(
+          skills.map((s) => ({
+            name: s.name,
+            description: s.description,
+            verified: s.verified,
+            category: s.category,
+            owasp_id: s.owasp_id,
+            version: s.version,
+            author: s.author,
+            tags: s.tags,
+            tech_stack: s.tech_stack,
+            cwe_ids: s.cwe_ids,
+            chains_with: s.chains_with,
+          })),
+        )
       },
     )
     .get(
@@ -226,8 +240,9 @@ export const SkillRoutes = lazy(() =>
         const skill = await Skill.get(name)
         if (!skill) return c.json({ error: `Skill "${name}" not found` }, 404)
 
+        const fileContent = await Bun.file(skill.location).text()
         const verified = await SkillSigning.verify({
-          content: skill.content,
+          content: fileContent,
           sha256: skill.sha256,
           signature: skill.signature,
           signed_by: skill.signed_by,
