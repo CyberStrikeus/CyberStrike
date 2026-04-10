@@ -25,9 +25,9 @@ async function generateKeyPair() {
 
 async function signContent(content: string, privateKeyB64: string) {
   const stripped = content
-    .replace(/^sha256:.*$/m, "")
-    .replace(/^signature:.*$/m, "")
-    .replace(/^signed_by:.*$/m, "")
+    .replace(/^sha256:.*\n?/m, "")
+    .replace(/^signature:.*\n?/m, "")
+    .replace(/^signed_by:.*\n?/m, "")
     .trim()
   const hasher = new Bun.CryptoHasher("sha256")
   hasher.update(stripped)

@@ -406,6 +406,191 @@ function VulnsPanelList() {
   )
 }
 
+function SkillsPanelList() {
+  const sync = useSync()
+  const sdk = useSDK()
+
+  createEffect(() => {
+    sdk.client.skill
+      .list()
+      .then((x) => {
+        if (x.data) sync.set("skill", x.data)
+      })
+      .catch(() => {})
+  })
+
+  const [search, setSearch] = createSignal("")
+  const [expanded, setExpanded] = createSignal<Record<string, boolean>>({})
+  const [detail, setDetail] = createSignal<string | null>(null)
+  const [detailContent, setDetailContent] = createSignal<string | null>(null)
+  const [detailLoading, setDetailLoading] = createSignal(false)
+
+  const items = createMemo(() => {
+    const raw = sync.data.skill ?? []
+    const q = search().toLowerCase()
+    const filtered = q
+      ? raw.filter((s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q))
+      : raw
+    return filtered.slice().sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.name.localeCompare(b.name))
+  })
+
+  const categories = createMemo(() => {
+    const cats = new Map<string, typeof items extends () => (infer T)[] ? T[] : never>()
+    for (const s of items()) {
+      const cat = s.category ?? "other"
+      const list = cats.get(cat)
+      if (list) list.push(s)
+      else cats.set(cat, [s])
+    }
+    return cats
+  })
+
+  const toggle = (cat: string) => {
+    setExpanded((prev) => ({ ...prev, [cat]: !prev[cat] }))
+  }
+
+  const toggleDetail = (name: string) => {
+    if (detail() === name) {
+      setDetail(null)
+      setDetailContent(null)
+      return
+    }
+    setDetail(name)
+    setDetailContent(null)
+    setDetailLoading(true)
+    sdk.client.skill
+      .get({ name })
+      .then((x) => {
+        if (detail() !== name) return
+        setDetailContent(x.data?.content ?? null)
+      })
+      .catch(() => {})
+      .finally(() => setDetailLoading(false))
+  }
+
+  const verifiedDot = (v?: string) => {
+    if (v === "official") return "bg-icon-success-base"
+    if (v === "tampered") return "bg-icon-critical-base"
+    return "bg-icon-warning-base"
+  }
+
+  const verifiedLabel = (v?: string) => {
+    if (v === "official") return "Official"
+    if (v === "community") return "Community"
+    if (v === "tampered") return "Tampered"
+    return "Unverified"
+  }
+
+  return (
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between px-2 py-1">
+        <span class="text-11-medium text-text-weaker uppercase tracking-wider">
+          Skills ({items().length})
+        </span>
+      </div>
+      <div class="px-2 pb-1">
+        <input
+          type="text"
+          placeholder="Search skills..."
+          value={search()}
+          onInput={(e) => setSearch(e.currentTarget.value)}
+          class="w-full px-2 py-1 text-12-regular bg-surface-inset-base border border-border-base rounded outline-none focus:border-border-strong placeholder:text-text-weaker"
+        />
+      </div>
+      <Show when={items().length === 0}>
+        <div class="px-2 py-3 text-center text-12-regular text-text-weak">
+          {search() ? "No matching skills" : "No skills loaded"}
+        </div>
+      </Show>
+      <For each={Array.from(categories())}>
+        {([cat, skills]) => {
+          const open = () => !!expanded()[cat] || !!search()
+          return (
+            <>
+              <button
+                class="flex items-center gap-1 px-2 py-1 mt-0.5 w-full text-left hover:bg-surface-dimmer/50 rounded cursor-pointer"
+                onClick={() => toggle(cat)}
+              >
+                <span
+                  class="text-text-weaker transition-transform duration-150 text-[10px]"
+                  style={{ transform: open() ? "rotate(90deg)" : "rotate(0deg)" }}
+                >
+                  {"\u25B6"}
+                </span>
+                <span class="text-11-medium text-text-weaker uppercase tracking-wider flex-1">
+                  {cat} ({skills.length})
+                </span>
+              </button>
+              <Show when={open()}>
+                <For each={skills}>
+                  {(s) => (
+                    <div class="flex flex-col">
+                      <button
+                        class="flex items-center gap-2 px-2 pl-5 py-1 rounded w-full text-left hover:bg-surface-dimmer/50 cursor-pointer"
+                        classList={{ "bg-surface-dimmer/30": detail() === s.name }}
+                        onClick={() => toggleDetail(s.name)}
+                      >
+                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${verifiedDot(s.verified)}`} />
+                        <div class="flex flex-col min-w-0 flex-1">
+                          <span class="text-12-regular truncate">{s.name}</span>
+                          <span class="text-11-regular text-text-weaker truncate">{s.description}</span>
+                        </div>
+                      </button>
+                      <Show when={detail() === s.name}>
+                        <div class="mx-2 ml-5 mb-1 p-2 rounded bg-surface-inset-base text-11-regular">
+                          <div class="flex flex-wrap gap-x-3 gap-y-1 text-text-weak mb-2">
+                            <span>{verifiedLabel(s.verified)}</span>
+                            <Show when={s.owasp_id}>
+                              <span>{s.owasp_id}</span>
+                            </Show>
+                            <Show when={s.category}>
+                              <span>{s.category}</span>
+                            </Show>
+                          </div>
+                          <Show when={s.tech_stack?.length}>
+                            <div class="flex flex-wrap gap-1 mb-2">
+                              <For each={s.tech_stack}>
+                                {(t) => (
+                                  <span class="px-1.5 py-0.5 rounded bg-surface-dimmer-base text-10-regular text-text-weak">
+                                    {t}
+                                  </span>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+                          <Show when={s.cwe_ids?.length}>
+                            <div class="flex flex-wrap gap-1 mb-2">
+                              <For each={s.cwe_ids}>
+                                {(c) => (
+                                  <span class="px-1.5 py-0.5 rounded bg-surface-dimmer-base text-10-regular text-text-weak">
+                                    {c}
+                                  </span>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+                          <Show when={detailLoading()}>
+                            <div class="text-text-weaker">Loading...</div>
+                          </Show>
+                          <Show when={detailContent()}>
+                            <div class="mt-1 text-text-base whitespace-pre-wrap break-words text-11-regular leading-relaxed">
+                              {detailContent()}
+                            </div>
+                          </Show>
+                        </div>
+                      </Show>
+                    </div>
+                  )}
+                </For>
+              </Show>
+            </>
+          )
+        }}
+      </For>
+    </div>
+  )
+}
+
 function TodoPanelList() {
   const sync = useSync()
   const language = useLanguage()
@@ -752,6 +937,9 @@ export function SessionSidePanel(props: {
                     <Tabs.Trigger value="todo-panel">
                       <div class="flex items-center gap-1.5">Todo</div>
                     </Tabs.Trigger>
+                    <Tabs.Trigger value="skills-panel">
+                      <div class="flex items-center gap-1.5">Skills</div>
+                    </Tabs.Trigger>
                     <SortableProvider ids={openedTabs()}>
                       <For each={openedTabs()}>
                         {(tab) => <SortableTab tab={tab} onTabClose={props.tabs().close} />}
@@ -847,6 +1035,14 @@ export function SessionSidePanel(props: {
                   <Show when={props.activeTab() === "todo-panel"}>
                     <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
                       <TodoPanelList />
+                    </div>
+                  </Show>
+                </Tabs.Content>
+
+                <Tabs.Content value="skills-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                  <Show when={props.activeTab() === "skills-panel"}>
+                    <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
+                      <SkillsPanelList />
                     </div>
                   </Show>
                 </Tabs.Content>

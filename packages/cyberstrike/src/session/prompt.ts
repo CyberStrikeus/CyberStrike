@@ -28,6 +28,8 @@ import { LSP } from "../lsp"
 import { ReadTool } from "../tool/read"
 import { FileTime } from "../file/time"
 import { Flag } from "../flag/flag"
+import { Skill } from "../skill"
+import { SkillContext } from "../skill/context"
 import { ulid } from "ulid"
 import { spawn } from "child_process"
 import { Command } from "../command"
@@ -677,6 +679,35 @@ export namespace SessionPrompt {
             "",
             `Currently loaded: ${mcpLazyStats.loaded} tool(s) (${mcpLazyStats.estimatedTokens} tokens used)`,
           )
+        }
+        system.push(lines.join("\n"))
+      }
+
+      // Inject skill awareness so the agent knows to use the skill tool
+      const allSkills = await Skill.all()
+      if (allSkills.length > 0) {
+        const byCategory = new Map<string, number>()
+        for (const s of allSkills) {
+          const cat = s.category ?? "other"
+          byCategory.set(cat, (byCategory.get(cat) ?? 0) + 1)
+        }
+        const lines = [
+          "# Skills",
+          `You have ${allSkills.length} specialized security testing skills available. Use the \`skill\` tool to search, load, and manage them.`,
+          "Skills provide detailed testing procedures, payloads, and checklists. Load relevant skills before starting a test.",
+          "",
+          "Available categories:",
+        ]
+        for (const [cat, count] of [...byCategory].sort((a, b) => b[1] - a[1])) {
+          lines.push(`- **${cat}**: ${count} skills`)
+        }
+        if (agent.skills?.length) {
+          lines.push("", "Recommended skills for this agent (load these first):")
+          for (const name of agent.skills) lines.push(`- ${name}`)
+        }
+        const loaded = SkillContext.active()
+        if (loaded.length > 0) {
+          lines.push("", `Currently loaded: ${loaded.join(", ")} (${SkillContext.tokenCount()} tokens)`)
         }
         system.push(lines.join("\n"))
       }

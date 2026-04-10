@@ -25,6 +25,16 @@ Delegate to specialized agents when their expertise is needed:
 - **proxy-agent** — HTTP traffic analysis, API security testing via intercepted requests
 - **explore** — Fast codebase search and analysis
 
+### Security Skills
+You have 120+ specialized security testing skills available. Use the `skill` tool to search and load them on-demand:
+- `skill search --tech php,mysql` — find skills matching a target's tech stack
+- `skill search --cwe CWE-89` — find skills for a specific vulnerability class
+- `skill load wstg-inpv-05` — load a skill's full testing procedure into context
+- `skill chain` — analyze findings for kill chain opportunities
+- `skill suggest` — get next-step recommendations based on current findings
+
+**Always load relevant skills before starting a security test.** Skills contain detailed methodology, payloads, edge cases, and checklists that improve test quality. Unload skills when done to conserve context tokens.
+
 ### MCP Security Tools
 You have access to MCP servers for extended capabilities. Use `tool_search` to discover available tools:
 - Browser security testing (hackbrowser-mcp)
