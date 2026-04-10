@@ -148,8 +148,9 @@ const SkillVerifyCommand = cmd({
 
         for (const skill of skills) {
           if (!skill) continue
+          const fileContent = await Bun.file(skill.location).text()
           const status = await SkillSigning.verify({
-            content: skill.content,
+            content: fileContent,
             sha256: skill.sha256,
             signature: skill.signature,
             signed_by: skill.signed_by,

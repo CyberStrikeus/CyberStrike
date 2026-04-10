@@ -98,8 +98,9 @@ export namespace Skill {
       dirs.add(path.dirname(match))
 
       const raw = md.data as Record<string, unknown>
+      const fileContent = await Bun.file(match).text()
       const verified = await SkillSigning.verify({
-        content: md.content,
+        content: fileContent,
         sha256: typeof raw.sha256 === "string" ? raw.sha256 : undefined,
         signature: typeof raw.signature === "string" ? raw.signature : undefined,
         signed_by: typeof raw.signed_by === "string" ? raw.signed_by : undefined,
@@ -186,6 +187,24 @@ export namespace Skill {
         followSymlinks: true,
       })) {
         await addSkill(match)
+      }
+    }
+
+    // Built-in skills: resolve .cyberstrike/ relative to this source file
+    // so they're always found regardless of Instance.directory (web UI header).
+    // Skip in test mode to preserve test isolation.
+    if (!process.env.CYBERSTRIKE_TEST_HOME) {
+      const builtinRoot = path.resolve(import.meta.dir, "../../../..")
+      const builtinDir = path.join(builtinRoot, ".cyberstrike")
+      if (await Filesystem.isDir(builtinDir)) {
+        for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
+          cwd: builtinDir,
+          absolute: true,
+          onlyFiles: true,
+          followSymlinks: true,
+        })) {
+          await addSkill(match)
+        }
       }
     }
 
