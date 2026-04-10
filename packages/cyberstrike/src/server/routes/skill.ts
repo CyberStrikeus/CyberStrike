@@ -324,7 +324,7 @@ export const SkillRoutes = lazy(() =>
         const updated = disabled.filter((n) => n !== name)
 
         const configPath = `${Global.Path.config}/cyberstrike.json`
-        const raw = await Bun.file(configPath).exists() ? await Bun.file(configPath).text() : "{}"
+        const raw = (await Bun.file(configPath).exists()) ? await Bun.file(configPath).text() : "{}"
         const edits = modify(raw, ["skills", "disabled"], updated.length > 0 ? updated : undefined, {
           formattingOptions: { tabSize: 2, insertSpaces: true },
         })
@@ -357,7 +357,7 @@ export const SkillRoutes = lazy(() =>
         if (!disabled.includes(name)) disabled.push(name)
 
         const configPath = `${Global.Path.config}/cyberstrike.json`
-        const raw = await Bun.file(configPath).exists() ? await Bun.file(configPath).text() : "{}"
+        const raw = (await Bun.file(configPath).exists()) ? await Bun.file(configPath).text() : "{}"
         const edits = modify(raw, ["skills", "disabled"], disabled, {
           formattingOptions: { tabSize: 2, insertSpaces: true },
         })

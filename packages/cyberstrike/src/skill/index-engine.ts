@@ -107,25 +107,33 @@ export namespace SkillIndex {
       const set = techIndex.get(tech.toLowerCase())
       if (set) for (const name of set) names.add(name)
     }
-    return Array.from(names).map((n) => entries.get(n)!).filter(Boolean)
+    return Array.from(names)
+      .map((n) => entries.get(n)!)
+      .filter(Boolean)
   }
 
   export function byCWE(cweId: string): Entry[] {
     const set = cweIndex.get(cweId.toUpperCase())
     if (!set) return []
-    return Array.from(set).map((n) => entries.get(n)!).filter(Boolean)
+    return Array.from(set)
+      .map((n) => entries.get(n)!)
+      .filter(Boolean)
   }
 
   export function byCategory(cat: string): Entry[] {
     const set = categoryIndex.get(cat.toLowerCase())
     if (!set) return []
-    return Array.from(set).map((n) => entries.get(n)!).filter(Boolean)
+    return Array.from(set)
+      .map((n) => entries.get(n)!)
+      .filter(Boolean)
   }
 
   export function byTag(tag: string): Entry[] {
     const set = tagIndex.get(tag.toLowerCase())
     if (!set) return []
-    return Array.from(set).map((n) => entries.get(n)!).filter(Boolean)
+    return Array.from(set)
+      .map((n) => entries.get(n)!)
+      .filter(Boolean)
   }
 
   export function chainsFrom(skillName: string): Array<{ target: string; boost?: string }> {

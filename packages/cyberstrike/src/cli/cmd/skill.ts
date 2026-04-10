@@ -213,7 +213,7 @@ const SkillCreateCommand = cmd({
       "### Step 1: Identify Targets",
       "",
       "```bash",
-      '# Add your testing commands here',
+      "# Add your testing commands here",
       "```",
       "",
       "### Step 2: Execute Tests",
@@ -332,7 +332,10 @@ const SkillSignCommand = cmd({
 
           let fm = content.slice(first + 3, second + 1)
           const body = content.slice(second + 1)
-          fm = fm.replace(/^sha256:.*\n/gm, "").replace(/^signature:.*\n/gm, "").replace(/^signed_by:.*\n/gm, "")
+          fm = fm
+            .replace(/^sha256:.*\n/gm, "")
+            .replace(/^signature:.*\n/gm, "")
+            .replace(/^signed_by:.*\n/gm, "")
           const insert = `sha256: ${result.sha256}\nsignature: ${result.signature}\nsigned_by: cyberstrike-official\n`
           await Bun.write(skill.location, "---" + fm + insert + body)
 

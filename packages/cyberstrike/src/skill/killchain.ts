@@ -60,7 +60,9 @@ export namespace KillChain {
       }
     }
 
-    return chains.sort((a, b) => (SEVERITY_ORDER[b.combined_severity] ?? 0) - (SEVERITY_ORDER[a.combined_severity] ?? 0))
+    return chains.sort(
+      (a, b) => (SEVERITY_ORDER[b.combined_severity] ?? 0) - (SEVERITY_ORDER[a.combined_severity] ?? 0),
+    )
   }
 
   function collectNextSteps(used: string[], findings: Finding[]): string[] {
