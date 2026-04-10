@@ -3,6 +3,9 @@ name: wstg-recon-config
 description: WSTG reconnaissance, configuration, error handling, and cryptography testing techniques
 tags: [recon, config, headers, tls, wstg]
 version: "1.0"
+sha256: b1692468d14d9a98bf4e5693d272b42cfaa60f1ca383fc6fd549dff5f499d7f5
+signature: LwkvZylIQ3G5zsT4IPPA+BGFLFvro+jSeXBkAfYnex7ijmqk1o2RDJRxGrnQIqPWUpigG1pkm+4Ccnv+DgWNBA==
+signed_by: cyberstrike-official
 ---
 
 # Recon & Configuration Testing (WSTG-INFO + CONF + ERRH + CRYP)

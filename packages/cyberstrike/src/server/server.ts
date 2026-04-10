@@ -16,7 +16,6 @@ import { TuiRoutes } from "./routes/tui"
 import { Instance } from "../project/instance"
 import { Vcs } from "../project/vcs"
 import { Agent } from "../agent/agent"
-import { Skill } from "../skill/skill"
 import { Auth } from "../auth"
 import { Flag } from "../flag/flag"
 import { Command } from "../command"
@@ -26,6 +25,7 @@ import { SessionRoutes } from "./routes/session"
 import { PtyRoutes } from "./routes/pty"
 import { McpRoutes } from "./routes/mcp"
 import { BoltRoutes } from "./routes/bolt"
+import { SkillRoutes } from "./routes/skill"
 import { FileRoutes } from "./routes/file"
 import { ConfigRoutes } from "./routes/config"
 import { ExperimentalRoutes } from "./routes/experimental"
@@ -467,28 +467,7 @@ export namespace Server {
             return c.json(modes)
           },
         )
-        .get(
-          "/skill",
-          describeRoute({
-            summary: "List skills",
-            description: "Get a list of all available skills in the CyberStrike system.",
-            operationId: "app.skills",
-            responses: {
-              200: {
-                description: "List of skills",
-                content: {
-                  "application/json": {
-                    schema: resolver(Skill.Info.array()),
-                  },
-                },
-              },
-            },
-          }),
-          async (c) => {
-            const skills = await Skill.all()
-            return c.json(skills)
-          },
-        )
+        .route("/skill", SkillRoutes())
         .get(
           "/lsp",
           describeRoute({

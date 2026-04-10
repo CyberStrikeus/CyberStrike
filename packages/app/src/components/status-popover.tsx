@@ -150,6 +150,9 @@ export function StatusPopover() {
   const plugins = createMemo(() => sync.data.config.plugin ?? [])
   const pluginCount = createMemo(() => plugins().length)
   const pluginEmpty = createMemo(() => pluginEmptyMessage(language.t("dialog.plugins.empty"), "cyberstrike.json"))
+  const skillItems = createMemo(() => sync.data.skill ?? [])
+  const skillCount = createMemo(() => skillItems().length)
+  const [disabledSkills, setDisabledSkills] = createSignal<Set<string>>(new Set())
 
   const overallHealthy = createMemo(() => {
     const serverHealthy = server.healthy() === true
@@ -217,6 +220,11 @@ export function StatusPopover() {
             <Show when={boltNames().length > 0}>
               <Tabs.Trigger value="bolt" data-slot="tab" class="text-12-regular">
                 {boltNames().length} {language.t("status.popover.tab.bolt")}
+              </Tabs.Trigger>
+            </Show>
+            <Show when={skillCount() > 0}>
+              <Tabs.Trigger value="skills" data-slot="tab" class="text-12-regular">
+                {skillCount()} {language.t("status.popover.tab.skills")}
               </Tabs.Trigger>
             </Show>
           </Tabs.List>
@@ -374,6 +382,67 @@ export function StatusPopover() {
                       <span class="text-12-regular text-text-weak ml-auto">{boltStatus(name)}</span>
                     </div>
                   )}
+                </For>
+              </div>
+            </div>
+          </Tabs.Content>
+          <Tabs.Content value="skills">
+            <div class="flex flex-col px-2 pb-2">
+              <div class="flex flex-col p-3 bg-background-base rounded-sm min-h-14">
+                <For each={skillItems()}>
+                  {(skill) => {
+                    const toggleSkill = async () => {
+                      const method = disabledSkills().has(skill.name)
+                        ? sdk.client.skill.enable({ name: skill.name })
+                        : sdk.client.skill.disable({ name: skill.name })
+                      await method
+                      setDisabledSkills((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(skill.name)) next.delete(skill.name)
+                        else next.add(skill.name)
+                        return next
+                      })
+                    }
+                    const disabled = () => disabledSkills().has(skill.name)
+                    return (
+                      <div class="flex items-center gap-2 w-full px-2 py-1">
+                        <div
+                          classList={{
+                            "size-1.5 rounded-full shrink-0": true,
+                            "bg-icon-success-base": !disabled() && skill.verified === "official",
+                            "bg-icon-warning-base": !disabled() && (skill.verified === "community" || !skill.verified),
+                            "bg-icon-critical-base": !disabled() && skill.verified === "tampered",
+                            "bg-border-weak-base": disabled(),
+                          }}
+                        />
+                        <span
+                          class="text-14-regular truncate"
+                          classList={{
+                            "text-text-base": !disabled(),
+                            "text-text-weak": disabled(),
+                          }}
+                        >
+                          {skill.name}
+                        </span>
+                        <Show when={skill.category}>
+                          <span class="text-11-regular text-text-weak bg-surface-base px-1.5 py-0.5 rounded-md">
+                            {skill.category}
+                          </span>
+                        </Show>
+                        <button
+                          type="button"
+                          class="text-11-regular ml-auto px-1.5 py-0.5 rounded-md transition-colors hover:bg-surface-raised-base-hover"
+                          classList={{
+                            "text-text-weak": !disabled(),
+                            "text-icon-critical-base": disabled(),
+                          }}
+                          onClick={toggleSkill}
+                        >
+                          {disabled() ? "disabled" : skill.verified ?? "unverified"}
+                        </button>
+                      </div>
+                    )
+                  }}
                 </For>
               </div>
             </div>

@@ -1,6 +1,9 @@
 ---
 name: bun-file-io
 description: Use this when you are working on file operations like reading, writing, scanning, or deleting files. It summarizes the preferred file APIs and patterns used in this repo. It also notes when to use filesystem helpers for directories.
+sha256: 604669713cb065f38e73ad63edb6d5ef3f203ed4dabfc7c14e6cc98a4b644c4b
+signature: 95VrHoJaF6San27XXZRu+1g0/xB6Wa+lExnAPbapE1yC/5Pjy5BhFUGTh9k6puGstjVy4bmqp/lyTNekxKrhDA==
+signed_by: cyberstrike-official
 ---
 
 ## Use this when
