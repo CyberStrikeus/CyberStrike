@@ -60,7 +60,9 @@ export namespace SkillContext {
     priority: "high" | "medium" | "low"
   }
 
-  export function suggest(findings: Array<{ skill_id: string; severity?: string; cwe_id?: string; tech_stack?: string[] }>): Suggestion[] {
+  export function suggest(
+    findings: Array<{ skill_id: string; severity?: string; cwe_id?: string; tech_stack?: string[] }>,
+  ): Suggestion[] {
     const result: Suggestion[] = []
     const suggested = new Set<string>()
     const active = new Set(loaded.keys())

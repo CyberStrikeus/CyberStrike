@@ -42,7 +42,10 @@ async function main() {
     const getArray = (key: string) => {
       const m = fm.match(new RegExp(`^${key}:\\s*\\[(.*)\\]`, "m"))
       if (!m) return []
-      return m[1].split(",").map((s) => s.trim()).filter(Boolean)
+      return m[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     }
 
     // Collect all files in this skill directory

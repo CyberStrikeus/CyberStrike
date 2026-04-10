@@ -50,10 +50,7 @@ export namespace SkillSigning {
     }
   }
 
-  export async function sign(
-    content: string,
-    privateKeyB64: string,
-  ): Promise<{ sha256: string; signature: string }> {
+  export async function sign(content: string, privateKeyB64: string): Promise<{ sha256: string; signature: string }> {
     const hash = await computeHash(content)
     const raw = Buffer.from(privateKeyB64, "base64")
     const key = await crypto.subtle.importKey("pkcs8", raw, { name: "Ed25519" }, false, ["sign"])

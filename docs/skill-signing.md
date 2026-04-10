@@ -35,10 +35,10 @@ CyberStrike uses Ed25519 digital signatures to guarantee the integrity and authe
 
 ### Key Pair
 
-| Component | Format | Location | Committed to Git |
-|-----------|--------|----------|-----------------|
-| Public Key | Base64-encoded raw 32-byte Ed25519 | `packages/cyberstrike/src/skill/signing.ts` (embedded) | Yes |
-| Private Key | Base64-encoded PKCS8 Ed25519 | `.skill-signing-key` (project root) | **NEVER** |
+| Component   | Format                             | Location                                               | Committed to Git |
+| ----------- | ---------------------------------- | ------------------------------------------------------ | ---------------- |
+| Public Key  | Base64-encoded raw 32-byte Ed25519 | `packages/cyberstrike/src/skill/signing.ts` (embedded) | Yes              |
+| Private Key | Base64-encoded PKCS8 Ed25519       | `.skill-signing-key` (project root)                    | **NEVER**        |
 
 ### Current Public Key
 
@@ -57,12 +57,12 @@ qC5noNpNWhgt8fyKZyc9p6kXOHvsHDDO4GCqfDHJ/RA=
 
 When a skill is loaded, the verification engine assigns one of four statuses:
 
-| Status | Icon | Color | Meaning |
-|--------|------|-------|---------|
-| `official` | ✓ | Green | SHA-256 hash matches AND Ed25519 signature valid against embedded public key |
-| `community` | ○ | Yellow | SHA-256 hash matches but no signature, or signed by a non-official key |
-| `unverified` | ? | Gray | No `sha256` field in frontmatter — skill has never been signed |
-| `tampered` | ✗ | Red | Hash mismatch OR signature invalid — **skill loading is blocked** |
+| Status       | Icon | Color  | Meaning                                                                      |
+| ------------ | ---- | ------ | ---------------------------------------------------------------------------- |
+| `official`   | ✓    | Green  | SHA-256 hash matches AND Ed25519 signature valid against embedded public key |
+| `community`  | ○    | Yellow | SHA-256 hash matches but no signature, or signed by a non-official key       |
+| `unverified` | ?    | Gray   | No `sha256` field in frontmatter — skill has never been signed               |
+| `tampered`   | ✗    | Red    | Hash mismatch OR signature invalid — **skill loading is blocked**            |
 
 ## Verification Flow
 
@@ -159,6 +159,7 @@ bun run packages/cyberstrike/script/sign-skills.ts --generate
 ```
 
 This will:
+
 1. Generate a new Ed25519 keypair
 2. Save the private key to `.skill-signing-key`
 3. Embed the public key in `packages/cyberstrike/src/skill/signing.ts`
@@ -199,20 +200,20 @@ POST /skill/wstg-inpv-05/verify
 
 ### What This Protects Against
 
-| Threat | Protection |
-|--------|-----------|
-| Tampered official skill (modified content) | SHA-256 hash mismatch → "tampered" → blocked |
-| Forged signature (attacker signs with different key) | Ed25519 verify fails against embedded public key → "tampered" → blocked |
-| Malicious community skill pretending to be official | No valid signature for `signed_by: cyberstrike-official` → "tampered" → blocked |
-| Supply chain attack on skill registry | Downloaded skills must pass signature verification |
+| Threat                                               | Protection                                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Tampered official skill (modified content)           | SHA-256 hash mismatch → "tampered" → blocked                                    |
+| Forged signature (attacker signs with different key) | Ed25519 verify fails against embedded public key → "tampered" → blocked         |
+| Malicious community skill pretending to be official  | No valid signature for `signed_by: cyberstrike-official` → "tampered" → blocked |
+| Supply chain attack on skill registry                | Downloaded skills must pass signature verification                              |
 
 ### What This Does NOT Protect Against
 
-| Threat | Reason | Mitigation |
-|--------|--------|------------|
-| User modifying their own binary to replace public key | Open source — user has full control over their binary | This is self-harm, not an attack vector. Cannot harm other users. |
-| Compromised private key | Attacker could sign malicious skills as official | Rotate keypair, re-sign all skills, publish new binary with new public key |
-| Malicious community skills (not signed) | Community skills are loaded as "unverified" — no guarantee | User sees "unverified" badge, can review content before loading |
+| Threat                                                | Reason                                                     | Mitigation                                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| User modifying their own binary to replace public key | Open source — user has full control over their binary      | This is self-harm, not an attack vector. Cannot harm other users.          |
+| Compromised private key                               | Attacker could sign malicious skills as official           | Rotate keypair, re-sign all skills, publish new binary with new public key |
+| Malicious community skills (not signed)               | Community skills are loaded as "unverified" — no guarantee | User sees "unverified" badge, can review content before loading            |
 
 ### Trust Model
 
@@ -248,12 +249,12 @@ After rotation, skills signed with the old key will show as "tampered" in new bi
 
 ## File Reference
 
-| File | Purpose |
-|------|---------|
-| `packages/cyberstrike/src/skill/signing.ts` | Verification engine + embedded public key |
-| `packages/cyberstrike/src/skill/skill.ts` | Calls `verify()` on skill load, blocks tampered |
-| `packages/cyberstrike/script/sign-skills.ts` | Maintainer tool: generate keypair + sign all skills |
-| `.skill-signing-key` | Private key (gitignored) |
-| `.cyberstrike/skill/*/SKILL.md` | Signed skills with sha256/signature/signed_by in frontmatter |
-| `packages/cyberstrike/src/cli/cmd/skill.ts` | CLI `cyberstrike skill verify` command |
-| `packages/cyberstrike/src/server/routes/skill.ts` | REST `POST /skill/:name/verify` endpoint |
+| File                                              | Purpose                                                      |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| `packages/cyberstrike/src/skill/signing.ts`       | Verification engine + embedded public key                    |
+| `packages/cyberstrike/src/skill/skill.ts`         | Calls `verify()` on skill load, blocks tampered              |
+| `packages/cyberstrike/script/sign-skills.ts`      | Maintainer tool: generate keypair + sign all skills          |
+| `.skill-signing-key`                              | Private key (gitignored)                                     |
+| `.cyberstrike/skill/*/SKILL.md`                   | Signed skills with sha256/signature/signed_by in frontmatter |
+| `packages/cyberstrike/src/cli/cmd/skill.ts`       | CLI `cyberstrike skill verify` command                       |
+| `packages/cyberstrike/src/server/routes/skill.ts` | REST `POST /skill/:name/verify` endpoint                     |
