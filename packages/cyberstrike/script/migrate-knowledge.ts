@@ -113,7 +113,10 @@ const cweMap: Record<string, string[]> = {
 }
 
 const chainMap: Record<string, { chains_with: string[]; prerequisites: string[] }> = {
-  "INPV-05": { chains_with: ["wstg-authz-02", "wstg-conf-05", "wstg-inpv-06"], prerequisites: ["wstg-info-01", "wstg-info-06"] },
+  "INPV-05": {
+    chains_with: ["wstg-authz-02", "wstg-conf-05", "wstg-inpv-06"],
+    prerequisites: ["wstg-info-01", "wstg-info-06"],
+  },
   "INPV-02": { chains_with: ["wstg-sess-05", "wstg-athn-05", "wstg-clnt-01"], prerequisites: ["wstg-info-01"] },
   "INPV-09": { chains_with: ["wstg-inpv-05", "wstg-conf-05"], prerequisites: ["wstg-info-01", "wstg-info-06"] },
   "INPV-06": { chains_with: ["wstg-athn-05", "wstg-authz-02"], prerequisites: ["wstg-info-06"] },

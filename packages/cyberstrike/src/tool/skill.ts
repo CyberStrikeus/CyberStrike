@@ -84,14 +84,17 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       if (params.action === "list") {
         const active = SkillContext.active()
         const tokens = SkillContext.tokenCount()
-        if (active.length === 0) return { title: "No skills loaded", output: "No skills are currently loaded in context.", metadata: {} as { name?: string; dir?: string } }
+        if (active.length === 0)
+          return {
+            title: "No skills loaded",
+            output: "No skills are currently loaded in context.",
+            metadata: {} as { name?: string; dir?: string },
+          }
         return {
           title: `${active.length} skills loaded (${tokens} tokens)`,
-          output: [
-            `## Skills in Context (${tokens} estimated tokens)`,
-            "",
-            ...active.map((name) => `- ${name}`),
-          ].join("\n"),
+          output: [`## Skills in Context (${tokens} estimated tokens)`, "", ...active.map((name) => `- ${name}`)].join(
+            "\n",
+          ),
           metadata: {} as { name?: string; dir?: string },
         }
       }
@@ -117,7 +120,12 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
         else if (params.query) results = SkillIndex.search(params.query)
         else results = SkillIndex.all()
 
-        if (results.length === 0) return { title: "No results", output: "No skills matched the search criteria.", metadata: {} as { name?: string; dir?: string } }
+        if (results.length === 0)
+          return {
+            title: "No results",
+            output: "No skills matched the search criteria.",
+            metadata: {} as { name?: string; dir?: string },
+          }
 
         return {
           title: `${results.length} skills found`,
@@ -142,7 +150,12 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       if (params.action === "suggest") {
         if (!params.findings?.length) throw new Error("Findings required for suggestions")
         const suggestions = SkillContext.suggest(params.findings)
-        if (suggestions.length === 0) return { title: "No suggestions", output: "No additional skills suggested for current findings.", metadata: {} as { name?: string; dir?: string } }
+        if (suggestions.length === 0)
+          return {
+            title: "No suggestions",
+            output: "No additional skills suggested for current findings.",
+            metadata: {} as { name?: string; dir?: string },
+          }
         return {
           title: `${suggestions.length} suggestions`,
           output: [

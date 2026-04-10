@@ -438,7 +438,7 @@ export function StatusPopover() {
                           }}
                           onClick={toggleSkill}
                         >
-                          {disabled() ? "disabled" : skill.verified ?? "unverified"}
+                          {disabled() ? "disabled" : (skill.verified ?? "unverified")}
                         </button>
                       </div>
                     )

@@ -136,9 +136,10 @@ export namespace Skill {
         cwe_ids: toStringArray(raw.cwe_ids),
         chains_with: toStringArray(raw.chains_with),
         prerequisites: toStringArray(raw.prerequisites),
-        severity_boost: typeof raw.severity_boost === "object" && raw.severity_boost !== null && !Array.isArray(raw.severity_boost)
-          ? raw.severity_boost as Record<string, string>
-          : undefined,
+        severity_boost:
+          typeof raw.severity_boost === "object" && raw.severity_boost !== null && !Array.isArray(raw.severity_boost)
+            ? (raw.severity_boost as Record<string, string>)
+            : undefined,
       }
     }
 

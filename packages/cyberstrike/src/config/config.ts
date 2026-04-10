@@ -703,10 +703,7 @@ export namespace Config {
       .array(z.string())
       .optional()
       .describe("URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)"),
-    disabled: z
-      .array(z.string())
-      .optional()
-      .describe("Skill names to disable (will not be loaded by agents)"),
+    disabled: z.array(z.string()).optional().describe("Skill names to disable (will not be loaded by agents)"),
   })
   export type Skills = z.infer<typeof Skills>
 
