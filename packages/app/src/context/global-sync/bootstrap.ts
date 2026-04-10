@@ -150,6 +150,10 @@ export async function bootstrapDirectory(input: {
       .status()
       .then((x) => input.setStore("bolt", x.data ?? {}))
       .catch(() => {}),
+    input.sdk.skill
+      .list()
+      .then((x) => input.setStore("skill", x.data ?? []))
+      .catch(() => {}),
     input.sdk.lsp.status().then((x) => input.setStore("lsp", x.data!)),
     input.sdk.vcs.get().then((x) => {
       const next = x.data ?? input.store.vcs

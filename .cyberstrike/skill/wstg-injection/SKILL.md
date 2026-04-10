@@ -3,6 +3,9 @@ name: wstg-injection
 description: WSTG input validation and injection testing - SQLi, XSS, SSTI, SSRF, command injection, XXE
 tags: [injection, sqli, xss, ssti, ssrf, xxe, rce, wstg]
 version: "1.0"
+sha256: 6e6b9371d0fe655d6264722cdede16af0abf19f1ece26f4058cdef1647d47bb2
+signature: 3wfwJsnk6P/CIm4v7lqSC8xB27xPAuCf3LYJ1aXqFSyZ/loVfvUDwf2BfnH+eZ1lUsJ5aUDgM4jDbmovMrfnBg==
+signed_by: cyberstrike-official
 ---
 
 # Input Validation & Injection Testing (WSTG-INPV)

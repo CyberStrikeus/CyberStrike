@@ -3,6 +3,9 @@ name: ad-security
 description: Active Directory security testing and attack techniques
 tags: [ad, windows, kerberos, ldap, internal-network]
 version: "1.0"
+sha256: 56bff9bea44e350073bad803b0a4e4c804d4d9550a0e2f6e32108b105e852432
+signature: 8sSLUe9fQo4JkUNHUXfQH2lN/9dxojmZHO6efd3wFdl1Po7hcAgfoX6jVVEyiB0M9difAlXXFmSxxftSDMQYAA==
+signed_by: cyberstrike-official
 ---
 
 # Active Directory Security Testing
