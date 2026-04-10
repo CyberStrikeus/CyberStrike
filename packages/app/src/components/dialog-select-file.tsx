@@ -17,7 +17,7 @@ import { useLanguage } from "@/context/language"
 import { decode64 } from "@/utils/base64"
 import { getRelativeTime } from "@/utils/time"
 
-type EntryType = "command" | "file" | "session"
+type EntryType = "command" | "file" | "session" | "skill"
 
 type Entry = {
   id: string
@@ -32,6 +32,7 @@ type Entry = {
   sessionID?: string
   archived?: number
   updated?: number
+  verified?: string
 }
 
 type DialogSelectFileMode = "all" | "files"
@@ -95,6 +96,18 @@ const createSessionEntry = (
   sessionID: input.id,
   archived: input.archived,
   updated: input.updated,
+})
+
+const createSkillEntry = (
+  input: { name: string; description: string; verified?: string; category?: string },
+  category: string,
+): Entry => ({
+  id: `skill:${input.name}`,
+  type: "skill",
+  title: input.name,
+  description: input.description,
+  category,
+  verified: input.verified,
 })
 
 function createCommandEntries(props: {
@@ -253,6 +266,53 @@ function createSessionEntries(props: {
   return { sessions }
 }
 
+function createSkillEntries(props: {
+  globalSDK: ReturnType<typeof useGlobalSDK>
+  language: ReturnType<typeof useLanguage>
+}) {
+  const state: {
+    token: number
+    inflight: Promise<Entry[]> | undefined
+    cached: Entry[] | undefined
+  } = {
+    token: 0,
+    inflight: undefined,
+    cached: undefined,
+  }
+
+  const skills = (text: string) => {
+    const query = text.trim()
+    if (!query) {
+      state.token += 1
+      state.inflight = undefined
+      state.cached = undefined
+      return [] as Entry[]
+    }
+
+    if (state.cached) return state.cached
+    if (state.inflight) return state.inflight
+
+    const current = state.token
+    state.inflight = props.globalSDK.client.skill
+      .list()
+      .then((x) => {
+        if (state.token !== current) return [] as Entry[]
+        const category = props.language.t("palette.group.skills")
+        const next = (x.data ?? []).map((s) => createSkillEntry(s, category))
+        state.cached = next
+        return next
+      })
+      .catch(() => [] as Entry[])
+      .finally(() => {
+        state.inflight = undefined
+      })
+
+    return state.inflight
+  }
+
+  return { skills }
+}
+
 export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFile?: (path: string) => void }) {
   const command = useCommand()
   const language = useLanguage()
@@ -302,6 +362,7 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
   }
 
   const { sessions } = createSessionEntries({ workspaces, label, globalSDK, language })
+  const { skills } = createSkillEntries({ globalSDK, language })
 
   const items = async (text: string) => {
     const query = text.trim()
@@ -329,10 +390,14 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
       return files.map((path) => createFileEntry(path, category))
     }
 
-    const [files, nextSessions] = await Promise.all([file.searchFiles(query), Promise.resolve(sessions(query))])
+    const [files, nextSessions, nextSkills] = await Promise.all([
+      file.searchFiles(query),
+      Promise.resolve(sessions(query)),
+      Promise.resolve(skills(query)),
+    ])
     const category = language.t("palette.group.files")
     const entries = files.map((path) => createFileEntry(path, category))
-    return [...commandEntries.list(), ...nextSessions, ...entries]
+    return [...commandEntries.list(), ...nextSkills, ...nextSessions, ...entries]
   }
 
   const handleMove = (item: Entry | undefined) => {
@@ -366,6 +431,13 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
     if (item.type === "session") {
       if (!item.directory || !item.sessionID) return
       navigate(`/${base64Encode(item.directory)}/session/${item.sessionID}`)
+      return
+    }
+
+    if (item.type === "skill") {
+      if (!view().reviewPanel.opened()) view().reviewPanel.open()
+      tabs().open("skills-panel")
+      tabs().setActive("skills-panel")
       return
     }
 
@@ -424,6 +496,26 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
                 <Show when={item.keybind}>
                   <Keybind class="rounded-[4px]">{formatKeybind(item.keybind ?? "")}</Keybind>
                 </Show>
+              </div>
+            </Match>
+            <Match when={item.type === "skill"}>
+              <div class="w-full flex items-center justify-between rounded-md pl-1">
+                <div class="flex items-center gap-x-3 grow min-w-0">
+                  <span
+                    class="shrink-0 w-2 h-2 rounded-full"
+                    classList={{
+                      "bg-icon-success-base": item.verified === "official",
+                      "bg-icon-critical-base": item.verified === "tampered",
+                      "bg-icon-warning-base": item.verified !== "official" && item.verified !== "tampered",
+                    }}
+                  />
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-14-regular text-text-strong truncate">{item.title}</span>
+                    <Show when={item.description}>
+                      <span class="text-14-regular text-text-weak truncate">{item.description}</span>
+                    </Show>
+                  </div>
+                </div>
               </div>
             </Match>
             <Match when={item.type === "session"}>
