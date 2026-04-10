@@ -13,7 +13,7 @@ export function DialogSkill(props: DialogSkillProps) {
   dialog.setSize("large")
 
   const [skills] = createResource(async () => {
-    const result = await sdk.client.app.skills()
+    const result = await sdk.client.skill.list()
     return result.data ?? []
   })
 

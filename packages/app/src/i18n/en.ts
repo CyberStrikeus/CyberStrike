@@ -607,6 +607,7 @@ export const dict = {
   "status.popover.tab.todo": "Todo",
   "status.popover.tab.lsp": "LSP",
   "status.popover.tab.plugins": "Plugins",
+  "status.popover.tab.skills": "Skills",
   "status.popover.action.manageServers": "Manage servers",
 
   "session.share.popover.title": "Publish on web",

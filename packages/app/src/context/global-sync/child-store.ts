@@ -180,6 +180,7 @@ export function createChildStoreManager(input: {
             web_object: {},
             web_function: {},
             bolt: {},
+            skill: [],
             permission: {},
             question: {},
             mcp: {},

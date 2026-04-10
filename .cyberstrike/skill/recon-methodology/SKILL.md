@@ -3,6 +3,9 @@ name: recon-methodology
 description: Bug bounty and pentest reconnaissance methodology
 tags: [recon, enumeration, osint, subdomain]
 version: "1.0"
+sha256: 297a726f98cffff2f63262489bfe850734ae13ab3c26222f3d8d751b8a13853e
+signature: qi4Rwoz3/hNEuHp3m3GRRu6FbmLFAl6B9ruJQ13LfgnKJVGPZ+eVi1DLiSXBv8Eqb+JQZ/JmaMgVs2jNIn2aBQ==
+signed_by: cyberstrike-official
 ---
 
 # Reconnaissance Methodology

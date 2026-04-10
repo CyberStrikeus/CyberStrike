@@ -90,7 +90,7 @@ Use this skill.
             },
           }
 
-          const result = await tool.execute({ name: "tool-skill" }, ctx)
+          const result = await tool.execute({ action: "load", name: "tool-skill" }, ctx)
           const dir = path.join(tmp.path, ".cyberstrike", "skill", "tool-skill")
           const file = path.resolve(dir, "scripts", "demo.txt")
 
@@ -100,7 +100,7 @@ Use this skill.
           expect(requests[0].always).toContain("tool-skill")
 
           expect(result.metadata.dir).toBe(dir)
-          expect(result.output).toContain(`<skill_content name="tool-skill">`)
+          expect(result.output).toContain(`<skill_content name="tool-skill" verified="unverified">`)
           expect(result.output).toContain(`Base directory for this skill: ${pathToFileURL(dir).href}`)
           expect(result.output).toContain(`<file>${file}</file>`)
         },

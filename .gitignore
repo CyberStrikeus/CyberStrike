@@ -30,3 +30,4 @@ target
 opencode-dev
 logs/
 *.bun-build
+.skill-signing-key
