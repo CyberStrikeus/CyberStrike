@@ -31,6 +31,7 @@ Applying system updates may require maintenance windows and can cause temporary 
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `General`, click `Recommendations`.
 3. In the search box, type `Apply system updates`.
@@ -38,15 +39,19 @@ Applying system updates may require maintenance windows and can cause temporary 
 5. If the status is `Not Completed`, click the recommendation to see which resources are missing updates.
 
 **From Azure CLI:**
+
 ```
 az security assessment list --query "[?displayName=='System updates should be installed on your machines'].{Name:displayName, Status:status.code}" -o table
 ```
+
 Ensure `Status` shows `Healthy` for all assessments.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityAssessment | Where-Object {$_.DisplayName -like "*System updates*"} | Select-Object DisplayName, @{N="Status";E={$_.Status.Code}}
 ```
+
 Ensure all results show `Healthy`.
 
 ## Expected Result
@@ -56,6 +61,7 @@ The 'Apply system updates' recommendation should show status `Completed` or all 
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `General`, click `Recommendations`.
 3. Search for `Apply system updates`.
@@ -64,6 +70,7 @@ The 'Apply system updates' recommendation should show status `Completed` or all 
 6. Alternatively, use Azure Update Management to automate the process.
 
 **Using Azure Update Management:**
+
 1. Go to `Azure Automation` or `Azure Update Manager`.
 2. Configure update schedules for all virtual machines.
 3. Enable periodic assessment to automatically check for missing updates.

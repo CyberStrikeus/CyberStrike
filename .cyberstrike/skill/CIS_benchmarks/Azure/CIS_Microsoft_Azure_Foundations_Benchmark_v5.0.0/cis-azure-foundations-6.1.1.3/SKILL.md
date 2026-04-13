@@ -111,16 +111,16 @@ By default, encryption type is set to Microsoft-managed keys.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques | Tactics | Mitigations |
 | ---------- | ------- | ----------- |
-| T1530 | TA0009 | M1041 |
+| T1530      | TA0009  | M1041       |
 
 ## Profile
 

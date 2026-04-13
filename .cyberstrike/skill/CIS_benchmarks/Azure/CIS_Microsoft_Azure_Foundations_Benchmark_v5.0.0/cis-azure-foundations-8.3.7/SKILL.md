@@ -31,28 +31,34 @@ Migrating from Vault Access Policies to Azure RBAC may require updating existing
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Access configuration`.
 4. Verify that `Permission model` is set to `Azure role-based access control`.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[].{Name:name, RBACEnabled:properties.enableRbacAuthorization}" -o table
 ```
+
 Ensure `RBACEnabled` is `true` for all Key Vaults.
 
 For a specific vault:
+
 ```
 az keyvault show --name {vaultName} --query "properties.enableRbacAuthorization"
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzKeyVault | ForEach-Object {
     Get-AzKeyVault -VaultName $_.VaultName | Select-Object VaultName, EnableRbacAuthorization
 }
 ```
+
 Ensure `EnableRbacAuthorization` is `True` for all Key Vaults.
 
 ## Expected Result
@@ -62,6 +68,7 @@ All Key Vaults should have `enableRbacAuthorization` set to `true`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Access configuration`.
@@ -70,19 +77,25 @@ All Key Vaults should have `enableRbacAuthorization` set to `true`.
 6. Assign appropriate RBAC roles to users, groups, and service principals.
 
 **From Azure CLI:**
+
 ```
 az keyvault update --name {vaultName} --enable-rbac-authorization true
 ```
+
 Then assign roles:
+
 ```
 az role assignment create --role "Key Vault Secrets Officer" --assignee {principalId} --scope $(az keyvault show --name {vaultName} --query id -o tsv)
 ```
 
 **From PowerShell:**
+
 ```
 Update-AzKeyVault -VaultName {vaultName} -EnableRbacAuthorization $true
 ```
+
 Then assign roles:
+
 ```
 New-AzRoleAssignment -ObjectId {principalId} -RoleDefinitionName "Key Vault Secrets Officer" -Scope (Get-AzKeyVault -VaultName {vaultName}).ResourceId
 ```

@@ -138,10 +138,10 @@ HTTP2 is enabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 2.2 Ensure Authorized Software is Currently Supported | x | x | x |
-| v7 | 2.2 Ensure Software is Supported by Vendor | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.2 Ensure Authorized Software is Currently Supported | x    | x    | x    |
+| v7               | 2.2 Ensure Software is Supported by Vendor            | x    | x    | x    |
 
 ## Profile
 

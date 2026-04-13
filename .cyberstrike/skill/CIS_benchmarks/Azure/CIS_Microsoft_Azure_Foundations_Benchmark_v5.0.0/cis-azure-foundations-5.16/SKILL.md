@@ -33,6 +33,7 @@ With the option of `Only users assigned to specific admin roles can invite guest
 ## Audit Procedure
 
 This setting has 4 levels of restriction:
+
 - Anyone in the organization can invite guest users including guests and non-admins (most inclusive),
 - Member users and users assigned to specific admin roles can invite guest users including guests with member permissions,
 - Only users assigned to specific admin roles can invite guest users,
@@ -98,11 +99,11 @@ By default, `Guest invite restrictions` is set to `Anyone in the organization ca
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.1 Establish an Access Granting Process | x | x | x |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 16.2 Configure Centralized Point of Authentication | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.1 Establish an Access Granting Process           | x    | x    | x    |
+| v8               | 6.8 Define and Maintain Role-Based Access Control  |      |      | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | x    | x    |
 
 ## Profile
 

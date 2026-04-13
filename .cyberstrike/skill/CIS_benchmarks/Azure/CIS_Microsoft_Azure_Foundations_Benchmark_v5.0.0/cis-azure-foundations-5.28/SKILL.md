@@ -21,6 +21,7 @@ severity_boost: {}
 Passwordless authentication methods improve security and user experience by replacing passwords with something you have (e.g., a hardware key), something you are (biometrics), or something you know, offering a convenient and secure way to access resources.
 
 Microsoft Entra ID and Azure Government integrate the following passwordless authentication options:
+
 - Windows Hello for Business
 - Platform Credential for macOS
 - Platform single sign-on (PSSO) for macOS with smart card authentication
@@ -68,10 +69,10 @@ Passwordless authentication is not enabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.5 Require MFA for Administrative Access | x | x | x |
-| v7 | 16.3 Require Multi-factor Authentication | | x | x |
+| Controls Version | Control                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.5 Require MFA for Administrative Access | x    | x    | x    |
+| v7               | 16.3 Require Multi-factor Authentication  |      | x    | x    |
 
 ## Profile
 

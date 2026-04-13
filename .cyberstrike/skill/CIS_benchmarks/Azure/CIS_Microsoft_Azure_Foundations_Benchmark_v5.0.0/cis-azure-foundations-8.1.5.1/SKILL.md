@@ -31,6 +31,7 @@ Turning on Microsoft Defender for Storage incurs an additional cost per resource
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -38,18 +39,23 @@ Turning on Microsoft Defender for Storage incurs an additional cost per resource
 5. Ensure `Status` is set to `On` for `Storage`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n StorageAccounts
 ```
+
 Ensure the output is `Standard`.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'StorageAccounts' | Select-Object Name,PricingTier
 ```
+
 Ensure output for `Name PricingTier` is `StorageAccounts Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `640d2586-54d2-465f-877f-9ffc1d2109f4` - Name: 'Microsoft Defender for Storage should be enabled'
 
 ## Expected Result
@@ -59,6 +65,7 @@ The pricing tier for StorageAccounts should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -67,11 +74,13 @@ The pricing tier for StorageAccounts should be `Standard`.
 6. Select `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n StorageAccounts --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name 'StorageAccounts' -PricingTier 'Standard'
 ```

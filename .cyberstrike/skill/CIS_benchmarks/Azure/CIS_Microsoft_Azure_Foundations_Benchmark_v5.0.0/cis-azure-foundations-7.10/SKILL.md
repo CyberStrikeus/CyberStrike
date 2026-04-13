@@ -9,7 +9,8 @@ cis_id: "7.10"
 cis_benchmark: "CIS Microsoft Azure Foundations Benchmark v5.0.0"
 tech_stack: [azure]
 cwe_ids: []
-chains_with: [cis-azure-foundations-7.12, cis-azure-foundations-7.13, cis-azure-foundations-7.14, cis-azure-foundations-7.15]
+chains_with:
+  [cis-azure-foundations-7.12, cis-azure-foundations-7.13, cis-azure-foundations-7.14, cis-azure-foundations-7.15]
 prerequisites: []
 severity_boost: {}
 ---
@@ -93,16 +94,16 @@ Azure Web Application Firewall is enabled by default for the `WAF V2` tier of Az
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 13.10 Perform Application Layer Filtering | | | x |
-| v7 | 12.9 Deploy Application Layer Filtering Proxy Server | | | x |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering            |      |      | x    |
+| v7               | 12.9 Deploy Application Layer Filtering Proxy Server |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| T1190 | TA0001 | M1030 |
+| T1190                       | TA0001  | M1030       |
 
 ## Profile
 

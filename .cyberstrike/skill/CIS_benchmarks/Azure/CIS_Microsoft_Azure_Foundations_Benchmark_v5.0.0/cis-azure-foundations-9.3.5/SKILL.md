@@ -18,7 +18,7 @@ severity_boost: {}
 
 ## Description
 
-*NOTE:* This recommendation assumes that the `Public network access` parameter is set to `Enabled from selected virtual networks and IP addresses`. Please ensure the prerequisite recommendation has been implemented before proceeding:
+_NOTE:_ This recommendation assumes that the `Public network access` parameter is set to `Enabled from selected virtual networks and IP addresses`. Please ensure the prerequisite recommendation has been implemented before proceeding:
 
 - Ensure Default Network Access Rule for Storage Accounts is Set to Deny
 

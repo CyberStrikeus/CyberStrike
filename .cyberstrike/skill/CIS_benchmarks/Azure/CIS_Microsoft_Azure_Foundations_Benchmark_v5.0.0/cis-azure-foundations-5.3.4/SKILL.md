@@ -62,10 +62,10 @@ Privileged role assignments are not automatically reviewed.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts |      | x    | x    |
 
 ## Profile
 

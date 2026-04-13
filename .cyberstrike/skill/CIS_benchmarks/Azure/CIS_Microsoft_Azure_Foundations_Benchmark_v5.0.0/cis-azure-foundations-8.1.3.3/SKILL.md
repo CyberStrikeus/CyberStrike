@@ -31,6 +31,7 @@ Endpoint protection requires licensing and is included in Defender for Servers p
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. From Azure Home select the Portal Menu.
 2. Select `Microsoft Defender for Cloud`.
 3. Under `Management`, select `Environment Settings`.
@@ -39,11 +40,13 @@ Endpoint protection requires licensing and is included in Defender for Servers p
 6. Ensure the `Status` for `Endpoint protection` is set to `On`.
 
 **From PowerShell:**
+
 ```
 Connect-AzAccount
 Set-AzContext -Subscription <subscriptionID>
 Get-AzSecuritySetting | Select-Object name,enabled | where-object {$_.name -eq "WDATP"}
 ```
+
 Compliant output: `WDATP  True`
 
 ## Expected Result
@@ -53,6 +56,7 @@ The WDATP setting should show `Enabled: True`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. From Azure Home select the Portal Menu.
 2. Go to `Microsoft Defender for Cloud`.
 3. Under `Management`, select `Environment Settings`.

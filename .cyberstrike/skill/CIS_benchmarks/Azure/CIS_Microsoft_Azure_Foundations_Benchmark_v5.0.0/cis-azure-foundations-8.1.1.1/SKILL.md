@@ -31,6 +31,7 @@ Enabling Microsoft Defender CSPM incurs hourly charges for each billable compute
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -38,18 +39,23 @@ Enabling Microsoft Defender CSPM incurs hourly charges for each billable compute
 5. Under `Cloud Security Posture Management (CSPM)`, in the row for `Defender CSPM`, ensure `Status` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show --name CloudPosture --query pricingTier
 ```
+
 Ensure `"Standard"` is returned.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name CloudPosture | Select-Object PricingTier
 ```
+
 Ensure `Standard` is returned.
 
 **From Azure Policy:**
+
 - Policy ID: `1f90fc71-a595-4066-8974-d4d0802e8ef0` - Name: 'Microsoft Defender CSPM should be enabled'
 
 ## Expected Result
@@ -59,6 +65,7 @@ The pricing tier for CloudPosture should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -67,11 +74,13 @@ The pricing tier for CloudPosture should be `Standard`.
 6. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create --name CloudPosture --tier Standard --extensions name=ApiPosture isEnabled=true
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name CloudPosture -PricingTier Standard -Extension '[{"name":"ApiPosture","isEnabled":"True"}]'
 ```

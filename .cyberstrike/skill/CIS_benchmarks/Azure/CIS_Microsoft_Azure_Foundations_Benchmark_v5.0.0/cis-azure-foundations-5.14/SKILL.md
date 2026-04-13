@@ -82,12 +82,12 @@ By default, `Users can register applications` is set to "Yes".
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.3 Address Unauthorized Software | x | x | x |
-| v8 | 2.4 Utilize Automated Software Inventory Tools | | x | x |
-| v8 | 6.7 Centralize Access Control | | x | x |
-| v7 | 2.6 Address unapproved software | x | x | x |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.3 Address Unauthorized Software              | x    | x    | x    |
+| v8               | 2.4 Utilize Automated Software Inventory Tools |      | x    | x    |
+| v8               | 6.7 Centralize Access Control                  |      | x    | x    |
+| v7               | 2.6 Address unapproved software                | x    | x    | x    |
 
 ## Profile
 

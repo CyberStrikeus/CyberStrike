@@ -31,28 +31,35 @@ Setting expiration dates on keys requires organizations to implement key rotatio
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. For each Key Vault with RBAC authorization enabled, click the vault name.
 3. Under `Objects`, click `Keys`.
 4. For each key, verify that the `Expiration date` column shows a date (not blank or 'Not set').
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[?properties.enableRbacAuthorization==\`true\`].name" -o tsv
 ```
+
 For each RBAC-enabled Key Vault:
+
 ```
 az keyvault key list --vault-name {vaultName} --query "[].{Name:name, Expires:attributes.expires}" -o table
 ```
+
 Ensure `Expires` is set for all keys.
 
 **From PowerShell:**
+
 ```
 $vaults = Get-AzKeyVault | Where-Object { $_.EnableRbacAuthorization -eq $true }
 foreach ($vault in $vaults) {
     Get-AzKeyVaultKey -VaultName $vault.VaultName | Select-Object Name, Expires
 }
 ```
+
 Ensure `Expires` is populated for all keys.
 
 ## Expected Result
@@ -62,6 +69,7 @@ All keys in RBAC-enabled Key Vaults should have an expiration date set.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Objects`, click `Keys`.
@@ -71,11 +79,13 @@ All keys in RBAC-enabled Key Vaults should have an expiration date set.
 7. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az keyvault key set-attributes --vault-name {vaultName} --name {keyName} --expires "2025-12-31T23:59:59Z"
 ```
 
 **From PowerShell:**
+
 ```
 $expires = (Get-Date).AddYears(1).ToUniversalTime()
 Update-AzKeyVaultKey -VaultName {vaultName} -Name {keyName} -Expires $expires

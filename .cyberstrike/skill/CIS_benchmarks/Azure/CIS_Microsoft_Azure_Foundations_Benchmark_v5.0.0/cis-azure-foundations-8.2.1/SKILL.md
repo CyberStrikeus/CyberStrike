@@ -31,25 +31,31 @@ Enabling Microsoft Sentinel incurs costs based on the volume of data ingested in
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Sentinel`.
 2. Verify that at least one workspace is listed with Microsoft Sentinel enabled.
 3. Click the workspace to verify it is actively collecting data.
 
 **From Azure CLI:**
+
 ```
 az sentinel workspace list --query "[].{Name:name, ResourceGroup:resourceGroup}" -o table
 ```
+
 If no results are returned, Sentinel is not enabled on any workspace.
 
 Alternatively, check if the SecurityInsights solution is installed on a Log Analytics workspace:
+
 ```
 az monitor log-analytics solution list --resource-group {resourceGroup} --query "[?plan.product=='OMSGallery/SecurityInsights'].{Name:name, Workspace:properties.workspaceResourceId}"
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzSentinelOnboardingState -ResourceGroupName {resourceGroup} -WorkspaceName {workspaceName}
 ```
+
 Ensure the onboarding state indicates Sentinel is enabled.
 
 ## Expected Result
@@ -59,6 +65,7 @@ At least one Log Analytics workspace should have Microsoft Sentinel enabled and 
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Sentinel`.
 2. Click `Create Microsoft Sentinel`.
 3. Select an existing Log Analytics workspace or create a new one.
@@ -66,11 +73,13 @@ At least one Log Analytics workspace should have Microsoft Sentinel enabled and 
 5. Configure data connectors to begin collecting security logs.
 
 **From Azure CLI:**
+
 ```
 az sentinel onboarding-state create --resource-group {resourceGroup} --workspace-name {workspaceName} --name "default"
 ```
 
 **From PowerShell:**
+
 ```
 New-AzSentinelOnboardingState -ResourceGroupName {resourceGroup} -WorkspaceName {workspaceName} -Name "default"
 ```

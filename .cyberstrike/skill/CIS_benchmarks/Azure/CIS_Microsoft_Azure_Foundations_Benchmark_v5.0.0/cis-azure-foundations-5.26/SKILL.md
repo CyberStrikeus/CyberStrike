@@ -57,11 +57,13 @@ Between 2 and 4 users (inclusive) should be actively assigned the Global Adminis
 4. Under `Administrative Roles`, select `Global Administrator`
 
 If more than 4 users are assigned:
+
 1. Remove Global Administrator role for users which do not or no longer require the role.
 2. Assign Global Administrator role via PIM which can be activated when required.
 3. Assign more granular roles to users to conduct their duties.
 
 If only one user is assigned:
+
 1. Provide the Global Administrator role to a trusted user or create a break glass admin account.
 
 ## Default Value
@@ -77,10 +79,10 @@ By default, there is one Global Administrator assigned during tenant creation.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.1 Establish and Maintain an Inventory of Accounts | x | x | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.1 Establish and Maintain an Inventory of Accounts | x    | x    | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts   |      | x    | x    |
 
 ## Profile
 

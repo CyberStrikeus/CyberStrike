@@ -106,10 +106,10 @@ If your tenant was created on or after October 22, 2019, security defaults may a
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
+| v7               | 5.1 Establish Secure Configurations                       | x    | x    | x    |
 
 ## Profile
 
