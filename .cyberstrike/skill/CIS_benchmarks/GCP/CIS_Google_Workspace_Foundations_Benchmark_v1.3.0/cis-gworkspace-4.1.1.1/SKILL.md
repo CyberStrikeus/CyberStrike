@@ -78,7 +78,7 @@ To verify this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.5 Require MFA for Administrative Access | x | x | x |
-| v7 | 4.5 Use Multifactor Authentication For All Administrative Access | | x | x |
+| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.5 Require MFA for Administrative Access                        | x    | x    | x    |
+| v7               | 4.5 Use Multifactor Authentication For All Administrative Access |      | x    | x    |

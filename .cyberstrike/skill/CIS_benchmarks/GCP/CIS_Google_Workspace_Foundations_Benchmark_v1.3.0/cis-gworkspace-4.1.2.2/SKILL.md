@@ -24,7 +24,7 @@ severity_boost: {}
 
 This option allows non-Super Admin users to recover access to their accounts if their password has been forgotten.
 
-The option is not available if either *Single Sign On* or *Password Sync* is in use.
+The option is not available if either _Single Sign On_ or _Password Sync_ is in use.
 
 ## Rationale
 

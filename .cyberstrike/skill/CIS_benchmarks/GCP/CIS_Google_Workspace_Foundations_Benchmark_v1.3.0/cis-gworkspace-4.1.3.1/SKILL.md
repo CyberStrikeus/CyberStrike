@@ -92,7 +92,7 @@ To verify this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.3 Require MFA for Externally-Exposed Applications | | x | x |
-| v7 | 16.3 Require Multi-factor Authentication | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.3 Require MFA for Externally-Exposed Applications |      | x    | x    |
+| v7               | 16.3 Require Multi-factor Authentication            |      | x    | x    |

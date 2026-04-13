@@ -18,13 +18,13 @@ severity_boost: {}
 
 ## Overview
 
-| Property | Value |
-|---|---|
-| **CIS ID** | 3.1.3.1.2 |
-| **Level** | L1 |
-| **Profile Applicability** | Enterprise Level 1 |
-| **Assessment Type** | Manual |
-| **Section** | Gmail > User Settings |
+| Property                  | Value                 |
+| ------------------------- | --------------------- |
+| **CIS ID**                | 3.1.3.1.2             |
+| **Level**                 | L1                    |
+| **Profile Applicability** | Enterprise Level 1    |
+| **Assessment Type**       | Manual                |
+| **Section**               | Gmail > User Settings |
 
 ## Description
 
@@ -67,7 +67,7 @@ To configure this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | x    | x    |

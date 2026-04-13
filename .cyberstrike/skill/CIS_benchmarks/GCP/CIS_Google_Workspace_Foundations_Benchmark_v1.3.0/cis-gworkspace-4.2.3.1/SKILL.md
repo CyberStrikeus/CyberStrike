@@ -95,7 +95,7 @@ No DLP policies for Google Drive are configured by default
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.13 Deploy a Data Loss Prevention Solution | | | x |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools | | | x |
+| Controls Version | Control                                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.13 Deploy a Data Loss Prevention Solution                 |      |      | x    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools |      |      | x    |

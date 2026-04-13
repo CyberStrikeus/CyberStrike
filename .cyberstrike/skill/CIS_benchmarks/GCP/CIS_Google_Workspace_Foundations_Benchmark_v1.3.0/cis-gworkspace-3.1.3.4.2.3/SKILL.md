@@ -18,13 +18,13 @@ severity_boost: {}
 
 ## Overview
 
-| Property | Value |
-|---|---|
-| **CIS ID** | 3.1.3.4.2.3 |
-| **Level** | L1 |
-| **Profile Applicability** | Enterprise Level 1 |
-| **Assessment Type** | Manual |
-| **Section** | Gmail > Safety > Links and external images |
+| Property                  | Value                                      |
+| ------------------------- | ------------------------------------------ |
+| **CIS ID**                | 3.1.3.4.2.3                                |
+| **Level**                 | L1                                         |
+| **Profile Applicability** | Enterprise Level 1                         |
+| **Assessment Type**       | Manual                                     |
+| **Section**               | Gmail > Safety > Links and external images |
 
 ## Description
 
@@ -65,7 +65,7 @@ To configure this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | x | x |
-| v7 | 7.4 Maintain and Enforce Network-Based URL Filters | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters |      | x    | x    |
+| v7               | 7.4 Maintain and Enforce Network-Based URL Filters |      | x    | x    |

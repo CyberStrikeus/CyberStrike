@@ -18,13 +18,13 @@ severity_boost: {}
 
 ## Overview
 
-| Property | Value |
-|---|---|
-| **CIS ID** | 3.1.3.3.1 |
-| **Level** | L1 |
-| **Profile Applicability** | Enterprise Level 1 |
-| **Assessment Type** | Manual |
-| **Section** | Gmail > Manage Quarantines |
+| Property                  | Value                      |
+| ------------------------- | -------------------------- |
+| **CIS ID**                | 3.1.3.3.1                  |
+| **Level**                 | L1                         |
+| **Profile Applicability** | Enterprise Level 1         |
+| **Assessment Type**       | Manual                     |
+| **Section**               | Gmail > Manage Quarantines |
 
 ## Description
 
