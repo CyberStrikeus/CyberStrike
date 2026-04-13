@@ -49,10 +49,10 @@ Run the following command to remount `/var`:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.3 Address Unauthorized Software - Ensure that unauthorized software is either removed from use on enterprise assets or receives a documented exception. Review monthly, or more frequently. | x | x | x |
-| v7 | 2.6 Address unapproved software - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.3 Address Unauthorized Software - Ensure that unauthorized software is either removed from use on enterprise assets or receives a documented exception. Review monthly, or more frequently. | x    | x    | x    |
+| v7               | 2.6 Address unapproved software - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner.                                                         | x    | x    | x    |
 
 ## Profile
 

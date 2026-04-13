@@ -56,10 +56,10 @@ Ensure your system supports the XD or NX bit and has PAE support before implemen
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | x | x |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features/Deploy Anti-Exploit Technologies | | x | x |
+| Controls Version | Control                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features                                                  |      | x    | x    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features/Deploy Anti-Exploit Technologies |      | x    | x    |
 
 ## Profile
 

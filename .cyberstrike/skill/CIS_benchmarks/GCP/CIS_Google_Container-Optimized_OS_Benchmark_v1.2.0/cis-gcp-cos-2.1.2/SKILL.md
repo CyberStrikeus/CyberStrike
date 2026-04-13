@@ -46,10 +46,10 @@ An OS image update that does not include X Window System is required.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **2.3 Address Unauthorized Software** - Ensure that unauthorized software is either removed from use on enterprise assets or receives a documented exception. Review monthly, or more frequently. | X | X | X |
-| v7 | **2.6 Address unapproved software** - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner | X | X | X |
+| Controls Version | Control                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **2.3 Address Unauthorized Software** - Ensure that unauthorized software is either removed from use on enterprise assets or receives a documented exception. Review monthly, or more frequently. | X    | X    | X    |
+| v7               | **2.6 Address unapproved software** - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner                                                          | X    | X    | X    |
 
 ## Profile
 

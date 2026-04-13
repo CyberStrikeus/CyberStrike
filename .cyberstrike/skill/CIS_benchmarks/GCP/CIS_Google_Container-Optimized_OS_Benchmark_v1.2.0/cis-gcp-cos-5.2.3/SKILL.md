@@ -62,10 +62,10 @@ This command assumes a system UID split at 500. Some distributions split at `UID
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | **3.11 Encrypt Sensitive Data at Rest** - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. | | x | x |
-| v7 | **16.4 Encrypt or Hash all Authentication Credentials** - Encrypt or hash with a salt all authentication credentials when stored. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | **3.11 Encrypt Sensitive Data at Rest** - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. |      | x    | x    |
+| v7               | **16.4 Encrypt or Hash all Authentication Credentials** - Encrypt or hash with a salt all authentication credentials when stored.                                                                                                                            |      | x    | x    |
 
 ## Profile
 

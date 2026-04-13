@@ -56,10 +56,10 @@ usePAM yes
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 5.1 Establish Secure Configurations               | x    | x    | x    |
 
 ## Profile
 

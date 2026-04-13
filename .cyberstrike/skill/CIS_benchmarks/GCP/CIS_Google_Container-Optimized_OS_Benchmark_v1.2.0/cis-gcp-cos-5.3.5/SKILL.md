@@ -56,10 +56,10 @@ Ensure that the timeout conforms to your local policy.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | **4.3 Configure Automatic Session Locking on Enterprise Assets** - Configure automatic session locking on enterprise assets after a defined period of inactivity. For general purpose operating systems, the period must not exceed 15 minutes. For mobile end-user devices, the period must not exceed 2 minutes. | x | x | x |
-| v7 | **16.11 Lock Workstation Sessions After Inactivity** - Automatically lock workstation sessions after a standard period of inactivity. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | **4.3 Configure Automatic Session Locking on Enterprise Assets** - Configure automatic session locking on enterprise assets after a defined period of inactivity. For general purpose operating systems, the period must not exceed 15 minutes. For mobile end-user devices, the period must not exceed 2 minutes. | x    | x    | x    |
+| v7               | **16.11 Lock Workstation Sessions After Inactivity** - Automatically lock workstation sessions after a standard period of inactivity.                                                                                                                                                                              | x    | x    | x    |
 
 ## Profile
 
