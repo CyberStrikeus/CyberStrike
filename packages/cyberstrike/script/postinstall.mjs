@@ -133,6 +133,22 @@ function installWebUI() {
   console.log(`Web UI installed to ${webDest}`)
 }
 
+function installSkills() {
+  const skillSrc = path.join(__dirname, "skill")
+  if (!fs.existsSync(skillSrc)) return
+
+  const dataDir = path.join(xdgDataDir(), "cyberstrike")
+  const skillDest = path.join(dataDir, "skill")
+
+  // Remove old skills before copying
+  if (fs.existsSync(skillDest)) {
+    fs.rmSync(skillDest, { recursive: true, force: true })
+  }
+
+  copyDirSync(skillSrc, skillDest)
+  console.log(`Skills installed to ${skillDest}`)
+}
+
 async function main() {
   try {
     if (os.platform() === "win32") {
@@ -140,6 +156,7 @@ async function main() {
       // No postinstall setup needed
       console.log("Windows detected: binary setup not needed (using packaged .exe)")
       installWebUI()
+      installSkills()
       return
     }
 
@@ -150,6 +167,7 @@ async function main() {
     console.log("Wrapper script will handle binary execution")
 
     installWebUI()
+    installSkills()
   } catch (error) {
     console.error("Failed to setup cyberstrike binary:", error.message)
     process.exit(1)

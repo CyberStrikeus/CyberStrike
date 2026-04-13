@@ -206,6 +206,21 @@ export namespace Skill {
           await addSkill(match)
         }
       }
+
+      // Installed skills: XDG data dir (npm postinstall copies skills here)
+      // This is the fallback for compiled binaries where import.meta.dir
+      // resolves to bunfs and can't find skills on the filesystem.
+      const installedDir = path.join(Global.Path.data, "skill")
+      if (await Filesystem.isDir(installedDir)) {
+        for await (const match of SKILL_GLOB.scan({
+          cwd: installedDir,
+          absolute: true,
+          onlyFiles: true,
+          followSymlinks: true,
+        })) {
+          await addSkill(match)
+        }
+      }
     }
 
     // Scan additional skill paths from config
