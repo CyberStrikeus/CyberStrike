@@ -41,6 +41,17 @@ if (await Bun.file(`${webDistPath}/index.html`).exists()) {
   console.warn("Warning: Web UI dist not found — npm package will not include web UI")
 }
 
+// Bundle built-in skills
+const skillSrcPath = "../../.cyberstrike/skill"
+const skillDestPath = `./${distDir}/skill`
+const { existsSync } = await import("fs")
+if (existsSync(skillSrcPath)) {
+  await $`cp -r ${skillSrcPath} ${skillDestPath}`
+  console.log("Bundled skills into npm package")
+} else {
+  console.warn("Warning: Skills not found — npm package will not include built-in skills")
+}
+
 await Bun.file(`./${distDir}/package.json`).write(
   JSON.stringify(
     {
