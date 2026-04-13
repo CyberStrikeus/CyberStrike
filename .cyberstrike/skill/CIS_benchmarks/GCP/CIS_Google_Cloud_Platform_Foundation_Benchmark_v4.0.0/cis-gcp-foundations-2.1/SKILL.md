@@ -105,10 +105,10 @@ Note: Admin Activity Logs are enabled by default, and cannot be disabled. So the
 
 ```yaml
 auditConfigs:
-- auditLogConfigs:
-  - logType: DATA_WRITE
-  - logType: DATA_READ
-  service: allServices
+  - auditLogConfigs:
+      - logType: DATA_WRITE
+      - logType: DATA_READ
+    service: allServices
 ```
 
 Note: `exemptedMembers:` is not set as audit logging should be enabled for all the users.
@@ -139,12 +139,12 @@ Admin Activity logs are always enabled. They cannot be disabled. Data Access aud
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
-| v7 | 6.7 Regularly Review Logs | | x | x |
+| Controls Version | Control                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------ | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs         | x    | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews |      | x    | x    |
+| v7               | 6.2 Activate audit logging     | x    | x    | x    |
+| v7               | 6.7 Regularly Review Logs      |      | x    | x    |
 
 ## Profile
 

@@ -109,7 +109,7 @@ A user-managed key cannot be created on GCP-Managed Service Accounts.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 0.0 Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped |      |      |      |

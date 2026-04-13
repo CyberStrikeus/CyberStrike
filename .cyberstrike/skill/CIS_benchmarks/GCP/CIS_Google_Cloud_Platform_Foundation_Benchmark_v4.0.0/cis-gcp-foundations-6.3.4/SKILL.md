@@ -112,7 +112,7 @@ Note: Configuring the above flag does not restart the Cloud SQL instance.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | X | X | X |
-| v7 | 5.1 Establish Secure Configurations | X | X | X |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | X    | X    | X    |
+| v7               | 5.1 Establish Secure Configurations                       | X    | X    | X    |
