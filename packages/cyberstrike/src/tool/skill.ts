@@ -25,31 +25,17 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     accessibleSkills.length === 0
       ? "Manage and load specialized skills. No skills are currently available."
       : [
-          "Manage and load specialized offensive security skills with context-efficient lazy loading.",
+          "Manage and load specialized security skills with context-efficient lazy loading.",
           "",
           "Actions:",
-          "  load    - Load a skill into context (default action)",
+          "  load    - Load a skill into context (requires skill name)",
           "  unload  - Remove a skill from context to free tokens",
           "  search  - Search skills by keyword, tech stack, CWE, or category",
           "  chain   - Analyze current findings for kill chain opportunities",
           "  suggest - Get next-step skill suggestions based on findings",
-          "  list    - Show currently loaded skills and token usage",
+          "  list    - Show all available skills or currently loaded skills",
           "",
-          "<available_skills>",
-          ...accessibleSkills.flatMap((skill) => [
-            `  <skill>`,
-            `    <name>${skill.name}</name>`,
-            `    <description>${skill.description}</description>`,
-            `    <verified>${skill.verified ?? "unverified"}</verified>`,
-            ...(skill.category ? [`    <category>${skill.category}</category>`] : []),
-            ...(skill.owasp_id ? [`    <owasp_id>${skill.owasp_id}</owasp_id>`] : []),
-            ...(skill.tech_stack?.length ? [`    <tech_stack>${skill.tech_stack.join(", ")}</tech_stack>`] : []),
-            ...(skill.cwe_ids?.length ? [`    <cwe_ids>${skill.cwe_ids.join(", ")}</cwe_ids>`] : []),
-            ...(skill.chains_with?.length ? [`    <chains_with>${skill.chains_with.join(", ")}</chains_with>`] : []),
-            `    <location>${pathToFileURL(skill.location).href}</location>`,
-            `  </skill>`,
-          ]),
-          "</available_skills>",
+          `${accessibleSkills.length} skills available. Use "search" or "list" action to discover them.`,
         ].join("\n")
 
   const parameters = z.object({
@@ -62,6 +48,7 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     tech: z.array(z.string()).optional().describe("Tech stack filter (for search action)"),
     cwe: z.string().optional().describe("CWE ID filter (for search action)"),
     category: z.string().optional().describe("Category filter (for search action)"),
+    loaded: z.boolean().optional().describe("For list action: only show currently loaded skills"),
     findings: z
       .array(
         z.object({
@@ -82,19 +69,36 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       await SkillIndex.rebuild()
 
       if (params.action === "list") {
-        const active = SkillContext.active()
-        const tokens = SkillContext.tokenCount()
-        if (active.length === 0)
+        if (params.loaded) {
+          const active = SkillContext.active()
+          const tokens = SkillContext.tokenCount()
+          if (active.length === 0)
+            return {
+              title: "No skills loaded",
+              output: "No skills are currently loaded in context.",
+              metadata: {} as { name?: string; dir?: string },
+            }
           return {
-            title: "No skills loaded",
-            output: "No skills are currently loaded in context.",
+            title: `${active.length} skills loaded (${tokens} tokens)`,
+            output: [`## Skills in Context (${tokens} estimated tokens)`, "", ...active.map((name) => `- ${name}`)].join(
+              "\n",
+            ),
             metadata: {} as { name?: string; dir?: string },
           }
+        }
+        const all = accessibleSkills
         return {
-          title: `${active.length} skills loaded (${tokens} tokens)`,
-          output: [`## Skills in Context (${tokens} estimated tokens)`, "", ...active.map((name) => `- ${name}`)].join(
-            "\n",
-          ),
+          title: `${all.length} skills available`,
+          output: [
+            `## Available Skills (${all.length})`,
+            "",
+            ...all.map(
+              (s) =>
+                `- **${s.name}** [${s.verified ?? "unverified"}] — ${s.description}` +
+                (s.category ? ` (${s.category})` : "") +
+                (s.tech_stack?.length ? ` [${s.tech_stack.join(", ")}]` : ""),
+            ),
+          ].join("\n"),
           metadata: {} as { name?: string; dir?: string },
         }
       }

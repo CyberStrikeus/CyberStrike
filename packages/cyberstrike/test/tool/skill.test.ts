@@ -18,7 +18,7 @@ const baseCtx: Omit<Tool.Context, "ask"> = {
 }
 
 describe("tool.skill", () => {
-  test("description lists skill location URL", async () => {
+  test("description shows skill count", async () => {
     await using tmp = await tmpdir({
       git: true,
       init: async (dir) => {
@@ -44,8 +44,8 @@ description: Skill for tool tests.
         directory: tmp.path,
         fn: async () => {
           const tool = await SkillTool.init()
-          const skillPath = path.join(tmp.path, ".cyberstrike", "skill", "tool-skill", "SKILL.md")
-          expect(tool.description).toContain(`<location>${pathToFileURL(skillPath).href}</location>`)
+          expect(tool.description).toContain("skills available")
+          expect(tool.description).toContain("search")
         },
       })
     } finally {
