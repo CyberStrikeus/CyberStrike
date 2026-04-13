@@ -187,9 +187,9 @@ OS Patch Management is not enabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.3 Perform Automated Operating System Patch Management | X | X | X |
-| v8 | 7.4 Perform Automated Application Patch Management | X | X | X |
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools | X | X | X |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools | X | X | X |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.3 Perform Automated Operating System Patch Management      | X    | X    | X    |
+| v8               | 7.4 Perform Automated Application Patch Management           | X    | X    | X    |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools | X    | X    | X    |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools         | X    | X    | X    |

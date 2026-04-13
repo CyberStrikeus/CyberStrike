@@ -60,13 +60,13 @@ gcloud dns managed-zones update ZONE_NAME --dnssec-state on --ksk-algorithm KSK_
 
 Supported algorithm options and key lengths are as follows:
 
-| Algorithm | KSK Length | ZSK Length |
-|-----------|-----------|-----------|
-| RSASHA1 | 1024,2048 | 1024,2048 |
-| RSASHA256 | 1024,2048 | 1024,2048 |
-| RSASHA512 | 1024,2048 | 1024,2048 |
-| ECDSAP256SHA256 | 256 | 256 |
-| ECDSAP384SHA384 | 384 | 384 |
+| Algorithm       | KSK Length | ZSK Length |
+| --------------- | ---------- | ---------- |
+| RSASHA1         | 1024,2048  | 1024,2048  |
+| RSASHA256       | 1024,2048  | 1024,2048  |
+| RSASHA512       | 1024,2048  | 1024,2048  |
+| ECDSAP256SHA256 | 256        | 256        |
+| ECDSAP384SHA384 | 384        | 384        |
 
 ## References
 
@@ -79,7 +79,7 @@ Supported algorithm options and key lengths are as follows:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | x | x | x |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | x | x |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | x    | x    | x    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices                   |      | x    | x    |

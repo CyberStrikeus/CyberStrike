@@ -73,7 +73,7 @@ All API keys should have a `createTime` within the last 90 days, indicating they
 4. Click `Save`.
 5. Repeat steps 2,3,4 for every API key that has not been rotated in the last 90 days.
 
-Note: Do not set `HTTP referrers` to wild-cards (* or *.[TLD] or .[TLD]/) allowing access to any/wide HTTP referrer(s). Do not set `IP addresses` and referrer to `any host (0.0.0.0 or 0.0.0.0/0 or ::0)`.
+Note: Do not set `HTTP referrers` to wild-cards (_ or _.[TLD] or .[TLD]/) allowing access to any/wide HTTP referrer(s). Do not set `IP addresses` and referrer to `any host (0.0.0.0 or 0.0.0.0/0 or ::0)`.
 
 ### From Google Cloud CLI
 
@@ -124,7 +124,7 @@ There is no option to automatically regenerate (rotate) API keys periodically.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.10 Apply Secure Design Principles in Application Architectures | | x | x |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.10 Apply Secure Design Principles in Application Architectures |      | x    | x    |
+| v7               | 0.0 Explicitly Not Mapped                                         |      |      |      |

@@ -200,7 +200,7 @@ By default Secret Manager is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.10 Apply Secure Design Principles in Application Architectures | | x | x |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.10 Apply Secure Design Principles in Application Architectures |      | x    | x    |
+| v7               | 0.0 Explicitly Not Mapped                                         |      |      |      |

@@ -109,7 +109,7 @@ By default, connecting to serial ports is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | X | X |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | X | X |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | X    | X    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | X    | X    |

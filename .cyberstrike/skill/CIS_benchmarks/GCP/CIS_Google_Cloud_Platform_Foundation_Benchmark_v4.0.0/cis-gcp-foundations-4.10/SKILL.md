@@ -38,10 +38,10 @@ Verify that the app.yaml file controlling the application contains a line which 
 
 ```yaml
 handlers:
-- url: /.*
-  secure: always
-  redirect_http_response_code: 301
-  script: auto
+  - url: /.*
+    secure: always
+    redirect_http_response_code: 301
+    script: auto
 ```
 
 Reference: https://cloud.google.com/appengine/docs/standard/python3/config/appref
@@ -71,8 +71,8 @@ By default both HTTP and HTTP are supported.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | X | X |
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | X | X |
-| v7 | 18.5 Use Only Standardized and Extensively Reviewed Encryption Algorithms | | X | X |
+| Controls Version | Control                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit                                        |      | X    | X    |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components |      | X    | X    |
+| v7               | 18.5 Use Only Standardized and Extensively Reviewed Encryption Algorithms     |      | X    | X    |
