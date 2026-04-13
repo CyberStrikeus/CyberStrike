@@ -288,6 +288,14 @@ export namespace Agent {
         native: true,
         color: "cyan",
         prompt: PROMPT_CLOUD_SECURITY,
+        skills: [
+          "cis-aws-foundations-2.1.1",
+          "cis-aws-foundations-2.2",
+          "cis-aws-foundations-3.1.1",
+          "cis-aws-foundations-4.1",
+          "cis-aws-foundations-5.1",
+          "cis-aws-foundations-6.2",
+        ],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
