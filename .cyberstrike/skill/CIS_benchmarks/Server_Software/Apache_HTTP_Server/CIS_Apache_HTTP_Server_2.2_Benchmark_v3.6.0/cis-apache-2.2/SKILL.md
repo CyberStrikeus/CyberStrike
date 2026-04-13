@@ -70,15 +70,15 @@ The module is loaded by default.
 Version 6
 
 6.2 Ensure Audit Log Settings Support Appropriate Log Entry Formatting
-    Validate audit log settings for each hardware device and the software installed on it, ensuring that logs include a date, timestamp, source addresses, destination addresses, and various other useful elements of each packet and/or transaction. Systems should record logs in a standardized format such as syslog entries or those outlined by the Common Event Expression initiative. If systems cannot generate logs in a standardized format, log normalization tools can be deployed to convert logs into such a format.
+Validate audit log settings for each hardware device and the software installed on it, ensuring that logs include a date, timestamp, source addresses, destination addresses, and various other useful elements of each packet and/or transaction. Systems should record logs in a standardized format such as syslog entries or those outlined by the Common Event Expression initiative. If systems cannot generate logs in a standardized format, log normalization tools can be deployed to convert logs into such a format.
 
 Version 7
 
 6.2 Activate audit logging
-    Ensure that local logging has been enabled on all systems and networking devices.
+Ensure that local logging has been enabled on all systems and networking devices.
 
 6.3 Enable Detailed Logging
-    Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.
+Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.
 
 ## Profile
 
