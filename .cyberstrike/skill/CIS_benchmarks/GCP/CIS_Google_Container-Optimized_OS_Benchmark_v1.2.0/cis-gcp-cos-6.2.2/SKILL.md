@@ -1,6 +1,6 @@
 ---
 name: cis-gcp-cos-6.2.2
-description: "Ensure no legacy \"+\" entries exist in /etc/passwd"
+description: 'Ensure no legacy "+" entries exist in /etc/passwd'
 category: cis-gcp-cos
 version: "1.2.0"
 author: cyberstrike-official
@@ -42,10 +42,10 @@ Remove any legacy '+' entries from `/etc/passwd` if they exist.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 5.6 Centralize Account Management | | x | x |
-| v7 | 16.2 Configure Centralized Point of Authentication | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.6 Centralize Account Management                  |      | x    | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | x    | x    |
 
 ## Profile
 

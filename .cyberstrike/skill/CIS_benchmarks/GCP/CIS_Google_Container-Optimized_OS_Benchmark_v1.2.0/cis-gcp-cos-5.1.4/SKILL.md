@@ -52,12 +52,12 @@ This command no longer exists in newer versions of SSH. This check is still bein
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | x | x | x |
-| v7 | 4.5 Use Multifactor Authentication For All Administrative Access | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit                           |      | x    | x    |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software               | x    | x    | x    |
+| v7               | 4.5 Use Multifactor Authentication For All Administrative Access |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit                |      | x    | x    |
 
 ## Profile
 

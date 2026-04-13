@@ -51,11 +51,11 @@ The prelinking feature can interfere with AIDE because it alters binaries to spe
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.14 Log Sensitive Data Access | | | x |
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | x |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.14 Log Sensitive Data Access                                      |      |      | x    |
+| v8               | 8.5 Collect Detailed Audit Logs                                     |      | x    | x    |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | x    |
 
 ## Profile
 

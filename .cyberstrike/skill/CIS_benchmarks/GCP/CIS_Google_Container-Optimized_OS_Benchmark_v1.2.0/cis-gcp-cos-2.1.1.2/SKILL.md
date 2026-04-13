@@ -61,10 +61,10 @@ Update to an OS image that has the correct chrony configuration.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **8.4 Standardize Time Synchronization** - Standardize time synchronization. Configure at least two synchronized time sources across enterprise assets, where supported. | | X | X |
-| v7 | **6.1 Utilize Three Synchronized Time Sources** - Use at least three synchronized time sources from which all servers and network devices retrieve time information on a regular basis so that timestamps in logs are consistent. | | X | X |
+| Controls Version | Control                                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **8.4 Standardize Time Synchronization** - Standardize time synchronization. Configure at least two synchronized time sources across enterprise assets, where supported.                                                          |      | X    | X    |
+| v7               | **6.1 Utilize Three Synchronized Time Sources** - Use at least three synchronized time sources from which all servers and network devices retrieve time information on a regular basis so that timestamps in logs are consistent. |      | X    | X    |
 
 ## Profile
 
