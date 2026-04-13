@@ -4,7 +4,8 @@ description: "Ensure 'Cross Region Restore' is set to 'Enabled' on Recovery Serv
 category: cis-azure-storage
 version: "1.0.0"
 author: cyberstrike-official
-tags: [cis, azure, storage, recovery-services, backup, cross-region-restore, disaster-recovery, geo-redundancy, resilience]
+tags:
+  [cis, azure, storage, recovery-services, backup, cross-region-restore, disaster-recovery, geo-redundancy, resilience]
 cis_id: "5.2.6"
 cis_benchmark: "CIS Microsoft Azure Storage Services Benchmark v1.0.0"
 tech_stack: [azure]
@@ -138,10 +139,10 @@ Cross region restore is disabled by default on Recovery Services vaults.
 
 ### CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process - Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | X | X | X |
-| v7 | 10.4 Ensure Protection of Backups - Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services. | X | X | X |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process - Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | X    | X    | X    |
+| v7               | 10.4 Ensure Protection of Backups - Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services.                                                                                                            | X    | X    | X    |
 
 ## Profile
 

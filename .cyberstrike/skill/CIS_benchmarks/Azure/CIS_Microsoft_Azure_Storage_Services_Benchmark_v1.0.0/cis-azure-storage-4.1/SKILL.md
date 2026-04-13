@@ -148,10 +148,10 @@ By default, data in Azure Managed Lustre file systems is encrypted using Microso
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | X |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | X    |
 
 ## Profile
 

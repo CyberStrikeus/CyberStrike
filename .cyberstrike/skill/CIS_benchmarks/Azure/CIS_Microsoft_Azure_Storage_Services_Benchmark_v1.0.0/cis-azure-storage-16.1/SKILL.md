@@ -78,10 +78,10 @@ This recommendation is based on the recommendation `Ensure 'Allowed Protocols' f
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | **3.10 Encrypt Sensitive Data in Transit** - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). | | X | X |
-| v7 | **14.4 Encrypt All Sensitive Information in Transit** - Encrypt all sensitive information in transit. | | X | X |
+| Controls Version | Control                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | **3.10 Encrypt Sensitive Data in Transit** - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). |      | X    | X    |
+| v7               | **14.4 Encrypt All Sensitive Information in Transit** - Encrypt all sensitive information in transit.                                                                                |      | X    | X    |
 
 ## Profile
 
