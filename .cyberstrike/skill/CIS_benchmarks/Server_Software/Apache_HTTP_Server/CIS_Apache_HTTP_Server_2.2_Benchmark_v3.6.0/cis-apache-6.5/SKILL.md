@@ -70,13 +70,13 @@ Not applicable
 Version 6
 
 4 Continuous Vulnerability Assessment and Remediation
-  Continuous Vulnerability Assessment and Remediation
+Continuous Vulnerability Assessment and Remediation
 
 Version 7
 
 18.4 Only Use Up-to-date And Trusted Third-Party Components
-     Only use up-to-date and trusted third-party components for the software
-     developed by the organization.
+Only use up-to-date and trusted third-party components for the software
+developed by the organization.
 
 ## Profile
 

@@ -14,7 +14,7 @@ prerequisites: []
 severity_boost: {}
 ---
 
-# Ensure Access to .ht* Files Is Restricted
+# Ensure Access to .ht\* Files Is Restricted
 
 ## Description
 

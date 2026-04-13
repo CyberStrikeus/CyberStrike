@@ -70,12 +70,12 @@ The module is enabled with a default source build.
 Version 6
 
 18 Application Software Security
-    Application Software Security
+Application Software Security
 
 Version 7
 
 5.1 Establish Secure Configurations
-    Maintain documented, standard security configuration standards for all authorized operating systems and software.
+Maintain documented, standard security configuration standards for all authorized operating systems and software.
 
 ## Profile
 

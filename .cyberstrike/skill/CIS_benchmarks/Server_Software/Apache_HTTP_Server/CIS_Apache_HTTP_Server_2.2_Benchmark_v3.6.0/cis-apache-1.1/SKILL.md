@@ -43,6 +43,7 @@ None documented
 Review and verify that each item in the pre-installation planning checklist has been addressed according to your organization's security policies and requirements.
 
 Verify the following:
+
 1. Organization security policies have been reviewed and implemented
 2. Secure network infrastructure is in place (firewalls, routers, switches)
 3. Operating system has been hardened per CIS benchmarks
@@ -81,12 +82,12 @@ No default configuration exists for this planning checklist.
 Version 6
 
 9.5 Operate Critical Services On Dedicated Hosts (i.e. DNS, Mail, Web, Database)
-    Operate critical services on separate physical or logical host machines, such as DNS, file, mail, web, and database servers.
+Operate critical services on separate physical or logical host machines, such as DNS, file, mail, web, and database servers.
 
 Version 7
 
 2.10 Physically or Logically Segregate High Risk Applications
-    Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization.
+Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization.
 
 ## Profile
 

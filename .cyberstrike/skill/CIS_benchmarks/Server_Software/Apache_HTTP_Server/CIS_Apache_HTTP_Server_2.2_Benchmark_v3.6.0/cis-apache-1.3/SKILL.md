@@ -20,7 +20,7 @@ severity_boost: {}
 
 The CIS Apache Benchmark recommends using the Apache binary provided by your vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. However, to keep the benchmark as generic and applicable to all Unix/Linux platforms as possible, a default source build has been used for this benchmark.
 
-**Important Note**: There is a major difference between source builds and most vendor packages that is very important to highlight. The default source build of Apache is fairly conservative and minimalist in the modules included, and therefore starts off in a fairly strong security state, while most vendor binaries are typically very well loaded with most of the functionality that one may be looking for. *Therefore, it is important that you don't assume the default value shown in the benchmark will match default values in your installation.* You should always test any new installation in your environment before putting it into production. Also, keep in mind you can install and run a new version alongside the old one by using a different Apache prefix and a different IP address or port number in the `Listen` directive.
+**Important Note**: There is a major difference between source builds and most vendor packages that is very important to highlight. The default source build of Apache is fairly conservative and minimalist in the modules included, and therefore starts off in a fairly strong security state, while most vendor binaries are typically very well loaded with most of the functionality that one may be looking for. _Therefore, it is important that you don't assume the default value shown in the benchmark will match default values in your installation._ You should always test any new installation in your environment before putting it into production. Also, keep in mind you can install and run a new version alongside the old one by using a different Apache prefix and a different IP address or port number in the `Listen` directive.
 
 ## Rationale
 
@@ -43,6 +43,7 @@ None documented
 Verify the installation method used for Apache HTTP Server on your system.
 
 For vendor binaries, verify the package is installed through the OS package manager:
+
 ```bash
 # Red Hat/CentOS
 rpm -qa | grep httpd
@@ -52,6 +53,7 @@ dpkg -l | grep apache2
 ```
 
 For source builds, verify the installation directory and compilation options:
+
 ```bash
 httpd -V
 ```
@@ -77,15 +79,15 @@ No default installation method - varies by organization and requirements.
 Version 6
 
 2 Inventory of Authorized and Unauthorized Software
-   Inventory of Authorized and Unauthorized Software
+Inventory of Authorized and Unauthorized Software
 
 Version 7
 
 2.1 Maintain Inventory of Authorized Software
-    Maintain an up-to-date list of all authorized software that is required in the enterprise for any business purpose on any business system.
+Maintain an up-to-date list of all authorized software that is required in the enterprise for any business purpose on any business system.
 
 2.2 Ensure Software is Supported by Vendor
-    Ensure that only software applications or operating systems currently supported by the software's vendor are added to the organization's authorized software inventory. Unsupported software should be tagged as unsupported in the inventory system.
+Ensure that only software applications or operating systems currently supported by the software's vendor are added to the organization's authorized software inventory. Unsupported software should be tagged as unsupported in the inventory system.
 
 ## Profile
 

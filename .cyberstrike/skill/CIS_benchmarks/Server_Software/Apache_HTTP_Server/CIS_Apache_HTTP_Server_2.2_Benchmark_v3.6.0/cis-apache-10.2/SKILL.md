@@ -59,13 +59,13 @@ LimitRequestFields 100
 **Version 6**
 
 9 Limitation and Control of Network Ports, Protocols, and Services
-  Limitation and Control of Network Ports, Protocols, and Services
+Limitation and Control of Network Ports, Protocols, and Services
 
 **Version 7**
 
 5.1 Establish Secure Configurations
-    Maintain documented, standard security configuration standards for all authorized
-    operating systems and software.
+Maintain documented, standard security configuration standards for all authorized
+operating systems and software.
 
 ## Profile
 
