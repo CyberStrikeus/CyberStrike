@@ -30,7 +30,7 @@ None documented
 
 ## Audit Procedure
 
-1. Use the `httpd -M` option as root to check which auth* modules are loaded.
+1. Use the `httpd -M` option as root to check which auth\* modules are loaded.
 
 ```bash
 # httpd -M | egrep 'auth.'
@@ -71,12 +71,12 @@ The following are the modules statically loaded for a default source build:
 Version 6
 
 16 Account Monitoring and Control
-    Account Monitoring and Control
+Account Monitoring and Control
 
 Version 7
 
 16.1 Maintain an Inventory of Authentication Systems
-    Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider.
+Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider.
 
 ## Profile
 

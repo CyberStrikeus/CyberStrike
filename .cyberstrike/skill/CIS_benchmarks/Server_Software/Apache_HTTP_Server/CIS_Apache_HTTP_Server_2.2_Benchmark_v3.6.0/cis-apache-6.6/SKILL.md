@@ -67,25 +67,25 @@ The ModSecurity module is not loaded by default
 Version 6
 
 18.2 Deploy And Configure Web Application Firewalls
-    Protect web applications by deploying web application firewalls (WAFs) that
-    inspect all traffic flowing to the web application for common web application
-    attacks, including but not limited to cross-site scripting, SQL injection, command
-    injection, and directory traversal attacks. For applications that are not web-based,
-    specific application firewalls should be deployed if such tools are available for the
-    given application type. If the traffic is encrypted, the device should either sit behind
-    the encryption or be capable of decrypting the traffic prior to analysis. If neither
-    option is appropriate, a host-based web application firewall should be deployed.
+Protect web applications by deploying web application firewalls (WAFs) that
+inspect all traffic flowing to the web application for common web application
+attacks, including but not limited to cross-site scripting, SQL injection, command
+injection, and directory traversal attacks. For applications that are not web-based,
+specific application firewalls should be deployed if such tools are available for the
+given application type. If the traffic is encrypted, the device should either sit behind
+the encryption or be capable of decrypting the traffic prior to analysis. If neither
+option is appropriate, a host-based web application firewall should be deployed.
 
 Version 7
 
 18.10 Deploy Web Application Firewalls (WAFs)
-     Protect web applications by deploying web application firewalls (WAFs) that
-     inspect all traffic flowing to the web application for common web application
-     attacks. For applications that are not web-based, specific application firewalls
-     should be deployed if such tools are available for the given application type. If the
-     traffic is encrypted, the device should either sit behind the encryption or be
-     capable of decrypting the traffic prior to analysis. If neither option is appropriate,
-     a host-based web application firewall should be deployed.
+Protect web applications by deploying web application firewalls (WAFs) that
+inspect all traffic flowing to the web application for common web application
+attacks. For applications that are not web-based, specific application firewalls
+should be deployed if such tools are available for the given application type. If the
+traffic is encrypted, the device should either sit behind the encryption or be
+capable of decrypting the traffic prior to analysis. If neither option is appropriate,
+a host-based web application firewall should be deployed.
 
 ## Profile
 

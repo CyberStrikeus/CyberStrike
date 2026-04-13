@@ -38,7 +38,7 @@ $ sslscan --no-colour --no-failed www.example.com | egrep
 ECDHE-)|(  DHE-)'
 ```
 
-• Alternatively, Qualys SSL Labs has a website that is very thorough and is commonly used for testing external servers. The report will show the cipher suites allowed along with many other details. https://www.ssllabs.com/ssltest/ The recommended cipher suites will start with TLS_ECDHE_ or TLS_DHE_ and have the initials FS at the end for forward secrecy.
+• Alternatively, Qualys SSL Labs has a website that is very thorough and is commonly used for testing external servers. The report will show the cipher suites allowed along with many other details. https://www.ssllabs.com/ssltest/ The recommended cipher suites will start with TLS*ECDHE* or TLS*DHE* and have the initials FS at the end for forward secrecy.
 
 • Alternatively find the specified values for the SSLCipherSuite directive in the Apache server level configuration and every virtual host that is SSL/TLS enabled. Then use the openssl command on the local system to verify the specified SSLCipherSuite directive only allows cipher suites that begin with the ECDHE- or DHE- algorithms. For example:
 

@@ -83,12 +83,12 @@ None documented
 Version 6
 
 16 Account Monitoring and Control
-    Account Monitoring and Control
+Account Monitoring and Control
 
 Version 7
 
 16.1 Maintain an Inventory of Authentication Systems
-    Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider.
+Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider.
 
 ## Profile
 

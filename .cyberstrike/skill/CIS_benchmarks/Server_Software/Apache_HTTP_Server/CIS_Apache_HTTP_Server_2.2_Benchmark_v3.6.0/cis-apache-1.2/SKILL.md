@@ -57,12 +57,12 @@ None documented
 Version 6
 
 9.5 Operate Critical Services On Dedicated Hosts (i.e. DNS, Mail, Web, Database)
-    Operate critical services on separate physical or logical host machines, such as DNS, file, mail, web, and database servers.
+Operate critical services on separate physical or logical host machines, such as DNS, file, mail, web, and database servers.
 
 Version 7
 
 2.10 Physically or Logically Segregate High Risk Applications
-    Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization.
+Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization.
 
 ## Profile
 
