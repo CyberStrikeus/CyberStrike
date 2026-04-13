@@ -62,10 +62,10 @@ With the Enhanced pre-delivery message scanning option, when Gmail detects suspi
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.7 Deploy and Maintain Email Server Anti-Malware Protections | | | x |
-| v7 | 7.10 Sandbox All Email Attachments | | | x |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.7 Deploy and Maintain Email Server Anti-Malware Protections |      |      | x    |
+| v7               | 7.10 Sandbox All Email Attachments                            |      |      | x    |
 
 ## Profile
 

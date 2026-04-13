@@ -79,7 +79,7 @@ The report will display all users and fields.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.7 Regularly Review Logs | | x | x |
+| Controls Version | Control                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------ | ---- | ---- | ---- |
+| v8               | 8.11 Conduct Audit Log Reviews |      | x    | x    |
+| v7               | 6.7 Regularly Review Logs      |      | x    | x    |

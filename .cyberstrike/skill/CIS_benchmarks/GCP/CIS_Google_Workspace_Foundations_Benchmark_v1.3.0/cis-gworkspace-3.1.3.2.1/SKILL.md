@@ -18,13 +18,13 @@ severity_boost: {}
 
 ## Overview
 
-| Property | Value |
-|---|---|
-| **CIS ID** | 3.1.3.2.1 |
-| **Level** | L1 |
-| **Profile Applicability** | Enterprise Level 1 |
-| **Assessment Type** | Manual |
-| **Section** | Gmail > Authenticate email |
+| Property                  | Value                      |
+| ------------------------- | -------------------------- |
+| **CIS ID**                | 3.1.3.2.1                  |
+| **Level**                 | L1                         |
+| **Profile Applicability** | Enterprise Level 1         |
+| **Assessment Type**       | Manual                     |
+| **Section**               | Gmail > Authenticate email |
 
 ## Description
 
@@ -68,7 +68,7 @@ To configure this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.5 Implement DMARC | | x | x |
-| v7 | 7.8 Implement DMARC and Enable Receiver-Side Verification | | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.5 Implement DMARC                                       |      | x    | x    |
+| v7               | 7.8 Implement DMARC and Enable Receiver-Side Verification |      | x    | x    |
