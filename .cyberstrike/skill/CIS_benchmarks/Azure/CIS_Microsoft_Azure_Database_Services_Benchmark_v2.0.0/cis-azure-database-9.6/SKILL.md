@@ -106,6 +106,7 @@ Set-AzSqlDatabaseTransparentDataEncryption -ResourceGroupName <Resource Group Na
 ```
 
 **Note:**
+
 - TDE cannot be used to encrypt the logical master database in SQL Database. The master database contains objects that are needed to perform the TDE operations on the user databases.
 - Azure Portal does not show master databases per SQL server. However, CLI/API responses will show master databases.
 

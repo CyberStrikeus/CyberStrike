@@ -57,6 +57,7 @@ az account get-access-token --query "{subscripton:subscription,accessToken:acces
 ```
 
 Ensure the output of the command contains properties:
+
 - `kind` set to `azurekeyvault`
 - `serverKeyType` set to `AzureKeyVault`
 - `uri` is not null
@@ -68,6 +69,7 @@ Get-AzSqlServerTransparentDataEncryptionProtector -ServerName <ServerName> -Reso
 ```
 
 Ensure the output of the command contains properties:
+
 - `Type` set to `AzureKeyVault`
 - `ServerKeyVaultKeyName` set to `KeyVaultName_KeyName_KeyIdentifierVersion`
 - `KeyId` set to `KeyIdentifier`

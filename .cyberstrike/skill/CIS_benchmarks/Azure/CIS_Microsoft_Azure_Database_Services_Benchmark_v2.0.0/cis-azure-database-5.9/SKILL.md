@@ -120,13 +120,13 @@ By default, TLS 1.2 is enforced for MySQL flexible servers.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | X | X |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | X | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | X    | X    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1040 | TA0006, TA0007 | M1041 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1040                       | TA0006, TA0007 | M1041       |

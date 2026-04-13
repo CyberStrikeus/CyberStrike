@@ -84,7 +84,7 @@ For Azure Cache for Redis instances deployed in classic VNets (Virtual Network i
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v7 | 9.4 Apply Host-based Firewalls or Port Filtering | X | X | X |
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers   | X    | X    | X    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering | X    | X    | X    |
