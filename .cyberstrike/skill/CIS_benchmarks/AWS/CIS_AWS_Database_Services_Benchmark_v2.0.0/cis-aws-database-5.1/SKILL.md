@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.1 Ensure Secure Access to ElastiCache
 
 ## Description
+
 Securing access to Amazon ElastiCache involves implementing appropriate authentication and authorization mechanisms.
 
 ## Rationale
+
 N/A
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Use AWS Identity and Access Management (IAM)
    - Sign in to the AWS Management Console and open the IAM console at https://console.aws.amazon.com/iam/.
    - Create IAM users or roles for individuals or applications needing ElastiCache access.
@@ -60,25 +64,30 @@ N/A
    - Stay updated with AWS security best practices and recommendations to improve access controls.
 
 ## Expected Result
+
 IAM policies are configured with least privilege access, ElastiCache clusters are in VPCs with proper security groups, encryption in transit is enabled, and logging/monitoring is active.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to secure access to ElastiCache clusters.
 
 ## Default Value
+
 By default, ElastiCache clusters are accessible within the VPC they are created in, but detailed IAM policies, encryption in transit, and monitoring need to be configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

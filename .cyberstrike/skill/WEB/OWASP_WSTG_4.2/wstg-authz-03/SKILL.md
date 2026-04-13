@@ -689,6 +689,7 @@ class SecureJWT:
 sha256: a3589f045c257536a2e90ceea426c5b1c1bd391b5445bf1ea7de3a4f7d231ff4
 signature: kuEL070bQwg1NVSZ3BXHEyLZSjQEhYeUKC57lNvu+Vi1HPoUMSipI6dJprQvrKJ5kHSA0J8Oi9rpe/Uew5gxAQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

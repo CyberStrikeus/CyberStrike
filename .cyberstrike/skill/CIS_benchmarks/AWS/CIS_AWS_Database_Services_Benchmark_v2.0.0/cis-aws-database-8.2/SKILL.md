@@ -17,17 +17,21 @@ severity_boost: {}
 # 8.2 Ensure Network Security is Enabled (Manual)
 
 ## Description
+
 In order to access Amazon Keyspaces the user is required to set specific networking parameters and security measurements without these extra steps they will not be able to access it. Users are required to create or select a virtual private cloud (VPC) and define their inbound and outbound rules accordingly.
 
 ## Rationale
+
 Proper network security configuration ensures that only authorized users have access to the database, limiting the risk of attacks through network isolation and access controls.
 
 ## Impact
+
 Only authorized users have access to the database which limits and controls any risk of an attack. This ensures better performance of the system to a private network and better security.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Create or Select a Virtual Private Cloud (VPC):
    - Sign in to the AWS Management Console and open the Amazon VPC console at https://console.aws.amazon.com/vpc/.
    - Create a new VPC or select an existing VPC where you want to deploy your Amazon Keyspaces resources.
@@ -61,24 +65,30 @@ Only authorized users have access to the database which limits and controls any 
    - Verify that the network security settings allow the necessary traffic and deny unauthorized access.
 
 ## Expected Result
+
 VPC, subnets, security groups, network ACLs, and VPC endpoints should be properly configured to isolate and protect Amazon Keyspaces resources.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure VPC, subnets, security groups, network ACLs, and VPC endpoints for your Amazon Keyspaces resources.
 
 ## Default Value
+
 No default network security configuration is applied. Users must manually configure VPC and related network security settings.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.7 Manage Network Infrastructure Through a Dedicated Network | | x | x |
+
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture      |      | x    | x    |
+| v7               | 11.7 Manage Network Infrastructure Through a Dedicated Network |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

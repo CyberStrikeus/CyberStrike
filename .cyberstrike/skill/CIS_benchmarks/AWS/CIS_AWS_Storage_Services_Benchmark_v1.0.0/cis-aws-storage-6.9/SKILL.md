@@ -31,6 +31,7 @@ Maintaining continuous disaster recovery operations is essential for ensuring th
 ## Impact
 
 Continuous disaster recovery operations require:
+
 - Ongoing monitoring and maintenance
 - Regular plan updates
 - Periodic testing
@@ -40,6 +41,7 @@ Continuous disaster recovery operations require:
 - Compliance verification
 
 Benefits:
+
 - Ensures rapid recovery capability
 - Minimizes downtime
 - Protects business continuity
@@ -175,12 +177,12 @@ By default, continuous disaster recovery operations are not configured. Organiza
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process<br/>Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ● | ● | ● |
-| v8 | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets. | | ● | ● |
-| v7 | 10.2 Perform Complete System Backups<br/>Ensure that each of the organization's key systems are backed up as a complete system, through processes such as imaging, to enable the quick recovery of an entire system. | ● | ● | ● |
-| v7 | 19.7 Conduct Periodic Incident Scenario Sessions for Personnel<br/>Plan and conduct routine incident response exercises and scenarios for the workforce involved in the incident response to maintain awareness and comfort in responding to real world threats. Exercises should test communication channels, decision making, and incident responders technical capabilities using tools and data available to them. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process<br/>Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.                                                              | ●    | ●    | ●    |
+| v8               | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets.                                                                                                                                                                                                                                                                                          |      | ●    | ●    |
+| v7               | 10.2 Perform Complete System Backups<br/>Ensure that each of the organization's key systems are backed up as a complete system, through processes such as imaging, to enable the quick recovery of an entire system.                                                                                                                                                                                                   | ●    | ●    | ●    |
+| v7               | 19.7 Conduct Periodic Incident Scenario Sessions for Personnel<br/>Plan and conduct routine incident response exercises and scenarios for the workforce involved in the incident response to maintain awareness and comfort in responding to real world threats. Exercises should test communication channels, decision making, and incident responders technical capabilities using tools and data available to them. |      | ●    | ●    |
 
 ## Profile
 

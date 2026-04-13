@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure that encryption-at-rest is enabled for RDS instances
 
 ## Description
+
 Amazon RDS encrypted DB instances use the industry-standard AES-256 encryption algorithm to encrypt your data on the server that hosts your Amazon RDS DB instances. After your data is encrypted, Amazon RDS handles the authentication of access and the decryption of your data transparently, with minimal impact on performance.
 
 ## Rationale
+
 Databases are likely to hold sensitive and critical data; therefore, it is highly recommended to implement encryption to protect your data from unauthorized access or disclosure. With RDS encryption enabled, the data stored on the instance's underlying storage, the automated backups, read replicas, and snapshots are all encrypted.
 
 ## Impact
+
 Enabling encryption requires creating a new encrypted instance from a snapshot. This involves downtime and potential application configuration changes. For production databases, consider implementing replication or planned downtime to ensure data consistency during migration.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and open the RDS dashboard at https://console.aws.amazon.com/rds/.
 2. In the navigation pane, under RDS dashboard, click `Databases`.
 3. Select the RDS instance that you want to examine.
@@ -38,6 +42,7 @@ Enabling encryption requires creating a new encrypted instance from a snapshot. 
 8. Change the region from the top of the navigation bar, and repeat the audit steps for other regions.
 
 ### Using AWS CLI
+
 1. Run the `describe-db-instances` command to list all the RDS database instance names available in the selected AWS region. The output will return each database instance identifier (name):
 
 ```bash
@@ -54,11 +59,13 @@ aws rds describe-db-instances --region <region-name> --db-instance-identifier <d
 4. Repeat steps 1 to 3 to audit each RDS instance, and change the region to verify RDS instances in other regions.
 
 ## Expected Result
+
 The `StorageEncrypted` parameter should return `True` for all RDS database instances, indicating that encryption at rest is enabled.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and open the RDS dashboard at https://console.aws.amazon.com/rds/.
 2. In the left navigation panel, click on `Databases`.
 3. Select the Database instance that needs to be encrypted.
@@ -80,6 +87,7 @@ The `StorageEncrypted` parameter should return `True` for all RDS database insta
 Note: This remediation procedure assumes that the database has been taken offline (or operating in read-only mode) and is static when the snapshot is taken. If the database is still in use, any changes made between the time the snapshot is made and the new encrypted database is brought online will be lost.
 
 ### Using AWS CLI
+
 1. List all RDS database instances:
 
 ```bash
@@ -155,9 +163,11 @@ aws rds describe-db-instances --region <region> \
 ```
 
 ## Default Value
+
 By default, Amazon RDS instances are created without encryption at rest. Encryption must be explicitly enabled at instance creation or by restoring from an encrypted snapshot.
 
 ## References
+
 1. https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html
 2. https://aws.amazon.com/blogs/database/selecting-the-right-encryption-options-for-amazon-rds-and-amazon-aurora-database-engines/
 3. https://aws.amazon.com/rds/features/security/
@@ -165,16 +175,17 @@ By default, Amazon RDS instances are created without encryption at rest. Encrypt
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1530 | TA0010 | M1041 |
+| --------------------------- | ------- | ----------- |
+| T1530                       | TA0010  | M1041       |
 
 ## Profile
+
 Level 1 | Automated

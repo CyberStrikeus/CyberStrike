@@ -1,6 +1,6 @@
 ---
 name: cis-aws-foundations-2.14
-description: "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached"
+description: 'Ensure IAM policies that allow full "*:*" administrative privileges are not attached'
 category: cis-iam
 version: "7.0.0"
 author: cyberstrike-official
@@ -14,12 +14,14 @@ prerequisites: []
 severity_boost: {}
 ---
 
-# Ensure IAM policies that allow full "*:*" administrative privileges are not attached
+# Ensure IAM policies that allow full "_:_" administrative privileges are not attached
 
 ## Description
+
 IAM policies are the means by which privileges are granted to users, groups, or roles. It is recommended and considered standard security advice to grant least privilege, granting only the permissions required to perform a task. Determine what users need to do, and then craft policies for them that allow the users to perform only those tasks, instead of granting full administrative privileges.
 
 ## Rationale
+
 It is more secure to start with a minimal set of permissions and grant additional permissions as necessary, rather than starting with overly permissive access and attempting to restrict it later.
 
 Providing full administrative privileges instead of restricting access to the minimum required exposes resources to potentially unintended or malicious actions.
@@ -27,6 +29,7 @@ Providing full administrative privileges instead of restricting access to the mi
 IAM policies that contain a statement with `"Effect": "Allow"` and `"Action": "*"` over `"Resource": "*"` should be removed.
 
 ## Impact
+
 Policies granting full administrative privileges significantly increase the risk of unauthorized or unintended actions, potentially resulting in complete account compromise.
 
 ## Audit Procedure
@@ -69,6 +72,7 @@ done
 ```
 
 4. In the output, no policy should contain a statement with:
+
 - "Effect": "Allow"
 - "Action": "\*"
 - "Resource": "\*"
@@ -84,6 +88,7 @@ done
 7. Delete the policy if it is no longer required
 
 ## Expected Result
+
 No attached IAM policies should contain a statement with `"Effect": "Allow"`, `"Action": "*"`, and `"Resource": "*"` simultaneously.
 
 ## Remediation
@@ -125,9 +130,11 @@ aws iam detach-role-policy --role-name <iam_role> --policy-arn <policy_arn>
 ```
 
 ## Default Value
+
 By default, AWS allows the creation and attachment of IAM policies that grant full administrative privileges (i.e., "Effect": "Allow", "Action": "\*", "Resource": "\*"). No restriction exists unless enforced through organizational policy or Service Control Policies (SCPs).
 
 ## References
+
 1. https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html
 2. https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html
 3. CCE-78912-3
@@ -135,16 +142,17 @@ By default, AWS allows the creation and attachment of IAM policies that grant fu
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. | | | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts - Use automated tools to inventory all administrative accounts, including domain and local accounts, to ensure that only authorized individuals have elevated privileges. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. |      |      | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts - Use automated tools to inventory all administrative accounts, including domain and local accounts, to ensure that only authorized individuals have elevated privileges.                                                                                                                                                                                                  |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078.004 | TA0003, TA0007, TA0008, TA0009, TA0010, TA0043 | M1018 |
+| Techniques / Sub-techniques | Tactics                                        | Mitigations |
+| --------------------------- | ---------------------------------------------- | ----------- |
+| T1078.004                   | TA0003, TA0007, TA0008, TA0009, TA0010, TA0043 | M1018       |
 
 ## Profile
+
 Level 1 | Automated

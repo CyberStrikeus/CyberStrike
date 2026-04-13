@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure EBS volumes attached to an EC2 instance are marked for deletion upon instance termination
 
 ## Description
+
 This rule ensures that Amazon Elastic Block Store volumes that are attached to Amazon Elastic Compute Cloud (Amazon EC2) instances are marked for deletion when an instance is terminated. If an Amazon EBS volume isn't deleted when the instance that it's attached to is terminated, it may violate the concept of least functionality.
 
 ## Rationale
+
 Orphaned EBS volumes after instance termination can contain sensitive data and increase costs. Marking volumes for deletion on termination ensures cleanup.
 
 ## Impact
+
 Data on the EBS volume will be permanently lost when the instance is terminated. Ensure important data is backed up before enabling this setting.
 
 ## Audit Procedure
@@ -51,6 +54,7 @@ aws ec2 describe-instances --region us-east-1 --output json --filters "Name=bloc
 8. Go through the other `AWS regions` and repeat the audit process for all instances.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating all EBS volumes attached to instances have `DeleteOnTermination` set to `true`.
 
 ## Remediation
@@ -72,18 +76,21 @@ aws ec2 modify-instance-attribute --instance-id i-123456abcdefghi0 --block-devic
 1. At this time the `delete on termination` setting for existing instances can only be changed using AWS CLI.
 
 ## Default Value
+
 By default, the root EBS volume is marked for deletion on termination, but additional attached volumes are not.
 
 ## References
+
 1. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/modify-instance-attribute.html
 2. https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

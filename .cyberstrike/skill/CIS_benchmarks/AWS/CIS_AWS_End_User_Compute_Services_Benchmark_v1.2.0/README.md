@@ -5,12 +5,15 @@ This directory contains CyberStrike skills for the CIS AWS End User Compute Serv
 ## Coverage Summary
 
 ### Section 2: WorkSpaces (18 controls)
+
 - 2.1 - 2.18: WorkSpaces configuration and security controls
 
 ### Section 3: WorkSpaces Web (1 control)
+
 - 3.1: User Access Logging
 
 ### Section 4: WorkDocs (8 controls)
+
 - 4.1: Ensure Administrators of WorkDocs is defined using IAM (Automated)
 - 4.2: Ensure MFA is enabled for WorkDoc users (Manual)
 - 4.3: Ensure Workdocs access is limited to a range of allowable IP addresses (Manual)
@@ -21,6 +24,7 @@ This directory contains CyberStrike skills for the CIS AWS End User Compute Serv
 - 4.8: Ensure any user that has not accessed WorkDocs in 30 days is set to inactive (Manual)
 
 ### Section 5: AppStream 2.0 (7 controls)
+
 - 5.1: Ensure AppStream is utilizing its own virtual private cloud (VPC) (Manual)
 - 5.2: Ensure a VPC Endpoint is set for AppStream (Manual)
 - 5.3: Ensure maximum session duration is no longer than 10 hours (Automated)

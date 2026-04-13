@@ -157,6 +157,7 @@ def sanitize_css(property_name, value):
 sha256: 7734171eed6aecdcb48474b8472eb336ba78752bdd167118492fd643199ccb86
 signature: bwEy6mTaZ5RNCT9XHyC+6qReeQv21SWIl7xhy/+1CuHcBcyTDxsODEg6DN3RnY55fwGrtt9TNel2OSBGMuVRAQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

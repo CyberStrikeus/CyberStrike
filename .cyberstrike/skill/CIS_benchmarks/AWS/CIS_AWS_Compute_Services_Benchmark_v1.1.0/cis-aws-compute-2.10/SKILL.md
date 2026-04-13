@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure unused ENIs are removed
 
 ## Description
+
 Identify and delete any unused Amazon AWS Elastic Network Interfaces in order to adhere to best practices and to avoid reaching the service limit. An AWS Elastic Network Interface (ENI) is pronounced unused when is not attached anymore to an EC2 instance.
 
 ## Rationale
+
 Removing unused ENIs helps maintain a clean environment, reduces potential attack surface, and avoids reaching service limits.
 
 ## Impact
+
 Deleting an ENI is permanent. Ensure the ENI is truly unused before removal.
 
 ## Audit Procedure
@@ -54,6 +57,7 @@ NOTE Repeat the audit process for all other regions used.
 NOTE Repeat the audit process for all other regions used.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating no ENIs are in the `available` (unattached) state.
 
 ## Remediation
@@ -83,17 +87,20 @@ NOTE Repeat the audit process for all other regions used.
 NOTE Repeat the audit process for all other regions used.
 
 ## Default Value
+
 ENIs are not automatically cleaned up when detached from instances.
 
 ## References
+
 No specific references provided in the benchmark for this control.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture          |      | x    | x    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

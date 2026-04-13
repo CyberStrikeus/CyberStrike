@@ -409,6 +409,7 @@ function processMessage(data) {
 sha256: 085a4c43e5d8a6ca7b5f263b006091197d181f24268769d6ba30fe905d55fd36
 signature: aRGsUDTGZ0MXGUTzLp+du6ue7t4HrCDKGvh+cTIZe4Le0BJCuA3hTJrMZbsSOuoSCz8Bmu0IlcQqQgBMYLiYCQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

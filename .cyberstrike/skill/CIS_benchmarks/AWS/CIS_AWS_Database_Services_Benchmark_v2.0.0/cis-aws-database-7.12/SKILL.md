@@ -73,9 +73,9 @@ Deletion protection is disabled by default when creating a new Amazon DocumentDB
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11 Data Recovery | | | |
+| Controls Version | Control          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery |      |      |      |
 
 ## Profile
 

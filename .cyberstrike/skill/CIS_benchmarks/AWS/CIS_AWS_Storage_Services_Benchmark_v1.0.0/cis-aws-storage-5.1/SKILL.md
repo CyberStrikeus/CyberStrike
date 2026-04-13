@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.1 Amazon Simple Storage Service (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -30,6 +31,7 @@ By utilizing S3, businesses of all sizes can efficiently store and protect large
 ## Impact
 
 Not implementing Amazon S3 or failing to properly configure it can result in:
+
 - **Scalability Issues:** Inability to handle growing data volumes efficiently
 - **Data Availability:** Reduced data durability and availability (S3 provides 99.999999999% durability)
 - **Security Risks:** Lack of proper access controls and encryption
@@ -98,6 +100,7 @@ aws s3api get-bucket-encryption --bucket <bucket-name>
 ## Expected Result
 
 Amazon S3 should be properly understood and implemented with:
+
 - Buckets created in appropriate AWS regions
 - Objects stored with unique key names
 - Versioning enabled where appropriate for data protection
@@ -129,6 +132,7 @@ Amazon S3 should be properly understood and implemented with:
    - **S3 Access Points:** Named network endpoints to simplify access management at scale
 
 **Data Privacy:**
+
 - Buckets and objects are **private by default**
 - Explicit permissions required via:
   - Bucket policies
@@ -186,6 +190,7 @@ aws s3 cp <local-file> s3://<bucket-name>/<key-name>
 ## Default Value
 
 By default:
+
 - S3 service is available in all AWS accounts
 - Buckets and objects are private
 - Versioning is disabled (must be explicitly enabled)
@@ -199,12 +204,13 @@ By default:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | ● | ● | ● |
-| v8 | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | ● | ● | ● |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers. | | ● | ● |
-| v7 | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                                                                        | ●    | ●    | ●    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process.                                                                                                                                                                                                                                       | ●    | ●    | ●    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers.                                                                                                                                                                                                                                                              |      | ●    | ●    |
+| v7               | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | ●    | ●    | ●    |
 
 ## Profile
+
 Level 2

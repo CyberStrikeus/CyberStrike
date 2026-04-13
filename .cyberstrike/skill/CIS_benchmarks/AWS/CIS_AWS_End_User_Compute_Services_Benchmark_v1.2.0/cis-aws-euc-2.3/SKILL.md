@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure WorkSpace volumes are encrypted (Automated)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Encrypt WorkSpaces root volume (C:drive for Windows and root for Amazon Linux) and user volume (D:drive for Windows and /home for Amazon Linux).
 
 ## Rationale
+
 When you launch a WorkSpace, you can encrypt the root volume and the user volume. This ensures that the data stored at rest for WorkSpaces is encrypted.
 
 ## Impact
+
 You must encrypt a WorkSpace when it is launched. You cannot create a custom image from an encrypted WorkSpace. You cannot disable encryption once encryption is enabled for a WorkSpace. You must enable to AWS KMS CMK prior to rebuilding/rebooting an encrypted WorkSpace or it becomes unusable.
 
 ## Audit Procedure
@@ -85,6 +89,7 @@ If the returned flag value for both root and user volumes is false (as shown in 
 If the selected AWS WorkSpaces instance volumes are not encrypted, refer to the remediation procedure below.
 
 ## Expected Result
+
 Both `RootVolumeEncryptionEnabled` and `UserVolumeEncryptionEnabled` should return `true`.
 
 ## Remediation
@@ -124,6 +129,7 @@ UserVolumeSizeGib='user_GB', ComputeTypeName='STANDARD'}
    - PendingRequests - Will contain information about the WorkSpaces that were created and the command was successful
 
 ## Default Value
+
 By default, AWS Workspaces utilize **Elastic Block Store (AWS EBS)** by default to encrypt data at rest (https://docs.aws.amazon.com/workspaces/latest/adminguide/data-protection.html)
 
 AWS Workspaces utilizes **TLS 1.2 encryption and SigV4 request signing** by default to encrypt data in transit. **DCV**, streaming and control data in-transit is encrypted using **TLS 1.3 encryption for UDP traffic** and **TLS 1.2 encryption for TCP traffic, with AES-256 ciphers**.
@@ -131,15 +137,19 @@ AWS Workspaces utilizes **TLS 1.2 encryption and SigV4 request signing** by defa
 For DCV, streaming and control data in-transit is encrypted using TLS 1.3 encryption for UDP traffic and TLS 1.2 encryption for TCP traffic, with AES-256 ciphers.
 
 ## References
+
 1. https://docs.aws.amazon.com/workspaces/latest/adminguide/encrypt-workspaces.html
 2. https://docs.aws.amazon.com/workspaces/latest/adminguide/data-protection.html
 3. https://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys-console.html#viewing-console-details
 
 ## CIS Controls
+
 **v8:**
+
 - 3.11 Encrypt Sensitive Data at Rest
   - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data.
 
 **v7:**
+
 - 14.8 Encrypt Sensitive Information at Rest
   - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system, in order to access the information.

@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Amazon Machine Images (AMIs) are encrypted
 
 ## Description
+
 Amazon Machine Images should utilize EBS Encrypted snapshots.
 
 ## Rationale
+
 AMIs backed by EBS snapshots should use EBS encryption. Snapshot volumes can be encrypted and attached to an AMI.
 
 ## Impact
+
 Encrypting AMIs may add slight overhead to instance launch times and requires KMS key management. Existing unencrypted AMIs must be copied with encryption enabled and old ones deregistered.
 
 ## Audit Procedure
@@ -48,6 +51,7 @@ aws ec2 describe-images --region us-east-1 --owner self --filter "Name=block-dev
 If it doesn't end with encrypted, refer to the remediation below.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating all AMIs use encrypted EBS snapshots. In the console, all AMI block devices should show as `encrypted`.
 
 ## Remediation
@@ -90,9 +94,11 @@ Once the AMI has finished copying:
 9. Click on `Deregister`.
 
 ## Default Value
+
 By default, AMIs are not encrypted. EBS encryption must be explicitly enabled when creating or copying AMIs.
 
 ## References
+
 1. https://aws.amazon.com/premiumsupport/knowledge-center/view-ami-snapshot-encryption-details/
 2. https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/AMIEncryption.html
 3. https://docs.aws.amazon.com/cli/latest/reference/ec2/copy-image.html
@@ -102,10 +108,11 @@ By default, AMIs are not encrypted. EBS encryption must be explicitly enabled wh
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## Profile
+
 Level 1 | Automated

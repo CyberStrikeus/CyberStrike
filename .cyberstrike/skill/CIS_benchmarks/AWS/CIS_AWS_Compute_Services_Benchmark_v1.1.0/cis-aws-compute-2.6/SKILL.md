@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure detailed monitoring is enabled for production EC2 Instances
 
 ## Description
+
 Ensure that detailed monitoring is enabled for your Amazon EC2 instances.
 
 ## Rationale
+
 Monitoring is an important part of maintaining the reliability, availability, and performance of your Amazon EC2 instances.
 
 ## Impact
+
 Data is available in 1-minute periods. For the instances where you've enabled detailed monitoring, you can also get aggregated data across groups of similar instances. You are charged per metric that is sent to CloudWatch. You are not charged for data storage. Due to this added cost it is recommended that you only enable this on critical instances.
 
 ## Audit Procedure
@@ -51,6 +54,7 @@ aws ec2 describe-instances --region us-east-1 --output json --filters "Name=moni
 9. Go through the other `AWS regions` and repeat the audit process.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating all production instances have detailed monitoring enabled. In the console, the Monitoring attribute should not show `basic` for production instances.
 
 ## Remediation
@@ -77,17 +81,20 @@ aws ec2 monitor-instances --instance-ids <i-instancename>
 7. Repeat steps no. 3 - 6 for any other instances that require detailed monitoring to be enabled.
 
 ## Default Value
+
 By default, EC2 instances use basic monitoring (5-minute intervals). Detailed monitoring (1-minute intervals) must be explicitly enabled.
 
 ## References
+
 No specific references provided in the benchmark for this control.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | x    | x    | x    |
+| v7               | 6.2 Activate audit logging | x    | x    | x    |
 
 ## Profile
+
 Level 2 | Manual

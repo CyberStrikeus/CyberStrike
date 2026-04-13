@@ -69,10 +69,10 @@ Amazon DocumentDB enables automated backups by default with a 1-day retention pe
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11 Data Recovery | | | |
-| v7 | 10 Data Recovery Capabilities | | | |
+| Controls Version | Control                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery              |      |      |      |
+| v7               | 10 Data Recovery Capabilities |      |      |      |
 
 ## Profile
 

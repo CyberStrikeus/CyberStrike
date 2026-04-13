@@ -17,19 +17,23 @@ severity_boost: {}
 # 5.9 Ensure Audit Logging is Enabled
 
 ## Description
+
 To manage your enterprise caching solution, it is important that you know how your clusters are performing and the resources they are consuming. It's also important that you know the events that are being generated and the costs of your deployment.
 
 Amazon CloudWatch provides metrics for monitoring your cache performance. In addition, cost allocation tags help you monitor and manage costs.
 
 ## Rationale
+
 N/A
 
 ## Impact
+
 Reduce the risk of any fraud or inconsistency within the database because only authorized user has access to it.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 
@@ -68,25 +72,30 @@ Reduce the risk of any fraud or inconsistency within the database because only a
    - Establish appropriate log monitoring and alerting mechanisms to proactively identify and respond to potential security incidents or operational anomalies.
 
 ## Expected Result
+
 CloudWatch Logs is enabled for ElastiCache/Keyspaces, log groups are configured with appropriate retention periods, and logs are being actively monitored.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable audit logging for ElastiCache clusters.
 
 ## Default Value
+
 By default, audit logging is not enabled for ElastiCache/Keyspaces.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

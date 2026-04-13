@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure the Use of IMDSv2 is Enforced on All Existing Instances
 
 ## Description
+
 Ensure the Instance Metadata Service Version 2 (IMDSv2) method is enabled on all running instances.
 
 ## Rationale
+
 The IMDSv2 method uses session-based controls to help protect access and control of Amazon Elastic Compute Cloud (Amazon EC2) instance metadata. With IMDSv2, controls can be implemented to restrict changes to instance metadata.
 
 ## Impact
+
 Once you enforce IMDSv2, then IMDSv1 no longer works, and applications that use IMDSv1 might not function correctly. Before enforcing IMDSv2, verify that any applications that use Amazon EC2 metadata are upgraded to a version that supports IMDSv2.
 
 ## Audit Procedure
@@ -52,6 +55,7 @@ Repeat steps 1 - 2 for the other AWS regions.
 1. At this time the instance metadata setting for existing instances can only be reviewed and confirmed using AWS CLI.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating all instances have http-tokens set to `required` (enforcing IMDSv2). Any instances listed are using optional mode allowing IMDSv1.
 
 ## Remediation
@@ -68,13 +72,13 @@ aws ec2 modify-instance-metadata-options --instance-id i-1234567abcdefghi0 --htt
 
 ```json
 {
-    "InstanceId": "i-1234567abcdefghi0",
-    "InstanceMetadataOptions": {
-        "State": "pending",
-        "HttpTokens": "required",
-        "HttpPutResponseHopLimit": 1,
-        "HttpEndpoint": "enabled"
-    }
+  "InstanceId": "i-1234567abcdefghi0",
+  "InstanceMetadataOptions": {
+    "State": "pending",
+    "HttpTokens": "required",
+    "HttpPutResponseHopLimit": 1,
+    "HttpEndpoint": "enabled"
+  }
 }
 ```
 
@@ -85,9 +89,11 @@ aws ec2 modify-instance-metadata-options --instance-id i-1234567abcdefghi0 --htt
 1. At this time the instance metadata setting for existing instances can only be changed using AWS CLI.
 
 ## Default Value
+
 By default, new EC2 instances may allow both IMDSv1 and IMDSv2 (http-tokens set to optional) depending on region and account settings.
 
 ## References
+
 1. https://aws.amazon.com/premiumsupport/knowledge-center/ssm-ec2-enforce-imdsv2/
 2. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
 3. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-options.html
@@ -97,10 +103,11 @@ By default, new EC2 instances may allow both IMDSv1 and IMDSv2 (http-tokens set 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 2 | Manual

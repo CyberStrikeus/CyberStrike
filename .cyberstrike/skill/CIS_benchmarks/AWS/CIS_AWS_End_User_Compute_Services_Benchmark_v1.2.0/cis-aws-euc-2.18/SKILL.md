@@ -89,9 +89,11 @@ By default, this is dependent on your RADIUS server.
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 5.6 Centralize Account Management
 
 **Controls Version v7:**
+
 - 16.2 Configure Centralized Point of Authentication
 
 ## Profile

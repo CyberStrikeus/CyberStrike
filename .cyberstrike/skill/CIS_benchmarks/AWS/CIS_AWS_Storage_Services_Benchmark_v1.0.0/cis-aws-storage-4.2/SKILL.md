@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.2 Amazon Elastic File Cache (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -72,6 +73,7 @@ Before you can start using Amazon Elastic File Cache, you must set up an Amazon 
 8. Create Instance
 
 **Verify regional availability:**
+
 - Confirm that your resources are deployed in one of the supported regions listed above
 - Verify that the EC2 instance OS is compatible with Lustre client (Amazon Linux 2, Amazon Linux, RHEL, CentOS, Rocky Linux, or Ubuntu)
 - Ensure that the AMI selected is compatible with Lustre 2.12 client
@@ -112,12 +114,13 @@ Amazon Elastic File Cache is available only in the regions listed above. The ser
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | ● | ● | ● |
-| v8 | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | ● | ● | ● |
-| v7 | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated. | | ● | ● |
-| v7 | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                                                                        | ●    | ●    | ●    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process.                                                                                                                                                                                                                                       | ●    | ●    | ●    |
+| v7               | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated.                                                                                                                                                                                                                                                                     |      | ●    | ●    |
+| v7               | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | ●    | ●    | ●    |
 
 ## Profile
+
 Level 2

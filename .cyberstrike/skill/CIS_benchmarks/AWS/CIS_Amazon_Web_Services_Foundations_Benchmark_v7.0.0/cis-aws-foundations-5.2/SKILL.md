@@ -17,16 +17,19 @@ severity_boost: {}
 # Ensure management console sign-in without MFA is monitored
 
 ## Description
+
 Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs or an external Security Information and Event Management (SIEM) environment, and establishing corresponding metric filters and alarms.
 
 It is recommended that a metric filter and alarm be established for console logins that are not protected by multi-factor authentication (MFA).
 
 ## Rationale
+
 CloudWatch is an AWS native service that allows you to observe and monitor resources and applications. CloudTrail logs can also be sent to an external Security Information and Event Management (SIEM) environment for monitoring and alerting.
 
 Monitoring for single-factor console logins will increase visibility into accounts that are not protected by MFA. These type of accounts are more susceptible to compromise and unauthorized access.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
@@ -54,7 +57,7 @@ aws cloudtrail describe-trails
 aws cloudtrail get-trail-status --name <trail-name>
 ```
 
-  - Ensure `IsLogging` is set to `TRUE`
+- Ensure `IsLogging` is set to `TRUE`
 
 - Ensure the identified multi-region CloudTrail trail captures all management events:
 
@@ -62,7 +65,7 @@ aws cloudtrail get-trail-status --name <trail-name>
 aws cloudtrail get-event-selectors --trail-name <trail-name>
 ```
 
-  - Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
+- Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
 
 2. Get a list of all associated metric filters for the `<trail-log-group-name>` captured in step 1:
 
@@ -102,6 +105,7 @@ aws sns list-subscriptions-by-topic --topic-arn <sns-topic-arn>
   - Example of valid "SubscriptionArn": `arn:aws:sns:<region>:<account-id>:<sns-topic-name>:<subscription-id>`
 
 ## Expected Result
+
 A metric filter exists with the filter pattern matching console sign-in events without MFA, a CloudWatch alarm is configured for the metric, and the alarm has an active SNS topic with at least one subscriber.
 
 ## Remediation
@@ -143,9 +147,11 @@ aws cloudwatch put-metric-alarm --alarm-name `<no-mfa-console-signin-alarm>` --m
 ```
 
 ## Default Value
+
 By default, no CloudWatch metric filters or alarms exist for console sign-ins without MFA.
 
 ## References
+
 1. https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/viewing_metrics_with_cloudwatch.html
 2. CCE-79187-1
 3. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html
@@ -154,11 +160,12 @@ By default, no CloudWatch metric filters or alarms exist for console sign-ins wi
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews  |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging     |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

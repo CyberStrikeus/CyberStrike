@@ -135,6 +135,7 @@ if (allowedFunctions[functionName]) {
 sha256: 3b36acef1c1a6b880e018ae92c06ccbda9403bdc0f82d633567ace5e0b3f8417
 signature: ADL18j8oBvWMmWtFEph9D9RFumRsfcIUzSM/G6LMUYv+rgGosRsBvMnDSeVZgMSzv0j0VKiXAmoTXauKSWN5BA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -616,6 +616,7 @@ def verify_and_rotate_token(token, user_agent, ip_address):
 sha256: 788307eec8af978f02d6e86b4b4d1aee6611c4ac31da5843704eca0094b70ecd
 signature: z2UBTGq4QSFnb8Zhh6kcMY2/U4ms++r1ikyxq2Ufjp7L8dDuFE5GvJaugdVZ6pbqZc1jExgzoi8RQspRQCx4BQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

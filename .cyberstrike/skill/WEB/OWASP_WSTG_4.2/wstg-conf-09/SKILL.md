@@ -337,6 +337,7 @@ chown root:adm /var/log/apache2/*
 sha256: 717d372f4a4371dc43b1106418ddf799124a830325eb03ea0bae420375d6ae8b
 signature: HxUt63imht612y1j8VWOW6gfzBAgTv+fB/bxHCUose2kkSsBuUP/h34AwX93EihbVm2Dc1qfIfNVpUyLedFiDw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

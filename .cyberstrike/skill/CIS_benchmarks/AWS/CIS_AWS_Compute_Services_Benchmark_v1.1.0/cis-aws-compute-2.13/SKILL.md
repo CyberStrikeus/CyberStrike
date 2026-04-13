@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Secrets and Sensitive Data are not stored directly in EC2 User Data
 
 ## Description
+
 User Data can be specified when launching an ec2 instance. Examples include specifying parameters for configuring the instance or including a simple script.
 
 ## Rationale
+
 The user data is not protected by authentication or cryptographic methods. Therefore, sensitive data, such as passwords or long-lived encryption keys should not be stored as user data.
 
 ## Impact
+
 Anyone who has access to the instance and configuration can view the user data. Removing secrets from user data may require changes to instance bootstrapping processes.
 
 ## Audit Procedure
@@ -53,11 +56,13 @@ Note: User Data may be Base64 encoded. Decode the output as necessary.
 7. Repeat steps 2-7 for all regions used.
 
 ## Expected Result
+
 No EC2 instance user data should contain secrets, passwords, API keys, or other sensitive information. User data should only contain non-sensitive configuration parameters or scripts that retrieve secrets from a secure source like AWS Secrets Manager.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -76,18 +81,21 @@ Note: ensure there is no negative impact from stopping the instance prior to sto
 Note: If the ec2 instances are created via automation or infrastructure-as-code, edit the user data in those pipelines and code.
 
 ## Default Value
+
 EC2 user data is empty by default unless specified during instance launch.
 
 ## References
+
 1. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.2 Establish and Maintain a Data Inventory | x | x | x |
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 1.5 Maintain Asset Inventory Information | | x | x |
+| Controls Version | Control                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.2 Establish and Maintain a Data Inventory | x    | x    | x    |
+| v8               | 3.3 Configure Data Access Control Lists     | x    | x    | x    |
+| v7               | 1.5 Maintain Asset Inventory Information    |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

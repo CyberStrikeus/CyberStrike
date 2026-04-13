@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure EBS volume snapshots are encrypted
 
 ## Description
+
 Elastic Compute Cloud (EC2) supports encryption at rest when using the Elastic Block Store (EBS) service.
 
 ## Rationale
+
 Encrypting data at rest reduces the likelihood that it is unintentionally exposed and can nullify the impact of disclosure if the encryption remains unbroken.
 
 ## Impact
+
 Existing unencrypted snapshots must be copied with encryption enabled. The original unencrypted snapshots should then be deleted. EBS snapshot volume encryption is configured per snapshot.
 
 ## Audit Procedure
@@ -63,6 +66,7 @@ If it is set to `Not Encrypted` refer to the remediation below.
 Note: EBS snapshot volume encryption is configured per snapshot.
 
 ## Expected Result
+
 All snapshots should return `"Encrypt": true` from the CLI. In the console, all snapshots should show as `encrypted` in the Encryption field.
 
 ## Remediation
@@ -130,9 +134,11 @@ Select the check box for `Encryption`
 Note: EBS snapshot volume encryption is configured per snapshot.
 
 ## Default Value
+
 By default, EBS snapshots are not encrypted. Encryption must be explicitly enabled when creating or copying snapshots.
 
 ## References
+
 1. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
 2. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/describe-snapshots.html
 3. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/delete-snapshot.html
@@ -140,10 +146,11 @@ By default, EBS snapshots are not encrypted. Encryption must be explicitly enabl
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## Profile
+
 Level 1 | Automated

@@ -71,11 +71,11 @@ Centralized root access management is not enabled by default. Each member accoun
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | | * | * |
-| v8 | 5.6 Centralize Account Management | | * | * |
-| v8 | 6.7 Centralize Access Control | | * | * |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts |      | \*   | \*   |
+| v8               | 5.6 Centralize Account Management                                         |      | \*   | \*   |
+| v8               | 6.7 Centralize Access Control                                             |      | \*   | \*   |
 
 ## Profile
 

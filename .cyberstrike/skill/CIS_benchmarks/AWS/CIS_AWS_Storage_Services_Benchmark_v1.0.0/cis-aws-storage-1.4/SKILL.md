@@ -33,6 +33,7 @@ Properly configured IAM policies implement the principle of least privilege, gra
 ## Impact
 
 Not implementing proper IAM policies for AWS Backup can lead to:
+
 - Unauthorized access to backup data
 - Backup tampering or deletion by unauthorized users
 - Non-compliance with regulatory requirements

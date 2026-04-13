@@ -31,6 +31,7 @@ Executing a comprehensive disaster recovery failover is essential to ensure oper
 ## Impact
 
 Failover execution requires:
+
 - Comprehensive planning and preparation
 - Testing in non-production environments first
 - Documented procedures
@@ -39,6 +40,7 @@ Failover execution requires:
 - Post-failover validation
 
 Benefits:
+
 - Validates failover capability
 - Ensures business continuity
 - Minimizes downtime
@@ -137,12 +139,12 @@ By default, no failover procedures are configured or automated. Organizations mu
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services. | ● | ● | ● |
-| v8 | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets. | | ● | ● |
-| v7 | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services. | ● | ● | ● |
-| v7 | 10.5 Ensure Backups Have At least One Non-Continuously Addressable Destination<br/>Ensure that all backups have at least one backup destination that is not continuously addressable through operating system calls. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services. | ●    | ●    | ●    |
+| v8               | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets.                                                                                                                                         |      | ●    | ●    |
+| v7               | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services.                        | ●    | ●    | ●    |
+| v7               | 10.5 Ensure Backups Have At least One Non-Continuously Addressable Destination<br/>Ensure that all backups have at least one backup destination that is not continuously addressable through operating system calls.                                                  | ●    | ●    | ●    |
 
 ## Profile
 

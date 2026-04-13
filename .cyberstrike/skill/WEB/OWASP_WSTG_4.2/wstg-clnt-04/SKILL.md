@@ -157,6 +157,7 @@ function safeRedirect(url) {
 sha256: 64316285eaaf83d7ec00e3f8cadae230b55f492742f5bc8148bc8651c44c8c07
 signature: TCudeyh3QfsIhD28QdOPDgnKppaCoJJWKemdg7erSKJqJxlEIQP/GIV6LeyyfoWGZaWinhbrf/AUejVt7z+8CQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -408,6 +408,7 @@ cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 sha256: 4a30ff7caa71b1724f797f4ae67f1b91995d5a65d61549a43446961199c6b41e
 signature: nWD0hCOuTsCD635396sCQEPutf15lm7GqDZxeiuQ0cCrgdDHDOgD8YY1srNcwhQdwx8vpYHuU1oFvIMevf5pDg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

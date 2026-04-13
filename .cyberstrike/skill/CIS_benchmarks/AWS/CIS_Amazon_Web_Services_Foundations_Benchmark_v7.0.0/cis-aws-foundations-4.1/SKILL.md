@@ -17,9 +17,11 @@ severity_boost: {}
 # Ensure CloudTrail is enabled in all regions
 
 ## Description
+
 AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you. The recorded information includes the identity of the API caller, the time of the API call, the source IP address of the API caller, the request parameters, and the response elements returned by the AWS service. CloudTrail provides a history of AWS API calls for an account, including API calls made via the Management Console, SDKs, command line tools, and higher-level AWS services (such as CloudFormation).
 
 ## Rationale
+
 The AWS API call history produced by CloudTrail enables security analysis, resource change tracking, and compliance auditing. Additionally,
 
 - ensuring that a multi-region trail exists will help detect unexpected activity occurring in otherwise unused regions
@@ -27,6 +29,7 @@ The AWS API call history produced by CloudTrail enables security analysis, resou
 - for a multi-region trail, ensuring that management events are configured for all types of Read/Writes ensures the recording of management operations that are performed on all resources in an AWS account
 
 ## Impact
+
 S3 lifecycle features can be used to manage the accumulation and management of logs over time. See the following AWS resource for more information on these features:
 
 1. https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html
@@ -34,6 +37,7 @@ S3 lifecycle features can be used to manage the accumulation and management of l
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console and open the CloudTrail console at https://console.aws.amazon.com/cloudtrail
 2. Click on `Trails` in the left navigation pane
 3. You will be presented with a list of trails across all regions
@@ -44,6 +48,7 @@ S3 lifecycle features can be used to manage the accumulation and management of l
 8. In the section `Management Events`, ensure that `API activity` set to `ALL`
 
 ### Using AWS CLI
+
 1. List all trails:
 
 ```bash
@@ -86,11 +91,13 @@ Example of correct output:
 ```
 
 ## Expected Result
+
 At least one multi-region trail exists with `IsMultiRegionTrail` set to `true`, `IsLogging` set to `true`, and management events configured for all read/write types.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console and open the IAM console at https://console.aws.amazon.com/cloudtrail.
 2. Click on `Trails` in the left navigation pane.
 3. Click `Get Started Now` if it is presented, then:
@@ -106,6 +113,7 @@ At least one multi-region trail exists with `IsMultiRegionTrail` set to `true`, 
 7. Review your trail settings and click `Create trail`.
 
 ### Using AWS CLI
+
 Create a multi-region trail:
 
 ```bash
@@ -121,9 +129,11 @@ aws cloudtrail update-trail --name <trail-name> --is-multi-region-trail
 **Note:** Creating a CloudTrail trail via the CLI without providing any overriding options configures all `read` and `write` `Management Events` to be logged by default.
 
 ## Default Value
+
 By default, CloudTrail is not enabled in any region.
 
 ## References
+
 1. CCE-78913-1
 2. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-concepts.html#cloudtrail-concepts-management-events
 3. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html?icmpid=docs_cloudtrail_console#logging-management-events
@@ -131,16 +141,17 @@ By default, CloudTrail is not enabled in any region.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. | | x | x |
-| v7 | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. |      | x    | x    |
+| v7               | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices.                                                                                                                                                                         | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1535 | TA0005 | M1047, M1054 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1535                       | TA0005  | M1047, M1054 |
 
 ## Profile
+
 Level 1 | Manual

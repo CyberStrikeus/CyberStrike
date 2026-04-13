@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure VPC flow logging is enabled in all VPCs
 
 ## Description
+
 VPC Flow Logs is a feature that enables you to capture information about the IP traffic going to and from network interfaces in your VPC. After you've created a flow log, you can view and retrieve its data in Amazon CloudWatch Logs. It is recommended that VPC Flow Logs be enabled for packet "Rejects" for VPCs.
 
 ## Rationale
+
 VPC Flow Logs provide visibility into network traffic that traverses the VPC and can be used to detect anomalous traffic or gain insights during security workflows.
 
 ## Impact
+
 By default, CloudWatch Logs will store logs indefinitely unless a specific retention period is defined for the log group. When choosing the number of days to retain, keep in mind that the average time it takes for an organization to realize they have been breached is 210 days (at the time of this writing). Since additional time is required to research a breach, a minimum retention policy of 365 days allows for detection and investigation. You may also wish to archive the logs to a cheaper storage service rather than simply deleting them. See the following AWS resource to manage CloudWatch Logs retention periods:
 
 1. https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/SettingLogRetention.html
@@ -30,6 +33,7 @@ By default, CloudWatch Logs will store logs indefinitely unless a specific reten
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign into the management console.
 2. Select `Services`, then select `VPC`.
 3. In the left navigation pane, select `Your VPCs`.
@@ -38,6 +42,7 @@ By default, CloudWatch Logs will store logs indefinitely unless a specific reten
 6. Ensure a Log Flow exists that has `Active` in the `Status` column.
 
 ### Using AWS CLI
+
 1. Run the `describe-vpcs` command (OSX/Linux/UNIX) to list the VPC networks available in the current AWS region:
 
 ```bash
@@ -73,11 +78,13 @@ done
 ```
 
 ## Expected Result
+
 All VPCs in all regions have at least one active Flow Log configured.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Sign into the management console.
 2. Select `Services`, then select `VPC`.
 3. In the left navigation pane, select `Your VPCs`.
@@ -92,6 +99,7 @@ All VPCs in all regions have at least one active Flow Log configured.
 **Note:** Setting the filter to "Reject" will dramatically reduce the accumulation of logging data for this recommendation and provide sufficient information for the purposes of breach detection, research, and remediation. However, during periods of least privilege security group engineering, setting the filter to "All" can be very helpful in discovering existing traffic flows required for the proper operation of an already running environment.
 
 ### Using AWS CLI
+
 1. Create a policy document, name it `role_policy_document.json`, and paste the following content:
 
 ```json
@@ -118,7 +126,7 @@ All VPCs in all regions have at least one active Flow Log configured.
   "Statement": [
     {
       "Effect": "Allow",
-      "Action":[
+      "Action": [
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:DescribeLogGroups",
@@ -167,26 +175,29 @@ aws ec2 create-flow-logs --resource-type VPC --resource-ids <vpc-id> --traffic-t
 9. Change the region by updating --region, and repeat the remediation procedure for each region.
 
 ## Default Value
+
 By default, VPC Flow Logs are not enabled for any newly created VPCs. Logging must be manually configured on a per-VPC basis.
 
 ## References
+
 1. CCE-79202-8
 2. https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets. | x | x | x |
-| v8 | 13.6 Collect Network Traffic Flow Logs - Collect network traffic flow logs and/or network traffic to review and alert upon from network devices. | | x | x |
-| v7 | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices. | x | x | x |
-| v7 | 12.5 Configure Monitoring Systems to Record Network Packets - Configure monitoring systems to record network packets passing through the boundary at each of the organization's network boundaries. | | x | x |
+| Controls Version | Control                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.                                     | x    | x    | x    |
+| v8               | 13.6 Collect Network Traffic Flow Logs - Collect network traffic flow logs and/or network traffic to review and alert upon from network devices.                                                    |      | x    | x    |
+| v7               | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices.                                                                                      | x    | x    | x    |
+| v7               | 12.5 Configure Monitoring Systems to Record Network Packets - Configure monitoring systems to record network packets passing through the boundary at each of the organization's network boundaries. |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| | | M1047 |
+| --------------------------- | ------- | ----------- |
+|                             |         | M1047       |
 
 ## Profile
+
 Level 2 | Automated

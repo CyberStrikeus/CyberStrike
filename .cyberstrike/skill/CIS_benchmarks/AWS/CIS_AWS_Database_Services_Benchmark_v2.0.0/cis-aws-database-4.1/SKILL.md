@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.1 Ensure AWS Identity and Access Management (IAM) is in use
 
 ## Description
+
 AWS Identity and Access Management (IAM) lets you securely control your users' access to AWS services and resources. To manage access control for Amazon DynamoDB, you can create IAM policies that control access to tables and data.
 
 ## Rationale
+
 IAM policies help you control and maintain access to Amazon DynamoDB as needed.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Open IAM Console
    - Sign in to the AWS Management Console and open the IAM console at https://console.aws.amazon.com/iam/.
 
@@ -65,25 +69,30 @@ N/A
    - With these steps, you have attached an IAM policy that controls access to DynamoDB resources.
 
 ## Expected Result
+
 IAM policies are in place that control access to DynamoDB tables and data, following the principle of least privilege.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to create and attach IAM policies for DynamoDB access control.
 
 ## Default Value
+
 By default, no IAM policies are created for DynamoDB access. Users with AWS account root credentials have full access.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

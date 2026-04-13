@@ -66,9 +66,11 @@ By default, this feature is not native to AWS and therefore is not enabled by de
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 4.1 Establish and Maintain a Secure Configuration Process
 
 **Controls Version v7:**
+
 - 5.1 Establish Secure Configurations
 
 ## Profile

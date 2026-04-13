@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.5 Ensure Audit Logging is Enabled (Manual)
 
 ## Description
+
 This control is important because it helps ensure activity within the cluster and identifies who has last modified the document and who has access to it, in case of breaches. It also ensures compliance with regulation requirements.
 
 ## Rationale
+
 Audit logging captures and records all activities within the Neptune cluster, enabling detection of unauthorized access, compliance verification, and forensic analysis.
 
 ## Impact
+
 Reduces risks of any fraud since worker activity is being monitored and tracked.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign into the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Neptune Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/neptune/.
 3. Select the Neptune Cluster:
@@ -59,24 +63,30 @@ Reduces risks of any fraud since worker activity is being monitored and tracked.
    - Set up appropriate notifications or alerts to proactively respond to critical log events.
 
 ## Expected Result
+
 CloudWatch Logs should be enabled for the Neptune cluster with appropriate log levels, retention periods, and monitoring alarms configured.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable CloudWatch Logs and configure audit logging for your Neptune cluster.
 
 ## Default Value
+
 Audit logging is not enabled by default for Neptune clusters.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

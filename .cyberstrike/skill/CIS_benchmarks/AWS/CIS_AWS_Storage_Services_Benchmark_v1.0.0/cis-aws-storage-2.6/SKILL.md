@@ -35,6 +35,7 @@ Not implementing IAM properly can lead to significant security vulnerabilities, 
 ## Audit Procedure
 
 See detailed audit steps in the full control documentation including:
+
 1. Access the AWS Management Console
 2. Review IAM Users and Roles
 3. Check IAM Policies
@@ -63,7 +64,7 @@ See detailed audit steps in the full control documentation including:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | ● |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | | ● | ● |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control       |      |      | ●    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts |      | ●    | ●    |

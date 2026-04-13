@@ -396,6 +396,7 @@ location ~* \.(bak|backup|old|orig|save|swp|tmp|sql|tar|gz|zip|rar)$ {
 sha256: 18c354b8bf143f5d844d9e6dd2bda7db82203c5ae86fadd64d8b0af428d0bcb3
 signature: 5YOEROzU4XT2ikNuSnXfkP1kQwYhNhnEdB7+r/96bImbI6AhrS4kzhdYllsrN+YP64hVKQ7kinUNG4kDL0eMBg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -9,7 +9,15 @@ cis_id: "7.11"
 cis_benchmark: "CIS AWS Database Services Benchmark v2.0.0"
 tech_stack: [aws]
 cwe_ids: []
-chains_with: [cis-aws-database-7.1, cis-aws-database-7.2, cis-aws-database-7.3, cis-aws-database-7.4, cis-aws-database-7.5, cis-aws-database-7.6]
+chains_with:
+  [
+    cis-aws-database-7.1,
+    cis-aws-database-7.2,
+    cis-aws-database-7.3,
+    cis-aws-database-7.4,
+    cis-aws-database-7.5,
+    cis-aws-database-7.6,
+  ]
 prerequisites: []
 severity_boost: {}
 ---
@@ -101,10 +109,10 @@ No automatic security assessment mechanism is provided. Organizations must estab
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 18.1 Establish and Maintain a Penetration Testing Program | | X | X |
-| v7 | 20.1 Establish a Penetration Testing Program | | X | X |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 18.1 Establish and Maintain a Penetration Testing Program |      | X    | X    |
+| v7               | 20.1 Establish a Penetration Testing Program              |      | X    | X    |
 
 ## Profile
 

@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure AWS Secrets manager is configured and being used by Lambda for databases
 
 ## Description
+
 Lambda functions often have to access a database or other services within your environment.
 
 ## Rationale
+
 Credentials used to access databases and other AWS Services need to be managed and regularly rotated to keep access into critical systems secure. Keeping any credentials and manually updating the passwords would be cumbersome, but AWS Secrets Manager allows you to manage and rotate passwords.
 
 ## Impact
+
 Lambda code should be checked for correct configuration to get the credentials from AWS Secrets Manager. This audit and remediation is only to confirm you have the credentials in Secrets manager.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to AWS Console using https://console.aws.amazon.com
 2. Click `All services`, click `Secrets Manager` under Security, Identity and Compliance.
 3. Click on `Secrets`.
@@ -38,14 +42,17 @@ Lambda code should be checked for correct configuration to get the credentials f
 8. Repeat steps 2-7 for all regions used.
 
 ### Using AWS CLI
+
 N/A - This control is Console-based audit only.
 
 ## Expected Result
+
 All database credentials used by Lambda functions are stored in AWS Secrets Manager and Lambda code retrieves credentials from Secrets Manager at runtime.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to AWS Console using https://console.aws.amazon.com
 2. Click `All services`, click `Secrets Manager` under Security, Identity and Compliance.
 3. Click on `Secrets`.
@@ -74,23 +81,27 @@ Select the lambda function you use to rotate the key
 13. Click `Store`
 
 ### Using AWS CLI
+
 N/A - This control is Console-based remediation only.
 
 ## Default Value
+
 AWS Secrets Manager is not configured by default for Lambda functions.
 
 ## References
+
 1. https://aws.amazon.com/blogs/security/how-to-securely-provide-database-credentials-to-lambda-functions-by-using-aws-secrets-manager/
 2. https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software - Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. | | x | x |
-| v8 | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x | x | x |
-| v7 | 1.7 Deploy Port Level Access Control - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. | | x | x |
-| v7 | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software - Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently.                                     |      | x    | x    |
+| v8               | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x    | x    | x    |
+| v7               | 1.7 Deploy Port Level Access Control - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network.                                                                                 |      | x    | x    |
+| v7               | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts.                                                                                       | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

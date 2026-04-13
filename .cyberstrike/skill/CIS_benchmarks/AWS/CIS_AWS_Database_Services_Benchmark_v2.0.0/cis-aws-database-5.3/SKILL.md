@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.3 Ensure Encryption at Rest and in Transit is configured
 
 ## Description
+
 Enabling encryption at rest and in transit for Amazon ElastiCache helps protect your data when it is stored and transmitted.
 
 ## Rationale
+
 Enabling encryption at rest secured the users data where it is stored. Enabling encryption in transit helps that the data is protected when it is moving from one location to another.
 
 ## Impact
+
 If the user didn't enable encryption and rest and during transit, there is a possibility of the data being vulnerable to a ransomware attack.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Enable Encryption at Rest
    - Sign in to the AWS Management Console and open the Amazon ElastiCache console at https://console.aws.amazon.com/elasticache/.
    - Create a new ElastiCache cluster or select an existing cluster.
@@ -53,28 +57,34 @@ If the user didn't enable encryption and rest and during transit, there is a pos
    - Verify that the encryption status is now enabled for both encryptions at rest and in transit.
 
 ## Expected Result
+
 Both encryption at rest and encryption in transit are enabled on all ElastiCache clusters.
 
 ## Remediation
+
 The user has two options when it comes to encryption at rest and in transit to choose from. Depending on what actions the user selects from it determines how their data is going to be protected.
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable encryption at rest and in transit for ElastiCache clusters.
 
 ## Default Value
+
 By default, encryption at rest and encryption in transit are not enabled for ElastiCache clusters.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v8               | 3.11 Encrypt Sensitive Data at Rest               |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest        |      |      | x    |
 
 ## Profile
+
 Level 1 | Manual

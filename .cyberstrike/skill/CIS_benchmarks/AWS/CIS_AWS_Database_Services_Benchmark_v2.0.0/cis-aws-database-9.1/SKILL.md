@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.1 Ensure Network Security is Enabled (Manual)
 
 ## Description
+
 This helps ensure that all the necessary security measurements are taken to prevent a cyber-attack. Such as utilizing VPC, creating certain inbound and outbound rules, and ACLs.
 
 ## Rationale
+
 Network security is fundamental to protecting Neptune database clusters from unauthorized access and network-based attacks.
 
 ## Impact
+
 Provides privacy and lets the user customize their security preferences. Prevents private network from interfering with public networks.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Neptune Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/neptune/.
 3. Select the Neptune Cluster:
@@ -60,24 +64,30 @@ Provides privacy and lets the user customize their security preferences. Prevent
    - Ensure that the network security settings allow the necessary traffic and deny unauthorized access.
 
 ## Expected Result
+
 Security groups and network ACLs should be properly configured to allow only authorized traffic to and from the Neptune cluster.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure security groups and network ACLs for your Neptune cluster.
 
 ## Default Value
+
 Neptune clusters are deployed within a VPC. Security groups and network ACLs require manual configuration.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.7 Manage Network Infrastructure Through a Dedicated Network | | x | x |
+
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture      |      | x    | x    |
+| v7               | 11.7 Manage Network Infrastructure Through a Dedicated Network |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

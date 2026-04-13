@@ -103,10 +103,12 @@ By default, Windows Operating systems are set to update automatically utilizing 
 ## CIS Controls
 
 **v8:**
+
 - 4.1 Establish and Maintain a Secure Configuration Process
   - Establish and maintain a secure configuration process for enterprise assets (end-user devices, including portable and mobile, non-computing/IoT devices, and servers) and software (operating systems and applications). Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 

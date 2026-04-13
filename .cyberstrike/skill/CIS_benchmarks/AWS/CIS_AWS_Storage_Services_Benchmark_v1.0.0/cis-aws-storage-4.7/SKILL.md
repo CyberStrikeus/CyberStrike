@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.7 Ensure mounting FSx cache (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -36,22 +37,26 @@ Without properly mounting the FSx cache, compute instances cannot access the cac
 ### SSH to EC2 Instance
 
 1. Connect to your EC2 instance:
+
 ```bash
 ssh -i "{KEY.pem}" ubuntu@{your-ec2-instance}
 ```
 
 2. **Verify mount point exists:**
+
 ```bash
 ls -ld /mnt
 ```
 
 3. **Check if FSx cache is already mounted:**
+
 ```bash
 df -h | grep /mnt
 mount | grep lustre
 ```
 
 4. **Verify the mount configuration:**
+
 ```bash
 # Check if the path shows up in the file system
 ls -la /mnt
@@ -66,6 +71,7 @@ nslookup <cache_dns_name>
 ## Expected Result
 
 The FSx cache should be properly mounted with:
+
 - Mount point directory created (`/mnt` or custom path)
 - FSx cache mounted to the mount point using Lustre protocol
 - Mount point accessible and visible in file system (`df -h`, `mount`)
@@ -79,6 +85,7 @@ The FSx cache should be properly mounted with:
 To mount your cache, follow the next steps:
 
 1. **Make a directory for the mount point:**
+
 ```bash
 sudo mkdir -p /mnt
 ```
@@ -94,6 +101,7 @@ sudo mount -t lustre -o relatime,flock cache_dns_name@tcp:/mountname /mnt
 **Note:** Make sure your EC2 instance is in the same VPC as your cache.
 
 3. **Verify the mount:**
+
 ```bash
 # If done correctly, the path of your folder will show up in the /mnt folder
 df -h
@@ -126,12 +134,13 @@ By default, FSx cache is not mounted on EC2 instances. Manual mounting is requir
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 3.3 Protect Dedicated Assessment Accounts<br/>Use a dedicated account for authenticated vulnerability scans, which should not be used for any other administrative activities and should be tied to specific machines at specific IP addresses. | | ● | ● |
-| v7 | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. | | ● | ● |
-| v7 | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated. | | ● | ● |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies<br/>Enable anti-exploitation features such as Data Execution Prevention (DEP) or Address Space Layout Randomization (ASLR) that are available in an operating system or deploy appropriate toolkits that can be configured to apply protection to a broader set of applications and executables. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 3.3 Protect Dedicated Assessment Accounts<br/>Use a dedicated account for authenticated vulnerability scans, which should not be used for any other administrative activities and should be tied to specific machines at specific IP addresses.                                                                                                                                           |      | ●    | ●    |
+| v7               | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.                                                                                         |      | ●    | ●    |
+| v7               | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated.                                                                                                                                                                                                                                                      |      | ●    | ●    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies<br/>Enable anti-exploitation features such as Data Execution Prevention (DEP) or Address Space Layout Randomization (ASLR) that are available in an operating system or deploy appropriate toolkits that can be configured to apply protection to a broader set of applications and executables. |      | ●    | ●    |
 
 ## Profile
+
 Level 2

@@ -252,6 +252,7 @@ if bcrypt.checkpw(password.encode(), stored_hash):
 sha256: c845f171cdf445c2e3e78f5f3e025ccd1d473925e7cebb1133894f0b209cb921
 signature: QBU22HqPkbB1f0NoIR6j9RZThD/4CEcky9T79a4qX55XhtQpkoVf1tbhnVZS6yZiyopWr4NwGOeIq9jYXwIVCQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

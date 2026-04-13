@@ -477,6 +477,7 @@ def modify_user(user_id):
 sha256: 4556cf517d0dccbc65f6ac2ece26f14a4a5ceed45e37530d89c146f730dc27b8
 signature: 0iqt7sEC3YVP6koTye+0BtQJ1YnKoqZUNUYWTlsGF5gh1g8xktSk2Kr5S8aQlfl0tClTBJbw4uQm0o/XUtrTAQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

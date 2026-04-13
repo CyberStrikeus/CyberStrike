@@ -83,12 +83,12 @@ Amazon MemoryDB for Redis encrypts data at rest by default using AWS managed key
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | X | X |
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | X    | X    |
+| v8               | 3.11 Encrypt Sensitive Data at Rest               |      | X    | X    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest        |      |      | X    |
 
 ## Profile
 
