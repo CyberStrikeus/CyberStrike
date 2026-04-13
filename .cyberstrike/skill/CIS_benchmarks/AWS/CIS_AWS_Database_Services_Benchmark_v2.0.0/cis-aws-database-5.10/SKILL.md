@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.10 Ensure Security Configurations are Reviewed Regularly
 
 ## Description
+
 Regularly updating and reviewing the security configuration of your Amazon Keyspaces environment helps ensure that your database is protected against potential vulnerabilities and aligned with your security requirements.
 
 ## Rationale
+
 N/A
 
 ## Impact
+
 If you are not updating these regularly, your database would most likely become susceptible to a vulnerable attack. Not updating your IAM permission, network, and encryption setting, and controlling audit logging, would lead to the attacker getting into the system which would result in data loss.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 
@@ -75,25 +79,30 @@ If you are not updating these regularly, your database would most likely become 
    - Regularly review and apply security patches, updates, and recommended configuration changes for Amazon Keyspaces.
 
 ## Expected Result
+
 All security configurations for Keyspaces (IAM, network, encryption, access control, audit logging) are regularly reviewed and updated to align with security requirements.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to review and update security configurations for Amazon Keyspaces on a regular schedule.
 
 ## Default Value
+
 N/A - This is a procedural control that requires regular manual review.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5 Account Management | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5 Account Management                                                                                  |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

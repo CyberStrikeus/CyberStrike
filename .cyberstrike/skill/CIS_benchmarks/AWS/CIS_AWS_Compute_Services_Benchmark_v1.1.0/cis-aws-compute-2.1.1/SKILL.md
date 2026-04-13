@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Consistent Naming Convention is used for Organizational AMI
 
 ## Description
+
 The naming convention for AMI (Amazon Machine Images) should be documented and followed for any AMI's created.
 
 ## Rationale
+
 The majority of AWS resources can be named and tagged. Most organizations have already created standardize naming conventions, and have existing rules in effect. They simply need to extend that for all AWS cloud resources to include Amazon Machine Images (AMI).
 
 ## Impact
+
 No significant operational impact. This is an organizational best practice that improves manageability and consistency of AMI resources.
 
 ## Audit Procedure
@@ -48,11 +51,13 @@ If any of the AMI Name's do not match the Organization policy refer to the remed
 4. Confirm that the AMI Name matches the organizational image naming policy.
 
 ## Expected Result
+
 All AMI names should follow the organization's documented naming convention. The output of describe-images should show AMIs with consistent, policy-compliant names.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided. Use the console method to copy and rename AMIs that do not comply with the naming policy.
 
 ### Using AWS Console
@@ -79,18 +84,21 @@ Once the AMI has finished copying:
 9. Click on `Deregister`.
 
 ## Default Value
+
 AWS does not enforce any default naming convention for AMIs.
 
 ## References
+
 1. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/describe-images.html
 2. https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/AMIs.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

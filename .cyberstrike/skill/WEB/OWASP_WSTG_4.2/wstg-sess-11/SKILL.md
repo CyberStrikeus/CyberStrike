@@ -296,6 +296,7 @@ def change_password():
 sha256: 62987277c5c8737322507508ececf613bbace9f81f06b7c649ee62a0dee3789e
 signature: cNVR8tPt6np7k8crosMLIjBcaS7fSfWI1Dt5b2iPm6a0ECy5wYfTEyz7cuNj4JuBhLfXd9tH9mt3rs/tm+GFBA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

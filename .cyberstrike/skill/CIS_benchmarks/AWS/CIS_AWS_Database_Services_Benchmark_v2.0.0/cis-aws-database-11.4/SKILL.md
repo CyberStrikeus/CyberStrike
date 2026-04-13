@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.4 Ensure Data in Transit is Encrypted (Manual)
 
 ## Description
+
 Use Transport Layer Security (TLS) to encrypt communications between clients and your QLDB instance. QLDB provides TLS support by default, allowing secure communication over the network. Configure your client applications to use TLS when connecting to QLDB.
 
 ## Rationale
+
 Amazon Quantum Ledger Database (QLDB), uses TLS to encrypt data during transit. To secure your data in transit the individual should identify their client application and what is supported by TLS in order to configure it correctly.
 
 ## Impact
+
 If the user does not have the code configured correctly it would not be able to connect to the server.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand TLS Encryption for QLDB:
    - Learn about Transport Layer Security (TLS) and its role in securing data during transit.
    - Understand how TLS works to establish secure communication channels between clients and QLDB.
@@ -58,24 +62,30 @@ If the user does not have the code configured correctly it would not be able to 
    - Implement appropriate encryption and security measures to protect sensitive data during transit in all communication channels.
 
 ## Expected Result
+
 All client connections to QLDB should use TLS/HTTPS encryption, with valid TLS certificates properly configured.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure and verify TLS encryption in transit for your Amazon QLDB environment.
 
 ## Default Value
+
 QLDB enforces TLS encryption for all API calls by default. All communication with QLDB is over HTTPS.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

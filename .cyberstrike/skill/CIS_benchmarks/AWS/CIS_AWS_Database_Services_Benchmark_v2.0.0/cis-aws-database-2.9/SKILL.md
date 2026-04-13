@@ -106,11 +106,11 @@ When creating an Aurora DB instance, the "Publicly accessible" setting defaults 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data. | | x | x |
-| v8 | 4 Secure Configuration of Enterprise Assets and Software - Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile; network devices; non-computing/IoT devices; and servers) and software (operating systems and applications). | | | |
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture - Establish and maintain a secure network architecture. A secure network architecture must address segmentation, least privilege, and availability, at a minimum. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.                                                             |      | x    | x    |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software - Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile; network devices; non-computing/IoT devices; and servers) and software (operating systems and applications). |      |      |      |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture - Establish and maintain a secure network architecture. A secure network architecture must address segmentation, least privilege, and availability, at a minimum.                                                                   |      | x    | x    |
 
 ## Profile
 

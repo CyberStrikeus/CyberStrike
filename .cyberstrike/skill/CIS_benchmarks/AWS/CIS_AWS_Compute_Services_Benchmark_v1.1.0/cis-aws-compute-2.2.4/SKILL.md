@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure unused EBS volumes are removed
 
 ## Description
+
 Identify any unused Elastic Block Store (EBS) volumes in your AWS account and remove them.
 
 ## Rationale
+
 Any Elastic Block Store volume created in your AWS account contains data, regardless of being used or not. If you have EBS volumes (other than root volumes) that are unattached to an EC2 instance they should be removed to prevent unauthorized access or data leak to any sensitive data on these volumes.
 
 ## Impact
+
 Once a EBS volume is deleted, the data will be lost. If this is data that you need to archive, create an encrypted EBS snapshot before deleting them.
 
 ## Audit Procedure
@@ -54,6 +57,7 @@ Capture this list of volume names and refer to the remediation below.
 Note: EBS volumes can be in different regions. Make sure to review all the regions being utilized.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating no unattached EBS volumes exist. In the console, no volumes should be in the `Available` state.
 
 ## Remediation
@@ -86,18 +90,21 @@ Note: EBS volumes can be in different regions. Make sure to review all the regio
 Note: EBS volumes can be in different regions. Make sure to review all the regions being utilized.
 
 ## Default Value
+
 EBS volumes remain in the account after being detached from instances. AWS does not automatically clean up unused volumes.
 
 ## References
+
 1. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/describe-volumes.html
 2. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/delete-volume.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure Only Approved Amazon Machine Images (AMIs) are Used
 
 ## Description
+
 Ensure that all base AMIs utilized are approved for use by your organization.
 
 ## Rationale
+
 An approved AMI is a base EC2 machine image that is a pre-configured OS configured to run your application. Using approved AMIs helps enforce consistency and security.
 
 ## Impact
+
 Instances running on unapproved AMIs may need to be replaced with instances built from approved AMIs, which could cause temporary service disruption.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 No specific CLI audit command is provided for this control. Use the console method to manually verify AMI approval status.
 
 ### Using AWS Console
@@ -55,11 +59,13 @@ Repeat the process for all other regions.
 If any of the AMIs are not approved refer to the remediation below.
 
 ## Expected Result
+
 All EC2 instances should be running on organization-approved AMIs. The AMI Name and AMI location should match entries in the organization's approved AMI list.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided. Use the console method below.
 
 ### Using AWS Console
@@ -94,17 +100,20 @@ AMI location
 Repeat the process for all other regions.
 
 ## Default Value
+
 AWS does not enforce any default AMI approval process. Any AMI can be used to launch instances.
 
 ## References
+
 No specific references provided in the benchmark for this control.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

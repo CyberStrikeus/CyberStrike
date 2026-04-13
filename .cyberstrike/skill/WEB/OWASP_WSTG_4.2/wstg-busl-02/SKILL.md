@@ -592,6 +592,7 @@ def process_payment():
 sha256: abb9ab0acdf025ebf39d299736f0200f86162e78ac9a339d284c3bfb21814eb6
 signature: NIdaQGPnJit0qXxrWSBzIOlXsdzd5snueiyeuYddnUGgTHys0mo+NQiwfaXrzomGuKM3KsMNWoxef5MB1yeqDA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

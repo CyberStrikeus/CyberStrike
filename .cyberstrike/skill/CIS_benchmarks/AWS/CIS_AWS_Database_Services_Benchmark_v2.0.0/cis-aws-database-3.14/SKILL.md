@@ -91,9 +91,9 @@ Deletion protection is disabled by default when creating a new RDS DB cluster.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
+| Controls Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software |      |      |      |
 
 ## Profile
 

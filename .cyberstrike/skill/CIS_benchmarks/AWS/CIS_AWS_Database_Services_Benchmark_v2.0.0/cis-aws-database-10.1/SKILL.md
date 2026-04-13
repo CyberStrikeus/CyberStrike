@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.1 Ensure Data Ingestion is Secure (Manual)
 
 ## Description
+
 Ensure that data ingestion into Amazon Timestream is performed securely, with proper authentication, encryption, and validation mechanisms in place.
 
 ## Rationale
+
 This helps ensure that the system is updated with any potential vulnerabilities that might pose a threat to the organization. Helps authenticate the sources that are coming to the database and ensures that only authorized users have the credential to access the data.
 
 ## Impact
+
 Secure data ingestion protects the integrity and confidentiality of time-series data being stored in Timestream.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Secure Data Sources:
    - Ensure that your data sources are protected with appropriate security measures. Implement secure network configurations, access controls, and authentication mechanisms for your data sources. Apply security patches and updates to your data source systems to prevent vulnerabilities.
 2. Use HTTPS or AWS Direct Connect:
@@ -46,24 +50,30 @@ Secure data ingestion protects the integrity and confidentiality of time-series 
    - Use network security controls such as security groups, network ACLs, and VPC configurations to restrict access to your Timestream resources. Configure inbound and outbound traffic rules to allow only necessary network connections for data ingestion. Follow the principle of least privilege, granting access only to the required IPs or networks.
 
 ## Expected Result
+
 Data ingestion should use HTTPS/TLS, client-side encryption, proper authentication, input validation, and network security controls.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to implement secure data ingestion practices for your Amazon Timestream environment.
 
 ## Default Value
+
 No default secure ingestion configuration. Users must implement security controls for data ingestion.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3 Data Protection | | | |
-| v7 | 13 Data Protection | | | |
+
+| Controls Version | Control            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------ | ---- | ---- | ---- |
+| v8               | 3 Data Protection  |      |      |      |
+| v7               | 13 Data Protection |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

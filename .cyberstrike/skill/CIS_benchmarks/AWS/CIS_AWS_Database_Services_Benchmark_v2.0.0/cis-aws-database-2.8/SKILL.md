@@ -74,10 +74,10 @@ Amazon Aurora automatically enables backups with a default retention period of 1
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 11 Data Recovery - Establish and maintain data recovery practices sufficient to restore in-scope enterprise assets to a pre-incident and trusted state. | | | |
-| v7 | 10 Data Recovery Capabilities - Data Recovery Capabilities | | | |
+| Controls Version | Control                                                                                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery - Establish and maintain data recovery practices sufficient to restore in-scope enterprise assets to a pre-incident and trusted state. |      |      |      |
+| v7               | 10 Data Recovery Capabilities - Data Recovery Capabilities                                                                                              |      |      |      |
 
 ## Profile
 

@@ -417,6 +417,7 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
 sha256: ddd6df97530207a783a7829b2ea247a3aa1658c1786992720ea1d010ab3239dd
 signature: BlNOyZJyn82skCy9dcPB20g/vkYtrTTaZTLnOFIUQQ9qMXuCkdVktUyBRMsHxAK642dZnK4QIntcZZ2LjI4PDA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

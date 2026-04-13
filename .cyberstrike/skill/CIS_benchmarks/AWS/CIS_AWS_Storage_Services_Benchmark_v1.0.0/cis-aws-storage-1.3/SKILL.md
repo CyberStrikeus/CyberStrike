@@ -31,6 +31,7 @@ Creating well-named backup templates ensures consistency, improves manageability
 ## Impact
 
 Not properly creating and naming backup templates can lead to:
+
 - Inconsistent backup configurations across resources
 - Difficulty identifying which resources are protected
 - Confusion during disaster recovery scenarios

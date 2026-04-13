@@ -17,15 +17,19 @@ severity_boost: {}
 # 3.12 Ensure configuring IAM for AWS Elastic Disaster Recovery (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 Before installing the AWS Elastic Disaster Recovery client, you need to configure AWS IAM permissions and users for both the AWS Replication and AWS Failback Client.
 
 ## Rationale
+
 Configuring AWS IAM permissions and users before installing the AWS Elastic Disaster Recovery client ensures that the AWS Replication and AWS Failback Client have the necessary access rights. This setup is essential for maintaining security and preventing unauthorized access. Proper IAM configuration guarantees the smooth operation of disaster recovery processes, safeguarding your data and ensuring system reliability.
 
 ## Impact
+
 Without proper IAM configuration for AWS Elastic Disaster Recovery, the AWS Replication and AWS Failback Client may lack the necessary access rights, leading to failed disaster recovery operations. This can result in data loss, prolonged downtime, and compromised system reliability. Additionally, inadequate IAM permissions increase the risk of unauthorized access, potentially exposing sensitive data and causing security breaches. Consequently, your organization may face significant operational disruptions, financial losses, and damage to its reputation.
 
 ## Audit Procedure
@@ -46,6 +50,7 @@ To create Failback Agent User, Follow the steps above with these two modificatio
 2. Apply the "AWSElasticDisasterRecoveryFailbackInstallationPolicy".
 
 ## Expected Result
+
 - IAM user "DSRuser" should be created with programmatic access
 - "AWSElasticDisasterRecoveryAgentInstallationPolicy" should be attached to DSRuser
 - IAM user "FailbackAgentuser" should be created with programmatic access
@@ -77,9 +82,11 @@ Configure IAM Credentials for AWS Elastic Disaster Recovery:
    - Monitor usage via CloudTrail
 
 ## Default Value
+
 By default, AWS does not create IAM users or attach policies for Elastic Disaster Recovery. Users must explicitly create these IAM users and attach the required managed policies.
 
 ## References
+
 1. https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/home
 
 ## CIS Controls
@@ -87,4 +94,5 @@ By default, AWS does not create IAM users or attach policies for Elastic Disaste
 This control does not have specific CIS Controls mappings in the original document, but it aligns with general IAM and disaster recovery best practices.
 
 ## Profile
+
 Level 2

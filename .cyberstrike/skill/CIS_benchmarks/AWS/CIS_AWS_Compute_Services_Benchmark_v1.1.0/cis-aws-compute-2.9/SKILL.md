@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure use of AWS Systems Manager to manage EC2 instances
 
 ## Description
+
 An inventory and management of Amazon Elastic Compute Cloud (Amazon EC2) instances is made possible with AWS Systems Manager.
 
 ## Rationale
+
 Use AWS Systems Manager to provide detailed system configurations, operating system patch levels, services name and type, software installations, application name, publisher and version, and other details about your environment.
 
 ## Impact
+
 Setting up Systems Manager requires creating IAM users, groups, roles, and instance profiles. This adds administrative overhead but provides centralized management of EC2 instances.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 No specific CLI audit command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -39,11 +43,13 @@ No specific CLI audit command is provided for this control. Use the console meth
 If any instances are missing or AWS Systems Manager is not configured, refer to the remediation below.
 
 ## Expected Result
+
 All EC2 instances should appear in the AWS Systems Manager Inventory dashboard.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -58,13 +64,14 @@ c. On the `Create user group` page, enter a name for the group.
 d. Select and add the users required to the Group.
 e. Attach permissions policies by selecting `ResourceGroupsandTagEditorFullAccess` policy.
 f. Then for Full access to Systems Manager console, click the `AmazonSSMFullAccess` policy.
+
 - OR
-g. For access to view Systems Manager data, and not create or update resources, click the `AmazonSSMReadOnlyAccess` policy.
-h. For access to the Built-In Insights and Dashboard by CloudWatch pages in the Systems Manager console, add these policies:
+  g. For access to view Systems Manager data, and not create or update resources, click the `AmazonSSMReadOnlyAccess` policy.
+  h. For access to the Built-In Insights and Dashboard by CloudWatch pages in the Systems Manager console, add these policies:
 - AWSHealthFullAccess
 - AWSConfigUserAccess
 - CloudWatchReadOnlyAccess
-i. Click `Create group`.
+  i. Click `Create group`.
 
 **2. Create users and assign permissions:**
 
@@ -130,17 +137,20 @@ h. Complete the `wizard`.
 If you create other instances that you want to configure using Systems Manager, specify the instance profile for each instance.
 
 ## Default Value
+
 AWS Systems Manager is not configured by default for EC2 instances. It must be explicitly set up.
 
 ## References
+
 1. https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 2 | Manual

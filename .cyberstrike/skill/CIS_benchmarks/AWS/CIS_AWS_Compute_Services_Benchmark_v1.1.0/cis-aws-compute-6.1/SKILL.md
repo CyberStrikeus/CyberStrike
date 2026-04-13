@@ -17,19 +17,23 @@ severity_boost: {}
 # 6.1 Ensure you are using VPC Endpoints for source code access (Manual)
 
 ## Description
+
 App Runner needs access to your application source, so it can't be encrypted. Therefore, be sure to secure the connection between your development or deployment environment and App Runner.
 
 ## Rationale
+
 Client-side encryption isn't a valid method for protecting the source image or code that you provide to App Runner for deployment. Using a VPC endpoint, you can privately connect your VPC to supported AWS services and VPC endpoint services that are powered by AWS PrivateLink.
 
 Note that this isn't required if you are deploying your app runner directly from an ECR image as ECR images can be independently encrypted.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/vpc/
 2. On the left hand side, click Endpoints.
 3. On the `Endpoints` page.
@@ -52,14 +56,17 @@ N/A
 9. If the settings listed above are not correct refer to the remediation below.
 
 ### Using AWS CLI
+
 N/A - This control is manual and console-based.
 
 ## Expected Result
+
 A VPC endpoint for App Runner exists with service name `com.amazonaws."region".apprunner`, status is Available, and VPC ID, Subnets, Security Groups, and Policy are correctly configured.
 
 ## Remediation
 
 ### Using AWS Console
+
 To create an interface endpoint for an App Runner:
 
 1. Login to the AWS Console using https://console.aws.amazon.com/vpc/
@@ -74,22 +81,26 @@ To create an interface endpoint for an App Runner:
 10. Click `Create endpoint`.
 
 ### Using AWS CLI
+
 N/A - This control is manual and console-based.
 
 ## Default Value
+
 No VPC endpoint is configured for App Runner by default.
 
 ## References
+
 - https://docs.aws.amazon.com/apprunner/latest/dg/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | X | X |
-| v7 | 5.2 Maintain Secure Images | | X | X |
-| v7 | 10.4 Ensure Protection of Backups | X | X | X |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest                           |      | X    | X    |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity |      | X    | X    |
+| v7               | 5.2 Maintain Secure Images                                    |      | X    | X    |
+| v7               | 10.4 Ensure Protection of Backups                             | X    | X    | X    |
 
 ## Profile
+
 Level 1 | Manual

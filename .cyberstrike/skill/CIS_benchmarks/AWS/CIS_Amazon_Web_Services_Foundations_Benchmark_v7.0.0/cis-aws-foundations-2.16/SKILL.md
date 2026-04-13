@@ -17,14 +17,17 @@ severity_boost: {}
 # Ensure IAM instance roles are used for AWS resource access from instances
 
 ## Description
+
 AWS access from within EC2 instances can be achieved either by embedding AWS access keys into applications or by assigning an IAM role to the instance with the appropriate permissions. "AWS access" refers to making API calls to AWS services to access or manage resources.
 
 ## Rationale
+
 IAM roles reduce the risks associated with storing, sharing, and rotating long-term credentials. Compromised credentials can be used outside of AWS, whereas IAM role credentials are temporary and tied to the instance.
 
 Additionally, credentials embedded in applications or configuration files are more difficult to rotate and are more likely to be exposed over time, increasing the risk of unauthorized access.
 
 ## Impact
+
 Using embedded credentials instead of IAM roles increases the risk of credential exposure and unauthorized access, particularly if credentials are not rotated or are improperly stored.
 
 ## Audit Procedure
@@ -37,9 +40,11 @@ Using embedded credentials instead of IAM roles increases the risk of credential
 4. Select `Actions`
 5. Select `View details`
 6. Review the following:
+
 - If `IAM Role` contains a role, it is compliant
 - If `IAM Role` is blank, it is non-compliant
 - If an `Instance profile ARN` exists but no role is attached, it is non-compliant
+
 7. Repeat for all EC2 instances
 
 ### Using AWS CLI
@@ -60,6 +65,7 @@ aws ec2 describe-instances --region <region-name> --instance-id <Instance-ID> --
 4. Repeat for all instances and regions
 
 ## Expected Result
+
 Every running EC2 instance should have an IAM instance profile with an appropriate role attached. No instance should rely on embedded access keys for AWS API calls.
 
 ## Remediation
@@ -99,24 +105,27 @@ aws ec2 describe-instances --region <region-name> --instance-id <Instance-ID> --
 4. Repeat steps 2 and 3 for each EC2 instance in your AWS account that requires an IAM role to be attached.
 
 ## Default Value
+
 By default, EC2 instances are launched without an IAM role attached. Applications must use embedded credentials unless an instance role is configured.
 
 ## References
+
 1. https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html
 2. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. | | | x |
-| v7 | 14.1 Segment the Network Based on Sensitivity - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs). | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. |      |      | x    |
+| v7               | 14.1 Segment the Network Based on Sensitivity - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).                                                                                                                                                                                  |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078.004 | TA0001, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1078.004                   | TA0001, TA0004 | M1026       |
 
 ## Profile
+
 Level 2 | Automated

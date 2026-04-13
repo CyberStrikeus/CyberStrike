@@ -36,12 +36,14 @@ All controls are **Manual** (Level 2) requiring human verification and configura
 ## Source
 
 CIS AWS Storage Services Benchmark v1.0.0
+
 - PDF Location: `/Users/orhanyildirim/Desktop/CIS benchmarks/CIS_AWS_Storage_Services_Benchmark_v1.0.0.pdf`
 - Pages: 12-56
 
 ## Structure
 
 Each control is in a separate directory:
+
 ```
 cis-aws-storage-{id}/
   └── SKILL.md
@@ -50,6 +52,7 @@ cis-aws-storage-{id}/
 ## Usage
 
 These skills can be used in CyberStrike for:
+
 - AWS security assessments
 - Compliance audits
 - Security posture validation

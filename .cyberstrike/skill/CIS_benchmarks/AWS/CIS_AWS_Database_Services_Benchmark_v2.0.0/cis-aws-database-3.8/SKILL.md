@@ -95,10 +95,10 @@ Auto minor version upgrade is enabled by default for new RDS instances. Maintena
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7 Continuous Vulnerability Management | | | |
-| v7 | 3 Continuous Vulnerability Management | | | |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 7 Continuous Vulnerability Management |      |      |      |
+| v7               | 3 Continuous Vulnerability Management |      |      |      |
 
 ## Profile
 

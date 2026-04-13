@@ -634,6 +634,7 @@ class ConsentManager:
 sha256: 2a3727475941d12048207e6e9bb019e8a89c357dc0cf8536097aeb74f400e020
 signature: z6Jk7WReaS3L1V88a5PpEFq6scFgxv9CzT0ruPz4iBIPmLMte2cTYByWr+2s8VZEadPNlbCAWwGs0jK3rbjRCw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.7 Ensure to Enable Backup and Recovery (Manual)
 
 ## Description
+
 Having the data backed up ensures that all the crucial information is stored securely it defends against any human errors and system errors that resulted in data loss. An organization that has a disaster recovery plan is prepared for any disruption that would impact business operations.
 
 ## Rationale
+
 Backup and recovery ensures business continuity and data protection for QLDB ledger data against accidental deletion, corruption, and system failures.
 
 ## Impact
+
 If a business does not have a backup and recovery plan it would have a negative impact on the business, which would result in less productivity, suffer data loss that cannot be restored, and loss of revenue.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand QLDB Backup and Recovery Features:
    - Familiarize yourself with the built-in backup and recovery capabilities provided by QLDB.
    - Understand the concepts of ledgers, revisions, and journal export for backup and restore operations.
@@ -70,23 +74,29 @@ If a business does not have a backup and recovery plan it would have a negative 
    - Set up appropriate alarms and notifications to ensure timely identification of any backup or recovery issues.
 
 ## Expected Result
+
 Automatic backups should be enabled for QLDB ledgers with appropriate retention periods. The restore process should be regularly tested to ensure data recoverability.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable backup and recovery for your Amazon QLDB ledgers.
 
 ## Default Value
+
 QLDB provides an immutable journal by design. Export to S3 and backup features must be manually configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11 Data Recovery | x | x | x |
+
+| Controls Version | Control          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -186,9 +186,9 @@ No IAM users exist by default. Users must be created by administrators.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 6.1 Establish an Access Granting Process | ● | ● | ● |
+| Controls Version | Control                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.1 Establish an Access Granting Process | ●    | ●    | ●    |
 
 **CIS Control v8 - 6.1 Establish an Access Granting Process:**
 Establish and follow a process, preferably automated, for granting access to enterprise assets upon new hire, rights grant, or role change of a user.

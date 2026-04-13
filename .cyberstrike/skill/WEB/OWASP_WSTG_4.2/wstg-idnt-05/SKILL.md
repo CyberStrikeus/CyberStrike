@@ -660,6 +660,7 @@ class User:
 sha256: 69c9ee23a6aec1ba894e6feeac728777606cf3b88fa39fe515ae306ead7e455c
 signature: 2vHJDpZgijdKvLQmmSeGV6kRUdnWOp+dk5nzxx8DwTwTeQ/8yc4DbV2GDRiBhX1QyrBYRzrgMvADhLrIObc4BQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

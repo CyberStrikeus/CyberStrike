@@ -87,9 +87,9 @@ Applications are installed with default administrator credentials.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | x | x | x |
+| Controls Version | Control                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | x    | x    | x    |
 
 ## Profile
 

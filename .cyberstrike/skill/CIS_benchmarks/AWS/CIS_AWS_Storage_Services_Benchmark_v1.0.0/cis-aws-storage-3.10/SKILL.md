@@ -17,15 +17,19 @@ severity_boost: {}
 # 3.10 Ensure managing AWS EFS access points (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 EFS access points serve as gateways to your EFS file system, allowing applications to interact with the file system across various resources. Proper configuration of these access points within your applications is crucial to ensure seamless and secure access. By configuring EFS access points, you can control and manage which users have access to specific resources in your EFS environment, enhancing security and operational efficiency.
 
 ## Rationale
+
 The rationale behind properly configuring EFS access points is to ensure secure and efficient interaction between your applications and the EFS file system. By setting up these access points correctly, you can control and manage user permissions, ensuring that only authorized users can access specific resources. This not only enhances the security of your data but also improves operational efficiency by preventing unauthorized access and potential data breaches.
 
 ## Impact
+
 Without properly configured EFS access points, you may experience inefficient and insecure access to your EFS file system. This can lead to unauthorized users gaining access to sensitive data, resulting in potential data breaches and security vulnerabilities. Additionally, improper configuration can cause operational inefficiencies, as managing user permissions becomes more complex and error-prone, ultimately impacting the overall security and performance of your infrastructure.
 
 ## Audit Procedure
@@ -37,6 +41,7 @@ Without properly configured EFS access points, you may experience inefficient an
 
 2. **Mounting an EFS access point**:
    Consult the section where we mounted an EFS file system on an EC2 instance. While inside the resource you want to configure an access point for, type in this command:
+
    ```
    mount -t efs -o tls,iam,accesspoint=fsap-abcdef0123456789a fs-abc0123def456789a: /localmountpoint
    ```
@@ -58,6 +63,7 @@ Without properly configured EFS access points, you may experience inefficient an
    When a root directory override is in effect, the EFS behaves like a Linux server with a no_subtree_check option enabled.
 
 ## Expected Result
+
 - EFS access points should be properly configured
 - User identity enforcement should be configured when required
 - Root directory should be properly configured with owner UID, group GID, and permissions
@@ -83,19 +89,22 @@ Implement AWS EFS access points:
 5. Verify access point configuration and permissions
 
 ## Default Value
+
 EFS access points are not created by default. Users must explicitly create and configure access points, including user identity enforcement and root directory settings.
 
 ## References
+
 1. https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | ● | ● | ● |
-| v8 | 6.8 Define and Maintain Role-Based Access Control<br/>Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. | | | ● |
-| v7 | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | ● | ● | ● |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools<br/>Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system. | | | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                                                                                              | ●    | ●    | ●    |
+| v8               | 6.8 Define and Maintain Role-Based Access Control<br/>Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. |      |      | ●    |
+| v7               | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.                       | ●    | ●    | ●    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools<br/>Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system.                                                                                                                                                                                                                      |      |      | ●    |
 
 ## Profile
+
 Level 2

@@ -704,6 +704,7 @@ def process_payment_idempotent(idempotency_key, payment_data):
 sha256: dde787187aac991b12d9713f255386adee860ee0cec93e55c202a12b949b3327
 signature: BlW6ej/nbuBgnrchL3VK22nQi7ic94q4jM6zhXCSiF62Qd8Q5cPfaNfFcx9dd2d3a/SJYer+OsFyZ3xtPNdlDQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

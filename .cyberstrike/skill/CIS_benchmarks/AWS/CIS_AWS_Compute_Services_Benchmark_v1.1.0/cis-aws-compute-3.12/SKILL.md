@@ -17,19 +17,23 @@ severity_boost: {}
 # Ensure Amazon ECS task definitions are tagged
 
 ## Description
+
 Ensure all Amazon ECS task definitions have resource tags to facilitate asset management, tracking, and compliance.
 
 Note: This recommendation assumes that only the latest active revision of a task definition is in use. If older revisions are in use, apply the audit and remediation procedures to those revisions as needed.
 
 ## Rationale
+
 Consistent tagging supports compliance and helps identify unauthorized or misconfigured resources.
 
 ## Impact
+
 There is minimal administrative overhead associated with implementing and maintaining resource tags.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the ECS console using https://console.aws.amazon.com/ecs/.
 2. In the left panel, click `Task definitions`.
 3. Click the name of a task definition.
@@ -39,12 +43,15 @@ There is minimal administrative overhead associated with implementing and mainta
 7. Repeat steps 1-6 for each ECS task definition.
 
 ### Using AWS CLI
+
 Run the following command to list task definitions:
+
 ```
 aws ecs list-task-definitions
 ```
 
 For the latest revision, run the following command to view the tags:
+
 ```
 aws ecs list-tags-for-resource --resource-arn <task-definition-arn>
 ```
@@ -53,11 +60,13 @@ Ensure that tags are returned that do not begin with `aws:`. Tags prefixed with 
 Repeat for each task definition.
 
 ## Expected Result
+
 All ECS task definitions should have at least one user-defined tag (not prefixed with `aws:`).
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the ECS console using https://console.aws.amazon.com/ecs/.
 2. In the left panel, click `Task definitions`.
 3. Click the name of a task definition.
@@ -73,25 +82,30 @@ All ECS task definitions should have at least one user-defined tag (not prefixed
 Note: When a task definition is updated, running tasks launched from the previous task definition remain unchanged. Updating a running task requires redeploying it with the new task definition.
 
 ### Using AWS CLI
+
 Use the `aws ecs tag-resource` command to add tags to a task definition:
+
 ```
 aws ecs tag-resource --resource-arn <task-definition-arn> --tags key=<TagKey>,value=<TagValue>
 ```
 
 ## Default Value
+
 By default, Amazon ECS task definitions are not tagged.
 
 ## References
+
 1. https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html
 2. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ecs/list-task-definitions.html
 3. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ecs/list-tags-for-resource.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Automated

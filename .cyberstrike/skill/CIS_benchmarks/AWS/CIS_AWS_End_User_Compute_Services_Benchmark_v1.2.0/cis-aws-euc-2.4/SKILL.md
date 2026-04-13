@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure WorkSpaces are deployed in their own virtual private cloud (VPC) (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Amazon WorkSpaces VPC should be created with two private subnets for your WorkSpaces and a NAT gateway in a public subnet.
 
 ## Rationale
+
 The NAT gateway will provide WorkSpaces access to the internet for updates to the operating system and so that applications can be deployed using Amazon WorkSpaces Application Manager if that is applicable for your environment.
 
 ## Impact
+
 Your VPC's subnets must be in different Availability Zones in the Region where you're launching WorkSpaces.
 
 ## Audit Procedure
@@ -126,18 +130,23 @@ If this is not set as referenced above refer to the remediation procedure below.
 8. Repeat steps 1-7 under **Verify and Name the Route Tables for Private** `for` WorkSpaces Private Subnet 2'
 
 ## Default Value
+
 By default, AWS Workspaces does not create its own VPC. A VPC must be created to run an AWS Workspace environment.
 
 ## References
+
 1. https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-vpc.html
 2. https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html#vpc-sizing-ipv4
 3. https://docs.aws.amazon.com/workspaces/latest/adminguide/azs-workspaces.html
 
 ## CIS Controls
+
 **v8:**
+
 - 3.12 Segment Data Processing and Storage Based on Sensitivity
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - 14.1 Segment the Network Based on Sensitivity
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).

@@ -63,6 +63,7 @@ aws lightsail get-instance-port-states --instance-name <instance_name>
 This command will provide a list of available Ports for the Instance name.
 
 Example output:
+
 ```json
 "portStates": [
     {
@@ -126,16 +127,19 @@ Only required ports should be open. SSH (22) should not be open on Windows insta
 1. Run `aws lightsail close-instance-public-ports`
 
 For Windows:
+
 ```bash
 aws lightsail close-instance-public-ports --instance-name <Windows_Instance_Name> --port-info fromPort=22,protocol=TCP,toPort=22
 ```
 
 For Linux:
+
 ```bash
 aws lightsail close-instance-public-ports --instance-name <Linux_Instance_Name> --port-info fromPort=3389,protocol=TCP,toPort=3389
 ```
 
 For HTTP:
+
 ```bash
 aws lightsail close-instance-public-ports --instance-name <ANY_Instance_Name> --port-info fromPort=80,protocol=TCP,toPort=80
 ```
@@ -152,10 +156,10 @@ Lightsail instances are created with SSH (Port 22) and HTTP (Port 80) open by de
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.                                       |      | x    | x    |
 
 ## Profile
 

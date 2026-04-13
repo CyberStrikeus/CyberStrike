@@ -81,9 +81,11 @@ By default, AWS Appstream 2.0 session disconnect time is set to 15 minutes.
 ## CIS Controls
 
 **v8:**
+
 - 0.0 Explicitly Not Mapped
 
 **v7:**
+
 - 0.0 Explicitly Not Mapped
 
 ## Profile

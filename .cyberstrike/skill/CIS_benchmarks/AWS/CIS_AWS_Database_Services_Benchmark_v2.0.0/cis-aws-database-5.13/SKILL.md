@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.13 Ensure ElastiCache has automatic backups enabled
 
 ## Description
+
 Ensure that Amazon ElastiCache clusters that store critical or stateful data have automatic backups enabled with a non-zero retention period. This setting configures ElastiCache to take daily snapshots of caches and retain them for a defined number of days, allowing restoration of data in case of corruption, accidental deletion, or infrastructure failure.
 
 ## Rationale
+
 Automatic backups provide a simple and reliable way to recover ElastiCache data without relying solely on application-level safeguards. In the event of node failure, misconfiguration, or data corruption, a recent backup snapshot can be used to create a new cache or replication group, significantly reducing recovery time and impact on dependent applications.
 
 ## Impact
+
 Enabling automatic backups for ElastiCache ensures that cache data is regularly captured in snapshots, keeping it protected and readily recoverable in case of accidental deletion, corruption, or node failure. As a result, organizations can quickly recreate cache clusters from recent backups and restore access to the cached data, minimizing downtime and business impact from unexpected data loss events.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 **1. List backup settings for all cache clusters (node-based):**
 
 ```bash
@@ -49,11 +53,13 @@ aws elasticache describe-replication-groups \
 - Again, treat SnapshotRetentionLimit = 0 as non-compliant for this control.
 
 ## Expected Result
+
 All cache clusters and replication groups storing critical data have SnapshotRetentionLimit > 0.
 
 ## Remediation
 
 ### Using AWS CLI
+
 Enable backups on a replication group (Redis/Valkey):
 
 ```bash
@@ -78,16 +84,19 @@ aws elasticache describe-cache-clusters \
 ```
 
 ## Default Value
+
 By default, SnapshotRetentionLimit is 0 (automatic backups disabled) for ElastiCache clusters.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 11 Data Recovery | | x | x |
+| Controls Version | Control          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

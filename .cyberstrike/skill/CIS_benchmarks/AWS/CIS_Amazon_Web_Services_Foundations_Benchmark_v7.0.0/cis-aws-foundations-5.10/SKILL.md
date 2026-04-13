@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure security group changes are monitored
 
 ## Description
+
 Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs or an external Security Information and Event Management (SIEM) environment, and establishing corresponding metric filters and alarms.
 
 Security groups are stateful packet filters that control ingress and egress traffic within a VPC.
@@ -24,11 +25,13 @@ Security groups are stateful packet filters that control ingress and egress traf
 It is recommended that a metric filter and alarm be established to detect changes to security groups.
 
 ## Rationale
+
 CloudWatch is an AWS native service that allows you to observe and monitor resources and applications. CloudTrail logs can also be sent to an external Security Information and Event Management (SIEM) environment for monitoring and alerting.
 
 Monitoring changes to security groups will help ensure that resources and services are not unintentionally exposed.
 
 ## Impact
+
 This may require additional 'tuning' to eliminate false positives and filter out expected activity so that anomalies are easier to detect.
 
 ## Audit Procedure
@@ -56,7 +59,7 @@ aws cloudtrail describe-trails
 aws cloudtrail get-trail-status --name <trail-name>
 ```
 
-  - Ensure `IsLogging` is set to `TRUE`
+- Ensure `IsLogging` is set to `TRUE`
 
 - Ensure the identified multi-region CloudTrail trail captures all management events:
 
@@ -64,7 +67,7 @@ aws cloudtrail get-trail-status --name <trail-name>
 aws cloudtrail get-event-selectors --trail-name <trail-name>
 ```
 
-  - Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
+- Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
 
 2. Get a list of all associated metric filters for the `<trail-log-group-name>` captured in step 1:
 
@@ -98,6 +101,7 @@ aws sns list-subscriptions-by-topic --topic-arn <sns-topic-arn>
   - Example of valid "SubscriptionArn": `arn:aws:sns:<region>:<account-id>:<sns-topic-name>:<subscription-id>`
 
 ## Expected Result
+
 A metric filter exists with the filter pattern matching security group change events, a CloudWatch alarm is configured for the metric, and the alarm has an active SNS topic with at least one subscriber.
 
 ## Remediation
@@ -131,9 +135,11 @@ aws cloudwatch put-metric-alarm --alarm-name <security-group-changes-alarm> --me
 ```
 
 ## Default Value
+
 By default, CloudTrail logs security group events (e.g., AuthorizeSecurityGroupIngress, DeleteSecurityGroup), but no CloudWatch metric filters or alarms exist. These changes are captured but not actively monitored unless configured.
 
 ## References
+
 1. CCE-79195-4
 2. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html
 3. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html
@@ -142,14 +148,15 @@ By default, CloudTrail logs security group events (e.g., AuthorizeSecurityGroupI
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v8               | 8.5 Collect Detailed Audit Logs                       |      | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews                        |      | x    | x    |
+| v7               | 6.2 Activate audit logging                            | x    | x    | x    |
+| v7               | 6.3 Enable Detailed Logging                           |      | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 2 | Manual

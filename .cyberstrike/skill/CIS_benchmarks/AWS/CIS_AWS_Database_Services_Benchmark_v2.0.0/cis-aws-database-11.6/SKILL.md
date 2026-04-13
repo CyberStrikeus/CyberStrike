@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.6 Ensure Monitoring and Logging is Enabled (Manual)
 
 ## Description
+
 Enable QLDB's built-in logging to capture important system events and database activity. Monitor the logs for any suspicious activities or errors. Leverage Amazon CloudWatch to collect and analyze logs, set up alarms, and receive notifications for potential security incidents.
 
 ## Rationale
+
 This helps the individual know what is being logged within the activity and determine what next step they should take to address it.
 
 ## Impact
+
 Monitoring and logging provides visibility into QLDB operations, enabling detection of unauthorized access, performance issues, and security incidents.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Enable AWS CloudTrail:
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
    - Open the AWS CloudTrail console.
@@ -68,24 +72,30 @@ Monitoring and logging provides visibility into QLDB operations, enabling detect
    - Stay informed about AWS security best practices and new features.
 
 ## Expected Result
+
 CloudTrail, CloudWatch Logs, metric filters, dashboards, and alarms should be properly configured to provide comprehensive monitoring and logging for QLDB.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable and configure monitoring and logging for your Amazon QLDB environment.
 
 ## Default Value
+
 QLDB API calls can be captured by CloudTrail. CloudWatch Logs integration and alarms must be manually configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

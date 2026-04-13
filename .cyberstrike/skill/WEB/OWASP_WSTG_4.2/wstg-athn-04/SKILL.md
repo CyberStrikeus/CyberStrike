@@ -607,6 +607,7 @@ def check_authorization():
 sha256: a83aebb18a437addda90c660d546bf5d956c78bf97c3cdde60830dc55d1ae72d
 signature: 6mH83LUNhn9oOtS8daxUSF4GBdMHOPNQpFoEVqrRhi5ARXPHZViAOERbuZhwtXHtW3RABgw9uuyhBjsFnwb4Cw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

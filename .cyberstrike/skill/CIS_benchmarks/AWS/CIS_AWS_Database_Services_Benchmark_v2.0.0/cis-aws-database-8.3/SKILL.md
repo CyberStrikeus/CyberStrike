@@ -17,17 +17,21 @@ severity_boost: {}
 # 8.3 Ensure Data at Rest and in Transit is Encrypted (Manual)
 
 ## Description
+
 Once a user is logged in to their AWS account and has access to their Amazon Keyspaces they are encouraged to choose from the following two options to encrypt their data. Depending on which key they select for encryption at rest would store the data according to their preference. For encryption in transit the user is also encouraged to choose from two options depending on if the data needs to be encrypted during transit.
 
 ## Rationale
+
 Encryption at rest and in transit protects data from unauthorized access whether stored or being transferred between locations.
 
 ## Impact
+
 Prevents any unauthorized user from accessing the database and provides security when transferring the data from one location to another.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Keyspaces Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/keyspaces/.
 3. Select the Keyspace:
@@ -55,26 +59,32 @@ Prevents any unauthorized user from accessing the database and provides security
    - Verify that encryption at rest and in transit are enabled for the Keyspace.
 
 ## Expected Result
+
 Encryption at rest should be enabled (using either AWS-managed or customer-managed KMS key) and encryption in transit should be enabled with TLS.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable encryption at rest and in transit for your Amazon Keyspaces.
 
 ## Default Value
+
 Amazon Keyspaces encrypts data at rest by default using AWS-managed keys. Encryption in transit via TLS is supported but requires client configuration.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v8               | 3.11 Encrypt Sensitive Data at Rest               |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest        |      |      | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure encryption in transit is enabled for Lambda environment variables
 
 ## Description
+
 As you can set your own environmental variables for Lambda it is important to also encrypt them for in transit protection.
 
 ## Rationale
+
 Lambda environment variables should be encrypted in transit for client-side protection as they can store sensitive information.
 
 ## Impact
+
 Enabling encryption in transit adds encryption overhead and may require updates to Lambda function code to decrypt environment variables at runtime.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review
@@ -41,6 +45,7 @@ Enabling encryption in transit adds encryption overhead and may require updates 
 9. Repeat this Audit for all the other AWS regions.
 
 ### Using AWS CLI
+
 1. Run `aws lambda list-functions`
 
 ```bash
@@ -63,11 +68,13 @@ This will provide an output of the environment variables created for that functi
 5. Repeat this Audit for all the other AWS regions.
 
 ## Expected Result
+
 All Lambda function environment variable values are encrypted in transit (values appear as encrypted ciphertext rather than plain text).
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review
@@ -80,21 +87,25 @@ All Lambda function environment variable values are encrypted in transit (values
 10. Repeat this remediation for all the other AWS regions.
 
 ### Using AWS CLI
+
 N/A - This control is Console-based remediation only.
 
 ## Default Value
+
 Lambda environment variables are encrypted at rest by default using AWS managed keys, but encryption in transit (client-side encryption) is not enabled by default.
 
 ## References
+
 1. https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). | | x | x |
-| v8 | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. | | x | x |
-| v7 | 10.4 Ensure Protection of Backups - Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).                                                                                                                                                                                                                                                                                 |      | x    | x    |
+| v8               | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. |      | x    | x    |
+| v7               | 10.4 Ensure Protection of Backups - Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services.                                                                                                                                                                                                                     | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

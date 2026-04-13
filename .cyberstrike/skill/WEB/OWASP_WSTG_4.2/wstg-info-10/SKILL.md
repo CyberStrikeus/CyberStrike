@@ -542,6 +542,7 @@ This is a **reconnaissance activity**, not a direct vulnerability.
 sha256: 833e547481f243390b57bf3d92f924ed9fbfd420b927623cb32c2c8eebf1b472
 signature: Jcf6buBETvumrgROExwuiA5lXSkcNyTTxAuwOSIhb1QvNyiEhTKLYohx0vq6TFMxJOs8LG+IszZcyBDu41bABA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

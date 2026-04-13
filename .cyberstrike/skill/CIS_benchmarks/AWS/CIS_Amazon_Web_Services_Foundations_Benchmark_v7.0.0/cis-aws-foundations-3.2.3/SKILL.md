@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure that RDS instances are not publicly accessible
 
 ## Description
+
 Ensure and verify that the RDS database instances provisioned in your AWS account restrict unauthorized access in order to minimize security risks. To restrict access to any RDS database instance, you must disable the Publicly Accessible flag for the database and update the VPC security group associated with the instance.
 
 ## Rationale
+
 Ensure that no public-facing RDS database instances are provisioned in your AWS account, and restrict unauthorized access in order to minimize security risks. When the RDS instance allows unrestricted access (0.0.0.0/0), anyone and anything on the Internet can establish a connection to your database, which can increase the opportunity for malicious activities such as brute force attacks, PostgreSQL injections, or DoS/DDoS attacks.
 
 ## Impact
+
 Disabling public accessibility may require application reconfiguration to use private endpoints or VPN connections. Ensure all applications connecting to the RDS instance can reach it through private networking before making changes.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Log in to the AWS management console and navigate to the RDS dashboard at https://console.aws.amazon.com/rds/.
 2. Under the navigation panel, on the RDS dashboard, click `Databases`.
 3. Select the RDS instance that you want to examine.
@@ -42,6 +46,7 @@ Disabling public accessibility may require application reconfiguration to use pr
 8. Change the AWS region from the navigation bar and repeat the audit process for other regions.
 
 ### Using AWS CLI
+
 1. Run the `describe-db-instances` command to list all available RDS database names in the selected AWS region:
 
 ```bash
@@ -64,8 +69,8 @@ aws rds describe-db-instances --region us-east-1 --query 'DBInstances[*].[DBInst
 aws ec2 describe-route-tables --filters "Name=association.subnet-id,Values=" --query "RouteTables[].Routes[?GatewayId!='null']"
 ```
 
-   - If the command returns the route table associated with the database instance subnet ID, check the values of the `GatewayId` and `DestinationCidrBlock` attributes returned in the output. If the route table contains any entries with the `GatewayId` value set to `igw-xxxxxxxx` and the `DestinationCidrBlock` value set to `0.0.0.0/0`, the selected RDS database instance was provisioned within a public subnet.
-   - Or, if the command returns empty results, the route table is implicitly associated with the subnet; therefore, the audit process continues with the next step.
+- If the command returns the route table associated with the database instance subnet ID, check the values of the `GatewayId` and `DestinationCidrBlock` attributes returned in the output. If the route table contains any entries with the `GatewayId` value set to `igw-xxxxxxxx` and the `DestinationCidrBlock` value set to `0.0.0.0/0`, the selected RDS database instance was provisioned within a public subnet.
+- Or, if the command returns empty results, the route table is implicitly associated with the subnet; therefore, the audit process continues with the next step.
 
 6. Run the `describe-route-tables` command using the ID of the subnet returned in the previous step to describe the routes of the VPC route table associated with the selected subnet:
 
@@ -85,14 +90,16 @@ aws rds describe-db-instances --region <region-name> --db-instance-identifier <d
 aws ec2 describe-route-tables --region <region-name> --filters "Name=vpc-id,Values=<vpc-id>" "Name=association.main,Values=true" --query 'RouteTables[*].Routes[]'
 ```
 
-   - The command output returns the VPC main route table implicitly associated with the database instance subnet ID. Check the values of the `GatewayId` and `DestinationCidrBlock` attributes returned in the output. If the route table contains any entries with the `GatewayId` value set to `igw-xxxxxxxx` and the `DestinationCidrBlock` value set to `0.0.0.0/0`, the selected RDS database instance was provisioned inside a public subnet; therefore, it is not running within a logically isolated environment and does not adhere to AWS security best practices.
+- The command output returns the VPC main route table implicitly associated with the database instance subnet ID. Check the values of the `GatewayId` and `DestinationCidrBlock` attributes returned in the output. If the route table contains any entries with the `GatewayId` value set to `igw-xxxxxxxx` and the `DestinationCidrBlock` value set to `0.0.0.0/0`, the selected RDS database instance was provisioned inside a public subnet; therefore, it is not running within a logically isolated environment and does not adhere to AWS security best practices.
 
 ## Expected Result
+
 The `PubliclyAccessible` flag should be set to `No` (or `False`) for all RDS instances. Additionally, the RDS instances should be deployed in private subnets without routes to Internet Gateways.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Log in to the AWS management console and navigate to the RDS dashboard at https://console.aws.amazon.com/rds/.
 2. Under the navigation panel, on the RDS dashboard, click `Databases`.
 3. Select the RDS instance that you want to update.
@@ -110,6 +117,7 @@ The `PubliclyAccessible` flag should be set to `No` (or `False`) for all RDS ins
 9. Change the AWS region from the navigation bar to repeat the process for other regions.
 
 ### Using AWS CLI
+
 1. Run the `describe-db-instances` command to list all available RDS database identifiers in the selected AWS region:
 
 ```bash
@@ -133,9 +141,11 @@ aws rds modify-db-instance --region <region-name> --db-instance-identifier <db-i
 7. Change the AWS region by using the --region filter to repeat the process for other regions.
 
 ## Default Value
+
 By default, new Amazon RDS instances are created with the Publicly Accessible setting disabled. However, this option can be explicitly enabled during instance creation or modification.
 
 ## References
+
 1. https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.html
 2. https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html
 3. https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html
@@ -143,16 +153,17 @@ By default, new Amazon RDS instances are created with the Publicly Accessible se
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1530 | TA0010 | M1037, M1054 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1530                       | TA0010  | M1037, M1054 |
 
 ## Profile
+
 Level 1 | Automated

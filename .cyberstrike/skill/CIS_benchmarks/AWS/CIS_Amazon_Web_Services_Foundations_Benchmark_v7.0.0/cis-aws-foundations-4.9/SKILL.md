@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure that object-level logging for read events is enabled for S3 buckets
 
 ## Description
+
 S3 object-level API operations, such as GetObject, DeleteObject, and PutObject, are referred to as data events. By default, CloudTrail trails do not log data events, so it is recommended to enable object-level logging for S3 buckets.
 
 ## Rationale
+
 Enabling object-level logging will help you meet data compliance requirements within your organization, perform comprehensive security analyses, monitor specific patterns of user behavior in your AWS account, or take immediate actions on any object-level API activity within your S3 buckets using Amazon CloudWatch Events.
 
 ## Impact
+
 Enabling logging for these object-level events may significantly increase the number of events logged and may incur additional costs.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and navigate to the CloudTrail dashboard at `https://console.aws.amazon.com/cloudtrail/`.
 2. In the left panel, click `Trails`, and then click the name of the trail that you want to examine.
 3. Review `General details`.
@@ -54,6 +58,7 @@ Read: Enabled
 6. Repeat steps 2-5 to verify that each trail has multi-region enabled and is configured to log data events. If a trail does not have multi-region enabled and data event logging configured, refer to the remediation steps.
 
 ### Using AWS CLI
+
 1. Run the `describe-trails` command to list all trail names:
 
 ```bash
@@ -81,11 +86,13 @@ aws cloudtrail get-event-selectors --region <region-name> --trail-name <trail-na
 8. Change the AWS region by updating the `--region` command parameter, and perform the audit process for other regions.
 
 ## Expected Result
+
 At least one multi-region trail has S3 object-level read event logging enabled for all buckets.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and navigate to S3 dashboard at `https://console.aws.amazon.com/s3/`.
 2. In the left navigation panel, click `buckets` and then click the name of the S3 bucket that you want to examine.
 3. Click the `Properties` tab to see the bucket configuration in detail.
@@ -96,6 +103,7 @@ At least one multi-region trail has S3 object-level read event logging enabled f
 8. Repeat steps 2-7 to enable object-level logging of read events for other S3 buckets.
 
 ### Using AWS CLI
+
 1. To enable `object-level` data events logging for S3 buckets within your AWS account, run the `put-event-selectors` command using the name of the trail that you want to reconfigure as identifier:
 
 ```bash
@@ -108,17 +116,20 @@ aws cloudtrail put-event-selectors --region <region-name> --trail-name <trail-na
 5. Change the AWS region by updating the `--region` command parameter, and perform the process for the other regions.
 
 ## Default Value
+
 By default, CloudTrail does not log S3 object-level (data) events; only management events are logged unless explicitly enabled.
 
 ## References
+
 1. https://docs.aws.amazon.com/AmazonS3/latest/user-guide/enable-cloudtrail-events.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. | | x | x |
-| v7 | 6.3 Enable Detailed Logging - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.                                                                                |      | x    | x    |
 
 ## Profile
+
 Level 2 | Automated

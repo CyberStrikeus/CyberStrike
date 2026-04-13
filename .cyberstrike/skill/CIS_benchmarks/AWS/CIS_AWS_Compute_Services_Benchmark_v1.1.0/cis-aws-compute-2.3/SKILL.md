@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Tag Policies are Enabled
 
 ## Description
+
 Tag policies help you standardize tags on all tagged resources across your organization.
 
 ## Rationale
+
 You can use tag policies to define tag keys (including how they should be capitalized) and their allowed values.
 
 ## Impact
+
 Enabling tag policies may require organizations to update their tagging practices to comply with the new policy. Non-compliant tags may be rejected if enforcement is enabled.
 
 ## Audit Procedure
@@ -47,6 +50,7 @@ aws organizations list-policies --filter TAG_POLICY
 If `Tag policies` status is disabled refer to the remediation below.
 
 ## Expected Result
+
 The CLI should return tag policy information (not empty brackets). In the console, Tag policies status should display as `enabled`.
 
 ## Remediation
@@ -74,17 +78,20 @@ You must sign in as an IAM user, assume an IAM role, or sign in as the root user
 5. The page is updated with a list of the Available policies and the ability to create one.
 
 ## Default Value
+
 Tag policies are disabled by default in AWS Organizations.
 
 ## References
+
 1. https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_enable-disable.html#enable-policy-type
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.5 Maintain Asset Inventory Information | | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.5 Maintain Asset Inventory Information                       |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

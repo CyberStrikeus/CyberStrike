@@ -95,10 +95,10 @@ The default security group allows all outbound traffic and restricts inbound tra
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
 

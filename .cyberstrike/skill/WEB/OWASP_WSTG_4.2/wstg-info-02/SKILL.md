@@ -535,6 +535,7 @@ Deploy a hardened reverse proxy (nginx, HAProxy) in front of application servers
 sha256: 8c87f4ca709112fa27d461a25314bd2932616ba7d6e010f8376b46a29984075c
 signature: zGBaYKlXbaeXDFcsKcc+UU/LVbm6Nn+owcCmLBzDGYRkcIi0bOd9oJfD82AviU/3cfBOLX2n7vbfA0OoDVVmCw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

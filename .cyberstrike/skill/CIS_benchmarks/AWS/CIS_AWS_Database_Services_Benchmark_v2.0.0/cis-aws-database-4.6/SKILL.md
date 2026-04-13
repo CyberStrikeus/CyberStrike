@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.6 Ensure DynamoDB Streams and AWS Lambda for Automated Compliance Checking is Enabled
 
 ## Description
+
 Enabling DynamoDB Streams and integrating AWS Lambda allows you to automate compliance checking and perform actions based on changes made to your DynamoDB data.
 
 ## Rationale
+
 Enabling the DynamoDB with AWS Lambda allows the individual to either use an existing or create a new execution role that allows Lambda to access DynamoDB and write logs.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Open DynamoDB Console
    - Sign in to the AWS Management Console and open the DynamoDB console at https://console.aws.amazon.com/dynamodb/.
 
@@ -71,25 +75,30 @@ N/A
    - You can test the compliance checking by changing the DynamoDB table and observing the Lambda function's behavior through the CloudWatch logs or other desired actions performed by the function.
 
 ## Expected Result
+
 DynamoDB Streams are enabled and an AWS Lambda function is configured to process stream records for automated compliance checking.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable DynamoDB Streams and create a Lambda function for automated compliance checking.
 
 ## Default Value
+
 By default, DynamoDB Streams are not enabled and no Lambda triggers are configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3 Data Protection | | | |
-| v7 | 13 Data Protection | | | |
+| Controls Version | Control            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------ | ---- | ---- | ---- |
+| v8               | 3 Data Protection  |      |      |      |
+| v7               | 13 Data Protection |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

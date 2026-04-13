@@ -31,6 +31,7 @@ Implementing AWS CloudWatch metrics for Endpoint Detection and Response (EDR) is
 ## Impact
 
 CloudWatch monitoring provides:
+
 - Visibility into EDR performance
 - Early detection of issues
 - Trend analysis capabilities
@@ -39,6 +40,7 @@ CloudWatch monitoring provides:
 - Audit trail for compliance
 
 Requirements:
+
 - CloudWatch log group configuration
 - Metric collection setup
 - Alarm configuration

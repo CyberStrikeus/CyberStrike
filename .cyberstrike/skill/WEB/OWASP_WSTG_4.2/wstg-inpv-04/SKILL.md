@@ -459,6 +459,7 @@ app.get("/api/action", (req, res) => {
 sha256: 370006291e255ba156f8c1a9dff661e15f8412a9e4527b95b00fafb474e37285
 signature: RqeUlQRPRLEJLUNVb4Zty3tcZOlIrNmftaOVMt7gOGFGVLZWzOlgp8WMq3KXNykOewn9fUipHMz1NbOPs+u/Dg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

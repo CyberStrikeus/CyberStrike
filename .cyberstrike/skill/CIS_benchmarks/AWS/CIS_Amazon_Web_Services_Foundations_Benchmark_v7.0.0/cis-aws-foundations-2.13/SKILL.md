@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure IAM users receive permissions only through groups
 
 ## Description
+
 IAM users are granted access to services, functions, and data through IAM policies. There are four ways to assign policies to a user:
 
 1. Attach an inline (user) policy directly to the user
@@ -27,9 +28,11 @@ IAM users are granted access to services, functions, and data through IAM polici
 Only assigning permissions through IAM groups is recommended.
 
 ## Rationale
+
 Assigning IAM policies through groups centralizes permissions management and aligns access with organizational roles. This reduces complexity and lowers the likelihood of excessive or inconsistent permissions.
 
 ## Impact
+
 Directly assigning policies to users increases the risk of misconfigured or excessive permissions and makes access management more difficult to audit and maintain.
 
 ## Audit Procedure
@@ -50,10 +53,12 @@ aws iam list-user-policies --user-name <user-name>
 ```
 
 3. If any policies are returned, the user has either:
+
 - A directly attached managed policy, or
 - An inline policy
 
 ## Expected Result
+
 For each IAM user, both `list-attached-user-policies` and `list-user-policies` should return empty results. All permissions should be assigned through IAM groups only.
 
 ## Remediation
@@ -115,25 +120,28 @@ aws iam delete-user-policy --user-name <user-name> --policy-name <policy-name>
 ```
 
 ## Default Value
+
 By default, AWS allows IAM policies to be attached directly to users, groups, or roles. There are no restrictions preventing direct user policies unless enforced through organizational standards.
 
 ## References
+
 1. http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html
 2. http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html
 3. CCE-78912-3
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. | | | x |
-| v7 | 16.1 Maintain an Inventory of Authentication Systems - Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. |      |      | x    |
+| v7               | 16.1 Maintain an Inventory of Authentication Systems - Maintain an inventory of each of the organization's authentication systems, including those located onsite or at a remote service provider.                                                                                                                                                                                                                           |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078.004 | TA0007, TA0008, TA0043 | M1018 |
+| Techniques / Sub-techniques | Tactics                | Mitigations |
+| --------------------------- | ---------------------- | ----------- |
+| T1078.004                   | TA0007, TA0008, TA0043 | M1018       |
 
 ## Profile
+
 Level 1 | Automated

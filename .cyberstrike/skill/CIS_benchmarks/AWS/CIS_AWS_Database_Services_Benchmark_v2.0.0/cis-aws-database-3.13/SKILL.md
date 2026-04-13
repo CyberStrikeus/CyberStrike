@@ -117,18 +117,14 @@ GRANT rds_iam TO jane_doe;
 
 ```json
 {
-    "Version":"2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "rds-db:connect"
-            ],
-            "Resource": [
-                "arn:aws:rds-db:region:account-id:dbuser:DbClusterResourceId/db-user-name"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["rds-db:connect"],
+      "Resource": ["arn:aws:rds-db:region:account-id:dbuser:DbClusterResourceId/db-user-name"]
+    }
+  ]
 }
 ```
 
@@ -186,9 +182,9 @@ IAM Database Authentication is disabled by default on RDS clusters.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.7 Centralize Access Control | | x | x |
+| Controls Version | Control                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------- | ---- | ---- | ---- |
+| v8               | 6.7 Centralize Access Control |      | x    | x    |
 
 ## Profile
 

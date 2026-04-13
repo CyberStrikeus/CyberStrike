@@ -103,10 +103,10 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.4 Perform Automated Application Patch Management - Perform application updates on enterprise assets through automated patch management on a monthly, or more frequent, basis. | x | x | x |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools - Deploy automated software update tools in order to ensure that third-party software on all systems is running the most recent security updates provided by the software vendor. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.4 Perform Automated Application Patch Management - Perform application updates on enterprise assets through automated patch management on a monthly, or more frequent, basis.                                                        | x    | x    | x    |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools - Deploy automated software update tools in order to ensure that third-party software on all systems is running the most recent security updates provided by the software vendor. | x    | x    | x    |
 
 ## Profile
 

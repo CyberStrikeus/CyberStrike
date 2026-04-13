@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.4 Ensure Automatic Updates and Patching are Enabled
 
 ## Description
+
 Enabling automatic updates and patching for Amazon ElastiCache ensures that your ElastiCache clusters run the latest software versions with important security fixes and enhancements.
 
 ## Rationale
+
 Automatic updates help the software be updated and address any vulnerabilities within the software that can help business with any potential exists that can impact the business and prevent any unauthorized access.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 
@@ -52,25 +56,30 @@ N/A
    - Verify that the "Auto minor version upgrade" setting is now enabled for the ElastiCache cluster.
 
 ## Expected Result
+
 Auto minor version upgrade is enabled for all ElastiCache clusters.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable automatic updates and patching for ElastiCache clusters.
 
 ## Default Value
+
 By default, auto minor version upgrade may not be enabled for ElastiCache clusters.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7 Continuous Vulnerability Management | | | |
-| v7 | 3 Continuous Vulnerability Management | | | |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 7 Continuous Vulnerability Management |      |      |      |
+| v7               | 3 Continuous Vulnerability Management |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

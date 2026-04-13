@@ -112,17 +112,13 @@ The IAM principal that connects needs the following AWS permission in their poli
 
 ```json
 {
-  "Version":"2012-10-17",
+  "Version": "2012-10-17",
   "Statement": [
-      {
-            "Effect": "Allow",
-            "Action": [
-                "rds-db:connect"
-            ],
-            "Resource": [
-                "arn:aws:rds-db:region:account-id:dbuser:DbClusterResourceId/db-user-name"
-            ]
-      }
+    {
+      "Effect": "Allow",
+      "Action": ["rds-db:connect"],
+      "Resource": ["arn:aws:rds-db:region:account-id:dbuser:DbClusterResourceId/db-user-name"]
+    }
   ]
 }
 ```
@@ -172,9 +168,9 @@ IAM database authentication is not enabled by default on Aurora clusters.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.7 Centralize Access Control - Centralize access control for all enterprise assets through a directory service or SSO provider, where supported. | | x | x |
+| Controls Version | Control                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.7 Centralize Access Control - Centralize access control for all enterprise assets through a directory service or SSO provider, where supported. |      | x    | x    |
 
 ## Profile
 

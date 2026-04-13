@@ -38,6 +38,7 @@ AWS will send periodic emails regarding the status of your backups and any servi
 ## Impact
 
 Failure to secure AWS Backups properly can result in:
+
 - Inability to recover from data loss incidents
 - Unauthorized access to backup data
 - Non-compliance with regulatory requirements

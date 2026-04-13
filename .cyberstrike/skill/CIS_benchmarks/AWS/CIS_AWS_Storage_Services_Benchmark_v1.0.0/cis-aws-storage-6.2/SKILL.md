@@ -95,12 +95,12 @@ By default, no EDR network configuration exists. Organizations must manually con
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services. | ● | ● | ● |
-| v8 | 13.3 Deploy a Network Intrusion Detection Solution<br/>Deploy a network intrusion detection solution on enterprise assets, where appropriate. Example implementations include the use of a Network Intrusion Detection System (NIDS) or equivalent cloud service provider (CSP) service. | | ● | ● |
-| v7 | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services. | ● | ● | ● |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services.                    | ●    | ●    | ●    |
+| v8               | 13.3 Deploy a Network Intrusion Detection Solution<br/>Deploy a network intrusion detection solution on enterprise assets, where appropriate. Example implementations include the use of a Network Intrusion Detection System (NIDS) or equivalent cloud service provider (CSP) service. |      | ●    | ●    |
+| v7               | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services.                                           | ●    | ●    | ●    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers.                                                                                                                                              |      | ●    | ●    |
 
 ## Profile
 

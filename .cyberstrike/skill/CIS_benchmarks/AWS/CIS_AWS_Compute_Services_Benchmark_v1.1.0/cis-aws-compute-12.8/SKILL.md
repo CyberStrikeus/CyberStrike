@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure that Code Signing is enabled for Lambda functions
 
 ## Description
+
 Ensure that all your Amazon Lambda functions are configured to use the Code Signing feature in order to restrict the deployment of unverified code.
 
 ## Rationale
+
 Code Signing, ensures that the function code is signed by an approved (trusted) source, and that it has not been altered since signing, and that the code signature has not expired or been revoked.
 
 ## Impact
+
 Enabling code signing adds an additional step to the deployment process. All code packages must be signed before deployment, which may slow down CI/CD pipelines.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS console using https://console.aws.amazon.com/lambda/
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review.
@@ -39,6 +43,7 @@ Enabling code signing adds an additional step to the deployment process. All cod
 9. Then repeat the Audit process for all other regions.
 
 ### Using AWS CLI
+
 1. Run `aws lambda list-functions`
 
 ```bash
@@ -60,14 +65,16 @@ aws lambda get-function-code-signing-config --function-name "name_of_function" -
 7. Perform the Audit process for all other regions used.
 
 ## Expected Result
+
 Each Lambda function has a code signing configuration with a valid CodeSigningConfigArn associated.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS console using https://console.aws.amazon.com/signer
 2. Click on `Create Signing Profile` if none are set up. If you already have some created in the left panel click on `Signing Profiles`, `Create Signing Profile`.
-   ***Note a Signing Profile is a trusted publisher and is analogous to the use of a digital signing certificate to generate signatures for your application code.
+   \*\*\*Note a Signing Profile is a trusted publisher and is analogous to the use of a digital signing certificate to generate signatures for your application code.
 3. On the `Create Signing Profile` setup page provide:
    - Profile name
    - Specify the Signature Validity period (6 months up to 12 months is recommended)
@@ -79,7 +86,7 @@ Each Lambda function has a code signing configuration with a valid CodeSigningCo
    - Description box - provide a short description to identify this configuration
    - Click inside the `Signing profile version ARN` box and select the Signing Profile created above.
    - For `Signature validation policy`, click the signature validation policy suitable for your Lambda function.
-     **Note - A signature check can fail if the code is not signed by an allowed Signing Profile, or if the signature has expired or has been revoked.
+     \*\*Note - A signature check can fail if the code is not signed by an allowed Signing Profile, or if the signature has expired or has been revoked.
    - Click Enforce - blocking the deployment of the code and also issue a warning.
    - Click `Create configuration`
 9. Go to the Amazon Lambda console https://console.aws.amazon.com/lambda/.
@@ -105,27 +112,31 @@ The Lambda function is now configured to use code signing.
     - Job status reads Succeeded, you can find the signed .zip package in your assigned S3 bucket.
 22. Publish the signed code package to the selected Lambda function.
 23. Amazon Lambda will perform signature checks to verify that the code has not been altered since signing.
-    **Note - The service verifies if the code is signed by one of the allowed signing profiles available.
+    \*\*Note - The service verifies if the code is signed by one of the allowed signing profiles available.
 24. Repeat steps for each Lambda function that was captured in the Audit.
 
 ### Using AWS CLI
+
 N/A - This control is Console-based remediation only.
 
 ## Default Value
+
 Code Signing is not enabled by default for Lambda functions.
 
 ## References
+
 1. https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 2. https://console.aws.amazon.com/signer
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 2.7 Allowlist Authorized Scripts - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently. | | | x |
-| v8 | 10.2 Configure Automatic Anti-Malware Signature Updates - Configure automatic updates for anti-malware signature files on all enterprise assets. | x | x | x |
-| v7 | 5.3 Securely Store Master Images - Store the master images and templates on securely configured servers, validated with integrity monitoring tools, to ensure that only authorized changes to the images are possible. | | x | x |
-| v7 | 8.2 Ensure Anti-Malware Software and Signatures are Updated - Ensure that the organization's anti-malware software updates its scanning engine and signature database on a regular basis. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.7 Allowlist Authorized Scripts - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently. |      |      | x    |
+| v8               | 10.2 Configure Automatic Anti-Malware Signature Updates - Configure automatic updates for anti-malware signature files on all enterprise assets.                                                                                                                                                         | x    | x    | x    |
+| v7               | 5.3 Securely Store Master Images - Store the master images and templates on securely configured servers, validated with integrity monitoring tools, to ensure that only authorized changes to the images are possible.                                                                                   |      | x    | x    |
+| v7               | 8.2 Ensure Anti-Malware Software and Signatures are Updated - Ensure that the organization's anti-malware software updates its scanning engine and signature database on a regular basis.                                                                                                                | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

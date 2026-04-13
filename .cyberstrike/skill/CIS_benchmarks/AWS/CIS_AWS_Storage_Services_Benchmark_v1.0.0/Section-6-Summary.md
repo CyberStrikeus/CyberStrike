@@ -8,21 +8,21 @@
 
 ### Control List
 
-| Control | Title | Tags |
-|---------|-------|------|
-| 6.1 | Ensure Elastic Disaster Recovery is Configured | backup, resilience, business-continuity |
-| 6.2 | Ensure AWS Disaster Recovery Configuration | network, architecture, vpc, replication |
-| 6.3 | Ensure functionality of Endpoint Detection and Response (EDR) | endpoint-detection, security, threat-detection, malware |
-| 6.4 | Ensure configuration of replication settings | replication, data-duplication, bandwidth, rto, rpo |
-| 6.5 | Ensure proper IAM configuration for AWS Elastic Disaster Recovery | iam, access-control, mfa, least-privilege, authentication |
-| 6.6 | Ensure installation of the AWS Replication Agent | replication-agent, installation, agent-deployment |
-| 6.7 | Ensure proper configuration of the Launch Settings | launch-settings, ec2, configuration, startup |
-| 6.8 | Ensure execution of a recovery drill | disaster-recovery, drill, testing, recovery-testing, rto, rpo |
-| 6.9 | Ensure Continuous Disaster Recovery Operations | continuous-operations, monitoring, backup, replication |
-| 6.10 | Ensure execution of a Disaster Recovery Failover | failover, recovery, business-continuity |
-| 6.11 | Ensure execution of a failback | failback, recovery, restoration |
-| 6.12 | Ensure CloudWatch Metrics for AWS EDR | cloudwatch, monitoring, metrics, logging, alerting |
-| 6.13 | Ensure working of EDR | verification, testing, functionality |
+| Control | Title                                                             | Tags                                                          |
+| ------- | ----------------------------------------------------------------- | ------------------------------------------------------------- |
+| 6.1     | Ensure Elastic Disaster Recovery is Configured                    | backup, resilience, business-continuity                       |
+| 6.2     | Ensure AWS Disaster Recovery Configuration                        | network, architecture, vpc, replication                       |
+| 6.3     | Ensure functionality of Endpoint Detection and Response (EDR)     | endpoint-detection, security, threat-detection, malware       |
+| 6.4     | Ensure configuration of replication settings                      | replication, data-duplication, bandwidth, rto, rpo            |
+| 6.5     | Ensure proper IAM configuration for AWS Elastic Disaster Recovery | iam, access-control, mfa, least-privilege, authentication     |
+| 6.6     | Ensure installation of the AWS Replication Agent                  | replication-agent, installation, agent-deployment             |
+| 6.7     | Ensure proper configuration of the Launch Settings                | launch-settings, ec2, configuration, startup                  |
+| 6.8     | Ensure execution of a recovery drill                              | disaster-recovery, drill, testing, recovery-testing, rto, rpo |
+| 6.9     | Ensure Continuous Disaster Recovery Operations                    | continuous-operations, monitoring, backup, replication        |
+| 6.10    | Ensure execution of a Disaster Recovery Failover                  | failover, recovery, business-continuity                       |
+| 6.11    | Ensure execution of a failback                                    | failback, recovery, restoration                               |
+| 6.12    | Ensure CloudWatch Metrics for AWS EDR                             | cloudwatch, monitoring, metrics, logging, alerting            |
+| 6.13    | Ensure working of EDR                                             | verification, testing, functionality                          |
 
 ### Key Themes
 
@@ -62,6 +62,7 @@
 ### Network Requirements
 
 All EDR controls require proper network configuration:
+
 - **TCP 443** - HTTPS access to EDR, S3, EC2 endpoints
 - **TCP 1500** - Replication traffic between source and staging area
 

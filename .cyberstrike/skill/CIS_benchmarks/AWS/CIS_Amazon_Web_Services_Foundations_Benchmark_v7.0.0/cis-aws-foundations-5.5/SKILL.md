@@ -17,16 +17,19 @@ severity_boost: {}
 # Ensure CloudTrail configuration changes are monitored
 
 ## Description
+
 Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs or an external Security Information and Event Management (SIEM) environment, and establishing corresponding metric filters and alarms.
 
 It is recommended that a metric filter and alarm be used to detect changes to CloudTrail's configurations.
 
 ## Rationale
+
 CloudWatch is an AWS native service that allows you to observe and monitor resources and applications. CloudTrail logs can also be sent to an external Security Information and Event Management (SIEM) environment for monitoring and alerting.
 
 Monitoring changes to CloudTrail's configuration will help ensure sustained visibility into the activities performed in the AWS account.
 
 ## Impact
+
 Ensuring that changes to CloudTrail configurations are monitored enhances security by maintaining the integrity of logging mechanisms. Automated monitoring can provide real-time alerts; however, it may require additional setup and resources to configure and manage these alerts effectively. These steps can be performed manually within a company's existing SIEM platform in cases where CloudTrail logs are monitored outside of the AWS monitoring tools in CloudWatch.
 
 ## Audit Procedure
@@ -54,7 +57,7 @@ aws cloudtrail describe-trails
 aws cloudtrail get-trail-status --name <trail-name>
 ```
 
-  - Ensure `IsLogging` is set to `TRUE`
+- Ensure `IsLogging` is set to `TRUE`
 
 - Ensure the identified multi-region CloudTrail trail captures all management events:
 
@@ -62,7 +65,7 @@ aws cloudtrail get-trail-status --name <trail-name>
 aws cloudtrail get-event-selectors --trail-name <trail-name>
 ```
 
-  - Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
+- Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
 
 2. Get a list of all associated metric filters for the `<trail-log-group-name>` captured in step 1:
 
@@ -96,6 +99,7 @@ aws sns list-subscriptions-by-topic --topic-arn <sns-topic-arn>
   - Example of valid "SubscriptionArn": `arn:aws:sns:<region>:<account-id>:<sns-topic-name>:<subscription-id>`
 
 ## Expected Result
+
 A metric filter exists with the filter pattern matching CloudTrail configuration change events, a CloudWatch alarm is configured for the metric, and the alarm has an active SNS topic with at least one subscriber.
 
 ## Remediation
@@ -129,9 +133,11 @@ aws cloudwatch put-metric-alarm --alarm-name <cloudtrail-cfg-changes-alarm> --me
 ```
 
 ## Default Value
+
 By default, CloudTrail logs configuration change events (e.g., CreateTrail, UpdateTrail, DeleteTrail, StartLogging, StopLogging), but no CloudWatch metric filters or alarms are set up. This means changes are recorded in CloudTrail, yet they are not actively monitored or alerted on unless filters and alarms are manually configured.
 
 ## References
+
 1. CCE-79190-5
 2. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html
 3. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html
@@ -139,11 +145,12 @@ By default, CloudTrail logs configuration change events (e.g., CreateTrail, Upda
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews  |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging     |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

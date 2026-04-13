@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure an Organizational EC2 Tag Policy has been Created
 
 ## Description
+
 A tag policy enables you to define tag compliance rules to help you maintain consistency in the tags attached to your organization's resources.
 
 ## Rationale
+
 You can use an EC2 tag policy to enforce your tag strategy across all of your EC2 resources.
 
 ## Impact
+
 Creating and enforcing tag policies may prevent resource creation if tags do not comply with the defined policy, potentially affecting automated deployments.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 No specific CLI audit command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -45,11 +49,13 @@ No specific CLI audit command is provided for this control. Use the console meth
 If the tag policy does not exist with the settings listed above refer to the remediation below.
 
 ## Expected Result
+
 An EC2 tag policy should exist with Tag key capitalization compliance enabled, non-compliant operations prevented, and ec2:image, ec2:instance, and ec2:reserved-instances resource types specified.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -74,17 +80,20 @@ To create a tag policy:
 14. Click `Create policy`.
 
 ## Default Value
+
 No EC2 tag policies exist by default.
 
 ## References
+
 1. https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_tag-policies-create.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.5 Maintain Asset Inventory Information | | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.5 Maintain Asset Inventory Information                       |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -29,6 +29,7 @@ An AWS Identity and Access Management (IAM) role is similar to a user, in that i
 While Service Linked Roles offer quick deployment, using default configurations isn't recommended for security best practices.
 
 Creating custom IAM roles for AWS Backup allows you to:
+
 - Implement principle of least privilege
 - Control exactly which services and resources the backup service can access
 - Audit and track backup operations more effectively
@@ -37,6 +38,7 @@ Creating custom IAM roles for AWS Backup allows you to:
 ## Impact
 
 Not properly configuring IAM roles for AWS Backup can result in:
+
 - Over-permissive backup access using default service roles
 - Inability to track which role performed backup operations
 - Difficulty implementing fine-grained access controls

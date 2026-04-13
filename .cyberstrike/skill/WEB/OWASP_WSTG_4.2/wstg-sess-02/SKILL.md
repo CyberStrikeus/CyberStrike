@@ -553,6 +553,7 @@ location / {
 sha256: 788101ada7d864d3f038079525288700f5d5cf64ec058d8cecb9ae1a219719fa
 signature: sCf9+JvW0TYGy8GmdelOL/fHWBj9jyVzFqWJKySfWUb8uxQSmF+VMpSK8ESRavvUSD7IsL7xF4/k76HsBEtECg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

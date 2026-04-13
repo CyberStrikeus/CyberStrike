@@ -375,6 +375,7 @@ location /admin {
 sha256: 4d580d3353a8d5788bca91ff452950cb99d0cbd7661f6236c9a2f33f33eddefb
 signature: KqRjtvE5Ev6hVtxq9G8Q30SbYkAzZu4pap35TUwYYEW1R0ixActRVD2v2Uz+my5WY5iax6G29/BtDkF2iYcACQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

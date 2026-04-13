@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.6 Ensure EC2 Kernel compatibility with Lustre (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -36,16 +37,19 @@ Using an incompatible kernel version will prevent the Lustre client from functio
 ### SSH to EC2 Instance
 
 1. Connect to your EC2 instance:
+
 ```bash
 ssh -i "{KEY.pem}" ubuntu@{your-ec2-instance}
 ```
 
 2. **Check current kernel version:**
+
 ```bash
 uname -r
 ```
 
 3. **List available Lustre packages and verify compatible kernel:**
+
 ```bash
 sudo apt-cache search lustre-client-modules
 ```
@@ -58,6 +62,7 @@ sudo apt-cache search lustre-client-modules
 ## Expected Result
 
 The EC2 instance should be running a kernel version compatible with Lustre:
+
 - For Ubuntu 22.02: kernel 5.15.0-1049-aws or compatible version
 - Lustre client modules available for the current kernel version
 - Kernel version supports both x86 based EC2 instances and Arm-based EC2 instances powered by AWS Graviton processors
@@ -69,31 +74,37 @@ The EC2 instance should be running a kernel version compatible with Lustre:
 Follow the steps to downgrade your kernel to a Lustre-compatible version:
 
 1. **List all of the available Lustre packages:**
+
 ```bash
 sudo apt-cache search lustre-client-modules
 ```
-   - This will show a list of supported modules with corresponding kernel order from top to bottom
-   - The most recent version in this case is "lustre-client-modules-5.15.0-1049-aws"
-   - Save this information for the next commands
+
+- This will show a list of supported modules with corresponding kernel order from top to bottom
+- The most recent version in this case is "lustre-client-modules-5.15.0-1049-aws"
+- Save this information for the next commands
 
 2. **Install the most recent linux image that supports the Lustre client:**
+
 ```bash
 sudo apt-get install -y linux-image-5.15.0-1049-aws
 sudo sed -i 's/GRUB_DEFAULT=.\+/GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 5.15.0-1049-aws"/' /etc/default/grub
 ```
 
 3. **Reboot your system:**
+
 ```bash
 sudo reboot
 ```
 
 4. **After reboot, reconnect and install the correct Lustre module:**
+
 ```bash
 ssh -i "{KEY.pem}" ubuntu@{your-ec2-instance}
 sudo apt-get install -y lustre-client-modules-$(uname -r)
 ```
 
 5. **Verify installation:**
+
 ```bash
 # Confirm kernel version
 uname -r
@@ -116,12 +127,13 @@ The default Ubuntu AMI includes the latest kernel which may not be compatible wi
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts<br/>Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | ● | ● | ● |
-| v8 | 13.11 Tune Security Event Alerting Thresholds<br/>Tune security event alerting thresholds monthly, or more frequently. | | | ● |
-| v7 | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. | | ● | ● |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts<br/>Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | ●    | ●    | ●    |
+| v8               | 13.11 Tune Security Event Alerting Thresholds<br/>Tune security event alerting thresholds monthly, or more frequently.                                                                                                                                                                                                         |      |      | ●    |
+| v7               | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.                              |      | ●    | ●    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers.                                                                                                                                                                                    |      | ●    | ●    |
 
 ## Profile
+
 Level 2

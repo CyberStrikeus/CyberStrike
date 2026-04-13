@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.2 Ensure Network Access is Secure (Manual)
 
 ## Description
+
 By applying certain network access such as Virtual Private Cloud (VPC) it protects the private network that has been established from any external networks from interfering. It allows internal networks to communicate with one another with the network that has been established. The Access Control List (ACLs) allows only specific individuals to access the resources. Also, by monitoring and logging the activity within the database it helps the individual know what is being logged within the activity and determine what next step they should take to address it.
 
 ## Rationale
+
 Network security controls protect QLDB resources from unauthorized network access and provide defense-in-depth through VPC isolation, security groups, and network ACLs.
 
 ## Impact
+
 Setting these certain rules in your network provides a strong security and prevents the organization suffering a ransomware attack.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Deploy QLDB in a VPC:
    - Create a Virtual Private Cloud (VPC) to isolate your QLDB resources.
    - Define the network CIDR blocks, subnets, and routing configurations for the VPC.
@@ -58,24 +62,30 @@ Setting these certain rules in your network provides a strong security and preve
    - Update your network security measures as needed to address emerging threats or changes in your security requirements.
 
 ## Expected Result
+
 QLDB should be accessed through VPC endpoints or PrivateLink, with properly configured security groups and network ACLs restricting access to authorized sources only.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure network security for your Amazon QLDB environment.
 
 ## Default Value
+
 QLDB is accessed via HTTPS API calls. VPC endpoints and PrivateLink must be manually configured for private network access.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.7 Manage Network Infrastructure Through a Dedicated Network | | x | x |
+
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture      |      | x    | x    |
+| v7               | 11.7 Manage Network Infrastructure Through a Dedicated Network |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

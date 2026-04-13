@@ -571,6 +571,7 @@ This is a **reconnaissance/enumeration activity**, not a direct vulnerability. T
 sha256: e528cf1e97a978444c801effda7d922631e084ee2bad33ea595bda5eecf0605b
 signature: 831zUz4pByA1ZwJMrXIHNbT0qGCr7fAsNDarey6AIsgjxTzT8TvDnjdbsMn2HrGRB0Uq9TqGwn2Kgkd25PXBBQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist
