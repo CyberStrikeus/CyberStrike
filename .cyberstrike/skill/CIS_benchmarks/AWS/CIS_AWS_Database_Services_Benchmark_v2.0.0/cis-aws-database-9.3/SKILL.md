@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.3 Ensure Data in Transit is Encrypted (Manual)
 
 ## Description
+
 Enabling encryption in transit helps that the data is protected when it is moving from one location to another.
 
 ## Rationale
+
 Encryption in transit ensures data transmitted between clients and Neptune remains confidential and protected from interception.
 
 ## Impact
+
 If an unauthorized user steals the data, it would be unreadable for them because a key would be required to decrypt the message into plaintext.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign into the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Neptune Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/neptune/.
 3. Select the Neptune Cluster:
@@ -48,24 +52,30 @@ If an unauthorized user steals the data, it would be unreadable for them because
    - Verify that all data transmitted between your client applications and the Neptune cluster is encrypted in transit.
 
 ## Expected Result
+
 SSL/TLS encryption in transit should be enabled (and preferably enforced) for all connections to the Neptune cluster.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable and enforce SSL/TLS encryption in transit for your Neptune cluster.
 
 ## Default Value
+
 Neptune supports SSL/TLS encryption in transit. It should be explicitly enabled and enforced for all client connections.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -147,10 +147,10 @@ By default, root volumes have DeleteOnTermination set to true, while additional 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | ● | ● | ● |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | ● | ● |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | ●    | ●    | ●    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices                   |      | ●    | ●    |
 
 ## Notes
 

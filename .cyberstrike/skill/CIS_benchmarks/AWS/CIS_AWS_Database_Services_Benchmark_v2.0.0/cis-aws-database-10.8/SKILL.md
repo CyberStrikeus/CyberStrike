@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.8 Ensure Monitoring and Alerting is Enabled (Manual)
 
 ## Description
+
 Utilize Amazon CloudWatch to monitor key metrics, events, and logs related to Amazon Timestream. Set up appropriate alarms and notifications to detect security incidents or abnormal behavior proactively.
 
 ## Rationale
+
 This helps the individual know what is being logged within the activity and determine what next step should be if they spot any anomalies.
 
 ## Impact
+
 Proper monitoring and alerting enables proactive detection of performance issues, security incidents, and operational anomalies in Timestream.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Define Monitoring Objectives:
    - Determine the key metrics, events, and logs you want to monitor in Amazon Timestream. Identify the specific monitoring requirements based on your use case, workload, and business needs.
 2. Choose Monitoring Tools:
@@ -46,24 +50,30 @@ Proper monitoring and alerting enables proactive detection of performance issues
    - Regularly review your monitoring configuration to ensure it aligns with your evolving requirements and workload. Adjust your monitoring setup, such as adding or modifying metrics, updating alarm thresholds, or incorporating new log filters.
 
 ## Expected Result
+
 CloudWatch metrics, alarms, and log streams should be properly configured to provide comprehensive monitoring and alerting for Timestream resources.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure CloudWatch monitoring and alerting for your Amazon Timestream resources.
 
 ## Default Value
+
 Basic CloudWatch metrics are available for Timestream. Alarms, enhanced monitoring, and log integrations must be manually configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

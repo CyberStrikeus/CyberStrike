@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.4 Ensure Access Control and Authentication is Enabled (Manual)
 
 ## Description
+
 Utilize AWS Identity and Access Management (IAM) to control access to your Amazon Timestream resources. Define IAM policies that grant or deny permissions for specific Timestream actions and resources.
 
 ## Rationale
+
 Users should select whether they like to enable authentication. If they want to authenticate the user would be required to implement IAM roles would grant or deny permissions within that database. Users also have an option to enable multi-factor authentication, which adds an extra layer of security restricting access to unauthorized users.
 
 ## Impact
+
 Allowing authentication verifies the identity of the person and who has appropriate access to a company's data.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand AWS Identity and Access Management (IAM):
    - Familiarize yourself with IAM, the AWS service used to manage access to AWS resources. Understand IAM users, groups, roles, policies, and permissions, essential for access control in Timestream.
 2. Create IAM Users, Groups, and Roles:
@@ -44,24 +48,30 @@ Allowing authentication verifies the identity of the person and who has appropri
    - Periodically review and update the IAM policies and permissions for Timestream. Remove unnecessary access permissions and ensure access controls align with your organization's security requirements. Monitor IAM activity logs and AWS CloudTrail to identify unauthorized access attempts or unusual activities.
 
 ## Expected Result
+
 IAM users, groups, roles, and policies should be properly configured with appropriate permissions for Timestream access. MFA should be enabled for users accessing Timestream.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure IAM access controls and authentication for your Amazon Timestream resources.
 
 ## Default Value
+
 Access to Timestream is controlled through IAM. No default IAM policies are configured for Timestream access beyond the root account.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

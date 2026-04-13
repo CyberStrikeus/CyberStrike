@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.5 Ensure Virtual Private Cloud (VPC) is Enabled
 
 ## Description
+
 Implementing VPC security best practices for Amazon ElastiCache involves configuring your Virtual Private Cloud (VPC) and associated resources to enhance the security of your ElastiCache clusters.
 
 ## Rationale
+
 This ensures that only authorized users can access their platforms and prevents any mistakes that can lead to a data breach due to the level of security.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Create or Select a VPC
    - Sign in to the AWS Management Console and open the Amazon VPC console at https://console.aws.amazon.com/vpc/.
    - Create a new VPC or select an existing VPC to host your ElastiCache clusters.
@@ -66,26 +70,32 @@ N/A
    - Stay informed about AWS security best practices and recommendations to enhance your network security.
 
 ## Expected Result
+
 ElastiCache clusters are deployed in a VPC with private subnets, properly configured security groups, network ACLs, and route tables.
 
 ## Remediation
+
 The individual is required to create a subnet and configure their inbound and outbound access. Individuals are supposed to configure their ACL and routing ensuring the traffic is flowing smoothly without any interference. This control is important because it only allows authorized user to access their resources as they prefer.
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to configure VPC security for ElastiCache clusters.
 
 ## Default Value
+
 By default, ElastiCache clusters are created within a VPC, but proper subnet, security group, and ACL configuration requires manual setup.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.7 Manage Network Infrastructure Through a Dedicated Network | | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture      |      | x    | x    |
+| v7               | 11.7 Manage Network Infrastructure Through a Dedicated Network |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -62,7 +62,7 @@ The auto-generated default password should be changed to a strong custom passwor
 7. Log in using the credentials provided within the Lightsail console set for this instance.
 8. Use the Windows Server password manager to change your password securely by press `Ctrl + Alt + Del`
 9. Then choose `Change a password`.
-   ** Be sure to keep a record of your password, because Lightsail doesn't store the new password you are setting.
+   \*\* Be sure to keep a record of your password, because Lightsail doesn't store the new password you are setting.
 10. Type in the `New Password`
 11. Click `Save`
 
@@ -84,9 +84,9 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | x | x | x |
+| Controls Version | Control                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 4.2 Change Default Passwords - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | x    | x    | x    |
 
 ## Profile
 

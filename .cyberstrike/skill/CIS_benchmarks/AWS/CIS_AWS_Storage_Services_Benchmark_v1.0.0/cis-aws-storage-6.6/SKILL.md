@@ -31,6 +31,7 @@ Installing the AWS Replication Agent is crucial for enabling efficient and relia
 ## Impact
 
 Agent installation and maintenance requires:
+
 - Agent download and installation on all source servers
 - Proper configuration aligned with best practices
 - Network connectivity verification
@@ -142,12 +143,12 @@ By default, the AWS Replication Agent is not installed. Organizations must manua
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.7 Centralize Access Control<br/>Centralize access control for all enterprise assets through a directory service or SSO provider, where supported. | | ● | ● |
-| v8 | 6.8 Define and Maintain Role-Based Access Control<br/>Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. | | | ● |
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools<br/>Deploy automated software update tools in order to ensure that the operating systems are running the most recent security updates provided by the software vendor. | ● | ● | ● |
-| v7 | 5.4 Deploy System Configuration Management Tools<br/>Deploy system configuration management tools that will automatically enforce and redeploy configuration settings to systems at regularly scheduled intervals. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.7 Centralize Access Control<br/>Centralize access control for all enterprise assets through a directory service or SSO provider, where supported.                                                                                                                                                                                                                                                                            |      | ●    | ●    |
+| v8               | 6.8 Define and Maintain Role-Based Access Control<br/>Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently. |      |      | ●    |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools<br/>Deploy automated software update tools in order to ensure that the operating systems are running the most recent security updates provided by the software vendor.                                                                                                                                                                                            | ●    | ●    | ●    |
+| v7               | 5.4 Deploy System Configuration Management Tools<br/>Deploy system configuration management tools that will automatically enforce and redeploy configuration settings to systems at regularly scheduled intervals.                                                                                                                                                                                                             |      | ●    | ●    |
 
 ## Profile
 

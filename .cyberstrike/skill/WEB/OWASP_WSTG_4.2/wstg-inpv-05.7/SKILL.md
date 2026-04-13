@@ -384,6 +384,7 @@ cq.select(root).where(cb.equal(root.get("name"), name));
 sha256: 8715848076407ee2506593441296ca68885980bfa22af6fed26c1adf9be68c0f
 signature: JkXfD4d0LuNWDDbQ7wTyF6+ZimlphrjgAEt87U+HNOQsUnB94FwnlDxXvBGVBHkiQPi9Im6n7BJHsJfsJdn7AA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

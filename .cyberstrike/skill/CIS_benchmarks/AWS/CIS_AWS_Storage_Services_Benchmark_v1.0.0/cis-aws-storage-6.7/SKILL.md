@@ -31,6 +31,7 @@ Proper configuration of launch settings is crucial for ensuring that systems and
 ## Impact
 
 Launch settings configuration affects:
+
 - System startup behavior
 - Resource allocation
 - Security posture at launch
@@ -112,12 +113,12 @@ By default, launch settings are not configured. Organizations must manually conf
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure<br/>Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ● | ● | ● |
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure<br/>Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, and SaaS components. Do not allow in-house developed software to weaken configuration hardening. | | ● | ● |
-| v7 | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. | | ● | ● |
-| v7 | 5.4 Deploy System Configuration Management Tools<br/>Deploy system configuration management tools that will automatically enforce and redeploy configuration settings to systems at regularly scheduled intervals. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure<br/>Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.                                                                                                                                                    | ●    | ●    | ●    |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure<br/>Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, and SaaS components. Do not allow in-house developed software to weaken configuration hardening. |      | ●    | ●    |
+| v7               | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.                                                                                                                                               |      | ●    | ●    |
+| v7               | 5.4 Deploy System Configuration Management Tools<br/>Deploy system configuration management tools that will automatically enforce and redeploy configuration settings to systems at regularly scheduled intervals.                                                                                                                                                                                                                              |      | ●    | ●    |
 
 ## Profile
 

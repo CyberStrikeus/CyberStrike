@@ -447,6 +447,7 @@ const result = vm.run(userInput)
 sha256: c5b2498b9d2a0fe1df55124540df08d74dd8ae2f6672198d033ecb9c880e8a5e
 signature: WNv1M0ez0uKWhAs84dLfwvgGInreaYjrXK6tLWnJxVfMOj3wBT6Pyj54hzKEaghkjlZyjJ6O/2EdKnyz217wCQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

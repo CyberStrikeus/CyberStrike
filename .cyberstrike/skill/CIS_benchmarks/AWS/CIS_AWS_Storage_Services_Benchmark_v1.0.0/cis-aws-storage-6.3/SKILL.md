@@ -31,6 +31,7 @@ Ensuring the functionality of Endpoint Detection and Response (EDR) systems is e
 ## Impact
 
 Implementing and maintaining EDR requires:
+
 - Deployment of EDR software on all endpoints
 - Continuous monitoring and analysis infrastructure
 - Regular testing and updates
@@ -117,12 +118,12 @@ By default, EDR is not configured. Organizations must manually set up all compon
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.2 Deploy a Host-Based Intrusion Detection Solution<br/>Deploy a host-based intrusion detection solution on enterprise assets, where appropriate and/or supported. | | ● | ● |
-| v8 | 13.3 Deploy a Network Intrusion Detection Solution<br/>Deploy a network intrusion detection solution on enterprise assets, where appropriate. Example implementations include the use of a Network Intrusion Detection System (NIDS) or equivalent cloud service provider (CSP) service. | | ● | ● |
-| v7 | 8.6 Centralize Anti-malware Logging<br/>Send all malware detection events to enterprise anti-malware administration tools and event log servers for analysis and alerting. | | ● | ● |
-| v7 | 12.6 Deploy Network-based IDS Sensor<br/>Deploy network-based Intrusion Detection Systems (IDS) sensors to look for unusual attack mechanisms and detect compromise of these systems at each of the organization's network boundaries. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.2 Deploy a Host-Based Intrusion Detection Solution<br/>Deploy a host-based intrusion detection solution on enterprise assets, where appropriate and/or supported.                                                                                                                     |      | ●    | ●    |
+| v8               | 13.3 Deploy a Network Intrusion Detection Solution<br/>Deploy a network intrusion detection solution on enterprise assets, where appropriate. Example implementations include the use of a Network Intrusion Detection System (NIDS) or equivalent cloud service provider (CSP) service. |      | ●    | ●    |
+| v7               | 8.6 Centralize Anti-malware Logging<br/>Send all malware detection events to enterprise anti-malware administration tools and event log servers for analysis and alerting.                                                                                                               |      | ●    | ●    |
+| v7               | 12.6 Deploy Network-based IDS Sensor<br/>Deploy network-based Intrusion Detection Systems (IDS) sensors to look for unusual attack mechanisms and detect compromise of these systems at each of the organization's network boundaries.                                                   |      | ●    | ●    |
 
 ## Profile
 

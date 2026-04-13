@@ -83,9 +83,11 @@ By default, AWS Appstream 2.0 maximum session time is 960 minutes.
 ## CIS Controls
 
 **v8:**
+
 - 0.0 Explicitly Not Mapped
 
 **v7:**
+
 - 0.0 Explicitly Not Mapped
 
 ## Profile

@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.7 Ensure Monitor and Audit Activity is enabled
 
 ## Description
+
 Regular monitoring and auditing of activity in Amazon DynamoDB help ensure your database's security, performance, and compliance.
 
 ## Rationale
+
 This keeps track and ensures who has recently modified a document and monitors all activity within the database. This information allows the individual to use the details provided for auditing purposes and to address any compliance requirements.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Enable CloudTrail Logging for DynamoDB
    - Sign in to the AWS Management Console and open the CloudTrail console at https://console.aws.amazon.com/cloudtrail/.
    - Choose `Trails` from the left-side menu.
@@ -71,25 +75,30 @@ N/A
    - Click `Save` to create the AWS Config rule.
 
 ## Expected Result
+
 CloudTrail logging is enabled for DynamoDB data events, DynamoDB Streams are enabled, CloudWatch alarms are configured, and AWS Config rules are in place for compliance monitoring.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable monitoring and auditing for DynamoDB.
 
 ## Default Value
+
 By default, CloudTrail logs management events but not DynamoDB data events. DynamoDB Streams are disabled by default.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

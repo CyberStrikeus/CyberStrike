@@ -80,9 +80,11 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
             }
           return {
             title: `${active.length} skills loaded (${tokens} tokens)`,
-            output: [`## Skills in Context (${tokens} estimated tokens)`, "", ...active.map((name) => `- ${name}`)].join(
-              "\n",
-            ),
+            output: [
+              `## Skills in Context (${tokens} estimated tokens)`,
+              "",
+              ...active.map((name) => `- ${name}`),
+            ].join("\n"),
             metadata: {} as { name?: string; dir?: string },
           }
         }

@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure Lambda functions are referencing active execution roles
 
 ## Description
+
 In order to have the necessary permissions to access the AWS cloud services and resources Amazon Lambda functions should be associated with active(available) execution roles.
 
 ## Rationale
+
 A Lambda function's execution role is an Identity and Access Management (IAM) role that grants the function permission to process and access specific AWS services and resources. When Amazon Lambda functions are not referencing active execution roles, the functions are losing the ability to perform critical operations securely.
 
 ## Impact
+
 Functions referencing inactive or deleted execution roles will fail to execute properly, potentially causing service disruptions.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review
@@ -38,6 +42,7 @@ Functions referencing inactive or deleted execution roles will fail to execute p
 8. Repeat this Audit for all the other AWS regions.
 
 ### Using AWS CLI
+
 1. Run `aws lambda list-functions`
 
 ```bash
@@ -69,11 +74,13 @@ This will return the requested configuration information.
 Perform the Audit process for other regions.
 
 ## Expected Result
+
 All Lambda functions reference active, existing IAM execution roles. The `aws iam get-role` command returns valid role configuration for each referenced role.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to update.
@@ -83,11 +90,13 @@ All Lambda functions reference active, existing IAM execution roles. The `aws ia
 7. In the `Edit basic settings` page, perform one of the following actions:
 
 **To use an existing role:**
+
 - Click Use an existing role if you already a execution role for the selected Lambda function.
 - Select the IAM role from the `Existing role` dropdown list.
 - Click Save.
 
 **Or to create a custom role:**
+
 - Click To create a custom role, go to the `IAM console`.
 - Click AWS Service
 - Click `Lambda`.
@@ -106,22 +115,26 @@ All Lambda functions reference active, existing IAM execution roles. The `aws ia
 9. Repeat this Audit for all the other AWS regions.
 
 ### Using AWS CLI
+
 N/A - This control is Console-based remediation only.
 
 ## Default Value
+
 Lambda functions are created with valid execution roles, but roles may be deleted independently of the function.
 
 ## References
+
 1. https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x | x | x |
-| v7 | 1.7 Deploy Port Level Access Control - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. | | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. | x | x | x |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools - Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system. | | | x |
+| Controls Version | Control                                                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x    | x    | x    |
+| v7               | 1.7 Deploy Port Level Access Control - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network.                                                                                 |      | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists.                                              | x    | x    | x    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools - Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system.                                         |      |      | x    |
 
 ## Profile
+
 Level 1 | Manual

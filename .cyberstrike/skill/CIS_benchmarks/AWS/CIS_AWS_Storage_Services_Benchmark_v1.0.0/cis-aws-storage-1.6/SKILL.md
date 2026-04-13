@@ -29,6 +29,7 @@ AWS Service Linked Roles are IAM roles designed specifically for AWS Backup. The
 While Service Linked Roles offer quick deployment, using default configurations isn't recommended for security best practices.
 
 Service Linked Roles provide:
+
 - **Quick Setup**: Automatically created when you first use AWS Backup
 - **Managed Permissions**: AWS maintains the permissions needed for backup operations
 - **Ease of Use**: No manual policy management required
@@ -38,12 +39,14 @@ However, organizations should assess whether the default permissions align with 
 ## Impact
 
 Using Service Linked Roles without proper assessment can result in:
+
 - Over-permissive access to AWS resources
 - Difficulty implementing principle of least privilege
 - Potential compliance violations if default permissions are too broad
 - Reduced visibility into specific backup permissions
 
 Benefits of properly configured Service Linked Roles:
+
 - Simplified initial setup
 - Automatic updates to permissions as AWS Backup evolves
 - Reduced administrative overhead for basic backup operations
@@ -133,6 +136,7 @@ aws backup list-backup-vaults
 When using the AWS Backup console for the first time, you can choose to have AWS Backup create a default service role for you. This role has the permissions that AWS Backup needs to create and restore backups on your behalf.
 
 The service-linked role includes these AWS-managed policies:
+
 - `BackupServiceRolePolicyForBackup`
 - `BackupServiceRolePolicyForRestores`
 

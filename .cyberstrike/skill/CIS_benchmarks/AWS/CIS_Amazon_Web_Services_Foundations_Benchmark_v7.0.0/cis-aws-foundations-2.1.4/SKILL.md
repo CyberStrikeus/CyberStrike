@@ -102,9 +102,9 @@ AWS Organizations creates a single root with no OUs by default. All accounts are
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | * | * |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity |      | \*   | \*   |
 
 ## Profile
 

@@ -435,6 +435,7 @@ element.innerHTML = DOMPurify.sanitize(userInput)
 sha256: ab9ddf192d1e547ba16373fc94b628e340d9e43c38d56bee3e61082e5ffb3ec5
 signature: vGtzXiETqn+ipt1c2c5j/P++3Gj1HRMD8IrgB8KoLb4rdvMTA7Evzt3qnHsjTnUk/zYa60lmp7a0KQlrfu5zDQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

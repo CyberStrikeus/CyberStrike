@@ -84,9 +84,9 @@ AWS does not restrict the management account from hosting workloads. By default,
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | * | * |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity |      | \*   | \*   |
 
 ## Profile
 

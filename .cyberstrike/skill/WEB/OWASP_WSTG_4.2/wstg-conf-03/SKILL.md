@@ -459,6 +459,7 @@ find /var/www/html -name "*.swp" -delete
 sha256: 0771669cd507b21573b225769cf58acf153b7efbabec8bb0948e4581ef27602c
 signature: pXEEZIt7KnqXZ2/VQXaWCcN/29pKFmACoCoN7N9dr1ymdTi3S0+z81XReYmUKlI5h0wNss5QGBupqv5UjQeDDQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

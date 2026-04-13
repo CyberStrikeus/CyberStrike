@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure CloudWatch is set up for WorkSpaces (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Set up and utilize Amazon CloudWatch Events for successful logins to WorkSpaces.
 
 ## Rationale
+
 Use Cloudwatch to store/archive WorkSpaces login events for future reference, analysis, and action based on the patterns. Utilize the IP address collected to figure out where users are logged in from, and then build policies to allow access only to files or data from those WorkSpaces that meet company access criteria. With this information you can also use policy controls to block access from unauthorized IP addresses.
 
 ## Impact
+
 None specified in the benchmark.
 
 ## Audit Procedure
@@ -42,12 +46,8 @@ Perform the following steps to review the rules for CloudWatch and WorkSpaces Ev
 
 ```json
 {
-  "source": [
-    "aws.workspaces"
-  ],
-  "detail-type": [
-    "WorkSpaces Access"
-  ]
+  "source": ["aws.workspaces"],
+  "detail-type": ["WorkSpaces Access"]
 }
 ```
 
@@ -89,6 +89,7 @@ Perform the following steps to create a Rule for CloudWatch WorkSpaces Events:
 12. Click **Create rule**
 
 ## Default Value
+
 By default, The CloudWatch dashboard is automatically created when you use your AWS account to configure your WorkSpaces.
 
 The dashboard consists of the following features: View historical data using time and date range controls.
@@ -108,17 +109,21 @@ Monitor the overall health and utilization status of your WorkSpaces by doing th
 https://docs.aws.amazon.com/workspaces/latest/adminguide/cloudwatch-dashboard.html
 
 ## References
+
 1. https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-monitoring.html
 2. https://docs.aws.amazon.com/workspaces/latest/adminguide/cloudwatch-events.html
 
 ## CIS Controls
+
 **v8:**
+
 - 8.2 Collect Audit Logs
   - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.
 - 8.9 Centralize Audit Logs
   - Centralize, to the extent possible, audit log collection and retention across enterprise assets.
 
 **v7:**
+
 - 6.2 Activate audit logging
   - Ensure that local logging has been enabled on all systems and networking devices.
 - 6.5 Central Log Management

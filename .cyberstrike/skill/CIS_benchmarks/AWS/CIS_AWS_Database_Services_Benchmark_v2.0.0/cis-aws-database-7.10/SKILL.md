@@ -72,10 +72,10 @@ Amazon DocumentDB configures an automatic backup window when the cluster is crea
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process | X | X | X |
-| v7 | 10.2 Perform Complete System Backups | X | X | X |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process | X    | X    | X    |
+| v7               | 10.2 Perform Complete System Backups                | X    | X    | X    |
 
 ## Profile
 

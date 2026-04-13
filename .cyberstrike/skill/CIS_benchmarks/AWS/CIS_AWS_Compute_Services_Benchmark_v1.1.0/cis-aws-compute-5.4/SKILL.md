@@ -40,8 +40,8 @@ N/A
 6. Confirm that the SSH Port is restricted to an IP address
 
 | Application | Protocol | Port or range / Code | Restricted to |
-|---|---|---|---|
-| SSH | TCP | 22 | 101.221.11.11 |
+| ----------- | -------- | -------------------- | ------------- |
+| SSH         | TCP      | 22                   | 101.221.11.11 |
 
 7. If SSH is needed and it is open to `Any IPv4 address` refer to the remediation below.
 
@@ -95,9 +95,9 @@ SSH (Port 22) should be restricted to specific IP addresses that require access.
 5. Go to the Networking section.
 6. Under IPv4 networking find the SSH rule as shown below.
 
-| Application | Protocol | Port or range / Code | Restricted to |
-|---|---|---|---|
-| SSH | TCP | 22 | Any IPv4 address |
+| Application | Protocol | Port or range / Code | Restricted to    |
+| ----------- | -------- | -------------------- | ---------------- |
+| SSH         | TCP      | 22                   | Any IPv4 address |
 
 7. Click on the edit icon
 8. Click on the check box next to Restrict to IP address
@@ -147,10 +147,10 @@ SSH (Port 22) is open to all IPv4 addresses (0.0.0.0/0) by default on Linux Ligh
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                                                                        | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | x    | x    | x    |
 
 ## Profile
 

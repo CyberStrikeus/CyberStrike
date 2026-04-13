@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.10 Ensure Database has automated Backups enabled (Manual)
 
 ## Description
+
 Ensure that Amazon Timestream tables have automated backups enabled through AWS Backup with a defined backup schedule and retention policy. AWS Backup provides scheduled, automated backup functionality for Timestream tables, creating regular point-in-time snapshots that are retained according to a configurable lifecycle policy.
 
 ## Rationale
+
 Amazon Timestream stores critical time-series data that is often mission-critical for monitoring, analytics, and operational intelligence. Automated backups through AWS Backup ensure that Timestream tables are continuously protected without requiring manual intervention, and can be rapidly restored in the event of accidental deletion, data corruption, misconfiguration, or application errors.
 
 ## Impact
+
 Enabling automated backups for Timestream ensures that time-series data is regularly captured in durable backups and recoverable to any point within the configured retention window, providing strong protection against accidental loss and data corruption.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 Important Note: Amazon Timestream does not have a native automated backup feature built into the service. Instead, backups are managed through AWS Backup, which provides scheduled, on-demand, and lifecycle-managed backup functionality for Timestream tables.
 
 Check if automated backups are enabled via AWS Backup Service:
@@ -61,16 +65,19 @@ aws backup get-backup-plan --backup-plan-id <your-backup-plan-id>
 ```
 
 Look for the "Lifecycle" fields in each backup rule:
+
 - "DeleteAfterDays" is the retention period.
 - "ScheduleExpression" sets the backup schedule (cron format).
 - "BackupVaultName" is the name of the vault (where backups are stored).
 
 ## Expected Result
+
 Timestream tables should be assigned to an AWS Backup plan with appropriate schedule and retention policies configured.
 
 ## Remediation
 
 ### Using AWS CLI
+
 1. Create Backup Plan for on-demand snapshots:
 
 ```bash
@@ -110,15 +117,19 @@ aws backup create-backup-selection --backup-plan-id <BackupPlanId> --backup-sele
 - These commands create a centralized backup plan with scheduled snapshot backups, then assign your Timestream database as a resource for backup.
 
 ## Default Value
+
 Amazon Timestream does not have native automated backups. Backups must be configured through AWS Backup.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11 Data Recovery | x | x | x |
+
+| Controls Version | Control          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

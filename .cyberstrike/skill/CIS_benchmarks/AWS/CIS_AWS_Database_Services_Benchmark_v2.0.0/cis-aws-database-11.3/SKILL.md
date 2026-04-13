@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.3 Ensure Data at Rest is Encrypted (Manual)
 
 ## Description
+
 This helps ensure that the data is kept secure and protected when at rest. The user must choose from two key options which then determine when the data is encrypted at rest.
 
 ## Rationale
+
 Encryption at rest protects QLDB ledger data from unauthorized access even if the underlying storage media is compromised.
 
 ## Impact
+
 If an unauthorized user steals the data, it would be unreadable for them because a key would be required to decrypt the message into plaintext.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Create an AWS Key Management Service (KMS) Key:
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
    - Open the AWS Key Management Service (KMS) console.
@@ -56,24 +60,30 @@ If an unauthorized user steals the data, it would be unreadable for them because
    - Consider backing up the KMS key used for encryption to prevent data loss in case of a key compromise or accidental deletion.
 
 ## Expected Result
+
 Encryption at rest should be enabled for all QLDB ledgers using either AWS-managed or customer-managed KMS keys, with the encryption status showing as `Enabled`.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable encryption at rest for your Amazon QLDB ledgers.
 
 ## Default Value
+
 QLDB encrypts all data at rest by default using an AWS-owned KMS key. Customer-managed KMS keys can be configured for additional control.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## Profile
+
 Level 1 | Manual

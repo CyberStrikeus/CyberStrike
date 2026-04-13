@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.4 Ensure DynamoDB Encryption in Transit
 
 ## Description
+
 Use the SSL/TLS protocol to encrypt data in transit between your applications and DynamoDB. Amazon DynamoDB encrypts data in transit by default using Transport Layer Security (TLS) encryption. Here is a step-by-step guide on how to ensure encryption in transit for your DynamoDB:
 
 ## Rationale
+
 Amazon DynamoDB uses TLS to encrypt data during transit. To secure your data in transit the individual should identify their client application and what is supported by TLS to configure it correctly.
 
 ## Impact
+
 If the user does not have the code configured correctly it would not be able to connect to the DynamoDB.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Access the DynamoDB Console
    - Sign in to the AWS Management Console and open the DynamoDB console at https://console.aws.amazon.com/dynamodb/.
 
@@ -48,25 +52,30 @@ If the user does not have the code configured correctly it would not be able to 
    - Verify that your code is configured to connect to DynamoDB using the appropriate SSL/TLS endpoint.
 
 ## Expected Result
+
 All data in transit between applications and DynamoDB is encrypted using TLS. SSL/TLS endpoints are used for all API calls.
 
 ## Remediation
 
 ### Using AWS Console
+
 Ensure that your applications use the SSL/TLS endpoints provided by DynamoDB. By default, the AWS SDKs and CLI use SSL/TLS. Verify your application code connects using HTTPS endpoints.
 
 ## Default Value
+
 By default, DynamoDB encrypts data in transit using TLS. The AWS SDKs and CLI use SSL/TLS endpoints.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

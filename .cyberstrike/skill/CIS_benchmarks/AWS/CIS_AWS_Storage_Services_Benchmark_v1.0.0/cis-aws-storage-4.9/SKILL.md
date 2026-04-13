@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.9 Ensure cleaning up FSx Resources (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -30,6 +31,7 @@ The rationale for cleaning up FSx resources is to optimize costs and ensure a se
 ## Impact
 
 Failing to clean up FSx resources can lead to:
+
 - **Cost Impact:** Continued billing for unused File Cache resources, EC2 instances, and S3 storage
 - **Security Impact:** Orphaned resources may contain sensitive data and expand attack surface
 - **Operational Impact:** Resource sprawl makes infrastructure management more difficult
@@ -91,6 +93,7 @@ aws s3api list-objects-v2 \
 ## Expected Result
 
 All unused FSx resources should be identified and evaluated for cleanup:
+
 - File Caches no longer in use should be deleted
 - Associated EC2 instances should be terminated if not needed
 - S3 buckets should be emptied and deleted if not required for data retention
@@ -175,12 +178,13 @@ FSx resources are not automatically cleaned up. Manual deletion is required for 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.8 Document Data Flows<br/>Document data flows. Data flow documentation includes service provider data flows and should be based on the enterprise's data management process. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | | ● | ● |
-| v8 | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | ● | ● | ● |
-| v7 | 7.8 Implement DMARC and Enable Receiver-Side Verification<br/>To lower the chance of spoofed or modified emails from valid domains, implement Domain-based Message Authentication, Reporting and Conformance (DMARC) policy and verification, starting by implementing the Sender Policy Framework (SPF) and the DomainKeys Identified Mail(DKIM) standards. | | ● | ● |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.8 Document Data Flows<br/>Document data flows. Data flow documentation includes service provider data flows and should be based on the enterprise's data management process. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.                                                      |      | ●    | ●    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process.                                                                                                                                                                                           | ●    | ●    | ●    |
+| v7               | 7.8 Implement DMARC and Enable Receiver-Side Verification<br/>To lower the chance of spoofed or modified emails from valid domains, implement Domain-based Message Authentication, Reporting and Conformance (DMARC) policy and verification, starting by implementing the Sender Policy Framework (SPF) and the DomainKeys Identified Mail(DKIM) standards. |      | ●    | ●    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers.                                                                                                                                                                                                                  |      | ●    | ●    |
 
 ## Profile
+
 Level 2

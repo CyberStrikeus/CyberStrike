@@ -417,6 +417,7 @@ public String login(HttpServletRequest request, @RequestParam String username,
 sha256: 50bf9ba2befc0960d2fcb6fbdef6edb92ba934b1a54c0e36aa89ff0cc03c0582
 signature: WgS9tHmM/hkYDBU21n9L14AVjiBWSxBcrp5HCHRMs/7VBdSOk3k8F2nEXm0RpbcMnhHt1SeGT16mjRgxddGjCQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

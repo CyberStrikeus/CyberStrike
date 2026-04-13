@@ -189,6 +189,7 @@ def add_cors_headers(response):
 sha256: 4a6dc4a0e00aec84842fde9a2f2ee43a15feed9fcbd2cc2a3eaec42e34808455
 signature: 90PcBZdleUw3i4EBHIpA2txEKaSZvjDjCNjwc1o16NlatK5yrBCidoHfkhPwN80s5D784nxFAfjoxVQ6tSS/Cw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -111,11 +111,11 @@ When creating an RDS instance, the default value for "Publicly accessible" depen
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | x | x |
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity |      | x    | x    |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software      |      |      |      |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture     |      | x    | x    |
 
 ## Profile
 

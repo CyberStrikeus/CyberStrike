@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.3 Ensure Storage Classes are Configured (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -30,6 +31,7 @@ This approach ensures frequently accessed data is readily available, while infre
 ## Impact
 
 Not configuring appropriate storage classes can result in:
+
 - **Cost Inefficiency:** Paying for Standard storage pricing for infrequently accessed data
 - **Wasted Resources:** Not leveraging cost-optimized storage tiers
 - **Missed Savings:** Failing to use Intelligent-Tiering for data with unknown or changing access patterns
@@ -86,6 +88,7 @@ aws s3api list-objects-v2 \
 ## Expected Result
 
 S3 storage classes should be properly configured based on data access patterns:
+
 - **Frequently accessed data:** S3 Standard
 - **Infrequently accessed data (>30 days):** S3 Standard-IA or S3 One Zone-IA
 - **Unknown/changing access patterns:** S3 Intelligent-Tiering
@@ -143,6 +146,7 @@ S3 storage classes should be properly configured based on data access patterns:
 ### AWS Console
 
 **Configure Storage Class for New Upload:**
+
 1. Navigate to S3 bucket
 2. Click "Upload"
 3. Select files
@@ -151,6 +155,7 @@ S3 storage classes should be properly configured based on data access patterns:
 6. Complete upload
 
 **Change Storage Class for Existing Object:**
+
 1. Navigate to object
 2. Select object
 3. Click "Actions" → "Edit storage class"
@@ -158,6 +163,7 @@ S3 storage classes should be properly configured based on data access patterns:
 5. Save changes
 
 **Configure Lifecycle Policy:**
+
 1. Navigate to bucket
 2. Select "Management" tab
 3. Click "Create lifecycle rule"
@@ -178,6 +184,7 @@ S3 storage classes should be properly configured based on data access patterns:
 ### AWS CLI
 
 **Upload Object with Specific Storage Class:**
+
 ```bash
 # Upload to Standard-IA
 aws s3 cp <local-file> s3://<bucket-name>/<key> \
@@ -197,6 +204,7 @@ aws s3 cp <local-file> s3://<bucket-name>/<key> \
 ```
 
 **Change Storage Class of Existing Object:**
+
 ```bash
 aws s3api copy-object \
   --bucket <bucket-name> \
@@ -207,6 +215,7 @@ aws s3api copy-object \
 ```
 
 **Configure Lifecycle Policy:**
+
 ```bash
 aws s3api put-bucket-lifecycle-configuration \
   --bucket <bucket-name> \
@@ -214,6 +223,7 @@ aws s3api put-bucket-lifecycle-configuration \
 ```
 
 **Example lifecycle.json:**
+
 ```json
 {
   "Rules": [
@@ -246,6 +256,7 @@ aws s3api put-bucket-lifecycle-configuration \
 ```
 
 **Enable Intelligent-Tiering:**
+
 ```bash
 aws s3api put-bucket-intelligent-tiering-configuration \
   --bucket <bucket-name> \
@@ -254,6 +265,7 @@ aws s3api put-bucket-intelligent-tiering-configuration \
 ```
 
 **Example intelligent-tiering.json:**
+
 ```json
 {
   "Id": "EntireBucket",
@@ -274,6 +286,7 @@ aws s3api put-bucket-intelligent-tiering-configuration \
 ## Default Value
 
 By default:
+
 - Objects are stored in **S3 Standard** storage class
 - No lifecycle policies are configured
 - No automatic transitions between storage classes occur
@@ -285,11 +298,12 @@ By default:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | ● | ● | ● |
-| v8 | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | ● | ● | ● |
-| v7 | 7.8 Implement DMARC and Enable Receiver-Side Verification<br/>To lower the chance of spoofed or modified emails from valid domains, implement Domain-based Message Authentication, Reporting and Conformance (DMARC) policy and verification, starting by implementing the Sender Policy Framework (SPF) and the DomainKeys Identified Mail(DKIM) standards. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                            | ●    | ●    | ●    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process.                                                                                                                                                                                           | ●    | ●    | ●    |
+| v7               | 7.8 Implement DMARC and Enable Receiver-Side Verification<br/>To lower the chance of spoofed or modified emails from valid domains, implement Domain-based Message Authentication, Reporting and Conformance (DMARC) policy and verification, starting by implementing the Sender Policy Framework (SPF) and the DomainKeys Identified Mail(DKIM) standards. |      | ●    | ●    |
 
 ## Profile
+
 Level 2

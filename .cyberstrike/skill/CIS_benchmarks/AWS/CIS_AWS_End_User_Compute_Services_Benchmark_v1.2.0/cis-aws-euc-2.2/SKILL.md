@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure MFA is enabled for WorkSpaces users (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 Multi-Factor Authentication (MFA) adds an extra layer of authentication assurance beyond traditional username and password. With MFA enabled, when a user signs in to Amazon WorkSpaces, they will be prompted for their user name and password as well as for an authentication code from their physical or virtual MFA token. It is recommended that MFA be enabled for all accounts that utilize WorkSpaces.
 
 ## Rationale
+
 Enabling MFA provides increased security to a username and password as it requires the user to have a virtual or physical hardware solution that displays a time-sensitive code.
 
 ## Impact
+
 To enable MFA for Amazon WorkSpaces you require a RADIUS server or a plugin to a RADIUS server already in use in your environment.
 
 Multi-factor authentication is not available for Simple AD.
@@ -95,18 +99,23 @@ If it is not enabled or the Radius status is in another state refer to the remed
 7. Click **Save**
 
 ## Default Value
+
 By default, MFA is not enabled on AWS Workspaces. It requires a RADIUS server and an Active Directory environment.
 
 ## References
+
 1. https://docs.aws.amazon.com/directoryservice/latest/admin-guide/ad_connector_mfa.html
 2. https://docs.aws.amazon.com/directoryservice/latest/admin-guide/ms_ad_mfa.html
 3. https://aws.amazon.com/blogs/security/how-to-enable-multi-factor-authentication-for-amazon-workspaces-and-amazon-quicksight-by-using-microsoft-ad-and-on-premises-credentials/
 
 ## CIS Controls
+
 **v8:**
+
 - 6.3 Require MFA for Externally-Exposed Applications
   - Require all externally-exposed enterprise or third-party applications to enforce MFA, where supported. Enforcing MFA through a directory service or SSO provider is a satisfactory implementation of this Safeguard.
 
 **v7:**
+
 - 16.3 Require Multi-factor Authentication
   - Require multi-factor authentication for all user accounts, on all systems, whether managed onsite or by a third-party provider.

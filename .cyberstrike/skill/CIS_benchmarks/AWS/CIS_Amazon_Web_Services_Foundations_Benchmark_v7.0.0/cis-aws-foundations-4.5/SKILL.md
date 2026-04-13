@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure CloudTrail logs are encrypted at rest using KMS CMKs
 
 ## Description
+
 AWS CloudTrail is a web service that records AWS API calls for an account and makes those logs available to users and resources in accordance with IAM policies. AWS Key Management Service (KMS) is a managed service that helps create and control the encryption keys used to encrypt account data, and uses Hardware Security Modules (HSMs) to protect the security of encryption keys. CloudTrail logs can be configured to leverage server side encryption (SSE) and KMS customer-created master keys (CMK) to further protect CloudTrail logs. It is recommended that CloudTrail be configured to use SSE-KMS.
 
 ## Rationale
+
 Configuring CloudTrail to use SSE-KMS provides additional confidentiality controls on log data, as a given user must have S3 read permission on the corresponding log bucket and must be granted decrypt permission by the CMK policy.
 
 ## Impact
+
 Customer-created keys incur an additional cost. See https://aws.amazon.com/kms/pricing/ for more information.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console and open the CloudTrail console at https://console.aws.amazon.com/cloudtrail.
 2. In the left navigation pane, choose `Trails`.
 3. Select a trail.
@@ -35,6 +39,7 @@ Customer-created keys incur an additional cost. See https://aws.amazon.com/kms/p
 5. Ensure the box at `Log file SSE-KMS encryption` is checked and that a valid `AWS KMS alias` of a KMS key is entered in the respective text box.
 
 ### Using AWS CLI
+
 1. Run the following command:
 
 ```bash
@@ -44,11 +49,13 @@ aws cloudtrail describe-trails
 2. For each trail listed, SSE-KMS is enabled if the trail has a `KmsKeyId` property defined.
 
 ## Expected Result
+
 All CloudTrail trails have a `KmsKeyId` property defined, indicating SSE-KMS encryption is enabled.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console and open the CloudTrail console at https://console.aws.amazon.com/cloudtrail.
 2. In the left navigation pane, choose `Trails`.
 3. Click on a trail.
@@ -62,6 +69,7 @@ All CloudTrail trails have a `KmsKeyId` property defined, indicating SSE-KMS enc
 9. Click `Yes`.
 
 ### Using AWS CLI
+
 Run the following command to specify a KMS key ID to use with a trail:
 
 ```bash
@@ -75,6 +83,7 @@ aws kms put-key-policy --key-id <cloudtrail-kms-key> --policy <cloudtrail-kms-ke
 ```
 
 ### Additional Information
+
 Three statements that need to be added to the CMK policy:
 
 1. Enable CloudTrail to describe CMK properties:
@@ -104,9 +113,7 @@ Three statements that need to be added to the CMK policy:
   "Resource": "*",
   "Condition": {
     "StringLike": {
-      "kms:EncryptionContext:aws:cloudtrail:arn": [
-        "arn:aws:cloudtrail:*:aws-account-id:trail/*"
-      ]
+      "kms:EncryptionContext:aws:cloudtrail:arn": ["arn:aws:cloudtrail:*:aws-account-id:trail/*"]
     }
   }
 }
@@ -132,9 +139,11 @@ Three statements that need to be added to the CMK policy:
 ```
 
 ## Default Value
+
 By default, CloudTrail logs are not encrypted with a KMS CMK. Logs may be encrypted with SSE-S3, but this does not provide the same level of control or auditing as KMS CMKs.
 
 ## References
+
 1. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html
 2. https://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html
 3. CCE-78919-8
@@ -143,17 +152,18 @@ By default, CloudTrail logs are not encrypted with a KMS CMK. Logs may be encryp
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. | | x | x |
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process - Establish and maintain an audit log management process that defines the enterprise's logging requirements. | x | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system. | | | x |
+| Controls Version | Control                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data.                                                          |      | x    | x    |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process - Establish and maintain an audit log management process that defines the enterprise's logging requirements.                          | x    | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system. |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1530 | TA0009 | M1041 |
+| --------------------------- | ------- | ----------- |
+| T1530                       | TA0009  | M1041       |
 
 ## Profile
+
 Level 2 | Automated

@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure AWS Security Hub is enabled
 
 ## Description
+
 Security Hub collects security data from various AWS accounts, services, and supported third-party partner products, helping you analyze your security trends and identify the highest-priority security issues. When you enable Security Hub, it begins to consume, aggregate, organize, and prioritize findings from the AWS services that you have enabled, such as Amazon GuardDuty, Amazon Inspector, and Amazon Macie. You can also enable integrations with AWS partner security products.
 
 ## Rationale
+
 AWS Security Hub provides you with a comprehensive view of your security state in AWS and helps you check your environment against security industry standards and best practices, enabling you to quickly assess the security posture across your AWS accounts.
 
 ## Impact
+
 It is recommended that AWS Security Hub be enabled in all regions. AWS Security Hub requires that AWS Config be enabled.
 
 ## Audit Procedure
@@ -49,9 +52,9 @@ Example output:
 
 ```json
 {
-    "HubArn": "<security-hub-arn>",
-    "SubscribedAt": "2022-08-19T17:06:42.398Z",
-    "AutoEnableControls": true
+  "HubArn": "<security-hub-arn>",
+  "SubscribedAt": "2022-08-19T17:06:42.398Z",
+  "AutoEnableControls": true
 }
 ```
 
@@ -64,6 +67,7 @@ An error occurred (InvalidAccessException) when calling the DescribeHub operatio
 ```
 
 ## Expected Result
+
 The `aws securityhub describe-hub` command returns a valid response with a `SubscribedAt` timestamp in each region, confirming that Security Hub is enabled and active.
 
 ## Remediation
@@ -90,19 +94,22 @@ aws securityhub enable-security-hub --no-enable-default-standards
 ```
 
 ## Default Value
+
 By default, AWS Security Hub is not enabled. It must be manually set up in each region (and requires AWS Config) before findings can be aggregated or standards applied.
 
 ## References
+
 1. https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-get-started.html
 2. https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-enable.html#securityhub-enable-api
 3. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/securityhub/enable-security-hub.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.1 Establish and Maintain a Vulnerability Management Process | x | x | x |
-| v7 | 11.3 Use Automated Tools to Verify Standard Device Configurations and Detect Changes | | x | x |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.1 Establish and Maintain a Vulnerability Management Process                        | x    | x    | x    |
+| v7               | 11.3 Use Automated Tools to Verify Standard Device Configurations and Detect Changes |      | x    | x    |
 
 ## Profile
+
 Level 2 | Automated

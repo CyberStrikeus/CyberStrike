@@ -377,6 +377,7 @@ location /dashboard {
 sha256: 38c1559a38767fc49a54ea2827d9796e37e14d5c9d4646752b770d06d0f4b121
 signature: OuV493pP6SOFsvWj4D7dzQvMBJR6foGHlTQWRsT+hA5FxVNJ7lp+gLa2wf204ht3NWysEVW/K96MCJJCG+rxDg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

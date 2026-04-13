@@ -88,10 +88,10 @@ Audit logging is not enabled by default for Amazon MemoryDB for Redis.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | X    | X    | X    |
+| v7               | 6.2 Activate audit logging                                 | X    | X    | X    |
 
 ## Profile
 

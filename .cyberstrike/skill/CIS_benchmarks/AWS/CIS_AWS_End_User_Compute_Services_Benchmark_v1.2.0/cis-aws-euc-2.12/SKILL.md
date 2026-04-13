@@ -137,9 +137,11 @@ By default, there is no bundle restriction. This is a manual decision that must 
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 2.3 Address Unauthorized Software
 
 **Controls Version v7:**
+
 - 2.6 Address unapproved software
 
 ## Profile

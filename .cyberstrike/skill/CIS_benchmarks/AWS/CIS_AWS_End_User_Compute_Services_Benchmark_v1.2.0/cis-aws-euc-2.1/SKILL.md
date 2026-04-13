@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure Administration of WorkSpaces is defined using IAM (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 To allow users to administer Amazon WorkSpaces, IAM policies must be created and attached with the required permissions to an IAM Principal used for administration of Amazon WorkSpaces. An IAM Principal may be a IAM Role or an IAM User, or an IAM User Group with Users within the User Group.
 
 AWS has an AWS Managed Policy, `AmazonWorkSpacesAdmin` that grants permissions to administer Amazon WorkSpaces. A custom managed policy or inline policy may be used to grant WorkSpaces permissions to the IAM Principal.
 
 ## Rationale
+
 Creating and managing Workspaces specific users is not done in AWS IAM. Creating and managing Workspaces specific users is done within the Workspace service console. In order to properly administer Workspaces specific users, an IAM Principal with proper permissions must be created.
 
 ## Impact
+
 None specified in the benchmark.
 
 ## Audit Procedure
@@ -52,6 +56,7 @@ aws iam get-role-policy --role-name <role_name> --policy-name <policy_name>
 ```
 
 ## Expected Result
+
 The AWS managed policy AmazonWorkSpacesAdmin or a custom WorkSpaces Admin policy should be attached to the IAM Principal for administration of WorkSpaces.
 
 ## Remediation
@@ -87,7 +92,9 @@ aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonWorkSpaces
 ```
 
 ## Default Value
+
 By default, Policy: AmazonWorkSpacesAdmin Function: Provides access to Amazon WorkSpaces administrative actions via AWS SDK and CLI. The default policy includes extensive permissions for managing WorkSpaces resources including:
+
 - kms:DescribeKey, kms:ListAliases, kms:ListKeys
 - workspaces:CreateTags, workspaces:CreateWorkspaceImage, workspaces:CreateWorkspaces, workspaces:CreateWorkspacesPool
 - workspaces:DeleteTags, workspaces:DeregisterWorkspaceDirectory, workspaces:DescribeTags
@@ -103,19 +110,24 @@ By default, Policy: AmazonWorkSpacesAdmin Function: Provides access to Amazon Wo
 - And several other managed policies for application management, PCA access, pool service access, secure browser access, thin client access, and web service access
 
 ## References
+
 1. https://docs.aws.amazon.com/workspaces/latest/adminguide/workspaces-access-control.html
 2. https://docs.aws.amazon.com/workspaces/latest/adminguide/manage-workspaces-users.html
 3. https://docs.aws.amazon.com/IAM/latest/UserGuide/id.html
 
 ## Additional Information
+
 AWS provides guidance on the usage of IAM Roles, IAM Users, IAM Groups, and the root user. AWS recommends not using the root user for everyday tasks.
 https://docs.aws.amazon.com/IAM/latest/UserGuide/id.html
 
 ## CIS Controls
+
 **v8:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 
 **v7:**
+
 - 14.6 Protect Information through Access Control Lists
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.

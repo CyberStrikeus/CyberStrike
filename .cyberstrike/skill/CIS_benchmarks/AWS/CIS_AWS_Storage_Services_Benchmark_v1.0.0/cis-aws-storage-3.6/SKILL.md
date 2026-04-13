@@ -17,15 +17,19 @@ severity_boost: {}
 # 3.6 Ensure Secure Ports (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 Securing network ports is essential for protecting AWS storage services like Amazon S3, EFS, and EBS. By configuring security groups and network access control lists (NACLs) to allow only necessary traffic, you minimize the risk of unauthorized access. Regular audits and monitoring of port usage ensure that only approved ports and protocols are operational, enhancing the overall security of your AWS storage environment.
 
 ## Rationale
+
 By limiting traffic to only necessary and approved ports and protocols, you reduce the attack surface and enhance the overall security of your storage environment. Regular audits and monitoring further ensure that security measures remain effective and up-to-date, safeguarding your data from emerging threats.
 
 ## Impact
+
 Not securing network ports in AWS storage services can lead to significant vulnerabilities, exposing your data to unauthorized access and potential breaches. This lack of control increases the risk of malicious attacks, such as port scanning and exploitation of open ports, which can result in data loss, corruption, and theft. Consequently, your organization may face severe financial losses, operational disruptions, and damage to its reputation.
 
 ## Audit Procedure
@@ -79,6 +83,7 @@ Not securing network ports in AWS storage services can lead to significant vulne
      3. Conduct periodic training for staff on security best practices and AWS configurations.
 
 ## Expected Result
+
 - Security Groups should allow only necessary ports (e.g., NFS port 2049 for EFS, HTTPS 443 for S3)
 - Network ACLs should be configured to control traffic appropriately
 - VPC Flow Logs should be enabled and monitored
@@ -98,19 +103,22 @@ Not securing network ports in AWS storage services can lead to significant vulne
 6. Conduct regular security reviews and penetration testing
 
 ## Default Value
+
 By default, AWS creates a default security group for each VPC that allows all outbound traffic and all inbound traffic from instances in the same security group. Custom security groups and NACLs must be configured to restrict traffic to only necessary ports.
 
 ## References
+
 1. https://docs.aws.amazon.com/efs/latest/ug/NFS-access-control-efs.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | ● | ● | ● |
-| v8 | 13.9 Deploy Port-Level Access Control<br/>Deploy port-level access control. Port-level access control utilizes 802.1x, or similar network access control protocols, such as certificates, and may incorporate user and/or device authentication. | | | ● |
-| v7 | 1.7 Deploy Port Level Access Control<br/>Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. The authentication system shall be tied into the hardware asset inventory data to ensure only authorized devices can connect to the network. | | ● | ● |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br/>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists<br/>Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                              | ●    | ●    | ●    |
+| v8               | 13.9 Deploy Port-Level Access Control<br/>Deploy port-level access control. Port-level access control utilizes 802.1x, or similar network access control protocols, such as certificates, and may incorporate user and/or device authentication.                                                               |      |      | ●    |
+| v7               | 1.7 Deploy Port Level Access Control<br/>Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. The authentication system shall be tied into the hardware asset inventory data to ensure only authorized devices can connect to the network. |      | ●    | ●    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br/>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.                                                                                                |      | ●    | ●    |
 
 ## Profile
+
 Level 2

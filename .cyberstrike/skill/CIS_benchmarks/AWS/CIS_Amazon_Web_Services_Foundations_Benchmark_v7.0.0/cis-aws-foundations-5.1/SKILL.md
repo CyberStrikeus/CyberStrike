@@ -17,16 +17,19 @@ severity_boost: {}
 # Ensure unauthorized API calls are monitored
 
 ## Description
+
 Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs or an external Security Information and Event Management (SIEM) environment, and establishing corresponding metric filters and alarms.
 
 It is recommended that a metric filter and alarm be established for unauthorized API calls.
 
 ## Rationale
+
 CloudWatch is an AWS native service that allows you to observe and monitor resources and applications. CloudTrail logs can also be sent to an external Security Information and Event Management (SIEM) environment for monitoring and alerting.
 
 Monitoring unauthorized API calls will help reduce the time it takes to detect malicious activity and can alert you to potential security incidents.
 
 ## Impact
+
 This alert may be triggered by normal read-only console activities that attempt to opportunistically gather optional information but gracefully fail if they lack the necessary permissions.
 
 If an excessive number of alerts are generated, then an organization may wish to consider adding read access to the limited IAM user permissions solely to reduce the number of alerts.
@@ -58,7 +61,7 @@ aws cloudtrail describe-trails
 aws cloudtrail get-trail-status --name <trail-name>
 ```
 
-  - Ensure `IsLogging` is set to `TRUE`
+- Ensure `IsLogging` is set to `TRUE`
 
 - Ensure the identified multi-region CloudTrail trail captures all management events:
 
@@ -66,7 +69,7 @@ aws cloudtrail get-trail-status --name <trail-name>
 aws cloudtrail get-event-selectors --trail-name <trail-name>
 ```
 
-  - Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
+- Ensure there is at least one event selector for a trail with `IncludeManagementEvents` set to `true` and `ReadWriteType` set to `All`
 
 2. Get a list of all associated metric filters for the `<trail-log-group-name>` captured in step 1:
 
@@ -100,6 +103,7 @@ aws sns list-subscriptions-by-topic --topic-arn <sns-topic-arn>
   - Example of valid "SubscriptionArn": `arn:aws:sns:<region>:<account-id>:<sns-topic-name>:<subscription-id>`
 
 ## Expected Result
+
 A metric filter exists with the filter pattern matching unauthorized API calls, a CloudWatch alarm is configured for the metric, and the alarm has an active SNS topic with at least one subscriber.
 
 ## Remediation
@@ -141,9 +145,11 @@ aws cloudwatch put-metric-alarm --alarm-name "unauthorized_api_calls_alarm" --me
 ```
 
 ## Default Value
+
 By default, no CloudWatch metric filters or alarms exist for unauthorized API calls.
 
 ## References
+
 1. https://aws.amazon.com/sns/
 2. CCE-79186-3
 3. https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html
@@ -152,13 +158,14 @@ By default, no CloudWatch metric filters or alarms exist for unauthorized API ca
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
-| v7 | 6.5 Central Log Management | | x | x |
-| v7 | 6.7 Regularly Review Logs | | x | x |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews  |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging     |      | x    | x    |
+| v7               | 6.5 Central Log Management      |      | x    | x    |
+| v7               | 6.7 Regularly Review Logs       |      | x    | x    |
 
 ## Profile
+
 Level 2 | Manual

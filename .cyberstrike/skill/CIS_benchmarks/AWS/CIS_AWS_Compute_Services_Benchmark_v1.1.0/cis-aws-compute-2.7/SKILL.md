@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Default EC2 Security groups are not being used
 
 ## Description
+
 When an EC2 instance is launched a specified custom security group should be assigned to the instance.
 
 ## Rationale
+
 When an EC2 Instance is launched the default security group is automatically assigned. In error a lot of instances are launched in this way, and if the default security group is configured to allow unrestricted access, it will increase the attack footprint allowing the opportunity for malicious activity.
 
 ## Impact
+
 Instances using the default security group must be migrated to custom security groups. This may require updating application configurations and testing connectivity.
 
 ## Audit Procedure
@@ -53,11 +56,13 @@ NOTE Repeat the audit process for all other regions used.
 NOTE Repeat the audit process for all other regions used.
 
 ## Expected Result
+
 The CLI command should return an empty list, indicating no EC2 instances are using the default security group.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided for this control. Use the console method below to remove inbound rules from default security groups.
 
 ### Using AWS Console
@@ -74,18 +79,21 @@ No specific CLI remediation command is provided for this control. Use the consol
 10. Repeat steps no. 3 - 8 for any other default security groups listed.
 
 ## Default Value
+
 AWS automatically creates a default security group for each VPC. The default security group allows all inbound traffic from other instances in the same security group and all outbound traffic.
 
 ## References
+
 1. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/ec2/describe-security-groups.html
 2. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/default-custom-security-groups.html#default-security-group
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

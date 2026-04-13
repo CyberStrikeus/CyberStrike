@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.6 Ensure Security Configurations are Reviewed Regularly (Manual)
 
 ## Description
+
 This helps by removing or updating any IAM roles, security networks, encryption settings, audit logging, and authentication. By updating or removing a few things from these lists it helps tighten security and ensures that the users do not have excessive permissions.
 
 ## Rationale
+
 Regular security reviews ensure that configurations remain aligned with current security requirements and best practices, preventing configuration drift and excessive permissions.
 
 ## Impact
+
 By updating and revising the control within our Amazon Neptune cluster it would keep the system as secure as possible.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Establish a Security Review Schedule:
    - Determine a regular schedule for reviewing and updating the security configuration of your Amazon Neptune environment.
    - Consider factors such as the frequency of changes, compliance requirements, and industry best practices to determine the appropriate review interval.
@@ -66,24 +70,30 @@ By updating and revising the control within our Amazon Neptune cluster it would 
    - Regularly review AWS documentation, security blogs, and other relevant resources to enhance your understanding and implementation of security practices.
 
 ## Expected Result
+
 All security configurations (IAM, security groups, network ACLs, encryption, VPC) should be reviewed and updated regularly according to an established schedule.
 
 ## Remediation
 
 ### Using AWS Console
+
 Establish a regular security review schedule and follow the audit steps above to review and update all security configurations for your Neptune environment.
 
 ## Default Value
+
 No automatic security review is configured. This is a manual process that must be established by the organization.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5 Account Management | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5 Account Management                                                                                  |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

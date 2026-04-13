@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure Images (AMI) are not older than 90 days
 
 ## Description
+
 Ensure that your AMIs are not older than 90 days.
 
 ## Rationale
+
 Using up-to-date AMIs will provide many benefits from OS updates and security patches helping to ensure reliability, security and compliance.
 
 ## Impact
+
 Outdated AMIs must be replaced by creating new images from updated instances. This requires a refresh cycle that involves launching instances, applying updates, creating new AMIs, and deregistering old ones.
 
 ## Audit Procedure
@@ -55,11 +58,13 @@ If the age of the selected AMI is greater than 90 days, the AMI is considered ou
 Repeat all steps for the other regions.
 
 ## Expected Result
+
 All AMIs should have a CreationDate within the last 90 days. Any AMI older than 90 days is considered non-compliant and should be updated.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided. Follow the console steps below to update AMIs.
 
 ### Using AWS Console
@@ -79,18 +84,21 @@ No specific CLI remediation command is provided. Follow the console steps below 
 Repeat these steps for any other AMIs older than 90 days.
 
 ## Default Value
+
 AWS does not enforce any default age limit on AMIs.
 
 ## References
+
 1. https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-images.html
 2. https://docs.aws.amazon.com/cli/latest/reference/ec2/deregister-image.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 2.2 Ensure Authorized Software is Currently Supported | x | x | x |
-| v7 | 2.2 Ensure Software is Supported by Vendor | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.2 Ensure Authorized Software is Currently Supported | x    | x    | x    |
+| v7               | 2.2 Ensure Software is Supported by Vendor            | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Automated

@@ -476,6 +476,7 @@ async function fetchSecure(url) {
 sha256: 2529f6d6410eaae5f39789b09bc45a5869283bd1b59ef1a23e55529674f8540c
 signature: Z5b7UQvg3XHXZDaAbUmtsGsYXkinj/tpwKnC4IPiLcBH2fyAlXS26MmBmX9VSCNU9O+G/GKU9uSMTtndEpTAAA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -31,6 +31,7 @@ A failback is crucial for restoring normal operations after a disaster recovery 
 ## Impact
 
 Failback operations require:
+
 - Completion of disaster resolution
 - Verification that primary environment is ready
 - Failback client ISO installation
@@ -39,6 +40,7 @@ Failback operations require:
 - Post-failback validation
 
 Prerequisites:
+
 - Volumes on server being failed back to must be same size or larger than recovery instance
 - Failback client must have proper IAM permissions
 - Network connectivity (TCP 1500 inbound, TCP 443 outbound)
@@ -159,12 +161,12 @@ By default, no failback procedures are configured. Organizations must manually e
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process<br/>Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ● | ● | ● |
-| v8 | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets. | | ● | ● |
-| v7 | 10.2 Perform Complete System Backups<br/>Ensure that each of the organization's key systems are backed up as a complete system, through processes such as imaging, to enable the quick recovery of an entire system. | ● | ● | ● |
-| v7 | 10.3 Test Data on Backup Media<br/>Test data integrity on backup media on a regular basis by performing a data restoration process to ensure that the backup is properly working. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process<br/>Establish and maintain a data recovery process. In the process, address the scope of data recovery activities, recovery prioritization, and the security of backup data. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ●    | ●    | ●    |
+| v8               | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets.                                                                                                                                                                                                                             |      | ●    | ●    |
+| v7               | 10.2 Perform Complete System Backups<br/>Ensure that each of the organization's key systems are backed up as a complete system, through processes such as imaging, to enable the quick recovery of an entire system.                                                                                                                                      | ●    | ●    | ●    |
+| v7               | 10.3 Test Data on Backup Media<br/>Test data integrity on backup media on a regular basis by performing a data restoration process to ensure that the backup is properly working.                                                                                                                                                                         |      | ●    | ●    |
 
 ## Profile
 

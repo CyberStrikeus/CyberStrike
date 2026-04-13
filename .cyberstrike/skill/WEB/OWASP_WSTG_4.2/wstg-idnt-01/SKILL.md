@@ -340,6 +340,7 @@ app.get("/admin/users", authenticate, checkRole(["admin"]), adminController.getU
 sha256: cde4f7dac030e2a98b463dbaae12d4ecc6a6c91a683ec04ba054730de7ed4bca
 signature: rybypy2rA/oAvONSF2fMpF9o7L/9ARHESuCHhllqK5NCuREExw2egBY2Y4k6oz/7K0WQ9lA52h6IQMZ8BEMeDg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

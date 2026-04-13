@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.6 Ensure Audit Logging is Enabled (Manual)
 
 ## Description
+
 Enable AWS CloudTrail to capture and log API calls and activities related to Amazon Timestream. Configure CloudTrail to store the logs in a secure location and regularly review the logs for any unauthorized or suspicious activities.
 
 ## Rationale
+
 This captures and saves logs of activities that took place in the database.
 
 ## Impact
+
 This reduces risks of any fraud since worker activity is being monitored and tracked.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand Audit Logging in Timestream:
    - Familiarize yourself with audit logging and its importance in monitoring and tracking activities in Timestream. Understand that audit logs capture API calls and events related to Timestream actions and resources.
 2. Enable AWS CloudTrail:
@@ -44,24 +48,30 @@ This reduces risks of any fraud since worker activity is being monitored and tra
    - Establish a regular review process for your Timestream audit logs. Monitor the logs for unauthorized access attempts, unusual activities, or policy violations. Respond promptly to any identified security incidents or anomalies.
 
 ## Expected Result
+
 AWS CloudTrail should be enabled and configured to capture all Timestream API calls and events, with logs stored securely in S3 with appropriate retention policies.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable and configure AWS CloudTrail for Amazon Timestream audit logging.
 
 ## Default Value
+
 CloudTrail can capture Timestream events but must be explicitly configured with a trail that includes Timestream as a data source.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

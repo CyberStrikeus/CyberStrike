@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.8 Ensure Authentication and Access Control is Enabled
 
 ## Description
+
 Individual creates IAM roles that would give specific permission to what the user can and cannot do within that database. The Access Control List (ACLs) allows only specific individuals to access the resources.
 
 ## Rationale
+
 N/A
 
 ## Impact
+
 Use specific client's applications or tools that allow the authorized personnel to connect to the database.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 
@@ -67,25 +71,30 @@ Use specific client's applications or tools that allow the authorized personnel 
    - Monitor the access logs and perform periodic reviews to ensure the authentication and access control measures function as intended.
 
 ## Expected Result
+
 IAM authentication is enabled for ElastiCache/Keyspaces, IAM roles have least-privilege access, and ACLs are properly configured to restrict access to authorized users only.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to enable authentication and configure access control for ElastiCache clusters.
 
 ## Default Value
+
 By default, IAM for Cassandra authentication is not enabled and ACLs are not configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

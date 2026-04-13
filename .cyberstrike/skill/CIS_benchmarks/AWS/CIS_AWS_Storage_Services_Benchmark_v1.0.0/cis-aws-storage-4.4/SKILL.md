@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.4 Ensure the creation of Elastic File Cache (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -65,6 +66,7 @@ aws fsx describe-data-repository-associations --filters Name=file-cache-id,Value
 ## Expected Result
 
 Elastic File Cache should be properly created and configured with:
+
 - Appropriate storage capacity (in 1.2 TiB increments)
 - Correctly calculated throughput capacity
 - Proper VPC and security group configuration
@@ -135,4 +137,5 @@ By default, no Elastic File Cache exists. It must be explicitly created and conf
 This control does not map to specific CIS Controls but follows general AWS security best practices for encryption, network isolation, and access control.
 
 ## Profile
+
 Level 2

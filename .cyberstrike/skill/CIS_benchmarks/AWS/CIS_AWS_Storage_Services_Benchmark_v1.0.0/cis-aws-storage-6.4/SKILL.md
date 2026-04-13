@@ -31,6 +31,7 @@ Proper configuration of replication settings is essential to ensure data consist
 ## Impact
 
 Replication configuration affects:
+
 - Data consistency across regions
 - Network bandwidth utilization
 - Recovery Time Objective (RTO) and Recovery Point Objective (RPO)
@@ -119,12 +120,12 @@ By default, no replication settings are configured. Organizations must manually 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.2 Perform Automated Backups<br/>Perform automated backups of in-scope enterprise assets. Run backups weekly, or more frequently, based on the sensitivity of the data. | ● | ● | ● |
-| v8 | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services. | ● | ● | ● |
-| v7 | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services. | ● | ● | ● |
-| v7 | 10.5 Ensure Backups Have At least One Non-Continuously Addressable Destination<br/>Ensure that all backups have at least one backup destination that is not continuously addressable through operating system calls. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.2 Perform Automated Backups<br/>Perform automated backups of in-scope enterprise assets. Run backups weekly, or more frequently, based on the sensitivity of the data.                                                                                             | ●    | ●    | ●    |
+| v8               | 11.4 Establish and Maintain an Isolated Instance of Recovery Data<br/>Establish and maintain an isolated instance of recovery data. Example implementations include, version controlling backup destinations through offline, cloud, or off-site systems or services. | ●    | ●    | ●    |
+| v7               | 10.4 Ensure Protection of Backups<br/>Ensure that backups are properly protected via physical security or encryption when they are stored, as well as when they are moved across the network. This includes remote backups and cloud services.                        | ●    | ●    | ●    |
+| v7               | 10.5 Ensure Backups Have At least One Non-Continuously Addressable Destination<br/>Ensure that all backups have at least one backup destination that is not continuously addressable through operating system calls.                                                  | ●    | ●    | ●    |
 
 ## Profile
 

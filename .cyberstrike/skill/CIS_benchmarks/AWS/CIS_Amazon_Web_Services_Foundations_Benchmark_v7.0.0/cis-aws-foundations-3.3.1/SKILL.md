@@ -17,23 +17,28 @@ severity_boost: {}
 # Ensure that encryption is enabled for EFS file systems
 
 ## Description
+
 EFS data should be encrypted at rest using AWS KMS (Key Management Service).
 
 ## Rationale
+
 Data should be encrypted at rest to reduce the risk of a data breach via direct access to the storage device.
 
 ## Impact
+
 EFS file system data-at-rest encryption must be turned on when creating the file system. If an EFS file system has been created without data-at-rest encryption enabled, then you must create another EFS file system with the correct configuration and transfer the data. There is no way to enable encryption on an existing unencrypted EFS file system.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and Navigate to the Elastic File System (EFS) dashboard.
 2. Select `File Systems` from the left navigation panel.
 3. Each item on the list has a visible Encrypted field that displays data at rest encryption status.
 4. Validate that this field reads `Encrypted` for all EFS file systems in all AWS regions.
 
 ### Using AWS CLI
+
 1. Run the `describe-file-systems` command using custom query filters to list the identifiers of all AWS EFS file systems currently available within the selected region:
 
 ```bash
@@ -51,6 +56,7 @@ aws efs describe-file-systems --region <region> --file-system-id <file-system-id
 4. The command output should return the file system encryption status as `true` or `false`. If the returned value is `false`, the selected AWS EFS file system is not encrypted and if the returned value is `true`, the selected AWS EFS file system is encrypted.
 
 ## Expected Result
+
 The `Encrypted` field should return `true` for all EFS file systems, indicating that encryption at rest is enabled using AWS KMS.
 
 ## Remediation
@@ -79,6 +85,7 @@ Steps to create an EFS file system with data encrypted at rest:
 9. Change the AWS region from the navigation bar and repeat the entire process for the other AWS regions.
 
 ### Using AWS CLI
+
 1. Run the `describe-file-systems` command to view the configuration information for the selected unencrypted file system identified in the Audit steps:
 
 ```bash
@@ -118,24 +125,27 @@ aws efs delete-file-system --region <region> --file-system-id <unencrypted-file-
 11. Change the AWS region by updating the --region and repeat the entire process for the other AWS regions.
 
 ## Default Value
+
 By default, when creating an EFS file system through the AWS Management Console, encryption at rest is enabled. When creating a file system using the AWS CLI, API, or SDKs, encryption is not enabled by default and must be explicitly specified.
 
 ## References
+
 1. https://docs.aws.amazon.com/efs/latest/ug/encryption-at-rest.html
 2. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/efs/index.html#efs
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1530 | TA0009 | M1041 |
+| --------------------------- | ------- | ----------- |
+| T1530                       | TA0009  | M1041       |
 
 ## Profile
+
 Level 1 | Automated

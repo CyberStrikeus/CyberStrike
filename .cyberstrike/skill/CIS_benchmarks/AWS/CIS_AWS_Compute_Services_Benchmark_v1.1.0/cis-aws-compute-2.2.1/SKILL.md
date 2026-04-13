@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure EBS volume encryption is enabled
 
 ## Description
+
 Elastic Compute Cloud (EC2) supports encryption at rest when using the Elastic Block Store (EBS) service. While disabled by default, forcing encryption at EBS volume creation is supported.
 
 ## Rationale
+
 Encrypting data at rest reduces the likelihood that it is unintentionally exposed and can nullify the impact of disclosure if the encryption remains unbroken.
 
 ## Impact
+
 Enabling EBS encryption by default applies to all new volumes. Existing unencrypted volumes are not affected. This is configured per region.
 
 ## Audit Procedure
@@ -50,6 +53,7 @@ Note: EBS volume encryption is configured per region.
 Note: EBS volume encryption is configured per region.
 
 ## Expected Result
+
 The CLI should return `"EbsEncryptionByDefault": true` for every region in use. In the console, `Always encrypt new EBS volumes` should display `Enabled`.
 
 ## Remediation
@@ -79,19 +83,22 @@ Note: EBS volume encryption is configured per region.
 Note: EBS volume encryption is configured per region.
 
 ## Default Value
+
 EBS encryption by default is disabled. It must be explicitly enabled per region.
 
 ## References
+
 1. https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
 2. https://aws.amazon.com/blogs/aws/new-opt-in-to-default-encryption-for-new-ebs-volumes/
 3. AWS Config rule - ec2_ebs_encryption_by_default
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## Profile
+
 Level 1 | Automated

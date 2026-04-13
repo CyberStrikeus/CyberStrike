@@ -17,17 +17,21 @@ severity_boost: {}
 # 5.7 Ensure Security Configurations are Reviewed Regularly
 
 ## Description
+
 Regularly updating and reviewing the security configuration of your Amazon ElastiCache clusters helps ensure that your clusters are protected against potential vulnerabilities and aligned with your security requirements.
 
 ## Rationale
+
 This ensures that the clusters are being regularly updated and protected from any potential vulnerabilities as well as meeting the security requirements.
 
 ## Impact
+
 Updating the system and being updated with security configurations keeps everything secure and prevents it from an attack.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console
    - Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 
@@ -78,25 +82,30 @@ Updating the system and being updated with security configurations keeps everyth
    - Take necessary actions based on security recommendations, such as applying patches or configuration changes.
 
 ## Expected Result
+
 All ElastiCache security configurations (IAM policies, security groups, encryption settings, network security, access control) are regularly reviewed and aligned with security requirements.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to review and update security configurations for ElastiCache clusters on a regular schedule.
 
 ## Default Value
+
 N/A - This is a procedural control that requires regular manual review.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5 Account Management | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5 Account Management                                                                                  |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

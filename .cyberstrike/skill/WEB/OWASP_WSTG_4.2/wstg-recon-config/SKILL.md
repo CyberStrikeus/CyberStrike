@@ -11,7 +11,9 @@ signed_by: cyberstrike-official
 # Recon & Configuration Testing (WSTG-INFO + CONF + ERRH + CRYP)
 
 ## Google Dork Templates
+
 Replace `TARGET` with the actual domain:
+
 ```
 site:TARGET filetype:pdf | filetype:doc | filetype:xls
 site:TARGET inurl:admin | inurl:login | inurl:dashboard
@@ -27,6 +29,7 @@ inurl:"q=" site:TARGET
 ## Directory & File Discovery
 
 ### ffuf Commands
+
 ```bash
 # Directory brute force
 ffuf -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -mc 200,301,302,403 -ac
@@ -45,7 +48,9 @@ ffuf -u "https://TARGET/page?FUZZ=test" -w /usr/share/seclists/Discovery/Web-Con
 ```
 
 ### Backup File Patterns
+
 Test for these at discovered paths:
+
 ```
 .bak, .old, .orig, .save, .swp, .swo, ~
 .git/, .svn/, .hg/, .env, .DS_Store
@@ -58,16 +63,16 @@ Copy of *, backup-*, archive-*
 
 Check with `curl -I https://TARGET`:
 
-| Header | Expected Value | Risk if Missing |
-|--------|---------------|-----------------|
-| Strict-Transport-Security | `max-age=31536000; includeSubDomains` | MITM, SSL stripping |
-| Content-Security-Policy | No `unsafe-inline`, no `unsafe-eval` | XSS |
-| X-Content-Type-Options | `nosniff` | MIME sniffing |
-| X-Frame-Options | `DENY` or `SAMEORIGIN` | Clickjacking |
-| Referrer-Policy | `strict-origin-when-cross-origin` | Info leakage |
-| Permissions-Policy | Restrict camera, microphone, geolocation | Feature abuse |
-| X-XSS-Protection | `0` (deprecated, CSP preferred) | N/A |
-| Cache-Control | `no-store` on sensitive pages | Cached credentials |
+| Header                    | Expected Value                           | Risk if Missing     |
+| ------------------------- | ---------------------------------------- | ------------------- |
+| Strict-Transport-Security | `max-age=31536000; includeSubDomains`    | MITM, SSL stripping |
+| Content-Security-Policy   | No `unsafe-inline`, no `unsafe-eval`     | XSS                 |
+| X-Content-Type-Options    | `nosniff`                                | MIME sniffing       |
+| X-Frame-Options           | `DENY` or `SAMEORIGIN`                   | Clickjacking        |
+| Referrer-Policy           | `strict-origin-when-cross-origin`        | Info leakage        |
+| Permissions-Policy        | Restrict camera, microphone, geolocation | Feature abuse       |
+| X-XSS-Protection          | `0` (deprecated, CSP preferred)          | N/A                 |
+| Cache-Control             | `no-store` on sensitive pages            | Cached credentials  |
 
 ## TLS/SSL Testing
 
@@ -90,6 +95,7 @@ curl -sI https://TARGET | grep -i strict-transport
 ```
 
 **TLS Issues to Check:**
+
 - SSLv3, TLS 1.0, TLS 1.1 supported (should be disabled)
 - Weak ciphers (RC4, DES, 3DES, NULL, EXPORT)
 - Missing Perfect Forward Secrecy (PFS)
@@ -115,6 +121,7 @@ curl -X POST https://TARGET/admin -H "X-Method-Override: DELETE"
 ## Error Triggering Payloads
 
 Force errors to check for information disclosure:
+
 ```bash
 # Non-existent pages
 curl -s https://TARGET/nonexistent-page-12345

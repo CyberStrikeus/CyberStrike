@@ -352,6 +352,7 @@ element.textContent = userInput // For text
 sha256: 71388098b2858a07ba7316ea7882e14bced150a0f047b7f7f636c1b49cb014fa
 signature: Q3VAB+9Oy5QXndggFOPDftV+xwSuHFJTwlYJx8jPB+Ce42isPiVd2vL11nk8QAfQ192aQwUoaqdQWmRTinafAw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

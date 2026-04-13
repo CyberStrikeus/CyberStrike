@@ -160,10 +160,12 @@ By default, there is no VPC tied to the Appstream 2.0 service.
 ## CIS Controls
 
 **v8:**
+
 - 3.12 Segment Data Processing and Storage Based on Sensitivity
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - 14.1 Segment the Network Based on Sensitivity
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).
 

@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.5 Ensure to Implement Access Control and Authentication (Manual)
 
 ## Description
+
 Utilize QLDB's built-in authentication and access control mechanisms. Define IAM policies to control which users or roles can perform specific actions on QLDB resources. Leverage IAM roles for cross-service access, securely integrating QLDB with other AWS services.
 
 ## Rationale
+
 Users should select whether they like to enable authentication. If they want to authenticate the user would be required to implement IAM roles would grant or deny permissions within that database.
 
 ## Impact
+
 Allowing authentication verifies the identity of the person and who has appropriate access to a company's data.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand QLDB Authentication and Access Control:
    - Familiarize yourself with the authentication and access control mechanisms provided by QLDB.
    - Understand the concepts of users, permissions, and roles in QLDB's access control model.
@@ -63,24 +67,30 @@ Allowing authentication verifies the identity of the person and who has appropri
    - Stay updated with AWS security best practices and IAM and access control recommendations.
 
 ## Expected Result
+
 IAM-based authentication should be enabled for QLDB with properly configured IAM policies, users, and roles following the principle of least privilege.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to implement access control and authentication for your Amazon QLDB ledgers.
 
 ## Default Value
+
 QLDB access is controlled through IAM. Fine-grained access control policies must be manually configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -377,6 +377,7 @@ nuclei -l subdomains.txt -t http/takeovers/aws-bucket-takeover.yaml
 sha256: 807da040f4cc6699b6da68da4fd92ed0b5d2b2bcd60bed1e61ebef41815aed2d
 signature: MZdL+Jo2wOgXETNLqB5wNvQ5WC98zqYHtXYEX61+sAa8gyEImrLPYN3WmMJ57e4s7luvWISghrA/lhnEZH/GDA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

@@ -447,6 +447,7 @@ def resource():
 sha256: 452328bad9036818b4d67026db2849e5443f90a4d9c754a72b0f5ee56abc8a5a
 signature: veFdV9nb33zI8d10SkOQMHa6G2txEycEAbZCeq2l7ixZTeZI/0jHF4rfvZrUf4krHKQCg4PJJVg0XY541PYfCg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

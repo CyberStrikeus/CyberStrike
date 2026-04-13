@@ -73,9 +73,9 @@ Amazon MemoryDB for Redis has automatic backups enabled by default with a retent
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11 Data Recovery | | | |
+| Controls Version | Control          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------- | ---- | ---- | ---- |
+| v8               | 11 Data Recovery |      |      |      |
 
 ## Profile
 

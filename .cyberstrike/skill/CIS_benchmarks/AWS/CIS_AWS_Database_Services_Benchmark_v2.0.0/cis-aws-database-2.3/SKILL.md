@@ -44,6 +44,7 @@ Disabling or failing to properly configure TLS can expose the data to be comprom
    - **MySQL:** Confirm that `require_secure_transport = ON` (Only applicable for Aurora MySQL versions 2 and 3)
 
 **Notes:**
+
 - Make sure the parameter changes are applied and the cluster has been rebooted if necessary for the parameters to take effect.
 
 ## Expected Result
@@ -109,10 +110,10 @@ Aurora supports TLS connections by default, but enforcement of TLS-only connecti
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit - Encrypt all sensitive information in transit. | | x | x |
+| Controls Version | Control                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit - Encrypt all sensitive information in transit.                                                                                |      | x    | x    |
 
 ## Profile
 

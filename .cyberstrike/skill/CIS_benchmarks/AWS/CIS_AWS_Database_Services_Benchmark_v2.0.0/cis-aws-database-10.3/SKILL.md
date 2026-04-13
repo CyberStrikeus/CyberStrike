@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.3 Ensure Encryption in Transit is Configured (Manual)
 
 ## Description
+
 Configure your applications or tools to use secure communication protocols when interacting with Amazon Timestream. Utilize endpoints to establish private and secure connections to Timestream.
 
 ## Rationale
+
 The database uses HTTPS/TLS to encrypt data during transit. To secure your data in transit the individual should identify their client application and what is supported by HTTPS/TLS in order to configure it correctly. Also has an option for leverage, which creates a private connection between virtual private code (VPC) without interfering with public networks.
 
 ## Impact
+
 If the client does not have the code configured correctly it would not be able to connect to the server.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand Encryption in Transit in Timestream:
    - Familiarize yourself with the concept of encryption in transit and its importance in securing data communication. Understand that encryption in transit ensures that data transmitted between clients and Timestream remains confidential and protected from interception.
 2. Use HTTPS for Communication:
@@ -44,24 +48,30 @@ If the client does not have the code configured correctly it would not be able t
    - Stay informed about the latest encryption standards, protocols, and best practices. Regularly review and update your encryption configurations and settings to align with industry standards and security recommendations. Apply any necessary updates or patches to client applications or tools to maintain strong encryption in transit.
 
 ## Expected Result
+
 All communications with Timestream should use HTTPS/TLS with valid SSL/TLS certificates. VPC endpoints should be considered for private connectivity.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to configure encryption in transit for your Amazon Timestream environment.
 
 ## Default Value
+
 Amazon Timestream requires HTTPS for all API calls. TLS encryption in transit is enforced by default.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

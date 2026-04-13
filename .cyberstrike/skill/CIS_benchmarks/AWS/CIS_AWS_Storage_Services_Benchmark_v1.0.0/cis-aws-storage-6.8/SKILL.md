@@ -31,6 +31,7 @@ Regular recovery drills are essential to verify the functionality of your disast
 ## Impact
 
 Recovery drills require:
+
 - Planning and scheduling
 - Non-production environment for testing
 - Time and resources for execution
@@ -39,6 +40,7 @@ Recovery drills require:
 - Updates to recovery procedures based on findings
 
 Benefits:
+
 - Validates disaster recovery plan effectiveness
 - Identifies potential issues before real disasters
 - Ensures team familiarity with recovery procedures
@@ -136,12 +138,12 @@ By default, no recovery drills are scheduled or configured. Organizations must m
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets. | | ● | ● |
-| v8 | 17.7 Conduct Routine Incident Response Exercises<br/>Plan and conduct routine incident response exercises and scenarios for key personnel involved in the incident response process to prepare for responding to real-world incidents. Exercises need to test communication channels, decision making, and workflows. Conduct testing on an annual basis, at a minimum. | | ● | ● |
-| v7 | 10.3 Test Data on Backup Media<br/>Test data integrity on backup media on a regular basis by performing a data restoration process to ensure that the backup is properly working. | | ● | ● |
-| v7 | 19.7 Conduct Periodic Incident Scenario Sessions for Personnel<br/>Plan and conduct routine incident response exercises and scenarios for the workforce involved in the incident response to maintain awareness and comfort in responding to real world threats. Exercises should test communication channels, decision making, and incident responders technical capabilities using tools and data available to them. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.5 Test Data Recovery<br/>Test backup recovery quarterly, or more frequently, for a sampling of in-scope enterprise assets.                                                                                                                                                                                                                                                                                          |      | ●    | ●    |
+| v8               | 17.7 Conduct Routine Incident Response Exercises<br/>Plan and conduct routine incident response exercises and scenarios for key personnel involved in the incident response process to prepare for responding to real-world incidents. Exercises need to test communication channels, decision making, and workflows. Conduct testing on an annual basis, at a minimum.                                                |      | ●    | ●    |
+| v7               | 10.3 Test Data on Backup Media<br/>Test data integrity on backup media on a regular basis by performing a data restoration process to ensure that the backup is properly working.                                                                                                                                                                                                                                      |      | ●    | ●    |
+| v7               | 19.7 Conduct Periodic Incident Scenario Sessions for Personnel<br/>Plan and conduct routine incident response exercises and scenarios for the workforce involved in the incident response to maintain awareness and comfort in responding to real world threats. Exercises should test communication channels, decision making, and incident responders technical capabilities using tools and data available to them. |      | ●    | ●    |
 
 ## Profile
 

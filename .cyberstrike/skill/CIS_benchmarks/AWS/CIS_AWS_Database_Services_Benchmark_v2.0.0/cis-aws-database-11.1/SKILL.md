@@ -17,17 +17,21 @@ severity_boost: {}
 # 11.1 Ensure to Implement Identity and Access Management (IAM) (Manual)
 
 ## Description
+
 This control is important because by having IAM roles implemented in the database it only allows certain people who are authenticated into the database to modify the database and would not give access to unauthorized personnel. This ensures that the data is being protected from any threat actor.
 
 ## Rationale
+
 IAM provides centralized authentication and authorization for QLDB resources, ensuring only authorized users and services can access the ledger database.
 
 ## Impact
+
 Only authorized personnel can access the database and configure the applications by using their IAM credentials. If the user credentials are compromised by an unauthorized user, it would limit them to access specific areas within the database due to the leverage IAM roles established.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand IAM and QLDB Integration:
    - Familiarize yourself with IAM and its role in controlling access to AWS services, including QLDB.
    - Understand how IAM policies define permissions and access control rules for QLDB resources.
@@ -65,24 +69,30 @@ Only authorized personnel can access the database and configure the applications
    - Remove or update IAM configurations when users or roles are no longer required.
 
 ## Expected Result
+
 IAM users, groups, roles, and policies should be properly configured for QLDB access with the principle of least privilege applied. IAM database authentication should be enabled.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to implement IAM for your Amazon QLDB environment.
 
 ## Default Value
+
 Access to QLDB is controlled through IAM. No default IAM policies are configured for QLDB access beyond the root account.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

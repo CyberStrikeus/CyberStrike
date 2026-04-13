@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure no AWS EC2 Instances are Older than 180 days
 
 ## Description
+
 Identify any running AWS EC2 instances older than 180 days.
 
 ## Rationale
+
 An EC2 instance is not supposed to run indefinitely and having instance older than 180 days can increase the risk of problems and issues.
 
 ## Impact
+
 Stopping and restarting instances will change the launch time and may cause temporary service disruption. Plan for maintenance windows when refreshing long-running instances.
 
 ## Audit Procedure
@@ -39,16 +42,16 @@ aws ec2 describe-instances --region us-east-1 --output json --filters "Name=inst
 
 ```json
 [
-    [
-        {
-            "Instance": "i-1234567abcdefghi0"
-        }
-    ],
-    [
-        {
-            "Instance": "i-1234567abcdefghi0"
-        }
-    ]
+  [
+    {
+      "Instance": "i-1234567abcdefghi0"
+    }
+  ],
+  [
+    {
+      "Instance": "i-1234567abcdefghi0"
+    }
+  ]
 ]
 ```
 
@@ -81,11 +84,13 @@ aws ec2 describe-instances --region us-east-1 --instance-ids i-1234567abcdefghi0
 9. Go through the other `AWS regions` and repeat the audit process.
 
 ## Expected Result
+
 No running EC2 instance should have a LaunchTime older than 180 days.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided. Use the console method below.
 
 ### Using AWS Console
@@ -102,17 +107,20 @@ No specific CLI remediation command is provided. Use the console method below.
 Confirm that the instance active age is now set to today's date and time.
 
 ## Default Value
+
 AWS does not enforce any default age limit on running EC2 instances.
 
 ## References
+
 No specific references provided in the benchmark for this control.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

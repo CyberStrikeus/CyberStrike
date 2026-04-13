@@ -27,6 +27,7 @@ EBS are storage volumes that you attach to Amazon EC2 instances. After you attac
 ## Rationale
 
 Amazon EBS (Elastic Block Store) provides persistent block-level storage for EC2 instances, which is essential for:
+
 - Data persistence beyond instance lifecycle
 - Ability to detach and reattach volumes to different instances
 - Snapshot capability for backup and disaster recovery
@@ -38,6 +39,7 @@ Properly configuring EC2 instances with EBS ensures data availability, durabilit
 ## Impact
 
 Not properly creating EC2 instances with EBS volumes can lead to:
+
 - Data loss when instances are terminated
 - Inability to backup instance data through snapshots
 - Performance issues if using instance storage instead of optimized EBS volumes
@@ -142,10 +144,10 @@ See audit procedure for creation commands.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | ● | ● | ● |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | ● | |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        | ●    | ●    | ●    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      | ●    |      |
 
 **CIS Control v8 - 3.11 Encrypt Sensitive Data at Rest:**
 Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data.

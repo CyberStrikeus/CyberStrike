@@ -13,6 +13,7 @@ signed_by: cyberstrike-official
 ## Phase 1: Passive Reconnaissance
 
 ### Subdomain Enumeration (Passive)
+
 ```bash
 # Certificate Transparency
 curl -s "https://crt.sh/?q=%25.target.com&output=json" | jq -r '.[].name_value' | sort -u
@@ -33,6 +34,7 @@ amass enum -passive -d target.com | anew subs.txt
 ```
 
 ### Historical Data
+
 ```bash
 # Wayback Machine URLs
 echo "target.com" | waybackurls | tee wayback.txt
@@ -48,6 +50,7 @@ cat historical_urls.txt | grep "=" | qsreplace "FUZZ" | sort -u
 ```
 
 ### Technology Detection
+
 ```bash
 # Wappalyzer CLI
 wappalyzer https://target.com
@@ -62,6 +65,7 @@ curl "https://api.builtwith.com/v19/api.json?KEY=$KEY&LOOKUP=target.com"
 ## Phase 2: Active Reconnaissance
 
 ### DNS Enumeration
+
 ```bash
 # DNS records
 dig target.com ANY +noall +answer
@@ -80,6 +84,7 @@ puredns bruteforce wordlist.txt target.com -r resolvers.txt
 ```
 
 ### Subdomain Resolution
+
 ```bash
 # Resolve discovered subdomains
 cat subs.txt | dnsx -silent -a -resp | tee resolved.txt
@@ -92,6 +97,7 @@ cat live_hosts.txt | cut -d' ' -f1 | gowitness file -f - --threads 10
 ```
 
 ### Port Scanning
+
 ```bash
 # Fast scan (top 100)
 nmap -F -sV target.com
@@ -112,6 +118,7 @@ masscan -p1-65535 --rate 10000 -oJ scan.json target.com
 ## Phase 3: Content Discovery
 
 ### Directory Fuzzing
+
 ```bash
 # Feroxbuster
 feroxbuster -u https://target.com -w /path/to/wordlist.txt -x php,asp,html
@@ -127,6 +134,7 @@ gobuster dir -u https://target.com -w wordlist.txt -x php,html -t 50
 ```
 
 ### Parameter Discovery
+
 ```bash
 # Arjun
 arjun -u https://target.com/page
@@ -139,6 +147,7 @@ ffuf -u "https://target.com/page?FUZZ=value" -w params.txt -mc 200
 ```
 
 ### JavaScript Analysis
+
 ```bash
 # Extract JS files
 cat live_hosts.txt | getJS --complete | tee js_files.txt
@@ -156,6 +165,7 @@ nuclei -l js_files.txt -t exposures/
 ## Phase 4: Vulnerability Discovery
 
 ### Automated Scanning
+
 ```bash
 # Nuclei (comprehensive)
 nuclei -l live_hosts.txt -t nuclei-templates/ -o nuclei_results.txt
@@ -168,6 +178,7 @@ wpscan --url https://target.com --enumerate u,p,t
 ```
 
 ### Manual Testing Points
+
 ```
 1. Authentication
    - Login forms
@@ -229,10 +240,10 @@ Target Domain
 
 ## Wordlists
 
-| Purpose | Recommended Wordlist |
-|---------|---------------------|
-| Subdomains | SecLists/Discovery/DNS/subdomains-top1million-5000.txt |
-| Directories | SecLists/Discovery/Web-Content/raft-medium-directories.txt |
-| Files | SecLists/Discovery/Web-Content/raft-medium-files.txt |
-| Parameters | SecLists/Discovery/Web-Content/burp-parameter-names.txt |
-| Passwords | SecLists/Passwords/Common-Credentials/10-million-password-list-top-10000.txt |
+| Purpose     | Recommended Wordlist                                                         |
+| ----------- | ---------------------------------------------------------------------------- |
+| Subdomains  | SecLists/Discovery/DNS/subdomains-top1million-5000.txt                       |
+| Directories | SecLists/Discovery/Web-Content/raft-medium-directories.txt                   |
+| Files       | SecLists/Discovery/Web-Content/raft-medium-files.txt                         |
+| Parameters  | SecLists/Discovery/Web-Content/burp-parameter-names.txt                      |
+| Passwords   | SecLists/Passwords/Common-Credentials/10-million-password-list-top-10000.txt |

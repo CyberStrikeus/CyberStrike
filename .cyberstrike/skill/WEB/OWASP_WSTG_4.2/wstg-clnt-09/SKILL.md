@@ -223,6 +223,7 @@ add_header Content-Security-Policy "frame-ancestors 'self'" always;
 sha256: b768d13ee5dc5b3ed01ea08fda44578a628d1a30e185e4e168564518fda7d119
 signature: ElX/iB97Gmnl6uuneTXQyJ4TPU4QQqZMb7xJm3KWqw71U4Q4N4lc0dsjlqZukQgetEkbOOV1rrBBp1YQSTSRBw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

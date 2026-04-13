@@ -31,6 +31,7 @@ AWS Backups enable you to back up and restore all data lost during the attack. W
 ## Impact
 
 Not implementing AWS Backups can lead to:
+
 - Permanent data loss during security incidents or system failures
 - Extended recovery time in disaster scenarios
 - Non-compliance with data retention and disaster recovery requirements
@@ -41,6 +42,7 @@ Not implementing AWS Backups can lead to:
 ### Via AWS Management Console
 
 This control requires manual verification of:
+
 1. Whether AWS Backup service is enabled and configured
 2. Backup plans exist for critical storage resources
 3. Backup schedules are defined according to organizational requirements

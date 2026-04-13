@@ -5,18 +5,10 @@
       "name": "ad-security",
       "description": "Active Directory security testing and attack techniques",
       "verified": "official",
-      "tags": [
-        "ad",
-        "windows",
-        "kerberos",
-        "ldap",
-        "internal-network"
-      ],
+      "tags": ["ad", "windows", "kerberos", "ldap", "internal-network"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "bun-file-io",
@@ -25,41 +17,25 @@
       "tags": [],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "kerberos-attacks",
       "description": "Kerberos protocol attack techniques and exploitation",
       "verified": "official",
-      "tags": [
-        "kerberos",
-        "ad",
-        "windows",
-        "tickets"
-      ],
+      "tags": ["kerberos", "ad", "windows", "tickets"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "recon-methodology",
       "description": "Bug bounty and pentest reconnaissance methodology",
       "verified": "official",
-      "tags": [
-        "recon",
-        "enumeration",
-        "osint",
-        "subdomain"
-      ],
+      "tags": ["recon", "enumeration", "osint", "subdomain"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-apit-00",
@@ -67,19 +43,10 @@
       "category": "api-testing",
       "owasp_id": "WSTG-APIT-00",
       "verified": "official",
-      "tags": [
-        "api",
-        "rest",
-        "graphql",
-        "soap",
-        "wstg",
-        "apit"
-      ],
+      "tags": ["api", "rest", "graphql", "soap", "wstg", "apit"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-apit-01",
@@ -87,26 +54,10 @@
       "category": "api-testing",
       "owasp_id": "WSTG-APIT-01",
       "verified": "official",
-      "tags": [
-        "api",
-        "rest",
-        "graphql",
-        "soap",
-        "wstg",
-        "apit"
-      ],
-      "tech_stack": [
-        "rest",
-        "graphql",
-        "soap",
-        "grpc"
-      ],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["api", "rest", "graphql", "soap", "wstg", "apit"],
+      "tech_stack": ["rest", "graphql", "soap", "grpc"],
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-apit-02",
@@ -114,21 +65,10 @@
       "category": "api-testing",
       "owasp_id": "WSTG-APIT-02",
       "verified": "official",
-      "tags": [
-        "api",
-        "rest",
-        "graphql",
-        "soap",
-        "wstg",
-        "apit"
-      ],
+      "tags": ["api", "rest", "graphql", "soap", "wstg", "apit"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-apit-99",
@@ -136,19 +76,10 @@
       "category": "api-testing",
       "owasp_id": "WSTG-APIT-99",
       "verified": "official",
-      "tags": [
-        "api",
-        "rest",
-        "graphql",
-        "soap",
-        "wstg",
-        "apit"
-      ],
+      "tags": ["api", "rest", "graphql", "soap", "wstg", "apit"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-01",
@@ -156,21 +87,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-01",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-522"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-522"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-02",
@@ -178,21 +98,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-02",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-640"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-640"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-03",
@@ -200,21 +109,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-03",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-304"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-304"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-04",
@@ -222,21 +120,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-04",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-307"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-307"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-05",
@@ -244,21 +131,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-05",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-287"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-287"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-06",
@@ -266,21 +142,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-06",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-613"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-613"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-07",
@@ -288,21 +153,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-07",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-287"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-287"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-08",
@@ -310,21 +164,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-08",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-287"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-287"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-09",
@@ -332,21 +175,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-09",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-521"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-521"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-10",
@@ -354,21 +186,10 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-10",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-287"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-287"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-athn-11",
@@ -376,37 +197,19 @@
       "category": "authentication",
       "owasp_id": "WSTG-ATHN-11",
       "verified": "official",
-      "tags": [
-        "authentication",
-        "login",
-        "credentials",
-        "mfa",
-        "wstg",
-        "athn"
-      ],
+      "tags": ["authentication", "login", "credentials", "mfa", "wstg", "athn"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-auth-session",
       "description": "WSTG identity, authentication, authorization, and session management testing",
       "verified": "official",
-      "tags": [
-        "auth",
-        "session",
-        "idor",
-        "csrf",
-        "jwt",
-        "wstg"
-      ],
+      "tags": ["auth", "session", "idor", "csrf", "jwt", "wstg"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-01",
@@ -414,20 +217,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-01",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-639"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-639"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-02",
@@ -435,20 +228,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-02",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-639"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-639"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-03",
@@ -456,20 +239,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-03",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-269"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-269"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-04",
@@ -477,20 +250,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-04",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-639"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-639"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-05",
@@ -498,18 +261,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-05",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-05.1",
@@ -517,18 +272,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-05.1",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-authz-05.2",
@@ -536,18 +283,10 @@
       "category": "authorization",
       "owasp_id": "WSTG-AUTHZ-05.2",
       "verified": "official",
-      "tags": [
-        "authorization",
-        "access-control",
-        "privilege",
-        "wstg",
-        "authz"
-      ],
+      "tags": ["authorization", "access-control", "privilege", "wstg", "authz"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-01",
@@ -555,20 +294,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-01",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-02",
@@ -576,20 +305,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-02",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-03",
@@ -597,20 +316,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-03",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-04",
@@ -618,20 +327,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-04",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-05",
@@ -639,20 +338,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-05",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-06",
@@ -660,20 +349,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-06",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-07",
@@ -681,20 +360,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-07",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-08",
@@ -702,20 +371,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-08",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-09",
@@ -723,20 +382,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-09",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-840"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-840"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-busl-10",
@@ -744,18 +393,10 @@
       "category": "business-logic",
       "owasp_id": "WSTG-BUSL-10",
       "verified": "official",
-      "tags": [
-        "business-logic",
-        "workflow",
-        "abuse",
-        "wstg",
-        "busl"
-      ],
+      "tags": ["business-logic", "workflow", "abuse", "wstg", "busl"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-01",
@@ -763,21 +404,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-01",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-79"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-79"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-01.1",
@@ -785,19 +415,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-01.1",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-02",
@@ -805,21 +426,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-02",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-79"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-79"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-03",
@@ -827,21 +437,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-03",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-94"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-94"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-04",
@@ -849,21 +448,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-04",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-601"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-601"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-05",
@@ -871,21 +459,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-05",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-94"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-94"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-06",
@@ -893,21 +470,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-06",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-07",
@@ -915,24 +481,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-07",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
-      "tech_stack": [
-        "cors",
-        "javascript"
-      ],
-      "cwe_ids": [
-        "CWE-942"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
+      "tech_stack": ["cors", "javascript"],
+      "cwe_ids": ["CWE-942"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-08",
@@ -940,24 +492,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-08",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
-      "tech_stack": [
-        "html",
-        "javascript"
-      ],
-      "cwe_ids": [
-        "CWE-1021"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
+      "tech_stack": ["html", "javascript"],
+      "cwe_ids": ["CWE-1021"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-09",
@@ -965,21 +503,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-09",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-922"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-922"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-10",
@@ -987,21 +514,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-10",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-11",
@@ -1009,21 +525,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-11",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-79"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-79"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-12",
@@ -1031,21 +536,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-12",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-79"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-79"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-13",
@@ -1053,21 +547,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-13",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-942"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-942"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-clnt-14",
@@ -1075,19 +558,10 @@
       "category": "client-side",
       "owasp_id": "WSTG-CLNT-14",
       "verified": "official",
-      "tags": [
-        "client-side",
-        "javascript",
-        "dom",
-        "cors",
-        "wstg",
-        "clnt"
-      ],
+      "tags": ["client-side", "javascript", "dom", "cors", "wstg", "clnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-01",
@@ -1095,25 +569,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-01",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
-      "tech_stack": [
-        "apache",
-        "nginx",
-        "iis",
-        "tomcat"
-      ],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
+      "tech_stack": ["apache", "nginx", "iis", "tomcat"],
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-02",
@@ -1121,20 +580,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-02",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-03",
@@ -1142,20 +591,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-03",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-04",
@@ -1163,20 +602,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-04",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-05",
@@ -1184,24 +613,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-05",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
-      "tech_stack": [
-        "apache",
-        "nginx",
-        "iis"
-      ],
-      "cwe_ids": [
-        "CWE-548"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
+      "tech_stack": ["apache", "nginx", "iis"],
+      "cwe_ids": ["CWE-548"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-06",
@@ -1209,20 +624,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-06",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-07",
@@ -1230,20 +635,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-07",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-08",
@@ -1251,20 +646,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-08",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-09",
@@ -1272,25 +657,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-09",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
-      "tech_stack": [
-        "php",
-        "java",
-        "asp",
-        "nodejs"
-      ],
-      "cwe_ids": [
-        "CWE-434"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
+      "tech_stack": ["php", "java", "asp", "nodejs"],
+      "cwe_ids": ["CWE-434"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-10",
@@ -1298,20 +668,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-10",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-11",
@@ -1319,20 +679,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-11",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-16"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-16"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-12",
@@ -1340,18 +690,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-12",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-conf-13",
@@ -1359,18 +701,10 @@
       "category": "configuration",
       "owasp_id": "WSTG-CONF-13",
       "verified": "official",
-      "tags": [
-        "misconfiguration",
-        "hardening",
-        "server",
-        "wstg",
-        "conf"
-      ],
+      "tags": ["misconfiguration", "hardening", "server", "wstg", "conf"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-cryp-01",
@@ -1378,25 +712,10 @@
       "category": "cryptography",
       "owasp_id": "WSTG-CRYP-01",
       "verified": "official",
-      "tags": [
-        "cryptography",
-        "tls",
-        "ssl",
-        "encryption",
-        "wstg",
-        "cryp"
-      ],
-      "tech_stack": [
-        "tls",
-        "ssl",
-        "openssl"
-      ],
-      "cwe_ids": [
-        "CWE-326"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["cryptography", "tls", "ssl", "encryption", "wstg", "cryp"],
+      "tech_stack": ["tls", "ssl", "openssl"],
+      "cwe_ids": ["CWE-326"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-cryp-02",
@@ -1404,24 +723,10 @@
       "category": "cryptography",
       "owasp_id": "WSTG-CRYP-02",
       "verified": "official",
-      "tags": [
-        "cryptography",
-        "tls",
-        "ssl",
-        "encryption",
-        "wstg",
-        "cryp"
-      ],
-      "tech_stack": [
-        "tls",
-        "ssl"
-      ],
-      "cwe_ids": [
-        "CWE-326"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["cryptography", "tls", "ssl", "encryption", "wstg", "cryp"],
+      "tech_stack": ["tls", "ssl"],
+      "cwe_ids": ["CWE-326"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-cryp-03",
@@ -1429,21 +734,10 @@
       "category": "cryptography",
       "owasp_id": "WSTG-CRYP-03",
       "verified": "official",
-      "tags": [
-        "cryptography",
-        "tls",
-        "ssl",
-        "encryption",
-        "wstg",
-        "cryp"
-      ],
+      "tags": ["cryptography", "tls", "ssl", "encryption", "wstg", "cryp"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-311"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-311"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-cryp-04",
@@ -1451,21 +745,10 @@
       "category": "cryptography",
       "owasp_id": "WSTG-CRYP-04",
       "verified": "official",
-      "tags": [
-        "cryptography",
-        "tls",
-        "ssl",
-        "encryption",
-        "wstg",
-        "cryp"
-      ],
+      "tags": ["cryptography", "tls", "ssl", "encryption", "wstg", "cryp"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-327"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-327"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-errh-01",
@@ -1473,20 +756,10 @@
       "category": "error-handling",
       "owasp_id": "WSTG-ERRH-01",
       "verified": "official",
-      "tags": [
-        "error-handling",
-        "information-leak",
-        "stack-trace",
-        "wstg",
-        "errh"
-      ],
+      "tags": ["error-handling", "information-leak", "stack-trace", "wstg", "errh"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-209"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-209"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-errh-02",
@@ -1494,20 +767,10 @@
       "category": "error-handling",
       "owasp_id": "WSTG-ERRH-02",
       "verified": "official",
-      "tags": [
-        "error-handling",
-        "information-leak",
-        "stack-trace",
-        "wstg",
-        "errh"
-      ],
+      "tags": ["error-handling", "information-leak", "stack-trace", "wstg", "errh"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-209"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-209"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-idnt-01",
@@ -1515,18 +778,10 @@
       "category": "identity-management",
       "owasp_id": "WSTG-IDNT-01",
       "verified": "official",
-      "tags": [
-        "identity",
-        "user-enum",
-        "roles",
-        "wstg",
-        "idnt"
-      ],
+      "tags": ["identity", "user-enum", "roles", "wstg", "idnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-idnt-02",
@@ -1534,18 +789,10 @@
       "category": "identity-management",
       "owasp_id": "WSTG-IDNT-02",
       "verified": "official",
-      "tags": [
-        "identity",
-        "user-enum",
-        "roles",
-        "wstg",
-        "idnt"
-      ],
+      "tags": ["identity", "user-enum", "roles", "wstg", "idnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-idnt-03",
@@ -1553,18 +800,10 @@
       "category": "identity-management",
       "owasp_id": "WSTG-IDNT-03",
       "verified": "official",
-      "tags": [
-        "identity",
-        "user-enum",
-        "roles",
-        "wstg",
-        "idnt"
-      ],
+      "tags": ["identity", "user-enum", "roles", "wstg", "idnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-idnt-04",
@@ -1572,18 +811,10 @@
       "category": "identity-management",
       "owasp_id": "WSTG-IDNT-04",
       "verified": "official",
-      "tags": [
-        "identity",
-        "user-enum",
-        "roles",
-        "wstg",
-        "idnt"
-      ],
+      "tags": ["identity", "user-enum", "roles", "wstg", "idnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-idnt-05",
@@ -1591,18 +822,10 @@
       "category": "identity-management",
       "owasp_id": "WSTG-IDNT-05",
       "verified": "official",
-      "tags": [
-        "identity",
-        "user-enum",
-        "roles",
-        "wstg",
-        "idnt"
-      ],
+      "tags": ["identity", "user-enum", "roles", "wstg", "idnt"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-01",
@@ -1610,20 +833,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-01",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-02",
@@ -1631,20 +844,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-02",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-03",
@@ -1652,20 +855,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-03",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-04",
@@ -1673,20 +866,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-04",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-05",
@@ -1694,20 +877,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-05",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-06",
@@ -1715,20 +888,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-06",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-07",
@@ -1736,20 +899,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-07",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-08",
@@ -1757,20 +910,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-08",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-09",
@@ -1778,20 +921,10 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-09",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-info-10",
@@ -1799,40 +932,19 @@
       "category": "information-gathering",
       "owasp_id": "WSTG-INFO-10",
       "verified": "official",
-      "tags": [
-        "recon",
-        "fingerprint",
-        "enumeration",
-        "wstg",
-        "info"
-      ],
+      "tags": ["recon", "fingerprint", "enumeration", "wstg", "info"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-injection",
       "description": "WSTG input validation and injection testing - SQLi, XSS, SSTI, SSRF, command injection, XXE",
       "verified": "official",
-      "tags": [
-        "injection",
-        "sqli",
-        "xss",
-        "ssti",
-        "ssrf",
-        "xxe",
-        "rce",
-        "wstg"
-      ],
+      "tags": ["injection", "sqli", "xss", "ssti", "ssrf", "xxe", "rce", "wstg"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-01",
@@ -1840,21 +952,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-01",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-93"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-93"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-02",
@@ -1862,31 +963,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-02",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "javascript",
-        "html",
-        "php",
-        "java",
-        "python",
-        "nodejs",
-        "react",
-        "angular",
-        "vue"
-      ],
-      "cwe_ids": [
-        "CWE-79"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["javascript", "html", "php", "java", "python", "nodejs", "react", "angular", "vue"],
+      "cwe_ids": ["CWE-79"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-03",
@@ -1894,21 +974,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-03",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-89"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-89"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-04",
@@ -1916,25 +985,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-04",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "php",
-        "asp",
-        "jsp"
-      ],
-      "cwe_ids": [
-        "CWE-94"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["php", "asp", "jsp"],
+      "cwe_ids": ["CWE-94"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05",
@@ -1942,32 +996,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "mysql",
-        "postgresql",
-        "mssql",
-        "oracle",
-        "sqlite",
-        "php",
-        "java",
-        "python",
-        "nodejs"
-      ],
-      "cwe_ids": [
-        "CWE-89",
-        "CWE-564"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["mysql", "postgresql", "mssql", "oracle", "sqlite", "php", "java", "python", "nodejs"],
+      "cwe_ids": ["CWE-89", "CWE-564"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.1",
@@ -1975,19 +1007,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.1",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.2",
@@ -1995,19 +1018,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.2",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.3",
@@ -2015,19 +1029,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.3",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.4",
@@ -2035,19 +1040,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.4",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.5",
@@ -2055,19 +1051,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.5",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.6",
@@ -2075,19 +1062,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.6",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.7",
@@ -2095,19 +1073,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.7",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-05.8",
@@ -2115,19 +1084,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-05.8",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-06",
@@ -2135,25 +1095,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-06",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "ldap",
-        "activedirectory",
-        "openldap"
-      ],
-      "cwe_ids": [
-        "CWE-90"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["ldap", "activedirectory", "openldap"],
+      "cwe_ids": ["CWE-90"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-07",
@@ -2161,24 +1106,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-07",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "xml",
-        "xpath"
-      ],
-      "cwe_ids": [
-        "CWE-91"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["xml", "xpath"],
+      "cwe_ids": ["CWE-91"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-08",
@@ -2186,21 +1117,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-08",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-90"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-90"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-09",
@@ -2208,28 +1128,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-09",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "linux",
-        "windows",
-        "php",
-        "python",
-        "nodejs",
-        "ruby"
-      ],
-      "cwe_ids": [
-        "CWE-78"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["linux", "windows", "php", "python", "nodejs", "ruby"],
+      "cwe_ids": ["CWE-78"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-10",
@@ -2237,21 +1139,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-10",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-601"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-601"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-11",
@@ -2259,30 +1150,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-11",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
-      "tech_stack": [
-        "python",
-        "ruby",
-        "php",
-        "java",
-        "jinja2",
-        "twig",
-        "freemarker"
-      ],
-      "cwe_ids": [
-        "CWE-94",
-        "CWE-95"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
+      "tech_stack": ["python", "ruby", "php", "java", "jinja2", "twig", "freemarker"],
+      "cwe_ids": ["CWE-94", "CWE-95"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-11.1",
@@ -2290,19 +1161,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-11.1",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-12",
@@ -2310,19 +1172,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-12",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-13",
@@ -2330,19 +1183,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-13",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-14",
@@ -2350,19 +1194,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-14",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-15",
@@ -2370,19 +1205,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-15",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-16",
@@ -2390,19 +1216,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-16",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-17",
@@ -2410,19 +1227,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-17",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-18",
@@ -2430,19 +1238,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-18",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-19",
@@ -2450,19 +1249,10 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-19",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-inpv-20",
@@ -2470,55 +1260,28 @@
       "category": "input-validation",
       "owasp_id": "WSTG-INPV-20",
       "verified": "official",
-      "tags": [
-        "injection",
-        "input-validation",
-        "xss",
-        "sqli",
-        "wstg",
-        "inpv"
-      ],
+      "tags": ["injection", "input-validation", "xss", "sqli", "wstg", "inpv"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-logic-client-api",
       "description": "WSTG business logic, client-side, and API security testing",
       "verified": "official",
-      "tags": [
-        "logic",
-        "client-side",
-        "api",
-        "graphql",
-        "cors",
-        "websocket",
-        "wstg"
-      ],
+      "tags": ["logic", "client-side", "api", "graphql", "cors", "websocket", "wstg"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-recon-config",
       "description": "WSTG reconnaissance, configuration, error handling, and cryptography testing techniques",
       "verified": "official",
-      "tags": [
-        "recon",
-        "config",
-        "headers",
-        "tls",
-        "wstg"
-      ],
+      "tags": ["recon", "config", "headers", "tls", "wstg"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-01",
@@ -2526,25 +1289,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-01",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
-      "tech_stack": [
-        "cookies",
-        "jwt",
-        "session"
-      ],
-      "cwe_ids": [
-        "CWE-539"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
+      "tech_stack": ["cookies", "jwt", "session"],
+      "cwe_ids": ["CWE-539"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-02",
@@ -2552,21 +1300,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-02",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-384"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-384"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-03",
@@ -2574,21 +1311,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-03",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-613"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-613"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-04",
@@ -2596,21 +1322,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-04",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-614"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-614"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-05",
@@ -2618,25 +1333,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-05",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
-      "tech_stack": [
-        "html",
-        "javascript",
-        "cookies"
-      ],
-      "cwe_ids": [
-        "CWE-352"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
+      "tech_stack": ["html", "javascript", "cookies"],
+      "cwe_ids": ["CWE-352"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-06",
@@ -2644,21 +1344,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-06",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-613"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-613"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-07",
@@ -2666,21 +1355,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-07",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-384"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-384"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-08",
@@ -2688,21 +1366,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-08",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-200"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-200"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-09",
@@ -2710,21 +1377,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-09",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
-      "cwe_ids": [
-        "CWE-384"
-      ],
-      "files": [
-        "SKILL.md"
-      ]
+      "cwe_ids": ["CWE-384"],
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-10",
@@ -2732,19 +1388,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-10",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     },
     {
       "name": "wstg-sess-11",
@@ -2752,19 +1399,10 @@
       "category": "session-management",
       "owasp_id": "WSTG-SESS-11",
       "verified": "official",
-      "tags": [
-        "session",
-        "cookies",
-        "csrf",
-        "token",
-        "wstg",
-        "sess"
-      ],
+      "tags": ["session", "cookies", "csrf", "token", "wstg", "sess"],
       "tech_stack": [],
       "cwe_ids": [],
-      "files": [
-        "SKILL.md"
-      ]
+      "files": ["SKILL.md"]
     }
   ]
 }

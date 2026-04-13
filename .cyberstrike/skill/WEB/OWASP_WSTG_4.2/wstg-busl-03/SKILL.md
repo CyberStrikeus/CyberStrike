@@ -581,6 +581,7 @@ def decrypt_and_verify(encrypted_data):
 sha256: 00ba48d13046e0caafed20898007619d3643e92cf4131c3496ac3ec5b4d8fcd0
 signature: Xwuz52rkxh3WWKKxJ/r7enSE2aHp+TyAc4xWuWXXdS2pkyb06rLLZMoEKY6e2fUYDWPwCfkdTmCNOtMbgmkgAA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist
