@@ -56,10 +56,12 @@ All unattached disks should have encryption type set to `Encryption at-rest with
 ## Remediation
 
 If data stored in the disk is no longer useful, refer to Azure documentation to delete unattached data disks at:
+
 - https://docs.microsoft.com/en-us/rest/api/compute/disks/delete
 - https://docs.microsoft.com/en-us/cli/azure/disk?view=azure-cli-latest#az-disk-delete
 
 If data stored in the disk is important, to encrypt the disk refer to azure documentation at:
+
 - https://docs.microsoft.com/en-us/azure/virtual-machines/disks-enable-customer-managed-keys-portal
 - https://docs.microsoft.com/en-us/rest/api/compute/disks/update#encryptionsettings
 
