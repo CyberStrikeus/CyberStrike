@@ -1,0 +1,51 @@
+---
+name: cis-cassandra311-3.5
+description: "Ensure that Cassandra only listens for network connections on authorized interfaces"
+category: cis-cassandra
+version: "1.1.0"
+author: cyberstrike-official
+tags: [cis, cassandra, access-control, network]
+cis_id: "3.5"
+cis_benchmark: "CIS Apache Cassandra 3.11 Benchmark v1.1.0"
+tech_stack: [cassandra]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 3.5 Ensure that Cassandra only listens for network connections on authorized interfaces
+
+## Profile Applicability
+- Level 1 - Cassandra on Linux
+- Level 2 - Cassandra on Linux
+
+## Description
+When listen_address is blank and listen_interface is commented out, this will be set automatically by InetAddress.getLocalHost(). Presuming the node is configured correctly, e.g. hostname, name resolution, etc., this will configure the node to use the address associated with the hostname. The listen_address must not be set to 0.0.0.0.
+
+## Rationale
+Setting the address or interface to bind to will tell other Cassandra nodes to which address or interface to connect. This must be changed from the default in order for multiple nodes to be able to communicate.
+
+## Audit
+Check the value of listen_address or listen_interface in the cassandra.yaml. If listen_address is set 0.0.0.0 or a non-authorized address or interface is specified, this is a finding.
+
+## Remediation
+Set the listen_address or listen_interface, not both, in the cassandra.yaml to an authorized address or interface.
+
+## Default Value
+```
+listen_address: localhost
+
+listen_interface: eth0, but is commented out by default.
+```
+
+## References
+1. http://cassandra.apache.org/doc/3.11/configuration/cassandra_config_file.html#li sten-address
+2. http://cassandra.apache.org/doc/3.11/configuration/cassandra_config_file.html#li sten-interface
+
+## CIS Controls
+- v8: 4.4 Implement and Manage a Firewall on Servers
+- v7: 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
+
+## Profile
+- Level 1 | Manual
