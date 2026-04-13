@@ -17,20 +17,25 @@ severity_boost: {}
 # 6.2 Ensure Government-backed attacks is configured
 
 ## Profile Applicability
+
 - Enterprise Level 1
 
 ## Description
+
 Configuring and enabling the setting that an alert will be generated when Google believes your users are being targeted by a government-backed attack.
 
 ## Rationale
+
 Ensuring that administrators are alerted that they may be being targeted by a government-backed entity allows them time to check their defenses and potentially up their sensitivity for anomalies.
 
 **NOTE:** Google sends these out of an abundance of caution -- the notice does not necessarily mean that the account has been compromised or that there is a widespread attack. Rather, the notice reflects Google's assessment that a government-backed attacker has likely attempted to access the user's account or computer through phishing or malware, for example.
 
 ## Impact
+
 This setting should have no impact on the end user but will send emails to super administrators when triggered.
 
 ## Audit
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -43,6 +48,7 @@ To verify this setting via the Google Workspace Admin Console:
 8. Ensure that **Email notification recipients** is set to **All super administrators**.
 
 ## Remediation
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -58,12 +64,15 @@ To verify this setting via the Google Workspace Admin Console:
 11. Confirm that the **Government-backed attacks** shows an Alert status of **On** in the list.
 
 ## Default Value
+
 Government-backed attacks is **ON**.
 
 ## References
+
 1. https://support.google.com/a/answer/3230421
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 16.13 Alert on Account Login Behavior Deviation | | | x |
+
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v7               | 16.13 Alert on Account Login Behavior Deviation |      |      | x    |

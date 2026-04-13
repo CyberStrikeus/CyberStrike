@@ -17,18 +17,23 @@ severity_boost: {}
 # 6.7 Ensure Leaked password is configured
 
 ## Profile Applicability
+
 - Enterprise Level 1
 
 ## Description
+
 Configuring and enabling the setting that an alert will be generated when Google detects compromised credentials requiring a reset of a user's password.
 
 ## Rationale
+
 Ensuring that administrators are alerted when Google detects that a user's credentials have been compromised due to a publicized breach. This is usually because the user has reused their credentials at another site that was breached.
 
 ## Impact
+
 Emails will be sent to super administrators when triggered and in these cases, the user's password will need to be changed.
 
 ## Audit
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -41,6 +46,7 @@ To verify this setting via the Google Workspace Admin Console:
 8. Ensure that **Email notification recipients** is set to **All super administrators**.
 
 ## Remediation
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -56,12 +62,15 @@ To verify this setting via the Google Workspace Admin Console:
 11. Confirm that the **Leaked password** shows an Alert status of **On** in the list.
 
 ## Default Value
+
 Leaked password is **ON**.
 
 ## References
+
 1. https://support.google.com/a/answer/3230421
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 16.13 Alert on Account Login Behavior Deviation | | | x |
+
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v7               | 16.13 Alert on Account Login Behavior Deviation |      |      | x    |

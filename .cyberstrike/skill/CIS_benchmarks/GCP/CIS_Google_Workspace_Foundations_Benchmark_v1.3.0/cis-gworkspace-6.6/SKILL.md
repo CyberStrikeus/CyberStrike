@@ -17,18 +17,23 @@ severity_boost: {}
 # 6.6 Ensure Suspicious login is configured
 
 ## Profile Applicability
+
 - Enterprise Level 1
 
 ## Description
+
 Configuring and enabling the setting that an alert will be generated when Google detects a sign-in attempt that doesn't match a user's normal behavior, such as a sign-in from an unusual location.
 
 ## Rationale
+
 Ensuring that administrators are alerted when suspicious login attempts occur. This could be an indication of an active attack on the company by an adversary using previously obtained credentials.
 
 ## Impact
+
 This setting should have no impact on the end user but will send emails to super administrators when triggered.
 
 ## Audit
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -41,6 +46,7 @@ To verify this setting via the Google Workspace Admin Console:
 8. Ensure that **Email notification recipients** is set to **All super administrators**.
 
 ## Remediation
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -56,12 +62,15 @@ To verify this setting via the Google Workspace Admin Console:
 11. Confirm that the **Suspicious login** shows an Alert status of **On** in the list.
 
 ## Default Value
+
 Suspicious login is **ON**.
 
 ## References
+
 1. https://support.google.com/a/answer/3230421
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 16.13 Alert on Account Login Behavior Deviation | | | x |
+
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v7               | 16.13 Alert on Account Login Behavior Deviation |      |      | x    |

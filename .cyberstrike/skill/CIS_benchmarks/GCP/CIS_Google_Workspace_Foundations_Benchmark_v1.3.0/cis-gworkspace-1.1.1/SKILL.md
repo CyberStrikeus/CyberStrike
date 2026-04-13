@@ -58,10 +58,10 @@ All Google Workspace tenants will have one Super Admin initially.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 5.1 Establish and Maintain an Inventory of Accounts | x | x | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.1 Establish and Maintain an Inventory of Accounts | x    | x    | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts   |      | x    | x    |
 
 ## Profile
 

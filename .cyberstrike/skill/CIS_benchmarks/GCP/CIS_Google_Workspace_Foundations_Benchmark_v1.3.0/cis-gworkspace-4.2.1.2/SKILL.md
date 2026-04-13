@@ -59,9 +59,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.1 Establish and Maintain a Software Inventory | x | x | x |
-| v8 | 2.3 Address Unauthorized Software | x | x | x |
-| v7 | 2.1 Maintain Inventory of Authorized Software | x | x | x |
-| v7 | 2.6 Address unapproved software | x | x | x |
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.1 Establish and Maintain a Software Inventory | x    | x    | x    |
+| v8               | 2.3 Address Unauthorized Software               | x    | x    | x    |
+| v7               | 2.1 Maintain Inventory of Authorized Software   | x    | x    | x    |
+| v7               | 2.6 Address unapproved software                 | x    | x    | x    |
