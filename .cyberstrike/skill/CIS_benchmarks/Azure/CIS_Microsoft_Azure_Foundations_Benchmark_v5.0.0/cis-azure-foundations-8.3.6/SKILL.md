@@ -31,6 +31,7 @@ Configuring private endpoints requires additional networking setup including vir
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Networking`.
@@ -38,16 +39,21 @@ Configuring private endpoints requires additional networking setup including vir
 5. Verify that at least one private endpoint connection exists with a status of `Approved`.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[].name" -o tsv
 ```
+
 For each Key Vault:
+
 ```
 az keyvault private-endpoint-connection list --vault-name {vaultName} --query "[].{Name:name, Status:properties.privateLinkServiceConnectionState.status}" -o table
 ```
+
 Ensure at least one connection exists with status `Approved`.
 
 **From PowerShell:**
+
 ```
 Get-AzKeyVault | ForEach-Object {
     $connections = Get-AzPrivateEndpointConnection -PrivateLinkResourceId $_.ResourceId
@@ -58,6 +64,7 @@ Get-AzKeyVault | ForEach-Object {
     }
 }
 ```
+
 Ensure each vault has at least one private endpoint with `Approved` status.
 
 ## Expected Result
@@ -67,6 +74,7 @@ All Key Vaults should have at least one private endpoint connection with an `App
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Networking`.
@@ -76,6 +84,7 @@ All Key Vaults should have at least one private endpoint connection with an `App
 7. Click `Review + Create`, then `Create`.
 
 **From Azure CLI:**
+
 ```
 az network private-endpoint create \
   --name {endpointName} \
@@ -88,6 +97,7 @@ az network private-endpoint create \
 ```
 
 **From PowerShell:**
+
 ```
 $vault = Get-AzKeyVault -VaultName {vaultName}
 $privateEndpointConnection = New-AzPrivateLinkServiceConnection -Name {connectionName} -PrivateLinkServiceId $vault.ResourceId -GroupId "vault"

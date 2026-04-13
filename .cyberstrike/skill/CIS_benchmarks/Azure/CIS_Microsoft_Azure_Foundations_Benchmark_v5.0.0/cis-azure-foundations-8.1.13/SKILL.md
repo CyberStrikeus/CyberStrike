@@ -31,6 +31,7 @@ Adding additional email addresses has minimal technical impact. Recipients will 
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -38,15 +39,19 @@ Adding additional email addresses has minimal technical impact. Recipients will 
 5. Verify that the `Additional email addresses` field contains one or more valid email addresses (separated by semicolons).
 
 **From Azure CLI:**
+
 ```
 az rest --method get --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts?api-version=2020-01-01-preview"
 ```
+
 Verify that the `emails` property contains additional email addresses beyond the subscription owner.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityContact | Select-Object Name, Email
 ```
+
 Ensure the `Email` field contains additional email addresses.
 
 ## Expected Result
@@ -56,6 +61,7 @@ The `Additional email addresses` field should contain at least one valid email a
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -64,11 +70,13 @@ The `Additional email addresses` field should contain at least one valid email a
 6. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az rest --method put --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts/default?api-version=2020-01-01-preview" --body '{"properties":{"emails":"security@example.com;soc@example.com","alertNotifications":{"state":"On","minimalSeverity":"High"}}}'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityContact -Name "default" -Email "security@example.com;soc@example.com" -AlertAdmin -NotifyOnAlert
 ```

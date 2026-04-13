@@ -31,6 +31,7 @@ Configuring email notifications has minimal impact. The designated recipients wi
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -39,19 +40,25 @@ Configuring email notifications has minimal impact. The designated recipients wi
 6. Ensure `Notify about alerts with the following severity (or higher)` is enabled.
 
 **From Azure CLI:**
+
 ```
 az account get-access-token --query "{subscription:subscription,token:accessToken}" -o tsv
 ```
+
 Then query the security contacts API:
+
 ```
 az rest --method get --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts?api-version=2020-01-01-preview"
 ```
+
 Verify that `emails` field contains valid email addresses.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityContact | Select-Object Name, Email, AlertNotifications
 ```
+
 Ensure `Email` contains a valid address and `AlertNotifications` is `On`.
 
 ## Expected Result
@@ -61,6 +68,7 @@ A valid security contact email address should be configured and alert notificati
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -70,11 +78,13 @@ A valid security contact email address should be configured and alert notificati
 7. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az rest --method put --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts/default?api-version=2020-01-01-preview" --body '{"properties":{"emails":"security@example.com","alertNotifications":{"state":"On","minimalSeverity":"High"}}}'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityContact -Name "default" -Email "security@example.com" -AlertAdmin -NotifyOnAlert
 ```

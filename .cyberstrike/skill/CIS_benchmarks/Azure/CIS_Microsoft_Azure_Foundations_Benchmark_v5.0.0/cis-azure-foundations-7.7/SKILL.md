@@ -69,10 +69,10 @@ During Virtual Machine and Application creation, a setting may create and attach
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 12.1 Ensure Network Infrastructure is Up-to-Date | x | x | x |
-| v7 | 12.1 Maintain an Inventory of Network Boundaries | x | x | x |
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.1 Ensure Network Infrastructure is Up-to-Date | x    | x    | x    |
+| v7               | 12.1 Maintain an Inventory of Network Boundaries | x    | x    | x    |
 
 ## Profile
 

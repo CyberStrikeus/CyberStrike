@@ -78,12 +78,12 @@ By default, `User consent for applications` is set to `Allow user consent for ap
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.3 Address Unauthorized Software | x | x | x |
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 2.6 Address unapproved software | x | x | x |
-| v7 | 2.7 Utilize Application Whitelisting | | | x |
+| Controls Version | Control                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------ | ---- | ---- | ---- |
+| v8               | 2.3 Address Unauthorized Software    | x    | x    | x    |
+| v8               | 2.5 Allowlist Authorized Software    |      | x    | x    |
+| v7               | 2.6 Address unapproved software      | x    | x    | x    |
+| v7               | 2.7 Utilize Application Whitelisting |      |      | x    |
 
 ## Profile
 

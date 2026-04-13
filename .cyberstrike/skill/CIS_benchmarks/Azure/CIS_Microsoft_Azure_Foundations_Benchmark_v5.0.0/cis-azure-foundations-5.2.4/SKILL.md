@@ -86,12 +86,12 @@ Starting October 2024, MFA will be required for all accounts by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 6.3 Require MFA for Externally-Exposed Applications | | x | x |
-| v8 | 6.4 Require MFA for Remote Network Access | x | x | x |
-| v7 | 4.5 Use Multifactor Authentication For All Administrative Access | | x | x |
-| v7 | 16.3 Require Multi-factor Authentication | | x | x |
+| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.3 Require MFA for Externally-Exposed Applications              |      | x    | x    |
+| v8               | 6.4 Require MFA for Remote Network Access                        | x    | x    | x    |
+| v7               | 4.5 Use Multifactor Authentication For All Administrative Access |      | x    | x    |
+| v7               | 16.3 Require Multi-factor Authentication                         |      | x    | x    |
 
 ## Profile
 

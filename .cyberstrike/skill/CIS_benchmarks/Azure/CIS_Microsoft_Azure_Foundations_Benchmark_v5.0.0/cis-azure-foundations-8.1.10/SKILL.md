@@ -31,6 +31,7 @@ Enabling Microsoft Defender for Resource Manager incurs additional costs based o
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -38,15 +39,19 @@ Enabling Microsoft Defender for Resource Manager incurs additional costs based o
 5. Locate `Resource Manager` in the list and ensure the `Status` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n Arm --query pricingTier
 ```
+
 Ensure `"Standard"` is returned.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name Arm | Select-Object PricingTier
 ```
+
 Ensure `Standard` is returned.
 
 ## Expected Result
@@ -56,6 +61,7 @@ The pricing tier for Arm (Resource Manager) should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -64,11 +70,13 @@ The pricing tier for Arm (Resource Manager) should be `Standard`.
 6. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n Arm --tier Standard
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name Arm -PricingTier Standard
 ```

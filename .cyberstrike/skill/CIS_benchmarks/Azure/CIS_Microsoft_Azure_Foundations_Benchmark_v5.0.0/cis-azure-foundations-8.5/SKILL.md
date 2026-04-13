@@ -31,6 +31,7 @@ Enabling auto provisioning deploys a vulnerability assessment agent (Microsoft D
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -39,22 +40,29 @@ Enabling auto provisioning deploys a vulnerability assessment agent (Microsoft D
 6. Verify that the toggle is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security auto-provisioning-setting list --query "[?name=='default'].{Name:name, AutoProvision:autoProvision}" -o table
 ```
+
 Check the auto-provisioning settings. Then verify the specific vulnerability assessment configuration:
+
 ```
 az rest --method get --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/serverVulnerabilityAssessmentsSettings?api-version=2022-01-01-preview"
 ```
+
 Verify that the vulnerability assessment setting shows auto-provisioning is enabled.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityAutoProvisioningSetting | Select-Object Name, AutoProvision
 ```
+
 Ensure `AutoProvision` is `On`.
 
 Additionally check the vulnerability assessment extension:
+
 ```
 Get-AzSecuritySetting | Where-Object { $_.Name -like "*vulnerability*" }
 ```
@@ -66,6 +74,7 @@ Auto provisioning for vulnerability assessment for machines should be set to `On
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -75,16 +84,19 @@ Auto provisioning for vulnerability assessment for machines should be set to `On
 7. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az security auto-provisioning-setting update --name "default" --auto-provision "On"
 ```
 
 Configure the vulnerability assessment solution:
+
 ```
 az rest --method put --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/serverVulnerabilityAssessmentsSettings/AzureServersSetting?api-version=2022-01-01-preview" --body '{"properties":{"selectedProvider":"MdeTvm"},"kind":"AzureServersSetting"}'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityAutoProvisioningSetting -Name "default" -EnableAutoProvision
 ```

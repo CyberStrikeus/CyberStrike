@@ -69,10 +69,10 @@ By default, Databricks subnets do not have NSGs assigned.
 
 ## CIS Controls
 
-| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
-| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
-| v8               | 4.4 Implement and Manage a Firewall on Servers                   | x    | x    | x    |
-| v7               | 9.4 Apply Host-based Firewalls or Port Filtering                 | x    | x    | x    |
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers   | x    | x    | x    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering | x    | x    | x    |
 
 ## Profile
 

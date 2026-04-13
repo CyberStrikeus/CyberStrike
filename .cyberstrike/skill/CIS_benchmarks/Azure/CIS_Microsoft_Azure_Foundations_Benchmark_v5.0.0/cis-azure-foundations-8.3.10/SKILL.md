@@ -31,28 +31,34 @@ Disabling public network access requires that all clients accessing Key Vault do
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Networking`.
 4. Under the `Firewalls and virtual networks` tab, verify that `Public network access` is set to `Disabled`.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[].{Name:name, PublicAccess:properties.publicNetworkAccess}" -o table
 ```
+
 Ensure `PublicAccess` is `Disabled` for all Key Vaults.
 
 For a specific vault:
+
 ```
 az keyvault show --name {vaultName} --query "properties.publicNetworkAccess"
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzKeyVault | ForEach-Object {
     Get-AzKeyVault -VaultName $_.VaultName | Select-Object VaultName, PublicNetworkAccess
 }
 ```
+
 Ensure `PublicNetworkAccess` is `Disabled` for all Key Vaults.
 
 ## Expected Result
@@ -62,6 +68,7 @@ All Key Vaults should have `publicNetworkAccess` set to `Disabled`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Networking`.
@@ -69,16 +76,19 @@ All Key Vaults should have `publicNetworkAccess` set to `Disabled`.
 5. Click `Apply`.
 
 **From Azure CLI:**
+
 ```
 az keyvault update --name {vaultName} --public-network-access Disabled
 ```
 
 **From PowerShell:**
+
 ```
 Update-AzKeyVault -VaultName {vaultName} -PublicNetworkAccess "Disabled"
 ```
 
 **Important:** Before disabling public network access, ensure that:
+
 1. Private endpoints are configured and working.
 2. All applications and services can access Key Vault through private endpoints.
 3. Trusted Azure services that need access have been configured appropriately.

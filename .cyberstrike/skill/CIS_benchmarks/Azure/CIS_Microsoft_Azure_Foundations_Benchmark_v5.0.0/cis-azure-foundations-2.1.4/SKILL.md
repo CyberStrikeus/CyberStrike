@@ -106,10 +106,10 @@ By default, Azure Databricks does not sync users and groups from Microsoft Entra
 
 ## CIS Controls
 
-| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
-| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
-| v8               | 5.6 Centralize Account Management                               |      | x    | x    |
-| v7               | 16.2 Configure Centralized Point of Authentication               |      | x    | x    |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.6 Centralize Account Management                  |      | x    | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | x    | x    |
 
 ## Profile
 

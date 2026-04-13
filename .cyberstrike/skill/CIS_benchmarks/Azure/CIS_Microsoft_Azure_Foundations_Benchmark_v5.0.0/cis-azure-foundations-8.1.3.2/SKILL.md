@@ -31,6 +31,7 @@ Microsoft Defender for Servers plan 2 licensing is required, and configuration o
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. From Azure Home select the Portal Menu.
 2. Select `Microsoft Defender for Cloud`.
 3. Under `Management`, select `Environment Settings`.
@@ -41,6 +42,7 @@ Microsoft Defender for Servers plan 2 licensing is required, and configuration o
 Repeat the above for any additional subscriptions.
 
 **From Azure Policy:**
+
 - Policy ID: `501541f7-f7e7-4cd6-868c-4190fdad3ac9` - Name: 'A vulnerability assessment solution should be enabled on your virtual machines'
 
 ## Expected Result
@@ -50,6 +52,7 @@ Vulnerability assessment for machines should be set to `On`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. From Azure Home select the Portal Menu.
 2. Select `Microsoft Defender for Cloud`.
 3. Under `Management`, select `Environment Settings`.

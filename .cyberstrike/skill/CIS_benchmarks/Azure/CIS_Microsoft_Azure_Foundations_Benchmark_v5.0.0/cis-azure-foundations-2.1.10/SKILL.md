@@ -136,16 +136,16 @@ This recommendation is based on the Common Reference Recommendation `Ensure publ
 
 ## CIS Controls
 
-| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
-| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
-| v8               | 3.3 Configure Data Access Control Lists                          | x    | x    | x    |
-| v7               | 14.6 Protect Information through Access Control Lists            | x    | x    | x    |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-| ---------------------------- | ------- | ----------- |
-| T1530                        | TA0009  | M1037       |
+| --------------------------- | ------- | ----------- |
+| T1530                       | TA0009  | M1037       |
 
 ## Profile
 

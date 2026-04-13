@@ -31,11 +31,13 @@ Requires integration effort with SIEM or alerting tools and a defined incident r
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment Settings`.
 3. Expand the Tenant Root Group(s) to reveal subscriptions.
 
 For each subscription listed:
+
 1. Click the subscription name to open the `Defender Plans` settings.
 2. In the settings on the left, click `Continuous Export`.
 
@@ -48,11 +50,13 @@ Continuous export should be enabled and delivering security alerts to an Event H
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment Settings`.
 3. Expand the Tenant Root Group(s) to reveal subscriptions.
 
 For each subscription listed:
+
 1. Click the subscription name to open the `Defender Plans` settings.
 2. In the settings on the left, click `Continuous Export`.
 3. Select either `Event Hub, Log Analytics Workspace,` or both depending on your environment.

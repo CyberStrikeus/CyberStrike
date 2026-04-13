@@ -31,6 +31,7 @@ Turning on Microsoft Defender for SQL servers on machines incurs an additional c
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -39,18 +40,23 @@ Turning on Microsoft Defender for SQL servers on machines incurs an additional c
 6. Ensure the toggle switch next to `SQL servers on machines` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n SqlServerVirtualMachines
 ```
+
 Ensure the 'PricingTier' is set to 'Standard'.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'SqlServerVirtualMachines' | Select-Object Name,PricingTier
 ```
+
 Ensure the 'PricingTier' is set to 'Standard'.
 
 **From Azure Policy:**
+
 - Policy ID: `6581d072-105e-4418-827f-bd446d56421b` - Name: 'Azure Defender for SQL servers on machines should be enabled'
 - Policy ID: `abfb4388-5bf4-4ad7-ba82-2cd2f41ceae9` - Name: 'Azure Defender for SQL should be enabled for unprotected Azure SQL servers'
 
@@ -61,6 +67,7 @@ The pricing tier for SqlServerVirtualMachines should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -71,11 +78,13 @@ The pricing tier for SqlServerVirtualMachines should be `Standard`.
 8. Select `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n SqlServerVirtualMachines --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name 'SqlServerVirtualMachines' -PricingTier 'Standard'
 ```
