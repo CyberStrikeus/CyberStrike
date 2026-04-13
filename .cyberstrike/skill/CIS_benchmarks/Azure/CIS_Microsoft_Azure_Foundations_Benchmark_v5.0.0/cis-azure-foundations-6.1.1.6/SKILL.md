@@ -68,10 +68,10 @@ Not configured.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 8.7 Collect URL Request Audit Logs | | x | x |
-| v7 | 7.6 Log all URL requests | | x | x |
+| Controls Version | Control                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------- | ---- | ---- | ---- |
+| v8               | 8.7 Collect URL Request Audit Logs |      | x    | x    |
+| v7               | 7.6 Log all URL requests           |      | x    | x    |
 
 ## Profile
 

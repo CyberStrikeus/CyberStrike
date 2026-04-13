@@ -31,6 +31,7 @@ Enabling EASM incurs additional costs based on the number of monitored assets. T
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender External Attack Surface Management`.
 2. Verify that an EASM workspace has been created.
 3. Verify that discovery groups have been configured with appropriate seeds (domains, IP ranges, ASNs).
@@ -39,9 +40,11 @@ Enabling EASM incurs additional costs based on the number of monitored assets. T
 **Note:** There is currently no Azure CLI or PowerShell command to directly query EASM status. This is a manual verification.
 
 **Using Azure REST API:**
+
 ```
 az rest --method get --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Easm/workspaces?api-version=2023-04-01-preview"
 ```
+
 Verify that at least one EASM workspace exists.
 
 ## Expected Result
@@ -51,6 +54,7 @@ At least one EASM workspace should be created and actively monitoring the organi
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender External Attack Surface Management`.
 2. Click `Create a workspace`.
 3. Select the appropriate subscription and resource group.

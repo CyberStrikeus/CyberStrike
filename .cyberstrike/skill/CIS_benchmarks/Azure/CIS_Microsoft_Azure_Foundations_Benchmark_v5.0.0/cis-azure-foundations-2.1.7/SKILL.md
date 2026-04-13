@@ -174,10 +174,10 @@ By default, diagnostic logging is not enabled for Azure Databricks workspaces.
 
 ## CIS Controls
 
-| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
-| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
-| v8               | 8.2 Collect Audit Logs                                           | x    | x    | x    |
-| v7               | 6.2 Activate audit logging                                       | x    | x    | x    |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | x    | x    | x    |
+| v7               | 6.2 Activate audit logging | x    | x    | x    |
 
 ## Profile
 

@@ -31,26 +31,31 @@ Applying `CanNotDelete` locks means that the Key Vault cannot be deleted until t
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Locks`.
 4. Verify that a lock of type `Delete` (CanNotDelete) exists.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[].{Name:name, ResourceGroup:resourceGroup, Id:id}" -o tsv | while IFS=$'\t' read -r name rg id; do
     echo "Key Vault: $name"
     az lock list --resource-group "$rg" --resource-name "$name" --resource-type Microsoft.KeyVault/vaults --query "[?properties.level=='CanNotDelete'].{Name:name, Level:properties.level}" -o table
 done
 ```
+
 Ensure each Key Vault has a `CanNotDelete` lock.
 
 For a specific vault:
+
 ```
 az lock list --resource-group {resourceGroup} --resource-name {vaultName} --resource-type Microsoft.KeyVault/vaults --query "[?properties.level=='CanNotDelete']"
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzKeyVault | ForEach-Object {
     $locks = Get-AzResourceLock -ResourceName $_.VaultName -ResourceGroupName $_.ResourceGroupName -ResourceType Microsoft.KeyVault/vaults | Where-Object { $_.Properties.Level -eq "CanNotDelete" }
@@ -68,6 +73,7 @@ All Key Vaults should have a `CanNotDelete` resource lock applied.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Locks`.
@@ -78,11 +84,13 @@ All Key Vaults should have a `CanNotDelete` resource lock applied.
 8. Click `OK`.
 
 **From Azure CLI:**
+
 ```
 az lock create --name DoNotDelete --lock-type CanNotDelete --resource-group {resourceGroup} --resource-name {vaultName} --resource-type Microsoft.KeyVault/vaults --notes "Prevent accidental deletion of Key Vault"
 ```
 
 **From PowerShell:**
+
 ```
 New-AzResourceLock -LockName "DoNotDelete" -LockLevel CanNotDelete -ResourceName {vaultName} -ResourceGroupName {resourceGroup} -ResourceType Microsoft.KeyVault/vaults -LockNotes "Prevent accidental deletion of Key Vault"
 ```

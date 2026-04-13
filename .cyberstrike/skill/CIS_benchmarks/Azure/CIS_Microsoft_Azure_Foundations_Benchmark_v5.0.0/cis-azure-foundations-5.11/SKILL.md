@@ -69,11 +69,11 @@ By default, `Notify all admins when other admins reset their password?` is set t
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v8 | 6.7 Centralize Access Control | | x | x |
-| v7 | 4.8 Log and Alert on Changes to Administrative Group Membership | | x | x |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v8               | 6.7 Centralize Access Control                                             |      | x    | x    |
+| v7               | 4.8 Log and Alert on Changes to Administrative Group Membership           |      | x    | x    |
 
 ## Profile
 

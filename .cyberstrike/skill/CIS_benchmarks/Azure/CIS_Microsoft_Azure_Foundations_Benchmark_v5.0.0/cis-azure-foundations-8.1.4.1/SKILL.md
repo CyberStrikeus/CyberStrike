@@ -31,6 +31,7 @@ Microsoft Defender for Containers incurs a charge per vCore. Refer to https://az
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -39,12 +40,15 @@ Microsoft Defender for Containers incurs a charge per vCore. Refer to https://az
 6. Repeat steps 1-5 for each subscription.
 
 **From Azure CLI:**
+
 ```
 az security pricing show --name "Containers" --query [pricingTier,extensions[*].[name,isEnabled]]
 ```
+
 Ensure that the command returns `Standard`, and that each of the extensions returns `True`.
 
 **From Azure Policy:**
+
 - Policy ID: `1c988dd6-ade4-430f-a608-2a3e5b0a6d38` - Name: 'Microsoft Defender for Containers should be enabled'
 
 ## Expected Result
@@ -54,6 +58,7 @@ The pricing tier for Containers should be `Standard` with all extensions enabled
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -66,6 +71,7 @@ The pricing tier for Containers should be `Standard` with all extensions enabled
 10. Repeat steps 1-9 for each subscription.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n 'Containers' --tier 'standard' --extensions name=ContainerRegistriesVulnerabilityAssessments isEnabled=True --extensions name=AgentlessDiscoveryForKubernetes isEnabled=True --extensions name=AgentlessVmScanning isEnabled=True --extensions name=ContainerSensor isEnabled=True
 ```

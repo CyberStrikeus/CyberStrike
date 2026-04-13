@@ -31,28 +31,35 @@ Expired secrets will cause applications relying on them to fail. Organizations m
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. For each Key Vault with RBAC authorization disabled (using Access Policies), click the vault name.
 3. Under `Objects`, click `Secrets`.
 4. For each secret, verify that the `Expiration date` column shows a date (not blank or 'Not set').
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[?properties.enableRbacAuthorization!=\`true\`].name" -o tsv
 ```
+
 For each non-RBAC Key Vault:
+
 ```
 az keyvault secret list --vault-name {vaultName} --query "[].{Name:name, Expires:attributes.expires}" -o table
 ```
+
 Ensure `Expires` is set for all secrets.
 
 **From PowerShell:**
+
 ```
 $vaults = Get-AzKeyVault | Where-Object { $_.EnableRbacAuthorization -ne $true }
 foreach ($vault in $vaults) {
     Get-AzKeyVaultSecret -VaultName $vault.VaultName | Select-Object Name, Expires
 }
 ```
+
 Ensure `Expires` is populated for all secrets.
 
 ## Expected Result
@@ -62,6 +69,7 @@ All secrets in non-RBAC Key Vaults should have an expiration date set.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Objects`, click `Secrets`.
@@ -71,11 +79,13 @@ All secrets in non-RBAC Key Vaults should have an expiration date set.
 7. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az keyvault secret set-attributes --vault-name {vaultName} --name {secretName} --expires "2025-12-31T23:59:59Z"
 ```
 
 **From PowerShell:**
+
 ```
 $expires = (Get-Date).AddYears(1).ToUniversalTime()
 Update-AzKeyVaultSecret -VaultName {vaultName} -Name {secretName} -Expires $expires

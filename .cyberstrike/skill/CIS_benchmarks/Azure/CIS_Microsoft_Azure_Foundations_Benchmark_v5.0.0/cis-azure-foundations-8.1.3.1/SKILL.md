@@ -31,6 +31,7 @@ Enabling Defender for Servers in Microsoft Defender for Cloud incurs an addition
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment settings`.
 3. Click on a subscription name.
@@ -39,18 +40,23 @@ Enabling Defender for Servers in Microsoft Defender for Cloud incurs an addition
 6. Repeat steps 1-5 for each subscription.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n VirtualMachines --query pricingTier
 ```
+
 If the tenant is licensed and enabled, the output will indicate `Standard`.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'VirtualMachines' | Select-Object Name,PricingTier
 ```
+
 If the tenant is licensed and enabled, the `-PricingTier` parameter will indicate `Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `4da35fc9-c9e7-4960-aec9-797fe7d9051d` - Name: 'Azure Defender for servers should be enabled'
 
 ## Expected Result
@@ -60,6 +66,7 @@ The pricing tier for VirtualMachines should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment settings`.
 3. Click on a subscription name.
@@ -69,11 +76,13 @@ The pricing tier for VirtualMachines should be `Standard`.
 7. Repeat steps 1-6 for each subscription requiring remediation.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n VirtualMachines --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name 'VirtualMachines' -PricingTier 'Standard'
 ```

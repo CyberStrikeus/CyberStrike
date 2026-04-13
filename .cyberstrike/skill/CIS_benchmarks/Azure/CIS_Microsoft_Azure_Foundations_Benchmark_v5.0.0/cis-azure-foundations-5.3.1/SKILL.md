@@ -70,10 +70,10 @@ There is no default enforcement preventing admin accounts from being used for da
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | x | x | x |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                   | x    | x    | x    |
 
 ## Profile
 

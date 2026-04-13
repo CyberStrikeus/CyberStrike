@@ -68,10 +68,10 @@ By default, the `Number of days before users are asked to re-confirm their authe
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.2 Establish an Access Revoking Process | x | x | x |
-| v7 | 16.10 Ensure All Accounts Have An Expiration Date | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process          | x    | x    | x    |
+| v7               | 16.10 Ensure All Accounts Have An Expiration Date |      | x    | x    |
 
 ## Profile
 

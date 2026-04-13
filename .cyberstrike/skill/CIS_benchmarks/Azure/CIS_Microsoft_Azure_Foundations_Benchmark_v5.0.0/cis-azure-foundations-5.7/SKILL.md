@@ -65,9 +65,9 @@ By default, Lockout duration in seconds is set to `60`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.10 Enforce Automatic Device Lockout on Portable End-User Devices | | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.10 Enforce Automatic Device Lockout on Portable End-User Devices |      | x    | x    |
 
 ## Profile
 

@@ -31,6 +31,7 @@ File Integrity Monitoring requires licensing and is included in Defender for Ser
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. From the Azure Portal `Home` page, select `Microsoft Defender for Cloud`.
 2. Under `Management` select `Environment Settings`.
 3. Select a subscription.
@@ -47,6 +48,7 @@ File Integrity Monitoring should be set to `On`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. From the Azure Portal `Home` page, select `Microsoft Defender for Cloud`.
 2. Under `Management` select `Environment Settings`.
 3. Select a subscription.

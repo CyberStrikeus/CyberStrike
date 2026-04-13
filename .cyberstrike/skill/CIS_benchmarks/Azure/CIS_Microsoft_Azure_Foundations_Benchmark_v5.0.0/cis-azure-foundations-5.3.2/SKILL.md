@@ -125,12 +125,12 @@ By default no guest users are created.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 5.1 Establish and Maintain an Inventory of Accounts | x | x | x |
-| v8 | 5.3 Disable Dormant Accounts | x | x | x |
-| v7 | 16.6 Maintain an Inventory of Accounts | | x | x |
-| v7 | 16.8 Disable Any Unassociated Accounts | x | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.1 Establish and Maintain an Inventory of Accounts | x    | x    | x    |
+| v8               | 5.3 Disable Dormant Accounts                        | x    | x    | x    |
+| v7               | 16.6 Maintain an Inventory of Accounts              |      | x    | x    |
+| v7               | 16.8 Disable Any Unassociated Accounts              | x    | x    | x    |
 
 ## Profile
 

@@ -70,10 +70,10 @@ Users do not have non-privileged roles assigned to them by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 16.6 Maintain an Inventory of Accounts | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 16.6 Maintain an Inventory of Accounts            |      | x    | x    |
 
 ## Profile
 

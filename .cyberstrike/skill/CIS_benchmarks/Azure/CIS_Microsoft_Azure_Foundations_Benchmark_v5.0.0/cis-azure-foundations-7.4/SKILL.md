@@ -9,7 +9,8 @@ cis_id: "7.4"
 cis_benchmark: "CIS Microsoft Azure Foundations Benchmark v5.0.0"
 tech_stack: [azure]
 cwe_ids: []
-chains_with: [cis-azure-foundations-7.1, cis-azure-foundations-7.2, cis-azure-foundations-7.3, cis-azure-foundations-7.11]
+chains_with:
+  [cis-azure-foundations-7.1, cis-azure-foundations-7.2, cis-azure-foundations-7.3, cis-azure-foundations-7.11]
 prerequisites: []
 severity_boost: {}
 ---
@@ -118,16 +119,16 @@ By default, HTTP(S) access from internet is not `enabled`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments            |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| T1190 | TA0001 | M1050 |
+| T1190                       | TA0001  | M1050       |
 
 ## Profile
 

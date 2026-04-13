@@ -31,6 +31,7 @@ Turning on Microsoft Defender for Open-source relational databases incurs an add
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -39,17 +40,21 @@ Turning on Microsoft Defender for Open-source relational databases incurs an add
 6. Ensure the toggle switch next to `Open-source relational databases` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n OpenSourceRelationalDatabases --query pricingTier
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing | Where-Object {$_.Name -eq 'OpenSourceRelationalDatabases'} | Select-Object Name, PricingTier
 ```
+
 Ensure output for `Name PricingTier` is `OpenSourceRelationalDatabases Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `0a9fbe0d-c5c4-4da8-87d8-f4fd77338835` - Name: 'Azure Defender for open-source relational databases should be enabled'
 
 ## Expected Result
@@ -59,6 +64,7 @@ The pricing tier for OpenSourceRelationalDatabases should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -69,11 +75,13 @@ The pricing tier for OpenSourceRelationalDatabases should be `Standard`.
 8. Select `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n 'OpenSourceRelationalDatabases' --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 set-azsecuritypricing -name "OpenSourceRelationalDatabases" -pricingtier "Standard"
 ```

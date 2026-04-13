@@ -31,6 +31,7 @@ Enabling soft delete and purge protection means that deleted Key Vaults and thei
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Properties`.
@@ -38,22 +39,27 @@ Enabling soft delete and purge protection means that deleted Key Vaults and thei
 5. Verify that `Purge protection` is shown as enabled.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --query "[].{Name:name, SoftDelete:properties.enableSoftDelete, PurgeProtection:properties.enablePurgeProtection}" -o table
 ```
+
 Ensure both `SoftDelete` and `PurgeProtection` are `true` for all Key Vaults.
 
 For a specific vault:
+
 ```
 az keyvault show --name {vaultName} --query "{SoftDelete:properties.enableSoftDelete, PurgeProtection:properties.enablePurgeProtection}"
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzKeyVault | ForEach-Object {
     Get-AzKeyVault -VaultName $_.VaultName | Select-Object VaultName, EnableSoftDelete, EnablePurgeProtection
 }
 ```
+
 Ensure both `EnableSoftDelete` and `EnablePurgeProtection` are `True`.
 
 ## Expected Result
@@ -63,6 +69,7 @@ All Key Vaults should have both soft delete and purge protection enabled.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Settings`, click `Properties`.
@@ -70,12 +77,15 @@ All Key Vaults should have both soft delete and purge protection enabled.
 5. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az keyvault update --name {vaultName} --enable-purge-protection true
 ```
+
 Note: Soft delete is now enforced by Azure and cannot be disabled.
 
 **From PowerShell:**
+
 ```
 Update-AzKeyVault -VaultName {vaultName} -EnablePurgeProtection
 ```

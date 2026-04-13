@@ -31,6 +31,7 @@ Turning on Microsoft Defender for Azure SQL Databases incurs an additional cost 
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -39,18 +40,23 @@ Turning on Microsoft Defender for Azure SQL Databases incurs an additional cost 
 6. Ensure the toggle switch next to `Azure SQL Databases` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n SqlServers
 ```
+
 Ensure `-PricingTier` is set to `Standard`.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'SqlServers' | Select-Object Name,PricingTier
 ```
+
 Ensure the `-PricingTier` is set to `Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `7fe3b40f-802b-4cdd-8bd4-fd799c948cc2` - Name: 'Azure Defender for Azure SQL Database servers should be enabled'
 - Policy ID: `abfb7388-5bf4-4ad7-ba99-2cd2f41cebb9` - Name: 'Azure Defender for SQL should be enabled for unprotected SQL Managed Instances'
 - Policy ID: `3bc8a0d5-38e0-4a3d-a657-2cb64468fc34` - Name: 'Azure Defender for SQL should be enabled for unprotected MySQL flexible servers'
@@ -65,6 +71,7 @@ The pricing tier for SqlServers should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -75,11 +82,13 @@ The pricing tier for SqlServers should be `Standard`.
 8. Select `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n SqlServers --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name 'SqlServers' -PricingTier 'Standard'
 ```

@@ -149,18 +149,18 @@ For an up-to-date list of Azure resources which support Azure Monitor, refer to 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 8.9 Centralize Audit Logs | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
-| v7 | 6.5 Central Log Management | | x | x |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | x    | x    |
+| v8               | 8.9 Centralize Audit Logs       |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging     |      | x    | x    |
+| v7               | 6.5 Central Log Management      |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| T1485 | TA0040 | M1053 |
+| T1485                       | TA0040  | M1053       |
 
 ## Profile
 

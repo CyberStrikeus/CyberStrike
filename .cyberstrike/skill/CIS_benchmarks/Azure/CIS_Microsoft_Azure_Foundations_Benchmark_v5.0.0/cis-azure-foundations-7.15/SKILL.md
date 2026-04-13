@@ -110,16 +110,16 @@ Bot protection is disabled by default on Azure Application Gateways with Web App
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 13.10 Perform Application Layer Filtering | | | x |
-| v7 | 12.9 Deploy Application Layer Filtering Proxy Server | | | x |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering            |      |      | x    |
+| v7               | 12.9 Deploy Application Layer Filtering Proxy Server |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| T1190 | TA0001 | M1030 |
+| T1190                       | TA0001  | M1030       |
 
 ## Profile
 
