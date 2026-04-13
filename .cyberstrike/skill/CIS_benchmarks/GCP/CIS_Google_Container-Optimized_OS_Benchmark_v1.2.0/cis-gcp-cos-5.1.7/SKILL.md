@@ -52,10 +52,10 @@ MaxAuthTries 6
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v7 | 16.13 Alert on Account Login Behavior Deviation | | | x |
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs                          | x    | x    | x    |
+| v7               | 16.13 Alert on Account Login Behavior Deviation |      |      | x    |
 
 ## Profile
 

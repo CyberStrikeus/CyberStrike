@@ -43,9 +43,9 @@ Remove all users from the shadow group, and change the primary group of any user
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------- | ---- | ---- | ---- |
+| v7               | 5.1 Establish Secure Configurations | x    | x    | x    |
 
 ## Profile
 

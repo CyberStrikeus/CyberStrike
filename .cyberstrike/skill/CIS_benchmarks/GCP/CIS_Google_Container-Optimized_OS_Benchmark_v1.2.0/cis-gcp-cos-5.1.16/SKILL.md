@@ -61,10 +61,10 @@ ClientAliveCountMax 3
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.3 Configure Automatic Session Locking on Enterprise Assets | x | x | x |
-| v7 | 16.11 Lock Workstation Sessions After Inactivity | x | x | x |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.3 Configure Automatic Session Locking on Enterprise Assets | x    | x    | x    |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity             | x    | x    | x    |
 
 ## Profile
 

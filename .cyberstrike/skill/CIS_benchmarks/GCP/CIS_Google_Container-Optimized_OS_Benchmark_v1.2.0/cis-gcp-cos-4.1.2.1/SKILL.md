@@ -55,7 +55,7 @@ Reload the configuration to be effective.
 
 ## Default Value
 
-The main configuration file `/etc/systemd/journald.conf` is read before any of the custom *.conf files. If there are custom configs present, they override the main configuration parameters.
+The main configuration file `/etc/systemd/journald.conf` is read before any of the custom \*.conf files. If there are custom configs present, they override the main configuration parameters.
 
 ## References
 
@@ -63,10 +63,10 @@ The main configuration file `/etc/systemd/journald.conf` is read before any of t
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **8.3 Ensure Adequate Audit Log Storage** - Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | x | x | x |
-| v7 | **6.4 Ensure adequate storage for logs** - Ensure that all systems that store logs have adequate storage space for the logs generated. | | x | x |
+| Controls Version | Control                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **8.3 Ensure Adequate Audit Log Storage** - Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | x    | x    | x    |
+| v7               | **6.4 Ensure adequate storage for logs** - Ensure that all systems that store logs have adequate storage space for the logs generated.                               |      | x    | x    |
 
 ## Profile
 

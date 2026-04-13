@@ -56,10 +56,10 @@ On some distributions the `/sbin/nologin` should be replaced with `/usr/sbin/nol
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest                 |      | x    | x    |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials |      | x    | x    |
 
 ## Profile
 

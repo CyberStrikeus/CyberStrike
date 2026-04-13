@@ -50,10 +50,10 @@ Run the following commands to set permissions on `/etc/issue.net`:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists | x    | x    | x    |
+| v7               | 5.1 Establish Secure Configurations     | x    | x    | x    |
 
 ## Profile
 
