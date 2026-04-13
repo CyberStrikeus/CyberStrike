@@ -82,6 +82,7 @@ By default, there is no setting to manage inactive users.
 ## CIS Controls
 
 **v8:**
+
 - 5.1 Establish and Maintain an Inventory of Accounts
   - Establish and maintain an inventory of all accounts managed in the enterprise. The inventory must include both user and administrator accounts. The inventory, at a minimum, should contain the person's name, username, start/stop dates, and department. Validate that all active accounts are authorized, on a recurring schedule at a minimum quarterly, or more frequently.
 
@@ -89,6 +90,7 @@ By default, there is no setting to manage inactive users.
   - Establish and follow a process, preferably automated, for revoking access to enterprise assets, through disabling accounts immediately upon termination, rights revocation, or role change of a user. Disabling accounts, instead of deleting accounts, may be necessary to preserve audit trails.
 
 **v7:**
+
 - 16.6 Maintain an Inventory of Accounts
   - Maintain an inventory of all accounts organized by authentication system.
 

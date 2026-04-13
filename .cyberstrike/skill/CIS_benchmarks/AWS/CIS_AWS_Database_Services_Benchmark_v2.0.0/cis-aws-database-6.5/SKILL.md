@@ -9,7 +9,8 @@ cis_id: "6.5"
 cis_benchmark: "CIS AWS Database Services Benchmark v2.0.0"
 tech_stack: [aws]
 cwe_ids: []
-chains_with: [cis-aws-database-6.1, cis-aws-database-6.2, cis-aws-database-6.3, cis-aws-database-6.4, cis-aws-database-6.6]
+chains_with:
+  [cis-aws-database-6.1, cis-aws-database-6.2, cis-aws-database-6.3, cis-aws-database-6.4, cis-aws-database-6.6]
 prerequisites: []
 severity_boost: {}
 ---
@@ -98,10 +99,10 @@ There is no automatic security review mechanism. Organizations must establish th
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5 Account Management | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5 Account Management                                                                                  |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile
 

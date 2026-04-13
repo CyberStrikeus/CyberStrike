@@ -366,6 +366,7 @@ def validate_origin():
 sha256: f158501d96049db0d040a4b19374da59f1ad1247f6a32a09379a7d7c76e2125e
 signature: RN5w4t7bfRcYA4u3rvNyfoQCtaGcBXzTp5nPloSFc48y3C78hIIHrJmzUptF9zeAEjOoqzZooSrk/I5XPWT7Cw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

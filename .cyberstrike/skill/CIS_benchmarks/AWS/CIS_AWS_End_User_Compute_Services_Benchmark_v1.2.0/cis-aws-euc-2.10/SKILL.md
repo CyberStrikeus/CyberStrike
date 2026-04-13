@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure that patches and updates are performed on the operating system for Workstations (Automated)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 In order for Windows updates to occur auto-stop WorkSpaces must be utilized and the default for maintenance mode must be set to enabled.
 
 ## Rationale
+
 Windows Operating systems updates can be a high security vulnerability and normal updates and patches can help eliminate these vulnerabilities.
 
 ## Impact
+
 None specified in the benchmark.
 
 ## Audit Procedure
@@ -54,9 +58,11 @@ aws workspaces describe-workspace-directories
 2. Review the output under "WorkspaceCreationProperties" for "EnableMaintenanceMode": true
 
 ## Expected Result
+
 The output should show `"EnableMaintenanceMode": true` in the WorkspaceCreationProperties section.
 
 Example output:
+
 ```json
 "WorkspaceCreationProperties": {
   "EnableInternetAccess": false,
@@ -91,19 +97,24 @@ aws workspaces modify-workspace-creation-property --resource-id <directory_id> -
 ```
 
 ## Default Value
+
 By default, your Windows WorkSpaces are configured to receive updates from Windows Update. To configure your own automatic update mechanisms for Windows, see the documentation for Windows Server Update Services (WSUS) and Configuration Manager.
 
 https://docs.aws.amazon.com/workspaces/latest/adminguide/workspace-maintenance.html
 
 ## References
+
 1. https://docs.aws.amazon.com/workspaces/latest/adminguide/workspace-maintenance.html
 2. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/workspaces/modify-workspace-creation-properties.html
 
 ## CIS Controls
+
 **v8:**
+
 - 2.2 Ensure Authorized Software is Currently Supported
   - Ensure that only currently supported software is designated as authorized in the software inventory for enterprise assets. If software is unsupported, yet necessary for the fulfillment of the enterprise's mission, document an exception detailing mitigating controls and residual risk acceptance. For any unsupported software without an exception documentation, designate as unauthorized. Review the software list to verify software support at least monthly, or more frequently.
 
 **v7:**
+
 - 2.2 Ensure Software is Supported by Vendor
   - Ensure that only software applications or operating systems currently supported by the software's vendor are added to the organization's authorized software inventory. Unsupported software should be tagged as unsupported in the inventory system.

@@ -377,6 +377,7 @@ $xpath = "//user[username='$username']";
 sha256: 10a218105e9a860dfe5687261e54e8e53a39a99f5347ca2c576a0db5a3ca0e42
 signature: YfIXH7OiTn3PlD+WvKXPLRhpoeapjLE3/+bsLXWMEojralo0MeyC/H/6sp0EBVtzE3Rqvs0Yjuuw5eFozfB4Dg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

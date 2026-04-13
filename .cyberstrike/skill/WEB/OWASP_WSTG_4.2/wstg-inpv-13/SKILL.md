@@ -352,6 +352,7 @@ print(f"{user_input}")
 sha256: 53fd26e9ce258c52ca40c05e81b2b99be9bdfbfd8bc024e04de319a0cfe43447
 signature: mp9Bjql7gAJ3TJztSAZXMpdH3PYe+pNKeFGtoJwBu/zTRNAn3m/pJXy8Tix1u5lA8k4gHUMpRkGQbmypi9daDQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

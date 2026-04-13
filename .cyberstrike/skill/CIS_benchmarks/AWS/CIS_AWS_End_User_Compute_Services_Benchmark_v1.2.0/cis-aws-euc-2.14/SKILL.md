@@ -143,10 +143,12 @@ By default, Workspaces are not deleted after a defined period of inactivity.
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 1.1 Establish and Maintain Detailed Enterprise Asset Inventory
 - 3.5 Securely Dispose of Data
 
 **Controls Version v7:**
+
 - 1.4 Maintain Detailed Asset Inventory
 - 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization
 

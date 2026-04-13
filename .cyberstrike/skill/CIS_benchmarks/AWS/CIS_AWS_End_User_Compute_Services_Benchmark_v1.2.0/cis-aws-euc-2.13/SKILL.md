@@ -73,9 +73,11 @@ By default, images can exist for indefinite time.
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 2.3 Address Unauthorized Software
 
 **Controls Version v7:**
+
 - 2.6 Address unapproved software
 
 ## Profile

@@ -17,17 +17,21 @@ severity_boost: {}
 # 8.1 Ensure Keyspace Security is Configured (Manual)
 
 ## Description
+
 To access Amazon Keyspaces, the user would be required to log in with their AWS credentials. Once logged in the user can access the AWS resources and can explore the resources that Amazon Keyspaces offers. Amazon Keyspaces offers a lot of security that can mitigate a potential attack.
 
 ## Rationale
+
 Ensuring keyspace security is configured helps protect Amazon Keyspaces resources by leveraging built-in security features including encryption at rest, encryption in transit, VPC support, authentication via IAM, access control via ACLs, and audit logging.
 
 ## Impact
+
 Proper security configuration ensures that Amazon Keyspaces resources are protected from unauthorized access and potential attacks.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Keyspaces Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/keyspaces/.
 3. Explore Amazon Keyspaces Security Features:
@@ -45,24 +49,30 @@ Proper security configuration ensures that Amazon Keyspaces resources are protec
    - Utilize other AWS resources such as whitepapers, blogs, and security-related documentation further to enhance your understanding of Amazon Keyspaces security features.
 
 ## Expected Result
+
 All security features (encryption at rest, encryption in transit, VPC support, IAM authentication, ACLs, audit logging) should be properly configured for the Amazon Keyspaces environment.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to review and configure each security feature in the Amazon Keyspaces console. Ensure all security features are properly enabled and configured according to your organization's security requirements.
 
 ## Default Value
+
 Amazon Keyspaces provides server-side encryption at rest by default. Other security features require manual configuration.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

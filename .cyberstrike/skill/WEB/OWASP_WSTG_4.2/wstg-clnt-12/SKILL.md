@@ -520,6 +520,7 @@ function secureLogout() {
 sha256: 9e50aac778c03e7e456a2458048780892ba1dfa25aa7dedb1df5654fae041fd6
 signature: fVvRhMy/MWCC0U7RRuBIBfR32j1atdL4b6c8rU3nVqkCCjRlbBnQyQrmM23cpNfdBJK84a9cT0chDFVLBJNqDA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

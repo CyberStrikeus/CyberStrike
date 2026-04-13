@@ -312,6 +312,7 @@ def verify_token(token):
 sha256: 0d28fb4a46e452c84fed13e735e62deb30fc9f82524b49297938eab9550aaee9
 signature: ZAxZNMiWaSOMcskyZPll80rB0UhnYiqHyPlVZ3CxzbrzMyW8KY94+9eu4EV2T2rF45w7m5yC1IgSrKP7OU+qDw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

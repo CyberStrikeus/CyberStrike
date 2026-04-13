@@ -89,9 +89,11 @@ By default, the following open inbound ports are open:
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.3 Configure Data Access Control Lists
 
 **Controls Version v7:**
+
 - 4.4 Implement and Manage a Firewall on Servers
 - 4.5 Implement and Manage a Firewall on End-User Devices
 - 12.4 Deny Communication over Unauthorized Ports

@@ -172,10 +172,10 @@ By default, no automatic snapshots are created. Users must manually create snaps
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process | ● | ● | ● |
-| v7 | 10.1 Ensure Regular Automated Back Ups | ● | ● | ● |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process | ●    | ●    | ●    |
+| v7               | 10.1 Ensure Regular Automated Back Ups              | ●    | ●    | ●    |
 
 ## Notes
 

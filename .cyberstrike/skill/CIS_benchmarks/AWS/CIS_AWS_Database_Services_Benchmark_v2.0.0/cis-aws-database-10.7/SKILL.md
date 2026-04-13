@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.7 Ensure Regular Updates and Patches are Installed (Manual)
 
 ## Description
+
 Stay updated with the latest security patches and updates provided by AWS for Amazon Timestream. Follow AWS security best practices and recommendations to ensure your Timestream implementation remains secure.
 
 ## Rationale
+
 Regular updates and patches address known vulnerabilities and security weaknesses in the service.
 
 ## Impact
+
 This helps the organization reduce their security risk by regularly updating and patching their database and database engine. Regularly updating and scanning for any weaknesses in the company can bring up possible vulnerabilities that could have led to potential cyber-attack.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Stay Informed about Updates:
    - Stay updated with the latest announcements and releases related to Amazon Timestream. Subscribe to AWS notifications, blogs, and forums to learn about new features, enhancements, and security patches.
 2. Review AWS Documentation:
@@ -48,24 +52,30 @@ This helps the organization reduce their security risk by regularly updating and
    - Consider automating the patch management process using AWS tools or third-party solutions. Implement automation scripts or systems that handle patch deployments, testing, and monitoring.
 
 ## Expected Result
+
 A patch management process should be established and regularly followed, with all Timestream-related components kept up to date with the latest security patches.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to establish and maintain a patch management process for your Amazon Timestream environment.
 
 ## Default Value
+
 Amazon Timestream is a fully managed service; AWS handles underlying infrastructure patching. Client-side components and SDK updates are the user's responsibility.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 7 Continuous Vulnerability Management | | | |
-| v7 | 3 Continuous Vulnerability Management | | | |
+
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 7 Continuous Vulnerability Management |      |      |      |
+| v7               | 3 Continuous Vulnerability Management |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

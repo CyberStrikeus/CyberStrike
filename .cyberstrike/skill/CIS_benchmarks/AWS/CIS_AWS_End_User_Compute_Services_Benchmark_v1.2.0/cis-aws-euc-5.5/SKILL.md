@@ -81,9 +81,11 @@ By default, AWS Appstream 2.0 idle disconnect time is 15 minutes.
 ## CIS Controls
 
 **v8:**
+
 - 0.0 Explicitly Not Mapped
 
 **v7:**
+
 - 0.0 Explicitly Not Mapped
 
 ## Profile

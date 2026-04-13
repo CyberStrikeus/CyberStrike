@@ -109,9 +109,11 @@ By default, this feature is not enabled and must be configured in the VPC consol
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.13 Deploy a Data Loss Prevention Solution
 
 **Controls Version v7:**
+
 - 13.3 Monitor and Block Unauthorized Network Traffic
 
 ## Profile

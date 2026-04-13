@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure instances stopped for over 90 days are removed
 
 ## Description
+
 Enable this rule to help with the baseline configuration of Amazon Elastic Compute Cloud (Amazon EC2) instances by checking whether Amazon EC2 instances have been stopped for more than the allowed number of days, according to your organization's standards.
 
 ## Rationale
+
 Stopped instances that are no longer needed consume resources and may contain outdated configurations or unpatched software. Removing them reduces the attack surface and management overhead.
 
 ## Impact
+
 Terminating instances is irreversible. Ensure data on the instance is backed up or no longer needed before termination.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 No specific CLI audit command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -46,11 +50,13 @@ Repeat all steps for the other regions.
 Refer to the remediation procedure below if any of the `Launch times` are over 90 days.
 
 ## Expected Result
+
 No stopped instances should have a Launch time older than 90 days. All stopped instances beyond this threshold should be terminated.
 
 ## Remediation
 
 ### Using AWS CLI
+
 No specific CLI remediation command is provided for this control. Use the console method below.
 
 ### Using AWS Console
@@ -67,17 +73,20 @@ No specific CLI remediation command is provided for this control. Use the consol
 Repeat all steps for the other regions.
 
 ## Default Value
+
 AWS does not automatically terminate stopped instances. They remain in the stopped state indefinitely unless terminated.
 
 ## References
+
 1. https://docs.aws.amazon.com/config/latest/developerguide/ec2-stopped-instance.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x    | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                          | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

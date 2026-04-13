@@ -55,10 +55,7 @@ Users who don't have this policy will experience errors when viewing the Objects
       "Sid": "S3BucketAccess",
       "Effect": "Allow",
       "Action": "s3:*",
-      "Resource": [
-        "arn:aws:s3:::<BucketName>/*",
-        "arn:aws:s3:::<BucketName>"
-      ]
+      "Resource": ["arn:aws:s3:::<BucketName>/*", "arn:aws:s3:::<BucketName>"]
     }
   ]
 }
@@ -86,7 +83,7 @@ An IAM policy should exist that grants Lightsail and S3 bucket access, and it sh
 4. Click `Create policy`
 5. Click on the `JSON` tab
 6. Copy and paste the policy below into the JSON editor replacing the text in there and filling in the Lightsail bucket names.
-   **You can find the Lightsail bucket name in the Lightsail console, Storage, Under buckets.
+   \*\*You can find the Lightsail bucket name in the Lightsail console, Storage, Under buckets.
 
 ```json
 {
@@ -102,10 +99,7 @@ An IAM policy should exist that grants Lightsail and S3 bucket access, and it sh
       "Sid": "S3BucketAccess",
       "Effect": "Allow",
       "Action": "s3:*",
-      "Resource": [
-        "arn:aws:s3:::<BucketName>/*",
-        "arn:aws:s3:::<BucketName>"
-      ]
+      "Resource": ["arn:aws:s3:::<BucketName>/*", "arn:aws:s3:::<BucketName>"]
     }
   ]
 }
@@ -139,10 +133,10 @@ No IAM policy for Lightsail bucket access exists by default. Access must be expl
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                                                                                                                        | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | x    | x    | x    |
 
 ## Profile
 

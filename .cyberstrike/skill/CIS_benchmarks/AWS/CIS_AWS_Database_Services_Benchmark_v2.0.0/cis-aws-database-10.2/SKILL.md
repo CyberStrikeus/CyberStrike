@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.2 Ensure Data at Rest is Encrypted (Manual)
 
 ## Description
+
 Enable encryption at rest for Amazon Timestream to protect your data while it is stored. Utilize AWS Key Management Service (KMS) to manage and control the encryption keys used for data encryption. Configure Timestream to encrypt your data using AWS-managed keys or customer-managed keys.
 
 ## Rationale
+
 This helps ensure that the data is kept secure and protected when at rest. The user must choose from two key options which then determine when the data is encrypted at rest.
 
 ## Impact
+
 Encryption at rest ensures that Timestream data remains protected even if the underlying storage media is compromised.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Understand Encryption at Rest in Timestream:
    - Familiarize yourself with the concept of encryption at rest and its importance in securing your data in Timestream. Understand that encryption at rest ensures that your data remains protected even if the underlying storage media is compromised.
 2. Create an AWS Key Management Service (KMS) Key:
@@ -44,24 +48,30 @@ Encryption at rest ensures that Timestream data remains protected even if the un
    - Regularly review your encryption configuration and settings for Timestream. Ensure that the appropriate KMS key is still associated with the Timestream resources. Update the encryption settings if necessary, such as rotating encryption keys or modifying key policies.
 
 ## Expected Result
+
 Encryption at rest should be enabled for all Timestream databases and tables using either AWS-managed or customer-managed KMS keys.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable encryption at rest for your Amazon Timestream resources.
 
 ## Default Value
+
 Amazon Timestream encrypts all data at rest by default using AWS-managed keys. Customer-managed KMS keys can be configured for additional control.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | x | x |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | x |
+
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | x    | x    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | x    |
 
 ## Profile
+
 Level 1 | Manual

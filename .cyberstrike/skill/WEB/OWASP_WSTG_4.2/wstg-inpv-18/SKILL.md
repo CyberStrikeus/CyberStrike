@@ -371,6 +371,7 @@ cfg.setNewBuiltinClassResolver(TemplateClassResolver.ALLOWS_NOTHING_RESOLVER);
 sha256: f1f3f78b933a47b8ac053a60d6f45090b30dcebf8135a61d78dffaac25cfe666
 signature: yUk3vZPU8dREb+Xbj5cn/ZpscpjNAfGs3x50bynHZWG03NxFyCilZIu/k/m0NoeWLHGFWNYT+6ITWBYS6D/tCA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

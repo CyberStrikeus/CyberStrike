@@ -17,17 +17,21 @@ severity_boost: {}
 # 10.4 Ensure that HTTPS is enabled on load balancer (Manual)
 
 ## Description
+
 The simplest way to use HTTPS with an Elastic Beanstalk environment is to assign a server certificate to your environment's load balancer.
 
 ## Rationale
+
 When you configure your load balancer to terminate HTTPS, the connection between the client and the load balancer is secure.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to AWS Console using https://console.aws.amazon.com/elasticbeanstalk
 2. On the left hand side click `Environments`
 3. Click on the `Environment name` that you want to review
@@ -42,14 +46,17 @@ N/A
 12. Then repeat the Audit process for all other regions.
 
 ### Using AWS CLI
+
 N/A - This control is manual and console-based.
 
 ## Expected Result
+
 All enabled Listeners under the Load balancer configuration have their Protocol set to HTTPS and are Enabled.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to AWS Console using https://console.aws.amazon.com/elasticbeanstalk
 2. On the left hand side click `Environments`
 3. Click on the `Environment name` that you want to review
@@ -75,20 +82,24 @@ Select your SSL certificate
 14. Then repeat the remediation for all other regions.
 
 ### Using AWS CLI
+
 N/A - This control is manual and console-based.
 
 ## Default Value
+
 HTTPS is not configured on Elastic Beanstalk load balancers by default.
 
 ## References
+
 1. https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/configuring-https.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | X | X |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | X | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | X    | X    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | X    | X    |
 
 ## Profile
+
 Level 1 | Manual

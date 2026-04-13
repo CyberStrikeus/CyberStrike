@@ -17,15 +17,19 @@ severity_boost: {}
 # 3.2 Ensure Implementation of EFS (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 AWS EFS is a fully managed storage service that enables rapid file system deployment without the need for configuration, patching, or maintenance.
 
 ## Rationale
+
 The rationale behind using AWS EFS is to simplify and expedite the deployment of file systems, eliminating the need for manual configuration, patching, and maintenance. This allows you to focus on other critical aspects of your operations while benefiting from a reliable, scalable, and fully managed storage solution.
 
 ## Impact
+
 Not using AWS EFS can lead to increased complexity and time-consuming manual management for configuration, patching, and maintenance. This raises the risk of human error, system downtime, and data loss, while also making it more challenging to scale your file systems efficiently.
 
 ## Audit Procedure
@@ -50,6 +54,7 @@ Not using AWS EFS can lead to increased complexity and time-consuming manual man
 8. Terminating the EC2 instance - The EFS file system that was just mounted doesn't persist on reboot. You can consult the AWS documentation to see how you can write a script to automatically mount the file system upon every reboot.
 
 ## Expected Result
+
 - EFS file system should be created successfully
 - Encryption at rest should be enabled by default
 - NFS directory should be created and mounted on EC2 instance
@@ -74,19 +79,22 @@ To remediate the issues of manual file system management, follow these steps to 
 6. **Mount the File System**: Use the provided mount targets and instructions to attach the file system to your EC2 instances or other resources.
 
 ## Default Value
+
 By default, AWS does not automatically create or configure EFS file systems. Users must explicitly create EFS file systems and configure encryption, which is enabled by default upon creation.
 
 ## References
+
 1. https://aws.amazon.com/efs/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest<br/>Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. | | ● | ● |
-| v8 | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process. | ● | ● | ● |
-| v7 | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. | | ● | ● |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest<br/>Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. |      | ●    | ●    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage<br/>Ensure that logging destinations maintain adequate storage to comply with the enterprise's audit log management process.                                                                                                                                                                                                                                                                                                 | ●    | ●    | ●    |
+| v7               | 5.2 Maintain Secure Images<br/>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.                                                                                                                                                                  |      | ●    | ●    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers<br/>Only allow access to authorized cloud storage or email providers.                                                                                                                                                                                                                                                                                                                        |      | ●    | ●    |
 
 ## Profile
+
 Level 2

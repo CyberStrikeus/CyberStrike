@@ -276,6 +276,7 @@ error_log = /var/log/php/error.log
 sha256: 55d836afd64348b1485f971534d755c36918b6a80d59b0e85bb99c6d933fd25c
 signature: 2mN9XQv3luf6Ei2PADXzubgVwtx8KGqudi0mQ9zODZaFJznQsj06lVz4Z7hWwCtUp3z0R/m72TZlsuGCDZCjAg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

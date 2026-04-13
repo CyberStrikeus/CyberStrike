@@ -29,6 +29,7 @@ All computer instances need to have a device on which to store files. EBS is bui
 Remember that we are working with cloud computing. Rather than purchasing and manually installing disk drives on a server, AWS allows you to virtually add storage using Elastic Block Store (EBS).
 
 Proper EBS configuration is essential for:
+
 - Data integrity and persistence
 - Performance optimization
 - Cost-effectiveness
@@ -110,6 +111,7 @@ aws ec2 describe-volumes \
 ### Via AWS Management Console
 
 Follow the audit procedure steps above to:
+
 1. Create volumes with appropriate configuration
 2. Enable encryption for sensitive data
 3. Choose correct volume type for workload
@@ -163,10 +165,10 @@ By default, new EBS volumes are not encrypted unless you enable encryption by de
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | ● | ● | ● |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | ● | ● |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | ●    | ●    | ●    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices                   |      | ●    | ●    |
 
 **CIS Control v8 - 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure:**
 Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.

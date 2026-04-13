@@ -628,6 +628,7 @@ def add_security_headers(response):
 sha256: 55e058ec1915742af566077403160490dfd64f1c12f56111e68e668d0c4fecf8
 signature: EKNnGyEHbEv9ORmV9uiRNlFNmIdVqaZCM9KCfCdkVuFJLOSNa3c3Y69nTz6W7mkJD0UpjA8A/CIK3UKmBeMWAw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

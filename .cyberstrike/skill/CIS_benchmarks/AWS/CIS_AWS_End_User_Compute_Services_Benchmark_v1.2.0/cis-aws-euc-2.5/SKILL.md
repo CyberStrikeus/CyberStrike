@@ -17,15 +17,19 @@ severity_boost: {}
 # Ensure WorkSpaces traffic is controlled and routed through a NAT Gateway (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 A network address translation (NAT) gateway enables instances in a private subnet to connect to the internet or other AWS services, but prevents the internet from initiating a direct connection with those instances.
 
 ## Rationale
+
 WorkSpaces must have access to the internet so that you can install updates to the operating system and deploy applications.
 
 ## Impact
+
 None specified in the benchmark.
 
 ## Audit Procedure
@@ -83,23 +87,29 @@ After you've created your NAT gateway, you must update your route tables for you
 8. Click **Save routes**
 
 ## Default Value
+
 By default, No NAT Gateways are created for a VPC.
 
 ## References
+
 1. https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html
 2. https://docs.aws.amazon.com/workspaces/latest/adminguide/amazon-workspaces-vpc.html
 
 ## Additional Information
+
 **Note:** In some multi-account AWS architectures organizations may choose to leverage a centralized internet egress pattern. This could be due to appliances running in the centralized pattern which are being used to enforce controls and could include DLP or category filtering on internet egress traffic. In this case the relevant audit procedure is ensuring the workspaces VPC has a route to the internet (either via proxy server configuration on the workspace instances themselves or the default route on the workspace instance VPC subnet)
 
 ## CIS Controls
+
 **v8:**
+
 - 3.12 Segment Data Processing and Storage Based on Sensitivity
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 - 13.4 Perform Traffic Filtering Between Network Segments
   - Perform traffic filtering between network segments, where appropriate.
 
 **v7:**
+
 - 14.1 Segment the Network Based on Sensitivity
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).
 - 14.2 Enable Firewall Filtering Between VLANs

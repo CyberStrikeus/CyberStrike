@@ -31,6 +31,7 @@ Verifying the working state of EDR is essential to ensure that disaster recovery
 ## Impact
 
 Ensuring EDR functionality requires:
+
 - Environment preparation and validation
 - Source server configuration
 - Staging area setup
@@ -41,6 +42,7 @@ Ensuring EDR functionality requires:
 - Point-in-time policy configuration
 
 Benefits:
+
 - Confidence in disaster recovery capability
 - Early detection of configuration issues
 - Validated recovery processes
@@ -91,41 +93,50 @@ This control encompasses the complete EDR setup and verification process:
 ## Expected Result
 
 **Environment Preparation:**
+
 - Environment prepared for EDR deployment
 - Backup requirements identified
 
 **Source Server Configuration:**
+
 - Direct access to EDR endpoints (TCP 443) configured
 - Direct access to S3 endpoints (TCP 443) configured
 - Outbound TCP port 1500 configured to staging area
 
 **Staging Area Configuration:**
+
 - Access to EDR, S3, EC2 via HTTPS (TCP 443) configured
 - Inbound TCP port 1500 allowed for replication traffic
 
 **EDR Console Access:**
+
 - Successfully accessed AWS EDR console
 - Service available and responsive
 
 **Replication Settings:**
+
 - Replication settings template configured
 - Staging area created in appropriate subnet
 - Replication server instance type selected (default: t3.micro)
 
 **EBS Configuration:**
+
 - EBS encryption enabled (default or custom KMS key)
 - Volume types configured for workload requirements
 
 **Security Group Configuration:**
+
 - Security groups properly configured with required ports
 - Network routing configured (VPN or Direct Connect recommended)
 - Bandwidth throttling configured if needed
 
 **Retention Policy:**
+
 - Point-in-time policy configured
 - Incremental backup strategy implemented
 
 **Template Launch:**
+
 - Template launched successfully
 - EDR operational and ready for use
 

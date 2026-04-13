@@ -295,6 +295,7 @@ add_header Content-Security-Policy "upgrade-insecure-requests";
 sha256: 5c7c407ba0f6ee040a4e0bf3714e8fdec3cdd85624d659a90ef5946d1b27d1dc
 signature: pHBLH+MAhtTzX79zWjD42umup/bp/QaQuXvpdFsnAWWExtV9QXGXL0DHrijNJ/ta094LayQN7dmjEYwvL6/jDg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

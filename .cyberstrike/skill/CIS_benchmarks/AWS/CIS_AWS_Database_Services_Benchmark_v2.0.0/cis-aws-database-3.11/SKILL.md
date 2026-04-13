@@ -9,7 +9,8 @@ cis_id: "3.11"
 cis_benchmark: "CIS AWS Database Services Benchmark v2.0.0"
 tech_stack: [aws]
 cwe_ids: []
-chains_with: [cis-aws-database-3.4, cis-aws-database-3.5, cis-aws-database-3.6, cis-aws-database-3.7, cis-aws-database-3.9]
+chains_with:
+  [cis-aws-database-3.4, cis-aws-database-3.5, cis-aws-database-3.6, cis-aws-database-3.7, cis-aws-database-3.9]
 prerequisites: []
 severity_boost: {}
 ---
@@ -97,10 +98,10 @@ No automatic security configuration review is provided. This is a manual process
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5 Account Management | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5 Account Management                                                                                  |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile
 

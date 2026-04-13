@@ -622,6 +622,7 @@ class SmartLockout:
 sha256: 37eb49c2b53823ccc694d04bb78e1ac8e21ca8339922248b3742faf8bd1d85a7
 signature: iqSf1Ii2VYQFQtC3OQQON5Z6THkzOF90sF1fo06tt0kp9Q96zbxCX981UQ+gByRObR+J0EH4YVlykN5UAU4rCw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

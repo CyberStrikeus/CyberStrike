@@ -367,6 +367,7 @@ function sanitizeForLocalSQL(input) {
 sha256: 7df292015d1a63be8f60ef5bfcb65517f48c35e4e1901cbba6969736b7c4fe2e
 signature: H19an5cbrCMc82fiKtxDXaAMgCtisfc+fhTS4xJOio9RhI7Tkj0IJhaWHz3Fg8BPBiFcEqWOyHRSr8Y6HkZtDg==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

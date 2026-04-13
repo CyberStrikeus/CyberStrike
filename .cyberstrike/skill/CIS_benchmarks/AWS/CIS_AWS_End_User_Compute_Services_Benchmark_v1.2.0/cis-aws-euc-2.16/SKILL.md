@@ -77,9 +77,11 @@ By default, FIPS is disabled. TLS 1.2 is the default encryption standard for AWS
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.11 Encrypt Sensitive Data at Rest
 
 **Controls Version v7:**
+
 - 14.8 Encrypt Sensitive Information at Rest
 
 ## Profile

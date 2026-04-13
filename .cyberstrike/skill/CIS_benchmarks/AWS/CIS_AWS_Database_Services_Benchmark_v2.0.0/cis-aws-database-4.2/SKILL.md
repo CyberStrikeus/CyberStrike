@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.2 Ensure Fine-Grained Access Control is implemented
 
 ## Description
+
 Fine-Grained Access Control (FGAC) on Amazon DynamoDB allows you to control access to data at the row level. Using IAM policies, you can restrict access based on the content within the request. Here is how you can implement FGAC:
 
 ## Rationale
+
 Fine-Grained access control helps users to create and allow specific permission within that DB.
 
 ## Impact
+
 N/A
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Create an IAM Role
    - Sign in to the AWS Management Console and open the IAM console at https://console.aws.amazon.com/iam/.
    - In the navigation pane, choose `Roles` and select `Create role`.
@@ -61,10 +65,7 @@ N/A
       "Condition": {
         "ForAllValues:StringEquals": {
           "dynamodb:LeadingKeys": ["${www.amazon.com:user_id}"],
-          "dynamodb:Attributes": [
-            "<HK>",
-            "<RANGEK>"
-          ]
+          "dynamodb:Attributes": ["<HK>", "<RANGEK>"]
         },
         "StringEqualsIfExists": {
           "dynamodb:Select": "SPECIFIC_ATTRIBUTES"
@@ -75,13 +76,14 @@ N/A
 }
 ```
 
-   In this policy:
-   - `dynamodb:LeadingKeys` restrict access to only the items where the hash key value is the same as the user's ID.
-   - `dynamodb:Attributes` restrict access to only the "HK" and "RANGEK" attributes of the items.
-   - `dynamodb:Select` only allows the `SPECIFIC_ATTRIBUTES` operator.
-   - Choose `Next: Tags`, add any tags if needed, and then choose `Next: Review`.
-   - For `Name`, enter a name for your policy, such as DynamoDBFineGrainedAccessPolicy.
-   - Choose `Create policy`.
+In this policy:
+
+- `dynamodb:LeadingKeys` restrict access to only the items where the hash key value is the same as the user's ID.
+- `dynamodb:Attributes` restrict access to only the "HK" and "RANGEK" attributes of the items.
+- `dynamodb:Select` only allows the `SPECIFIC_ATTRIBUTES` operator.
+- Choose `Next: Tags`, add any tags if needed, and then choose `Next: Review`.
+- For `Name`, enter a name for your policy, such as DynamoDBFineGrainedAccessPolicy.
+- Choose `Create policy`.
 
 3. Attach the Policy to the Role
    - In the navigation pane, choose `Roles`.
@@ -93,25 +95,30 @@ N/A
 **Note**: Fine-grained access control is a powerful feature but can be complex to configure. Be sure to test your setup to ensure it works as expected thoroughly.
 
 ## Expected Result
+
 Fine-Grained Access Control policies are in place restricting DynamoDB access at the row level based on user identity.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the same steps as the audit procedure to create IAM roles and policies for Fine-Grained Access Control.
 
 ## Default Value
+
 By default, Fine-Grained Access Control is not implemented. IAM policies grant table-level access.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure Lambda functions are not exposed to everyone
 
 ## Description
+
 A publicly accessible Amazon Lambda function is open to the public and can be reviewed by anyone. To protect against unauthorized users that are sending requests to invoke these functions they need to be changed so they are not exposed to the public.
 
 ## Rationale
+
 Allowing anyone to invoke and run your Amazon Lambda functions can lead to data exposure, data loss, and unexpected charges on your AWS bill.
 
 ## Impact
+
 Restricting public access may break existing integrations that rely on anonymous invocation of Lambda functions.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review
@@ -40,6 +44,7 @@ Restricting public access may break existing integrations that rely on anonymous
 10. Repeat this Audit for all the other AWS regions.
 
 ### Using AWS CLI
+
 1. Run `aws lambda list-functions`
 
 ```bash
@@ -62,11 +67,13 @@ This will provide an output of the policy assigned to that function.
 6. Repeat this Audit for all the other AWS regions.
 
 ## Expected Result
-No Lambda function has a resource-based policy that allows anonymous or public access (Principal set to "*" or {"AWS": "*"} without a Condition clause).
+
+No Lambda function has a resource-based policy that allows anonymous or public access (Principal set to "_" or {"AWS": "_"} without a Condition clause).
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Login to the AWS Console using https://console.aws.amazon.com/lambda/.
 2. In the left column, under `AWS Lambda`, click `Functions`.
 3. Under `Function name` click on the name of the function that you want to review
@@ -84,6 +91,7 @@ No Lambda function has a resource-based policy that allows anonymous or public a
 8. Repeat this Audit for all the other AWS regions.
 
 ### Using AWS CLI
+
 1. Run `aws lambda remove-permission`
 
 ```bash
@@ -100,24 +108,27 @@ aws lambda add-permission --function-name "name_of_function" --statement-id "cor
 
 This adds a new policy to the function.
 
-***Note The --principal parameter can be the ID of the trusted AWS account, another AWS account, IAM user, IAM role, or another AWS service.
+\*\*\*Note The --principal parameter can be the ID of the trusted AWS account, another AWS account, IAM user, IAM role, or another AWS service.
 
 3. The command output should display the new policy created.
 4. Repeat steps 1-2 for each Lambda function from the audit for all regions.
 
 ## Default Value
+
 Lambda functions are not publicly accessible by default. Public access requires explicit configuration of resource-based policies.
 
 ## References
+
 1. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/lambda/index.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.2 Address Unauthorized Assets - Ensure that a process exists to address unauthorized assets on a weekly basis. The enterprise may choose to remove the asset from the network, deny the asset from connecting remotely to the network, or quarantine the asset. | x | x | x |
-| v7 | 1.6 Address Unauthorized Assets - Ensure that unauthorized assets are either removed from the network, quarantined or the inventory is updated in a timely manner. | x | x | x |
-| v7 | 2.6 Address unapproved software - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.2 Address Unauthorized Assets - Ensure that a process exists to address unauthorized assets on a weekly basis. The enterprise may choose to remove the asset from the network, deny the asset from connecting remotely to the network, or quarantine the asset. | x    | x    | x    |
+| v7               | 1.6 Address Unauthorized Assets - Ensure that unauthorized assets are either removed from the network, quarantined or the inventory is updated in a timely manner.                                                                                                | x    | x    | x    |
+| v7               | 2.6 Address unapproved software - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner.                                                                                                                             | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

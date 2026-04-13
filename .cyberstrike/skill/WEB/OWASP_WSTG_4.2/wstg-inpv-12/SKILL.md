@@ -438,6 +438,7 @@ if (preg_match('/^[a-zA-Z0-9.-]+$/', $_GET['host'])) {
 sha256: 9d6b07fcb8a62ce8d32b6b32dd8a9d75f468d755c730036c3b678a04922882fd
 signature: ZGOQ651itCfoimhfcKU9nrgfnFbh1DB3SgrgyAp7U0pPS5hsfoqGh15N4Pne2GvkNVrrhmNSbdq3PeGjI9SOBQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

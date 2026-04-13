@@ -388,6 +388,7 @@ pool.query("SELECT * FROM users WHERE id = $1", [userId])
 sha256: f1290a31c7be678a9ecf04a90276f0c882aef0b5e4ba87eb3499b3f92ba2427b
 signature: dYRaVd6jS83nDsvXPC4nbIazLn16r4FRCG1u0Q7WMoufvwKk2yqgCecxWozZp1t/xZnhtAJmC+WzPEU6gWcXBA==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

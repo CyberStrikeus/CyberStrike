@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.7 Ensure Monitoring and Alerting is Enabled (Manual)
 
 ## Description
+
 Ensure that monitoring and alerting is enabled for Amazon Neptune clusters to detect performance issues, security incidents, and operational anomalies proactively.
 
 ## Rationale
+
 Monitoring and alerting provides visibility into Neptune cluster operations, enabling proactive detection of performance issues, security incidents, and abnormal behavior.
 
 ## Impact
+
 Proper monitoring and alerting enables timely response to critical conditions and helps maintain the security and performance of Neptune clusters.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Neptune Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/neptune/.
 3. Select the Neptune Cluster:
@@ -66,24 +70,30 @@ Proper monitoring and alerting enables timely response to critical conditions an
    - Configure these tools to gather insights and detect any performance or security issues in your Neptune environment.
 
 ## Expected Result
+
 CloudWatch metrics, alarms, and EventBridge rules should be properly configured to provide comprehensive monitoring and alerting for the Neptune cluster.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to set up CloudWatch metrics, alarms, and EventBridge rules for your Neptune cluster.
 
 ## Default Value
+
 Basic CloudWatch metrics are available for Neptune clusters, but alarms and EventBridge rules must be manually configured.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.2 Activate audit logging                                 | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

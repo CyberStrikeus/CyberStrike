@@ -371,6 +371,7 @@ Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains
 sha256: c1c0a150d29163d0ddddb67fede3289f0edc801a0fb58494952e6ac74ef3c3e4
 signature: yVwmioiuQeSy+NBtLWXkVl0svUP+3GHWE74CeFe7L6GS2WiXmqMMVWKj7iSHZt0U2Ah98og0MFZ2l24YGWILCw==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist

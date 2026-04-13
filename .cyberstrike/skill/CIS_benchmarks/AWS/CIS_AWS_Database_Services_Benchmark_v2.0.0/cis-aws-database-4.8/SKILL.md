@@ -17,17 +17,21 @@ severity_boost: {}
 # 4.8 Ensure Database has delete protection enabled
 
 ## Description
+
 Ensure that delete protection is enabled on database instances to prevent accidental or unauthorized deletion. This setting safeguards critical databases by requiring explicit disabling of delete protection before deletion, reducing the risk of data loss through human error or malicious activity.
 
 ## Rationale
+
 Delete protection provides a safeguard against inadvertent or malicious deletion of critical databases. By requiring deliberate action to disable deletion protection, organizations mitigate risks associated with accidental data deletion and enhance the overall resilience of their data storage platform.
 
 ## Impact
+
 Failure to enable delete protection increases the risk of irreversible data loss, potential service disruption, and operational downtime.
 
 ## Audit Procedure
 
 ### Using AWS CLI
+
 To check whether delete protection is enabled on your DynamoDB tables, use the following command for each table:
 
 ```bash
@@ -40,11 +44,13 @@ aws dynamodb describe-table --table-name <your-table-name> \
 - This will return True if delete protection is enabled, False otherwise.
 
 ## Expected Result
+
 DeleteProtectionEnabled returns `True` for all critical DynamoDB tables.
 
 ## Remediation
 
 ### Using AWS CLI
+
 To enable delete protection on an existing DynamoDB table, use the following command:
 
 ```bash
@@ -57,16 +63,19 @@ aws dynamodb update-table \
 - Delete protection prevents the table from being deleted until the protection is disabled explicitly.
 
 ## Default Value
+
 By default, delete protection is not enabled on DynamoDB tables.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
+| Controls Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software |      |      |      |
 
 ## Profile
+
 Level 1 | Manual

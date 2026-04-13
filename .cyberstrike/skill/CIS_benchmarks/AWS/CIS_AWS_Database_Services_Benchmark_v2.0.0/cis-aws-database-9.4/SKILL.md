@@ -17,17 +17,21 @@ severity_boost: {}
 # 9.4 Ensure Authentication and Access Control is Enabled (Manual)
 
 ## Description
+
 This helps ensure that there are specific IAM roles and policies that are given the necessary information within a Neptune DB cluster to operate as needed.
 
 ## Rationale
+
 IAM authentication and access control verifies the identity of users and services, ensuring only authorized entities can access Neptune resources.
 
 ## Impact
+
 Allowing authentication verifies the identity of the person and who has appropriate access to a company's data.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Sign into the AWS Management Console at https://console.aws.amazon.com/ with your AWS account credentials.
 2. Open the Amazon Neptune Console - Navigate to the service using the `Find Services` search bar or by directly accessing the console at https://console.aws.amazon.com/neptune/.
 3. Select the Neptune Cluster:
@@ -53,24 +57,30 @@ Allowing authentication verifies the identity of the person and who has appropri
    - Follow the principle of least privilege and ensure that users or services have only the necessary permissions to perform their required actions on the Neptune cluster.
 
 ## Expected Result
+
 IAM database authentication should be enabled for the Neptune cluster, with properly configured IAM roles and policies following the principle of least privilege.
 
 ## Remediation
 
 ### Using AWS Console
+
 Follow the audit steps above to enable IAM database authentication and configure appropriate IAM roles and policies for your Neptune cluster.
 
 ## Default Value
+
 IAM database authentication is not enabled by default for Neptune clusters.
 
 ## References
+
 1. https://aws.amazon.com/products/databases/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## Profile
+
 Level 1 | Manual

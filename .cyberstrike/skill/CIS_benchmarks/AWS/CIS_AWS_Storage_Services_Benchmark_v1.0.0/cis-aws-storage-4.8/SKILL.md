@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.8 Ensure exporting cache to S3 (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -36,16 +37,19 @@ Without exporting cache data to S3, files created in the cache mount point will 
 ### SSH to EC2 Instance
 
 1. Connect to your EC2 instance:
+
 ```bash
 ssh -i "{KEY.pem}" ubuntu@{your-ec2-instance}
 ```
 
 2. **Verify mount point has files:**
+
 ```bash
 ls -la /mnt
 ```
 
 3. **Check S3 bucket for exported data:**
+
 ```bash
 # Use AWS CLI to list objects in the S3 bucket
 aws s3 ls s3://<bucket-name>/<prefix>/ --recursive
@@ -72,16 +76,19 @@ Files created in the FSx cache mount point should be automatically exported to t
 We can export the files that were created to the S3 bucket using the following steps:
 
 1. **Create a file on the FSx mount point:**
+
 ```bash
 sudo touch efx.txt
 ```
 
 2. **Run the command to export the file to S3:**
+
 ```bash
 sudo lsm_hsm_archive efx.txt
 ```
 
 3. **Verify the file was created in the mount point:**
+
 ```bash
 ls -la /mnt
 ```
@@ -129,4 +136,5 @@ By default, FSx File Cache does not automatically export files to S3 without pro
 This control supports data backup and recovery best practices but does not map to specific CIS Controls.
 
 ## Profile
+
 Level 2

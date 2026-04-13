@@ -29,6 +29,7 @@ Security groups are your first line of defense for the EC2 instance. A security 
 Security groups play a critical role in maintaining the security of your AWS resources. It is advisable to restrict traffic to only what is necessary for accessing your instance, thereby minimizing potential security risks.
 
 Properly configured security groups:
+
 - Implement network-level access control
 - Reduce attack surface by limiting exposed ports
 - Enforce principle of least privilege for network access
@@ -37,6 +38,7 @@ Properly configured security groups:
 ## Impact
 
 Improperly configured security groups can lead to:
+
 - Unauthorized network access to EC2 instances
 - Exposure of management ports (SSH, RDP) to the internet
 - Data exfiltration through unrestricted outbound rules
@@ -133,10 +135,10 @@ Default security groups deny all inbound traffic and allow all outbound traffic.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 12.3 Securely Manage Network Infrastructure | ● | ● | ● |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | ● | ● | |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.3 Securely Manage Network Infrastructure                        | ●    | ●    | ●    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | ●    | ●    |      |
 
 **CIS Control v8 - 12.3 Securely Manage Network Infrastructure:**
 Securely manage network infrastructure. Implementations include version-controlled-infrastructure-as-code, and the use of secure network protocols, such as SSH and HTTPS.

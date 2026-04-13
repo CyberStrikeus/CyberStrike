@@ -17,17 +17,21 @@ severity_boost: {}
 # Ensure S3 Bucket Policy is set to deny HTTP requests
 
 ## Description
+
 At the Amazon S3 bucket level, permissions can be configured through a bucket policy to ensure objects are accessible only through HTTPS.
 
 ## Rationale
+
 By default, Amazon S3 allows both HTTP and HTTPS requests. To ensure that access to S3 objects is only permitted through HTTPS, you must explicitly deny HTTP requests. Bucket policies that allow HTTPS requests without explicitly denying HTTP requests do not meet this requirement.
 
 ## Impact
+
 If HTTP access is not explicitly denied, data transmitted to and from S3 buckets may be exposed to interception or man-in-the-middle attacks.
 
 ## Audit Procedure
 
 ### Using AWS Console
+
 1. Login to the AWS Management Console and open the Amazon S3 console using https://console.aws.amazon.com/s3/
 2. Select the target bucket
 3. Select the 'Permissions' tab
@@ -38,16 +42,16 @@ If HTTP access is not explicitly denied, data transmitted to and from S3 buckets
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": "arn:aws:s3:::<bucket_name>/*",
-    "Condition": {
-        "Bool": {
-            "aws:SecureTransport": "false"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": "arn:aws:s3:::<bucket_name>/*",
+  "Condition": {
+    "Bool": {
+      "aws:SecureTransport": "false"
     }
+  }
 }
 ```
 
@@ -55,25 +59,23 @@ If HTTP access is not explicitly denied, data transmitted to and from S3 buckets
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": [
-        "arn:aws:s3:::<bucket_name>",
-        "arn:aws:s3:::<bucket_name>/*"
-    ],
-    "Condition": {
-        "NumericLessThan": {
-            "s3:TlsVersion": "1.2"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": ["arn:aws:s3:::<bucket_name>", "arn:aws:s3:::<bucket_name>/*"],
+  "Condition": {
+    "NumericLessThan": {
+      "s3:TlsVersion": "1.2"
     }
+  }
 }
 ```
 
 6. Repeat for all S3 buckets
 
 ### Using AWS CLI
+
 1. List all of the S3 Buckets:
 
 ```bash
@@ -99,11 +101,13 @@ aws s3api get-bucket-policy --bucket <bucket_name> | grep s3:TlsVersion
 4. If no policy is returned, the bucket allows both HTTP and HTTPS requests by default
 
 ## Expected Result
+
 Each S3 bucket should have a bucket policy that explicitly denies HTTP requests either by using the `aws:SecureTransport` condition set to `false` with a `Deny` effect, or by enforcing a minimum TLS version using the `s3:TlsVersion` condition.
 
 ## Remediation
 
 ### Using AWS Console
+
 1. Sign in to the AWS Management Console and open the Amazon S3 console
 2. Select the bucket
 3. Select the `Permissions` tab
@@ -114,16 +118,16 @@ Each S3 bucket should have a bucket policy that explicitly denies HTTP requests 
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": "arn:aws:s3:::<bucket_name>/*",
-    "Condition": {
-        "Bool": {
-            "aws:SecureTransport": "false"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": "arn:aws:s3:::<bucket_name>/*",
+  "Condition": {
+    "Bool": {
+      "aws:SecureTransport": "false"
     }
+  }
 }
 ```
 
@@ -131,19 +135,16 @@ Each S3 bucket should have a bucket policy that explicitly denies HTTP requests 
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": [
-        "arn:aws:s3:::<bucket_name>",
-        "arn:aws:s3:::<bucket_name>/*"
-    ],
-    "Condition": {
-        "NumericLessThan": {
-            "s3:TlsVersion": "1.2"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": ["arn:aws:s3:::<bucket_name>", "arn:aws:s3:::<bucket_name>/*"],
+  "Condition": {
+    "NumericLessThan": {
+      "s3:TlsVersion": "1.2"
     }
+  }
 }
 ```
 
@@ -151,19 +152,21 @@ Each S3 bucket should have a bucket policy that explicitly denies HTTP requests 
 7. Repeat for all relevant buckets
 
 **Using AWS Policy Generator:**
+
 1. Repeat steps 1-4 above
 2. Click on `Policy Generator` at the bottom of the Bucket Policy editor
 3. Select `S3 Bucket Policy` as the policy type
 4. Configure the statement:
    - `Effect` = Deny
-   - `Principal` = *
+   - `Principal` = \*
    - `AWS Service` = Amazon S3
-   - `Actions` = *
+   - `Actions` = \*
    - `Amazon Resource Name` = <ARN of the S3 Bucket>
 5. Select `Generate Policy`
 6. Copy the generated policy and add it to the bucket policy
 
 ### Using AWS CLI
+
 1. Export the existing policy, if one exists:
 
 ```bash
@@ -178,16 +181,16 @@ If the bucket does not already have a policy, create a new `policy.json` file co
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": "arn:aws:s3:::<bucket_name>/*",
-    "Condition": {
-        "Bool": {
-            "aws:SecureTransport": "false"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": "arn:aws:s3:::<bucket_name>/*",
+  "Condition": {
+    "Bool": {
+      "aws:SecureTransport": "false"
     }
+  }
 }
 ```
 
@@ -195,19 +198,16 @@ If the bucket does not already have a policy, create a new `policy.json` file co
 
 ```json
 {
-    "Sid": "<optional>",
-    "Effect": "Deny",
-    "Principal": "*",
-    "Action": "s3:*",
-    "Resource": [
-        "arn:aws:s3:::<bucket_name>",
-        "arn:aws:s3:::<bucket_name>/*"
-    ],
-    "Condition": {
-        "NumericLessThan": {
-            "s3:TlsVersion": "1.2"
-        }
+  "Sid": "<optional>",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": ["arn:aws:s3:::<bucket_name>", "arn:aws:s3:::<bucket_name>/*"],
+  "Condition": {
+    "NumericLessThan": {
+      "s3:TlsVersion": "1.2"
     }
+  }
 }
 ```
 
@@ -218,25 +218,28 @@ aws s3api put-bucket-policy --bucket <bucket_name> --policy file://policy.json
 ```
 
 ## Default Value
+
 By default, Amazon S3 accepts both HTTP and HTTPS requests. No bucket policy is applied to deny unencrypted (HTTP) access unless explicitly configured.
 
 ## References
+
 1. https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/
 2. https://aws.amazon.com/blogs/security/how-to-use-bucket-policies-and-apply-defense-in-depth-to-help-secure-your-amazon-s3-data/
 3. https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3api/get-bucket-policy.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1040 | TA0006, TA0007 | M1041 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1040                       | TA0006, TA0007 | M1041       |
 
 ## Profile
+
 Level 2 | Automated

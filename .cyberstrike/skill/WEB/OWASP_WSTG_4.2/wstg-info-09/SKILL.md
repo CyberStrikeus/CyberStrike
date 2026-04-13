@@ -88,6 +88,7 @@ When fingerprinting custom applications, document:
 sha256: 70cf8b5c6c5887c89024653255a06d614a26e120367946e433691e48e2779a49
 signature: AHTd6eskqk9Qz7BTHNP6LHPIoiaO2/rzzV417L/qrJt5Jb9unSXduKQlaBFts7UDVG4aBUHANuoiG7g2UxatCQ==
 signed_by: cyberstrike-official
+
 ---
 
 ## Checklist
