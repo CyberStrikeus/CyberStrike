@@ -109,12 +109,12 @@ For Command-Line Audit and Remediation, the sink destination of type `Cloud Stor
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v8 | 8.3 Ensure Adequate Audit Log Storage | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
-| v7 | 6.4 Ensure adequate storage for logs | | x | x |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs                | x    | x    | x    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage | x    | x    | x    |
+| v7               | 6.2 Activate audit logging            | x    | x    | x    |
+| v7               | 6.4 Ensure adequate storage for logs  |      | x    | x    |
 
 ## Profile
 

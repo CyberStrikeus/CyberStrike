@@ -105,7 +105,7 @@ By default, Dataproc Clusters are encrypted using Google-managed key.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | X |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | X    |

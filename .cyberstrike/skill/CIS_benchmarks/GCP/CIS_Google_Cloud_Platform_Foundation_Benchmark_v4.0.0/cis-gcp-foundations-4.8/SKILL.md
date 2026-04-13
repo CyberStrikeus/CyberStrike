@@ -120,7 +120,7 @@ If you do use custom or unsigned drivers on the instance, enabling Secure Boot w
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 0.0 Explicitly Not Mapped | | | |
-| v7 | 5.2 Maintain Secure Images | | X | X |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped  |      |      |      |
+| v7               | 5.2 Maintain Secure Images |      | X    | X    |

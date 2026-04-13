@@ -105,7 +105,7 @@ Note: some database flag settings can affect instance availability or stability,
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | x | x |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | x    | x    |
+| v7               | 0.0 Explicitly Not Mapped                                                          |      |      |      |

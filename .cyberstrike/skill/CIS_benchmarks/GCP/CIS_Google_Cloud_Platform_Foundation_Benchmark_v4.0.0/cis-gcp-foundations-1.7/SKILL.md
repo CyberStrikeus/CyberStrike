@@ -98,7 +98,7 @@ For user-managed Service Account key(s), key management is entirely the user's r
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 0.0 Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped |      |      |      |

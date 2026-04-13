@@ -97,7 +97,7 @@ If a business requires API keys to be used, then the API keys should be secured 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.10 Apply Secure Design Principles in Application Architectures | | x | x |
-| v7 | 16.8 Disable Any Unassociated Accounts | x | x | x |
+| Controls Version | Control                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.10 Apply Secure Design Principles in Application Architectures |      | x    | x    |
+| v7               | 16.8 Disable Any Unassociated Accounts                            | x    | x    | x    |

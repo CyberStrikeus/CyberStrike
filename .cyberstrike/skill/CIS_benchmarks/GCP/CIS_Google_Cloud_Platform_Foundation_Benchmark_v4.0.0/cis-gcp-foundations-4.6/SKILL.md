@@ -68,6 +68,7 @@ gcloud compute instances export <INSTANCE_NAME> \
 ```
 
 Note: Replace the following:
+
 - INSTANCE_NAME the name for the instance that you want to export.
 - PROJECT_ID: the project ID for this request.
 - ZONE: the zone for this instance.
@@ -102,9 +103,9 @@ You can only set the `canIpForward` field at instance creation time or using CLI
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v8 | 4.5 Implement and Manage a Firewall on End-User Devices | X | X | X |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | X | X |
-| v7 | 11.2 Document Traffic Configuration Rules | | X | X |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers                     | X    | X    | X    |
+| v8               | 4.5 Implement and Manage a Firewall on End-User Devices            | X    | X    | X    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices |      | X    | X    |
+| v7               | 11.2 Document Traffic Configuration Rules                          |      | X    | X    |

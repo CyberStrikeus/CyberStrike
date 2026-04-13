@@ -69,8 +69,8 @@ Incorporate findings into your security and governance operations:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.1 Establish and Maintain a Data Management Process | X | X | X |
-| v8 | 3.7 Establish and Maintain a Data Classification Scheme | | X | X |
-| v7 | 5.1 Establish Secure Configurations | X | X | X |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.1 Establish and Maintain a Data Management Process    | X    | X    | X    |
+| v8               | 3.7 Establish and Maintain a Data Classification Scheme |      | X    | X    |
+| v7               | 5.1 Establish Secure Configurations                     | X    | X    | X    |
