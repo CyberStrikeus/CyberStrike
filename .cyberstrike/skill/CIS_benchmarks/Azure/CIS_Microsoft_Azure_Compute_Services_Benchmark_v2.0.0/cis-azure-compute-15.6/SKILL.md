@@ -70,7 +70,7 @@ For each batch account perform the following:
 1. Expand `Settings` then click on `Networking`
 2. Click the `Private access` tab
 
-*[If no Private Endpoints exist, one must be created before proceeding. Instructions for configuring Private Endpoints on Batch Accounts can be found in the recommendation titled "Ensure to Configure Batch accounts with private endpoints"]*
+_[If no Private Endpoints exist, one must be created before proceeding. Instructions for configuring Private Endpoints on Batch Accounts can be found in the recommendation titled "Ensure to Configure Batch accounts with private endpoints"]_
 
 For each Private endpoint perform the following:
 

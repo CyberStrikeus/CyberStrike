@@ -17,9 +17,11 @@ severity_boost: {}
 # Ensure 'Remote debugging' is set to 'Off'
 
 ## Description
+
 Remote debugging allows a function app deployment slot to be debugged in real-time directly in the Azure environment. When remote debugging is enabled, it opens a communication channel that could potentially be exploited by unauthorized users if not properly secured.
 
 ## Rationale
+
 Disabling remote debugging on a function app deployment slot is primarily about enhancing security.
 
 Remote debugging opens a communication channel that can be exploited by attackers. By disabling it, you reduce the number of potential entry points for unauthorized access.
@@ -29,11 +31,13 @@ If remote debugging is enabled without proper access controls, it can allow unau
 During a remote debugging session, sensitive information might be exposed. Disabling remote debugging helps ensure that such data remains secure. This minimizes the use of remote access tools to reduce risk.
 
 ## Impact
+
 You will not be able to connect to your deployment slot from a remote location to diagnose and fix issues in real-time. You will not be able to step through code, set breakpoints, or inspect variables and the call stack while the deployment slot is running on the server. Remote debugging is particularly useful for diagnosing issues that only occur in the production environment. Without it, you will need to rely on logs and other diagnostic tools.
 
 ## Audit Procedure
 
 ### Using Azure Portal
+
 1. Go to `App Services` or `Function App`.
 2. Click the name of a function app.
 3. Under `Deployment`, click `Deployment slots`.
@@ -43,17 +47,21 @@ You will not be able to connect to your deployment slot from a remote location t
 7. Repeat steps 1-6 for each function app and deployment slot.
 
 ### Using Azure CLI
+
 Run the following command to list function apps:
+
 ```bash
 az functionapp list
 ```
 
 For each function app, run the following command to list deployment slots:
+
 ```bash
 az functionapp deployment slot list --resource-group <resource-group-name> --name <function-app-name>
 ```
 
 For each deployment slot, run the following command to get the remote debugging setting:
+
 ```bash
 az resource show --name web --resource-group <resource-group-name> --namespace Microsoft.Web --resource-type config --parent sites/<function-app-name>/slots/<deployment-slot-name> --query properties.remoteDebuggingEnabled
 ```
@@ -61,11 +69,13 @@ az resource show --name web --resource-group <resource-group-name> --namespace M
 Ensure that `false` is returned.
 
 ## Expected Result
+
 The `remoteDebuggingEnabled` property should return `false`.
 
 ## Remediation
 
 ### Using Azure Portal
+
 1. Go to `App Services` or `Function App`.
 2. Click the name of a function app.
 3. Under `Deployment`, click `Deployment slots`.
@@ -77,19 +87,24 @@ The `remoteDebuggingEnabled` property should return `false`.
 9. Repeat steps 1-8 for each function app and deployment slot requiring remediation.
 
 ### Using Azure CLI
+
 For each deployment slot requiring remediation, run the following command to disable remote debugging:
+
 ```bash
 az resource update --name web --resource-group <resource-group-name> --namespace Microsoft.Web --resource-type config --parent sites/<function-app-name>/slots/<deployment-slot-name> --set properties.remoteDebuggingEnabled=false
 ```
 
 ## Default Value
+
 By default, remote debugging is set to `off`.
 
 ## References
+
 1. https://learn.microsoft.com/en-us/visualstudio/debugger/remote-debugging-azure-app-service
 2. https://learn.microsoft.com/en-us/security/benchmark/azure/mcsb-posture-vulnerability-management#pv-2-audit-and-enforce-secure-configurations
 3. https://learn.microsoft.com/en-us/cli/azure/functionapp
 4. https://learn.microsoft.com/en-us/cli/azure/resource
 
 ## Profile
+
 Level 1 | Automated

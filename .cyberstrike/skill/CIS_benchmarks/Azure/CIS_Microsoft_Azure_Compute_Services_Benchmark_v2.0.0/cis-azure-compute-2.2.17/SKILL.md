@@ -28,7 +28,7 @@ Restrict CORS to only trusted origins to help enforce proper access control and 
 
 Configuration is required to ensure that the appropriate origins have access.
 
-Setting up a proper CORS policy can be fairly complex and an incorrect setting could permit Cross-Site Request Forgery (CSRF). The "caveat" is that if the app being deployed is a PUBLIC API, a wildcard "*" CORS policy is absolutely necessary.
+Setting up a proper CORS policy can be fairly complex and an incorrect setting could permit Cross-Site Request Forgery (CSRF). The "caveat" is that if the app being deployed is a PUBLIC API, a wildcard "\*" CORS policy is absolutely necessary.
 
 ## Audit Procedure
 

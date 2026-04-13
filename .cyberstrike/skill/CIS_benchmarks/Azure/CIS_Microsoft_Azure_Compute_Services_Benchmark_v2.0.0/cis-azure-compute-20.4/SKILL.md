@@ -90,6 +90,7 @@ Part B. Remediate each Virtual Machine Disk individually
 3. From the selected Disk resource window, expand the `Settings` menu item, and click `Networking`.
 
 Under Network access, select the radio button for either:
+
 - Disable public access and enable private access
 - Disable public and private access
 
