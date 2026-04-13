@@ -1,0 +1,2770 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "ad-security",
+      "description": "Active Directory security testing and attack techniques",
+      "verified": "official",
+      "tags": [
+        "ad",
+        "windows",
+        "kerberos",
+        "ldap",
+        "internal-network"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "bun-file-io",
+      "description": "Use this when you are working on file operations like reading, writing, scanning, or deleting files. It summarizes the preferred file APIs and patterns used in this repo. It also notes when to use filesystem helpers for directories.",
+      "verified": "official",
+      "tags": [],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "kerberos-attacks",
+      "description": "Kerberos protocol attack techniques and exploitation",
+      "verified": "official",
+      "tags": [
+        "kerberos",
+        "ad",
+        "windows",
+        "tickets"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "recon-methodology",
+      "description": "Bug bounty and pentest reconnaissance methodology",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "enumeration",
+        "osint",
+        "subdomain"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-apit-00",
+      "description": "API Testing Overview",
+      "category": "api-testing",
+      "owasp_id": "WSTG-APIT-00",
+      "verified": "official",
+      "tags": [
+        "api",
+        "rest",
+        "graphql",
+        "soap",
+        "wstg",
+        "apit"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-apit-01",
+      "description": "API Reconnaissance",
+      "category": "api-testing",
+      "owasp_id": "WSTG-APIT-01",
+      "verified": "official",
+      "tags": [
+        "api",
+        "rest",
+        "graphql",
+        "soap",
+        "wstg",
+        "apit"
+      ],
+      "tech_stack": [
+        "rest",
+        "graphql",
+        "soap",
+        "grpc"
+      ],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-apit-02",
+      "description": "Testing for Broken Object Level Authorization (BOLA)",
+      "category": "api-testing",
+      "owasp_id": "WSTG-APIT-02",
+      "verified": "official",
+      "tags": [
+        "api",
+        "rest",
+        "graphql",
+        "soap",
+        "wstg",
+        "apit"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-apit-99",
+      "description": "Testing GraphQL",
+      "category": "api-testing",
+      "owasp_id": "WSTG-APIT-99",
+      "verified": "official",
+      "tags": [
+        "api",
+        "rest",
+        "graphql",
+        "soap",
+        "wstg",
+        "apit"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-01",
+      "description": "Testing for Credentials Transported over an Encrypted Channel",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-01",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-522"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-02",
+      "description": "Testing for Default Credentials",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-02",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-640"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-03",
+      "description": "Testing for Weak Lock Out Mechanism",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-03",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-304"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-04",
+      "description": "Testing for Bypassing Authentication Schema",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-04",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-307"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-05",
+      "description": "Testing for Vulnerable Remember Password",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-05",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-287"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-06",
+      "description": "Testing for Browser Cache Weaknesses",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-06",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-613"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-07",
+      "description": "Testing for Weak Password Policy",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-07",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-287"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-08",
+      "description": "Testing for Weak Security Question Answer",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-08",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-287"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-09",
+      "description": "Testing for Weak Password Change or Reset Functionalities",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-09",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-521"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-10",
+      "description": "Testing for Weaker Authentication in Alternative Channel",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-10",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-287"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-athn-11",
+      "description": "Testing Multi-Factor Authentication (MFA)",
+      "category": "authentication",
+      "owasp_id": "WSTG-ATHN-11",
+      "verified": "official",
+      "tags": [
+        "authentication",
+        "login",
+        "credentials",
+        "mfa",
+        "wstg",
+        "athn"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-auth-session",
+      "description": "WSTG identity, authentication, authorization, and session management testing",
+      "verified": "official",
+      "tags": [
+        "auth",
+        "session",
+        "idor",
+        "csrf",
+        "jwt",
+        "wstg"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-01",
+      "description": "Testing Directory Traversal File Include",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-01",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-639"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-02",
+      "description": "Testing for Bypassing Authorization Schema",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-02",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-639"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-03",
+      "description": "Testing for Privilege Escalation",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-03",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-269"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-04",
+      "description": "Testing for Insecure Direct Object References (IDOR)",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-04",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-639"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-05",
+      "description": "Testing for OAuth Weaknesses",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-05",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-05.1",
+      "description": "Testing OAuth Authorization Server Weaknesses",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-05.1",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-authz-05.2",
+      "description": "Testing OAuth Client Weaknesses",
+      "category": "authorization",
+      "owasp_id": "WSTG-AUTHZ-05.2",
+      "verified": "official",
+      "tags": [
+        "authorization",
+        "access-control",
+        "privilege",
+        "wstg",
+        "authz"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-01",
+      "description": "Test Business Logic Data Validation",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-01",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-02",
+      "description": "Test Ability to Forge Requests",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-02",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-03",
+      "description": "Test Integrity Checks",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-03",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-04",
+      "description": "Test for Process Timing",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-04",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-05",
+      "description": "Test Number of Times a Function Can Be Used Limits",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-05",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-06",
+      "description": "Test Circumvention of Work Flows",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-06",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-07",
+      "description": "Test Defenses Against Application Misuse",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-07",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-08",
+      "description": "Test Upload of Unexpected File Types",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-08",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-09",
+      "description": "Test Upload of Malicious Files",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-09",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-840"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-busl-10",
+      "description": "Test Payment Functionality",
+      "category": "business-logic",
+      "owasp_id": "WSTG-BUSL-10",
+      "verified": "official",
+      "tags": [
+        "business-logic",
+        "workflow",
+        "abuse",
+        "wstg",
+        "busl"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-01",
+      "description": "Testing for DOM-Based Cross Site Scripting",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-01",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-79"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-01.1",
+      "description": "Testing for Self DOM-Based XSS",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-01.1",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-02",
+      "description": "Testing for JavaScript Execution",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-02",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-79"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-03",
+      "description": "Testing for HTML Injection",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-03",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-94"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-04",
+      "description": "Testing for Client-Side URL Redirect",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-04",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-601"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-05",
+      "description": "Testing for CSS Injection",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-05",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-94"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-06",
+      "description": "Testing for Client-Side Resource Manipulation",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-06",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-07",
+      "description": "Testing for Cross-Origin Resource Sharing (CORS)",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-07",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [
+        "cors",
+        "javascript"
+      ],
+      "cwe_ids": [
+        "CWE-942"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-08",
+      "description": "Testing for Cross-Site Flashing",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-08",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [
+        "html",
+        "javascript"
+      ],
+      "cwe_ids": [
+        "CWE-1021"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-09",
+      "description": "Testing for Clickjacking",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-09",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-922"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-10",
+      "description": "Testing WebSockets",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-10",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-11",
+      "description": "Testing Web Messaging",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-11",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-79"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-12",
+      "description": "Testing Browser Storage",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-12",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-79"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-13",
+      "description": "Testing for Cross-Site Script Inclusion (XSSI)",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-13",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-942"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-clnt-14",
+      "description": "Testing for Reverse Tabnabbing",
+      "category": "client-side",
+      "owasp_id": "WSTG-CLNT-14",
+      "verified": "official",
+      "tags": [
+        "client-side",
+        "javascript",
+        "dom",
+        "cors",
+        "wstg",
+        "clnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-01",
+      "description": "Test Network Infrastructure Configuration",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-01",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [
+        "apache",
+        "nginx",
+        "iis",
+        "tomcat"
+      ],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-02",
+      "description": "Test Application Platform Configuration",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-02",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-03",
+      "description": "Test File Extensions Handling for Sensitive Information",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-03",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-04",
+      "description": "Review Old Backup and Unreferenced Files for Sensitive Information",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-04",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-05",
+      "description": "Enumerate Infrastructure and Application Admin Interfaces",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-05",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [
+        "apache",
+        "nginx",
+        "iis"
+      ],
+      "cwe_ids": [
+        "CWE-548"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-06",
+      "description": "Test HTTP Methods",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-06",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-07",
+      "description": "Test HTTP Strict Transport Security",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-07",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-08",
+      "description": "Test RIA Cross Domain Policy",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-08",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-09",
+      "description": "Test File Permission",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-09",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [
+        "php",
+        "java",
+        "asp",
+        "nodejs"
+      ],
+      "cwe_ids": [
+        "CWE-434"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-10",
+      "description": "Test for Subdomain Takeover",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-10",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-11",
+      "description": "Test Cloud Storage",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-11",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-16"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-12",
+      "description": "Test for Content Security Policy",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-12",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-conf-13",
+      "description": "Test for Path Confusion",
+      "category": "configuration",
+      "owasp_id": "WSTG-CONF-13",
+      "verified": "official",
+      "tags": [
+        "misconfiguration",
+        "hardening",
+        "server",
+        "wstg",
+        "conf"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-cryp-01",
+      "description": "Testing for Weak Transport Layer Security",
+      "category": "cryptography",
+      "owasp_id": "WSTG-CRYP-01",
+      "verified": "official",
+      "tags": [
+        "cryptography",
+        "tls",
+        "ssl",
+        "encryption",
+        "wstg",
+        "cryp"
+      ],
+      "tech_stack": [
+        "tls",
+        "ssl",
+        "openssl"
+      ],
+      "cwe_ids": [
+        "CWE-326"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-cryp-02",
+      "description": "Testing for Padding Oracle",
+      "category": "cryptography",
+      "owasp_id": "WSTG-CRYP-02",
+      "verified": "official",
+      "tags": [
+        "cryptography",
+        "tls",
+        "ssl",
+        "encryption",
+        "wstg",
+        "cryp"
+      ],
+      "tech_stack": [
+        "tls",
+        "ssl"
+      ],
+      "cwe_ids": [
+        "CWE-326"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-cryp-03",
+      "description": "Testing for Sensitive Information Sent via Unencrypted Channels",
+      "category": "cryptography",
+      "owasp_id": "WSTG-CRYP-03",
+      "verified": "official",
+      "tags": [
+        "cryptography",
+        "tls",
+        "ssl",
+        "encryption",
+        "wstg",
+        "cryp"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-311"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-cryp-04",
+      "description": "Testing for Weak Encryption",
+      "category": "cryptography",
+      "owasp_id": "WSTG-CRYP-04",
+      "verified": "official",
+      "tags": [
+        "cryptography",
+        "tls",
+        "ssl",
+        "encryption",
+        "wstg",
+        "cryp"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-327"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-errh-01",
+      "description": "Testing for Improper Error Handling",
+      "category": "error-handling",
+      "owasp_id": "WSTG-ERRH-01",
+      "verified": "official",
+      "tags": [
+        "error-handling",
+        "information-leak",
+        "stack-trace",
+        "wstg",
+        "errh"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-209"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-errh-02",
+      "description": "Testing for Stack Traces",
+      "category": "error-handling",
+      "owasp_id": "WSTG-ERRH-02",
+      "verified": "official",
+      "tags": [
+        "error-handling",
+        "information-leak",
+        "stack-trace",
+        "wstg",
+        "errh"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-209"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-idnt-01",
+      "description": "Test Role Definitions",
+      "category": "identity-management",
+      "owasp_id": "WSTG-IDNT-01",
+      "verified": "official",
+      "tags": [
+        "identity",
+        "user-enum",
+        "roles",
+        "wstg",
+        "idnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-idnt-02",
+      "description": "Test User Registration Process",
+      "category": "identity-management",
+      "owasp_id": "WSTG-IDNT-02",
+      "verified": "official",
+      "tags": [
+        "identity",
+        "user-enum",
+        "roles",
+        "wstg",
+        "idnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-idnt-03",
+      "description": "Test Account Provisioning Process",
+      "category": "identity-management",
+      "owasp_id": "WSTG-IDNT-03",
+      "verified": "official",
+      "tags": [
+        "identity",
+        "user-enum",
+        "roles",
+        "wstg",
+        "idnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-idnt-04",
+      "description": "Test Account Enumeration",
+      "category": "identity-management",
+      "owasp_id": "WSTG-IDNT-04",
+      "verified": "official",
+      "tags": [
+        "identity",
+        "user-enum",
+        "roles",
+        "wstg",
+        "idnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-idnt-05",
+      "description": "Test Username Policy",
+      "category": "identity-management",
+      "owasp_id": "WSTG-IDNT-05",
+      "verified": "official",
+      "tags": [
+        "identity",
+        "user-enum",
+        "roles",
+        "wstg",
+        "idnt"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-01",
+      "description": "Conduct Search Engine Discovery Reconnaissance for Information Leakage",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-01",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-02",
+      "description": "Fingerprint Web Server",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-02",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-03",
+      "description": "Review Webserver Metafiles for Information Leakage",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-03",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-04",
+      "description": "Enumerate Applications on Webserver",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-04",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-05",
+      "description": "Review Web Page Content for Information Leakage",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-05",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-06",
+      "description": "Identify Application Entry Points",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-06",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-07",
+      "description": "Map Execution Paths Through Application",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-07",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-08",
+      "description": "Fingerprint Web Application Framework",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-08",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-09",
+      "description": "Fingerprint Web Application",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-09",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-info-10",
+      "description": "Map Application Architecture",
+      "category": "information-gathering",
+      "owasp_id": "WSTG-INFO-10",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "fingerprint",
+        "enumeration",
+        "wstg",
+        "info"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-injection",
+      "description": "WSTG input validation and injection testing - SQLi, XSS, SSTI, SSRF, command injection, XXE",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "sqli",
+        "xss",
+        "ssti",
+        "ssrf",
+        "xxe",
+        "rce",
+        "wstg"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-01",
+      "description": "Testing for Reflected Cross-Site Scripting (XSS)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-01",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-93"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-02",
+      "description": "Testing for Stored Cross-Site Scripting (XSS)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-02",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "javascript",
+        "html",
+        "php",
+        "java",
+        "python",
+        "nodejs",
+        "react",
+        "angular",
+        "vue"
+      ],
+      "cwe_ids": [
+        "CWE-79"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-03",
+      "description": "Testing for HTTP Verb Tampering",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-03",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-89"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-04",
+      "description": "Testing for HTTP Parameter Pollution (HPP)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-04",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "php",
+        "asp",
+        "jsp"
+      ],
+      "cwe_ids": [
+        "CWE-94"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05",
+      "description": "Testing for SQL Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "mysql",
+        "postgresql",
+        "mssql",
+        "oracle",
+        "sqlite",
+        "php",
+        "java",
+        "python",
+        "nodejs"
+      ],
+      "cwe_ids": [
+        "CWE-89",
+        "CWE-564"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.1",
+      "description": "Testing for SQL Injection - Oracle",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.1",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.2",
+      "description": "Testing for SQL Injection - MySQL",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.2",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.3",
+      "description": "Testing for SQL Injection - SQL Server",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.3",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.4",
+      "description": "Testing for SQL Injection - PostgreSQL",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.4",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.5",
+      "description": "Testing for SQL Injection - MS Access",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.5",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.6",
+      "description": "Testing for NoSQL Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.6",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.7",
+      "description": "Testing for ORM Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.7",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-05.8",
+      "description": "Testing for Client-Side SQL Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-05.8",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-06",
+      "description": "Testing for LDAP Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-06",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "ldap",
+        "activedirectory",
+        "openldap"
+      ],
+      "cwe_ids": [
+        "CWE-90"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-07",
+      "description": "Testing for XML Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-07",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "xml",
+        "xpath"
+      ],
+      "cwe_ids": [
+        "CWE-91"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-08",
+      "description": "Testing for SSI Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-08",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-90"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-09",
+      "description": "Testing for XPath Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-09",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "linux",
+        "windows",
+        "php",
+        "python",
+        "nodejs",
+        "ruby"
+      ],
+      "cwe_ids": [
+        "CWE-78"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-10",
+      "description": "Testing for IMAP/SMTP Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-10",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-601"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-11",
+      "description": "Testing for Code Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-11",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [
+        "python",
+        "ruby",
+        "php",
+        "java",
+        "jinja2",
+        "twig",
+        "freemarker"
+      ],
+      "cwe_ids": [
+        "CWE-94",
+        "CWE-95"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-11.1",
+      "description": "Testing for File Inclusion (LFI/RFI)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-11.1",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-12",
+      "description": "Testing for Command Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-12",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-13",
+      "description": "Testing for Format String Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-13",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-14",
+      "description": "Testing for Incubated Vulnerabilities",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-14",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-15",
+      "description": "Testing for HTTP Splitting/Smuggling",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-15",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-16",
+      "description": "Testing for HTTP Incoming Requests",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-16",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-17",
+      "description": "Testing for Host Header Injection",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-17",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-18",
+      "description": "Testing for Server-Side Template Injection (SSTI)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-18",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-19",
+      "description": "Testing for Server-Side Request Forgery (SSRF)",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-19",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-inpv-20",
+      "description": "Testing for Mass Assignment",
+      "category": "input-validation",
+      "owasp_id": "WSTG-INPV-20",
+      "verified": "official",
+      "tags": [
+        "injection",
+        "input-validation",
+        "xss",
+        "sqli",
+        "wstg",
+        "inpv"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-logic-client-api",
+      "description": "WSTG business logic, client-side, and API security testing",
+      "verified": "official",
+      "tags": [
+        "logic",
+        "client-side",
+        "api",
+        "graphql",
+        "cors",
+        "websocket",
+        "wstg"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-recon-config",
+      "description": "WSTG reconnaissance, configuration, error handling, and cryptography testing techniques",
+      "verified": "official",
+      "tags": [
+        "recon",
+        "config",
+        "headers",
+        "tls",
+        "wstg"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-01",
+      "description": "Testing for Session Management Schema",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-01",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [
+        "cookies",
+        "jwt",
+        "session"
+      ],
+      "cwe_ids": [
+        "CWE-539"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-02",
+      "description": "Testing for Cookies Attributes",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-02",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-384"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-03",
+      "description": "Testing for Session Fixation",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-03",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-613"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-04",
+      "description": "Testing for Exposed Session Variables",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-04",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-614"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-05",
+      "description": "Testing for Cross Site Request Forgery (CSRF)",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-05",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [
+        "html",
+        "javascript",
+        "cookies"
+      ],
+      "cwe_ids": [
+        "CWE-352"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-06",
+      "description": "Testing for Logout Functionality",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-06",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-613"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-07",
+      "description": "Testing for Session Timeout",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-07",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-384"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-08",
+      "description": "Testing for Session Puzzling",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-08",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-200"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-09",
+      "description": "Testing for Session Hijacking",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-09",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [
+        "CWE-384"
+      ],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-10",
+      "description": "Testing JSON Web Tokens (JWT)",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-10",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "wstg-sess-11",
+      "description": "Testing for Concurrent Sessions",
+      "category": "session-management",
+      "owasp_id": "WSTG-SESS-11",
+      "verified": "official",
+      "tags": [
+        "session",
+        "cookies",
+        "csrf",
+        "token",
+        "wstg",
+        "sess"
+      ],
+      "tech_stack": [],
+      "cwe_ids": [],
+      "files": [
+        "SKILL.md"
+      ]
+    }
+  ]
+}

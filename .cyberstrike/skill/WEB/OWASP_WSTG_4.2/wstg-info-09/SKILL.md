@@ -1,0 +1,101 @@
+---
+name: wstg-info-09
+description: "Fingerprint Web Application"
+category: information-gathering
+owasp_id: WSTG-INFO-09
+version: "1.0.0"
+author: cyberstrike-official
+tags: [recon, fingerprint, enumeration, wstg, info]
+tech_stack: []
+cwe_ids: [CWE-200]
+chains_with: []
+prerequisites: []
+severity_boost: {}
+sha256: 368413fe7b12d117ae5660b291aba194f710e644fcee0976efd6ed7c246cfbc7
+signature: L6tumiQy8QBmTU7VcMsfcMDxMEZ7Z71JYwrYdhOg/eMubv3chXUV/Eq0544v96sNP0FXulmm6AOWdJqVbAm7BQ==
+signed_by: cyberstrike-official
+---
+
+# wstg-info-09
+
+## Test ID
+
+WSTG-INFO-09
+
+## Test Name
+
+Fingerprint Web Application
+
+## Status
+
+> **Note**: This test case has been merged into **WSTG-INFO-08: Fingerprint Web Application Framework** in the latest OWASP WSTG version.
+
+## Consolidated Reference
+
+For comprehensive guidance on web application fingerprinting, including:
+
+- Application identification techniques
+- Version detection methods
+- Technology stack analysis
+- Custom application identification
+
+Please refer to: **[WSTG-INFO-08: Fingerprint Web Application Framework](./WSTG-INFO-08.md)**
+
+---
+
+## Additional Application-Specific Fingerprinting
+
+While WSTG-INFO-08 covers framework fingerprinting, consider these additional checks for custom/bespoke applications:
+
+### Custom Application Indicators
+
+- [ ] Unique URL patterns
+- [ ] Custom HTTP headers
+- [ ] Application-specific cookies
+- [ ] Proprietary JavaScript libraries
+- [ ] Custom error messages
+- [ ] Unique HTML structures
+- [ ] Versioning in source code comments
+
+### Version Detection Techniques
+
+```bash
+# Check for version in common locations
+curl -s https://target.com/version
+curl -s https://target.com/api/version
+curl -s https://target.com/health
+curl -s https://target.com/info
+curl -s https://target.com/about
+
+# Check for build info in HTML comments
+curl -s https://target.com | grep -iE 'version|build|release'
+
+# Check JavaScript for version strings
+curl -s https://target.com/app.js | grep -iE 'version|v[0-9]+\.[0-9]+'
+```
+
+### Documentation
+
+When fingerprinting custom applications, document:
+
+1. **Application Name**: Official name and any aliases
+2. **Version Information**: If discoverable
+3. **Vendor/Developer**: Who built the application
+4. **Deployment Date**: If identifiable
+5. **Technology Stack**: Underlying frameworks and libraries
+6. **Known CVEs**: Research based on identified versions
+
+sha256: 70cf8b5c6c5887c89024653255a06d614a26e120367946e433691e48e2779a49
+signature: AHTd6eskqk9Qz7BTHNP6LHPIoiaO2/rzzV417L/qrJt5Jb9unSXduKQlaBFts7UDVG4aBUHANuoiG7g2UxatCQ==
+signed_by: cyberstrike-official
+---
+
+## Checklist
+
+```
+[ ] See WSTG-INFO-08 checklist for comprehensive fingerprinting steps
+[ ] Custom application identifiers documented
+[ ] Version information gathered
+[ ] Vendor/developer identified
+[ ] Known vulnerabilities researched
+```
