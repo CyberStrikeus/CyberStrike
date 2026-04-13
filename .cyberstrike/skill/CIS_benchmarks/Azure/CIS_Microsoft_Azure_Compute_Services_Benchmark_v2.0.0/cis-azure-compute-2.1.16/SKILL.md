@@ -17,12 +17,15 @@ severity_boost: {}
 # Ensure private endpoints are used to access App Service apps
 
 ## Description
+
 Use private endpoints to allow clients and services to securely access data located over a network via an encrypted Private Link. To do this, the private endpoint uses an IP address from the VNet for each service. Network traffic between disparate services securely traverses encrypted over the VNet. This VNet can also link addressing space, extending your network and accessing resources on it. Similarly, it can be a tunnel through public networks to connect remote infrastructures together. This creates further security through segmenting network traffic and preventing outside sources from accessing it.
 
 ## Rationale
+
 Securing traffic between services through encryption protects the data from easy interception and reading.
 
 ## Impact
+
 If an Azure Virtual Network is not implemented correctly, this may result in the loss of critical network traffic.
 
 Private endpoints are charged per hour of use. Refer to https://azure.microsoft.com/en-us/pricing/details/private-link/ and https://azure.microsoft.com/en-us/pricing/calculator/ to estimate potential costs.
@@ -30,6 +33,7 @@ Private endpoints are charged per hour of use. Refer to https://azure.microsoft.
 ## Audit Procedure
 
 ### Using Azure Portal
+
 1. Go to `App Services`.
 2. Click the name of an app.
 3. Under `Settings`, click `Networking`.
@@ -38,12 +42,15 @@ Private endpoints are charged per hour of use. Refer to https://azure.microsoft.
 6. Repeat steps 1-5 for each app.
 
 ### Using Azure CLI
+
 Run the following command to list apps IDs:
+
 ```
 az webapp list --query [*].id
 ```
 
 Run the following command to list private link service IDs and connection states:
+
 ```
 az network private-endpoint list --query [*].privateLinkServiceConnections[*].[privateLinkServiceId,privateLinkServiceConnectionState.status]
 ```
@@ -51,14 +58,17 @@ az network private-endpoint list --query [*].privateLinkServiceConnections[*].[p
 Ensure that a private endpoint exists for each app with a connection state of `Approved`.
 
 ### Using Azure PowerShell
+
 Not specifically documented for this control.
 
 ## Expected Result
+
 At least one private endpoint should exist for each app with a connection state of `Approved`.
 
 ## Remediation
 
 ### Using Azure Portal
+
 1. Go to `App Services`.
 2. Click the name of an app.
 3. Under `Settings`, click `Networking`.
@@ -82,22 +92,28 @@ At least one private endpoint should exist for each app with a connection state 
    11. Click `Create`.
 
 ### Using Azure CLI
+
 For each app requiring remediation, run the following command to create a private endpoint:
+
 ```
 az network private-endpoint create --resource-group <resource-group-name> --location <location> --name <private-endpoint-name> --vnet-name <virtual-network-name> --subnet <subnet-name> --private-connection-resource-id <fully-qualified-app-id> --connection-name <connection-name> --group-id sites
 ```
 
 ### Using Azure PowerShell
+
 Not specifically documented for this control.
 
 ## Default Value
+
 By default, private endpoints are not configured for apps.
 
 ## References
+
 1. https://learn.microsoft.com/en-us/azure/app-service/overview-private-endpoint
 2. https://azure.microsoft.com/en-us/pricing/details/private-link/
 3. https://learn.microsoft.com/en-us/cli/azure/webapp
 4. https://learn.microsoft.com/en-us/cli/azure/network/private-endpoint
 
 ## Profile
+
 Level 2 | Automated

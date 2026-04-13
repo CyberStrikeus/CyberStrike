@@ -36,13 +36,13 @@ Depending on how the encryption is implemented will change the size of the impac
 
 ### Using Azure CLI
 
-For each virtual machine identify if the VM is using a legacy VHD by reviewing the *VHD* parameter in the output of the following command. The *VHD* parameter will contain the Storage Account name used for the VHD.
+For each virtual machine identify if the VM is using a legacy VHD by reviewing the _VHD_ parameter in the output of the following command. The _VHD_ parameter will contain the Storage Account name used for the VHD.
 
 ```bash
 az vm show --name <MyVM> --resource-group <MyResourceGroup>
 ```
 
-Next, identify if the storage account from the *VHD* parameter is encrypted by reviewing the *encryption --> services --> blob --> enabled* within the output of the following command and make sure its value is *True*.
+Next, identify if the storage account from the _VHD_ parameter is encrypted by reviewing the _encryption --> services --> blob --> enabled_ within the output of the following command and make sure its value is _True_.
 
 ```bash
 az storage account show --name <storage account name> --resource-group <resource group>
@@ -59,7 +59,7 @@ $virtualMachine.OsDisk
 $virtualMachine.DataDisks
 ```
 
-Next, use the value from *VHD* to see if the storage blob holding the VHD is encrypted.
+Next, use the value from _VHD_ to see if the storage blob holding the VHD is encrypted.
 
 ```powershell
 $storageAccount = Get-AzStorageAccount -Name <storage account name from VHD setting> -ResourceGroupName <resource group name>
