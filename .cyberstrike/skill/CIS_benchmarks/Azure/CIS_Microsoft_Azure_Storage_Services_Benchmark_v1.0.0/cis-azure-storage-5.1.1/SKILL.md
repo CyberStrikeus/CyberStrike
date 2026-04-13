@@ -111,10 +111,10 @@ Soft delete is enabled by default on newly created Backup vaults.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 11.1 Establish and Maintain a Data Recovery Process | X | X | X |
-| v7 | 10.4 Ensure Protection of Backups | X | X | X |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.1 Establish and Maintain a Data Recovery Process | X    | X    | X    |
+| v7               | 10.4 Ensure Protection of Backups                   | X    | X    | X    |
 
 ## Profile
 

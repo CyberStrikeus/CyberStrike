@@ -107,10 +107,10 @@ Note: Once encryption is configured to use a customer-managed key, this setting 
 6. Under `Encryption key`, click the radio button next to `Enter key URI` to provide a known key URI, or click the radio button next to `Select from Key Vault` to select a key from a Key Vault.
 7. If entering a key URI, provide the key URI in the text box under `Key URI`.
 8. If selecting a key from a Key Vault, click `select key from Key Vault`.
-    1. Select `Key vault` or `Managed HSM`.
-    2. Select a key vault or managed HSM.
-    3. Select a key.
-    4. Click `Select`.
+   1. Select `Key vault` or `Managed HSM`.
+   2. Select a key vault or managed HSM.
+   3. Select a key.
+   4. Click `Select`.
 9. Select a managed identity to use for the encryption key.
 10. Click `Update`.
 11. Repeat steps 1-10 for each Recovery Services vault.
@@ -155,10 +155,10 @@ By default, data in the Recovery Services vault is encrypted using Microsoft-man
 
 ### CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system, in order to access the information. | | | X |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data. |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system, in order to access the information.                                                                                                                                                                                                                             |      |      | X    |
 
 ## Profile
 
