@@ -27,6 +27,7 @@ Limit the number of security principals (users, groups, service principals, and 
 ## Impact
 
 Implementation may require changes in administrative workflows or the redistribution of roles and responsibilities. The recommendation to have between 2 and 3 Owners per subscription must account for all security principals that can be assigned the Owner role, not just individual users. This includes:
+
 - User accounts
 - Entra ID groups
 - Service principals (used by applications or automation)
@@ -107,10 +108,10 @@ A subscription has 1 owner by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.1 Establish and Maintain an Inventory of Accounts | x | x | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.1 Establish and Maintain an Inventory of Accounts | x    | x    | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts   |      | x    | x    |
 
 ## Profile
 

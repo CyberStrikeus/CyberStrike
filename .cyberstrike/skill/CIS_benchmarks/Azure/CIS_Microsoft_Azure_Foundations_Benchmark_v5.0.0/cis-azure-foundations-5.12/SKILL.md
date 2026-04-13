@@ -77,11 +77,11 @@ By default, `Users consent for applications` is set to `Allow user consent for a
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.3 Address Unauthorized Software | x | x | x |
-| v8 | 6.1 Establish an Access Granting Process | x | x | x |
-| v7 | 2.6 Address unapproved software | x | x | x |
+| Controls Version | Control                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.3 Address Unauthorized Software        | x    | x    | x    |
+| v8               | 6.1 Establish an Access Granting Process | x    | x    | x    |
+| v7               | 2.6 Address unapproved software          | x    | x    | x    |
 
 ## Profile
 

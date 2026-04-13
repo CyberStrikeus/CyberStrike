@@ -31,14 +31,17 @@ Azure Key Vault Managed HSM has significantly higher costs than standard Key Vau
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key Vault Managed HSMs` (search in the portal search bar).
 2. Verify that Managed HSM instances exist for workloads requiring FIPS 140-2 Level 3 compliance.
 3. Click a Managed HSM instance to verify it is in a `Provisioned` state.
 
 **From Azure CLI:**
+
 ```
 az keyvault list --hsm-name --query "[].{Name:name, Location:location, State:properties.provisioningState}" -o table
 ```
+
 Verify that Managed HSM instances exist and are in `Succeeded` provisioning state.
 
 **Note:** This is a manual assessment. Organizations must determine which workloads require Managed HSM based on their compliance and security requirements.
@@ -50,6 +53,7 @@ Organizations with FIPS 140-2 Level 3 compliance requirements should have Azure 
 ## Remediation
 
 **From Azure Portal:**
+
 1. Search for `Key Vault Managed HSMs` in the portal.
 2. Click `Create managed HSM`.
 3. Configure the HSM with the appropriate subscription, resource group, name, and region.
@@ -59,15 +63,19 @@ Organizations with FIPS 140-2 Level 3 compliance requirements should have Azure 
 7. Migrate keys that require FIPS 140-2 Level 3 protection to the Managed HSM.
 
 **From Azure CLI:**
+
 ```
 az keyvault create --hsm-name {hsmName} --resource-group {resourceGroup} --location {location} --administrators {objectId1} {objectId2} {objectId3}
 ```
+
 After creation, activate the security domain:
+
 ```
 az keyvault security-domain download --hsm-name {hsmName} --sd-wrapping-keys cert1.pem cert2.pem cert3.pem --sd-quorum 2 --security-domain-file {hsmName}-SD.json
 ```
 
 **From PowerShell:**
+
 ```
 New-AzKeyVaultManagedHsm -Name {hsmName} -ResourceGroupName {resourceGroup} -Location {location} -Administrator {objectId1},{objectId2},{objectId3}
 ```

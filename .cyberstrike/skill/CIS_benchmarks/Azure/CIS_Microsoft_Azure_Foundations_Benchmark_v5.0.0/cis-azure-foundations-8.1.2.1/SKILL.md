@@ -31,6 +31,7 @@ Microsoft Defender for APIs uses a tiered pricing model, billed per subscription
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -38,18 +39,23 @@ Microsoft Defender for APIs uses a tiered pricing model, billed per subscription
 5. Under `Cloud Workload Protection (CWP)`, in the row for `APIs`, ensure the `Status` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show --name Api --query pricingTier
 ```
+
 Ensure `"Standard"` is returned.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name Api | Select-Object PricingTier
 ```
+
 Ensure `Standard` is returned.
 
 **From Azure Policy:**
+
 - Policy ID: `7926a6d1-b268-4586-8197-e8ae90c877d7` - Name: 'Microsoft Defender for APIs should be enabled'
 
 ## Expected Result
@@ -59,6 +65,7 @@ The pricing tier for Api should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -69,15 +76,19 @@ The pricing tier for Api should be `Standard`.
 8. Click `Save` to enable Defender for APIs.
 
 **From Azure CLI:**
+
 ```
 az security pricing create --name Api --tier Standard --subplan <subplan>
 ```
+
 Valid subplan values: P1, P2, P3, P4, and P5.
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name Api -PricingTier Standard -SubPlan <subplan>
 ```
+
 Valid SubPlan values: P1, P2, P3, P4, and P5.
 
 ## Default Value

@@ -31,6 +31,7 @@ Agentless scanning for machines requires licensing and is included in Defender C
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. From the Azure Portal `Home` page, select `Microsoft Defender for Cloud`.
 2. Under `Management` select `Environment Settings`.
 3. Select a subscription.
@@ -47,6 +48,7 @@ Agentless scanning for machines should be set to `On`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. From the Azure Portal `Home` page, select `Microsoft Defender for Cloud`.
 2. Under `Management` select `Environment Settings`.
 3. Select a subscription.

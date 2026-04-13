@@ -107,8 +107,8 @@ By default, MFA is not enforced for Virtual Machine Administrator Login role ass
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-| ---------------------------- | ------- | ----------- |
-| T1078.002, T1078.004         |         |             |
+| --------------------------- | ------- | ----------- |
+| T1078.002, T1078.004        |         |             |
 
 ## Profile
 

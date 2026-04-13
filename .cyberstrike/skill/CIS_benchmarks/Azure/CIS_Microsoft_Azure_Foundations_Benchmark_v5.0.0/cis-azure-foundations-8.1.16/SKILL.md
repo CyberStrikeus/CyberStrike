@@ -31,6 +31,7 @@ Keeping all MCSB policies enabled may generate recommendations for resources tha
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -39,20 +40,26 @@ Keeping all MCSB policies enabled may generate recommendations for resources tha
 6. Review the list of policies and ensure none have the `Effect` set to `Disabled`.
 
 **From Azure CLI:**
+
 ```
 az policy assignment list --scope "/subscriptions/{subscriptionId}" --query "[?displayName=='Microsoft Cloud Security Benchmark']"
 ```
+
 Then check the policy parameters for any disabled effects:
+
 ```
 az policy assignment show --name "{assignmentName}" --scope "/subscriptions/{subscriptionId}" --query "parameters"
 ```
+
 Verify no policy effects are set to `Disabled`.
 
 **From PowerShell:**
+
 ```
 $assignment = Get-AzPolicyAssignment -Scope "/subscriptions/{subscriptionId}" | Where-Object {$_.Properties.DisplayName -eq "Microsoft Cloud Security Benchmark"}
 $assignment.Properties.Parameters | ConvertTo-Json -Depth 10
 ```
+
 Review the output and verify no policy effects are set to `Disabled`.
 
 ## Expected Result
@@ -62,6 +69,7 @@ All policies within the Microsoft Cloud Security Benchmark initiative should hav
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -72,11 +80,13 @@ All policies within the Microsoft Cloud Security Benchmark initiative should hav
 8. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az policy assignment update --name "{assignmentName}" --scope "/subscriptions/{subscriptionId}" --params '{"policyParameterName":{"value":"AuditIfNotExists"}}'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzPolicyAssignment -Name "{assignmentName}" -Scope "/subscriptions/{subscriptionId}" -PolicyParameter '{"policyParameterName":{"value":"AuditIfNotExists"}}'
 ```

@@ -18,7 +18,7 @@ severity_boost: {}
 
 ## Description
 
-Azure Resource Manager *CannotDelete (Delete)* locks can prevent users from accidentally or maliciously deleting a storage account. This feature ensures that while the Storage account can still be modified or used, deletion of the Storage account resource requires removal of the lock by a user with appropriate permissions.
+Azure Resource Manager _CannotDelete (Delete)_ locks can prevent users from accidentally or maliciously deleting a storage account. This feature ensures that while the Storage account can still be modified or used, deletion of the Storage account resource requires removal of the lock by a user with appropriate permissions.
 
 This feature is a protective control for the availability of data. By ensuring that a storage account or its parent resource group cannot be deleted without first removing the lock, the risk of data loss is reduced.
 
@@ -26,7 +26,7 @@ While an automated assessment procedure exists for this recommendation, the asse
 
 ## Rationale
 
-Applying a *Delete* lock on storage accounts protects the availability of data by preventing the accidental or unauthorized deletion of the entire storage account. It is a fundamental protective control that can prevent data loss.
+Applying a _Delete_ lock on storage accounts protects the availability of data by preventing the accidental or unauthorized deletion of the entire storage account. It is a fundamental protective control that can prevent data loss.
 
 ## Impact
 

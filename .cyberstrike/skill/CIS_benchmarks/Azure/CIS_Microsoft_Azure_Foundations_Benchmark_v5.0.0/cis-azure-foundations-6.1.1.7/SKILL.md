@@ -83,16 +83,16 @@ By default, virtual network flow logs are not configured.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 13.6 Collect Network Traffic Flow Logs | | x | x |
-| v7 | 12.8 Deploy NetFlow Collection on Networking Boundary Devices | | x | x |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.6 Collect Network Traffic Flow Logs                        |      | x    | x    |
+| v7               | 12.8 Deploy NetFlow Collection on Networking Boundary Devices |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques | Tactics | Mitigations |
 | ---------- | ------- | ----------- |
-| | | M1047 |
+|            |         | M1047       |
 
 ## Profile
 

@@ -148,10 +148,10 @@ This policy does not exist by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 6.7 Centralize Access Control | | x | x |
-| v7 | 12.1 Maintain an Inventory of Network Boundaries | x | x | x |
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.7 Centralize Access Control                    |      | x    | x    |
+| v7               | 12.1 Maintain an Inventory of Network Boundaries | x    | x    | x    |
 
 ## Profile
 

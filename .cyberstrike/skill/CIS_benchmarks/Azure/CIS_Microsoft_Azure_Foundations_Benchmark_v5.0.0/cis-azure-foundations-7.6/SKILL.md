@@ -99,12 +99,12 @@ Network Watcher is automatically enabled. When you create or update a virtual ne
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v8 | 12.4 Establish and Maintain Architecture Diagram(s) | | x | x |
-| v7 | 11.2 Document Traffic Configuration Rules | | x | x |
-| v7 | 12.1 Maintain an Inventory of Network Boundaries | x | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture |      | x    | x    |
+| v8               | 12.4 Establish and Maintain Architecture Diagram(s)       |      | x    | x    |
+| v7               | 11.2 Document Traffic Configuration Rules                 |      | x    | x    |
+| v7               | 12.1 Maintain an Inventory of Network Boundaries          | x    | x    | x    |
 
 ## Profile
 

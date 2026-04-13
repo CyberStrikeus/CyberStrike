@@ -9,7 +9,8 @@ cis_id: "7.11"
 cis_benchmark: "CIS Microsoft Azure Foundations Benchmark v5.0.0"
 tech_stack: [azure]
 cwe_ids: []
-chains_with: [cis-azure-foundations-7.1, cis-azure-foundations-7.2, cis-azure-foundations-7.3, cis-azure-foundations-7.4]
+chains_with:
+  [cis-azure-foundations-7.1, cis-azure-foundations-7.2, cis-azure-foundations-7.3, cis-azure-foundations-7.4]
 prerequisites: []
 severity_boost: {}
 ---
@@ -101,16 +102,16 @@ By default, a subnet is not associated with a network security group.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | x | x |
-| v7 | 9.4 Apply Host-based Firewalls or Port Filtering | x | x | x |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments |      | x    | x    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering        | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| T1190 | TA0001 | M1030 |
+| T1190                       | TA0001  | M1030       |
 
 ## Profile
 

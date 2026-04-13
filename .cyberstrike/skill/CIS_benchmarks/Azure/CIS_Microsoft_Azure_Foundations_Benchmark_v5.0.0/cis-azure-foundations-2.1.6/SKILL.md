@@ -111,10 +111,10 @@ By default, personal access tokens are enabled and users can create the Personal
 
 ## CIS Controls
 
-| Controls Version | Control                                                          | IG 1 | IG 2 | IG 3 |
-| ---------------- | ---------------------------------------------------------------- | ---- | ---- | ---- |
-| v8               | 6.2 Establish an Access Revoking Process                         | x    | x    | x    |
-| v7               | 16.7 Establish Process for Revoking Access                       |      | x    | x    |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process   | x    | x    | x    |
+| v7               | 16.7 Establish Process for Revoking Access |      | x    | x    |
 
 ## Profile
 

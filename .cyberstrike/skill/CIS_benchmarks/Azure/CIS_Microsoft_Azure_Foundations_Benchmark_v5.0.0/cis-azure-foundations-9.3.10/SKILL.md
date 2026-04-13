@@ -20,11 +20,11 @@ severity_boost: {}
 
 Adding an Azure Resource Manager `ReadOnly` lock can prevent users from accidentally or maliciously deleting a storage account, modifying its properties and containers, or creating access assignments. The lock must be removed before the storage account can be deleted or updated. It provides more protection than a `CannotDelete`-type of resource manager lock.
 
-This feature prevents `POST` operations on a storage account and containers to the Azure Resource Manager control plane, *management.azure.com*. Blocked operations include `listKeys` which prevents clients from obtaining the account shared access keys.
+This feature prevents `POST` operations on a storage account and containers to the Azure Resource Manager control plane, _management.azure.com_. Blocked operations include `listKeys` which prevents clients from obtaining the account shared access keys.
 
 Microsoft does not recommend `ReadOnly` locks for storage accounts with Azure Files and Table service containers.
 
-This Azure Resource Manager REST API documentation (spec) provides information about the control plane `POST` operations for *Microsoft.Storage* resources.
+This Azure Resource Manager REST API documentation (spec) provides information about the control plane `POST` operations for _Microsoft.Storage_ resources.
 
 While an automated assessment procedure exists for this recommendation, the assessment status remains manual. Determining storage accounts that require ReadOnly locks depends on the context and requirements of each organization and environment.
 

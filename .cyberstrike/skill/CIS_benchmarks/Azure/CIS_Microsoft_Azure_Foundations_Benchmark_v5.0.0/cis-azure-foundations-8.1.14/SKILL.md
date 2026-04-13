@@ -31,6 +31,7 @@ Setting the notification threshold to 'High' will result in email notifications 
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -38,15 +39,19 @@ Setting the notification threshold to 'High' will result in email notifications 
 5. Verify that `Notify about alerts with the following severity (or higher)` is set to `High`.
 
 **From Azure CLI:**
+
 ```
 az rest --method get --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts?api-version=2020-01-01-preview"
 ```
+
 Verify that `alertNotifications.minimalSeverity` is set to `High`.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityContact | Select-Object Name, AlertNotifications
 ```
+
 Ensure `AlertNotifications` is enabled and the minimal severity is set to `High`.
 
 ## Expected Result
@@ -56,6 +61,7 @@ The alert notification severity threshold should be set to `High`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, click `Environment settings`.
 3. Click the name of a subscription.
@@ -64,11 +70,13 @@ The alert notification severity threshold should be set to `High`.
 6. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az rest --method put --url "https://management.azure.com/subscriptions/{subscriptionId}/providers/Microsoft.Security/securityContacts/default?api-version=2020-01-01-preview" --body '{"properties":{"alertNotifications":{"state":"On","minimalSeverity":"High"}}}'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityContact -Name "default" -AlertAdmin -NotifyOnAlert
 ```

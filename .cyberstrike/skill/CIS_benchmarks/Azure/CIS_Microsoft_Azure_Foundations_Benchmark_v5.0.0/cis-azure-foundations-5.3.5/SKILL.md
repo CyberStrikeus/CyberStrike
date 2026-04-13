@@ -119,10 +119,10 @@ Disabled user accounts retain their prior role assignments.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 5.1 Establish and Maintain an Inventory of Accounts | x | x | x |
-| v7 | 16.6 Maintain an Inventory of Accounts | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.1 Establish and Maintain an Inventory of Accounts | x    | x    | x    |
+| v7               | 16.6 Maintain an Inventory of Accounts              |      | x    | x    |
 
 ## Profile
 

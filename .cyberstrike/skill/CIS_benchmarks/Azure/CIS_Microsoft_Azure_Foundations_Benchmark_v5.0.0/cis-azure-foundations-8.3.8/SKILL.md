@@ -31,6 +31,7 @@ Enabling automatic key rotation requires applications to use the latest key vers
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Objects`, click `Keys`.
@@ -39,12 +40,15 @@ Enabling automatic key rotation requires applications to use the latest key vers
 6. Verify that a rotation policy is configured with an appropriate rotation interval.
 
 **From Azure CLI:**
+
 ```
 az keyvault key rotation-policy show --vault-name {vaultName} --name {keyName}
 ```
+
 Verify that a rotation policy exists with `lifetimeActions` configured.
 
 For all keys in a vault:
+
 ```
 for key in $(az keyvault key list --vault-name {vaultName} --query "[].name" -o tsv); do
     echo "Key: $key"
@@ -53,6 +57,7 @@ done
 ```
 
 **From PowerShell:**
+
 ```
 $keys = Get-AzKeyVaultKey -VaultName {vaultName}
 foreach ($key in $keys) {
@@ -71,6 +76,7 @@ All keys in Key Vaults that support automatic rotation should have a rotation po
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Key vaults`.
 2. Click the name of a Key Vault.
 3. Under `Objects`, click `Keys`.
@@ -82,6 +88,7 @@ All keys in Key Vaults that support automatic rotation should have a rotation po
 9. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az keyvault key rotation-policy update --vault-name {vaultName} --name {keyName} --value '{
   "lifetimeActions": [
@@ -99,6 +106,7 @@ az keyvault key rotation-policy update --vault-name {vaultName} --name {keyName}
 ```
 
 **From PowerShell:**
+
 ```
 $policy = New-AzKeyVaultKeyRotationPolicy -VaultName {vaultName} -Name {keyName} -ExpiresIn "P1Y" -LifetimeAction @{
     Action = "Rotate"

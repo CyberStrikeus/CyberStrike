@@ -89,10 +89,10 @@ A Token Protection Conditional Access policy does not exist by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 6.3 Require MFA for Externally-Exposed Applications | | x | x |
-| v8 | 6.4 Require MFA for Remote Network Access | x | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.3 Require MFA for Externally-Exposed Applications |      | x    | x    |
+| v8               | 6.4 Require MFA for Remote Network Access           | x    | x    | x    |
 
 ## Profile
 

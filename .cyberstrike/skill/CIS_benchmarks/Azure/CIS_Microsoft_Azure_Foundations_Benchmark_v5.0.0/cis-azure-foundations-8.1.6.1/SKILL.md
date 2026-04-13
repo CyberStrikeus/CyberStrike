@@ -31,6 +31,7 @@ Turning on Microsoft Defender for App Service incurs an additional cost per reso
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click the subscription name.
@@ -38,18 +39,23 @@ Turning on Microsoft Defender for App Service incurs an additional cost per reso
 5. Ensure Status is `On` for `App Service`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n AppServices
 ```
+
 Ensure `-PricingTier` is set to `Standard`.
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'AppServices' | Select-Object Name,PricingTier
 ```
+
 Ensure the `-PricingTier` is set to `Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `2913021d-f2fd-4f3d-b958-22354e2bdbcb` - Name: 'Azure Defender for App Service should be enabled'
 
 ## Expected Result
@@ -59,6 +65,7 @@ The pricing tier for AppServices should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click the subscription name.
@@ -67,11 +74,13 @@ The pricing tier for AppServices should be `Standard`.
 6. Select `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n Appservices --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name "AppServices" -PricingTier "Standard"
 ```

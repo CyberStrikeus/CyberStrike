@@ -31,6 +31,7 @@ Enabling Microsoft Defender for Azure Cosmos DB requires enabling Microsoft Defe
 ## Audit Procedure
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -39,17 +40,21 @@ Enabling Microsoft Defender for Azure Cosmos DB requires enabling Microsoft Defe
 6. Ensure the toggle switch next to `Azure Cosmos DB` is set to `On`.
 
 **From Azure CLI:**
+
 ```
 az security pricing show -n CosmosDbs --query pricingTier
 ```
 
 **From PowerShell:**
+
 ```
 Get-AzSecurityPricing -Name 'CosmosDbs' | Select-Object Name,PricingTier
 ```
+
 Ensure output of `-PricingTier` is `Standard`.
 
 **From Azure Policy:**
+
 - Policy ID: `adbe85b5-83e6-4350-ab58-bf3a4f736e5e` - Name: 'Microsoft Defender for Azure Cosmos DB should be enabled'
 
 ## Expected Result
@@ -59,6 +64,7 @@ The pricing tier for CosmosDbs should be `Standard`.
 ## Remediation
 
 **From Azure Portal:**
+
 1. Go to `Microsoft Defender for Cloud`.
 2. Under `Management`, select `Environment Settings`.
 3. Click on the subscription name.
@@ -69,11 +75,13 @@ The pricing tier for CosmosDbs should be `Standard`.
 8. Click `Save`.
 
 **From Azure CLI:**
+
 ```
 az security pricing create -n 'CosmosDbs' --tier 'standard'
 ```
 
 **From PowerShell:**
+
 ```
 Set-AzSecurityPricing -Name 'CosmosDbs' -PricingTier 'Standard'
 ```

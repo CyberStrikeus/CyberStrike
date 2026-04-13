@@ -105,17 +105,17 @@ As network security group flow logs are on the retirement path, Azure recommends
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-| ---------------- | ------- | ---- | ---- | ---- |
-| v8 | 8.3 Ensure Adequate Audit Log Storage | x | x | x |
-| v8 | 8.10 Retain Audit Logs | | x | x |
-| v7 | 6.4 Ensure adequate storage for logs | | x | x |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.3 Ensure Adequate Audit Log Storage | x    | x    | x    |
+| v8               | 8.10 Retain Audit Logs                |      | x    | x    |
+| v7               | 6.4 Ensure adequate storage for logs  |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
 | --------------------------- | ------- | ----------- |
-| | | M1047 |
+|                             |         | M1047       |
 
 ## Profile
 
