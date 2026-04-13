@@ -134,13 +134,13 @@ By default, access key authentication is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.6 Centralize Account Management | | X | X |
-| v7 | 16.2 Configure Centralized Point of Authentication | | X | X |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.6 Centralize Account Management                  |      | X    | X    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1134 | TA0004 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1134                       | TA0004  | M1018       |

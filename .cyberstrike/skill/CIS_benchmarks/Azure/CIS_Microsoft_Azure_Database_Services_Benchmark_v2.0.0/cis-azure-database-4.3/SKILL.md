@@ -67,7 +67,7 @@ A linked service connection to an Azure Key Vault should be present under Manage
 
 #### Set Permissions for Key Vault
 
-*Note* this presumes the use of RBAC Access control, not Access policies.
+_Note_ this presumes the use of RBAC Access control, not Access policies.
 
 1. From `Key vaults` select a key vault to grant access to.
 2. Select `+ Add`, and select `Add role assignment` from the dropdown.

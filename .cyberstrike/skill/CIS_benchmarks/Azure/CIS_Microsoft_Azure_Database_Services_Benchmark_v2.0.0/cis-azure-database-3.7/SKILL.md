@@ -51,13 +51,13 @@ There may be additional storage costs for logging a large amount of events. Pote
 Get-AzCosmosDBAccount -ResourceGroupName <resource group name>
 ```
 
-2. For each CosmosDB, determine which log categories are enabled for each account using the *Id* of each CosmosDB Account.
+2. For each CosmosDB, determine which log categories are enabled for each account using the _Id_ of each CosmosDB Account.
 
 ```powershell
 Get-AzDiagnosticSetting -ResourceId <CosmosDB Account Id>
 ```
 
-3. Within the output of the above command, ensure the log categories have *Enabled* set to *true*.
+3. Within the output of the above command, ensure the log categories have _Enabled_ set to _true_.
 
 ## Expected Result
 
