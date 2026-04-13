@@ -9,7 +9,8 @@ cis_id: "3.1.3.4.3.1"
 cis_benchmark: "CIS Google Workspace Foundations Benchmark v1.3.0"
 tech_stack: [gcp, google-workspace]
 cwe_ids: []
-chains_with: [cis-gworkspace-3.1.3.4.3.2, cis-gworkspace-3.1.3.4.3.3, cis-gworkspace-3.1.3.4.3.4, cis-gworkspace-3.1.3.4.3.5]
+chains_with:
+  [cis-gworkspace-3.1.3.4.3.2, cis-gworkspace-3.1.3.4.3.3, cis-gworkspace-3.1.3.4.3.4, cis-gworkspace-3.1.3.4.3.5]
 prerequisites: []
 severity_boost: {}
 ---
@@ -18,13 +19,13 @@ severity_boost: {}
 
 ## Overview
 
-| Property | Value |
-|---|---|
-| **CIS ID** | 3.1.3.4.3.1 |
-| **Level** | L1 |
-| **Profile Applicability** | Enterprise Level 1 |
-| **Assessment Type** | Manual |
-| **Section** | Gmail > Safety > Spoofing and authentication |
+| Property                  | Value                                        |
+| ------------------------- | -------------------------------------------- |
+| **CIS ID**                | 3.1.3.4.3.1                                  |
+| **Level**                 | L1                                           |
+| **Profile Applicability** | Enterprise Level 1                           |
+| **Assessment Type**       | Manual                                       |
+| **Section**               | Gmail > Safety > Spoofing and authentication |
 
 ## Description
 
@@ -68,7 +69,7 @@ To configure this setting via the Google Workspace Admin Console:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | x | x |
-| v7 | 7.4 Maintain and Enforce Network-Based URL Filters | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters |      | x    | x    |
+| v7               | 7.4 Maintain and Enforce Network-Based URL Filters |      | x    | x    |

@@ -17,12 +17,15 @@ severity_boost: {}
 # 5.1.1.1 Ensure the App Usage Report is reviewed regularly for anomalies
 
 ## Profile Applicability
+
 - Enterprise Level 1
 
 ## Description
+
 As an administrator, you can use Apps usage reports to get an in-depth understanding of how your users use Google Workspace apps.
 
 Fields Available:
+
 - User
 - Gmail storage used (MB)
 - Drive storage used (MB)
@@ -65,12 +68,15 @@ This report should be reviewed weekly.
 **NOTE:** In larger organizations reviewing this entire report weekly may not be possible. At a minimum, all Administrator and Super Administrator users should be reviewed, since they are a higher risk. These can be filtered from the overall user list.
 
 ## Rationale
+
 The App usage report can allow administrator to discover user that are potentially using application that they do not have access to and/or using in atypical ways.
 
 ## Impact
+
 No user impact.
 
 ## Audit
+
 To verify this setting via the Google Workspace Admin Console:
 
 1. Log in to `https://admin.google.com` as an administrator.
@@ -81,18 +87,22 @@ To verify this setting via the Google Workspace Admin Console:
 6. Review the displayed users and values for anomalies.
 
 ## Remediation
+
 The remediation for any anomalies in the various fields varies widely (different sections of the Google Workspace Admin UI). Please refer to Google's documentation for specifics.
 
-**NOTE:** Many of these settings will be remedied by implementing other sections of this Benchmark. For example, an Admin showing recent Gmail (IMAP) - last used time and/or Gmail (POP) - last used time can be remedied by implementing the Remediation procedure for the recommendation *Ensure POP and IMAP access is disabled for all users*.
+**NOTE:** Many of these settings will be remedied by implementing other sections of this Benchmark. For example, an Admin showing recent Gmail (IMAP) - last used time and/or Gmail (POP) - last used time can be remedied by implementing the Remediation procedure for the recommendation _Ensure POP and IMAP access is disabled for all users_.
 
 ## Default Value
+
 The report will display all users and fields.
 
 ## References
+
 1. https://support.google.com/a/answer/4579578
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.7 Regularly Review Logs | | x | x |
+
+| Controls Version | Control                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------ | ---- | ---- | ---- |
+| v8               | 8.11 Conduct Audit Log Reviews |      | x    | x    |
+| v7               | 6.7 Regularly Review Logs      |      | x    | x    |

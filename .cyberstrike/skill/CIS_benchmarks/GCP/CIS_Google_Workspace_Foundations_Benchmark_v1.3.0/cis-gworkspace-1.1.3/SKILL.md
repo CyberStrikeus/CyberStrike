@@ -61,10 +61,10 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v7 | 4.1 Maintain Inventory of Administrative Accounts | | x | x |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v7               | 4.1 Maintain Inventory of Administrative Accounts                         |      | x    | x    |
 
 ## Profile
 
