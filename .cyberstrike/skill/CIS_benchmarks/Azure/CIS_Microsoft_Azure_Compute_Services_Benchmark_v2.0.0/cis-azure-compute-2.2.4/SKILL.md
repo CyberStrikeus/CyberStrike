@@ -29,10 +29,12 @@ Basic Authentication introduces an identity silo for privileged access to a reso
 Disabling 'Basic Auth Publishing Credentials' will prevent the following deployment methods from working:
 
 FTP Basic Auth Publishing Credentials:
+
 - FTP
 - FTPS
 
 SCM Basic Auth Publishing Credentials:
+
 - Local Git
 - GitHub
 - Azure Repos

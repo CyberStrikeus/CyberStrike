@@ -53,6 +53,7 @@ az batch account list \
 ```
 
 Expected Output:
+
 - **SHOULD** contain "AAD" (Microsoft Entra ID)
 - Should **NOT** contain "SharedKey" or other entries
 
