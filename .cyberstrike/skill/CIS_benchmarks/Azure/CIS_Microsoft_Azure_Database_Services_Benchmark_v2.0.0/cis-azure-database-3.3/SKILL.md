@@ -116,13 +116,13 @@ By default, `disableLocalAuth` is set to `false`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.7 Centralize Access Control | | X | X |
-| v7 | 16.2 Configure Centralized Point of Authentication | | X | X |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.7 Centralize Access Control                      |      | X    | X    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1190 | | |
+| --------------------------- | ------- | ----------- |
+| T1190                       |         |             |

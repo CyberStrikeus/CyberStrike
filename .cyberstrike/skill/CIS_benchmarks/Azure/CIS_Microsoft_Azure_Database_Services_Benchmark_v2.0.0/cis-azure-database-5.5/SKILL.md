@@ -114,7 +114,7 @@ Update-AzMySqlFlexibleServerConfiguration -ResourceGroupName <resourceGroup> -Se
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | X    | X    | X    |
+| v7               | 6.2 Activate audit logging | X    | X    | X    |

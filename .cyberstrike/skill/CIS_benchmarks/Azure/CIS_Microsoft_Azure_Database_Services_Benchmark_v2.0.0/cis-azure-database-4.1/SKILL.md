@@ -84,13 +84,13 @@ By default in Azure, data at rest tends to be encrypted using Microsoft-managed 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | X |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1530 | TA0009 | M1041 |
+| --------------------------- | ------- | ----------- |
+| T1530                       | TA0009  | M1041       |
