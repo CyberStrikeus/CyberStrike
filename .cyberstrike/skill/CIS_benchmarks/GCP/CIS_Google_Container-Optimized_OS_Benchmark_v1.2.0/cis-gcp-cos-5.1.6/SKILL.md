@@ -48,11 +48,11 @@ X11Forwarding no
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v8 | 4.5 Implement and Manage a Firewall on End-User Devices | x | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers                     | x    | x    | x    |
+| v8               | 4.5 Implement and Manage a Firewall on End-User Devices            | x    | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | x    | x    |
 
 ## Profile
 
