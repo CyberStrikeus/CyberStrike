@@ -75,12 +75,12 @@ The proxy modules are disabled with a default source build.
 Version 6
 
 9.1 Limit Open Ports, Protocols, and Services
-    Ensure that only ports, protocols, and services with validated business needs are running on each system.
+Ensure that only ports, protocols, and services with validated business needs are running on each system.
 
 Version 7
 
 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
-    Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
+Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 
 ## Profile
 

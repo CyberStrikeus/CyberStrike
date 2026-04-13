@@ -118,9 +118,9 @@ The default source build extra content is available in the
 
 ```html
 <html>
-   <body>
-      <h1>It works!</h1>
-   </body>
+  <body>
+    <h1>It works!</h1>
+  </body>
 </html>
 ```
 

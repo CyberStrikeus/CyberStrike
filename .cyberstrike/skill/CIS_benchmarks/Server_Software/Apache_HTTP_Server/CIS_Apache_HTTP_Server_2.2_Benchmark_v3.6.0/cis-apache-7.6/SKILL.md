@@ -60,14 +60,14 @@ SSLInsecureRenegotiation off
 Version 6
 
 14.2 Encrypt All Sensitive Information Over Less-trusted Networks
-    All communication of sensitive information over less-trusted networks should be
-    encrypted. Whenever information flows over a network with a lower trust level,
-    the information should be encrypted.
+All communication of sensitive information over less-trusted networks should be
+encrypted. Whenever information flows over a network with a lower trust level,
+the information should be encrypted.
 
 Version 7
 
 14.4 Encrypt All Sensitive Information in Transit
-    Encrypt all sensitive information in transit.
+Encrypt all sensitive information in transit.
 
 ## Profile
 

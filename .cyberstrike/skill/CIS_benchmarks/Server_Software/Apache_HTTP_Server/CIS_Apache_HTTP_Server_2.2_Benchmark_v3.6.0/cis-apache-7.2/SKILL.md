@@ -47,13 +47,13 @@ soon as possible to avoid browser warnings.
 
 In addition, the weak SHA1 or MD5 signature algorithm will be highlighted with red text where the additional intermediate CA certificates are enumerated. For example, the certificate below from an SSL Labs report used SHA1 for the digital signature:
 
-   - Subject The Go Daddy Group, Inc.
-   - Fingerprint SHA256: 18f8a7...
-   - Pin SHA256: VjLZe...
-   - Valid until Sat, 29 Jun ...
-   - Key RSA 2048 bits (e 3)
-   - Issuer http://www...
-   - Signature algorithm **SHA1withRSA INSECURE**
+- Subject The Go Daddy Group, Inc.
+- Fingerprint SHA256: 18f8a7...
+- Pin SHA256: VjLZe...
+- Valid until Sat, 29 Jun ...
+- Key RSA 2048 bits (e 3)
+- Issuer http://www...
+- Signature algorithm **SHA1withRSA INSECURE**
 
 If a weak signature is found, then follow your certificate authority's process for having the server certificate re-issued / re-signed, in order to ensure that it is signed with a strong digital signature.
 
@@ -225,14 +225,14 @@ SSLCertificateChainFile /etc/ssl/certs/server-chain.crt
 Version 6
 
 14.2 Encrypt All Sensitive Information Over Less-trusted Networks
-    All communication of sensitive information over less-trusted networks should be
-    encrypted. Whenever information flows over a network with a lower trust level,
-    the information should be encrypted.
+All communication of sensitive information over less-trusted networks should be
+encrypted. Whenever information flows over a network with a lower trust level,
+the information should be encrypted.
 
 Version 7
 
 14.4 Encrypt All Sensitive Information in Transit
-    Encrypt all sensitive information in transit.
+Encrypt all sensitive information in transit.
 
 ## Profile
 
