@@ -66,7 +66,7 @@ By default, no Access Policies exist.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | X |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools | | | X |
+| Controls Version | Control                                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control           |      |      | X    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools |      |      | X    |

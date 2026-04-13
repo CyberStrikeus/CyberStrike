@@ -123,13 +123,13 @@ By default, 'Update Channel' is set to 'Stable'.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.2 Ensure Authorized Software is Currently Supported | X | X | X |
-| v7 | 2.2 Ensure Software is Supported by Vendor | X | X | X |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.2 Ensure Authorized Software is Currently Supported | X    | X    | X    |
+| v7               | 2.2 Ensure Software is Supported by Vendor            | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1190 | TA0001 | M1051 |
+| --------------------------- | ------- | ----------- |
+| T1190                       | TA0001  | M1051       |

@@ -74,7 +74,7 @@ Unless specified at resource creation, by default Azure MySQL does not have a pr
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | X | X |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | X | X |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture |      | X    | X    |
+| v7               | 14.1 Segment the Network Based on Sensitivity             |      | X    | X    |
