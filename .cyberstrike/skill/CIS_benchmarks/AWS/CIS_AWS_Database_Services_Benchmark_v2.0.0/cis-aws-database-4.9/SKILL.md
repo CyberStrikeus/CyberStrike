@@ -71,7 +71,7 @@ aws backup get-backup-selection --backup-plan-id <your-backup-plan-id> --selecti
 
 - If your table ARN appears in any selection, it is protected by the backup plan.
 
-2.2 Verify Backup Plan Configuration
+  2.2 Verify Backup Plan Configuration
 
 ```bash
 aws backup get-backup-plan --backup-plan-id <your-backup-plan-id>
