@@ -94,7 +94,7 @@ By default, Compute instances are configured to use the default Compute Engine s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.7 Manage Default Accounts on Enterprise Assets and Software | X | X | X |
-| v7 | 4.7 Limit Access to Script Tools | | X | X |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.7 Manage Default Accounts on Enterprise Assets and Software | X    | X    | X    |
+| v7               | 4.7 Limit Access to Script Tools                              |      | X    | X    |

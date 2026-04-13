@@ -85,9 +85,9 @@ If OS Login is enabled, SSH keys in instance metadata are ignored, and therefore
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | X | X |
-| v8 | 5.2 Use Unique Passwords | X | X | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
-| v7 | 16.5 Encrypt Transmittal of Username and Authentication Credentials | | X | X |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit                              |      | X    | X    |
+| v8               | 5.2 Use Unique Passwords                                            | X    | X    | X    |
+| v7               | 4.4 Use Unique Passwords                                            |      | X    | X    |
+| v7               | 16.5 Encrypt Transmittal of Username and Authentication Credentials |      | X    | X    |

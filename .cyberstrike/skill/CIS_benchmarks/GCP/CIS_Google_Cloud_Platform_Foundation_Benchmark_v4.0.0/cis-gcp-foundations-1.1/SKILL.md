@@ -88,7 +88,7 @@ By default, no email addresses outside the organization's domain have access to 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.6 Centralize Account Management - Centralize account management through a directory or identity service. | | x | x |
-| v7 | 16.2 Configure Centralized Point of Authentication - Configure access for all accounts through as few centralized points of authentication as possible, including network, security, and cloud systems. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.6 Centralize Account Management - Centralize account management through a directory or identity service.                                                                                              |      | x    | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication - Configure access for all accounts through as few centralized points of authentication as possible, including network, security, and cloud systems. |      | x    | x    |

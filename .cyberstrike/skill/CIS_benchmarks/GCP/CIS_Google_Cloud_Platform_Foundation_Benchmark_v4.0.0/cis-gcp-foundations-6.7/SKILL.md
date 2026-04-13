@@ -100,7 +100,7 @@ By default, automated backups are not configured for Cloud SQL instances.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 11.2 Perform Automated Backups | X | X | X |
-| v7 | 10.1 Ensure Regular Automated Back Ups | X | X | X |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v8               | 11.2 Perform Automated Backups         | X    | X    | X    |
+| v7               | 10.1 Ensure Regular Automated Back Ups | X    | X    | X    |

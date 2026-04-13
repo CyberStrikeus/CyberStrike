@@ -65,7 +65,7 @@ Each key should have a line that says `restrictions:` followed by varying parame
 ```yaml
 restrictions:
   apiTargets:
-  - service: cloudapis.googleapis.com
+    - service: cloudapis.googleapis.com
 ```
 
 ## Expected Result
@@ -117,8 +117,8 @@ Content of flags file:
 - --api-target:
     service: "bar.service.com"
     methods:
-    - "foomethod"
-    - "barmethod"
+      - "foomethod"
+      - "barmethod"
 ```
 
 Note: Flags can be found by running:
@@ -146,7 +146,7 @@ By default, `API restrictions` are set to `None`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.10 Apply Secure Design Principles in Application Architectures | | x | x |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.10 Apply Secure Design Principles in Application Architectures |      | x    | x    |
+| v7               | 0.0 Explicitly Not Mapped                                         |      |      |      |

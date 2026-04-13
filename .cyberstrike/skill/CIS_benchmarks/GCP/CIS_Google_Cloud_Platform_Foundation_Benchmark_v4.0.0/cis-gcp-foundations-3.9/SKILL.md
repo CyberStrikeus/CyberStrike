@@ -92,7 +92,6 @@ gcloud compute ssl-policies describe SSL_POLICY_NAME
 ```
 
 5. Ensure that the policy satisfies one of the following conditions:
-
    - has `Profile` set to `Modern` and `minTlsVersion` set to `TLS_1_2`, or
    - has `Profile` set to `Restricted`, or
    - has `Profile` set to `Custom` and `enabledFeatures` does not contain any of the following values:
@@ -150,7 +149,7 @@ The GCP default SSL policy is the least secure setting: Min TLS 1.0 and Compatib
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |

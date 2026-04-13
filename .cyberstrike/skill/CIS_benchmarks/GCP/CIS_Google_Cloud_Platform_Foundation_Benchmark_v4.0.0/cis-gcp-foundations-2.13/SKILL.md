@@ -89,10 +89,10 @@ The Cloud Asset Inventory API is disabled by default in each project.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory | x | x | x |
-| v8 | 6.6 Establish and Maintain an Inventory of Authentication and Authorization Systems | | x | x |
-| v7 | 1.4 Maintain Detailed Asset Inventory | x | x | x |
-| v7 | 11.2 Document Traffic Configuration Rules | | x | x |
-| v7 | 16.1 Maintain an Inventory of Authentication Systems | | x | x |
+| Controls Version | Control                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 1.1 Establish and Maintain Detailed Enterprise Asset Inventory                      | x    | x    | x    |
+| v8               | 6.6 Establish and Maintain an Inventory of Authentication and Authorization Systems |      | x    | x    |
+| v7               | 1.4 Maintain Detailed Asset Inventory                                               | x    | x    | x    |
+| v7               | 11.2 Document Traffic Configuration Rules                                           |      | x    | x    |
+| v7               | 16.1 Maintain an Inventory of Authentication Systems                                |      | x    | x    |

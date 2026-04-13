@@ -60,15 +60,11 @@ This recommendation is only applicable to `User-Managed user-created` service ac
 {
   "bindings": [
     {
-      "members": [
-        "serviceAccount:our-project-123@appspot.gserviceaccount.com"
-      ],
+      "members": ["serviceAccount:our-project-123@appspot.gserviceaccount.com"],
       "role": "roles/appengine.appAdmin"
     },
     {
-      "members": [
-        "user:email1@gmail.com"
-      ],
+      "members": ["user:email1@gmail.com"],
       "role": "roles/owner"
     },
     {
@@ -114,15 +110,11 @@ For example, to grant the role `roles/appengine.appViewer` to the `ServiceAccoun
 {
   "bindings": [
     {
-      "members": [
-        "serviceAccount:our-project-123@appspot.gserviceaccount.com"
-      ],
+      "members": ["serviceAccount:our-project-123@appspot.gserviceaccount.com"],
       "role": "roles/appengine.appViewer"
     },
     {
-      "members": [
-        "user:email1@gmail.com"
-      ],
+      "members": ["user:email1@gmail.com"],
       "role": "roles/owner"
     },
     {
@@ -161,7 +153,7 @@ Default (user-managed but not user-created) service accounts have the `Editor (r
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | x | x | x |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities. | x | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | x    | x    | x    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities.                     | x    | x    | x    |

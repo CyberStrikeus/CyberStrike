@@ -105,7 +105,7 @@ In the absence of an Essential Contact, the following IAM roles are used to iden
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 17.2 Establish and Maintain Contact Information for Reporting Security Incidents | x | x | x |
-| v7 | 19.5 Maintain Contact Information For Reporting Security Incidents | x | x | x |
+| Controls Version | Control                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 17.2 Establish and Maintain Contact Information for Reporting Security Incidents | x    | x    | x    |
+| v7               | 19.5 Maintain Contact Information For Reporting Security Incidents               | x    | x    | x    |

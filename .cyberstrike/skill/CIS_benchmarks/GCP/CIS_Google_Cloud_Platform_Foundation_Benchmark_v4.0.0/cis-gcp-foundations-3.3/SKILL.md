@@ -78,7 +78,7 @@ By default DNSSEC is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | x | x | x |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | x | x |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure | x    | x    | x    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices                   |      | x    | x    |

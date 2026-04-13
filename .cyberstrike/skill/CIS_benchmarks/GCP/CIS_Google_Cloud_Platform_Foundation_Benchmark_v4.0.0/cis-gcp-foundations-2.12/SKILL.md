@@ -90,11 +90,11 @@ Cloud DNS logging is disabled by default on each network.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v8 | 8.6 Collect DNS Query Audit Logs | | x | x |
-| v8 | 8.11 Conduct Audit Log Reviews | | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
-| v7 | 6.7 Regularly Review Logs | | x | x |
-| v7 | 8.7 Enable DNS Query Logging | | x | x |
+| Controls Version | Control                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs           | x    | x    | x    |
+| v8               | 8.6 Collect DNS Query Audit Logs |      | x    | x    |
+| v8               | 8.11 Conduct Audit Log Reviews   |      | x    | x    |
+| v7               | 6.2 Activate audit logging       | x    | x    | x    |
+| v7               | 6.7 Regularly Review Logs        |      | x    | x    |
+| v7               | 8.7 Enable DNS Query Logging     |      | x    | x    |

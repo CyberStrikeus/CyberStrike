@@ -93,7 +93,7 @@ Note: Configuring the above flag restarts the Cloud SQL instance.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.7 Allowlist Authorized Scripts | | | X |
-| v7 | 2.9 Implement Application Whitelisting of Scripts | | | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.7 Allowlist Authorized Scripts                  |      |      | X    |
+| v7               | 2.9 Implement Application Whitelisting of Scripts |      |      | X    |

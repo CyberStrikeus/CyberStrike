@@ -78,7 +78,7 @@ The command should return no results. All API keys should have application restr
 4. Click `Save`.
 5. Repeat steps 2,3,4 for every unrestricted API key.
 
-Note: Do not set `HTTP referrers` to wild-cards (* or *.[TLD] or .[TLD]/) allowing access to any/wide HTTP referrer(s). Do not set `IP addresses` and referrer to `any host (0.0.0.0 or 0.0.0.0/0 or ::0)`.
+Note: Do not set `HTTP referrers` to wild-cards (_ or _.[TLD] or .[TLD]/) allowing access to any/wide HTTP referrer(s). Do not set `IP addresses` and referrer to `any host (0.0.0.0 or 0.0.0.0/0 or ::0)`.
 
 ### From Google Cloud Console — Removing Keys
 
@@ -100,7 +100,7 @@ By default, `Application Restrictions` are set to `None`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.10 Apply Secure Design Principles in Application Architectures | | x | x |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.10 Apply Secure Design Principles in Application Architectures |      | x    | x    |
+| v7               | 0.0 Explicitly Not Mapped                                         |      |      |      |

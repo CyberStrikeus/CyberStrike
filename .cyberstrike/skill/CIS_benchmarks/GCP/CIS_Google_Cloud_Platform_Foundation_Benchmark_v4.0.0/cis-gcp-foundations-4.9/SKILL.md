@@ -49,11 +49,11 @@ gcloud compute instances list --format=json
 
 ```yaml
 networkInterfaces:
-- accessConfigs:
-  - kind: compute#accessConfig
-    name: External NAT
-    networkTier: STANDARD
-    type: ONE_TO_ONE_NAT
+  - accessConfigs:
+      - kind: compute#accessConfig
+        name: External NAT
+        networkTier: STANDARD
+        type: ONE_TO_ONE_NAT
 ```
 
 ## Exception
@@ -82,11 +82,11 @@ gcloud compute instances describe <INSTANCE_NAME> --zone=<ZONE>
 
 ```yaml
 networkInterfaces:
-- accessConfigs:
-  - kind: compute#accessConfig
-    name: External NAT
-    natIP: 130.211.181.55
-    type: ONE_TO_ONE_NAT
+  - accessConfigs:
+      - kind: compute#accessConfig
+        name: External NAT
+        natIP: 130.211.181.55
+        type: ONE_TO_ONE_NAT
 ```
 
 3. Delete the access config:
@@ -121,7 +121,7 @@ For Windows VMs, see https://cloud.google.com/compute/docs/instances/connecting-
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | X | X | X |
-| v7 | 14.6 Protect Information through Access Control Lists | X | X | X |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | X    | X    | X    |
+| v7               | 14.6 Protect Information through Access Control Lists | X    | X    | X    |
