@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Logs
+dummy-api/logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Architecture & planning docs (personal working notes)
+ARCHITECTURE.md
+PLAN.md
+test-case-bugs.md
+claude.txt
+
+# Test cases and dummy api (local development)
+test-cases
+dumy-api
+dummy-api

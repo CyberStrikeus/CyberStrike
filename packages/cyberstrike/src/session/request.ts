@@ -27,6 +27,12 @@ export namespace Request {
       body_hash: z.string().optional(),
       query_hash: z.string().optional(),
       status: Status,
+      // Browser-agent enrichment (optional — not sent by Firefox extension)
+      trigger_element: z.string().optional(),
+      element_roles: z.array(z.string()).optional(),
+      ui_context: z.record(z.string(), z.unknown()).optional(),
+      page_url: z.string().optional(),
+      page_visited_by: z.array(z.string()).optional(),
       // Response fields
       response_status: z.number().optional(),
       response_headers: z.record(z.string(), z.string()).optional(),
@@ -60,6 +66,12 @@ export namespace Request {
     bodyHash?: string
     queryHash?: string
     response?: ResponseInput
+    // Browser-agent enrichment (optional — not sent by Firefox extension)
+    triggerElement?: string
+    elementRoles?: string[]
+    uiContext?: Record<string, unknown>
+    pageUrl?: string
+    pageVisitedBy?: string[]
   }) {
     const id = Identifier.ascending("request")
     const now = Date.now()
@@ -79,6 +91,11 @@ export namespace Request {
           body_hash: input.bodyHash ?? null,
           query_hash: input.queryHash ?? null,
           status: "queued",
+          trigger_element: input.triggerElement ?? null,
+          element_roles: input.elementRoles ?? null,
+          ui_context: input.uiContext ?? null,
+          page_url: input.pageUrl ?? null,
+          page_visited_by: input.pageVisitedBy ?? null,
           response_status: processed?.status ?? null,
           response_headers: processed?.headers ?? null,
           response_content_type: processed?.contentType ?? null,
@@ -101,6 +118,11 @@ export namespace Request {
       body_hash: input.bodyHash,
       query_hash: input.queryHash,
       status: "queued" as const,
+      trigger_element: input.triggerElement,
+      element_roles: input.elementRoles,
+      ui_context: input.uiContext,
+      page_url: input.pageUrl,
+      page_visited_by: input.pageVisitedBy,
       response_status: processed?.status,
       response_headers: processed?.headers,
       response_content_type: processed?.contentType,
@@ -124,6 +146,11 @@ export namespace Request {
       body_hash: row.body_hash ?? undefined,
       query_hash: row.query_hash ?? undefined,
       status: row.status as Info["status"],
+      trigger_element: row.trigger_element ?? undefined,
+      element_roles: (row.element_roles as string[]) ?? undefined,
+      ui_context: (row.ui_context as Record<string, unknown>) ?? undefined,
+      page_url: row.page_url ?? undefined,
+      page_visited_by: (row.page_visited_by as string[]) ?? undefined,
       response_status: row.response_status ?? undefined,
       response_headers: (row.response_headers as Record<string, string>) ?? undefined,
       response_content_type: row.response_content_type ?? undefined,
