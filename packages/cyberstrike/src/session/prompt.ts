@@ -108,6 +108,7 @@ export namespace SessionPrompt {
     format: MessageV2.Format.optional(),
     system: z.string().optional(),
     variant: z.string().optional(),
+    excludeHistory: z.boolean().optional(),
     parts: z.array(
       z.discriminatedUnion("type", [
         MessageV2.TextPart.omit({
@@ -688,7 +689,7 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...MessageV2.toModelMessages(sessionMessages, model),
+          ...MessageV2.toModelMessages(MessageV2.filterExcluded(sessionMessages, lastUser.id), model),
           ...(isLastStep
             ? [
                 {
@@ -1001,6 +1002,7 @@ export namespace SessionPrompt {
       system: input.system,
       format: input.format,
       variant,
+      excludeHistory: input.excludeHistory,
     }
     using _ = defer(() => InstructionPrompt.clear(info.id))
 

@@ -363,6 +363,7 @@ export namespace MessageV2 {
     system: z.string().optional(),
     tools: z.record(z.string(), z.boolean()).optional(),
     variant: z.string().optional(),
+    excludeHistory: z.boolean().optional(),
   }).meta({
     ref: "UserMessage",
   })
@@ -790,6 +791,21 @@ export namespace MessageV2 {
       }
     },
   )
+
+  export function filterExcluded(messages: WithParts[], keepUserID?: string): WithParts[] {
+    const excludedUserIDs = new Set<string>()
+    for (const msg of messages) {
+      if (msg.info.role !== "user") continue
+      if (!msg.info.excludeHistory) continue
+      if (msg.info.id === keepUserID) continue
+      excludedUserIDs.add(msg.info.id)
+    }
+    if (excludedUserIDs.size === 0) return messages
+    return messages.filter((msg) => {
+      if (msg.info.role === "user") return !excludedUserIDs.has(msg.info.id)
+      return !excludedUserIDs.has(msg.info.parentID)
+    })
+  }
 
   export async function filterCompacted(stream: AsyncIterable<MessageV2.WithParts>) {
     const result = [] as MessageV2.WithParts[]
