@@ -12,6 +12,7 @@ import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
+import { IngestSummary } from "../../session/ingest-summary"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
 import { WebObject } from "../../session/web/web-object"
@@ -880,14 +881,27 @@ export const SessionRoutes = lazy(() =>
             log.info("prompt preview:\n" + promptText)
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
+            const agentName = body.agent ?? "proxy-agent"
+            const source = `${parsed.method} ${normalizedPath}`
             ingestEnqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
+              const before = IngestSummary.snapshot(sessionID)
               try {
                 await SessionPrompt.prompt({
                   sessionID,
-                  agent: body.agent ?? "proxy-agent",
+                  agent: agentName,
                   model: body.model,
+                  excludeHistory: true,
                   parts: [{ type: "text", text: promptText }],
+                })
+                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
+                await IngestSummary.write({
+                  sessionID,
+                  agent: agentName,
+                  model,
+                  source,
+                  before,
+                  after: IngestSummary.snapshot(sessionID),
                 })
               } finally {
                 Request.updateStatus({ id: req.id, status: "processed" })
@@ -901,14 +915,26 @@ export const SessionRoutes = lazy(() =>
             log.info("ingest dry-run (text)", { sessionID })
             log.info("prompt preview:\n" + promptText)
           } else {
-            ingestEnqueue(sessionID, () =>
-              SessionPrompt.prompt({
+            const agentName = body.agent ?? "proxy-agent"
+            ingestEnqueue(sessionID, async () => {
+              const before = IngestSummary.snapshot(sessionID)
+              await SessionPrompt.prompt({
                 sessionID,
-                agent: body.agent ?? "proxy-agent",
+                agent: agentName,
                 model: body.model,
+                excludeHistory: true,
                 parts: [{ type: "text", text: promptText }],
-              }),
-            )
+              })
+              const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
+              await IngestSummary.write({
+                sessionID,
+                agent: agentName,
+                model,
+                source: "text ingest",
+                before,
+                after: IngestSummary.snapshot(sessionID),
+              })
+            })
           }
         }
         c.status(202)
