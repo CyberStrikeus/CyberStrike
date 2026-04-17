@@ -1,0 +1,21 @@
+{
+  "name": "@cyberstrike-io/browser-agent",
+  "version": "0.1.0",
+  "description": "AI-driven browser agent — navigates web apps, captures HTTP requests with UI context",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "cyberstrike": "workspace:*",
+    "ai": "catalog:",
+    "@ai-sdk/anthropic": "2.0.0",
+    "@ai-sdk/openai": "2.0.2",
+    "playwright": "1.58.2"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -76,6 +76,21 @@
         "vite-plugin-solid": "catalog:",
       },
     },
+    "packages/browser-agent": {
+      "name": "@cyberstrike-io/browser-agent",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "2.0.0",
+        "@ai-sdk/openai": "2.0.2",
+        "ai": "catalog:",
+        "cyberstrike": "workspace:*",
+        "playwright": "1.58.2",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
       "version": "1.1.9",
@@ -777,6 +792,8 @@
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
+
+    "@cyberstrike-io/browser-agent": ["@cyberstrike-io/browser-agent@workspace:packages/browser-agent"],
 
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 

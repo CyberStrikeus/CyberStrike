@@ -1,0 +1,242 @@
+// ============================================================
+// v2 Architecture Types (see ARCHITECTURE.md)
+// ============================================================
+
+/** Raw element collected from DOM by Scanner. LLM sees id/role/label/value but NOT selector. */
+export interface RawElement {
+  id: string           // "E1", "E2", ... (system-generated)
+  tag: string          // "button", "input", "a", "select", "textarea", ...
+  role: string         // ARIA role or implicit role
+  label: string        // aria-label || label[for] || innerText || placeholder || name
+  value: string        // input value, select value, aria-valuenow (slider)
+  enabled: boolean     // !disabled
+  href: string         // only for links
+  type: string         // input type (text, email, password, range, checkbox, ...)
+  placeholder: string  // input placeholder
+  options: string      // comma-separated option values for <select> elements
+  selector: string     // Playwright selector — LLM never sees this
+}
+
+/** Deferred auth page — discovered during anonymous phase, processed later */
+export interface DeferredAuthPage {
+  url: string
+  type: "register" | "login" | "logout"
+}
+
+/** Global state: lives across entire crawl */
+export interface GlobalState {
+  visitedPages: Set<string>
+  capturedEndpoints: Set<string>  // "METHOD /path" format
+  pageFingerprints: Map<string, string>  // url → element fingerprint for re-visit comparison
+  authPhase: "anonymous" | "registered" | "authenticated"
+  totalSteps: number
+  pageQueue: string[]
+  deferredAuthPages: DeferredAuthPage[]
+  pendingReDiscovery: boolean
+  pathPatternCounts: Map<string, number>  // template key → enqueued count (path pattern limiting)
+}
+
+/** Page state: resets on every page transition */
+export interface PageState {
+  currentUrl: string
+  elements: RawElement[]
+  viewportCenterBlocked: boolean
+  actionsThisPage: ActionRecord[]
+  failedElementIds: Set<string>
+  lastActionResult: ActionResult | null
+  step: number
+}
+
+/** Record of an action taken on the current page */
+export interface ActionRecord {
+  elementId: string
+  action: string
+  value?: string
+  success: boolean
+  httpSideEffects?: string[]  // ["POST /api/Users [201]"]
+}
+
+/** Result of the last executed action — fed back to LLM */
+export interface ActionResult {
+  success: boolean
+  error?: string
+  navigated?: boolean
+  newUrl?: string
+  httpRequests?: string[]  // ["POST /api/Users [201]"]
+  domChanged?: boolean
+}
+
+/** LLM response format — legacy, kept for reference */
+export interface LLMDecision {
+  elementId?: string    // undefined only for "done"
+  action: "fill" | "click" | "select" | "navigate" | "done"
+  value?: string        // for fill/select
+  reason: string
+}
+
+// ============================================================
+// Planner Architecture Types (Aşama 9)
+// ============================================================
+
+/** A single form field to fill — role+label identifies the element, value is what to write */
+export interface FormFieldPlan {
+  role: string    // "textbox" | "combobox" | "checkbox" | "radio" | "slider"
+  label: string   // semantic key — system resolves to current element
+  value: string   // fill/select value (computed by LLM, e.g. CAPTCHA answer)
+}
+
+/** Fill a form completely and submit it */
+export interface FormTask {
+  type: "form"
+  fields: FormFieldPlan[]
+  submit: { role: string; label: string }
+}
+
+/** Click a button/tab/accordion/interactive element */
+export interface ClickTask {
+  type: "click"
+  role: string
+  label: string
+  reason?: string
+}
+
+export type PageTask = FormTask | ClickTask
+
+/** LLM's analysis of a page — what to do */
+export interface PagePlan {
+  tasks: PageTask[]
+}
+
+// ============================================================
+// Legacy Types (used by capture/ingest/auth — unchanged)
+// ============================================================
+
+export interface UIField {
+  name: string          // input name / id / aria-label
+  label: string         // visible label text
+  value: string         // current value
+  type: string          // text, hidden, select, checkbox, radio, textarea, display
+  isReadOnly: boolean
+  isDisabled: boolean
+  isHidden: boolean     // type=hidden or display:none / visibility:hidden
+  isDisplayOnly: boolean // span/div/p showing a value (not an input)
+  validation: {
+    min?: string
+    max?: string
+    maxLength?: string
+    pattern?: string
+    required?: boolean
+  }
+}
+
+export interface UIContext {
+  pageUrl: string
+  pageTitle: string
+  // Human-readable path through the UI, e.g. "Settings > Profile > Edit Form"
+  componentPath: string
+  formName: string
+  fields: UIField[]
+  // Fields present in the HTTP request but NOT found in the UI
+  hiddenParams: string[]
+}
+
+export interface CapturedRequest {
+  // Raw HTTP request string (same format as Firefox ext sends)
+  raw: string
+  response: {
+    status: number
+    headers: Record<string, string>
+    body: string
+  } | null
+  uiContext: UIContext | null
+  // Which UI element triggered this request — "role:label" format (e.g. "button:Delete User")
+  // Set for all requests (GET included) during an action window. Null for page-load/background requests.
+  triggerElement: string | null
+  // Which roles can see the trigger element — derived from page_diff availability Map at drain time.
+  // Only set in multi-credential mode. Null when trigger is missing or availability lookup fails.
+  elementRoles: string[] | null
+  // Which page was being explored when this request was captured (e.g. "/users")
+  pageUrl: string | null
+  // Which roles could visit that page — from page_diff visited_by. Multi-credential only.
+  pageVisitedBy: string[] | null
+  timestamp: number
+}
+
+export interface IngestPayload {
+  text: string
+  sessionID?: string
+  credential_id?: string
+  response?: {
+    status: number
+    headers: Record<string, string>
+    body: string
+  }
+  ui_context?: UIContext
+  access_context?: AccessContext | PageDiffContext
+  // Which UI element triggered this request — "role:label" format
+  // CyberStrike uses this with element_roles to determine available_roles per endpoint
+  trigger_element?: string
+  // Which roles can see the trigger element — derived from page_diff availability Map
+  // CyberStrike proxy-analyzer uses this to set available_roles on web_function
+  element_roles?: string[]
+  // Which page was being explored when this request was captured
+  page_url?: string
+  // Which roles could visit that page — page-level access signal
+  page_visited_by?: string[]
+}
+
+/** Access context for multi-credential crawling — sent with HTTP captures */
+export interface AccessContext {
+  fingerprint_match: boolean  // all contexts see the same page structure?
+}
+
+/** Page-diff payload — sent once per page, element-level availability for CyberStrike */
+export interface PageDiffContext {
+  type: "page_diff"
+  page_url: string
+  discovered_by: string[]    // which contexts found the link to this page
+  visited_by: string[]       // which contexts actually visited this page
+  fingerprint_match: boolean
+  elements: Record<string, string[]>  // "button:Delete User" → ["admin"]
+}
+
+export interface AgentConfig {
+  targetUrl: string
+  cyberstrike: {
+    serverUrl: string       // default: http://127.0.0.1:4096
+    sessionID?: string
+    credentialId?: string
+  }
+  auth: {
+    // Path to a saved session file (cookies JSON)
+    sessionFile?: string
+    // If set, agent will auto-login with these credentials
+    credentials?: { username: string; password: string; usernameSelector?: string; passwordSelector?: string }
+    // If true, user logs in manually via browser button (Aşama 11)
+    authenticated?: boolean
+  }
+  // Multi-credential config (Aşama 12) — overrides auth when set
+  multiCredentials?: CredentialConfig[]
+  // Max navigation steps before stopping
+  maxSteps?: number
+  // Show browser window
+  headless?: boolean
+  // Dry-run mode: crawl without LLM calls, print captures to console instead of sending to CyberStrike
+  dryRun?: boolean
+}
+
+/** Single credential definition for multi-credential crawl */
+export interface CredentialConfig {
+  id: string  // "admin", "user", "manager", etc.
+}
+
+// ============================================================
+// Multi-Credential Types (Aşama 12)
+// ============================================================
+
+/** BFS queue entry — tracks which contexts should visit this URL */
+export interface QueueEntry {
+  url: string
+  contexts: string[]  // ["admin", "user"] or ["default"] for single-credential
+}
+

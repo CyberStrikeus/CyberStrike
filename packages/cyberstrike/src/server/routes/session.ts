@@ -107,6 +107,13 @@ function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
   processedResponse?: string,
+  accessContext?: {
+    triggerElement?: string
+    elementRoles?: string[]
+    pageUrl?: string
+    pageVisitedBy?: string[]
+    uiContext?: Record<string, unknown>
+  },
 ): string {
   const lines: string[] = []
 
@@ -127,7 +134,6 @@ function buildPromptWithCredentialContext(
       if (Object.keys(cred.headers).length > 0) {
         lines.push("- headers:")
         for (const [key, value] of Object.entries(cred.headers)) {
-          // Truncate long values for display
           const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
           lines.push(`  - ${key}: ${displayValue}`)
         }
@@ -138,13 +144,48 @@ function buildPromptWithCredentialContext(
     }
   }
 
+  // Access Context — only if any browser-agent enrichment data exists
+  if (accessContext) {
+    const ac = accessContext
+    const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext
+    if (hasData) {
+      lines.push("")
+      lines.push("## Access Context")
+      if (ac.pageUrl) {
+        const visitedBy = ac.pageVisitedBy?.length ? ` (visited by: ${ac.pageVisitedBy.join(", ")})` : ""
+        lines.push(`Page: ${ac.pageUrl}${visitedBy}`)
+      }
+      if (ac.triggerElement) {
+        const visibleTo = ac.elementRoles?.length ? ` (visible to: ${ac.elementRoles.join(", ")})` : ""
+        lines.push(`Trigger: ${ac.triggerElement}${visibleTo}`)
+      }
+      if (ac.uiContext) {
+        const ui = ac.uiContext as { formName?: string; fields?: Array<{ name: string; type: string; isReadOnly?: boolean; isDisabled?: boolean; isHidden?: boolean; validation?: { required?: boolean } }>; hiddenParams?: string[] }
+        if (ui.formName) lines.push(`Form: ${ui.formName}`)
+        if (ui.fields?.length) {
+          const fieldsSummary = ui.fields.map(f => {
+            const flags: string[] = []
+            if (f.validation?.required) flags.push("required")
+            if (f.isReadOnly) flags.push("readonly")
+            if (f.isDisabled) flags.push("disabled")
+            if (f.isHidden) flags.push("hidden")
+            return `${f.name}(${f.type}${flags.length ? "," + flags.join(",") : ""})`
+          }).join(", ")
+          lines.push(`Fields: ${fieldsSummary}`)
+        }
+        if (ui.hiddenParams?.length) {
+          lines.push(`Hidden Params: ${ui.hiddenParams.join(", ")}`)
+        }
+      }
+    }
+  }
+
   lines.push("")
   lines.push("## Raw HTTP Request")
   lines.push("```")
   lines.push(rawRequest)
   lines.push("```")
 
-  // Add response if available
   if (processedResponse) {
     lines.push("")
     lines.push("## Response")
@@ -744,6 +785,12 @@ export const SessionRoutes = lazy(() =>
             })
             .optional()
             .meta({ description: "HTTP response data" }),
+          // Browser-agent enrichment fields (optional — not sent by Firefox extension)
+          trigger_element: z.string().optional().meta({ description: "UI element that triggered this request (role:label)" }),
+          element_roles: z.array(z.string()).optional().meta({ description: "Roles that can see the trigger element" }),
+          ui_context: z.record(z.string(), z.unknown()).optional().meta({ description: "UI form context at request time" }),
+          page_url: z.string().optional().meta({ description: "Page being explored when request was captured" }),
+          page_visited_by: z.array(z.string()).optional().meta({ description: "Roles that can visit this page" }),
         }),
       ),
       async (c) => {
@@ -775,13 +822,16 @@ export const SessionRoutes = lazy(() =>
         }
 
         const parsed = Request.parseRawRequest(body.text)
+        const ingestDryRun = process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true"
+
         if (parsed) {
-          const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-          const normalizedPath = await Request.normalize({
-            path: parsed.path,
-            providerID: model.providerID,
-            modelID: model.modelID,
-          })
+          // In dry-run mode, skip LLM normalization — use raw path
+          const normalizedPath = ingestDryRun
+            ? parsed.path
+            : await (async () => {
+                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
+                return Request.normalize({ path: parsed.path, providerID: model.providerID, modelID: model.modelID })
+              })()
 
           const isDuplicate = Request.exists({
             sessionID,
@@ -808,35 +858,58 @@ export const SessionRoutes = lazy(() =>
             bodyHash: Request.hash(parsed.body),
             queryHash: Request.hashQueryKeys(parsed.query),
             response: body.response,
+            triggerElement: body.trigger_element,
+            elementRoles: body.element_roles,
+            uiContext: body.ui_context as Record<string, unknown> | undefined,
+            pageUrl: body.page_url,
+            pageVisitedBy: body.page_visited_by,
           })
 
-          // Build prompt with credential context and response
-          const promptText = buildPromptWithCredentialContext(truncatedRawRequest, credentialID, req.processed_response)
+          // Build prompt with credential context, response, and access context
+          const promptText = buildPromptWithCredentialContext(truncatedRawRequest, credentialID, req.processed_response, {
+            triggerElement: body.trigger_element,
+            elementRoles: body.element_roles,
+            pageUrl: body.page_url,
+            pageVisitedBy: body.page_visited_by,
+            uiContext: body.ui_context as Record<string, unknown> | undefined,
+          })
 
-          ingestEnqueue(sessionID, async () => {
-            Request.updateStatus({ id: req.id, status: "processing" })
-            try {
-              await SessionPrompt.prompt({
+          if (ingestDryRun) {
+            // Log the prompt that would be sent to LLM — skip actual LLM call
+            log.info("ingest dry-run", { sessionID, method: parsed.method, path: normalizedPath, requestId: req.id })
+            log.info("prompt preview:\n" + promptText)
+            Request.updateStatus({ id: req.id, status: "processed" })
+          } else {
+            ingestEnqueue(sessionID, async () => {
+              Request.updateStatus({ id: req.id, status: "processing" })
+              try {
+                await SessionPrompt.prompt({
+                  sessionID,
+                  agent: body.agent ?? "proxy-agent",
+                  model: body.model,
+                  parts: [{ type: "text", text: promptText }],
+                })
+              } finally {
+                Request.updateStatus({ id: req.id, status: "processed" })
+              }
+            })
+          }
+        } else {
+          // Non-HTTP request (plain text message)
+          const promptText = buildPromptWithCredentialContext(body.text, credentialID)
+          if (ingestDryRun) {
+            log.info("ingest dry-run (text)", { sessionID })
+            log.info("prompt preview:\n" + promptText)
+          } else {
+            ingestEnqueue(sessionID, () =>
+              SessionPrompt.prompt({
                 sessionID,
                 agent: body.agent ?? "proxy-agent",
                 model: body.model,
                 parts: [{ type: "text", text: promptText }],
-              })
-            } finally {
-              Request.updateStatus({ id: req.id, status: "processed" })
-            }
-          })
-        } else {
-          // Non-HTTP request (plain text message)
-          const promptText = buildPromptWithCredentialContext(body.text, credentialID)
-          ingestEnqueue(sessionID, () =>
-            SessionPrompt.prompt({
-              sessionID,
-              agent: body.agent ?? "proxy-agent",
-              model: body.model,
-              parts: [{ type: "text", text: promptText }],
-            }),
-          )
+              }),
+            )
+          }
         }
         c.status(202)
         return c.json({ sessionID })
