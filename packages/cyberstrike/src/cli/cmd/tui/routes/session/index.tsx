@@ -1199,7 +1199,10 @@ function UserMessage(props: {
   const { theme } = useTheme()
   const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
-  const color = createMemo(() => local.agent.color(props.message.agent))
+  const isIngestSummary = createMemo(() => text()?.metadata?.kind === "ingest-summary")
+  const color = createMemo(() =>
+    isIngestSummary() ? theme.textMuted : local.agent.color(props.message.agent),
+  )
   const queuedFg = createMemo(() => selectedForeground(theme, color()))
   const metadataVisible = createMemo(() => queued() || ctx.showTimestamps())
 
@@ -1229,7 +1232,10 @@ function UserMessage(props: {
             backgroundColor={hover() ? theme.backgroundElement : theme.backgroundPanel}
             flexShrink={0}
           >
-            <text fg={theme.text}>{text()?.text}</text>
+            <text fg={isIngestSummary() ? theme.textMuted : theme.text}>
+              {isIngestSummary() ? "→ " : ""}
+              {text()?.text}
+            </text>
             <Show when={files().length}>
               <box flexDirection="row" paddingBottom={metadataVisible() ? 1 : 0} paddingTop={1} gap={1} flexWrap="wrap">
                 <For each={files()}>
