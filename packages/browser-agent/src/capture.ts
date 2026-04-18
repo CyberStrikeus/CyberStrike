@@ -59,9 +59,26 @@ export async function snapshotPageUI(
       return (el as HTMLInputElement).name || el.getAttribute("data-name") || ""
     }
 
+    // Kural 4 (BUG-17): compute WHY a field is hidden. Walks ancestors because
+    // display:none and opacity:0 don't inherit via computed style of the child.
+    // Returns the first hiding reason encountered on el or any ancestor.
+    function computeHidden(el: HTMLElement, type: string):
+      { isHidden: boolean; hiddenReason?: "type=hidden" | "display:none" | "visibility:hidden" | "opacity:0" } {
+      if (type === "hidden") return { isHidden: true, hiddenReason: "type=hidden" }
+      let cur: Element | null = el
+      while (cur && cur !== document.documentElement) {
+        const style = window.getComputedStyle(cur)
+        if (style.display === "none") return { isHidden: true, hiddenReason: "display:none" }
+        if (style.visibility === "hidden") return { isHidden: true, hiddenReason: "visibility:hidden" }
+        if (parseFloat(style.opacity) === 0) return { isHidden: true, hiddenReason: "opacity:0" }
+        cur = cur.parentElement
+      }
+      return { isHidden: false }
+    }
+
+    // Back-compat alias for the radio collapse block which only needs a boolean signal.
     function isHiddenCSS(el: HTMLElement): boolean {
-      const style = window.getComputedStyle(el)
-      return style.display === "none" || style.visibility === "hidden" || style.opacity === "0"
+      return computeHidden(el, "").isHidden
     }
 
     // Noise patterns — Angular CDK / Material internals that are never real form fields
@@ -137,7 +154,7 @@ export async function snapshotPageUI(
           ? (el as HTMLSelectElement).value
           : (el as HTMLInputElement | HTMLTextAreaElement).value ?? ""
 
-      const isHidden = type === "hidden" || isHiddenCSS(el as HTMLElement)
+      const hidden = computeHidden(el as HTMLElement, type)
 
       results.push({
         name,
@@ -146,7 +163,8 @@ export async function snapshotPageUI(
         type,
         isReadOnly: (el as HTMLInputElement).readOnly ?? false,
         isDisabled: el.disabled,
-        isHidden,
+        isHidden: hidden.isHidden,
+        hiddenReason: hidden.hiddenReason,
         isDisplayOnly: false,
         validation: {
           min: (el as HTMLInputElement).min || undefined,

@@ -198,3 +198,72 @@ test("BUG-19: null trigger → legacy body scan (regression guard)", async () =>
 
   await page.close()
 })
+
+// ============================================================
+// BUG-17 — hiddenReason enrichment: distinguish WHY a field is hidden
+// ============================================================
+
+test("BUG-17: type=hidden input carries hiddenReason='type=hidden'", async () => {
+  const page = await loadFixture("bug-17-hidden-reason.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const csrf = ui.fields.find(f => f.name === "csrf_token")
+  expect(csrf).toBeDefined()
+  expect(csrf!.isHidden).toBe(true)
+  expect((csrf as any).hiddenReason).toBe("type=hidden")
+
+  await page.close()
+})
+
+test("BUG-17: display:none input carries hiddenReason='display:none'", async () => {
+  const page = await loadFixture("bug-17-hidden-reason.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const company = ui.fields.find(f => f.name === "companyName")
+  expect(company).toBeDefined()
+  expect(company!.isHidden).toBe(true)
+  expect((company as any).hiddenReason).toBe("display:none")
+
+  await page.close()
+})
+
+test("BUG-17: visibility:hidden input carries hiddenReason='visibility:hidden'", async () => {
+  const page = await loadFixture("bug-17-hidden-reason.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const tax = ui.fields.find(f => f.name === "taxId")
+  expect(tax).toBeDefined()
+  expect(tax!.isHidden).toBe(true)
+  expect((tax as any).hiddenReason).toBe("visibility:hidden")
+
+  await page.close()
+})
+
+test("BUG-17: opacity:0 input carries hiddenReason='opacity:0'", async () => {
+  const page = await loadFixture("bug-17-hidden-reason.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const referral = ui.fields.find(f => f.name === "referralCode")
+  expect(referral).toBeDefined()
+  expect(referral!.isHidden).toBe(true)
+  expect((referral as any).hiddenReason).toBe("opacity:0")
+
+  await page.close()
+})
+
+test("BUG-17: visible fields have undefined hiddenReason (regression guard)", async () => {
+  const page = await loadFixture("bug-17-hidden-reason.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const email = ui.fields.find(f => f.name === "email")
+  expect(email).toBeDefined()
+  expect(email!.isHidden).toBe(false)
+  expect((email as any).hiddenReason).toBeUndefined()
+
+  const fullName = ui.fields.find(f => f.name === "fullName")
+  expect(fullName).toBeDefined()
+  expect(fullName!.isHidden).toBe(false)
+  expect((fullName as any).hiddenReason).toBeUndefined()
+
+  await page.close()
+})

@@ -87,6 +87,13 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       }
       const text = (el as HTMLElement).innerText?.trim()
       if (text && text.length < 80) return text
+      // BUG-4: inputs wrapped in <label>text</label> have no innerText of their own —
+      // the parent <label> textContent is the visible label. This matches capture.getLabel.
+      const parentLabel = (el as HTMLElement).closest?.("label")
+      if (parentLabel && !parentLabel.isSameNode(el)) {
+        const parentText = parentLabel.textContent?.trim()
+        if (parentText && parentText.length < 80) return parentText
+      }
       const placeholder = (el as HTMLInputElement).placeholder
       if (placeholder) return placeholder
       const name = el.getAttribute("name") || el.getAttribute("data-testid")

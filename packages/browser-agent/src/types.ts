@@ -119,7 +119,8 @@ export interface UIField {
   options?: string      // radio/select/listbox — "A, B, C" or "A, B, C, ..." (first 3 + ellipsis)
   isReadOnly: boolean
   isDisabled: boolean
-  isHidden: boolean     // type=hidden or display:none / visibility:hidden
+  isHidden: boolean     // type=hidden or any ancestor display:none/visibility:hidden/opacity:0
+  hiddenReason?: "type=hidden" | "display:none" | "visibility:hidden" | "opacity:0"  // why isHidden is true
   isDisplayOnly: boolean // span/div/p showing a value (not an input)
   validation: {
     min?: string
