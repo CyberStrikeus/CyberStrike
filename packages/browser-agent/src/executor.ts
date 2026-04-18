@@ -42,8 +42,9 @@ export async function execute(
       error = await executeFill(page, element, value ?? "")
       break
     case "click":
-      // Snapshot UI before click — interceptor pairs it with resulting HTTP request
-      setPendingUI(snapshotPageUI(page, "body"))
+      // Snapshot UI before click — interceptor pairs it with resulting HTTP request.
+      // Passing the trigger locator lets snapshotPageUI scope to the enclosing form/dialog (Kural 3).
+      setPendingUI(snapshotPageUI(page, page.locator(element.selector).first()))
       error = await executeClick(page, element)
       break
     case "select":

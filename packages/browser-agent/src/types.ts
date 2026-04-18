@@ -114,8 +114,9 @@ export interface PagePlan {
 export interface UIField {
   name: string          // input name / id / aria-label
   label: string         // visible label text
-  value: string         // current value
+  value: string         // current value (checked radio's value, selected option, input value)
   type: string          // text, hidden, select, checkbox, radio, textarea, display
+  options?: string      // radio/select/listbox — "A, B, C" or "A, B, C, ..." (first 3 + ellipsis)
   isReadOnly: boolean
   isDisabled: boolean
   isHidden: boolean     // type=hidden or display:none / visibility:hidden
