@@ -38,6 +38,11 @@ Options:
   --credential-id <id>     Credential ID to tag requests with
   --authenticated          Manual login mode: user logs in via browser, clicks button to start
   --credential <label>     Multi-credential mode: add a credential (repeat for each role)
+  --exclude <label>        Out-of-scope label — planner never plans tasks matching this
+                           (semantic match). Repeat for multiple exclusions.
+                           Write the button text you see in the UI.
+                           Examples: --exclude "Delete Account"
+                                     --exclude "Cancel Subscription"
   --dry-run                Crawl without sending to CyberStrike; print captures to console
   --debug                  Enable verbose debug logging
 
@@ -50,6 +55,7 @@ Examples:
   bun start https://app.example.com --dry-run
   bun start https://app.example.com --dry-run --debug
   bun start https://app.example.com --credential admin --credential user
+  bun start https://app.example.com --exclude "Delete Account" --exclude "Unsubscribe"
 `)
   process.exit(0)
 }
@@ -65,7 +71,21 @@ function parseCredentials(): CredentialConfig[] | undefined {
   return creds.length >= 2 ? creds : undefined
 }
 
+// Parse --exclude flags (Aşama 13) — out-of-scope labels, repeatable.
+// Label strings are passed to the planner verbatim; semantic matching is
+// done by the LLM (see planner.txt "Out-of-Scope Filter").
+function parseOutOfScope(): string[] | undefined {
+  const labels: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--exclude" && args[i + 1] && !args[i + 1]!.startsWith("--")) {
+      labels.push(args[i + 1]!)
+    }
+  }
+  return labels.length > 0 ? labels : undefined
+}
+
 const multiCredentials = parseCredentials()
+const outOfScope = parseOutOfScope()
 
 const config: AgentConfig = {
   targetUrl: args[0]!,
@@ -83,6 +103,7 @@ const config: AgentConfig = {
     authenticated: hasFlag("--authenticated"),
   },
   multiCredentials,
+  outOfScope,
   maxSteps: getArg("--steps") ? parseInt(getArg("--steps")!) : 50,
   headless: hasFlag("--headless"),
   dryRun: hasFlag("--dry-run"),

@@ -34,6 +34,11 @@ export interface GlobalState {
   deferredAuthPages: DeferredAuthPage[]
   pendingReDiscovery: boolean
   pathPatternCounts: Map<string, number>  // template key → enqueued count (path pattern limiting)
+  // Aşama 13 — Intelligence Layer (§1.2)
+  // URL → mutation keyword to match. "*" means any-mutation (legacy/fallback).
+  emptyStateQueue: Map<string, string>
+  revisitCount: Map<string, number>      // url → revisit count (hard limit: 2 per URL)
+  outOfScope: readonly string[]          // labels the planner must never plan (config snapshot)
 }
 
 /** Page state: resets on every page transition */
@@ -90,6 +95,9 @@ export interface FormTask {
   type: "form"
   fields: FormFieldPlan[]
   submit: { role: string; label: string }
+  /** Aşama 13: LLM-predicted mutation keyword this task will trigger on success.
+   *  Matched against empty pages' revisitOn to drain selectively. */
+  triggersMutation?: string
 }
 
 /** Click a button/tab/accordion/interactive element */
@@ -98,13 +106,31 @@ export interface ClickTask {
   role: string
   label: string
   reason?: string
+  /** Aşama 13: LLM-predicted mutation keyword this task will trigger on success. */
+  triggersMutation?: string
 }
 
 export type PageTask = FormTask | ClickTask
 
-/** LLM's analysis of a page — what to do */
+/** Page state classification — used for journey awareness (Aşama 13 §3.3.1) */
+export type PageStateKind = "populated" | "empty" | "unknown"
+
+/** Revisit trigger — when the orchestrator should re-queue this URL */
+export type RevisitTrigger = "any-mutation"
+
+/** LLM's analysis of a page — what to do (PagePlan v2, Aşama 13) */
 export interface PagePlan {
   tasks: PageTask[]
+  /** Page content classification. Default "unknown" if missing — safe, no revisit. */
+  pageState?: PageStateKind
+  /** When to revisit this URL. null (default) means no revisit planned. */
+  revisitAfter?: RevisitTrigger | null
+  /** Short explanation (required when pageState==="empty"). */
+  revisitReason?: string
+  /** Aşama 13 Mutation Matching — keyword the LLM expects will populate this page.
+   *  e.g. "cart-item-added", "user-created". Matched against PageTask.triggersMutation.
+   *  When omitted, URL drains on ANY successful mutation (backward-compat fallback). */
+  revisitOn?: string
 }
 
 // ============================================================
@@ -219,6 +245,9 @@ export interface AgentConfig {
   }
   // Multi-credential config (Aşama 12) — overrides auth when set
   multiCredentials?: CredentialConfig[]
+  // Out-of-scope labels (Aşama 13) — planner never plans tasks with these labels (semantic match).
+  // Example: ["Delete Account", "Cancel Subscription"]
+  outOfScope?: string[]
   // Max navigation steps before stopping
   maxSteps?: number
   // Show browser window
