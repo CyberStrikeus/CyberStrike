@@ -6,7 +6,7 @@ import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredenti
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { scrollAndCollect, collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
-import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES } from "./state.ts"
+import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation } from "./state.ts"
 import { execute } from "./executor.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
@@ -442,7 +442,14 @@ async function explorePageWithAI(
   const vcBlocked = await isViewportCenterBlocked(page)
   const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, vcBlocked)
   const plan = await planPage(snapshot, model)
-  log.info("page plan received", { tasks: plan.tasks.length })
+  log.info("page plan received", {
+    tasks: plan.tasks.length,
+    pageState: plan.pageState ?? "unknown",
+    revisitAfter: plan.revisitAfter ?? null,
+  })
+
+  // Aşama 13 §3.5.1 — Journey Awareness on initial page plan
+  applyPlanIntelligence(plan, pageUrl, globalState)
 
   // 3. TaskQueue — system drives execution, no LLM per step
   const taskQueue: PageTask[] = [...plan.tasks]
@@ -506,6 +513,7 @@ async function explorePageWithAI(
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
       const newPlan = await planPage(snapshot, model)
+      applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after new elements", { tasks: newPlan.tasks.length })
         taskQueue.unshift(...newPlan.tasks)
@@ -542,6 +550,7 @@ async function explorePageWithAI(
     const vcBlocked = await isViewportCenterBlocked(page)
     const snap = buildPlannerSnapshot(pageUrl, currentElements, globalState, vcBlocked)
     const additionalPlan = await planUnexploredElements(snap, unexplored, model)
+    applyPlanIntelligence(additionalPlan, pageUrl, globalState)  // Aşama 13
 
     if (additionalPlan.tasks.length === 0) break
 
@@ -589,6 +598,7 @@ async function explorePageWithAI(
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
         const newPlan = await planPage(freshSnap, model)
+        applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
         if (newPlan.tasks.length > 0) {
           additionalQueue.unshift(...newPlan.tasks)
         }
@@ -672,7 +682,7 @@ async function executeFormTask(
   interceptor.setPendingTrigger(`${submitEl.role}:${submitEl.label}`)
   const result = await execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState)
+  trackResult(result, interceptor, globalState, task.triggersMutation)
 
   semanticActionsDone.add(submitKey)
   globalState.totalSteps++
@@ -715,7 +725,7 @@ async function executeClickTask(
   interceptor.setPendingTrigger(`${el.role}:${el.label}`)
   const result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState)
+  trackResult(result, interceptor, globalState, task.triggersMutation)
 
   semanticActionsDone.add(key)
   globalState.totalSteps++
@@ -850,16 +860,58 @@ function resolveElement(elements: RawElement[], role: string, label: string): Ra
     ?? elements.find(e => e.role === role && e.label.startsWith(label))
 }
 
-/** Drain HTTP captures and attach to result, update globalState.capturedEndpoints */
+/**
+ * Apply Intelligence signals from a PagePlan (Aşama 13 §3.3.1 + §3.5.1).
+ * Called wherever the agent receives a plan from the LLM — initial plan,
+ * re-plan after DOM changes, unexplored-elements plan, multi-credential plan.
+ * Currently handles only Journey Awareness (empty-state revisit marking).
+ */
+function applyPlanIntelligence(
+  plan: { pageState?: string; revisitAfter?: string | null; revisitReason?: string; revisitOn?: string },
+  pageUrl: string,
+  globalState: ReturnType<typeof createGlobalState>,
+): void {
+  if (plan.pageState !== "empty" || plan.revisitAfter !== "any-mutation") return
+  const queued = markPageEmpty(globalState, pageUrl, plan.revisitOn)
+  if (queued) {
+    log.info("page marked empty for mutation-triggered revisit", {
+      url: pageUrl,
+      reason: plan.revisitReason,
+      revisitOn: plan.revisitOn ?? "*",
+    })
+  } else {
+    log.debug("empty-state revisit rejected by hard limit", { url: pageUrl })
+  }
+}
+
+/** Drain HTTP captures and attach to result, update globalState.capturedEndpoints.
+ *  Also triggers empty-state revisit drain when the action caused a successful
+ *  mutation (Aşama 13 §3.5.1).
+ *  @param taskMutation  LLM-predicted keyword from the triggering task (if any).
+ *                       Matched against empty pages' revisitOn for targeted drain. */
 function trackResult(
   result: ActionResult,
   interceptor: Interceptor,
   globalState: ReturnType<typeof createGlobalState>,
+  taskMutation?: string,
 ): void {
   const reqs = interceptor.drainRecentCaptures()
   result.httpRequests = reqs.length > 0 ? reqs : undefined
   if (result.httpRequests) {
     for (const req of result.httpRequests) globalState.capturedEndpoints.add(req)
+    // Journey Awareness: successful mutation drains matching empty-state URLs.
+    // Uses drainOnMutation so keyword-tagged URLs only drain on match; ANY_MUTATION
+    // URLs drain on any mutation (backward-compat).
+    if (hasSuccessfulMutation(result.httpRequests) && globalState.emptyStateQueue.size > 0) {
+      const drained = drainOnMutation(globalState, taskMutation)
+      if (drained.length > 0) {
+        log.info("mutation triggered empty-state revisit drain", {
+          drained: drained.length,
+          urls: drained,
+          taskMutation: taskMutation ?? "(none)",
+        })
+      }
+    }
   }
 }
 
@@ -1147,7 +1199,7 @@ async function runMultiCredential(
   const pageQueue: QueueEntry[] = [...seedUrls.entries()].map(([url, ctxIds]) => ({ url, contexts: ctxIds }))
   const visitedPages = new Set<string>()
   const pathPatternCounts = new Map<string, number>()
-  const globalState = createGlobalState()
+  const globalState = createGlobalState({ outOfScope: config.outOfScope })
   globalState.authPhase = "authenticated" // Multi-credential: skip anonymous phase
   let pagesExplored = 0
 
@@ -1268,6 +1320,7 @@ async function runMultiCredential(
       // Get plan once
       const snapshot = buildPlannerSnapshot(entry.url, filtered, globalState, false)
       const plan = await planPage(snapshot, model)
+      applyPlanIntelligence(plan, entry.url, globalState)  // Aşama 13
 
       // Execute on each context sequentially
       for (const ctx of visitableContexts) {
@@ -1408,8 +1461,11 @@ export async function run(config: AgentConfig): Promise<void> {
     await handle2FA(page)
   }
 
-  // Initialize global state
-  const globalState = createGlobalState()
+  // Initialize global state (Aşama 13: outOfScope snapshotted from config)
+  const globalState = createGlobalState({ outOfScope: config.outOfScope })
+  if (config.outOfScope?.length) {
+    log.info("out-of-scope labels", { count: config.outOfScope.length, labels: config.outOfScope })
+  }
 
   // Manual or auto login → already authenticated, no re-discovery needed
   if (isAuthenticated) {
