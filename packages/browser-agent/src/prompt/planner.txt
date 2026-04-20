@@ -77,6 +77,7 @@ Matching task example (later, on products page):
 - Disabled buttons (enabled:false) become enabled after fields are filled — prefer them as submit if they match the form purpose
 - The submit label MUST exactly match a button element in the snapshot — do not invent labels
 - NEVER use as submit: navbar/layout buttons (Open Sidenav, Back, Back to homepage), OAuth/SSO buttons (Login with Google, Sign in with Facebook), sidebar toggles
+- **Same-label siblings:** when a label exists multiple times (scanner emits "Add User", "Add User (2)", …), the form submit is usually the later-indexed one because buttons appear AFTER their form fields in DOM order. Pick the suffixed label when the first occurrence is a toolbar/header button.
 
 ### Buttons to click
 Include at least ONE of each distinct action type on the page. For example, if a table has Edit, Delete, and View buttons, include one Edit, one Delete, and one View — each triggers a different endpoint.
