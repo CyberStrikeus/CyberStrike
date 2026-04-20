@@ -91,3 +91,65 @@ test("BUG-4: label[for=id] lookup still works (regression guard)", async () => {
 
   await page.close()
 })
+
+// ============================================================
+// BUG-12 — Same-label siblings disambiguation via index suffix
+// ============================================================
+
+test("BUG-12: two buttons with same label both collected, second gets (2) suffix", async () => {
+  const page = await loadFixture("bug-12-sibling-labels.html")
+  const elements = await collectElements(page)
+
+  const addUserButtons = elements.filter(e => e.role === "button" && e.label.startsWith("Add User"))
+  expect(addUserButtons.length).toBe(2)
+
+  const labels = addUserButtons.map(e => e.label).sort()
+  expect(labels).toEqual(["Add User", "Add User (2)"])
+
+  await page.close()
+})
+
+test("BUG-12: three identical buttons produce labels with (2) and (3) suffixes", async () => {
+  const page = await loadFixture("bug-12-sibling-labels.html")
+  const elements = await collectElements(page)
+
+  const exportButtons = elements.filter(e => e.role === "button" && e.label.startsWith("Export"))
+  expect(exportButtons.length).toBe(3)
+
+  const labels = exportButtons.map(e => e.label).sort()
+  expect(labels).toEqual(["Export", "Export (2)", "Export (3)"])
+
+  await page.close()
+})
+
+test("BUG-12: suffixed elements have distinct selectors", async () => {
+  const page = await loadFixture("bug-12-sibling-labels.html")
+  const elements = await collectElements(page)
+
+  const addUserButtons = elements.filter(e => e.role === "button" && e.label.startsWith("Add User"))
+  // Each element should have a unique selector (so executor resolves to the right DOM node)
+  const selectors = new Set(addUserButtons.map(e => e.selector))
+  expect(selectors.size).toBe(addUserButtons.length)
+
+  await page.close()
+})
+
+test("BUG-12: product card innerText differentiation unaffected (regression guard)", async () => {
+  // Product cards pattern: same aria-label but different innerText — scanner's
+  // enrichment should still distinguish by innerText, no numeric suffix needed.
+  const html = `<!DOCTYPE html>
+    <html><body>
+      <a href="/p/1" aria-label="Click for product info"><span>Apple Juice — 1.99</span></a>
+      <a href="/p/2" aria-label="Click for product info"><span>Banana Juice — 2.49</span></a>
+      <a href="/p/3" aria-label="Click for product info"><span>Orange Juice — 2.99</span></a>
+    </body></html>`
+  const p = await browser.newPage()
+  await p.setContent(html, { waitUntil: "networkidle" })
+  const elements = await collectElements(p)
+  const linkLabels = elements.filter(e => e.role === "link").map(e => e.label)
+  // innerText enrichment differentiates — NO numeric suffix on any
+  expect(linkLabels.some(l => l.includes("Apple Juice"))).toBe(true)
+  expect(linkLabels.some(l => l.includes("Banana Juice"))).toBe(true)
+  expect(linkLabels.every(l => !l.match(/\(\d+\)$/))).toBe(true)
+  await p.close()
+})

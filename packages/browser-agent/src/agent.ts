@@ -516,7 +516,7 @@ async function explorePageWithAI(
       applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after new elements", { tasks: newPlan.tasks.length })
-        taskQueue.unshift(...newPlan.tasks)
+        reconcileQueue(taskQueue, newPlan.tasks)  // supersede stale intent matches
       }
     }
 
@@ -600,7 +600,7 @@ async function explorePageWithAI(
         const newPlan = await planPage(freshSnap, model)
         applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
         if (newPlan.tasks.length > 0) {
-          additionalQueue.unshift(...newPlan.tasks)
+          reconcileQueue(additionalQueue, newPlan.tasks)
         }
       }
     }
@@ -882,6 +882,41 @@ function applyPlanIntelligence(
   } else {
     log.debug("empty-state revisit rejected by hard limit", { url: pageUrl })
   }
+}
+
+/**
+ * Intent signature for a task — identifies what a task is "trying to do"
+ * independent of label disambiguation suffixes (e.g. "Add User" and
+ * "Add User (2)" share the same base intent when they target the same form).
+ * Used by reconcileQueue to detect when a re-plan supersedes older tasks.
+ * Exported for unit testing.
+ */
+export function intentSignature(task: PageTask): string {
+  const stripSuffix = (s: string) => s.replace(/\s+\(\d+\)$/, "")
+  if (task.type === "form") return `form::${stripSuffix(task.submit.label)}`
+  return `click::${task.role}::${stripSuffix(task.label)}`
+}
+
+/**
+ * Drop queue entries whose intent is superseded by the fresh plan, then
+ * unshift the new tasks to the front. When a re-plan produces a task with
+ * the same intent as one already queued (e.g. same form, same button
+ * family), the fresh version wins — it has the most up-to-date selector
+ * and label disambiguation.
+ * Exported for unit testing.
+ */
+export function reconcileQueue(queue: PageTask[], freshTasks: PageTask[]): void {
+  if (freshTasks.length === 0) return
+  const freshIntents = new Set(freshTasks.map(intentSignature))
+  let dropped = 0
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (freshIntents.has(intentSignature(queue[i]!))) {
+      queue.splice(i, 1)
+      dropped++
+    }
+  }
+  if (dropped > 0) log.debug("reconcileQueue: superseded stale tasks", { dropped })
+  queue.unshift(...freshTasks)
 }
 
 /** Drain HTTP captures and attach to result, update globalState.capturedEndpoints.

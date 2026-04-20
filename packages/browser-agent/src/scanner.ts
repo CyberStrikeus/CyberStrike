@@ -228,14 +228,23 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       const dedupKey = `${role}::${label}::${href}::${innerText}`
       const count = (seenCount.get(dedupKey) ?? 0) + 1
       seenCount.set(dedupKey, count)
-      if (count > 1) continue
+      // BUG-12: allow up to 3 true duplicates (same role+label+innerText) — aligns with
+      // scrollAndCollect policy §6.2. Disambiguate via index suffix so LLM and executor
+      // can address each instance separately (e.g. toolbar "Add User" vs form-submit
+      // "Add User"). innerText-differentiated elements still unique without suffix.
+      if (count > 3) continue
+      const disambiguatedLabel = count > 1 ? `${label} (${count})` : label
 
-      // Selector always uses raw aria-label (stable for Playwright)
+      // Selector always uses raw aria-label (stable for Playwright).
+      // For duplicates (count > 1), the role-based selector is ambiguous —
+      // Playwright's role=button[name=X] matches by accessible name, which is
+      // identical across siblings by definition. Force CSS fallback so the
+      // executor resolves to the exact DOM element.
       const ariaLabelRaw = (el.getAttribute("aria-label") || "").trim()
       const safeAriaLabel = ariaLabelRaw.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      const selectorRole = safeAriaLabel
-        ? `role=${role}[name="${safeAriaLabel}"]`
-        : `role=${role}`
+      const selectorRole = count > 1
+        ? ""
+        : (safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`)
       // For sliders, use input[type=range] as CSS fallback (mat-slider wraps one)
       const selectorCSS = isSlider ? "input[type=range]" : buildCSSSelector(el)
 
@@ -243,7 +252,7 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       const roleCount = (seenRoleSelectors.get(selectorRole) ?? 0) + 1
       seenRoleSelectors.set(selectorRole, roleCount)
 
-      elements.push({ tag, role, label, value, enabled, href, type, placeholder, options, selectorRole, selectorCSS })
+      elements.push({ tag, role, label: disambiguatedLabel, value, enabled, href, type, placeholder, options, selectorRole, selectorCSS })
     }
 
     // ---- Info elements (CAPTCHA, hints, contextual labels) ----
