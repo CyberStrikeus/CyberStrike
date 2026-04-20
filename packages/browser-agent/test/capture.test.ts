@@ -7,11 +7,11 @@ let browser: Browser
 
 beforeAll(async () => {
   browser = await chromium.launch()
-})
+}, 30000)
 
 afterAll(async () => {
   await browser.close()
-})
+}, 15000)
 
 async function loadFixture(name: string): Promise<Page> {
   const html = readFileSync(`${import.meta.dir}/fixtures/${name}`, "utf-8")

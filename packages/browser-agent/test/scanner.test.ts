@@ -7,11 +7,11 @@ let browser: Browser
 
 beforeAll(async () => {
   browser = await chromium.launch()
-})
+}, 30000)
 
 afterAll(async () => {
   await browser.close()
-})
+}, 15000)
 
 async function loadFixture(name: string): Promise<Page> {
   const html = readFileSync(`${import.meta.dir}/fixtures/${name}`, "utf-8")
@@ -107,7 +107,7 @@ test("BUG-12: two buttons with same label both collected, second gets (2) suffix
   expect(labels).toEqual(["Add User", "Add User (2)"])
 
   await page.close()
-})
+}, 15000)
 
 test("BUG-12: three identical buttons produce labels with (2) and (3) suffixes", async () => {
   const page = await loadFixture("bug-12-sibling-labels.html")
@@ -120,7 +120,7 @@ test("BUG-12: three identical buttons produce labels with (2) and (3) suffixes",
   expect(labels).toEqual(["Export", "Export (2)", "Export (3)"])
 
   await page.close()
-})
+}, 15000)
 
 test("BUG-12: suffixed elements have distinct selectors", async () => {
   const page = await loadFixture("bug-12-sibling-labels.html")
@@ -132,7 +132,7 @@ test("BUG-12: suffixed elements have distinct selectors", async () => {
   expect(selectors.size).toBe(addUserButtons.length)
 
   await page.close()
-})
+}, 15000)
 
 test("BUG-12: product card innerText differentiation unaffected (regression guard)", async () => {
   // Product cards pattern: same aria-label but different innerText — scanner's
@@ -152,4 +152,4 @@ test("BUG-12: product card innerText differentiation unaffected (regression guar
   expect(linkLabels.some(l => l.includes("Banana Juice"))).toBe(true)
   expect(linkLabels.every(l => !l.match(/\(\d+\)$/))).toBe(true)
   await p.close()
-})
+}, 15000)

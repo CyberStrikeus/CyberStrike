@@ -5,7 +5,7 @@ import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.
 import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
-import { scrollAndCollect, collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
+import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
 import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation } from "./state.ts"
 import { execute } from "./executor.ts"
 import type { LanguageModel } from "ai"
@@ -429,11 +429,11 @@ async function explorePageWithAI(
   const semanticActionsDone = new Set<string>()
 
   // 1. Initial element collection (SPA retry on empty)
-  let elements = await scrollAndCollect(page)
+  let elements = await collectElements(page)
   if (elements.length === 0) {
     log.debug("no elements on first collection, waiting for render")
     await page.waitForTimeout(SPA_RENDER_RETRY_WAIT)
-    elements = await scrollAndCollect(page)
+    elements = await collectElements(page)
   }
   elements = filterVisitedLinks(elements, pageUrl, globalState.visitedPages)
   log.debug("initial scan", { elements: elements.length })
@@ -525,7 +525,7 @@ async function explorePageWithAI(
       log.debug("queue empty, overlay open — closing overlay")
       await closeOverlay(page)
       if (!await isViewportCenterBlocked(page)) {
-        elements = filterVisitedLinks(await scrollAndCollect(page), pageUrl, globalState.visitedPages)
+        elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         for (const el of elements) {
           const k = `${el.role}::${el.label}`
           if (!seenKeys.has(k) && el.label && el.role !== "link" && !INPUT_ROLES.has(el.role)) {
@@ -541,7 +541,7 @@ async function explorePageWithAI(
   // After all tasks complete, detect unexplored interactive elements
   // and ask LLM for additional plans. Max 2 iterations (loop guard).
   for (let iteration = 0; iteration < MAX_UNPLANNED_ITERATIONS && steps < MAX_STEPS_PER_PAGE; iteration++) {
-    const currentElements = filterVisitedLinks(await scrollAndCollect(page), pageUrl, globalState.visitedPages)
+    const currentElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
     const unexplored = findUnexploredElements(currentElements, semanticActionsDone, seenKeys)
     if (unexplored.length === 0) break
 
@@ -1317,7 +1317,7 @@ async function runMultiCredential(
     const fingerprintsByContext = new Map<string, string>()
 
     for (const ctx of visitableContexts) {
-      const elements = await scrollAndCollect(ctx.page)
+      const elements = await collectElements(ctx.page)
       elementsByContext.set(ctx.id, elements)
       fingerprintsByContext.set(ctx.id, generateFullFingerprint(elements))
     }
@@ -1585,7 +1585,7 @@ export async function run(config: AgentConfig): Promise<void> {
     const oldFingerprint = globalState.pageFingerprints.get(currentUrl)
     log.debug("fingerprint check", { url: currentUrl, hasOld: !!oldFingerprint })
     if (oldFingerprint !== undefined) {
-      const currentElements = await scrollAndCollect(page)
+      const currentElements = await collectElements(page)
       const newFingerprint = generateFingerprint(currentElements)
       log.debug("fingerprint compare", { url: currentUrl, match: newFingerprint === oldFingerprint, oldFp: oldFingerprint.slice(0, 80), newFp: newFingerprint.slice(0, 80) })
       if (newFingerprint === oldFingerprint) {
