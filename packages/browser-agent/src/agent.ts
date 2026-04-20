@@ -506,18 +506,27 @@ async function explorePageWithAI(
     }
 
     const hasNewElements = discoverNewElements(postActionElements, seenKeys)
+    const hasStaleTargets = queueHasStaleTargets(taskQueue, postActionElements)
 
-    // Any new element appeared (input or button) → re-plan with LLM
+    // Any DOM change that affects the queue → re-plan with LLM
+    // Additions: hasNewElements (new buttons/inputs appeared)
+    // Removals: hasStaleTargets (queued task's target is gone — filter, tab, delete)
     // System only detects change; LLM decides what to do (Architecture 2.1)
-    if (hasNewElements) {
+    if (hasNewElements || hasStaleTargets) {
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
       const newPlan = await planPage(snapshot, model)
       applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
       if (newPlan.tasks.length > 0) {
-        log.debug("re-plan after new elements", { tasks: newPlan.tasks.length })
+        log.debug("re-plan after state change", {
+          reason: hasStaleTargets ? (hasNewElements ? "new+stale" : "stale") : "new",
+          tasks: newPlan.tasks.length,
+        })
         reconcileQueue(taskQueue, newPlan.tasks)  // supersede stale intent matches
       }
+      // Drop any remaining tasks whose targets are still unresolvable
+      const dropped = pruneStaleTasks(taskQueue, freshElements)
+      if (dropped > 0) log.debug("pruned stale tasks", { dropped })
     }
 
     // If queue empty but overlay still open, close it and discover post-overlay elements
@@ -594,7 +603,8 @@ async function explorePageWithAI(
         if (optionTasks.length > 0) additionalQueue.unshift(...optionTasks)
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
-      if (hasNewElements) {
+      const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
+      if (hasNewElements || hasStaleTargets) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
         const newPlan = await planPage(freshSnap, model)
@@ -602,6 +612,8 @@ async function explorePageWithAI(
         if (newPlan.tasks.length > 0) {
           reconcileQueue(additionalQueue, newPlan.tasks)
         }
+        const dropped = pruneStaleTasks(additionalQueue, freshElements)
+        if (dropped > 0) log.debug("pruned stale additional tasks", { dropped })
       }
     }
   }
@@ -858,6 +870,44 @@ function isSemanticDone(done: Set<string>, key: string): boolean {
 function resolveElement(elements: RawElement[], role: string, label: string): RawElement | undefined {
   return elements.find(e => e.role === role && e.label === label)
     ?? elements.find(e => e.role === role && e.label.startsWith(label))
+}
+
+/**
+ * Can this task's primary target still be resolved in the current DOM?
+ * For form tasks, the submit button is the primary target (fields are discovered
+ * together); for click tasks it's the clicked element.
+ */
+export function isTaskResolvable(task: PageTask, elements: RawElement[]): boolean {
+  if (task.type === "form") {
+    return !!resolveElement(elements, task.submit.role, task.submit.label)
+  }
+  return !!resolveElement(elements, task.role, task.label)
+}
+
+/**
+ * Does any queued task reference an element that no longer exists in DOM?
+ * Used to detect state invalidation after a click (filter, tab switch, delete,
+ * pagination, modal close). Symmetric to discoverNewElements which detects
+ * additions — this detects removals that affect the queue.
+ */
+export function queueHasStaleTargets(queue: PageTask[], elements: RawElement[]): boolean {
+  return queue.some(t => !isTaskResolvable(t, elements))
+}
+
+/**
+ * Drop queued tasks whose primary target is no longer in DOM.
+ * Called after a re-plan when some stale tasks may persist (LLM may not
+ * re-plan every missing target explicitly).
+ */
+export function pruneStaleTasks(queue: PageTask[], elements: RawElement[]): number {
+  let dropped = 0
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (!isTaskResolvable(queue[i]!, elements)) {
+      queue.splice(i, 1)
+      dropped++
+    }
+  }
+  return dropped
 }
 
 /**

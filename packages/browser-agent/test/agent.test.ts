@@ -1,6 +1,14 @@
 import { test, expect } from "bun:test"
-import { intentSignature, reconcileQueue } from "../src/agent.ts"
-import type { PageTask } from "../src/types.ts"
+import { intentSignature, reconcileQueue, isTaskResolvable, queueHasStaleTargets, pruneStaleTasks } from "../src/agent.ts"
+import type { PageTask, RawElement } from "../src/types.ts"
+
+// Minimal RawElement fixture factory
+function el(role: string, label: string): RawElement {
+  return {
+    id: "E1", tag: role, role, label, value: "", enabled: true,
+    href: "", type: "", placeholder: "", options: "", selector: "",
+  }
+}
 
 // ============================================================
 // intentSignature — base-intent identity independent of suffix
@@ -110,4 +118,82 @@ test("reconcileQueue: click with suffix supersedes base-label click", () => {
   expect(queue.length).toBe(2)
   expect((queue[0] as any).label).toBe("Publish (2)")
   expect((queue[1] as any).label).toBe("Archive")
+})
+
+// ============================================================
+// isTaskResolvable / queueHasStaleTargets / pruneStaleTasks
+// State-invalidation after filter, tab, delete, pagination
+// ============================================================
+
+test("isTaskResolvable: click task resolvable when element present", () => {
+  const task: PageTask = { type: "click", role: "button", label: "Edit Alice" }
+  expect(isTaskResolvable(task, [el("button", "Edit Alice")])).toBe(true)
+  expect(isTaskResolvable(task, [el("button", "Edit Bob")])).toBe(false)
+})
+
+test("isTaskResolvable: form task resolvable via submit button", () => {
+  const task: PageTask = {
+    type: "form", fields: [],
+    submit: { role: "button", label: "Create User" },
+  }
+  expect(isTaskResolvable(task, [el("button", "Create User")])).toBe(true)
+  expect(isTaskResolvable(task, [el("button", "Add User")])).toBe(false)
+})
+
+test("queueHasStaleTargets: false when all tasks resolvable", () => {
+  const queue: PageTask[] = [
+    { type: "click", role: "button", label: "Edit Alice" },
+    { type: "click", role: "button", label: "View Carol" },
+  ]
+  const elements = [el("button", "Edit Alice"), el("button", "View Carol")]
+  expect(queueHasStaleTargets(queue, elements)).toBe(false)
+})
+
+test("queueHasStaleTargets: true when one task's target is missing", () => {
+  // Filter scenario: Inactive filter hid Alice, Carol stays
+  const queue: PageTask[] = [
+    { type: "click", role: "button", label: "Edit Alice" },
+    { type: "click", role: "button", label: "View Carol" },
+  ]
+  const afterFilter = [el("button", "View Carol")]
+  expect(queueHasStaleTargets(queue, afterFilter)).toBe(true)
+})
+
+test("pruneStaleTasks: removes tasks whose targets are gone, keeps others", () => {
+  const queue: PageTask[] = [
+    { type: "click", role: "button", label: "Edit Alice" },
+    { type: "click", role: "button", label: "Edit Bob" },
+    { type: "click", role: "button", label: "View Carol" },
+  ]
+  const afterFilter = [el("button", "View Carol")]
+  const dropped = pruneStaleTasks(queue, afterFilter)
+  expect(dropped).toBe(2)
+  expect(queue.length).toBe(1)
+  expect((queue[0] as any).label).toBe("View Carol")
+})
+
+test("pruneStaleTasks: no-op when queue is fully resolvable", () => {
+  const queue: PageTask[] = [
+    { type: "click", role: "button", label: "Refresh" },
+  ]
+  const elements = [el("button", "Refresh")]
+  expect(pruneStaleTasks(queue, elements)).toBe(0)
+  expect(queue.length).toBe(1)
+})
+
+test("pruneStaleTasks: handles form tasks by submit label", () => {
+  const queue: PageTask[] = [
+    {
+      type: "form",
+      fields: [{ role: "textbox", label: "Name", value: "x" }],
+      submit: { role: "button", label: "Save Changes" },
+    },
+    { type: "click", role: "button", label: "Cancel" },
+  ]
+  // Save Changes button disappeared (form closed), Cancel still there
+  const afterClose = [el("button", "Cancel")]
+  const dropped = pruneStaleTasks(queue, afterClose)
+  expect(dropped).toBe(1)
+  expect(queue.length).toBe(1)
+  expect((queue[0] as any).label).toBe("Cancel")
 })
