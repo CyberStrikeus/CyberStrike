@@ -8,7 +8,14 @@ import {
   MAX_REVISITS_PER_URL,
   ANY_MUTATION,
   normalizeUrl,
+  SINGLE_CRED,
+  getIntelligence,
 } from "../src/state.ts"
+import type { GlobalState } from "../src/types.ts"
+
+// Shortcut for single-cred mode tests (most of the suite).
+const C = SINGLE_CRED
+const intel = (s: GlobalState) => getIntelligence(s, C)
 
 // ============================================================
 // Aşama 13 — Empty-State Revisit helpers (§3.5.1)
@@ -16,61 +23,61 @@ import {
 
 test("markPageEmpty: adds URL with ANY_MUTATION keyword on first call", () => {
   const s = createGlobalState()
-  const queued = markPageEmpty(s, "/basket")
+  const queued = markPageEmpty(s, C, "/basket")
   expect(queued).toBe(true)
-  expect(s.emptyStateQueue.get("/basket")).toBe(ANY_MUTATION)
+  expect(intel(s).emptyStateQueue.get("/basket")).toBe(ANY_MUTATION)
 })
 
 test("markPageEmpty: stores provided expectedMutation keyword", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket", "cart-item-added")
-  expect(s.emptyStateQueue.get("/basket")).toBe("cart-item-added")
+  markPageEmpty(s, C, "/basket", "cart-item-added")
+  expect(intel(s).emptyStateQueue.get("/basket")).toBe("cart-item-added")
 })
 
 test("markPageEmpty: idempotent on same URL within hard limit", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket")
-  markPageEmpty(s, "/basket")
-  expect(s.emptyStateQueue.size).toBe(1)
+  markPageEmpty(s, C, "/basket")
+  markPageEmpty(s, C, "/basket")
+  expect(intel(s).emptyStateQueue.size).toBe(1)
 })
 
 test("markPageEmpty: rejects URL once hard limit reached", () => {
   const s = createGlobalState()
   // Simulate 2 revisits already happened
-  s.revisitCount.set("/basket", MAX_REVISITS_PER_URL)
-  const queued = markPageEmpty(s, "/basket")
+  intel(s).revisitCount.set("/basket", MAX_REVISITS_PER_URL)
+  const queued = markPageEmpty(s, C, "/basket")
   expect(queued).toBe(false)
-  expect(s.emptyStateQueue.has("/basket")).toBe(false)
+  expect(intel(s).emptyStateQueue.has("/basket")).toBe(false)
 })
 
 test("markPageEmpty: second call with new keyword overwrites previous", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket")  // ANY_MUTATION
-  markPageEmpty(s, "/basket", "cart-item-added")
-  expect(s.emptyStateQueue.get("/basket")).toBe("cart-item-added")
+  markPageEmpty(s, C, "/basket")  // ANY_MUTATION
+  markPageEmpty(s, C, "/basket", "cart-item-added")
+  expect(intel(s).emptyStateQueue.get("/basket")).toBe("cart-item-added")
 })
 
 test("drainEmptyStateQueue: moves URLs to pageQueue front + increments count", () => {
   const s = createGlobalState()
   s.pageQueue.push("/home")
-  markPageEmpty(s, "/basket")
-  markPageEmpty(s, "/orders")
+  markPageEmpty(s, C, "/basket")
+  markPageEmpty(s, C, "/orders")
 
-  const drained = drainEmptyStateQueue(s)
+  const drained = drainEmptyStateQueue(s, C)
 
   expect(drained.sort()).toEqual(["/basket", "/orders"])
-  expect(s.emptyStateQueue.size).toBe(0)
+  expect(intel(s).emptyStateQueue.size).toBe(0)
   // Drained URLs are at the front (priority), original /home after
   expect(s.pageQueue[s.pageQueue.length - 1]).toBe("/home")
   expect(s.pageQueue.includes("/basket")).toBe(true)
   expect(s.pageQueue.includes("/orders")).toBe(true)
-  expect(s.revisitCount.get("/basket")).toBe(1)
-  expect(s.revisitCount.get("/orders")).toBe(1)
+  expect(intel(s).revisitCount.get("/basket")).toBe(1)
+  expect(intel(s).revisitCount.get("/orders")).toBe(1)
 })
 
 test("drainEmptyStateQueue: idempotent on empty queue", () => {
   const s = createGlobalState()
-  const drained = drainEmptyStateQueue(s)
+  const drained = drainEmptyStateQueue(s, C)
   expect(drained).toEqual([])
   expect(s.pageQueue.length).toBe(0)
 })
@@ -79,20 +86,20 @@ test("drainEmptyStateQueue: respects hard limit across multiple drains", () => {
   const s = createGlobalState()
 
   // 1st mark + drain
-  markPageEmpty(s, "/basket")
-  drainEmptyStateQueue(s)
-  expect(s.revisitCount.get("/basket")).toBe(1)
+  markPageEmpty(s, C, "/basket")
+  drainEmptyStateQueue(s, C)
+  expect(intel(s).revisitCount.get("/basket")).toBe(1)
 
   // 2nd mark + drain — still allowed (count=1, below limit=2)
-  const second = markPageEmpty(s, "/basket")
+  const second = markPageEmpty(s, C, "/basket")
   expect(second).toBe(true)
-  drainEmptyStateQueue(s)
-  expect(s.revisitCount.get("/basket")).toBe(2)
+  drainEmptyStateQueue(s, C)
+  expect(intel(s).revisitCount.get("/basket")).toBe(2)
 
   // 3rd mark rejected by hard limit
-  const third = markPageEmpty(s, "/basket")
+  const third = markPageEmpty(s, C, "/basket")
   expect(third).toBe(false)
-  expect(s.emptyStateQueue.has("/basket")).toBe(false)
+  expect(intel(s).emptyStateQueue.has("/basket")).toBe(false)
 })
 
 // ============================================================
@@ -101,60 +108,60 @@ test("drainEmptyStateQueue: respects hard limit across multiple drains", () => {
 
 test("drainOnMutation: ANY_MUTATION URLs drain on any keyword (or none)", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket")  // ANY_MUTATION (no keyword)
-  markPageEmpty(s, "/orders")  // ANY_MUTATION
+  markPageEmpty(s, C, "/basket")  // ANY_MUTATION (no keyword)
+  markPageEmpty(s, C, "/orders")  // ANY_MUTATION
 
-  const drained = drainOnMutation(s, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained.sort()).toEqual(["/basket", "/orders"])
 })
 
 test("drainOnMutation: keyword URLs drain ONLY on exact match", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket", "cart-item-added")
-  markPageEmpty(s, "/users",  "user-created")
+  markPageEmpty(s, C, "/basket", "cart-item-added")
+  markPageEmpty(s, C, "/users",  "user-created")
 
-  const drained = drainOnMutation(s, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained).toEqual(["/basket"])
   // /users should still be pending (no match)
-  expect(s.emptyStateQueue.get("/users")).toBe("user-created")
+  expect(intel(s).emptyStateQueue.get("/users")).toBe("user-created")
 })
 
 test("drainOnMutation: mixed ANY + keyword — both drain on matching keyword", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket", "cart-item-added")
-  markPageEmpty(s, "/wishlist")  // ANY_MUTATION
+  markPageEmpty(s, C, "/basket", "cart-item-added")
+  markPageEmpty(s, C, "/wishlist")  // ANY_MUTATION
 
-  const drained = drainOnMutation(s, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained.sort()).toEqual(["/basket", "/wishlist"])
 })
 
 test("drainOnMutation: no-keyword task drains ONLY ANY_MUTATION URLs", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/basket", "cart-item-added")  // specific
-  markPageEmpty(s, "/wishlist")                   // ANY_MUTATION
+  markPageEmpty(s, C, "/basket", "cart-item-added")  // specific
+  markPageEmpty(s, C, "/wishlist")                   // ANY_MUTATION
 
   // Task had no keyword — only ANY_MUTATION URLs drain (backward-compat)
-  const drained = drainOnMutation(s, undefined)
+  const drained = drainOnMutation(s, C,undefined)
   expect(drained).toEqual(["/wishlist"])
-  expect(s.emptyStateQueue.get("/basket")).toBe("cart-item-added")
+  expect(intel(s).emptyStateQueue.get("/basket")).toBe("cart-item-added")
 })
 
 test("drainOnMutation: unmatched keyword URLs remain pending", () => {
   const s = createGlobalState()
-  markPageEmpty(s, "/users", "user-created")
+  markPageEmpty(s, C, "/users", "user-created")
 
-  const drained = drainOnMutation(s, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained).toEqual([])
-  expect(s.emptyStateQueue.get("/users")).toBe("user-created")
+  expect(intel(s).emptyStateQueue.get("/users")).toBe("user-created")
 })
 
 test("drainOnMutation: drained URLs get fingerprint cleared", () => {
   const s = createGlobalState()
-  s.pageFingerprints.set("/basket", "old-fp")
-  markPageEmpty(s, "/basket")
+  intel(s).pageFingerprints.set("/basket", "old-fp")
+  markPageEmpty(s, C, "/basket")
 
-  drainOnMutation(s, "anything")
-  expect(s.pageFingerprints.has("/basket")).toBe(false)
+  drainOnMutation(s, C,"anything")
+  expect(intel(s).pageFingerprints.has("/basket")).toBe(false)
 })
 
 test("hasSuccessfulMutation: detects POST 2xx", () => {
@@ -221,4 +228,71 @@ test("normalizeUrl: non-hash URLs preserve pathname distinctions", () => {
 test("normalizeUrl: query params preserved and sorted", () => {
   expect(normalizeUrl("http://x.com/search?b=2&a=1"))
     .toBe(normalizeUrl("http://x.com/search?a=1&b=2"))
+})
+
+// ============================================================
+// Per-credential Intelligence isolation (Aşama 13 multi-cred)
+// Guarantees: state changes by one credential never leak into another's
+// emptyStateQueue, revisitCount, or pageFingerprints.
+// ============================================================
+
+test("markPageEmpty: credA's queue does not leak into credB", () => {
+  const s = createGlobalState()
+  markPageEmpty(s, "admin", "/users")
+  // credB sees an empty queue — no cross-cred leak
+  const intelB = getIntelligence(s, "user")
+  expect(intelB.emptyStateQueue.size).toBe(0)
+  expect(intelB.emptyStateQueue.has("/users")).toBe(false)
+})
+
+test("drainOnMutation: credA's mutation does not drain credB's queue", () => {
+  const s = createGlobalState()
+  markPageEmpty(s, "admin", "/users")
+  markPageEmpty(s, "user",  "/users")  // both marked empty independently
+
+  // admin does a mutation — drains only admin's queue
+  const drainedAdmin = drainOnMutation(s, "admin")
+  expect(drainedAdmin).toEqual(["/users"])
+
+  // user's queue still has the URL — its mutation hasn't happened yet
+  const intelUser = getIntelligence(s, "user")
+  expect(intelUser.emptyStateQueue.has("/users")).toBe(true)
+})
+
+test("revisitCount: hard limit is per-credential", () => {
+  const s = createGlobalState()
+
+  // admin: two complete mark+drain cycles → reaches hard limit
+  markPageEmpty(s, "admin", "/users")
+  drainOnMutation(s, "admin")
+  markPageEmpty(s, "admin", "/users")
+  drainOnMutation(s, "admin")
+  // 3rd mark for admin should be rejected
+  expect(markPageEmpty(s, "admin", "/users")).toBe(false)
+
+  // user's count is independent — fresh slate
+  expect(markPageEmpty(s, "user", "/users")).toBe(true)
+  expect(getIntelligence(s, "user").revisitCount.get("/users") ?? 0).toBe(0)
+})
+
+test("pageFingerprints: credential-scoped, no cross-read", () => {
+  const s = createGlobalState()
+  getIntelligence(s, "admin").pageFingerprints.set("/dashboard", "fp-admin")
+
+  const intelUser = getIntelligence(s, "user")
+  expect(intelUser.pageFingerprints.get("/dashboard")).toBeUndefined()
+
+  // Writing from user doesn't touch admin's state
+  intelUser.pageFingerprints.set("/dashboard", "fp-user")
+  expect(getIntelligence(s, "admin").pageFingerprints.get("/dashboard")).toBe("fp-admin")
+})
+
+test("getIntelligence: single-cred sentinel and labels live in the same map", () => {
+  const s = createGlobalState()
+  markPageEmpty(s, SINGLE_CRED, "/checkout")
+  markPageEmpty(s, "admin", "/checkout")
+  // Both exist, but in distinct IntelligenceState entries
+  expect(getIntelligence(s, SINGLE_CRED).emptyStateQueue.has("/checkout")).toBe(true)
+  expect(getIntelligence(s, "admin").emptyStateQueue.has("/checkout")).toBe(true)
+  expect(s.intelligenceByCredential.size).toBe(2)
 })

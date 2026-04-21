@@ -6,7 +6,7 @@ import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredenti
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
-import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation } from "./state.ts"
+import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation, getIntelligence, SINGLE_CRED } from "./state.ts"
 import { execute } from "./executor.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
@@ -119,8 +119,9 @@ function processAuthPhase(
     const loginPage = deferred.find((d) => d.type === "login")
     if (loginPage) {
       log.info("phase transition: registered → login", { url: loginPage.url })
-      // Clear fingerprint — login needs full re-exploration after register
-      globalState.pageFingerprints.delete(normalizeUrl(loginPage.url))
+      // Clear fingerprint — login needs full re-exploration after register.
+      // Auth transitions happen in single-credential mode.
+      getIntelligence(globalState, SINGLE_CRED).pageFingerprints.delete(normalizeUrl(loginPage.url))
       globalState.pageQueue.push(loginPage.url)
       globalState.deferredAuthPages = deferred.filter((d) => d.type !== "login")
       return
@@ -424,6 +425,7 @@ async function explorePageWithAI(
   model: LanguageModel,
   globalState: ReturnType<typeof createGlobalState>,
   targetHost: string,
+  credentialId: string,
 ): Promise<string[]> {
   const linksToEnqueue: string[] = []
   const semanticActionsDone = new Set<string>()
@@ -440,7 +442,7 @@ async function explorePageWithAI(
 
   // 2. Ask LLM once — get the full exploration plan for this page
   const vcBlocked = await isViewportCenterBlocked(page)
-  const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, vcBlocked)
+  const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, credentialId, vcBlocked)
   const plan = await planPage(snapshot, model)
   log.info("page plan received", {
     tasks: plan.tasks.length,
@@ -449,7 +451,7 @@ async function explorePageWithAI(
   })
 
   // Aşama 13 §3.5.1 — Journey Awareness on initial page plan
-  applyPlanIntelligence(plan, pageUrl, globalState)
+  applyPlanIntelligence(plan, pageUrl, globalState, credentialId)
 
   // 3. TaskQueue — system drives execution, no LLM per step
   const taskQueue: PageTask[] = [...plan.tasks]
@@ -488,9 +490,9 @@ async function explorePageWithAI(
     })
 
     if (task.type === "form") {
-      await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, linksToEnqueue, pageUrl, targetHost)
+      await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
     } else {
-      await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, linksToEnqueue, pageUrl, targetHost)
+      await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
     }
 
     // Unified post-action discovery: find new elements after any action (form submit or click)
@@ -514,9 +516,9 @@ async function explorePageWithAI(
     // System only detects change; LLM decides what to do (Architecture 2.1)
     if (hasNewElements || hasStaleTargets) {
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-      const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
+      const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
       const newPlan = await planPage(snapshot, model)
-      applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
+      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId)  // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after state change", {
           reason: hasStaleTargets ? (hasNewElements ? "new+stale" : "stale") : "new",
@@ -557,9 +559,9 @@ async function explorePageWithAI(
     log.info("unexplored elements found", { count: unexplored.length, iteration: iteration + 1, labels: unexplored.slice(0, 5) })
 
     const vcBlocked = await isViewportCenterBlocked(page)
-    const snap = buildPlannerSnapshot(pageUrl, currentElements, globalState, vcBlocked)
+    const snap = buildPlannerSnapshot(pageUrl, currentElements, globalState, credentialId, vcBlocked)
     const additionalPlan = await planUnexploredElements(snap, unexplored, model)
-    applyPlanIntelligence(additionalPlan, pageUrl, globalState)  // Aşama 13
+    applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId)  // Aşama 13
 
     if (additionalPlan.tasks.length === 0) break
 
@@ -591,9 +593,9 @@ async function explorePageWithAI(
       })
 
       if (task.type === "form") {
-        await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, linksToEnqueue, pageUrl, targetHost)
+        await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
       } else {
-        await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, linksToEnqueue, pageUrl, targetHost)
+        await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
       }
 
       // Post-action discovery (same as main loop)
@@ -606,9 +608,9 @@ async function explorePageWithAI(
       const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
       if (hasNewElements || hasStaleTargets) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-        const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, await isViewportCenterBlocked(page))
+        const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
         const newPlan = await planPage(freshSnap, model)
-        applyPlanIntelligence(newPlan, pageUrl, globalState)  // Aşama 13
+        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId)  // Aşama 13
         if (newPlan.tasks.length > 0) {
           reconcileQueue(additionalQueue, newPlan.tasks)
         }
@@ -618,10 +620,10 @@ async function explorePageWithAI(
     }
   }
 
-  // 5. Store fingerprint for post-login re-visit comparison
+  // 5. Store fingerprint for post-login re-visit comparison — credential-scoped
   const finalElements = await collectElements(page)
-  globalState.pageFingerprints.set(pageUrl, generateFingerprint(finalElements))
-  log.debug("fingerprint stored", { url: pageUrl })
+  getIntelligence(globalState, credentialId).pageFingerprints.set(pageUrl, generateFingerprint(finalElements))
+  log.debug("fingerprint stored", { url: pageUrl, credential: credentialId })
 
   // 6. Collect same-host links from DOM (BFS supplement)
   try {
@@ -651,6 +653,7 @@ async function executeFormTask(
   interceptor: Interceptor,
   semanticActionsDone: Set<string>,
   globalState: ReturnType<typeof createGlobalState>,
+  credentialId: string,
   linksToEnqueue: string[],
   pageUrl: string,
   targetHost: string,
@@ -669,7 +672,7 @@ async function executeFormTask(
 
     interceptor.drainRecentCaptures()
     const result = await execute(page, el, action, value, interceptor.setPendingUI, elements.length)
-    trackResult(result, interceptor, globalState)
+    trackResult(result, interceptor, globalState, credentialId)
 
     semanticActionsDone.add(key)
     globalState.totalSteps++
@@ -694,7 +697,7 @@ async function executeFormTask(
   interceptor.setPendingTrigger(`${submitEl.role}:${submitEl.label}`)
   const result = await execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState, task.triggersMutation)
+  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation)
 
   semanticActionsDone.add(submitKey)
   globalState.totalSteps++
@@ -720,6 +723,7 @@ async function executeClickTask(
   interceptor: Interceptor,
   semanticActionsDone: Set<string>,
   globalState: ReturnType<typeof createGlobalState>,
+  credentialId: string,
   linksToEnqueue: string[],
   pageUrl: string,
   targetHost: string,
@@ -737,7 +741,7 @@ async function executeClickTask(
   interceptor.setPendingTrigger(`${el.role}:${el.label}`)
   const result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState, task.triggersMutation)
+  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation)
 
   semanticActionsDone.add(key)
   globalState.totalSteps++
@@ -898,23 +902,31 @@ export function pruneStaleTasks(queue: PageTask[], elements: RawElement[]): numb
  * Apply Intelligence signals from a PagePlan (Aşama 13 §3.3.1 + §3.5.1).
  * Called wherever the agent receives a plan from the LLM — initial plan,
  * re-plan after DOM changes, unexplored-elements plan, multi-credential plan.
- * Currently handles only Journey Awareness (empty-state revisit marking).
+ * Writes to the credential's own IntelligenceState (isolated from other creds).
  */
 function applyPlanIntelligence(
   plan: { pageState?: string; revisitAfter?: string | null; revisitReason?: string; revisitOn?: string },
   pageUrl: string,
   globalState: ReturnType<typeof createGlobalState>,
+  credentialId: string,
 ): void {
   if (plan.pageState !== "empty" || plan.revisitAfter !== "any-mutation") return
-  const queued = markPageEmpty(globalState, pageUrl, plan.revisitOn)
+  const queued = markPageEmpty(globalState, credentialId, pageUrl, plan.revisitOn)
+  const intel = getIntelligence(globalState, credentialId)
   if (queued) {
     log.info("page marked empty for mutation-triggered revisit", {
       url: pageUrl,
+      credential: credentialId,
       reason: plan.revisitReason,
       revisitOn: plan.revisitOn ?? "*",
+      queueSize: intel.emptyStateQueue.size,
     })
   } else {
-    log.debug("empty-state revisit rejected by hard limit", { url: pageUrl })
+    log.debug("empty-state revisit rejected by hard limit", {
+      url: pageUrl,
+      credential: credentialId,
+      count: intel.revisitCount.get(pageUrl) ?? 0,
+    })
   }
 }
 
@@ -962,22 +974,25 @@ function trackResult(
   result: ActionResult,
   interceptor: Interceptor,
   globalState: ReturnType<typeof createGlobalState>,
+  credentialId: string,
   taskMutation?: string,
 ): void {
   const reqs = interceptor.drainRecentCaptures()
   result.httpRequests = reqs.length > 0 ? reqs : undefined
   if (result.httpRequests) {
     for (const req of result.httpRequests) globalState.capturedEndpoints.add(req)
-    // Journey Awareness: successful mutation drains matching empty-state URLs.
-    // Uses drainOnMutation so keyword-tagged URLs only drain on match; ANY_MUTATION
-    // URLs drain on any mutation (backward-compat).
-    if (hasSuccessfulMutation(result.httpRequests) && globalState.emptyStateQueue.size > 0) {
-      const drained = drainOnMutation(globalState, taskMutation)
+    // Journey Awareness: successful mutation drains matching empty-state URLs
+    // for THIS CREDENTIAL only — no cross-credential drain (§3.5.1).
+    const intel = getIntelligence(globalState, credentialId)
+    if (hasSuccessfulMutation(result.httpRequests) && intel.emptyStateQueue.size > 0) {
+      const drained = drainOnMutation(globalState, credentialId, taskMutation)
       if (drained.length > 0) {
         log.info("mutation triggered empty-state revisit drain", {
           drained: drained.length,
           urls: drained,
+          credential: credentialId,
           taskMutation: taskMutation ?? "(none)",
+          remaining: intel.emptyStateQueue.size,
         })
       }
     }
@@ -1377,40 +1392,21 @@ async function runMultiCredential(
     // Plan + Explore
     if (allSameFingerprint && visitableContexts.length > 1) {
       // All contexts see the same page — 1 LLM call, execute on all
-      const firstCtx = visitableContexts[0]!
-      const elements = elementsByContext.get(firstCtx.id)!
-      const filtered = filterVisitedLinks(elements, entry.url, globalState.visitedPages)
-
-      log.info("same fingerprint — single LLM plan for all contexts", {
+      log.info("same fingerprint across contexts", {
         contexts: visitableContexts.map(c => c.id),
-        elements: filtered.length,
       })
+    }
 
-      // Get plan once
-      const snapshot = buildPlannerSnapshot(entry.url, filtered, globalState, false)
-      const plan = await planPage(snapshot, model)
-      applyPlanIntelligence(plan, entry.url, globalState)  // Aşama 13
-
-      // Execute on each context sequentially
-      for (const ctx of visitableContexts) {
-        log.info("exploring with shared plan", { credential: ctx.id, url: entry.url })
-        const discovered = await explorePageWithAI(
-          ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost,
-        )
-        for (const url of discovered) {
-          enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
-        }
-      }
-    } else {
-      // Different fingerprints — each context gets its own LLM call
-      for (const ctx of visitableContexts) {
-        log.info("exploring independently", { credential: ctx.id, url: entry.url })
-        const discovered = await explorePageWithAI(
-          ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost,
-        )
-        for (const url of discovered) {
-          enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
-        }
+    // Each credential explores with its own IntelligenceState — isolated by
+    // design (§3.5.1). Even when fingerprints match, per-credential journey
+    // state (empty-state queue, revisitCount, pageFingerprints) stays separate.
+    for (const ctx of visitableContexts) {
+      log.info("exploring", { credential: ctx.id, url: entry.url })
+      const discovered = await explorePageWithAI(
+        ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost, ctx.id,
+      )
+      for (const url of discovered) {
+        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
       }
     }
 
@@ -1616,7 +1612,9 @@ export async function run(config: AgentConfig): Promise<void> {
     // Fingerprint comparison: skip unchanged pages on re-visit (no LLM calls)
     // Fingerprint only includes input roles (textbox/combobox/checkbox/radio/slider)
     // so navbar/toolbar button changes don't cause false positives
-    const oldFingerprint = globalState.pageFingerprints.get(currentUrl)
+    // Single-credential mode uses SINGLE_CRED sentinel for intelligence state.
+    const intel = getIntelligence(globalState, SINGLE_CRED)
+    const oldFingerprint = intel.pageFingerprints.get(currentUrl)
     log.debug("fingerprint check", { url: currentUrl, hasOld: !!oldFingerprint })
     if (oldFingerprint !== undefined) {
       const currentElements = await collectElements(page)
@@ -1629,7 +1627,7 @@ export async function run(config: AgentConfig): Promise<void> {
         for (const url of domLinks) {
           enqueueUrl(url, globalState, targetHost)
         }
-        globalState.pageFingerprints.set(currentUrl, newFingerprint)
+        intel.pageFingerprints.set(currentUrl, newFingerprint)
         await page.waitForTimeout(300)
         continue
       }
@@ -1638,7 +1636,7 @@ export async function run(config: AgentConfig): Promise<void> {
 
     // Explore the page with AI
     const discovered = await explorePageWithAI(
-      page, currentUrl, interceptor, model, globalState, targetHost,
+      page, currentUrl, interceptor, model, globalState, targetHost, SINGLE_CRED,
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)

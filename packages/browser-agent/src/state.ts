@@ -1,4 +1,4 @@
-import type { RawElement, GlobalState, PageState, ActionRecord, ActionResult, DeferredAuthPage } from "./types.ts"
+import type { RawElement, GlobalState, IntelligenceState, PageState, ActionRecord, ActionResult, DeferredAuthPage } from "./types.ts"
 
 // ============================================================
 // Constants
@@ -15,17 +15,43 @@ export function createGlobalState(opts?: { outOfScope?: readonly string[] }): Gl
   return {
     visitedPages: new Set(),
     capturedEndpoints: new Set(),
-    pageFingerprints: new Map(),
     authPhase: "anonymous",
     totalSteps: 0,
     pageQueue: [],
     deferredAuthPages: [],
     pendingReDiscovery: false,
     pathPatternCounts: new Map(),
-    emptyStateQueue: new Map(),
-    revisitCount: new Map(),
     outOfScope: opts?.outOfScope ?? [],
+    intelligenceByCredential: new Map(),
   }
+}
+
+// ============================================================
+// Credential-scoped intelligence access
+// ============================================================
+
+/**
+ * Sentinel credential ID for single-credential mode. Multi-credential mode
+ * uses the credential's declared label instead. Both share the same API,
+ * differing only by which IntelligenceState entry is addressed.
+ */
+export const SINGLE_CRED = "__single__"
+
+/**
+ * Get (or lazily create) the intelligence state for a credential.
+ * Callers pass SINGLE_CRED in single-cred mode, the credential id otherwise.
+ */
+export function getIntelligence(state: GlobalState, credId: string): IntelligenceState {
+  let intel = state.intelligenceByCredential.get(credId)
+  if (!intel) {
+    intel = {
+      emptyStateQueue: new Map(),
+      revisitCount: new Map(),
+      pageFingerprints: new Map(),
+    }
+    state.intelligenceByCredential.set(credId, intel)
+  }
+  return intel
 }
 
 // ============================================================
@@ -39,58 +65,59 @@ export const MAX_REVISITS_PER_URL = 2
 export const ANY_MUTATION = "*"
 
 /**
- * Mark a URL for revisit after a mutation. Respects hard limit (MAX_REVISITS_PER_URL).
- * @param expectedMutation  Keyword to match against future task.triggersMutation.
- *                          Omit or pass undefined → ANY_MUTATION (backward-compat).
+ * Mark a URL for revisit after a mutation, scoped to a credential.
+ * Respects hard limit (MAX_REVISITS_PER_URL per credential).
  * @returns true if queued, false if rejected by hard limit.
  */
 export function markPageEmpty(
   state: GlobalState,
+  credId: string,
   url: string,
   expectedMutation?: string,
 ): boolean {
-  const count = state.revisitCount.get(url) ?? 0
+  const intel = getIntelligence(state, credId)
+  const count = intel.revisitCount.get(url) ?? 0
   if (count >= MAX_REVISITS_PER_URL) return false
-  state.emptyStateQueue.set(url, expectedMutation ?? ANY_MUTATION)
+  intel.emptyStateQueue.set(url, expectedMutation ?? ANY_MUTATION)
   return true
 }
 
 /**
- * Drain empty-state URLs matching the given mutation keyword.
+ * Drain empty-state URLs matching the given mutation keyword, for one credential.
  *   - URLs marked with ANY_MUTATION ("*") drain on any mutation.
  *   - URLs marked with a specific keyword drain ONLY on exact match.
  *   - URLs with a specific keyword and no match remain pending (may be drained
  *     by a later matching mutation, up to the hard limit).
  *
- * @param taskMutation  Mutation keyword from the executing task. Pass undefined
- *                      when the task has no declared keyword — only ANY_MUTATION
- *                      URLs drain in that case.
- * @returns the URLs that were re-queued.
+ * Other credentials' intelligence is untouched — cross-credential drain does
+ * not occur. This preserves each credential's journey independence.
  */
 export function drainOnMutation(
   state: GlobalState,
+  credId: string,
   taskMutation?: string,
 ): string[] {
-  if (state.emptyStateQueue.size === 0) return []
+  const intel = getIntelligence(state, credId)
+  if (intel.emptyStateQueue.size === 0) return []
   const drained: string[] = []
-  for (const [url, expected] of state.emptyStateQueue) {
+  for (const [url, expected] of intel.emptyStateQueue) {
     const matches =
       expected === ANY_MUTATION ||
       (taskMutation !== undefined && expected === taskMutation)
     if (!matches) continue
     state.pageQueue.unshift(url)
-    state.revisitCount.set(url, (state.revisitCount.get(url) ?? 0) + 1)
+    intel.revisitCount.set(url, (intel.revisitCount.get(url) ?? 0) + 1)
     // Input-only fingerprint matches on button-only pages — clear so revisit explores. §3.5.1
-    state.pageFingerprints.delete(url)
+    intel.pageFingerprints.delete(url)
     drained.push(url)
   }
-  for (const url of drained) state.emptyStateQueue.delete(url)
+  for (const url of drained) intel.emptyStateQueue.delete(url)
   return drained
 }
 
-/** Legacy alias kept for existing call sites. Drains ONLY ANY_MUTATION URLs. */
-export function drainEmptyStateQueue(state: GlobalState): string[] {
-  return drainOnMutation(state, undefined)
+/** Legacy alias kept for existing call sites. Drains ONLY ANY_MUTATION URLs for the credential. */
+export function drainEmptyStateQueue(state: GlobalState, credId: string): string[] {
+  return drainOnMutation(state, credId, undefined)
 }
 
 /**
@@ -416,6 +443,7 @@ export function buildPlannerSnapshot(
   url: string,
   elements: RawElement[],
   globalState: GlobalState,
+  credId: string,
   viewportCenterBlocked: boolean,
 ): PlannerSnapshot {
   const snapshot: PlannerSnapshot = {
@@ -427,9 +455,11 @@ export function buildPlannerSnapshot(
   if (globalState.outOfScope.length > 0) {
     snapshot.outOfScope = [...globalState.outOfScope]
   }
-  // Aşama 13 Mutation Matching — unique pending keywords (exclude ANY_MUTATION fallback)
+  // Aşama 13 Mutation Matching — unique pending keywords for this credential
+  // (exclude ANY_MUTATION fallback). Each credential's own pending list is used.
+  const intel = getIntelligence(globalState, credId)
   const pending = new Set<string>()
-  for (const kw of globalState.emptyStateQueue.values()) {
+  for (const kw of intel.emptyStateQueue.values()) {
     if (kw !== ANY_MUTATION) pending.add(kw)
   }
   if (pending.size > 0) {

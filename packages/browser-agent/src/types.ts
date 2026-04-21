@@ -23,22 +23,36 @@ export interface DeferredAuthPage {
   type: "register" | "login" | "logout"
 }
 
+/**
+ * Intelligence Layer state (Aşama 13 §3.3.1, §3.5.1) — CREDENTIAL-SCOPED.
+ * Each credential in multi-credential mode owns its own instance so that
+ * empty-state signals, revisit counters, and DOM fingerprints from one
+ * credential cannot leak into another's journey. Single-credential mode
+ * uses SINGLE_CRED sentinel (see state.ts).
+ */
+export interface IntelligenceState {
+  // url → mutation keyword to match. "*" means any-mutation (legacy/fallback).
+  emptyStateQueue: Map<string, string>
+  // url → revisit count (hard limit: 2 per URL per credential)
+  revisitCount: Map<string, number>
+  // url → element fingerprint for re-visit comparison
+  pageFingerprints: Map<string, string>
+}
+
 /** Global state: lives across entire crawl */
 export interface GlobalState {
+  // Shared across credentials
   visitedPages: Set<string>
   capturedEndpoints: Set<string>  // "METHOD /path" format
-  pageFingerprints: Map<string, string>  // url → element fingerprint for re-visit comparison
   authPhase: "anonymous" | "registered" | "authenticated"
   totalSteps: number
   pageQueue: string[]
   deferredAuthPages: DeferredAuthPage[]
   pendingReDiscovery: boolean
   pathPatternCounts: Map<string, number>  // template key → enqueued count (path pattern limiting)
-  // Aşama 13 — Intelligence Layer (§1.2)
-  // URL → mutation keyword to match. "*" means any-mutation (legacy/fallback).
-  emptyStateQueue: Map<string, string>
-  revisitCount: Map<string, number>      // url → revisit count (hard limit: 2 per URL)
   outOfScope: readonly string[]          // labels the planner must never plan (config snapshot)
+  // Credential-scoped intelligence (Aşama 13) — keyed by credential id or SINGLE_CRED
+  intelligenceByCredential: Map<string, IntelligenceState>
 }
 
 /** Page state: resets on every page transition */
