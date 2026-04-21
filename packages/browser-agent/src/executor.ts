@@ -113,12 +113,17 @@ async function executeSliderFill(page: Page, selector: string, value: string): P
     return `Invalid slider value: ${value}`
   }
 
-  // Direct value set via page.evaluate — dispatches input+change events
-  // This properly updates Angular Material FormControl
-  const evalSuccess = await page.evaluate((val: number) => {
-    const inputs = document.querySelectorAll<HTMLInputElement>("input[type=range]")
-    if (inputs.length === 0) return false
-    const input = inputs[0]!
+  // Target the specific slider element — scanner produces an element-unique
+  // selector per slider. The actual range input may be the element itself
+  // (native <input type=range>) or a descendant (Angular Material mat-slider
+  // wraps one). Setting value + dispatching events updates FormControl
+  // bindings in both cases.
+  const root = page.locator(selector).first()
+  const evalSuccess = await root.evaluate((el: Element, val: number) => {
+    const input = el.matches("input[type=range]")
+      ? (el as HTMLInputElement)
+      : el.querySelector<HTMLInputElement>("input[type=range]")
+    if (!input) return false
     input.value = String(val)
     input.dispatchEvent(new Event("input", { bubbles: true }))
     input.dispatchEvent(new Event("change", { bubbles: true }))
@@ -127,8 +132,8 @@ async function executeSliderFill(page: Page, selector: string, value: string): P
 
   if (evalSuccess) return undefined
 
-  // Fallback: keyboard interaction
-  const clickErr = await page.locator(selector)
+  // Fallback: keyboard interaction via the slider wrapper
+  const clickErr = await root
     .click({ timeout: CLICK_TIMEOUT })
     .then(() => null)
     .catch((e: Error) => e)

@@ -69,7 +69,16 @@ Matching task example (later, on products page):
 - For CAPTCHA: find the [info] element with a math expression, compute the answer, use it as value
 - For combobox WITH "options" field: use one of the listed options as value
 - For combobox WITHOUT "options" field: do NOT include it in form fields. Instead, add a separate click task BEFORE the form task to open the dropdown. Use role "combobox" (not "button") in the click task — match the role exactly as shown in the elements list. The system will discover and select an option automatically.
-- For slider: use "3"
+- **Field "constraints" — HTML5 validation meta. When present, the value MUST satisfy it:**
+  * `min:X max:Y step:Z` → pick a value in [X, Y] aligned to step (mid-point is usually a good default — e.g. min:0 max:1000 step:10 → 500)
+  * `maxlength:N` → keep the generated value's length ≤ N characters
+  * `minlength:N` → generate at least N characters
+  * `pattern:<regex>` → produce a value matching the regex
+  * `type:email` → valid email format (e.g. "test@example.com")
+  * `type:url` → valid absolute URL (e.g. "https://example.com")
+  * `type:tel` → digit-only phone-style string
+  If no `constraints` field is present, use the default value table below.
+- For slider (role=slider) without constraints: use "3"
 
 #### Submit button selection
 - The submit button MUST be the form's own primary action button

@@ -153,3 +153,63 @@ test("BUG-12: product card innerText differentiation unaffected (regression guar
   expect(linkLabels.every(l => !l.match(/\(\d+\)$/))).toBe(true)
   await p.close()
 }, 15000)
+
+// ============================================================
+// HTML5 constraints serialization — BUG-7 generic fix
+// ============================================================
+
+test("constraints: range input emits min/max/step", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const price = elements.find(e => e.role === "slider")
+  expect(price).toBeDefined()
+  expect(price!.constraints).toBe("min:0 max:1000 step:10")
+  await page.close()
+}, 15000)
+
+test("constraints: number input emits min/max without step when unset", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const age = elements.find(e => e.tag === "input" && e.type === "number")
+  expect(age).toBeDefined()
+  expect(age!.constraints).toBe("min:18 max:120")
+  await page.close()
+}, 15000)
+
+test("constraints: textarea emits maxlength", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const about = elements.find(e => e.tag === "textarea")
+  expect(about).toBeDefined()
+  expect(about!.constraints).toBe("maxlength:160")
+  await page.close()
+}, 15000)
+
+test("constraints: email input emits maxlength + type hint", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const email = elements.find(e => e.type === "email")
+  expect(email).toBeDefined()
+  expect(email!.constraints).toContain("maxlength:80")
+  expect(email!.constraints).toContain("type:email")
+  await page.close()
+}, 15000)
+
+test("constraints: tel input emits maxlength + type hint", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const mobile = elements.find(e => e.type === "tel")
+  expect(mobile).toBeDefined()
+  expect(mobile!.constraints).toContain("maxlength:10")
+  expect(mobile!.constraints).toContain("type:tel")
+  await page.close()
+}, 15000)
+
+test("constraints: plain text input with no attributes emits empty string", async () => {
+  const page = await loadFixture("constraints.html")
+  const elements = await collectElements(page)
+  const title = elements.find(e => e.tag === "input" && e.type === "text")
+  expect(title).toBeDefined()
+  expect(title!.constraints).toBe("")
+  await page.close()
+}, 15000)

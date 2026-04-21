@@ -25,6 +25,7 @@ interface BrowserElement {
   type: string
   placeholder: string
   options: string        // comma-separated option values for <select>
+  constraints: string    // HTML5 validation meta (min/max/step/maxlength/pattern/type)
   selectorRole: string   // role=button[name="..."]
   selectorCSS: string    // fallback CSS selector
 }
@@ -183,6 +184,42 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       "[onclick]",
     ].join(", ")
 
+    // Serialize HTML5 validation attributes into a compact string the LLM can
+    // interpret. Empty return = no constraints (saves tokens). Only meaningful
+    // attributes emitted — range types get min/max/step, text/textarea get
+    // maxlength, email/url/tel emit type hint, pattern forwarded when present.
+    function serializeConstraints(el: Element, type: string): string {
+      const tag = el.tagName.toLowerCase()
+      if (tag !== "input" && tag !== "textarea") return ""
+      const parts: string[] = []
+      const getAttr = (name: string) => el.getAttribute(name)?.trim() ?? ""
+
+      const min = getAttr("min")
+      const max = getAttr("max")
+      const step = getAttr("step")
+      const maxlength = getAttr("maxlength")
+      const minlength = getAttr("minlength")
+      const pattern = getAttr("pattern")
+
+      const isNumericRange = type === "range" || type === "number"
+      const isDateTime = type === "date" || type === "time" || type === "datetime-local" || type === "month" || type === "week"
+
+      if (isNumericRange || isDateTime) {
+        if (min) parts.push(`min:${min}`)
+        if (max) parts.push(`max:${max}`)
+        if (isNumericRange && step && step !== "any") parts.push(`step:${step}`)
+      }
+      if ((tag === "textarea" || ["text", "email", "url", "tel", "password", "search"].includes(type)) && maxlength) {
+        parts.push(`maxlength:${maxlength}`)
+      }
+      if (minlength) parts.push(`minlength:${minlength}`)
+      if (pattern) parts.push(`pattern:${pattern}`)
+      // Semantic type hint — lets LLM pick format-correct values for email/url/tel
+      if (["email", "url", "tel"].includes(type)) parts.push(`type:${type}`)
+
+      return parts.join(" ")
+    }
+
     const elements: BrowserElement[] = []
     const seenCount = new Map<string, number>()
     const seenRoleSelectors = new Map<string, number>()
@@ -215,6 +252,9 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
             .join(", ")
         : ""
 
+      // HTML5 validation constraints for the LLM to honor
+      const constraints = serializeConstraints(el, type)
+
       // Dedup key includes innerText to differentiate same-label elements (e.g. product cards)
       const innerText = (el as HTMLElement).innerText?.trim().slice(0, 40) || ""
       const dedupKey = `${role}::${label}::${href}::${innerText}`
@@ -238,14 +278,13 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const selectorRole = count > 1
         ? ""
         : (safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`)
-      // For sliders, use input[type=range] as CSS fallback (mat-slider wraps one)
-      const selectorCSS = isSlider ? "input[type=range]" : buildCSSSelector(el)
+      const selectorCSS = buildCSSSelector(el)
 
       // Track selectorRole usage — if duplicated, mark for CSS fallback
       const roleCount = (seenRoleSelectors.get(selectorRole) ?? 0) + 1
       seenRoleSelectors.set(selectorRole, roleCount)
 
-      elements.push({ tag, role, label: disambiguatedLabel, value, enabled, href, type, placeholder, options, selectorRole, selectorCSS })
+      elements.push({ tag, role, label: disambiguatedLabel, value, enabled, href, type, placeholder, options, constraints, selectorRole, selectorCSS })
     }
 
     // ---- Info elements (CAPTCHA, hints, contextual labels) ----
@@ -274,7 +313,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       elements.push({
         tag, role: "info", label: ariaLabel, value: text,
         enabled: false, href: "", type: "", placeholder: "", options: "",
-        selectorRole: "", selectorCSS: "",
+        constraints: "", selectorRole: "", selectorCSS: "",
       })
     }
 
@@ -305,6 +344,7 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
     type: el.type,
     placeholder: el.placeholder,
     options: el.options,
+    constraints: el.constraints,
     // Prefer role+name selector (unique); bare role without name is ambiguous — use CSS instead
     selector: el.selectorRole.includes("[name=") ? el.selectorRole : (el.selectorCSS || el.selectorRole),
   }))

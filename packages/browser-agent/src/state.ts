@@ -339,6 +339,7 @@ interface PromptElement {
   placeholder?: string
   href?: string
   options?: string
+  constraints?: string
   enabled?: boolean
 }
 
@@ -352,6 +353,7 @@ function elementToPrompt(el: RawElement): PromptElement {
   if (el.value) result.value = el.value
   if (el.placeholder) result.placeholder = el.placeholder
   if (el.options) result.options = el.options
+  if (el.constraints) result.constraints = el.constraints
   if (!el.enabled) result.enabled = false  // only include when disabled (saves tokens)
   if (el.href) {
     // Show only path+hash, not full URL (saves tokens)
