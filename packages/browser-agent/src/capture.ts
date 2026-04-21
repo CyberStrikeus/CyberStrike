@@ -117,7 +117,19 @@ export async function snapshotPageUI(
     for (const el of inputs) {
       const tagName = el.tagName.toLowerCase()
       const type = tagName === "input" ? (el as HTMLInputElement).type.toLowerCase() : tagName
-      const name = el.getAttribute("name") || el.getAttribute("id") || el.getAttribute("data-name") || ""
+      // Identifier fallback chain — modern SPAs often omit name/id and rely on
+      // test-hook attributes (data-testid/data-test/data-cy) or accessibility
+      // labels. Ordered by reliability: form-standard → DOM unique → custom
+      // semantic → test infrastructure → accessibility.
+      const name =
+           el.getAttribute("name")
+        || el.getAttribute("id")
+        || el.getAttribute("data-name")
+        || el.getAttribute("data-testid")
+        || el.getAttribute("data-test")
+        || el.getAttribute("data-cy")
+        || el.getAttribute("aria-label")
+        || ""
 
       // Skip Angular/CDK internal inputs that have no user-meaningful name
       if (NOISE_ID_PREFIX.test(name) && el.disabled) continue
