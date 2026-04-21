@@ -216,6 +216,23 @@ function shouldSkipUrl(url: string): boolean {
 }
 
 // ============================================================
+// Browser dialog handler
+// ============================================================
+
+/**
+ * Auto-accept native browser dialogs (confirm/alert/prompt) so destructive
+ * actions like `if (confirm('Delete?')) ...` trigger the underlying HTTP
+ * request instead of being silently cancelled. Pentester tool runs with the
+ * intent to exercise destructive paths; the `--exclude <label>` planner flag
+ * is the proper way to opt out of specific actions.
+ */
+function attachDialogAutoAccept(page: Page): void {
+  page.on("dialog", (dialog) => {
+    dialog.accept().catch(() => {})
+  })
+}
+
+// ============================================================
 // Request interceptor
 // ============================================================
 
@@ -1227,6 +1244,7 @@ async function runMultiCredential(
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     })
     const page = await browserContext.newPage()
+    attachDialogAutoAccept(page)
 
     // Navigate to target
     await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
@@ -1504,6 +1522,7 @@ export async function run(config: AgentConfig): Promise<void> {
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
   })
   const page = await context.newPage()
+  attachDialogAutoAccept(page)
 
   if (config.auth.sessionFile) {
     await loadSession(context, config.auth.sessionFile)
