@@ -267,3 +267,77 @@ test("BUG-17: visible fields have undefined hiddenReason (regression guard)", as
 
   await page.close()
 })
+
+// ============================================================
+// BUG-30 — aria-label fallback for nameless identifier
+// ============================================================
+
+test("BUG-30: select with only aria-label gets name from aria-label", async () => {
+  const page = await loadFixture("bug-30-aria-name.html")
+  const ui = await snapshotPageUI(page, null)
+
+  // Classic named select unchanged — name attribute takes priority
+  const country = ui.fields.find(f => f.name === "country")
+  expect(country).toBeDefined()
+
+  // Nameless select with aria-label — name falls back to aria-label
+  const assign = ui.fields.find(f => f.name === "Assign request 42")
+  expect(assign).toBeDefined()
+  expect(assign!.type).toBe("select")
+
+  // Multiple aria-label-only selects addressable by their distinct aria-labels
+  const status = ui.fields.find(f => f.name === "Status filter")
+  expect(status).toBeDefined()
+
+  await page.close()
+})
+
+test("BUG-30: nameless selects no longer collide on empty identifier", async () => {
+  const page = await loadFixture("bug-30-aria-name.html")
+  const ui = await snapshotPageUI(page, null)
+
+  // Before the fix both selects would have name="" and be indistinguishable
+  // to proxy-agent. After the fix they carry their aria-label as name.
+  const nameless = ui.fields.filter(f => f.type === "select" && f.name === "")
+  expect(nameless.length).toBe(0)
+
+  await page.close()
+})
+
+test("BUG-30: data-testid is used as name when name/id/data-name are absent", async () => {
+  const page = await loadFixture("bug-30-aria-name.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const search = ui.fields.find(f => f.name === "search-input")
+  expect(search).toBeDefined()
+  expect(search!.type).toBe("text")
+
+  await page.close()
+})
+
+test("BUG-30: data-testid priority over aria-label", async () => {
+  const page = await loadFixture("bug-30-aria-name.html")
+  const ui = await snapshotPageUI(page, null)
+
+  // Input with both data-cy and aria-label — data-cy comes earlier in the
+  // fallback chain (test-infra before accessibility label).
+  const bulk = ui.fields.find(f => f.name === "bulk-action-count")
+  expect(bulk).toBeDefined()
+  // aria-label value should NOT have won
+  const ariaWinner = ui.fields.find(f => f.name === "Items to process")
+  expect(ariaWinner).toBeUndefined()
+
+  await page.close()
+})
+
+test("BUG-30: data-test (generic) works as last test-infra fallback", async () => {
+  const page = await loadFixture("bug-30-aria-name.html")
+  const ui = await snapshotPageUI(page, null)
+
+  const comment = ui.fields.find(f => f.name === "comment-body")
+  expect(comment).toBeDefined()
+  expect(comment!.type).toBe("textarea")
+
+  await page.close()
+})
+
