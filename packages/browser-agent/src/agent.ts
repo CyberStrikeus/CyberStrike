@@ -664,7 +664,7 @@ async function executeFormTask(
 
     const action = fieldAction(field.role)
     const value = action === "click" ? undefined : field.value
-    const key = `${el.role}::${el.label}::${action}::${value ?? ""}`
+    const key = `${el.selector}::${action}::${value ?? ""}`
     if (semanticActionsDone.has(key)) continue
 
     interceptor.drainRecentCaptures()
@@ -687,7 +687,7 @@ async function executeFormTask(
     return
   }
 
-  const submitKey = `${submitEl.role}::${submitEl.label}::${submitEl.selector}::click::`
+  const submitKey = `${submitEl.selector}::click::`
   if (semanticActionsDone.has(submitKey)) return
 
   interceptor.drainRecentCaptures()
@@ -730,8 +730,8 @@ async function executeClickTask(
     return
   }
 
-  const key = `${el.role}::${el.label}::click::`
-  if (isSemanticDone(semanticActionsDone, key)) return
+  const key = `${el.selector}::click::`
+  if (semanticActionsDone.has(key)) return
 
   interceptor.drainRecentCaptures()
   interceptor.setPendingTrigger(`${el.role}:${el.label}`)
@@ -746,7 +746,7 @@ async function executeClickTask(
   if (el.role === "option") {
     const parentCombobox = elements.find(e => e.role === "combobox")
     if (parentCombobox) {
-      semanticActionsDone.add(`${parentCombobox.role}::${parentCombobox.label}::click::`)
+      semanticActionsDone.add(`${parentCombobox.selector}::click::`)
     }
   }
 
@@ -827,8 +827,8 @@ function findUnexploredElements(
     if (INPUT_ROLES.has(el.role)) continue // input fields are part of forms, not standalone actions
 
     // Check if this element was already actioned
-    const actionKey = `${el.role}::${el.label}::click::`
-    if (isSemanticDone(semanticActionsDone, actionKey)) continue
+    const actionKey = `${el.selector}::click::`
+    if (semanticActionsDone.has(actionKey)) continue
 
     // Duplicate role filter: extract base action name (e.g. "Edit" from "Edit Alice Johnson")
     // Same base role+action means same endpoint pattern — only need one
@@ -848,22 +848,6 @@ function fieldAction(role: string): "fill" | "select" | "click" {
   if (role === "combobox") return "select"
   if (role === "checkbox" || role === "radio") return "click"
   return "fill"
-}
-
-/**
- * Enrichment-aware semantic dedup check (Architecture 6.6).
- * Labels change after interaction: "Country — Select your country" → "Country — United States".
- * Check both exact key and base label (before " — ") to catch post-interaction variants.
- */
-function isSemanticDone(done: Set<string>, key: string): boolean {
-  if (done.has(key)) return true
-  const baseLabel = key.split(" — ")[0]
-  if (baseLabel !== key) {
-    for (const existing of done) {
-      if (existing.startsWith(baseLabel)) return true
-    }
-  }
-  return false
 }
 
 /** Find an element by role+label. Falls back to prefix match for enriched labels. */
