@@ -659,7 +659,15 @@ async function executeFormTask(
   targetHost: string,
 ): Promise<void> {
   for (const field of task.fields) {
-    const el = resolveElement(elements, field.role, field.label)
+    let el = resolveElement(elements, field.role, field.label)
+    // Conditional forms: filling a previous field (e.g. accountType=Business)
+    // can reveal fields that were display:none during the initial scan.
+    // Re-collect once lazily before giving up so branch-specific fields are
+    // filled in the same form task.
+    if (!el) {
+      elements = await collectElements(page)
+      el = resolveElement(elements, field.role, field.label)
+    }
     if (!el) {
       log.debug("form field not found", { role: field.role, label: field.label })
       continue
@@ -690,7 +698,11 @@ async function executeFormTask(
     return
   }
 
-  const submitKey = `${submitEl.selector}::click::`
+  // Submit dedup includes the form's field values — conditional form tasks
+  // that share the same submit button but set different branch values
+  // (e.g. accountType=Personal vs Business) must each fire their own submit.
+  const fieldsHash = JSON.stringify(task.fields.map(f => [f.label, f.value]))
+  const submitKey = `${submitEl.selector}::click::${fieldsHash}`
   if (semanticActionsDone.has(submitKey)) return
 
   interceptor.drainRecentCaptures()

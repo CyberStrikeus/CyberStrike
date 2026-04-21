@@ -80,6 +80,17 @@ Matching task example (later, on products page):
   If no `constraints` field is present, use the default value table below.
 - For slider (role=slider) without constraints: use "3"
 
+#### Conditional forms — branch coverage
+If a form contains a select/combobox/radio whose options look like TYPE/
+TIER/PLAN/ROLE/MODE choices (e.g. "Personal/Business/Enterprise",
+"Free/Pro", "Admin/Editor/Viewer", "Standard/Express") AND other form
+fields could plausibly differ per choice, plan a SEPARATE form task per
+option to exercise each branch. Each task uses a different option value
+for the choice field and lists the fields you expect for that branch
+(even if they are currently hidden — the executor re-scans the DOM
+between fills, newly-revealed fields will be filled). Skip this pattern
+for non-branching selects like country/timezone/language lists.
+
 #### Submit button selection
 - The submit button MUST be the form's own primary action button
 - Match the page purpose: login page → "Log in"/"Sign in", register page → "Register"/"Sign up", contact page → "Submit"/"Send"
