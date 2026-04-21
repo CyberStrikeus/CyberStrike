@@ -14,6 +14,7 @@ export interface RawElement {
   type: string         // input type (text, email, password, range, checkbox, ...)
   placeholder: string  // input placeholder
   options: string      // comma-separated option values for <select> elements
+  constraints: string  // HTML5 validation meta: "min:0 max:1000 step:10", "maxlength:160", ...
   selector: string     // Playwright selector — LLM never sees this
 }
 
