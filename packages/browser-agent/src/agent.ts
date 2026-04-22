@@ -1,6 +1,6 @@
 import { chromium, type Page, type BrowserContext } from "playwright"
 import { Log } from "cyberstrike/util/log"
-import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig } from "./types.ts"
+import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent } from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
 import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
@@ -8,6 +8,8 @@ import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
 import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation, getIntelligence, SINGLE_CRED } from "./state.ts"
 import { execute } from "./executor.ts"
+import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
+import { csEmit, setPanelEnabled } from "./panel/emit.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
@@ -259,6 +261,7 @@ function setupRequestInterceptor(
   page: Page,
   targetHost: string,
   onCapture: (req: CapturedRequest) => void,
+  credentialId: string = SINGLE_CRED,
 ): Interceptor {
   let pendingUIContext: Promise<UIContext> | null = null
   let pendingTrigger: string | null = null
@@ -314,12 +317,22 @@ function setupRequestInterceptor(
 
     // Track for action feedback — "METHOD /path [status]"
     const status = response?.status ?? 0
+    let pathname = url
     try {
-      const u = new URL(url)
-      recentCaptures.push(`${method} ${u.pathname} [${status}]`)
-    } catch {
-      recentCaptures.push(`${method} ${url} [${status}]`)
-    }
+      pathname = new URL(url).pathname
+    } catch {}
+    recentCaptures.push(`${method} ${pathname} [${status}]`)
+
+    // Panel telemetry — fire-and-forget. isMutation matches state.ts definition (2xx only).
+    void csEmit(page, {
+      type: "capture",
+      method,
+      path: pathname,
+      status,
+      trigger: triggerElement ?? undefined,
+      credential: credentialId,
+      isMutation: isMutating && status >= 200 && status < 300,
+    })
   })
 
   return {
@@ -443,9 +456,18 @@ async function explorePageWithAI(
   globalState: ReturnType<typeof createGlobalState>,
   targetHost: string,
   credentialId: string,
+  maxPages: number,
 ): Promise<string[]> {
   const linksToEnqueue: string[] = []
   const semanticActionsDone = new Set<string>()
+
+  void csEmit(page, {
+    type: "page-change",
+    url: pageUrl,
+    pageNum: globalState.visitedPages.size,
+    maxPages,
+    credential: credentialId,
+  })
 
   // 1. Initial element collection (SPA retry on empty)
   let elements = await collectElements(page)
@@ -460,6 +482,7 @@ async function explorePageWithAI(
   // 2. Ask LLM once — get the full exploration plan for this page
   const vcBlocked = await isViewportCenterBlocked(page)
   const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, credentialId, vcBlocked)
+  void csEmit(page, { type: "llm-thinking", reason: "page-plan", elements: elements.length, credential: credentialId })
   const plan = await planPage(snapshot, model)
   log.info("page plan received", {
     tasks: plan.tasks.length,
@@ -467,8 +490,19 @@ async function explorePageWithAI(
     revisitAfter: plan.revisitAfter ?? null,
   })
 
+  void csEmit(page, {
+    type: "plan-received",
+    tasks: plan.tasks.length,
+    pageState: plan.pageState ?? "unknown",
+    summary: plan.tasks.slice(0, 10).map(t => ({
+      kind: t.type,
+      label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+    })),
+    credential: credentialId,
+  })
+
   // Aşama 13 §3.5.1 — Journey Awareness on initial page plan
-  applyPlanIntelligence(plan, pageUrl, globalState, credentialId)
+  applyPlanIntelligence(plan, pageUrl, globalState, credentialId, page)
 
   // 3. TaskQueue — system drives execution, no LLM per step
   const taskQueue: PageTask[] = [...plan.tasks]
@@ -534,18 +568,38 @@ async function explorePageWithAI(
     if (hasNewElements || hasStaleTargets) {
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
+      void csEmit(page, { type: "llm-thinking", reason: "replan", elements: freshElements.length, credential: credentialId })
       const newPlan = await planPage(snapshot, model)
-      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId)  // Aşama 13
+      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after state change", {
           reason: hasStaleTargets ? (hasNewElements ? "new+stale" : "stale") : "new",
           tasks: newPlan.tasks.length,
         })
+        void csEmit(page, {
+          type: "plan-received",
+          tasks: newPlan.tasks.length,
+          pageState: newPlan.pageState ?? "unknown",
+          summary: newPlan.tasks.slice(0, 10).map(t => ({
+            kind: t.type,
+            label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+          })),
+          credential: credentialId,
+        })
         reconcileQueue(taskQueue, newPlan.tasks)  // supersede stale intent matches
       }
       // Drop any remaining tasks whose targets are still unresolvable
       const dropped = pruneStaleTasks(taskQueue, freshElements)
-      if (dropped > 0) log.debug("pruned stale tasks", { dropped })
+      if (dropped > 0) {
+        log.debug("pruned stale tasks", { dropped })
+        void csEmit(page, {
+          type: "intelligence",
+          kind: "stale-prune",
+          url: pageUrl,
+          credential: credentialId,
+          note: `${dropped} task(s) dropped`,
+        })
+      }
     }
 
     // If queue empty but overlay still open, close it and discover post-overlay elements
@@ -577,12 +631,23 @@ async function explorePageWithAI(
 
     const vcBlocked = await isViewportCenterBlocked(page)
     const snap = buildPlannerSnapshot(pageUrl, currentElements, globalState, credentialId, vcBlocked)
+    void csEmit(page, { type: "llm-thinking", reason: "unexplored", elements: currentElements.length, credential: credentialId })
     const additionalPlan = await planUnexploredElements(snap, unexplored, model)
-    applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId)  // Aşama 13
+    applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
 
     if (additionalPlan.tasks.length === 0) break
 
     log.info("additional plan for unexplored elements", { tasks: additionalPlan.tasks.length })
+    void csEmit(page, {
+      type: "plan-received",
+      tasks: additionalPlan.tasks.length,
+      pageState: additionalPlan.pageState ?? "unknown",
+      summary: additionalPlan.tasks.slice(0, 10).map(t => ({
+        kind: t.type,
+        label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+      })),
+      credential: credentialId,
+    })
 
     // Execute additional tasks
     const additionalQueue: PageTask[] = [...additionalPlan.tasks]
@@ -626,13 +691,33 @@ async function explorePageWithAI(
       if (hasNewElements || hasStaleTargets) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
+        void csEmit(page, { type: "llm-thinking", reason: "replan", elements: freshElements.length, credential: credentialId })
         const newPlan = await planPage(freshSnap, model)
-        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId)  // Aşama 13
+        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
         if (newPlan.tasks.length > 0) {
+          void csEmit(page, {
+            type: "plan-received",
+            tasks: newPlan.tasks.length,
+            pageState: newPlan.pageState ?? "unknown",
+            summary: newPlan.tasks.slice(0, 10).map(t => ({
+              kind: t.type,
+              label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
+            })),
+            credential: credentialId,
+          })
           reconcileQueue(additionalQueue, newPlan.tasks)
         }
         const dropped = pruneStaleTasks(additionalQueue, freshElements)
-        if (dropped > 0) log.debug("pruned stale additional tasks", { dropped })
+        if (dropped > 0) {
+          log.debug("pruned stale additional tasks", { dropped })
+          void csEmit(page, {
+            type: "intelligence",
+            kind: "stale-prune",
+            url: pageUrl,
+            credential: credentialId,
+            note: `${dropped} task(s) dropped`,
+          })
+        }
       }
     }
   }
@@ -696,8 +781,17 @@ async function executeFormTask(
     if (semanticActionsDone.has(key)) continue
 
     interceptor.drainRecentCaptures()
+    void csEmit(page, {
+      type: "action-start",
+      kind: action,
+      targetLabel: el.label,
+      targetSelector: el.selector,
+      value,
+      credential: credentialId,
+    })
     const result = await execute(page, el, action, value, interceptor.setPendingUI, elements.length)
-    trackResult(result, interceptor, globalState, credentialId)
+    trackResult(result, interceptor, globalState, credentialId, undefined, page)
+    void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
 
     semanticActionsDone.add(key)
     globalState.totalSteps++
@@ -724,9 +818,17 @@ async function executeFormTask(
 
   interceptor.drainRecentCaptures()
   interceptor.setPendingTrigger(`${submitEl.role}:${submitEl.label}`)
+  void csEmit(page, {
+    type: "action-start",
+    kind: "submit",
+    targetLabel: submitEl.label,
+    targetSelector: submitEl.selector,
+    credential: credentialId,
+  })
   const result = await execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation)
+  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
+  void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
 
   semanticActionsDone.add(submitKey)
   globalState.totalSteps++
@@ -768,9 +870,17 @@ async function executeClickTask(
 
   interceptor.drainRecentCaptures()
   interceptor.setPendingTrigger(`${el.role}:${el.label}`)
+  void csEmit(page, {
+    type: "action-start",
+    kind: "click",
+    targetLabel: el.label,
+    targetSelector: el.selector,
+    credential: credentialId,
+  })
   const result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
   interceptor.clearPendingTrigger()
-  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation)
+  trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
+  void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
 
   semanticActionsDone.add(key)
   globalState.totalSteps++
@@ -938,6 +1048,7 @@ function applyPlanIntelligence(
   pageUrl: string,
   globalState: ReturnType<typeof createGlobalState>,
   credentialId: string,
+  page?: Page,
 ): void {
   if (plan.pageState !== "empty" || plan.revisitAfter !== "any-mutation") return
   const queued = markPageEmpty(globalState, credentialId, pageUrl, plan.revisitOn)
@@ -950,6 +1061,15 @@ function applyPlanIntelligence(
       revisitOn: plan.revisitOn ?? "*",
       queueSize: intel.emptyStateQueue.size,
     })
+    if (page) {
+      void csEmit(page, {
+        type: "intelligence",
+        kind: "mark-empty",
+        url: pageUrl,
+        credential: credentialId,
+        note: plan.revisitOn,
+      })
+    }
   } else {
     log.debug("empty-state revisit rejected by hard limit", {
       url: pageUrl,
@@ -1005,6 +1125,7 @@ function trackResult(
   globalState: ReturnType<typeof createGlobalState>,
   credentialId: string,
   taskMutation?: string,
+  page?: Page,
 ): void {
   const reqs = interceptor.drainRecentCaptures()
   result.httpRequests = reqs.length > 0 ? reqs : undefined
@@ -1023,6 +1144,17 @@ function trackResult(
           taskMutation: taskMutation ?? "(none)",
           remaining: intel.emptyStateQueue.size,
         })
+        if (page) {
+          for (const url of drained) {
+            void csEmit(page, {
+              type: "intelligence",
+              kind: "drain",
+              url,
+              credential: credentialId,
+              note: taskMutation,
+            })
+          }
+        }
       }
     }
   }
@@ -1203,11 +1335,14 @@ async function runMultiCredential(
   const serverUrl = config.cyberstrike.serverUrl ?? "http://127.0.0.1:4096"
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
+  const panelOn = config.panel ?? true
+  setPanelEnabled(panelOn)
 
   log.info(`starting multi-credential crawl${dryRun ? " (DRY-RUN)" : ""}`, {
     target: targetUrl,
     credentials: credentials.map(c => c.id),
     maxPages,
+    panel: panelOn,
   })
 
   // Resolve AI model
@@ -1243,11 +1378,23 @@ async function runMultiCredential(
     const browserContext = await browser.newContext({
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     })
+    // Panel must be ready before first document — attach init script per context.
+    if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
     attachDialogAutoAccept(page)
 
     // Navigate to target
     await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+
+    // First panel event — identifies this context's credential before manual login.
+    void csEmit(page, {
+      type: "init",
+      target: targetUrl,
+      credentials: credentials.map(c => c.id),
+      maxPages,
+      startedAt: Date.now(),
+    })
+    void csEmit(page, { type: "credential-switch", from: null, to: cred.id })
 
     // Manual login for this credential
     await waitForManualLogin(page, cred.id)
@@ -1281,7 +1428,7 @@ async function runMultiCredential(
           }
         }
       }
-    })
+    }, cred.id)
 
     contexts.push({
       id: cred.id,
@@ -1433,7 +1580,7 @@ async function runMultiCredential(
     for (const ctx of visitableContexts) {
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const discovered = await explorePageWithAI(
-        ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost, ctx.id,
+        ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost, ctx.id, maxPages,
       )
       for (const url of discovered) {
         enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
@@ -1469,6 +1616,22 @@ async function runMultiCredential(
     capturedEndpoints: globalState.capturedEndpoints.size,
   })
 
+  // Panel done event — one per context so each tab shows its own summary.
+  const mutationCount = [...globalState.capturedEndpoints].filter(e => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
+  const credentialIds = contexts.map(c => c.id)
+  for (const ctx of contexts) {
+    void csEmit(ctx.page, {
+      type: "crawl-done",
+      summary: {
+        pagesExplored,
+        capturedEndpoints: globalState.capturedEndpoints.size,
+        mutations: mutationCount,
+        credentials: credentialIds,
+      },
+    })
+  }
+  await contexts[0]?.page.waitForTimeout(600).catch(() => {})
+
   await browser.close()
 }
 
@@ -1489,11 +1652,14 @@ export async function run(config: AgentConfig): Promise<void> {
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
   const credentialId = config.cyberstrike.credentialId
+  const panelOn = config.panel ?? true
+  setPanelEnabled(panelOn)
 
   log.info(`starting browser agent v2${dryRun ? " (DRY-RUN)" : ""}`, {
     target: targetUrl,
     maxPages,
     server: dryRun ? undefined : serverUrl,
+    panel: panelOn,
   })
 
   // Resolve AI model
@@ -1521,6 +1687,8 @@ export async function run(config: AgentConfig): Promise<void> {
   const context: BrowserContext = await browser.newContext({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
   })
+  // Panel must mount on every new document — addInitScript before the first page is created.
+  if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
   attachDialogAutoAccept(page)
 
@@ -1530,7 +1698,7 @@ export async function run(config: AgentConfig): Promise<void> {
 
   // Wire up capture pipeline
   const captureQueue: CapturedRequest[] = []
-  const interceptor = setupRequestInterceptor(page, targetHost, (req) => captureQueue.push(req))
+  const interceptor = setupRequestInterceptor(page, targetHost, (req) => captureQueue.push(req), SINGLE_CRED)
 
   const handleCapture: CaptureFn = dryRun
     ? createDryRunHandler()
@@ -1546,6 +1714,15 @@ export async function run(config: AgentConfig): Promise<void> {
 
   // Navigate to target and authenticate
   await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
+
+  // Panel init — after first goto so the host document exists.
+  void csEmit(page, {
+    type: "init",
+    target: targetUrl,
+    credentials: [],
+    maxPages,
+    startedAt: Date.now(),
+  })
 
   // Login flow: --authenticated → manual login, --user/--pass → auto-login, neither → anonymous
   const isAuthenticated = config.auth.authenticated || !!config.auth.credentials
@@ -1667,7 +1844,7 @@ export async function run(config: AgentConfig): Promise<void> {
 
     // Explore the page with AI
     const discovered = await explorePageWithAI(
-      page, currentUrl, interceptor, model, globalState, targetHost, SINGLE_CRED,
+      page, currentUrl, interceptor, model, globalState, targetHost, SINGLE_CRED, maxPages,
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
@@ -1707,6 +1884,19 @@ export async function run(config: AgentConfig): Promise<void> {
     capturedEndpoints: globalState.capturedEndpoints.size,
     sessionID: dryRun ? undefined : sessionID,
   })
+
+  // Final panel event before teardown — gives pentester a visible "done" glow.
+  void csEmit(page, {
+    type: "crawl-done",
+    summary: {
+      pagesExplored,
+      capturedEndpoints: globalState.capturedEndpoints.size,
+      mutations: [...globalState.capturedEndpoints].filter(e => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
+      credentials: [SINGLE_CRED],
+    },
+  })
+  // Let the done-glow render before tearing down.
+  await page.waitForTimeout(600).catch(() => {})
 
   await browser.close()
 }
