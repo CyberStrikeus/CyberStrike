@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### 🎯 Skills System (7,300+ Security Skills)
+
 - **MITRE ATT&CK Integration**: 691 enterprise techniques with Atomic Red Team tests
   - 332 techniques now include 2,000+ copy-paste ready test commands
   - Coverage: Credential Access, Defense Evasion, Discovery, Execution, Persistence, etc.
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lazy Loading**: Skills loaded on-demand, zero context pollution
 
 #### 🔍 Skill Search & Discovery
+
 - Relevance-based scoring algorithm
   - Exact match: +100, Name starts with: +50, Tag exact: +40, etc.
 - Pagination with "top 50 of 1,000" feedback
@@ -32,17 +34,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 7,633 skills indexed in-memory
 
 #### 🤖 Cloud Security Agent
+
 - CIS skill recommendations integration
 - Automated compliance checks
 
 ### Changed
+
 - Reorganized CIS benchmark directories to match new taxonomy (Cloud_Providers/, Server_Software/)
 - Built-in skills now distributed via npm package
 
 ### Removed
+
 - `knowledge/` directory (migrated to `.cyberstrike/skill/WEB/OWASP_WSTG_4.2/`)
 
 ### Technical Details
+
 - **Skill Sources**: Red Canary Atomic Red Team, MITRE ATT&CK (STIX 2.1), OWASP WSTG 4.2, NIST, CIS Benchmarks
 - **Data Reuse Strategy**: Leveraged authoritative open-source datasets (Atomic Red Team YAML, STIX JSON, CIS PDFs)
 - **ROI**: 7,300 skills generated in ~2 weeks vs. estimated 6 months manual work
@@ -50,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.9] - 2026-03-XX
 
 ### Initial Release
+
 - Base CyberStrike platform
 - AI-powered offensive security agent
 - 15+ AI provider support
