@@ -76,29 +76,28 @@ Adversaries may also modify settings that affect where cloud resources can be de
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit permissions to request quotas adjustments or modify tenant-level compute setting to only those required.
 
 ### M1047 Audit
-Routinely monitor user permissions to ensure only the expected users have the capability to request quota adjustments or modify tenant-level compute settings.
 
+Routinely monitor user permissions to ensure only the expected users have the capability to request quota adjustments or modify tenant-level compute settings.
 
 ## Detection
 
 ### Detection Strategy for Modify Cloud Compute Infrastructure: Modify Cloud Compute Configurations
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Cloud Compute Configurations technique applicable | High | Defense Evasion |
+| Finding                                                  | Severity | Impact          |
+| -------------------------------------------------------- | -------- | --------------- |
+| Modify Cloud Compute Configurations technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

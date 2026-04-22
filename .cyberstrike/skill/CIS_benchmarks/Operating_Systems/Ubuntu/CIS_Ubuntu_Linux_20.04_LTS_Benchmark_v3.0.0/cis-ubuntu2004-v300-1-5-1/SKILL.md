@@ -76,6 +76,7 @@ Set the following parameter in `/etc/sysctl.conf` or a file in `/etc/sysctl.d/` 
 - `kernel.randomize_va_space = 2`
 
 Example:
+
 ```bash
 # printf "\n%s\n" "kernel.randomize_va_space = 2" >> /etc/sysctl.d/60-kernel_sysctl.conf
 ```
@@ -103,9 +104,9 @@ kernel.randomize_va_space = 2
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.5 Enable Anti-Exploitation Features | | * | * |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features | | * | * |
+| Controls Version | Control                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features                 |      | \*   | \*   |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features |      | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1068, T1068.000 | TA0002 | M1050

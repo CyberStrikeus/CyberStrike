@@ -16,10 +16,8 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +59,10 @@ Verify development team understands and follows Review the Software Design to Ve
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,16 +72,15 @@ Help ensure that the software will meet the security requirements and satisfacto
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Review the Software Design to Verify Compliance with Security Requirements and Risk Information (PW.2) Review the Software Design to Verify Compliance with Security Requirements and Risk Information not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                                                                                                                                                                                                                | Severity | Impact                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| Review the Software Design to Verify Compliance with Security Requirements and Risk Information (PW.2) Review the Software Design to Verify Compliance with Security Requirements and Risk Information not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

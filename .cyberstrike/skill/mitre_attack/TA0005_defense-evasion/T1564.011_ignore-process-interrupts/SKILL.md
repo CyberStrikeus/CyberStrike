@@ -57,7 +57,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may evade defensive mechanisms by executing commands that hide from process interrupt signals. Many operating systems use signals to deliver messages to control process behavior. Command interpreters often include specific commands/flags that ignore errors and other hangups, such as when the user of the active session logs off. These interrupt signals may also be used by defensive tools and/or analysts to pause or terminate specified running processes. 
+Adversaries may evade defensive mechanisms by executing commands that hide from process interrupt signals. Many operating systems use signals to deliver messages to control process behavior. Command interpreters often include specific commands/flags that ignore errors and other hangups, such as when the user of the active session logs off. These interrupt signals may also be used by defensive tools and/or analysts to pause or terminate specified running processes.
 
 Adversaries may invoke processes using `nohup`, PowerShell `-ErrorAction SilentlyContinue`, or similar commands that may be immune to hangups. This may enable malicious commands and malware to continue execution through system events that would otherwise terminate its execution, such as users logging off or the termination of its C2 network connection.
 
@@ -97,19 +97,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Ignore Process Interrupts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Ignore Process Interrupts technique applicable | Low | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Ignore Process Interrupts technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

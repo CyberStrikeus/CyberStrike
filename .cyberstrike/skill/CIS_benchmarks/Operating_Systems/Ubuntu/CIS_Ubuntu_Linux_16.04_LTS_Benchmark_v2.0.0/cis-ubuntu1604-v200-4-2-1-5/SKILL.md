@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.2.1.5
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -116,7 +117,7 @@ rsyslog is not configured to send logs to a remote host by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 6.6 Deploy SIEM or Log Analytic tool<br/>Deploy Security Information and Event Management (SIEM) or log analytic tool for log correlation and analysis. | | | |
-| v7 | 6.8 Regularly Tune SIEM<br/>On a regular basis, tune your SIEM system to better identify actionable events and decrease event noise. | | | |
+| Controls Version | Control                                                                                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 6.6 Deploy SIEM or Log Analytic tool<br/>Deploy Security Information and Event Management (SIEM) or log analytic tool for log correlation and analysis. |      |      |      |
+| v7               | 6.8 Regularly Tune SIEM<br/>On a regular basis, tune your SIEM system to better identify actionable events and decrease event noise.                    |      |      |      |

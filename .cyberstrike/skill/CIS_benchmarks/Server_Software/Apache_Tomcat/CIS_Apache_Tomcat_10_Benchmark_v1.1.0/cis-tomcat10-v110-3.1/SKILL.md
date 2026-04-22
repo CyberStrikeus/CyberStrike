@@ -54,10 +54,12 @@ The default value for the shutdown attribute is SHUTDOWN.
 ## CIS Controls
 
 **v8:**
+
 - 2.7 Allowlist Authorized Scripts
   - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently.
 
 **v7:**
+
 - 4.7 Limit Access to Script Tools
   - Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.
 

@@ -13,12 +13,9 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -60,9 +57,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +76,16 @@ Media downgrading applies to digital and non-digital media subject to release ou
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-8 Media Downgrading not implemented | Medium | Media Protection |
-| MP-8 partially implemented | Low | Incomplete Media Protection |
+| Finding                                | Severity | Impact                      |
+| -------------------------------------- | -------- | --------------------------- |
+| MP-8 Media Downgrading not implemented | Medium   | Media Protection            |
+| MP-8 partially implemented             | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

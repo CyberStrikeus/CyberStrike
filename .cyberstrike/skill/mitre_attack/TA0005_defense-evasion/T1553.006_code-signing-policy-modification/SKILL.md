@@ -46,7 +46,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may modify code signing policies to enable execution of unsigned or self-signed code. Code signing provides a level of authenticity on a program from a developer and a guarantee that the program has not been tampered with. Security controls can include enforcement mechanisms to ensure that only valid, signed code can be run on an operating system. 
+Adversaries may modify code signing policies to enable execution of unsigned or self-signed code. Code signing provides a level of authenticity on a program from a developer and a guarantee that the program has not been tampered with. Security controls can include enforcement mechanisms to ensure that only valid, signed code can be run on an operating system.
 
 Some of these security controls may be enabled by default, such as Driver Signature Enforcement (DSE) on Windows or System Integrity Protection (SIP) on macOS. Other such controls may be disabled by default but are configurable through application controls, such as only allowing signed Dynamic-Link Libraries (DLLs) to execute on a system. Since it can be useful for developers to modify default signature enforcement policies during the development and testing of applications, disabling of these features may be possible with elevated permissions.
 
@@ -85,7 +85,6 @@ Allows adversaries to subvert trust controls by modifying the code signing polic
 bcdedit /set testsigning on
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -99,32 +98,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit the usage of local administrator and domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries.
 
 ### M1046 Boot Integrity
+
 Use of Secure Boot may prevent some implementations of modification to code signing policies.
 
 ### M1024 Restrict Registry Permissions
-Ensure proper permissions are set for the Registry to prevent users from modifying keys related to code signing policies.
 
+Ensure proper permissions are set for the Registry to prevent users from modifying keys related to code signing policies.
 
 ## Detection
 
 ### Detect Code Signing Policy Modification (Windows & macOS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Code Signing Policy Modification technique applicable | High | Defense Evasion |
+| Finding                                               | Severity | Impact          |
+| ----------------------------------------------------- | -------- | --------------- |
+| Code Signing Policy Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
@@ -132,7 +131,7 @@ Ensure proper permissions are set for the Registry to prevent users from modifyi
 - [F-Secure BlackEnergy 2014](https://blog-assets.f-secure.com/wp-content/uploads/2019/10/15163408/BlackEnergy_Quedagh.pdf)
 - [FireEye HIKIT Rootkit Part 2](https://web.archive.org/web/20210920172620/https://www.fireeye.com/blog/threat-research/2012/08/hikit-rootkit-advanced-persistent-attack-techniques-part-2.html)
 - [Microsoft Unsigned Driver Apr 2017](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-an-unsigned-driver-during-development-and-test)
-- [Microsoft DSE June 2017](https://docs.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653559(v=vs.85)?redirectedfrom=MSDN)
+- [Microsoft DSE June 2017](<https://docs.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653559(v=vs.85)?redirectedfrom=MSDN>)
 - [Microsoft TESTSIGNING Feb 2021](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option)
 - [Unit42 AcidBox June 2020](https://unit42.paloaltonetworks.com/acidbox-rare-malware/)
 - [GitHub Turla Driver Loader](https://github.com/hfiref0x/TDL)

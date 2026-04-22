@@ -51,13 +51,13 @@ severity_boost:
 
 Adversaries may redirect network traffic to adversary-owned systems by spoofing Dynamic Host Configuration Protocol (DHCP) traffic and acting as a malicious DHCP server on the victim network. By achieving the adversary-in-the-middle (AiTM) position, adversaries may collect network communications, including passed credentials, especially those sent over insecure, unencrypted protocols. This may also enable follow-on behaviors such as Network Sniffing or Transmitted Data Manipulation.
 
-DHCP is based on a client-server model and has two functionalities: a protocol for providing network configuration settings from a DHCP server to a client and a mechanism for allocating network addresses to clients. The typical server-client interaction is as follows: 
+DHCP is based on a client-server model and has two functionalities: a protocol for providing network configuration settings from a DHCP server to a client and a mechanism for allocating network addresses to clients. The typical server-client interaction is as follows:
 
 1. The client broadcasts a `DISCOVER` message.
 
-2. The server responds with an `OFFER` message, which includes an available network address. 
+2. The server responds with an `OFFER` message, which includes an available network address.
 
-3. The client broadcasts a `REQUEST` message, which includes the network address offered. 
+3. The client broadcasts a `REQUEST` message, which includes the network address offered.
 
 4. The server acknowledges with an `ACK` message and the client receives the network configuration parameters.
 
@@ -98,38 +98,37 @@ Rather than establishing an AiTM position, adversaries may also abuse DHCP spoof
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Consider filtering DHCP traffic on ports 67 and 68 to/from unknown or untrusted DHCP servers. Additionally, port security may also be enabled on layer switches. Furthermore, consider enabling DHCP snooping on layer 2 switches as it will prevent DHCP spoofing attacks and starvation attacks. Consider tracking available IP addresses through a script or a tool. 
+
+Consider filtering DHCP traffic on ports 67 and 68 to/from unknown or untrusted DHCP servers. Additionally, port security may also be enabled on layer switches. Furthermore, consider enabling DHCP snooping on layer 2 switches as it will prevent DHCP spoofing attacks and starvation attacks. Consider tracking available IP addresses through a script or a tool.
 
 Additionally, block DHCPv6 traffic and incoming router advertisements, especially if IPv6 is not commonly used in the network.
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that can identify traffic patterns indicative of AiTM activity can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that can identify traffic patterns indicative of AiTM activity can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detect DHCP Spoofing Across Linux, Windows, and macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DHCP Spoofing technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| DHCP Spoofing technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 
 - [rfc2131](https://datatracker.ietf.org/doc/html/rfc2131)
 - [new_rogue_DHCP_serv_malware](https://isc.sans.edu/forums/diary/new+rogueDHCP+server+malware/6025/)
 - [rfc3315](https://datatracker.ietf.org/doc/html/rfc3315)
-- [dhcp_serv_op_events](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/dn800668(v=ws.11))
+- [dhcp_serv_op_events](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/dn800668(v=ws.11)>)
 - [solution_monitor_dhcp_scopes](https://web.archive.org/web/20231202025258/https://lockstepgroup.com/blog/monitor-dhcp-scopes-and-detect-man-in-the-middle-attacks/)
 - [w32.tidserv.g](https://web.archive.org/web/20150923175837/http://www.symantec.com/security_response/writeup.jsp?docid=2009-032211-2952-99&tabid=2)
 - [Atomic Red Team - T1557.003](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1557.003)

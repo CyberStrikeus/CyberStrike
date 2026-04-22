@@ -29,8 +29,7 @@ chains_with:
   - CP-9
   - MA-2
   - MA-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   CM-7: "Chain with CM-7 for comprehensive security coverage"
@@ -77,10 +76,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -102,17 +101,16 @@ Preventing duplicate accounting of system components addresses the lack of accou
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-8 System Component Inventory not implemented | Medium | Configuration Management |
-| CM-8 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                         | Severity | Impact                              |
+| ----------------------------------------------- | -------- | ----------------------------------- |
+| CM-8 System Component Inventory not implemented | Medium   | Configuration Management            |
+| CM-8 partially implemented                      | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

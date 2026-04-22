@@ -28,8 +28,7 @@ chains_with:
   - SC-16
   - SC-17
   - SC-23
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-9: "Chain with AU-9 for comprehensive security coverage"
   PM-12: "Chain with PM-12 for comprehensive security coverage"
@@ -73,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -90,17 +89,16 @@ Types of individual actions covered by non-repudiation include creating informat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-10 Non-repudiation not implemented | Medium | Audit and Accountability |
-| AU-10 partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                               | Severity | Impact                              |
+| ------------------------------------- | -------- | ----------------------------------- |
+| AU-10 Non-repudiation not implemented | Medium   | Audit and Accountability            |
+| AU-10 partially implemented           | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

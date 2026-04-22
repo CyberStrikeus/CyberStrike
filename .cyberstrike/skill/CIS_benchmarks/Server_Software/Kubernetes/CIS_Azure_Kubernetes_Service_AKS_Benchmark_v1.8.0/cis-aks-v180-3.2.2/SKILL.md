@@ -95,7 +95,7 @@ If using executable arguments, edit the kubelet service file `/etc/systemd/syste
 
 If using the api configz endpoint consider searching for the status of `"authentication.*webhook":{"enabled":"true"` by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes.
+\*\*See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes.
 
 **For all three remediations:** Based on your system, restart the `kubelet` service and check status:
 
@@ -118,7 +118,7 @@ See the Azure AKS documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6 Access Control Management | | | |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6 Access Control Management                    |      |      |      |
+| v7               | 14 Controlled Access Based on the Need to Know |      |      |      |

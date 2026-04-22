@@ -47,10 +47,10 @@ severity_boost:
 
 Adversaries may search the Registry on compromised systems for insecurely stored credentials. The Windows Registry stores configuration information that can be used by the system or other programs. Adversaries may query the Registry looking for credentials and passwords that have been stored for use by other programs or services. Sometimes these credentials are used for automatic logons.
 
-Example commands to find Registry keys related to password information: 
+Example commands to find Registry keys related to password information:
 
-* Local Machine Hive: <code>reg query HKLM /f password /t REG_SZ /s</code>
-* Current User Hive: <code>reg query HKCU /f password /t REG_SZ /s</code>
+- Local Machine Hive: <code>reg query HKLM /f password /t REG_SZ /s</code>
+- Current User Hive: <code>reg query HKCU /f password /t REG_SZ /s</code>
 
 ## Kill Chain Phase
 
@@ -93,7 +93,6 @@ entries are found, they will be displayed.
 reg query HKCU\Software\SimonTatham\PuTTY\Sessions /t REG_SZ /s
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -107,32 +106,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Do not store credentials within the Registry.
 
 ### M1026 Privileged Account Management
+
 If it is necessary that software must store credentials in the Registry, then ensure the associated accounts have limited permissions so they cannot be abused if obtained by an adversary.
 
 ### M1047 Audit
-Proactively search for credentials within the Registry and attempt to remediate the risk.
 
+Proactively search for credentials within the Registry and attempt to remediate the risk.
 
 ## Detection
 
 ### Detect Credential Discovery via Windows Registry Enumeration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credentials in Registry technique applicable | High | Credential Access |
+| Finding                                      | Severity | Impact            |
+| -------------------------------------------- | -------- | ----------------- |
+| Credentials in Registry technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

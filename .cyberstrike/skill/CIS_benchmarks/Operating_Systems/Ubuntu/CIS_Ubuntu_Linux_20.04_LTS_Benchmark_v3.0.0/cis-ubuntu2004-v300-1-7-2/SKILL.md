@@ -71,6 +71,7 @@ true
 ```
 
 Note:
+
 - `banner-message-text` may be set in accordance with local site policy
 - `gsettings` commands in this section MUST be done from a command window on a graphical desktop or an error will be returned.
 - The system must be restarted after all `gsettings` configurations have been set in order for CIS-CAT Assessor to appropriately assess.
@@ -102,6 +103,7 @@ banner-message-text='Type the banner message here.'
 ```
 
 Note:
+
 - Users must log out and back in again before the system-wide settings take effect.
 - There is no character limit for the banner message. gnome-shell autodetects longer stretches of text and enters two column mode.
 - The banner message cannot be read from an external file.

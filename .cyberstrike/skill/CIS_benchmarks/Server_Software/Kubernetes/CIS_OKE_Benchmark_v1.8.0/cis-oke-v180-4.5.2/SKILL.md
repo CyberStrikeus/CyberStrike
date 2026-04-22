@@ -64,42 +64,42 @@ As a best practice we recommend that you scope the binding for privileged pods t
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-    name: restricted
-    annotations:
-      seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
-      apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
-      seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
-      apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+  name: restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: "docker/default,runtime/default"
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: "runtime/default"
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: "runtime/default"
+    apparmor.security.beta.kubernetes.io/defaultProfileName: "runtime/default"
 spec:
-    privileged: false
-    allowPrivilegeEscalation: false
-    requiredDropCapabilities:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
     - ALL
-    volumes:
-    - 'configMap'
-    - 'emptyDir'
-    - 'projected'
-    - 'secret'
-    - 'downwardAPI'
-    - 'persistentVolumeClaim'
-    hostNetwork: false
-    hostIPC: false
-    hostPID: false
-    runAsUser:
-      rule: 'MustRunAsNonRoot'
-    seLinux:
-      rule: 'RunAsAny'
-    supplementalGroups:
-      rule: 'MustRunAs'
-      ranges:
-        - min: 1
-          max: 65535
-    fsGroup:
-      rule: 'MustRunAs'
-      ranges:
-        - min: 1
-          max: 65535
-    readOnlyRootFilesystem: false
+  volumes:
+    - "configMap"
+    - "emptyDir"
+    - "projected"
+    - "secret"
+    - "downwardAPI"
+    - "persistentVolumeClaim"
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: "MustRunAsNonRoot"
+  seLinux:
+    rule: "RunAsAny"
+  supplementalGroups:
+    rule: "MustRunAs"
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: "MustRunAs"
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
 ```
 
 This policy prevents pods from running as privileged or escalating privileges. It also restricts the types of volumes that can be mounted and the root supplemental groups that can be added.
@@ -119,13 +119,13 @@ By default, no security contexts are automatically applied to pods.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
+| v7               | 5.1 Establish Secure Configurations                       | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1556, T1611 | TA0004, TA0006 | M1048 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1556, T1611                | TA0004, TA0006 | M1048       |

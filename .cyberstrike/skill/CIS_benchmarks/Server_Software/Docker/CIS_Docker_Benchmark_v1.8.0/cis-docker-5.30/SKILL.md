@@ -54,7 +54,7 @@ By default, Docker runs containers within the default `docker0` bridge.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software<br>Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. | | ● | ● |
-| v6 | 9 Limitation and Control of Network Ports, Protocols, and Services<br>Limitation and Control of Network Ports, Protocols, and Services | | | |
+| Controls Version | Control                                                                                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software<br>Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. |      | ●    | ●    |
+| v6               | 9 Limitation and Control of Network Ports, Protocols, and Services<br>Limitation and Control of Network Ports, Protocols, and Services                                                                                                               |      |      |      |

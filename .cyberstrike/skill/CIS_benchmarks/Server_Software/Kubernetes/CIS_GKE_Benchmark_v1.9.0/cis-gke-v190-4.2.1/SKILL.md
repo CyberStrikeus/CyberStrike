@@ -61,8 +61,8 @@ None specified.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | * | * |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
-| v7 | 5.2 Maintain Secure Images | | * | * |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | \*   | \*   |
+| v7               | 5.1 Establish Secure Configurations                                                | \*   | \*   | \*   |
+| v7               | 5.2 Maintain Secure Images                                                         |      | \*   | \*   |

@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,8 +64,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Device Driver Discovery
 
-Displays a list of installed device drivers on the local computer and their properties. Threat actors use this command to enumerate the existing drivers on the computer. 
-Parameters: 
+Displays a list of installed device drivers on the local computer and their properties. Threat actors use this command to enumerate the existing drivers on the computer.
+Parameters:
 /v /fo list - Displays verbose output in a list format - the /v parameter is not valid for signed drivers
 /si /fo list - Provides information about signed drivers and outputs it in a list format
 
@@ -118,7 +116,6 @@ Searches for kernel extension (kext) files on a macOS system.
 kextfind
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -137,19 +134,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Device Driver Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Device Driver Discovery technique applicable | High | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Device Driver Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

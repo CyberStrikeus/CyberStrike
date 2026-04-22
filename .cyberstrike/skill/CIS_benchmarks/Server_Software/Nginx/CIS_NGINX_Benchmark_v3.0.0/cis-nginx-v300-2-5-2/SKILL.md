@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS 2.5.2 — Ensure default error and index.html pages do not reference NGINX
 
 ## Profile Applicability
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 Default error pages (e.g., `404`, `500`) and the default welcome page often contain NGINX branding or signatures. These pages should be removed or replaced with generic or custom-branded pages that do not disclose the underlying server technology.
 
 ## Rationale
+
 Standard NGINX error pages visually identify the server software, even if headers are suppressed. By gathering information about the underlying technology stack, attackers can tailor their exploits to known vulnerabilities of NGINX. Replacing default pages with generic or branded content removes this information leakage vector and increases the effort required for successful reconnaissance.
 
 ## Impact
+
 Creating and maintaining custom error pages requires additional administrative effort. Ensure that custom error pages are simple and do not themselves introduce vulnerabilities.
 
 ## Audit Procedure
@@ -54,6 +58,7 @@ curl -k https://127.0.0.1/non-existent-page | grep -i "nginx"
 - **FAIL:** The HTML body contains "nginx".
 
 ## Remediation
+
 Instead of editing the default files (which may be overwritten by package updates), configure NGINX to use custom error pages.
 
 **1. Create Custom Error Pages:**
@@ -75,23 +80,28 @@ location = /50x.html {
 ```
 
 ## Default Value
+
 Default error pages identify the server as NGINX.
 
 ## References
+
 1. https://nginx.org/en/docs/http/ngx_http_core_module.html#error_page
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 16.1 Establish and Maintain a Secure Application Development Process | N | Y | Y |
-| v7 | 18.1 Establish Secure Coding Practices | N | Y | Y |
+
+| Controls Version | Control                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.1 Establish and Maintain a Secure Application Development Process | N    | Y    | Y    |
+| v7               | 18.1 Establish Secure Coding Practices                               | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic         | Technique                              |
+| -------------- | -------------------------------------- |
 | Reconnaissance | T1592 - Gather Victim Host Information |
 
 ## Profile
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

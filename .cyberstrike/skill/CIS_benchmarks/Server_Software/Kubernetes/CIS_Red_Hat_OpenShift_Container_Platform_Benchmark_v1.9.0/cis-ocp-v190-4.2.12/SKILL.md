@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 4.2.12
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Ensure that the Kubelet is configured to only use strong cryptographic ciphers.
 
 ## Rationale
+
 TLS ciphers have had a number of known vulnerabilities and weaknesses, which can reduce the protection provided by them. By default Kubernetes supports a number of TLS ciphersuites including some that have security concerns, weakening the protection provided.
 
 ## Impact
+
 Kubelet clients that cannot support modern cryptographic ciphers will not be able to make connections to the Kubelet API.
 
 ## Audit Procedure
+
 The set of cryptographic ciphers currently considered secure is the following:
 
 ```
@@ -90,25 +95,28 @@ Verify that the `tlsSecurityProfile` is set to the value you chose, or using the
 Note: The HAProxy Ingress controller image does not support TLS 1.3 and because the `Modern` profile requires TLS 1.3, it is not supported. The Ingress Operator converts the `Modern` profile to `Intermediate`. The Ingress Operator also converts the TLS 1.0 of an `Old` or `Custom` profile to 1.1, and TLS 1.3 of a `Custom` profile to 1.2.
 
 ## Remediation
+
 Follow the directions above and in the OpenShift documentation to configure the `tlsSecurityProfile`. Configuring Ingress.
 
 Please reference the OpenShift TLS security profile documentation for more detail on each profile.
 
 ## Default Value
+
 By default the Kubernetes API server supports a wide range of TLS ciphers.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 1.8 Utilize Client Certificates to Authenticate Hardware Assets | | | * |
-| v7 | 2.6 Address unapproved software | * | * | * |
+| Controls Version | Control                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords                                        | \*   | \*   | \*   |
+| v7               | 1.8 Utilize Client Certificates to Authenticate Hardware Assets |      |      | \*   |
+| v7               | 2.6 Address unapproved software                                 | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
+| --------------------------- | ------- | ----------- |
 
 ## Profile
+
 **Level 1** (Manual)

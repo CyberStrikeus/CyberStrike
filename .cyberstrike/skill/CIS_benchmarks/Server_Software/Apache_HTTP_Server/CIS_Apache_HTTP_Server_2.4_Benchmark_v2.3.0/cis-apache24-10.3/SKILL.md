@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the LimitRequestFieldsize Directive is Set to 8190 or Less (Automated)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -56,12 +57,15 @@ LimitRequestFieldsize=8190
 ## CIS Controls
 
 **v8:**
+
 - 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure
   - Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 
 ## Profile
+
 - Level 2

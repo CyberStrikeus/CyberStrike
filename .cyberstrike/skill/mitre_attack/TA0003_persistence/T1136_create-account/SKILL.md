@@ -52,8 +52,7 @@ chains_with:
   - T1136.001
   - T1136.002
   - T1136.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1136.001: "Chain with T1136.001 for deeper attack path"
   T1136.002: "Chain with T1136.002 for deeper attack path"
@@ -98,35 +97,36 @@ Accounts may be created on the local system or within a domain or cloud tenant. 
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Configure access controls and firewalls to limit access to domain controllers and systems used to create and manage accounts.
 
 ### M1028 Operating System Configuration
+
 Protect domain controllers by ensuring proper security configuration for critical servers.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts.
 
 ### M1026 Privileged Account Management
-Limit the number of accounts with permissions to create other accounts. Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
+Limit the number of accounts with permissions to create other accounts. Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ## Detection
 
 ### Detection Strategy for T1136 - Create Account across platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Create Account technique applicable | High | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| Create Account technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

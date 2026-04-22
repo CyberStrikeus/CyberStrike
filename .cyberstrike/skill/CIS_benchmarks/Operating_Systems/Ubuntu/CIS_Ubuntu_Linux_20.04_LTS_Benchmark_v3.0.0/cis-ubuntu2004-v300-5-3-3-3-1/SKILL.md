@@ -96,13 +96,13 @@ Example:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 4.4 Use Unique Passwords | | * | * |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | \*   | \*   | \*   |
+| v7               | 4.4 Use Unique Passwords |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.001, T1078.002, T1078.003, T1078.004, T1110, T1110.004 | | |
+| Techniques / Sub-techniques                                         | Tactics | Mitigations |
+| ------------------------------------------------------------------- | ------- | ----------- |
+| T1078, T1078.001, T1078.002, T1078.003, T1078.004, T1110, T1110.004 |         |             |

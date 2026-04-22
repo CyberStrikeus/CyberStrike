@@ -41,6 +41,7 @@ Perform the following steps to determine if the recommended state is implemented
 Perform the following to implement the recommended state:
 
 1. Add an ErrorLog directive if not already configured. Any appropriate syslog facility may be used in place of `local1`.
+
    ```
    ErrorLog "syslog:local1"
    ```
@@ -64,10 +65,12 @@ ErrorLog "logs/error_log"
 ## CIS Controls
 
 **v8:**
+
 - 8.2 Collect Audit Logs
   - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.
 
 **v7:**
+
 - 6.6 Deploy SIEM or Log Analytic tool
   - Deploy Security Information and Event Management (SIEM) or log analytic tool for log correlation and analysis.
 

@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1627.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1627.001: "Chain with T1627.001 for deeper attack path"
 ---
@@ -67,29 +66,28 @@ Review whether mitigations for T1627 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
+
 New OS releases frequently contain additional limitations or controls around device location access.
 
 ### M1011 User Guidance
-Users should be advised to be extra scrutinous of applications that request location or sensitive phone information permissions, and to deny any permissions requests for applications they do not recognize.
 
+Users should be advised to be extra scrutinous of applications that request location or sensitive phone information permissions, and to deny any permissions requests for applications they do not recognize.
 
 ## Detection
 
 ### Detection of Execution Guardrails
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Execution Guardrails technique applicable | Low | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| Execution Guardrails technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

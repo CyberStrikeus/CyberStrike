@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 2.9
 
 ## Profile Applicability
+
 - **Level:** 2 - Docker - Linux
 
 ## Description
+
 You should enable user namespace support in Docker daemon to utilize container user to host user re-mapping. This recommendation is beneficial where the containers you are using do not have an explicit container user defined in the container image. If the container images that you are using have a pre-defined non-root user, this recommendation may be skipped as this feature is still in its infancy, and might result in unpredictable issues or difficulty in configuration.
 
 ## Rationale
+
 The Linux kernel "user namespace" support within the Docker daemon provides additional security for the Docker host system. It allows a container to have a unique range of user and group IDs which are outside the traditional user and group range utilized by the host system.
 
 For example, the root user can have the expected administrative privileges inside the container but can effectively be mapped to an unprivileged UID on the host system.
 
 ## Impact
+
 User namespace remapping is incompatible with a number of Docker features and also currently breaks some of its functionalities. Reference the Docker documentation and included links for details.
 
 ## Audit Procedure
@@ -63,18 +67,21 @@ dockerd --userns-remap=default
 ```
 
 ## Default Value
+
 By default, user namespace is not remapped. Consideration should be given to implementing this in line with the requirements of the applications being used and the organization's security policy.
 
 ## References
+
 1. https://man7.org/linux/man-pages/man7/user_namespaces.7.html
 2. https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-user-namespace-options
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6 Access Control Management<br/>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. | | | |
-| v7 | 18 Application Software Security<br/>Application Software Security | | | |
+| Controls Version | Control                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6 Access Control Management<br/>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. |      |      |      |
+| v7               | 18 Application Software Security<br/>Application Software Security                                                                                                                                                |      |      |      |
 
 ## Profile
+
 **Level 2 - Docker - Linux** (Manual)

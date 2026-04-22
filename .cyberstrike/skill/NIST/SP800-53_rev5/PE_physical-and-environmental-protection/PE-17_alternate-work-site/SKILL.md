@@ -12,14 +12,12 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-17
   - AC-18
   - CP-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-17: "Chain with AC-17 for comprehensive security coverage"
   AC-18: "Chain with AC-18 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +81,16 @@ Alternate work sites include government facilities or the private residences of 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-17 Alternate Work Site not implemented | Medium | Physical and Environmental Protection |
-| PE-17 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                   | Severity | Impact                                           |
+| ----------------------------------------- | -------- | ------------------------------------------------ |
+| PE-17 Alternate Work Site not implemented | Medium   | Physical and Environmental Protection            |
+| PE-17 partially implemented               | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

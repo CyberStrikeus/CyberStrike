@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -73,10 +71,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -93,17 +91,16 @@ Remote access is access to systems (or processes acting on behalf of users) that
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Access (03.01.12) Remote Access not implemented | High | CUI Protection - Access Control |
-| Remote Access (03.01.12) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                | Severity | Impact                          |
+| ------------------------------------------------------ | -------- | ------------------------------- |
+| Remote Access (03.01.12) Remote Access not implemented | High     | CUI Protection - Access Control |
+| Remote Access (03.01.12) partially implemented (POA&M) | Medium   | CMMC certification risk         |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

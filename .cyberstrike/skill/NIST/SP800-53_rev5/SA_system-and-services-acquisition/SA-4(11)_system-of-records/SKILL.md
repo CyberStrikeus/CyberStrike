@@ -63,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,17 +79,16 @@ When, by contract, an organization provides for the operation of a system of rec
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-4(11) System of Records not implemented | Medium | System and Services Acquisition |
-| SA-4(11) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                    | Severity | Impact                                     |
+| ------------------------------------------ | -------- | ------------------------------------------ |
+| SA-4(11) System of Records not implemented | Medium   | System and Services Acquisition            |
+| SA-4(11) partially implemented             | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

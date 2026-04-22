@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -130,7 +128,6 @@ https://thedfirreport.com/2023/01/09/unwrapping-ursnifs-gifts/
 time
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -149,19 +146,17 @@ No specific mitigations documented for this technique.
 
 ### Behavior-chain, platform-aware detection strategy for T1124 System Time Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Time Discovery technique applicable | Medium | Discovery |
+| Finding                                    | Severity | Impact    |
+| ------------------------------------------ | -------- | --------- |
+| System Time Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

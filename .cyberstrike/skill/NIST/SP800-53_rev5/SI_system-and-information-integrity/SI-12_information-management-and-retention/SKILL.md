@@ -29,8 +29,7 @@ chains_with:
   - CA-7
   - CA-9
   - CM-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-16: "Chain with AC-16 for comprehensive security coverage"
   AU-5: "Chain with AU-5 for comprehensive security coverage"
@@ -74,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Information management and retention requirements cover the full life cycle of i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-12 Information Management and Retention not implemented | High | System and Information Integrity |
-| SI-12 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                    | Severity | Impact                                      |
+| ---------------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-12 Information Management and Retention not implemented | High     | System and Information Integrity            |
+| SI-12 partially implemented                                | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

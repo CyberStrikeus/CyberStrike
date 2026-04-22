@@ -60,14 +60,14 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may smuggle data and files past content filters by hiding malicious payloads inside of seemingly benign SVG files. SVGs, or Scalable Vector Graphics, are vector-based image files constructed using XML. As such, they can legitimately include `<script>` tags that enable adversaries to include malicious JavaScript payloads. However, SVGs may appear less suspicious to users than other types of executable files, as they are often treated as image files. 
+Adversaries may smuggle data and files past content filters by hiding malicious payloads inside of seemingly benign SVG files. SVGs, or Scalable Vector Graphics, are vector-based image files constructed using XML. As such, they can legitimately include `<script>` tags that enable adversaries to include malicious JavaScript payloads. However, SVGs may appear less suspicious to users than other types of executable files, as they are often treated as image files.
 
-SVG smuggling can take a number of forms. For example, threat actors may include content that: 
+SVG smuggling can take a number of forms. For example, threat actors may include content that:
 
-* Assembles malicious payloads
-* Downloads malicious payloads
-* Redirects users to malicious websites
-* Displays interactive content to users, such as fake login forms and download buttons.
+- Assembles malicious payloads
+- Downloads malicious payloads
+- Redirects users to malicious websites
+- Displays interactive content to users, such as fake login forms and download buttons.
 
 SVG Smuggling may be used in conjunction with HTML Smuggling where an SVG with a malicious payload is included inside an HTML file. SVGs may also be included in other types of documents, such as PDFs.
 
@@ -101,26 +101,24 @@ SVG Smuggling may be used in conjunction with HTML Smuggling where an SVG with a
 ## Remediation Guide
 
 ### M1048 Application Isolation and Sandboxing
-Browser sandboxes can be used to mitigate some of the impact of exploitation, but sandbox escapes may still exist.
 
+Browser sandboxes can be used to mitigate some of the impact of exploitation, but sandbox escapes may still exist.
 
 ## Detection
 
 ### Detection Strategy for SVG Smuggling with Script Execution and Delivery Behavior
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SVG Smuggling technique applicable | Low | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| SVG Smuggling technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -37,6 +37,7 @@ None noted.
 ### Command Line
 
 Run the following script to verify the hfs module is disabled. If the module is available in the running kernel:
+
 - An entry including `/bin/true` or `/bin/false` exists in a file within the `/etc/modprobe.d/` directory
 - The module is deny listed in a file within the `/etc/modprobe.d/` directory
 - The module is not loaded in the kernel
@@ -112,14 +113,17 @@ Run the following script to verify the hfs module is disabled. If the module is 
 ### Command Line
 
 If the module is available in the running kernel:
+
 - Create a file with `install hfs /bin/false` in the `/etc/modprobe.d/` directory
 - Create a file with `blacklist hfs` in the `/etc/modprobe.d/` directory
 - Unload hfs from the kernel
 
 If available in ANY installed kernel:
+
 - Create a file with `blacklist hfs` in the `/etc/modprobe.d/` directory
 
 If the kernel module is not available on the system or pre-compiled into the kernel:
+
 - No remediation is necessary
 
 ## Default Value

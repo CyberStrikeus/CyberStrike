@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 1.4.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Disable profiling, if not needed.
 
 ## Rationale
+
 Profiling allows for the identification of specific performance bottlenecks. It generates a significant amount of program data that could potentially be exploited to uncover system and program details. If you are not experiencing any bottlenecks and do not need the profiler for troubleshooting purposes, it is recommended to turn it off to reduce the potential attack surface.
 
 ## Impact
+
 Profiling information would not be available.
 
 ## Audit Procedure
@@ -107,12 +111,15 @@ oc delete sa permission-test-sa
 ```
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, profiling is enabled and protected by RBAC.
 
 ## References
+
 1. https://github.com/openshift/cluster-kube-scheduler-operator
 2. https://github.com/openshift/cluster-kube-scheduler-operator/blob/release-4.5/bindata/v4.1.0/kube-scheduler/svc.yaml
 3. https://github.com/openshift/cluster-kube-scheduler-operator/blob/release-4.5/bindata/v4.1.0/kube-scheduler/pod.yaml
@@ -122,16 +129,17 @@ By default, profiling is enabled and protected by RBAC.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control     |      |      | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1609 | TA0002 | M1035 |
+| --------------------------- | ------- | ----------- |
+| T1609                       | TA0002  | M1035       |
 
 ## Profile
+
 **Level 1** (Manual)

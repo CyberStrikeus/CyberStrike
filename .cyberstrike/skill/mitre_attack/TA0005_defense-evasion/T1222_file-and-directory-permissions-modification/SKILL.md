@@ -33,8 +33,7 @@ cwe_ids:
 chains_with:
   - T1222.001
   - T1222.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1222.001: "Chain with T1222.001 for deeper attack path"
   T1222.002: "Chain with T1222.002 for deeper attack path"
@@ -110,7 +109,6 @@ New-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\Filesystems\NTF
 New-ItemProperty -Path HKLM:\Software\Policies\Microsoft\Windows\Filesystems\NTFS -Name SymlinkRemoteToRemoteEvaluation -PropertyType DWORD -Value 1 -Force -ErrorAction Ignore
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -124,29 +122,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Applying more restrictive permissions to files and directories could prevent adversaries from modifying their access control lists. Additionally, ensure that user settings regarding local and remote symbolic links are properly set or disabled where unneeded.
 
 ### M1026 Privileged Account Management
-Ensure critical system files as well as those known to be abused by adversaries have restrictive permissions and are owned by an appropriately privileged account, especially if access is not required by users nor will inhibit system functionality.
 
+Ensure critical system files as well as those known to be abused by adversaries have restrictive permissions and are owned by an appropriately privileged account, especially if access is not required by users nor will inhibit system functionality.
 
 ## Detection
 
 ### Multi-Platform File and Directory Permissions Modification Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File and Directory Permissions Modification technique applicable | High | Defense Evasion |
+| Finding                                                          | Severity | Impact          |
+| ---------------------------------------------------------------- | -------- | --------------- |
+| File and Directory Permissions Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

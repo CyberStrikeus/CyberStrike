@@ -76,29 +76,28 @@ Adversaries may choose to do this if they have sufficient access and proximity. 
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable Bluetooth in local computer security settings or by group policy if it is not needed within an environment.
 
 ### M1028 Operating System Configuration
-Prevent the creation of new network adapters where possible.
 
+Prevent the creation of new network adapters where possible.
 
 ## Detection
 
 ### Detection of Bluetooth-Based Data Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Bluetooth technique applicable | Low | Exfiltration |
+| Finding                                          | Severity | Impact       |
+| ------------------------------------------------ | -------- | ------------ |
+| Exfiltration Over Bluetooth technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

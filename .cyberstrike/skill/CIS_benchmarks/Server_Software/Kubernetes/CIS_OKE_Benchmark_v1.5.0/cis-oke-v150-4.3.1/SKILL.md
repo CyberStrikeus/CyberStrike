@@ -69,10 +69,10 @@ One example here is Flannel (https://github.com/coreos/flannel) which does not s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.4 Perform Automated Application Patch Management | X | X | X |
-| v7 | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | X | X | X |
+| Controls Version | Control                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.4 Perform Automated Application Patch Management                                            | X    | X    | X    |
+| v7               | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | X    | X    | X    |
 
 ---
 

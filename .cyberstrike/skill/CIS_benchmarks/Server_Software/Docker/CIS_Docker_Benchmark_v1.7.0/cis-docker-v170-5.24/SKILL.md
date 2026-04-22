@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.24
 
 ## Profile Applicability
+
 - **Level:** 2
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -58,9 +59,11 @@ By default, the `docker exec` command runs without the `--user` option.
 ## CIS Controls
 
 **v8:**
+
 - **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts**
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 
 **v7:**
+
 - **4 Controlled Use of Administrative Privileges**
   - Controlled Use of Administrative Privileges

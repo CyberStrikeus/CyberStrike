@@ -61,7 +61,7 @@ One example here is Flannel (https://github.com/coreos/flannel) which does not s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 7.4 Perform Automated Application Patch Management | x | x | x |
-| v7 | 18.4 Only Use Up-to-date And Trusted Third-Party Components | | x | x |
+| Controls Version | Control                                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.4 Perform Automated Application Patch Management          | x    | x    | x    |
+| v7               | 18.4 Only Use Up-to-date And Trusted Third-Party Components |      | x    | x    |

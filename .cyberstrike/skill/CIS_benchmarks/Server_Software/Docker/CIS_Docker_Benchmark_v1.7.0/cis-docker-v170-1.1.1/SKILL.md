@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 1.1.1
 
 ## Profile
+
 - **Level:** 1 - Docker - Linux
 - **Assessment Status:** Manual
 
@@ -63,7 +64,7 @@ By default, `/var/lib/docker` is mounted under the `/` or `/var` partitions depe
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity<br/>Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data. | | ● | ● |
-| v7 | 14 Controlled Access Based on the Need to Know<br/>Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity<br/>Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data. |      | ●    | ●    |
+| v7               | 14 Controlled Access Based on the Need to Know<br/>Controlled Access Based on the Need to Know                                                                                                                                      |      |      |      |

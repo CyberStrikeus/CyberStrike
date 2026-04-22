@@ -4,7 +4,23 @@ description: "Ensure that the --seccomp-default parameter is set to true (Manual
 category: cis-k8s
 version: "1.11.1"
 author: cyberstrike-official
-tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+tags:
+  [
+    cis,
+    kubernetes,
+    worker-nodes,
+    kubelet,
+    authentication,
+    authorization,
+    tls,
+    streaming,
+    iptables,
+    hostname-override,
+    event-capture,
+    certificate-rotation,
+    seccomp,
+    strong-ciphers,
+  ]
 cis_id: "4.2.14"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
 tech_stack: [kubernetes]
@@ -50,9 +66,9 @@ By default the seccomp profile is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.7 Deploy a Host-Based Intrusion Prevention Solution | | | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
-| v7 | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | x | x | x |
+| Controls Version | Control                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.7 Deploy a Host-Based Intrusion Prevention Solution                                        |      |      | x    |
+| v7               | 5.1 Establish Secure Configurations                                                           | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                                                    |      | x    | x    |
+| v7               | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | x    | x    | x    |

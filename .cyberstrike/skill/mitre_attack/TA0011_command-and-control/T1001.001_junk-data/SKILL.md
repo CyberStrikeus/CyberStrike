@@ -81,26 +81,24 @@ Adversaries may add junk data to protocols used for command and control to make 
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
 ## Detection
 
 ### Detecting Junk Data in C2 Channels via Behavioral Analysis
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Junk Data technique applicable | High | Command And Control |
+| Finding                        | Severity | Impact              |
+| ------------------------------ | -------- | ------------------- |
+| Junk Data technique applicable | High     | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.13
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -26,6 +27,7 @@ severity_boost: {}
 Monitor the use of system calls associated with the deletion or renaming of files and file attributes. This configuration statement sets up monitoring for the unlink (remove a file), unlinkat (remove a file attribute), rename (rename a file) and renameat (rename a file attribute) system calls and tags them with the identifier "delete".
 
 **Note:**
+
 - At a minimum, configure the audit system to collect file deletion events for all users and root.
 - Reloading the auditd config to set active settings requires the auditd service to be restarted, and may require a system reboot.
 
@@ -142,6 +144,6 @@ By default, no audit rules are configured for file deletion events.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 13 Data Protection - Data Protection |
+| Controls Version | Control                              |
+| ---------------- | ------------------------------------ |
+| v7               | 13 Data Protection - Data Protection |

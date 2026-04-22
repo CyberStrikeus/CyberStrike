@@ -78,36 +78,36 @@ Additionally, an adversary can move the ClickOnce application file to a remote u
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
-Disable ClickOnce installations from the internet using the following registry key: 
+
+Disable ClickOnce installations from the internet using the following registry key:
 `\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\Security\TrustManager\PromptingLevel — Internet:Disabled`
 
 ClickOnce may not be necessary within an environment and should be disabled if not being used.
 
 ### M1021 Restrict Web-Based Content
-Disable ClickOnce installations from the internet using the following registry key: 
+
+Disable ClickOnce installations from the internet using the following registry key:
 `\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\Security\TrustManager\PromptingLevel — Internet:Disabled`
 
 ### M1045 Code Signing
-Enforce binary and application integrity with digital signature verification to prevent untrusted code from executing.
 
+Enforce binary and application integrity with digital signature verification to prevent untrusted code from executing.
 
 ## Detection
 
 ### Behavior-chain detection strategy for T1127.002 Trusted Developer Utilities Proxy Execution: ClickOnce (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ClickOnce technique applicable | High | Defense Evasion |
+| Finding                        | Severity | Impact          |
+| ------------------------------ | -------- | --------------- |
+| ClickOnce technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -131,6 +131,7 @@ cmd.exe /c %APPDATA%\svchost.exe "PathToAtomicsFolder\..\ExternalPayloads\T1036.
 ```
 
 **Dependencies:**
+
 - Wscript file to execute must exist on disk
 
 ### Atomic Test 5: Masquerading - powershell.exe running as taskhostw.exe
@@ -146,7 +147,6 @@ copy %windir%\System32\windowspowershell\v1.0\powershell.exe %APPDATA%\taskhostw
 cmd.exe /K %APPDATA%\taskhostw.exe
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -160,26 +160,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Use file system access controls to protect folders such as `C:\Windows\System32`.
 
+Use file system access controls to protect folders such as `C:\Windows\System32`.
 
 ## Detection
 
 ### Renamed Legitimate Utility Execution with Metadata Mismatch and Suspicious Path
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Rename Legitimate Utilities technique applicable | Low | Defense Evasion |
+| Finding                                          | Severity | Impact          |
+| ------------------------------------------------ | -------- | --------------- |
+| Rename Legitimate Utilities technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

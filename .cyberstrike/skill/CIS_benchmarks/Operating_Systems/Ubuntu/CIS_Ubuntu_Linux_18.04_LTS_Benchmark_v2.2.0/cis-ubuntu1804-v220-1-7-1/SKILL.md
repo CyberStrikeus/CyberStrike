@@ -71,6 +71,6 @@ rm /etc/motd
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1082, T1082.000, T1592, T1592.004 | TA0007 | |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1082, T1082.000, T1592, T1592.004 | TA0007  |             |

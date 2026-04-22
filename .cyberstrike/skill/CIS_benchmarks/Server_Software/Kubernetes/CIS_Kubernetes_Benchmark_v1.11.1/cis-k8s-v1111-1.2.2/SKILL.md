@@ -65,7 +65,7 @@ By default, `--token-auth-file` argument is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | x | x | x |
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software  | x    | x    | x    |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials |      | x    | x    |

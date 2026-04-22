@@ -25,8 +25,7 @@ chains_with:
   - CP-13
   - IA-10
   - IR-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -74,9 +73,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -100,17 +99,16 @@ NIST SP 800-160, Volume 2 provides additional information on the Cyber Resilienc
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-24 Design For Cyber Resiliency not implemented | Medium | System and Services Acquisition |
-| SA-24 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                           | Severity | Impact                                     |
+| ------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-24 Design For Cyber Resiliency not implemented | Medium   | System and Services Acquisition            |
+| SA-24 partially implemented                       | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

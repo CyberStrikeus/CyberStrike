@@ -70,15 +70,15 @@ Where possible, remove `create` access to `pod` objects in the cluster.
 
 By default, the following list of principals have `create` privileges on `pod` objects:
 
-| CLUSTERROLEBINDING | SUBJECT | TYPE |
-|---|---|---|
-| cluster-admin | system:masters | Group |
-| system:controller:daemon-set-controller | daemon-set-controller ServiceAccount kube-system | |
-| system:controller:job-controller | job-controller ServiceAccount kube-system | |
-| system:controller:persistent-volume-binder | persistent-volume-binder ServiceAccount kube-system | |
-| system:controller:replicaset-controller | replicaset-controller ServiceAccount kube-system | |
-| system:controller:replication-controller | replication-controller ServiceAccount kube-system | |
-| system:controller:statefulset-controller | statefulset-controller ServiceAccount kube-system | |
+| CLUSTERROLEBINDING                         | SUBJECT                                             | TYPE  |
+| ------------------------------------------ | --------------------------------------------------- | ----- |
+| cluster-admin                              | system:masters                                      | Group |
+| system:controller:daemon-set-controller    | daemon-set-controller ServiceAccount kube-system    |       |
+| system:controller:job-controller           | job-controller ServiceAccount kube-system           |       |
+| system:controller:persistent-volume-binder | persistent-volume-binder ServiceAccount kube-system |       |
+| system:controller:replicaset-controller    | replicaset-controller ServiceAccount kube-system    |       |
+| system:controller:replication-controller   | replication-controller ServiceAccount kube-system   |       |
+| system:controller:statefulset-controller   | statefulset-controller ServiceAccount kube-system   |       |
 
 ## References
 
@@ -86,13 +86,13 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 5.1 Establish Secure Configurations               | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.002 | TA0001, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1078, T1078.002            | TA0001, TA0004 | M1026       |

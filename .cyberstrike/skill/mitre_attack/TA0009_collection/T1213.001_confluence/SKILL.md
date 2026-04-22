@@ -45,14 +45,14 @@ severity_boost:
 
 Adversaries may leverage Confluence repositories to mine valuable information. Often found in development environments alongside Atlassian JIRA, Confluence is generally used to store development-related documentation, however, in general may contain more diverse categories of useful information, such as:
 
-* Policies, procedures, and standards
-* Physical / logical network diagrams
-* System architecture diagrams
-* Technical system documentation
-* Testing / development credentials (i.e., Unsecured Credentials)
-* Work / project schedules
-* Source code snippets
-* Links to network shares and other internal resources
+- Policies, procedures, and standards
+- Physical / logical network diagrams
+- System architecture diagrams
+- Technical system documentation
+- Testing / development credentials (i.e., Unsecured Credentials)
+- Work / project schedules
+- Source code snippets
+- Links to network shares and other internal resources
 
 ## Kill Chain Phase
 
@@ -82,32 +82,32 @@ Adversaries may leverage Confluence repositories to mine valuable information. O
 ## Remediation Guide
 
 ### M1017 User Training
+
 Develop and publish policies that define acceptable information to be stored in Confluence repositories.
 
 ### M1047 Audit
+
 Consider periodic review of accounts and privileges for critical and sensitive Confluence repositories.
 
 ### M1018 User Account Management
-Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization.
 
+Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization.
 
 ## Detection
 
 ### Programmatic and Excessive Access to Confluence Documentation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Confluence technique applicable | High | Collection |
+| Finding                         | Severity | Impact     |
+| ------------------------------- | -------- | ---------- |
+| Confluence technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

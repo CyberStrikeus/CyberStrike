@@ -54,9 +54,9 @@ By default, there are no restrictions on the use of HostPorts.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | X | X |
-| v8 | 2.6 Allowlist Authorized Libraries | | X | X |
-| v8 | 2.7 Allowlist Authorized Scripts | | | X |
-| v7 | 12.4 Deny Communication over Unauthorized Ports | X | X | X |
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software               |      | X    | X    |
+| v8               | 2.6 Allowlist Authorized Libraries              |      | X    | X    |
+| v8               | 2.7 Allowlist Authorized Scripts                |      |      | X    |
+| v7               | 12.4 Deny Communication over Unauthorized Ports | X    | X    | X    |

@@ -39,10 +39,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -56,12 +54,12 @@ Operating systems may contain features that can help fix corrupted systems, such
 
 A number of native Windows utilities have been used by adversaries to disable or delete system recovery features:
 
-* <code>vssadmin.exe</code> can be used to delete all volume shadow copies on a system - <code>vssadmin.exe delete shadows /all /quiet</code>
-* Windows Management Instrumentation can be used to delete volume shadow copies - <code>wmic shadowcopy delete</code>
-* <code>wbadmin.exe</code> can be used to delete the Windows Backup Catalog - <code>wbadmin.exe delete catalog -quiet</code>
-* <code>bcdedit.exe</code> can be used to disable automatic Windows recovery features by modifying boot configuration data - <code>bcdedit.exe /set {default} bootstatuspolicy ignoreallfailures & bcdedit /set {default} recoveryenabled no</code>
-* <code>REAgentC.exe</code> can be used to disable Windows Recovery Environment (WinRE) repair/recovery options of an infected system
-* <code>diskshadow.exe</code> can be used to delete all volume shadow copies on a system - <code>diskshadow delete shadows all</code> 
+- <code>vssadmin.exe</code> can be used to delete all volume shadow copies on a system - <code>vssadmin.exe delete shadows /all /quiet</code>
+- Windows Management Instrumentation can be used to delete volume shadow copies - <code>wmic shadowcopy delete</code>
+- <code>wbadmin.exe</code> can be used to delete the Windows Backup Catalog - <code>wbadmin.exe delete catalog -quiet</code>
+- <code>bcdedit.exe</code> can be used to disable automatic Windows recovery features by modifying boot configuration data - <code>bcdedit.exe /set {default} bootstatuspolicy ignoreallfailures & bcdedit /set {default} recoveryenabled no</code>
+- <code>REAgentC.exe</code> can be used to disable Windows Recovery Environment (WinRE) repair/recovery options of an infected system
+- <code>diskshadow.exe</code> can be used to delete all volume shadow copies on a system - <code>diskshadow delete shadows all</code>
 
 On network devices, adversaries may leverage Disk Wipe to delete backup firmware images and reformat the file system, then System Shutdown/Reboot to reload the device. Together this activity may leave network devices completely inoperable and inhibit recovery operations.
 
@@ -107,6 +105,7 @@ vssadmin.exe delete shadows /all /quiet
 ```
 
 **Dependencies:**
+
 - Create volume shadow copy of C:\ . This prereq command only works on Windows Server or Windows 8.
 
 ### Atomic Test 2: Windows - Delete Volume Shadow Copies via WMI
@@ -121,6 +120,7 @@ wmic.exe shadowcopy delete
 ```
 
 **Dependencies:**
+
 - Create volume shadow copy of C:\ .
 
 ### Atomic Test 3: Windows - wbadmin Delete Windows Backup Catalog
@@ -162,7 +162,6 @@ there may be no output displayed.
 Get-WmiObject Win32_Shadowcopy | ForEach-Object {$_.Delete();}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -176,35 +175,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Consider using application control configured to block execution of utilities such as `diskshadow.exe` that may not be required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1028 Operating System Configuration
+
 Consider technical controls to prevent the disabling of services or deletion of files involved in system recovery. Additionally, ensure that WinRE is enabled using the following command: <code>reagentc /enable</code>.
 
 ### M1018 User Account Management
+
 Limit the user accounts that have access to backups to only those required. In AWS environments, consider using Service Control Policies to restrict API calls to delete backups, snapshots, and images.
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery. In cloud environments, enable versioning on storage objects where possible, and copy backups to other accounts or regions to isolate them from the original copies. On ESXi servers, ensure that disk images and snapshots of virtual machines are regularly taken, with copies stored off system.
 
+Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery. In cloud environments, enable versioning on storage objects where possible, and copy backups to other accounts or regions to isolate them from the original copies. On ESXi servers, ensure that disk images and snapshots of virtual machines are regularly taken, with copies stored off system.
 
 ## Detection
 
 ### Behavioral Detection for T1490 - Inhibit System Recovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Inhibit System Recovery technique applicable | Low | Impact |
+| Finding                                      | Severity | Impact |
+| -------------------------------------------- | -------- | ------ |
+| Inhibit System Recovery technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

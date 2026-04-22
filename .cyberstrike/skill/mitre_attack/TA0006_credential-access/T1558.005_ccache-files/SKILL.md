@@ -45,7 +45,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may attempt to steal Kerberos tickets stored in credential cache files (or ccache). These files are used for short term storage of a user's active session credentials. The ccache file is created upon user authentication and allows for access to multiple services without the user having to re-enter credentials. 
+Adversaries may attempt to steal Kerberos tickets stored in credential cache files (or ccache). These files are used for short term storage of a user's active session credentials. The ccache file is created upon user authentication and allows for access to multiple services without the user having to re-enter credentials.
 
 The <code>/etc/krb5.conf</code> configuration file and the <code>KRB5CCNAME</code> environment variable are used to set the storage location for ccache entries. On Linux, credentials are typically stored in the `/tmp` directory with a naming format of `krb5cc_%UID%` or `krb5.ccache`. On macOS, ccache entries are stored by default in memory with an `API:{uuid}` naming scheme. Typically, users interact with ticket storage using <code>kinit</code>, which obtains a Ticket-Granting-Ticket (TGT) for the principal; <code>klist</code>, which lists obtained tickets currently held in the credentials cache; and other built-in binaries.
 
@@ -80,29 +80,28 @@ Adversaries can collect tickets from ccache files stored on disk and authenticat
 ## Remediation Guide
 
 ### M1047 Audit
+
 Enable and perform audits or scans of systems, permissions, insecure software, insecure configurations, etc. to identify potential weaknesses. For example, use <code>auditd</code> to audit access to hashes, machine tickets, or <code>/tmp</code> files. If using sssd and Vintela, ensure kerberos is disabled if not being used.
 
 ### M1043 Credential Access Protection
-Protect resources with Security Enhanced Linux (SELinux) by defining entry points, process types, and file labels.
 
+Protect resources with Security Enhanced Linux (SELinux) by defining entry points, process types, and file labels.
 
 ## Detection
 
 ### Detect Kerberos Ccache File Theft or Abuse (T1558.005)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Ccache Files technique applicable | High | Credential Access |
+| Finding                           | Severity | Impact            |
+| --------------------------------- | -------- | ----------------- |
+| Ccache Files technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

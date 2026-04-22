@@ -58,8 +58,7 @@ chains_with:
   - T1562.011
   - T1562.012
   - T1562.013
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1562.001: "Chain with T1562.001 for deeper attack path"
   T1562.002: "Chain with T1562.002 for deeper attack path"
@@ -134,7 +133,6 @@ The atomic test disables the journal logging by searching and replacing the "Sto
 sudo sed -i 's/Storage=auto/Storage=none/' /etc/systemd/journald.conf
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -148,44 +146,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Consider implementing policies on internal web servers, such HTTP Strict Transport Security, that enforce the use of HTTPS/network traffic encryption to prevent insecure connections.
 
 ### M1018 User Account Management
+
 Ensure proper user permissions are in place to prevent adversaries from disabling or interfering with security/logging services.
 
 ### M1038 Execution Prevention
+
 Use application control where appropriate, especially regarding the execution of tools outside of the organization's security policies (such as rootkit removal tools) that have been abused to impair system defenses. Ensure that only approved security applications are used and running on enterprise systems.
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure proper process and file permissions are in place to prevent adversaries from disabling or interfering with security/logging services.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper Registry permissions are in place to prevent adversaries from disabling or interfering with security/logging services.
 
 ### M1047 Audit
+
 Routinely check account role permissions to ensure only expected users and roles have permission to modify defensive tools and settings. Periodically verify that tools such as EDRs are functioning as expected.
 
 ### M1042 Disable or Remove Feature or Program
-Consider removing previous versions of tools that are unnecessary to the environment when possible.
 
+Consider removing previous versions of tools that are unnecessary to the environment when possible.
 
 ## Detection
 
 ### Detection Strategy for Impair Defenses Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Impair Defenses technique applicable | Low | Defense Evasion |
+| Finding                              | Severity | Impact          |
+| ------------------------------------ | -------- | --------------- |
+| Impair Defenses technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

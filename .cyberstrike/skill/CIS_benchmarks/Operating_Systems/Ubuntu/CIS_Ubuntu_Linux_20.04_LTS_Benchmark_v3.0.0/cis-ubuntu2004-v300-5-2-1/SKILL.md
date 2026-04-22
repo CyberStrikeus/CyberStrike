@@ -46,7 +46,7 @@ sudo is installed
 ```
 
 - OR -
-Run the following command to verify that either `sudo-ldap` is installed:
+  Run the following command to verify that either `sudo-ldap` is installed:
 
 ```bash
 # dpkg-query -s sudo-ldap &>/dev/null && echo "sudo-ldap is installed"

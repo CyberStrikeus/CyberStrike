@@ -13,14 +13,12 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PM-9
   - PS-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PS-8: "Chain with PS-8 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Media protection policy and procedures address the controls in the MP family tha
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-1 Policy and Procedures not implemented | Medium | Media Protection |
-| MP-1 partially implemented | Low | Incomplete Media Protection |
+| Finding                                    | Severity | Impact                      |
+| ------------------------------------------ | -------- | --------------------------- |
+| MP-1 Policy and Procedures not implemented | Medium   | Media Protection            |
+| MP-1 partially implemented                 | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

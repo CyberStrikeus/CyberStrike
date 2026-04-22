@@ -116,16 +116,16 @@ Follow the same procedures as for 64 bit systems and ignore any entries with `b6
 
 ## CIS Controls
 
-| Version | Control | IG 1 | IG 2 | IG 3 |
-|---------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | ● | ● |
-| v7 | 4.9 Log and Alert on Unsuccessful Administrative Account Login | | ● | ● |
+| Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8      | 8.5 Collect Detailed Audit Logs                                |      | ●    | ●    |
+| v7      | 4.9 Log and Alert on Unsuccessful Administrative Account Login |      | ●    | ●    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|----------------------------|---------|-------------|
-| T1562, T1562.006 | TA0004 | M1047 |
+| --------------------------- | ------- | ----------- |
+| T1562, T1562.006            | TA0004  | M1047       |
 
 ## Additional Information
 

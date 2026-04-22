@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,35 +57,36 @@ Review whether mitigations for T0871 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0938 Execution Prevention
+
 Minimize the exposure of API calls that allow the execution of code.
 
 ### M0800 Authorization Enforcement
+
 All APIs used to perform execution, especially those hosted on embedded controllers (e.g., PLCs), should provide adequate authorization enforcement of user access. Minimize user's access to only required API calls.
 
 ### M0804 Human User Authentication
+
 All APIs on remote systems or local processes should require the authentication of users before executing any code or system changes.
 
 ### M0801 Access Management
-Access Management technologies can be used to enforce authorization policies and decisions, especially when existing field devices do not provide capabilities to support user identification and authentication. These technologies typically utilize an in-line network device or gateway system to prevent access to unauthenticated users, while also integrating with an authentication service to first verify user credentials.
 
+Access Management technologies can be used to enforce authorization policies and decisions, especially when existing field devices do not provide capabilities to support user identification and authentication. These technologies typically utilize an in-line network device or gateway system to prevent access to unauthenticated users, while also integrating with an authentication service to first verify user credentials.
 
 ## Detection
 
 ### Detection of Execution through API
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Execution through API technique applicable | Low | Execution |
+| Finding                                    | Severity | Impact    |
+| ------------------------------------------ | -------- | --------- |
+| Execution through API technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

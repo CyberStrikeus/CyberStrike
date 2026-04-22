@@ -17,19 +17,24 @@ severity_boost: {}
 # CIS 2.8 — Set Group and Other Permissions Read-Only for All BIND Files
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 All the files in BIND home and run time directories should have group and other permissions set to not be writable. Configuration files should, of course, not be writable by named, and any run time files created by BIND will be owned by named and writable by the user. Therefore, there are no exceptions required for the run time files.
 
 ## Rationale
+
 Restricting permissions on the files provides defense in depth and will reduce the probability of unauthorized modifications to important files. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able to modify configuration files.
 
 ## Impact
+
 Not Applicable
 
 ## Audit Procedure
+
 Run the command below to ensure that all BIND files are read-only for group and other. Note that a `chroot`'ed directory will have some special files which may need to be writable. Special files includes device files, like dev/null and a socket file for logging, but the `-type f` restricts the find to just regular files.
 
 ```bash
@@ -39,6 +44,7 @@ Run the command below to ensure that all BIND files are read-only for group and 
 There should be no files listed in the output from the find command.
 
 ## Remediation
+
 Perform the following:
 
 - Capture the output from the audit commands above into a file with the name `$TMPDIR/write-files.txt`
@@ -52,22 +58,27 @@ Perform the following:
 ```
 
 ## Default Value
+
 The default rpm install has all BIND files without group or other write access.
 
 ## References
+
 Not Applicable
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 14.4 - Protect Information with Access Control Lists | Y | Y | Y |
+
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 14.4 - Protect Information with Access Control Lists | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic          | Technique                                           |
+| --------------- | --------------------------------------------------- |
 | Defense Evasion | T1222 - File and Directory Permissions Modification |
-| Persistence | T1546 - Event Triggered Execution |
+| Persistence     | T1546 - Event Triggered Execution                   |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

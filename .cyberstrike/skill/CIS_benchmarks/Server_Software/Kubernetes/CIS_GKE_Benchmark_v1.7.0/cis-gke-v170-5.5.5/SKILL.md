@@ -91,8 +91,8 @@ Clusters will have Shielded GKE nodes enabled by default, as of version v1.18
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
-| v7 | 18.11 Use Standard Hardening Configuration Templates for Databases | | x | x |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images                                                   |      | x    | x    |
+| v7               | 18.11 Use Standard Hardening Configuration Templates for Databases                 |      | x    | x    |

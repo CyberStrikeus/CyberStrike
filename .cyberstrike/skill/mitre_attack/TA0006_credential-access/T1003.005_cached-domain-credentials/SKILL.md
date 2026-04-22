@@ -52,7 +52,7 @@ Adversaries may attempt to access cached domain credentials used to allow authen
 
 On Windows Vista and newer, the hash format is DCC2 (Domain Cached Credentials version 2) hash, also known as MS-Cache v2 hash. The number of default cached credentials varies and can be altered per system. This hash does not allow pass-the-hash style attacks, and instead requires Password Cracking to recover the plaintext password.
 
-On Linux systems, Active Directory credentials can be accessed through caches maintained by software like System Security Services Daemon (SSSD) or Quest Authentication Services (formerly VAS). Cached credential hashes are typically located at `/var/lib/sss/db/cache.[domain].ldb` for SSSD or `/var/opt/quest/vas/authcache/vas_auth.vdb` for Quest. Adversaries can use utilities, such as `tdbdump`, on these database files to dump the cached hashes and use Password Cracking to obtain the plaintext password. 
+On Linux systems, Active Directory credentials can be accessed through caches maintained by software like System Security Services Daemon (SSSD) or Quest Authentication Services (formerly VAS). Cached credential hashes are typically located at `/var/lib/sss/db/cache.[domain].ldb` for SSSD or `/var/opt/quest/vas/authcache/vas_auth.vdb` for Quest. Adversaries can use utilities, such as `tdbdump`, on these database files to dump the cached hashes and use Password Cracking to obtain the plaintext password.
 
 With SYSTEM or sudo access, the tools/utilities such as Mimikatz, Reg, and secretsdump.py for Windows or Linikatz for Linux can be used to extract the cached credentials.
 
@@ -92,7 +92,6 @@ https://www.peew.pw/blog/2017/11/26/exploring-cmdkey-an-edge-case-for-privilege-
 cmdkey /list
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -106,44 +105,46 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1015 Active Directory Configuration
+
 Consider adding users to the "Protected Users" Active Directory security group. This can help limit the caching of users' plaintext credentials.
 
 ### M1017 User Training
+
 Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1028 Operating System Configuration
+
 Consider limiting the number of cached credentials (HKLM\SOFTWARE\Microsoft\Windows NT\Current Version\Winlogon\cachedlogonscountvalue)
 
 ### M1026 Privileged Account Management
-Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
+Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ## Detection
 
 ### Detection of Cached Domain Credential Dumping via Local Hash Cache Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cached Domain Credentials technique applicable | High | Credential Access |
+| Finding                                        | Severity | Impact            |
+| ---------------------------------------------- | -------- | ----------------- |
+| Cached Domain Credentials technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 
 - [PassLib mscache](https://passlib.readthedocs.io/en/stable/lib/passlib.hash.msdcc2.html)
 - [ired mscache](https://ired.team/offensive-security/credential-access-and-credential-dumping/dumping-and-cracking-mscash-cached-domain-credentials)
-- [Microsoft - Cached Creds](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh994565(v%3Dws.11))
+- [Microsoft - Cached Creds](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh994565(v%3Dws.11)>)
 - [Powersploit](https://github.com/mattifestation/PowerSploit)
 - [Brining MimiKatz to Unix](https://labs.portcullis.co.uk/download/eu-18-Wadhwa-Brown-Where-2-worlds-collide-Bringing-Mimikatz-et-al-to-UNIX.pdf)
 - [Atomic Red Team - T1003.005](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1003.005)

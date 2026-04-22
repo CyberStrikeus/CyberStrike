@@ -80,10 +80,10 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Enable Apple Remote Desktop Agent
 
-ARD leverages a blend of protocols, including VNC to send the screen and control buffers and SSH for secure file transfer. 
+ARD leverages a blend of protocols, including VNC to send the screen and control buffers and SSH for secure file transfer.
 Adversaries can abuse ARD to gain remote code execution and perform lateral movement.
 
-References:  https://www.mandiant.com/resources/blog/leveraging-apple-remote-desktop-for-good-and-evil
+References: https://www.mandiant.com/resources/blog/leveraging-apple-remote-desktop-for-good-and-evil
 
 **Supported Platforms:** macos
 **Elevation Required:** Yes
@@ -91,7 +91,6 @@ References:  https://www.mandiant.com/resources/blog/leveraging-apple-remote-des
 ```bash
 sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -allowAccessFor -allUsers -privs -all -quiet
 ```
-
 
 ### Manual Testing
 
@@ -106,35 +105,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Uninstall any VNC server software where not required.
 
 ### M1037 Filter Network Traffic
+
 VNC defaults to TCP ports 5900 for the server, 5800 for browser access, and 5500 for a viewer in listening mode. Filtering or blocking these ports will inhibit VNC traffic utilizing default ports.
 
 ### M1047 Audit
+
 Inventory workstations for unauthorized VNC server software.
 
 ### M1033 Limit Software Installation
-Restrict software installation to user groups that require it. A VNC server must be manually installed by the user or adversary.
 
+Restrict software installation to user groups that require it. A VNC server must be manually installed by the user or adversary.
 
 ## Detection
 
 ### Behavioral Detection of Unauthorized VNC Remote Control Sessions
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| VNC technique applicable | High | Lateral Movement |
+| Finding                  | Severity | Impact           |
+| ------------------------ | -------- | ---------------- |
+| VNC technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

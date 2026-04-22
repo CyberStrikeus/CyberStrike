@@ -92,7 +92,7 @@ If using executable arguments, edit the kubelet service file `/etc/systemd/syste
 
 If using the api configz endpoint consider searching for the status of `"makeIPTablesUtilChains.: true` by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -124,7 +124,7 @@ See the GKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **12.3 Securely Manage Network Infrastructure** - Securely manage network infrastructure. Example implementations include version-controlled-infrastructure-as-code, and the use of secure network protocols, such as SSH and HTTPS. | | | |
-| v7 | **11.1 Maintain Standard Security Configurations for Network Devices** - Maintain standard, documented security configuration standards for all authorized network devices. | | | |
+| Controls Version | Control                                                                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | **12.3 Securely Manage Network Infrastructure** - Securely manage network infrastructure. Example implementations include version-controlled-infrastructure-as-code, and the use of secure network protocols, such as SSH and HTTPS. |      |      |      |
+| v7               | **11.1 Maintain Standard Security Configurations for Network Devices** - Maintain standard, documented security configuration standards for all authorized network devices.                                                          |      |      |      |

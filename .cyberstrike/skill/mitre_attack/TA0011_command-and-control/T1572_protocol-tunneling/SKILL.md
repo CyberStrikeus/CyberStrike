@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -41,11 +39,11 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may tunnel network communications to and from a victim system within a separate protocol to avoid detection/network filtering and/or enable access to otherwise unreachable systems. Tunneling involves explicitly encapsulating a protocol within another. This behavior may conceal malicious traffic by blending in with existing traffic and/or provide an outer layer of encryption (similar to a VPN). Tunneling could also enable routing of network packets that would otherwise not reach their intended destination, such as SMB, RDP, or other traffic that would be filtered by network appliances or not routed over the Internet. 
+Adversaries may tunnel network communications to and from a victim system within a separate protocol to avoid detection/network filtering and/or enable access to otherwise unreachable systems. Tunneling involves explicitly encapsulating a protocol within another. This behavior may conceal malicious traffic by blending in with existing traffic and/or provide an outer layer of encryption (similar to a VPN). Tunneling could also enable routing of network packets that would otherwise not reach their intended destination, such as SMB, RDP, or other traffic that would be filtered by network appliances or not routed over the Internet.
 
-There are various means to encapsulate a protocol within another protocol. For example, adversaries may perform SSH tunneling (also known as SSH port forwarding), which involves forwarding arbitrary data over an encrypted SSH tunnel. 
+There are various means to encapsulate a protocol within another protocol. For example, adversaries may perform SSH tunneling (also known as SSH port forwarding), which involves forwarding arbitrary data over an encrypted SSH tunnel.
 
-Protocol Tunneling may also be abused by adversaries during Dynamic Resolution. Known as DNS over HTTPS (DoH), queries to resolve C2 infrastructure may be encapsulated within encrypted HTTPS packets. 
+Protocol Tunneling may also be abused by adversaries during Dynamic Resolution. Known as DNS over HTTPS (DoH), queries to resolve C2 infrastructure may be encapsulated within encrypted HTTPS packets.
 
 Adversaries may also leverage Protocol Tunneling in conjunction with Proxy and/or Protocol or Service Impersonation to further conceal C2 communications and infrastructure.
 
@@ -99,7 +97,7 @@ Set-Location "PathToAtomicsFolder"
 
 This test simulates an infected host returning data to a command and control server using long domain names.
 The simulation involves sending DoH queries that gradually increase in length until reaching the maximum length. The intent is to test the effectiveness of detection of DoH queries for long domain names over a set threshold.
- Upon execution, DNS information about the domain will be displayed for each callout in a JSON format.
+Upon execution, DNS information about the domain will be displayed for each callout in a JSON format.
 
 **Supported Platforms:** windows
 
@@ -118,11 +116,12 @@ Download and run ngrok. Create tunnel to chosen port.
 ```powershell
 C:\Users\Public\ngrok\ngrok.exe config add-authtoken #{api_token} | Out-Null
 Start-Job -ScriptBlock { C:\Users\Public\ngrok\ngrok.exe tcp #{port_num} } | Out-Null
-Start-Sleep -s 5 
+Start-Sleep -s 5
 Stop-Job -Name Job1 | Out-Null
 ```
 
 **Dependencies:**
+
 - Download ngrok
 
 ### Atomic Test 5: Microsoft Dev tunnels (Linux/macOS)
@@ -131,6 +130,7 @@ Dev Tunnels enables insiders as well as threat actors to expose local ports over
 
 This atomic will generate a dev tunnel binding it to the local service running on the provided port. Can be used to expose local services, web applications and local files etc.
 Reference:
+
 - [Microsoft Docs](https://learn.microsoft.com/en-us/tunnels/dev-tunnels-overview)
 - [LOT Tunnels](https://lottunnels.github.io/lottunnels/Binaries/devtunnels/)
 
@@ -141,9 +141,9 @@ Reference:
 ```
 
 **Dependencies:**
+
 - Download devtunnel
 - Login to Microsoft Dev tunnels
-
 
 ### Manual Testing
 
@@ -158,29 +158,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Consider filtering network traffic to untrusted or known bad domains and resources.
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detection Strategy for Protocol Tunneling accross OS platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Protocol Tunneling technique applicable | Medium | Command And Control |
+| Finding                                 | Severity | Impact              |
+| --------------------------------------- | -------- | ------------------- |
+| Protocol Tunneling technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

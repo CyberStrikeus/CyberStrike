@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,26 +57,24 @@ Review whether mitigations for T0840 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0816 Mitigation Limited or Not Effective
-Network connection enumeration is likely obtained by using common system tools (e.g., netstat, ipconfig).
 
+Network connection enumeration is likely obtained by using common system tools (e.g., netstat, ipconfig).
 
 ## Detection
 
 ### Detection of Network Connection Enumeration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Connection Enumeration technique applicable | Low | Discovery |
+| Finding                                             | Severity | Impact    |
+| --------------------------------------------------- | -------- | --------- |
+| Network Connection Enumeration technique applicable | Low      | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

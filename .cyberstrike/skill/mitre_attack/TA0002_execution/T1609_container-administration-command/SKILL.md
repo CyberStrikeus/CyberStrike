@@ -21,10 +21,8 @@ tech_stack:
   - containers
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -69,6 +67,7 @@ kubectl exec -n #{namespace} busybox -- #{command}
 ```
 
 **Dependencies:**
+
 - kubectl must be installed
 
 ### Atomic Test 2: Docker Exec Into Container
@@ -78,14 +77,14 @@ Attackers who have permissions, can run malicious commands in containers in the 
 **Supported Platforms:** containers
 
 ```bash
-docker build -t t1609  $PathtoAtomicsFolder/T1609/src/ 
+docker build -t t1609  $PathtoAtomicsFolder/T1609/src/
 docker run --name t1609_container --rm -itd t1609 bash /tmp/script.sh
 docker exec -i t1609_container bash -c "cat /tmp/output.txt"
 ```
 
 **Dependencies:**
-- docker must be installed
 
+- docker must be installed
 
 ### Manual Testing
 
@@ -100,38 +99,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Enforce authentication and role-based access control on the container service to restrict users to the least privileges required. When using Kubernetes, avoid giving users wildcard permissions or adding users to the `system:masters` group, and use `RoleBindings` rather than `ClusterRoleBindings` to limit user privileges to specific namespaces.
 
 ### M1026 Privileged Account Management
+
 Ensure containers are not running as root by default. In Kubernetes environments, consider defining Pod Security Standards that prevent pods from running privileged containers and using the `NodeRestriction` admission controller to deny the kublet access to nodes and pods outside of the node it belongs to.
 
 ### M1042 Disable or Remove Feature or Program
+
 Remove unnecessary tools and software from containers.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit communications with the container service to managed and secured channels, such as local Unix sockets or remote access via SSH. Require secure port access to communicate with the APIs over TLS by disabling unauthenticated access to the Docker API and Kubernetes API Server. In Kubernetes clusters deployed in cloud environments, use native cloud platform features to restrict the IP ranges that are permitted to access to API server. Where possible, consider enabling just-in-time (JIT) access to the Kubernetes API to place additional restrictions on access.
 
 ### M1038 Execution Prevention
-Use read-only containers, read-only file systems, and minimal images when possible to prevent the execution of commands. Where possible, also consider using application control and software restriction tools (such as those provided by SELinux) to restrict access to files, processes, and system calls in containers.
 
+Use read-only containers, read-only file systems, and minimal images when possible to prevent the execution of commands. Where possible, also consider using application control and software restriction tools (such as those provided by SELinux) to restrict access to files, processes, and system calls in containers.
 
 ## Detection
 
 ### Detection Strategy for Container Administration Command Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container Administration Command technique applicable | Low | Execution |
+| Finding                                               | Severity | Impact    |
+| ----------------------------------------------------- | -------- | --------- |
+| Container Administration Command technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

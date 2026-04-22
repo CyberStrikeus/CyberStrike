@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 6.2.11
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -59,6 +60,6 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 4.6 Use of Dedicated Machines For All Administrative Tasks<br/>Ensure administrators use a dedicated machine for all administrative tasks or tasks requiring administrative access. This machine will be segmented from the organization's primary network and not be allowed Internet access. This machine will not be used for reading e-mail, composing documents, or browsing the Internet. | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 4.6 Use of Dedicated Machines For All Administrative Tasks<br/>Ensure administrators use a dedicated machine for all administrative tasks or tasks requiring administrative access. This machine will be segmented from the organization's primary network and not be allowed Internet access. This machine will not be used for reading e-mail, composing documents, or browsing the Internet. |      |      |      |

@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -46,7 +44,7 @@ severity_boost: {}
 
 Adversaries may encrypt data on target systems or on large numbers of systems in a network to interrupt availability to system and network resources. They can attempt to render stored data inaccessible by encrypting files or data on local and remote drives and withholding access to a decryption key. This may be done in order to extract monetary compensation from a victim in exchange for decryption or a decryption key (ransomware) or to render data permanently inaccessible in cases where the key is not saved or transmitted.
 
-In the case of ransomware, it is typical that common user files like Office documents, PDFs, images, videos, audio, text, and source code files will be encrypted (and often renamed and/or tagged with specific file markers). Adversaries may need to first employ other behaviors, such as File and Directory Permissions Modification or System Shutdown/Reboot, in order to unlock and/or gain access to manipulate these files. In some cases, adversaries may encrypt critical system files, disk partitions, and the MBR. Adversaries may also encrypt virtual machines hosted on ESXi or other hypervisors. 
+In the case of ransomware, it is typical that common user files like Office documents, PDFs, images, videos, audio, text, and source code files will be encrypted (and often renamed and/or tagged with specific file markers). Adversaries may need to first employ other behaviors, such as File and Directory Permissions Modification or System Shutdown/Reboot, in order to unlock and/or gain access to manipulate these files. In some cases, adversaries may encrypt critical system files, disk partitions, and the MBR. Adversaries may also encrypt virtual machines hosted on ESXi or other hypervisors.
 
 To maximize impact on the target organization, malware designed for encrypting data may have worm-like features to propagate across a network by leveraging other attack techniques like Valid Accounts, OS Credential Dumping, and SMB/Windows Admin Shares. Encryption malware may also leverage Internal Defacement, such as changing victim wallpapers or ESXi server login messages, or otherwise intimidate victims by sending ransom notes or other messages to connected printers (known as "print bombing").
 
@@ -84,6 +82,7 @@ echo "#{pwd_for_encrypted_file}" | $which_gpg --batch --yes --passphrase-fd 0 --
 ```
 
 **Dependencies:**
+
 - Finds where gpg is located
 
 ### Atomic Test 2: Encrypt files using 7z (FreeBSD/Linux)
@@ -97,6 +96,7 @@ $which_7z a -p#{pwd_for_encrypted_file} #{encrypted_file_path} #{input_file_path
 ```
 
 **Dependencies:**
+
 - Finds where 7z is located
 
 ### Atomic Test 3: Encrypt files using ccrypt (FreeBSD/Linux)
@@ -112,6 +112,7 @@ $which_ccencrypt -T -K #{pwd_for_encrypted_file} #{cped_file_path}
 ```
 
 **Dependencies:**
+
 - Finds where ccencrypt and ccdecrypt are located
 
 ### Atomic Test 4: Encrypt files using openssl (FreeBSD/Linux)
@@ -128,11 +129,12 @@ $which_openssl rsautl -encrypt -inkey #{public_key_path} -pubin -in #{input_file
 ```
 
 **Dependencies:**
+
 - Finds where openssl is located
 
 ### Atomic Test 5: PureLocker Ransom Note
 
-building the IOC (YOUR_FILES.txt) for the PureLocker ransomware 
+building the IOC (YOUR_FILES.txt) for the PureLocker ransomware
 https://www.bleepingcomputer.com/news/security/purelocker-ransomware-can-lock-files-on-windows-linux-and-macos/
 
 **Supported Platforms:** windows
@@ -141,7 +143,6 @@ https://www.bleepingcomputer.com/news/security/purelocker-ransomware-can-lock-fi
 ```cmd
 echo T1486 - Purelocker Ransom Note > %USERPROFILE%\Desktop\YOUR_FILES.txt
 ```
-
 
 ### Manual Testing
 
@@ -156,29 +157,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable cloud-delivered protection and Attack Surface Reduction (ASR) rules to block the execution of files that resemble ransomware. In AWS environments, create an IAM policy to restrict or block the use of SSE-C on S3 buckets.
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for regularly taking and testing data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery. Consider enabling versioning in cloud environments to maintain backup copies of storage objects.
 
+Consider implementing IT disaster recovery plans that contain procedures for regularly taking and testing data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery. Consider enabling versioning in cloud environments to maintain backup copies of storage objects.
 
 ## Detection
 
 ### Detection of Multi-Platform File Encryption for Impact
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Encrypted for Impact technique applicable | High | Impact |
+| Finding                                        | Severity | Impact |
+| ---------------------------------------------- | -------- | ------ |
+| Data Encrypted for Impact technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

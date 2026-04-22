@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 7.2
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker Swarm
@@ -59,9 +60,11 @@ By default, Docker swarm services listen on all available host interfaces.
 ## CIS Controls
 
 **v8:**
+
 - **4.4 Implement and Manage a Firewall on Servers**
   - Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent.
 
 **v7:**
+
 - **9 Limitation and Control of Network Ports, Protocols, and Services**
   - Limitation and Control of Network Ports, Protocols, and Services

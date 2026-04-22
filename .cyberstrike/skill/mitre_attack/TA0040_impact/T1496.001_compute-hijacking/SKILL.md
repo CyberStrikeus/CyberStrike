@@ -53,7 +53,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may leverage the compute resources of co-opted systems to complete resource-intensive tasks, which may impact system and/or hosted service availability. 
+Adversaries may leverage the compute resources of co-opted systems to complete resource-intensive tasks, which may impact system and/or hosted service availability.
 
 One common purpose for Compute Hijacking is to validate transactions of cryptocurrency networks and earn virtual currency. Adversaries may consume enough system resources to negatively impact and/or cause affected machines to become unresponsive. Servers and cloud-based systems are common targets because of the high potential for available resources, but user endpoint systems may also be compromised and used for Compute Hijacking and cryptocurrency mining. Containerized environments may also be targeted due to the ease of deployment via exposed APIs and the potential for scaling mining activities by deploying or compromising multiple containers within an environment or cluster.
 
@@ -93,19 +93,17 @@ No specific mitigations documented for this technique.
 
 ### Multi-Platform Behavioral Detection for Compute Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compute Hijacking technique applicable | High | Impact |
+| Finding                                | Severity | Impact |
+| -------------------------------------- | -------- | ------ |
+| Compute Hijacking technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

@@ -78,19 +78,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Modify Cloud Compute Infrastructure: Revert Cloud Instance
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Revert Cloud Instance technique applicable | Low | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Revert Cloud Instance technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

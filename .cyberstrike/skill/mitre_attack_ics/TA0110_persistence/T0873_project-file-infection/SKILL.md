@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may attempt to infect project files with malicious code. These project files may consist of objects, program organization units, variables such as tags, documentation, and other configurations needed for PLC programs to function. Using built in functions of the engineering software, adversaries may be able to download an infected program to a PLC in the operating environment enabling further Execution and Persistence techniques. 
+Adversaries may attempt to infect project files with malicious code. These project files may consist of objects, program organization units, variables such as tags, documentation, and other configurations needed for PLC programs to function. Using built in functions of the engineering software, adversaries may be able to download an infected program to a PLC in the operating environment enabling further Execution and Persistence techniques.
 
 Adversaries may export their own code into project files with conditions to execute at specific intervals. Malicious programs allow adversaries control of all aspects of the process enabled by the PLC. Once the project file is downloaded to a PLC the workstation device may be disconnected with the infected project file still executing.
 
@@ -61,35 +59,36 @@ Review whether mitigations for T0873 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0922 Restrict File and Directory Permissions
+
 Ensure permissions restrict project file access to only engineer and technician user groups and accounts.
 
 ### M0941 Encrypt Sensitive Information
+
 When at rest, project files should be encrypted to prevent unauthorized changes.
 
 ### M0947 Audit
+
 Review the integrity of project files to verify they have not been modified by adversary behavior. Verify a cryptographic hash for the file with a known trusted version, or look for other indicators of modification (e.g., timestamps).
 
 ### M0945 Code Signing
-Allow for code signing of any project files stored at rest to prevent unauthorized tampering. Ensure the signing keys are not easily accessible on the same system.
 
+Allow for code signing of any project files stored at rest to prevent unauthorized tampering. Ensure the signing keys are not easily accessible on the same system.
 
 ## Detection
 
 ### Detection of Project File Infection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Project File Infection technique applicable | Low | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Project File Infection technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

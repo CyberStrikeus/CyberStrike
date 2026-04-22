@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Biometric characteristics do not constitute secrets. Such characteristics can be
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-5(17) Presentation Attack Detection for Biometric Authenticators not implemented | High | Identification and Authentication |
-| IA-5(17) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                                             | Severity | Impact                                       |
+| ----------------------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-5(17) Presentation Attack Detection for Biometric Authenticators not implemented | High     | Identification and Authentication            |
+| IA-5(17) partially implemented                                                      | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

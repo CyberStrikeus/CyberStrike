@@ -26,6 +26,7 @@ severity_boost: {}
 `unlock_time=<n>` - The access will be re-enabled after seconds after the lock out. The value `0` has the same meaning as value never - the access will not be re-enabled without resetting the faillock entries by the faillock(8) command.
 
 Note:
+
 - The default directory that pam_faillock uses is usually cleared on system boot so the access will be also re-enabled after system reboot. If that is undesirable a different tally directory must be set with the dir option.
 - It is usually undesirable to permanently lock out users as they can become easily a target of denial of service attack unless the usernames are random and kept secret to potential attackers.
 - The maximum configurable value for `unlock_time` is `604800`.
@@ -97,13 +98,13 @@ None listed.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.2 Establish an Access Revoking Process | * | * | * |
-| v7 | 16.7 Establish Process for Revoking Access | | * | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process   | \*   | \*   | \*   |
+| v7               | 16.7 Establish Process for Revoking Access |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1110, T1110.001, T1110.003 | TA0006 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1110, T1110.001, T1110.003 | TA0006  | M1027       |

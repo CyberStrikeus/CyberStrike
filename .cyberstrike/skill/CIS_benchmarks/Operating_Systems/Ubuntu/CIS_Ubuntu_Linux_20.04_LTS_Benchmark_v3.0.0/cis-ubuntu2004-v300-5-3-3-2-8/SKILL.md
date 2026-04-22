@@ -52,6 +52,7 @@ Example output:
 ```
 
 Note:
+
 - Settings observe an order of precedence:
   - module arguments override the settings in the `/etc/security/pwquality.conf` configuration file
   - settings in the `/etc/security/pwquality.conf` configuration file override settings in a `.conf` file in the `/etc/security/pwquality.conf.d/` directory
@@ -85,7 +86,7 @@ disabled
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 4.4 Use Unique Passwords | | * | * |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | \*   | \*   | \*   |
+| v7               | 4.4 Use Unique Passwords |      | \*   | \*   |

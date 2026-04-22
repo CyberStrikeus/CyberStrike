@@ -72,26 +72,24 @@ Review whether mitigations for T1474.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1001 Security Updates
-Security updates may contain patches to integrity checking mechanisms that can detect unauthorized hardware modifications.
 
+Security updates may contain patches to integrity checking mechanisms that can detect unauthorized hardware modifications.
 
 ## Detection
 
 ### Detection of Compromise Hardware Supply Chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Hardware Supply Chain technique applicable | High | Initial Access |
+| Finding                                               | Severity | Impact         |
+| ----------------------------------------------------- | -------- | -------------- |
+| Compromise Hardware Supply Chain technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

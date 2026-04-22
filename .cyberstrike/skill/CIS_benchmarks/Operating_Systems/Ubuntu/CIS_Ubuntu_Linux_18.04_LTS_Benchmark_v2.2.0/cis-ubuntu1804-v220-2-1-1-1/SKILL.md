@@ -26,6 +26,7 @@ severity_boost: {}
 System time should be synchronized between all systems in an environment. This is typically done by establishing an authoritative time server or set of servers and having all systems synchronize their clocks to them.
 
 Note:
+
 - On virtual systems where host based time synchronization is available consult your virtualization software documentation and verify that host based synchronization is in use and follows local site policy. In this scenario, this section should be skipped
 - Only one time synchronization method should be in use on the system. Configuring multiple time synchronization methods could lead to unexpected or unreliable results
 
@@ -92,17 +93,20 @@ Note: enabling more than one synchronization daemon could lead to unexpected or 
 **1. chrony**
 
 Run the following command to install chrony:
+
 ```bash
 # apt install chrony
 ```
 
 Run the following commands to stop and mask the systemd-timesyncd daemon:
+
 ```bash
 # systemctl stop systemd-timesyncd.service
 # systemctl --now mask systemd-timesyncd.service
 ```
 
 Run the following command to remove the ntp package:
+
 ```bash
 # apt purge ntp
 ```
@@ -110,11 +114,13 @@ Run the following command to remove the ntp package:
 **2. systemd-timesyncd**
 
 Run the following command to remove the chrony package:
+
 ```bash
 # apt purge chrony
 ```
 
 Run the following command to remove the ntp package:
+
 ```bash
 # apt purge ntp
 ```
@@ -122,17 +128,20 @@ Run the following command to remove the ntp package:
 **3. ntp**
 
 Run the following command to install ntp:
+
 ```bash
 # apt install ntp
 ```
 
 Run the following commands to stop and mask the systemd-timesyncd daemon:
+
 ```bash
 # systemctl stop systemd-timesyncd.service
 # systemctl --now mask systemd-timesyncd.service
 ```
 
 Run the following command to remove the chrony package:
+
 ```bash
 # apt purge chrony
 ```

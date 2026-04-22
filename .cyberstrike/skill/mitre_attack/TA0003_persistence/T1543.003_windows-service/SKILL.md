@@ -46,7 +46,7 @@ severity_boost:
 
 Adversaries may create or modify Windows services to repeatedly execute malicious payloads as part of persistence. When Windows boots up, it starts programs or applications called services that perform background system functions. Windows service configuration information, including the file path to the service's executable or recovery programs/commands, is stored in the Windows Registry.
 
-Adversaries may install a new service or modify an existing service to execute at startup in order to persist on a system. Service configurations can be set or modified using system utilities (such as sc.exe), by directly modifying the Registry, or by interacting directly with the Windows API. 
+Adversaries may install a new service or modify an existing service to execute at startup in order to persist on a system. Service configurations can be set or modified using system utilities (such as sc.exe), by directly modifying the Registry, or by interacting directly with the Windows API.
 
 Adversaries may also use services to install and execute malicious drivers. For example, after dropping a driver file (ex: `.sys`) to disk, the payload can be loaded and registered via Native API functions such as `CreateServiceW()` (or manually via functions such as `ZwLoadDriver()` and `ZwSetValueKey()`), by creating the required service Registry values (i.e. Modify Registry), or by using command-line utilities such as `PnPUtil.exe`. Adversaries may leverage these drivers as Rootkits to hide the presence of malicious activity on a system. Adversaries may also load a signed yet vulnerable driver onto a compromised machine (known as "Bring Your Own Vulnerable Driver" (BYOVD)) as part of Exploitation for Privilege Escalation.
 
@@ -102,6 +102,7 @@ sc.exe start #{service_name}
 ```
 
 **Dependencies:**
+
 - Service binary must exist on disk at specified location (#{binary_path})
 
 ### Atomic Test 3: Service Installation PowerShell
@@ -118,6 +119,7 @@ Start-Service -Name "#{service_name}"
 ```
 
 **Dependencies:**
+
 - Service binary must exist on disk at specified location (#{binary_path})
 
 ### Atomic Test 4: TinyTurla backdoor service w64time
@@ -153,8 +155,8 @@ sc.exe \\#{remote_host} start #{service_name}
 ```
 
 **Dependencies:**
-- Service binary must exist on disk at specified location (#{binary_path})
 
+- Service binary must exist on disk at specified location (#{binary_path})
 
 ### Manual Testing
 
@@ -169,38 +171,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent an application from writing a signed vulnerable driver to the system. On Windows 10 and 11, enable Microsoft Vulnerable Driver Blocklist to assist in hardening against third party-developed service drivers.
 
 ### M1028 Operating System Configuration
+
 Ensure that Driver Signature Enforcement is enabled to restrict unsigned drivers from being installed.
 
 ### M1047 Audit
+
 Use auditing tools capable of detecting privilege and service abuse opportunities on systems within an enterprise and correct them.
 
 ### M1045 Code Signing
+
 Enforce registration and execution of only legitimately signed service drivers where possible.
 
 ### M1018 User Account Management
-Limit privileges of user accounts and groups so that only authorized administrators can interact with service changes and service configurations.
 
+Limit privileges of user accounts and groups so that only authorized administrators can interact with service changes and service configurations.
 
 ## Detection
 
 ### Detection of Windows Service Creation or Modification
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Service technique applicable | High | Persistence |
+| Finding                              | Severity | Impact      |
+| ------------------------------------ | -------- | ----------- |
+| Windows Service technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

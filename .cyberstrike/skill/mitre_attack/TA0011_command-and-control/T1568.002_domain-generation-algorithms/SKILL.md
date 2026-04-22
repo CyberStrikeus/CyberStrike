@@ -85,29 +85,28 @@ Adversaries may use DGAs for the purpose of Fallback Channels. When contact is l
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Malware researchers can reverse engineer malware variants that use DGAs and determine future domains that the malware will attempt to contact, but this is a time and resource intensive effort. Malware is also increasingly incorporating seed values that can be unique for each instance, which would then need to be determined to extract future generated domains. In some cases, the seed that a particular sample uses can be extracted from DNS traffic. Even so, there can be thousands of possible domains generated per day; this makes it impractical for defenders to preemptively register all possible C2 domains due to the cost.
 
 ### M1021 Restrict Web-Based Content
-In some cases a local DNS sinkhole may be used to help prevent DGA-based command and control at a reduced cost.
 
+In some cases a local DNS sinkhole may be used to help prevent DGA-based command and control at a reduced cost.
 
 ## Detection
 
 ### Detection Strategy for Dynamic Resolution using Domain Generation Algorithms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Generation Algorithms technique applicable | Low | Command And Control |
+| Finding                                           | Severity | Impact              |
+| ------------------------------------------------- | -------- | ------------------- |
+| Domain Generation Algorithms technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

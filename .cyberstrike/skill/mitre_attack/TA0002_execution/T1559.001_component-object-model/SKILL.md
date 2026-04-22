@@ -72,31 +72,30 @@ Various COM interfaces are exposed that can be abused to invoke arbitrary execut
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\AppID\\{AppID_GUID}` associated with the process-wide security of individual COM applications.
 
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Ole` associated with system-wide security defaults for all COM applications that do no set their own process-wide security.
 
 ### M1048 Application Isolation and Sandboxing
-Ensure all COM alerts and Protected View are enabled.
 
+Ensure all COM alerts and Protected View are enabled.
 
 ## Detection
 
 ### Detect Abuse of Component Object Model (T1559.001)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Component Object Model technique applicable | High | Execution |
+| Finding                                     | Severity | Impact    |
+| ------------------------------------------- | -------- | --------- |
+| Component Object Model technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

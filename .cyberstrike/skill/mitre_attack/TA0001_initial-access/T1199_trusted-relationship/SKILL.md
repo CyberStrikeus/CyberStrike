@@ -39,10 +39,8 @@ tech_stack:
   - office
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -86,32 +84,32 @@ In Office 365 environments, organizations may grant Microsoft partners or resell
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Require MFA for all delegated administrator accounts.
 
 ### M1018 User Account Management
+
 Properly manage accounts and permissions used by parties in trusted relationships to minimize potential abuse by the party and if the party is compromised by an adversary. In Office 365 environments, partner relationships and roles can be viewed under the “Partner Relationships” page.
 
 ### M1030 Network Segmentation
-Network segmentation can be used to isolate infrastructure components that do not require broad network access.
 
+Network segmentation can be used to isolate infrastructure components that do not require broad network access.
 
 ## Detection
 
 ### Detect abuse of Trusted Relationships (third-party and delegated admin access)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Trusted Relationship technique applicable | Low | Initial Access |
+| Finding                                   | Severity | Impact         |
+| ----------------------------------------- | -------- | -------------- |
+| Trusted Relationship technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

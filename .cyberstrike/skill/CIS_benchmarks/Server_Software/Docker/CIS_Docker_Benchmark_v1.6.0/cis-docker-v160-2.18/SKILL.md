@@ -54,10 +54,10 @@ By default, experimental features are not activated in the Docker daemon.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software<br>Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. | | ● | ● |
-| v7 | 18 Application Software Security<br>Application Software Security | | | |
+| Controls Version | Control                                                                                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software<br>Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function. |      | ●    | ●    |
+| v7               | 18 Application Software Security<br>Application Software Security                                                                                                                                                                                    |      |      |      |
 
 ## Profile/Assessment Status
 

@@ -124,7 +124,6 @@ Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.SendKeys]::SendWait("cmd /c powershell -ec " + [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes('#{execution_command}')) + "{ENTER}")
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -138,40 +137,42 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation..
 
 Furthermore, policies may enforce / install browser extensions that protect against IDN and homograph attacks.
 
 ### M1021 Restrict Web-Based Content
+
 Determine if certain websites that can be used for spearphishing are necessary for business operations and consider blocking access if activity cannot be monitored well or if it poses a significant risk.
 
 ### M1047 Audit
+
 Audit applications and their permissions to ensure access to data and resources are limited based upon necessity and principle of least privilege.
 
 ### M1018 User Account Management
+
 Azure AD Administrators apply limitations upon the ability for users to grant consent to unfamiliar or unverified third-party applications.
 
 ### M1017 User Training
-Users can be trained to identify social engineering techniques and spearphishing emails with malicious links which includes phishing for consent with OAuth 2.0. Additionally, users may perform visual checks of the domains they visit; however, homographs in ASCII and in IDN domains and URL schema obfuscation may render manual checks difficult. Use email warning banners to alert users when emails contain links from external senders, prompting them to exercise caution and reducing the likelihood of falling victim to spearphishing attacks. Phishing training and other cybersecurity training may raise awareness to check URLs before visiting the sites.
 
+Users can be trained to identify social engineering techniques and spearphishing emails with malicious links which includes phishing for consent with OAuth 2.0. Additionally, users may perform visual checks of the domains they visit; however, homographs in ASCII and in IDN domains and URL schema obfuscation may render manual checks difficult. Use email warning banners to alert users when emails contain links from external senders, prompting them to exercise caution and reducing the likelihood of falling victim to spearphishing attacks. Phishing training and other cybersecurity training may raise awareness to check URLs before visiting the sites.
 
 ## Detection
 
 ### Detection Strategy for Spearphishing Links
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Link technique applicable | High | Initial Access |
+| Finding                                 | Severity | Impact         |
+| --------------------------------------- | -------- | -------------- |
+| Spearphishing Link technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

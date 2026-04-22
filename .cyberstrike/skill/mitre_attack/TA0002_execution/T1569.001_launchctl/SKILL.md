@@ -73,7 +73,6 @@ Utilize launchctl
 launchctl submit -l #{label_name} -- #{executable_path}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -87,26 +86,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
-Prevent users from installing their own launch agents or launch daemons.
 
+Prevent users from installing their own launch agents or launch daemons.
 
 ## Detection
 
 ### Detection Strategy for System Services: Launchctl
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Launchctl technique applicable | Low | Execution |
+| Finding                        | Severity | Impact    |
+| ------------------------------ | -------- | --------- |
+| Launchctl technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -58,8 +58,7 @@ chains_with:
   - T1098.005
   - T1098.006
   - T1098.007
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1098.001: "Chain with T1098.001 for deeper attack path"
   T1098.002: "Chain with T1098.002 for deeper attack path"
@@ -70,7 +69,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may manipulate accounts to maintain and/or elevate access to victim systems. Account manipulation may consist of any action that preserves or modifies adversary access to a compromised account, such as modifying credentials or permission groups. These actions could also include account activity designed to subvert security policies, such as performing iterative password updates to bypass password duration policies and preserve the life of compromised credentials. 
+Adversaries may manipulate accounts to maintain and/or elevate access to victim systems. Account manipulation may consist of any action that preserves or modifies adversary access to a compromised account, such as modifying credentials or permission groups. These actions could also include account activity designed to subvert security policies, such as performing iterative password updates to bypass password duration policies and preserve the life of compromised credentials.
 
 In order to create or manipulate accounts, the adversary must already have sufficient permissions on systems or the domain. However, account manipulation may also lead to privilege escalation where modifications grant access to additional roles, permissions, or higher-privileged Valid Accounts.
 
@@ -125,11 +124,11 @@ foreach($member in $fmm) {
 
 ### Atomic Test 2: Domain Account and Group Manipulate
 
-Create a random atr-nnnnnnnn account and add it to a domain group (by default, Domain Admins). 
+Create a random atr-nnnnnnnn account and add it to a domain group (by default, Domain Admins).
 
 The quickest way to run it is against a domain controller, using `-Session` of `Invoke-AtomicTest`. Alternatively,
-you need to install PS Module ActiveDirectory (in prereqs) and run the script with appropriare AD privileges to 
-create the user and alter the group. Automatic installation of the dependency requires an elevated session, 
+you need to install PS Module ActiveDirectory (in prereqs) and run the script with appropriare AD privileges to
+create the user and alter the group. Automatic installation of the dependency requires an elevated session,
 and is unlikely to work with Powershell Core (untested).
 
 If you consider running this test against a production Active Directory, the good practise is to create a dedicated
@@ -153,8 +152,8 @@ Add-ADGroupMember "#{group}" $account
 ```
 
 **Dependencies:**
-- PS Module ActiveDirectory
 
+- PS Module ActiveDirectory
 
 ### Manual Testing
 
@@ -169,44 +168,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Configure access controls and firewalls to limit access to critical systems and domain controllers. Most cloud environments support separate virtual private cloud (VPC) instances that enable further segmentation of cloud systems.
 
 ### M1042 Disable or Remove Feature or Program
+
 Remove unnecessary and potentially abusable authentication and authorization mechanisms where possible.
 
 ### M1018 User Account Management
+
 Ensure that low-privileged user accounts do not have permissions to modify accounts or account-related policies.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict access to potentially sensitive files that deal with authentication and/or authorization.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts.
 
 ### M1026 Privileged Account Management
+
 Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ### M1028 Operating System Configuration
-Protect domain controllers by ensuring proper security configuration for critical servers to limit access by potentially unnecessary protocols and services, such as SMB file sharing.
 
+Protect domain controllers by ensuring proper security configuration for critical servers to limit access by potentially unnecessary protocols and services, such as SMB file sharing.
 
 ## Detection
 
 ### Account Manipulation Behavior Chain Detection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Account Manipulation technique applicable | High | Persistence |
+| Finding                                   | Severity | Impact      |
+| ----------------------------------------- | -------- | ----------- |
+| Account Manipulation technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

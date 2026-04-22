@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PM-20
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -82,16 +80,16 @@ Organizations post privacy policies on all external-facing websites, mobile appl
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-20(1) Privacy Policies on Websites, Applications, and Digital Services not implemented | Medium | Program Management |
-| PM-20(1) partially implemented | Low | Incomplete Program Management |
+| Finding                                                                                   | Severity | Impact                        |
+| ----------------------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-20(1) Privacy Policies on Websites, Applications, and Digital Services not implemented | Medium   | Program Management            |
+| PM-20(1) partially implemented                                                            | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

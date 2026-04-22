@@ -15,8 +15,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-16
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SA-8
 severity_boost: {}
@@ -64,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -82,17 +81,16 @@ The apparent secondary nature of metadata can lead to neglect of its legitimate 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-8(20) Secure Metadata Management not implemented | Medium | System and Services Acquisition |
-| SA-8(20) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                             | Severity | Impact                                     |
+| --------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-8(20) Secure Metadata Management not implemented | Medium   | System and Services Acquisition            |
+| SA-8(20) partially implemented                      | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

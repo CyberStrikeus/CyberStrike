@@ -48,7 +48,7 @@ severity_boost:
 
 Adversaries may create, acquire, or steal code signing materials to sign their malware or tools. Code signing provides a level of authenticity on a binary from the developer and a guarantee that the binary has not been tampered with. The certificates used during an operation may be created, acquired, or stolen by the adversary. Unlike Invalid Code Signature, this activity will result in a valid signature.
 
-Code signing to verify software on first run can be used on modern Windows and macOS systems. It is not used on Linux due to the decentralized nature of the platform. 
+Code signing to verify software on first run can be used on modern Windows and macOS systems. It is not used on Linux due to the decentralized nature of the platform.
 
 Code signing certificates may be used to bypass security policies that require signed code to execute on a system.
 
@@ -85,19 +85,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Suspicious or Malicious Code Signing Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Code Signing technique applicable | Low | Defense Evasion |
+| Finding                           | Severity | Impact          |
+| --------------------------------- | -------- | --------------- |
+| Code Signing technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

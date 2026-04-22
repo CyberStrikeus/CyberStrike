@@ -12,14 +12,12 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-8
   - PE-16
   - PM-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-8: "Chain with CM-8 for comprehensive security coverage"
   PE-16: "Chain with PE-16 for comprehensive security coverage"
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +77,16 @@ Asset location technologies can help ensure that critical assets—including veh
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-20 Asset Monitoring and Tracking not implemented | Medium | Physical and Environmental Protection |
-| PE-20 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                             | Severity | Impact                                           |
+| --------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-20 Asset Monitoring and Tracking not implemented | Medium   | Physical and Environmental Protection            |
+| PE-20 partially implemented                         | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

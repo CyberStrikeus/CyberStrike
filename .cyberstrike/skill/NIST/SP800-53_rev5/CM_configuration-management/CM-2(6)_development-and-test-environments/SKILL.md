@@ -71,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -88,17 +88,16 @@ Establishing separate baseline configurations for development, testing, and oper
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-2(6) Development and Test Environments not implemented | Medium | Configuration Management |
-| CM-2(6) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                                   | Severity | Impact                              |
+| --------------------------------------------------------- | -------- | ----------------------------------- |
+| CM-2(6) Development and Test Environments not implemented | Medium   | Configuration Management            |
+| CM-2(6) partially implemented                             | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

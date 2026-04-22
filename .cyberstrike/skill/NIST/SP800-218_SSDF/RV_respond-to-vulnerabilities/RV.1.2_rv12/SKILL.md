@@ -14,10 +14,8 @@ tags:
   - task
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - Identify and Confirm Vulnerabilities on an Ongoing Basis (RV.1)
 severity_boost: {}
@@ -63,10 +61,10 @@ Verify development team understands and follows RV.1.2 RV.1.2 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -76,15 +74,15 @@ Review, analyze, and/or test the software’s code to identify or confirm the pr
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RV.1.2 RV.1.2 not implemented | Medium | Secure Development - Respond to Vulnerabilities |
+| Finding                       | Severity | Impact                                          |
+| ----------------------------- | -------- | ----------------------------------------------- |
+| RV.1.2 RV.1.2 not implemented | Medium   | Secure Development - Respond to Vulnerabilities |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

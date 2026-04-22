@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -95,16 +92,16 @@ Plans of action and milestones (POAMs) are important documents in organizational
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Plan of Action and Milestones (03.12.02) Plan of Action and Milestones not implemented | Medium | CUI Protection - Security Assessment and Monitoring |
-| Plan of Action and Milestones (03.12.02) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                                                | Severity | Impact                                              |
+| -------------------------------------------------------------------------------------- | -------- | --------------------------------------------------- |
+| Plan of Action and Milestones (03.12.02) Plan of Action and Milestones not implemented | Medium   | CUI Protection - Security Assessment and Monitoring |
+| Plan of Action and Milestones (03.12.02) partially implemented (POA&M)                 | Low      | CMMC certification risk                             |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

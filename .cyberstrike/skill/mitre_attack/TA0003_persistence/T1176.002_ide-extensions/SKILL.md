@@ -44,9 +44,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse an integrated development environment (IDE) extension to establish persistent access to victim systems. IDEs such as Visual Studio Code, IntelliJ IDEA, and Eclipse support extensions - software components that add features like code linting, auto-completion, task automation, or integration with tools like Git and Docker. A malicious extension can be installed through an extension marketplace (i.e., Compromise Software Dependencies and Development Tools) or side-loaded directly into the IDE. 
+Adversaries may abuse an integrated development environment (IDE) extension to establish persistent access to victim systems. IDEs such as Visual Studio Code, IntelliJ IDEA, and Eclipse support extensions - software components that add features like code linting, auto-completion, task automation, or integration with tools like Git and Docker. A malicious extension can be installed through an extension marketplace (i.e., Compromise Software Dependencies and Development Tools) or side-loaded directly into the IDE.
 
-In addition to installing malicious extensions, adversaries may also leverage benign ones. For example, adversaries may establish persistent SSH tunnels via the use of the VSCode Remote SSH extension (i.e., IDE Tunneling). 
+In addition to installing malicious extensions, adversaries may also leverage benign ones. For example, adversaries may establish persistent SSH tunnels via the use of the VSCode Remote SSH extension (i.e., IDE Tunneling).
 
 Trust is typically established through the installation process; once installed, the malicious extension is run every time that the IDE is launched. The extension can then be used to execute arbitrary code, establish a backdoor, mine cryptocurrency, or exfiltrate data.
 
@@ -80,44 +80,46 @@ Trust is typically established through the installation process; once installed,
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Set an IDE extension allow or deny list as appropriate for your security policy.
 
 ### M1051 Update Software
+
 Ensure operating systems and IDEs are using the most current version.
 
 ### M1047 Audit
+
 Ensure extensions that are installed are the intended ones, as many malicious extensions may masquerade as legitimate ones.
 
 ### M1033 Limit Software Installation
+
 Only install IDE extensions from trusted sources that can be verified.
 
 ### M1017 User Training
-Train users to minimize IDE extension use, and to only install trusted extensions.
 
+Train users to minimize IDE extension use, and to only install trusted extensions.
 
 ## Detection
 
 ### Detect malicious IDE extension install/usage and IDE tunneling
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IDE Extensions technique applicable | High | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| IDE Extensions technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 
 - [Abramovsky VSCode Security](https://blog.checkpoint.com/securing-the-cloud/malicious-vscode-extensions-with-more-than-45k-downloads-steal-pii-and-enable-backdoors/)
 - [Lakshmanan Visual Studio Marketplace](https://thehackernews.com/2023/01/hackers-distributing-malicious-visual.html)
 - [Mnemonic misuse visual studio](https://www.mnemonic.io/resources/blog/misuse-of-visual-studio-code-for-traffic-tunnelling/)
-- [ExtensionTotal VSCode Extensions  2025](https://blog.extensiontotal.com/mining-in-plain-sight-the-vs-code-extension-cryptojacking-campaign-19ca12904b59)
+- [ExtensionTotal VSCode Extensions 2025](https://blog.extensiontotal.com/mining-in-plain-sight-the-vs-code-extension-cryptojacking-campaign-19ca12904b59)
 - [Atomic Red Team - T1176.002](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1176.002)
 - [MITRE ATT&CK - T1176.002](https://attack.mitre.org/techniques/T1176/002)

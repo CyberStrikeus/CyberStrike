@@ -12,8 +12,7 @@ tags:
   - ps
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-2
   - AT-3
@@ -25,8 +24,7 @@ chains_with:
   - PS-5
   - PS-6
   - SA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-2: "Chain with AT-2 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ External provider refers to organizations other than the organization operating 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-7 External Personnel Security not implemented | Medium | Personnel Security |
-| PS-7 partially implemented | Low | Incomplete Personnel Security |
+| Finding                                          | Severity | Impact                        |
+| ------------------------------------------------ | -------- | ----------------------------- |
+| PS-7 External Personnel Security not implemented | Medium   | Personnel Security            |
+| PS-7 partially implemented                       | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

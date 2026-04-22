@@ -74,19 +74,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Exfiltration Over Unencrypted Non-C2 Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Unencrypted Non-C2 Protocol technique applicable | Medium | Exfiltration |
+| Finding                                                            | Severity | Impact       |
+| ------------------------------------------------------------------ | -------- | ------------ |
+| Exfiltration Over Unencrypted Non-C2 Protocol technique applicable | Medium   | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

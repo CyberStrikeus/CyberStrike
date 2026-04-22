@@ -28,8 +28,7 @@ chains_with:
   - T1481.001
   - T1481.002
   - T1481.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1481.001: "Chain with T1481.001 for deeper attack path"
   T1481.002: "Chain with T1481.002 for deeper attack path"
@@ -40,9 +39,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use an existing, legitimate external Web service as a means for relaying data to/from a compromised system. Popular websites and social media, acting as a mechanism for C2, may give a significant amount of cover. This is due to the likelihood that hosts within a network are already communicating with them prior to a compromise. Using common services, such as those offered by Google or Twitter, makes it easier for adversaries to hide in expected noise. Web service providers commonly use SSL/TLS encryption, giving adversaries an added level of protection. 
-
- 
+Adversaries may use an existing, legitimate external Web service as a means for relaying data to/from a compromised system. Popular websites and social media, acting as a mechanism for C2, may give a significant amount of cover. This is due to the likelihood that hosts within a network are already communicating with them prior to a compromise. Using common services, such as those offered by Google or Twitter, makes it easier for adversaries to hide in expected noise. Web service providers commonly use SSL/TLS encryption, giving adversaries an added level of protection.
 
 Use of Web services may also protect back-end C2 infrastructure from discovery through malware binary analysis, or enable operational resiliency (since this infrastructure may be dynamically changed).
 
@@ -77,19 +74,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Web Service
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Service technique applicable | Medium | Command And Control |
+| Finding                          | Severity | Impact              |
+| -------------------------------- | -------- | ------------------- |
+| Web Service technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

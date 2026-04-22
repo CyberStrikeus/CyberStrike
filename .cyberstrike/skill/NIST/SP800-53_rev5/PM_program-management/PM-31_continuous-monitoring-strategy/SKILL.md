@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-6
@@ -25,8 +24,7 @@ chains_with:
   - CA-5
   - CA-6
   - CA-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -93,16 +91,16 @@ Continuous monitoring at the organization level facilitates ongoing awareness of
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-31 Continuous Monitoring Strategy not implemented | Medium | Program Management |
-| PM-31 partially implemented | Low | Incomplete Program Management |
+| Finding                                              | Severity | Impact                        |
+| ---------------------------------------------------- | -------- | ----------------------------- |
+| PM-31 Continuous Monitoring Strategy not implemented | Medium   | Program Management            |
+| PM-31 partially implemented                          | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -10,16 +10,20 @@ severity_boost: {}
 # 6.3.4.8 Ensure audit tools mode is configured (Automated)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 Audit tools include, but are not limited to, vendor-provided and open source audit tools needed to successfully view and manipulate audit information system activity and records. Audit tools include custom queries and report generators.
 
 ## Rationale
+
 Protecting audit information includes identifying and protecting the tools used to view and manipulate log data. Protecting audit tools is necessary to prevent unauthorized operation on audit information.
 
 ## Audit
+
 Run the following script to verify the audit tools are mode `0755` or more restrictive:
 
 ```bash
@@ -47,6 +51,7 @@ Run the following script to verify the audit tools are mode `0755` or more restr
 ```
 
 ## Remediation
+
 Run the following command to remove more permissive mode from the audit tools:
 
 ```bash
@@ -54,13 +59,16 @@ chmod go-w /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/audi
 ```
 
 ## References
+
 1. NIST SP 800-53 Rev. 5: AU-3
 
 ## CIS Controls
+
 - v8: 3.3 Configure Data Access Control Lists
 - v7: 14.6 Protect Information through Access Control Lists
 
 ## MITRE ATT&CK Mappings
+
 - **Techniques**: T1070, T1070.002, T1083, T1083.000
 - **Tactics**: TA0007
 - **Mitigations**: M1022

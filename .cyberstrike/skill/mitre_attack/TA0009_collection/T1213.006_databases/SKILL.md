@@ -55,7 +55,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may leverage databases to mine valuable information. These databases may be hosted on-premises or in the cloud (both in platform-as-a-service and software-as-a-service environments). 
+Adversaries may leverage databases to mine valuable information. These databases may be hosted on-premises or in the cloud (both in platform-as-a-service and software-as-a-service environments).
 
 Examples of databases from which information may be collected include MySQL, PostgreSQL, MongoDB, Amazon Relational Database Service, Azure SQL Database, Google Firebase, and Snowflake. Databases may include a variety of information of interest to adversaries, such as usernames, hashed passwords, personally identifiable information, and financial data. Data collected from databases may be used for Lateral Movement, Command and Control, or Exfiltration. Data exfiltrated from databases may also be used to extort victims or may be sold for profit.
 
@@ -89,38 +89,40 @@ Examples of databases from which information may be collected include MySQL, Pos
 ## Remediation Guide
 
 ### M1017 User Training
+
 Develop and publish policies that define acceptable information to be stored in databases and acceptable handling of customer data. Only store information required for business operations.
 
 ### M1041 Encrypt Sensitive Information
+
 Encrypt data stored at rest in databases.
 
 ### M1054 Software Configuration
+
 Consider implementing data retention policies to automate periodically archiving and/or deleting data that is no longer needed.
 
 ### M1018 User Account Management
+
 Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization.
 
 ### M1047 Audit
-Consider periodic review of accounts and privileges for critical and sensitive databases.
 
+Consider periodic review of accounts and privileges for critical and sensitive databases.
 
 ## Detection
 
 ### Suspicious Database Access and Dump Activity Across Environments (T1213.006)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Databases technique applicable | Low | Collection |
+| Finding                        | Severity | Impact     |
+| ------------------------------ | -------- | ---------- |
+| Databases technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

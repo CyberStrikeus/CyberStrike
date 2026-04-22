@@ -63,6 +63,7 @@ The default permissions of `catalina.policy` are `600`.
 ## CIS Controls
 
 **v7:**
+
 - 14.6 Protect Information through Access Control Lists
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.
 

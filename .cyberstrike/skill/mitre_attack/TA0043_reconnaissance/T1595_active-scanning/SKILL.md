@@ -25,8 +25,7 @@ chains_with:
   - T1595.001
   - T1595.002
   - T1595.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1595.001: "Chain with T1595.001 for deeper attack path"
   T1595.002: "Chain with T1595.002 for deeper attack path"
@@ -69,26 +68,24 @@ Adversaries may perform different forms of active scanning depending on what inf
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
 ## Detection
 
 ### Detection of Active Scanning
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Active Scanning technique applicable | High | Reconnaissance |
+| Finding                              | Severity | Impact         |
+| ------------------------------------ | -------- | -------------- |
+| Active Scanning technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

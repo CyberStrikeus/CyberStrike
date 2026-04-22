@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1586/001"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1586
   - T1586.002
@@ -40,7 +39,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may compromise social media accounts that can be used during targeting. For operations incorporating social engineering, the utilization of an online persona may be important. Rather than creating and cultivating social media profiles (i.e. Social Media Accounts), adversaries may compromise existing social media accounts. Utilizing an existing persona may engender a level of trust in a potential victim if they have a relationship, or knowledge of, the compromised persona. 
+Adversaries may compromise social media accounts that can be used during targeting. For operations incorporating social engineering, the utilization of an online persona may be important. Rather than creating and cultivating social media profiles (i.e. Social Media Accounts), adversaries may compromise existing social media accounts. Utilizing an existing persona may engender a level of trust in a potential victim if they have a relationship, or knowledge of, the compromised persona.
 
 A variety of methods exist for compromising social media accounts, such as gathering credentials via Phishing for Information, purchasing credentials from third-party sites, or by brute forcing credentials (ex: password reuse from breach credential dumps). Prior to compromising social media accounts, adversaries may conduct Reconnaissance to inform decisions about which accounts to compromise to further their operation.
 
@@ -76,25 +75,24 @@ Adversaries can use a compromised social media profile to create new, or hijack 
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Social Media Accounts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Social Media Accounts technique applicable | High | Resource Development |
+| Finding                                    | Severity | Impact               |
+| ------------------------------------------ | -------- | -------------------- |
+| Social Media Accounts technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

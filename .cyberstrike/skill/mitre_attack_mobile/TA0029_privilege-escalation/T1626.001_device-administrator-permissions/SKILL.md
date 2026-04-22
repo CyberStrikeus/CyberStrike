@@ -66,29 +66,28 @@ Review whether mitigations for T1626.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
+
 Changes were introduced in Android 7 to make abuse of device administrator permissions more difficult.
 
 ### M1011 User Guidance
-Users should scrutinize every device administration permission request. If the request is not expected or the user does not recognize the application, the application should be uninstalled immediately.
 
+Users should scrutinize every device administration permission request. If the request is not expected or the user does not recognize the application, the application should be uninstalled immediately.
 
 ## Detection
 
 ### Detection of Device Administrator Permissions
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Device Administrator Permissions technique applicable | High | Privilege Escalation |
+| Finding                                               | Severity | Impact               |
+| ----------------------------------------------------- | -------- | -------------------- |
+| Device Administrator Permissions technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

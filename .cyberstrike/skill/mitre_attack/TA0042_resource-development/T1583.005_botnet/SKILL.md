@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1583/005"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1583
   - T1583.001
@@ -45,9 +44,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may buy, lease, or rent a network of compromised systems that can be used during targeting. A botnet is a network of compromised systems that can be instructed to perform coordinated tasks. Adversaries may purchase a subscription to use an existing botnet from a booter/stresser service. 
+Adversaries may buy, lease, or rent a network of compromised systems that can be used during targeting. A botnet is a network of compromised systems that can be instructed to perform coordinated tasks. Adversaries may purchase a subscription to use an existing botnet from a booter/stresser service.
 
-Internet-facing edge devices and related network appliances that are end-of-life (EOL) and unsupported by their manufacturers are commonly acquired for botnet activities. Adversaries may lease operational relay box (ORB) networks – consisting of virtual private servers (VPS), small office/home office (SOHO) routers, or Internet of Things (IoT) devices – to serve as a botnet. 
+Internet-facing edge devices and related network appliances that are end-of-life (EOL) and unsupported by their manufacturers are commonly acquired for botnet activities. Adversaries may lease operational relay box (ORB) networks – consisting of virtual private servers (VPS), small office/home office (SOHO) routers, or Internet of Things (IoT) devices – to serve as a botnet.
 
 With a botnet at their disposal, adversaries may perform follow-on activity such as large-scale Phishing or Distributed Denial of Service (DDoS). Acquired botnets may also be used to support Command and Control activity, such as Hide Infrastructure through an established Proxy network.
 
@@ -79,25 +78,24 @@ With a botnet at their disposal, adversaries may perform follow-on activity such
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Botnet
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Botnet technique applicable | High | Resource Development |
+| Finding                     | Severity | Impact               |
+| --------------------------- | -------- | -------------------- |
+| Botnet technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

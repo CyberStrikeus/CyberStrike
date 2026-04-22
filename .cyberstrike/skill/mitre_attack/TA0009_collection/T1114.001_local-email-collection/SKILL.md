@@ -77,8 +77,8 @@ powershell -executionpolicy bypass -command "#{file_path}\Get-Inbox.ps1" -file #
 ```
 
 **Dependencies:**
-- Get-Inbox.ps1 must be located at #{file_path}
 
+- Get-Inbox.ps1 must be located at #{file_path}
 
 ### Manual Testing
 
@@ -93,29 +93,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1060 Out-of-Band Communications Channel
+
 Implement secure out-of-band alerts to notify security teams of unusual local email activities, such as mass forwarding or large attachments being sent, indicating potential data exfiltration attempts.
 
 ### M1041 Encrypt Sensitive Information
-Use of encryption provides an added layer of security to sensitive information sent over email. Encryption using public key cryptography requires the adversary to obtain the private certificate along with an encryption key to decrypt messages.
 
+Use of encryption provides an added layer of security to sensitive information sent over email. Encryption using public key cryptography requires the adversary to obtain the private certificate along with an encryption key to decrypt messages.
 
 ## Detection
 
 ### Detect Local Email Collection via Outlook Data File Access and Command Line Tooling
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Local Email Collection technique applicable | Low | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Local Email Collection technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

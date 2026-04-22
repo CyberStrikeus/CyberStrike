@@ -51,11 +51,11 @@ These group policies are stored in SYSVOL on a domain controller. This means tha
 
 The following tools and scripts can be used to gather and decrypt the password file from Group Policy Preference XML files:
 
-* Metasploit’s post exploitation module: <code>post/windows/gather/credentials/gpp</code>
-* Get-GPPPassword
-* gpprefdecrypt.py
+- Metasploit’s post exploitation module: <code>post/windows/gather/credentials/gpp</code>
+- Get-GPPPassword
+- gpprefdecrypt.py
 
-On the SYSVOL share, adversaries may use the following command to enumerate potential GPP XML files: <code>dir /s * .xml</code>
+On the SYSVOL share, adversaries may use the following command to enumerate potential GPP XML files: <code>dir /s \* .xml</code>
 
 ## Kill Chain Phase
 
@@ -87,6 +87,7 @@ findstr /S cpassword %logonserver%\sysvol\*.xml
 ```
 
 **Dependencies:**
+
 - Computer must be domain joined
 
 ### Atomic Test 2: GPP Passwords (Get-GPPPassword)
@@ -105,9 +106,9 @@ Get-GPPPassword -Verbose
 ```
 
 **Dependencies:**
+
 - Get-GPPPassword PowerShell Script must exist at #{gpp_script_path}
 - Computer must be domain joined
-
 
 ### Manual Testing
 
@@ -122,37 +123,37 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Search SYSVOL for any existing GGPs that may contain credentials and remove them.
 
 ### M1051 Update Software
+
 Apply patch KB2962486 which prevents credentials from being stored in GPPs.
 
 ### M1015 Active Directory Configuration
-Remove vulnerable Group Policy Preferences.
 
+Remove vulnerable Group Policy Preferences.
 
 ## Detection
 
 ### Detect Access and Decryption of Group Policy Preference (GPP) Credentials in SYSVOL
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Group Policy Preferences technique applicable | High | Credential Access |
+| Finding                                       | Severity | Impact            |
+| --------------------------------------------- | -------- | ----------------- |
+| Group Policy Preferences technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 
 - [Obscuresecurity Get-GPPPassword](https://obscuresecurity.blogspot.co.uk/2012/05/gpp-password-retrieval-with-powershell.html)
-- [Microsoft GPP 2016](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/dn581922(v%3Dws.11))
+- [Microsoft GPP 2016](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/dn581922(v%3Dws.11)>)
 - [Microsoft GPP Key](https://msdn.microsoft.com/library/cc422924.aspx)
 - [ADSecurity Finding Passwords in SYSVOL](https://adsecurity.org/?p=2288)
 - [Atomic Red Team - T1552.006](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1552.006)

@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 1.2.30
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Ensure that the API server is configured to only use strong cryptographic ciphers.
 
 ## Rationale
+
 TLS ciphers have had a number of known vulnerabilities and weaknesses, which can reduce the protection provided by them. By default Kubernetes supports a number of TLS ciphersuites including some that have security concerns, weakening the protection provided.
 
 ## Impact
+
 API server clients that cannot support the custom cryptographic ciphers will not be able to make connections to the API server.
 
 ## Audit Procedure
+
 Ciphers for the API servers, authentication operator, and ingress controller can be configured using the `tlsSecurityProfile` parameter. The ingress controller provides external access to the API server. There are four TLS security profile types:
 
 - Old
@@ -67,30 +72,34 @@ Make sure that `tlsSecurityProfile` is not set to `Old` and if set to `Custom`, 
 Note: The HAProxy Ingress controller image does not support TLS 1.3 and because the Modern profile requires TLS 1.3, it is not supported. The Ingress Operator converts the Modern profile to Intermediate. The Ingress Operator also converts the TLS 1.0 of an Old or Custom profile to 1.1, and TLS 1.3 of a Custom profile to 1.2.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, OpenShift uses the `Intermediate` TLS profile, which requires a minimum of TLS 1.2.
 
 You can configure TLS security profiles by following the OpenShift TLS documentation.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/tls-security-profiles.html
 2. https://docs.openshift.com/container-platform/4.13/rest_api/config_apis/apiserver-config-openshift-io-v1.html
 3. https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices#23-use-secure-cipher-suites
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | * | * |
-| v7 | 1.8 Utilize Client Certificates to Authenticate Hardware Assets | | | * |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | \*   | \*   |
+| v7               | 1.8 Utilize Client Certificates to Authenticate Hardware Assets                 |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1041 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1041       |
 
 ## Profile
+
 **Level 1** (Manual)

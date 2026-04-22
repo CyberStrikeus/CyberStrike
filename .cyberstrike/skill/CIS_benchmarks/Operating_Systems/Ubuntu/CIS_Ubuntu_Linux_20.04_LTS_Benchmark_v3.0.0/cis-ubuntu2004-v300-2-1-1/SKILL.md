@@ -77,9 +77,9 @@ autofs is not installed by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.3 Disable Autorun and Autoplay for Removable Media | | x | x |
-| v7 | 8.5 Configure Devices Not To Auto-run Content | | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.3 Disable Autorun and Autoplay for Removable Media |      | x    | x    |
+| v7               | 8.5 Configure Devices Not To Auto-run Content         |      | x    | x    |
 
 MITRE ATT&CK Mappings: T1068, T1203, T1211, T1212 | TA0008 | M1042

@@ -61,8 +61,8 @@ By default, network policies are not created.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | * | * |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | * | * |
-| v7 | 14.2 Enable Firewall Filtering Between VLANs | | * | * |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments |      | \*   | \*   |
+| v7               | 14.1 Segment the Network Based on Sensitivity           |      | \*   | \*   |
+| v7               | 14.2 Enable Firewall Filtering Between VLANs            |      | \*   | \*   |

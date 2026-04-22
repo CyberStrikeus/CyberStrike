@@ -44,6 +44,6 @@ Where possible, remove access to the `approval` sub-resource of `CertificateSign
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |

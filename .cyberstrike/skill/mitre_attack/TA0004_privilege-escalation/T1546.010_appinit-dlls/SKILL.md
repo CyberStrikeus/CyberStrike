@@ -57,9 +57,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by AppInit DLLs loaded into processes. Dynamic-link libraries (DLLs) that are specified in the <code>AppInit_DLLs</code> value in the Registry keys <code>HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows</code> or <code>HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows</code> are loaded by user32.dll into every process that loads user32.dll. In practice this is nearly every program, since user32.dll is a very common library. 
+Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by AppInit DLLs loaded into processes. Dynamic-link libraries (DLLs) that are specified in the <code>AppInit_DLLs</code> value in the Registry keys <code>HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows</code> or <code>HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows</code> are loaded by user32.dll into every process that loads user32.dll. In practice this is nearly every program, since user32.dll is a very common library.
 
-Similar to Process Injection, these values can be abused to obtain elevated privileges by causing a malicious DLL to be loaded and run in the context of separate processes on the computer. Malicious AppInit DLLs may also provide persistence by continuously being triggered by API activity. 
+Similar to Process Injection, these values can be abused to obtain elevated privileges by causing a malicious DLL to be loaded and run in the context of separate processes on the computer. Malicious AppInit DLLs may also provide persistence by continuously being triggered by API activity.
 
 The AppInit DLL functionality is disabled in Windows 8 and later versions when secure boot is enabled.
 
@@ -85,9 +85,9 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Install AppInit Shim
 
-AppInit_DLLs is a mechanism that allows an arbitrary list of DLLs to be loaded into each user mode process on the system. Upon succesfully execution, 
+AppInit_DLLs is a mechanism that allows an arbitrary list of DLLs to be loaded into each user mode process on the system. Upon succesfully execution,
 you will see the message "The operation completed successfully." Each time the DLL is loaded, you will see a message box with a message of "Install AppInit Shim DLL was called!" appear.
-This will happen regularly as your computer starts up various applications and may in fact drive you crazy. A reliable way to make the message box appear and verify the 
+This will happen regularly as your computer starts up various applications and may in fact drive you crazy. A reliable way to make the message box appear and verify the
 AppInit Dlls are loading is to start the notepad application. Be sure to run the cleanup commands afterwards so you don't keep getting message boxes showing up.
 
 Note: If secure boot is enabled, this technique will not work. https://docs.microsoft.com/en-us/windows/win32/dlls/secure-boot-and-appinit-dlls
@@ -100,9 +100,9 @@ reg.exe import "#{registry_file}"
 ```
 
 **Dependencies:**
+
 - Reg files must exist on disk at specified locations (#{registry_file} and #{registry_cleanup_file})
 - DLL's must exist in the C:\Tools directory (T1546.010.dll and T1546.010x86.dll)
-
 
 ### Manual Testing
 
@@ -117,29 +117,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Adversaries can install new AppInit DLLs binaries to execute this technique. Identify and block potentially malicious software executed through AppInit DLLs functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
 ### M1051 Update Software
-Upgrade to Windows 8 or later and enable secure boot.
 
+Upgrade to Windows 8 or later and enable secure boot.
 
 ## Detection
 
 ### Detection Strategy for Event Triggered Execution: AppInit DLLs (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AppInit DLLs technique applicable | High | Privilege Escalation |
+| Finding                           | Severity | Impact               |
+| --------------------------------- | -------- | -------------------- |
+| AppInit DLLs technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

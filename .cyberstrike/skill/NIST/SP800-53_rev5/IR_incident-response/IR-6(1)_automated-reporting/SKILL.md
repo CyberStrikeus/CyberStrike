@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - IR-7
 prerequisites:
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +78,16 @@ The recipients of incident reports are specified in [IR-6b](#ir-6_smt.b) . Autom
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-6(1) Automated Reporting not implemented | Medium | Incident Response |
-| IR-6(1) partially implemented | Low | Incomplete Incident Response |
+| Finding                                     | Severity | Impact                       |
+| ------------------------------------------- | -------- | ---------------------------- |
+| IR-6(1) Automated Reporting not implemented | Medium   | Incident Response            |
+| IR-6(1) partially implemented               | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

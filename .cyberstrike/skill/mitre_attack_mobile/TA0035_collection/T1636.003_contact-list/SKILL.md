@@ -45,9 +45,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may utilize standard operating system APIs to gather contact list data. On Android, this can be accomplished using the Contacts Content Provider. On iOS, this can be accomplished using the `Contacts` framework. 
-
- 
+Adversaries may utilize standard operating system APIs to gather contact list data. On Android, this can be accomplished using the Contacts Content Provider. On iOS, this can be accomplished using the `Contacts` framework.
 
 If the device has been jailbroken or rooted, an adversary may be able to access the Contact List without the user’s knowledge or approval.
 
@@ -78,26 +76,24 @@ Review whether mitigations for T1636.003 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
-Contact list access is an uncommonly needed permission, so users should be instructed to use extra scrutiny when granting access to their contact list.
 
+Contact list access is an uncommonly needed permission, so users should be instructed to use extra scrutiny when granting access to their contact list.
 
 ## Detection
 
 ### Detection of Contact List
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Contact List technique applicable | Low | Collection |
+| Finding                           | Severity | Impact     |
+| --------------------------------- | -------- | ---------- |
+| Contact List technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

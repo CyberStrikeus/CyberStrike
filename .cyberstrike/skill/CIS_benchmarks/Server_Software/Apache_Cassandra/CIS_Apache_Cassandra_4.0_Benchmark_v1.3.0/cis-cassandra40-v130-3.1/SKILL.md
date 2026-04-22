@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.1 Ensure the cassandra and superuser roles are separate
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
@@ -75,12 +76,15 @@ UPDATE system_auth.roles SET is_superuser=null WHERE role='cassandra';
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 
 **Controls Version v7:**
+
 - 4.3 Ensure the Use of Dedicated Administrative Accounts
   - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities.
 
 ## Profile
+
 - Level 1 | Automated

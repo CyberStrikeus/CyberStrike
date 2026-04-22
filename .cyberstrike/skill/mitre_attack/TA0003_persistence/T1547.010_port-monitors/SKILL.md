@@ -53,14 +53,14 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use port monitors to run an adversary supplied DLL during system boot for persistence or privilege escalation. A port monitor can be set through the <code>AddMonitor</code> API call to set a DLL to be loaded at startup. This DLL can be located in <code>C:\Windows\System32</code> and will be loaded and run by the print spooler service, `spoolsv.exe`, under SYSTEM level permissions on boot. 
+Adversaries may use port monitors to run an adversary supplied DLL during system boot for persistence or privilege escalation. A port monitor can be set through the <code>AddMonitor</code> API call to set a DLL to be loaded at startup. This DLL can be located in <code>C:\Windows\System32</code> and will be loaded and run by the print spooler service, `spoolsv.exe`, under SYSTEM level permissions on boot.
 
 Alternatively, an arbitrary DLL can be loaded if permissions allow writing a fully-qualified pathname for that DLL to the `Driver` value of an existing or new arbitrarily named subkey of <code>HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors</code>. The Registry key contains entries for the following:
 
-* Local Port
-* Standard TCP/IP Port
-* USB Monitor
-* WSD Port
+- Local Port
+- Standard TCP/IP Port
+- USB Monitor
+- WSD Port
 
 ## Kill Chain Phase
 
@@ -92,7 +92,6 @@ Add key-value pair to a Windows Port Monitor registry. On the subsequent reboot 
 reg add "hklm\system\currentcontrolset\control\print\monitors\AtomicRedTeam" /v "Driver" /d "#{monitor_dll}" /t REG_SZ /f
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -111,19 +110,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for T1547.010 – Port Monitor DLL Persistence via spoolsv.exe (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Port Monitors technique applicable | High | Persistence |
+| Finding                            | Severity | Impact      |
+| ---------------------------------- | -------- | ----------- |
+| Port Monitors technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

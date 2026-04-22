@@ -12,8 +12,7 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-3
   - PM-30
@@ -24,8 +23,7 @@ chains_with:
   - SR-5
   - SR-9
   - SR-11
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-3: "Chain with AT-3 for comprehensive security coverage"
   PM-30: "Chain with PM-30 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ The inspection of systems or systems components for tamper resistance and detect
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-10 Inspection of Systems or Components not implemented | Medium | Supply Chain Risk Management |
-| SR-10 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                                   | Severity | Impact                                  |
+| --------------------------------------------------------- | -------- | --------------------------------------- |
+| SR-10 Inspection of Systems or Components not implemented | Medium   | Supply Chain Risk Management            |
+| SR-10 partially implemented                               | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

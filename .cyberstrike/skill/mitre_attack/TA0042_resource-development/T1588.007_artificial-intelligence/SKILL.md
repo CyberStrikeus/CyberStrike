@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1588/007"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1588
   - T1588.001
@@ -44,7 +43,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may obtain access to generative artificial intelligence tools, such as large language models (LLMs), to aid various techniques during targeting. These tools may be used to inform, bolster, and enable a variety of malicious tasks, including conducting Reconnaissance, creating basic scripts, assisting social engineering, and even developing payloads. 
+Adversaries may obtain access to generative artificial intelligence tools, such as large language models (LLMs), to aid various techniques during targeting. These tools may be used to inform, bolster, and enable a variety of malicious tasks, including conducting Reconnaissance, creating basic scripts, assisting social engineering, and even developing payloads.
 
 For example, by utilizing a publicly available LLM an adversary is essentially outsourcing or automating certain tasks to the tool. Using AI, the adversary may draft and generate content in a variety of written languages to be used in Phishing/Phishing for Information campaigns. The same publicly available tool may further enable vulnerability or other offensive research supporting Develop Capabilities. AI tools may also automate technical tasks by generating, refining, or otherwise enhancing (e.g., Obfuscated Files or Information) malicious scripts and payloads. Finally, AI-generated text, images, audio, and video may be used for fraud, Impersonation, and other malicious activities.
 
@@ -76,25 +75,24 @@ For example, by utilizing a publicly available LLM an adversary is essentially o
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Artificial Intelligence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Artificial Intelligence technique applicable | High | Resource Development |
+| Finding                                      | Severity | Impact               |
+| -------------------------------------------- | -------- | -------------------- |
+| Artificial Intelligence technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

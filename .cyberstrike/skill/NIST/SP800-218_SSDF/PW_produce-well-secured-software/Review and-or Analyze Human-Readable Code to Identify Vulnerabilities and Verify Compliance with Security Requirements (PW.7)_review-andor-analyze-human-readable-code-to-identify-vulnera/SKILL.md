@@ -16,10 +16,8 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +59,10 @@ Verify development team understands and follows Review and/or Analyze Human-Read
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,16 +72,15 @@ Help identify vulnerabilities so that they can be corrected before the software 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7) Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                                                                                                                                                                                                                                                              | Severity | Impact                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements (PW.7) Review and/or Analyze Human-Readable Code to Identify Vulnerabilities and Verify Compliance with Security Requirements not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

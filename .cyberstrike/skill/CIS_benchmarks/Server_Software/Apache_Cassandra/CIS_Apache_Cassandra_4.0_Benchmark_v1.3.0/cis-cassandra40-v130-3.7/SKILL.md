@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.7 Review User-Defined Roles
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
@@ -49,12 +50,15 @@ revoke <is_member> from role;
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 6.8 Define and Maintain Role-Based Access Control
   - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently.
 
 **Controls Version v7:**
+
 - 14.6 Protect Information through Access Control Lists
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.
 
 ## Profile
+
 - Level 1 | Manual

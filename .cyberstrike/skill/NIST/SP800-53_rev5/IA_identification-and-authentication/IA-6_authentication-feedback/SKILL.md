@@ -20,8 +20,7 @@ cwe_ids:
   - CWE-287
 chains_with:
   - AC-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
 ---
@@ -63,10 +62,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -80,17 +79,16 @@ Authentication feedback from systems does not provide information that would all
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-6 Authentication Feedback not implemented | High | Identification and Authentication |
-| IA-6 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                      | Severity | Impact                                       |
+| -------------------------------------------- | -------- | -------------------------------------------- |
+| IA-6 Authentication Feedback not implemented | High     | Identification and Authentication            |
+| IA-6 partially implemented                   | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

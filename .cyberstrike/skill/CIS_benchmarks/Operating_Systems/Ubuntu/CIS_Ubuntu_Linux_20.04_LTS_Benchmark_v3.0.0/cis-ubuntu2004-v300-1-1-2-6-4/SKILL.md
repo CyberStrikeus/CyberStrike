@@ -33,8 +33,8 @@ Since the `/var/log` filesystem is only intended for log files, set this option 
 ### Command Line
 
 - IF - a separate partition exists for `/var/log`, verify that the `noexec` option is set.
-Run the following command to verify that the `noexec` mount option is set.
-Example:
+  Run the following command to verify that the `noexec` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /var/log | grep -v noexec
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/var/log`.
-Edit the `/etc/fstab` file and add `noexec` to the fourth field (mounting options) for the `/var/log` partition.
-Example:
+  Edit the `/etc/fstab` file and add `noexec` to the fourth field (mounting options) for the `/var/log` partition.
+  Example:
 
 ```
 <device> /var/log   <fstype>   defaults,rw,nosuid,nodev,noexec,relatime   0 0

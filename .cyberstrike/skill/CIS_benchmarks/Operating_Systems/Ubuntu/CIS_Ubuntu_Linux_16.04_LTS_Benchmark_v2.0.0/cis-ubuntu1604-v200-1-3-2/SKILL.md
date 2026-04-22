@@ -131,9 +131,9 @@ Not configured by default.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |
+| Controls Version | Control                                                             |
+| ---------------- | ------------------------------------------------------------------- |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |
 
 ## Assessment Status
 

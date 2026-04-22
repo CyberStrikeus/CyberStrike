@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 1.2.5
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not always authorize all requests.
 
 ## Rationale
+
 The API Server, can be configured to allow all requests. This mode should not be used on any production cluster.
 
 ## Impact
+
 Only authorized requests will be served.
 
 ## Audit Procedure
+
 It is not possible to configure an OpenShift cluster to allow all requests. OpenShift is configured at bootstrap time to use RBAC to authorize requests. Role-based access control (RBAC) objects determine what actions a user is allowed to perform on what objects in an OpenShift cluster. Cluster administrators manage RBAC for the cluster. Project owners can manage RBAC for their individual OpenShift projects. The OpenShift API server configmap does not use the `authorization-mode` flag.
 
 To verify, run the following commands:
@@ -44,12 +49,15 @@ $ oc get configmap config -n openshift-kube-apiserver -ojson | jq -r '.data["con
 ```
 
 ## Remediation
+
 None. RBAC is always on and the OpenShift API server does not use the values assigned to the flag authorization-mode.
 
 ## Default Value
+
 OpenShift uses RBAC by default.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/4.5/authentication/using-rbac.html
 2. https://docs.openshift.com/container-platform/4.5/operators/operator-reference.html#kube-apiserver-operator_red-hat-operators
 3. https://docs.openshift.com/container-platform/4.5/operators/operator-reference.html#openshift-apiserver-operator_red-hat-operators
@@ -58,16 +66,17 @@ OpenShift uses RBAC by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists                            | \*   | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1133 | TA0001 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1133                       | TA0001  | M1026       |
 
 ## Profile
+
 **Level 1** (Manual)

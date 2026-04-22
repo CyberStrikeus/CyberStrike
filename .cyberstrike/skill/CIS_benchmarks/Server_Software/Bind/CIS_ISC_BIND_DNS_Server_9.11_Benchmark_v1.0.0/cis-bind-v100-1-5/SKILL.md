@@ -17,13 +17,16 @@ severity_boost: {}
 # CIS 1.5 — Installing ISC BIND 9
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 1
 - Caching Only Name Server Level 1
 
 ## Description
+
 The ISC BIND Benchmark recommends using the binary packages provided by your platform vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. Red Hat Enterprise Linux 7 and 8 have been used for testing the benchmark.
 
 ## Rationale
+
 The benefits of using the vendor supplied binaries include:
 
 - Ease of installation.
@@ -36,9 +39,11 @@ The benefits of using the vendor supplied binaries include:
 However, building from source is suitable for those that want full control of the build process, prefer to build from source, or do not have a suitable package available for their platform. Source download and build information is available on the ISC website knowledge base at the URL reference below.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Perform the following commands to check for an installed BIND rpm and to search the current path for the named executable, and to verify the version of bind.
 
 ```bash
@@ -53,6 +58,7 @@ BIND 9.11.4-xxxxx
 ```
 
 ## Remediation
+
 Installation depends on the operating system platform. The following commands were tested on RHEL7 and RHEL8. On RHEL8 the yum command redirects to the newer dfm command.
 
 ```bash
@@ -63,25 +69,30 @@ Installation depends on the operating system platform. The following commands we
 ```
 
 ## Default Value
+
 Not specified.
 
 ## References
+
 1. https://kb.isc.org/article/AA-00768/0/Getting-started-with-BIND-how-to-build-and-run-named-with-a-basic-recursive-configuration.html
 2. https://www.isc.org/download/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 2 Inventory of Authorized and Unauthorized Software | Y | Y | Y |
-| v7 | 2.1 Maintain Inventory of Authorized Software | Y | Y | Y |
-| v7 | 2.2 Ensure Software is Supported by Vendor | Y | Y | Y |
+
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 2 Inventory of Authorized and Unauthorized Software | Y    | Y    | Y    |
+| v7               | 2.1 Maintain Inventory of Authorized Software       | Y    | Y    | Y    |
+| v7               | 2.2 Ensure Software is Supported by Vendor          | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic         | Technique                               |
+| -------------- | --------------------------------------- |
 | Initial Access | T1190 Exploit Public-Facing Application |
-| Persistence | T1133 External Remote Services |
+| Persistence    | T1133 External Remote Services          |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

@@ -23,10 +23,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,19 +69,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Native API
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Native API technique applicable | Low | Defense Evasion |
+| Finding                         | Severity | Impact          |
+| ------------------------------- | -------- | --------------- |
+| Native API technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

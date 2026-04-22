@@ -46,8 +46,8 @@ severity_boost:
 
 ## High-Level Description
 
-An adversary may use legitimate desktop support software to establish an interactive command and control channel to target systems within networks. Desktop support software provides a graphical interface for remotely controlling another computer, transmitting the display output, keyboard input, and mouse control between devices using various protocols. Desktop support software, such as `VNC`, `Team Viewer`, `AnyDesk`, `ScreenConnect`, `LogMein`, `AmmyyAdmin`, and other remote monitoring and management (RMM) tools, are commonly used as legitimate technical support software and may be allowed by application control within a target environment. 
- 
+An adversary may use legitimate desktop support software to establish an interactive command and control channel to target systems within networks. Desktop support software provides a graphical interface for remotely controlling another computer, transmitting the display output, keyboard input, and mouse control between devices using various protocols. Desktop support software, such as `VNC`, `Team Viewer`, `AnyDesk`, `ScreenConnect`, `LogMein`, `AmmyyAdmin`, and other remote monitoring and management (RMM) tools, are commonly used as legitimate technical support software and may be allowed by application control within a target environment.
+
 Remote access modules/features may also exist as part of otherwise existing software such as Zoom or Google Chrome’s Remote Desktop.
 
 ## Kill Chain Phase
@@ -80,32 +80,32 @@ Remote access modules/features may also exist as part of otherwise existing soft
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling unnecessary remote connection functionality, including both unapproved software installations and specific features built into supported applications.
 
 ### M1037 Filter Network Traffic
+
 Properly configure firewalls, application firewalls, and proxies to limit outgoing traffic to sites and services used by remote access software.
 
 ### M1038 Execution Prevention
-Use application control to mitigate installation and use of unapproved software that can be used for remote access.
 
+Use application control to mitigate installation and use of unapproved software that can be used for remote access.
 
 ## Detection
 
 ### Remote Desktop Software Execution and Beaconing Detection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Desktop Software technique applicable | Low | Command And Control |
+| Finding                                      | Severity | Impact              |
+| -------------------------------------------- | -------- | ------------------- |
+| Remote Desktop Software technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

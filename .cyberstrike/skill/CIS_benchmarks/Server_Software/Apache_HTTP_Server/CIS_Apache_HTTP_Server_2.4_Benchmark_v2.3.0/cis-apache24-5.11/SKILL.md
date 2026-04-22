@@ -75,9 +75,11 @@ This is not set by default
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
 **v7:**
+
 - 18.2 Ensure Explicit Error Checking is Performed for All In-house Developed Software
   - For in-house developed software, ensure that explicit error checking is performed and documented for all input, including for size, data type, and acceptable ranges or formats.

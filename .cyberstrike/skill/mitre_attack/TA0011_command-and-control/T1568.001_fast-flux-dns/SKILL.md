@@ -89,19 +89,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Dynamic Resolution using Fast Flux DNS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Fast Flux DNS technique applicable | Medium | Command And Control |
+| Finding                            | Severity | Impact              |
+| ---------------------------------- | -------- | ------------------- |
+| Fast Flux DNS technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

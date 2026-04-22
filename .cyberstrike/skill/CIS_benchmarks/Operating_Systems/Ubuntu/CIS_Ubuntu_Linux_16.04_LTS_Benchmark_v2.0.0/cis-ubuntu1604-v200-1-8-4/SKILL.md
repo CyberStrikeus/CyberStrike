@@ -68,9 +68,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |
+| Controls Version | Control                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |
 
 ## Assessment Status
 

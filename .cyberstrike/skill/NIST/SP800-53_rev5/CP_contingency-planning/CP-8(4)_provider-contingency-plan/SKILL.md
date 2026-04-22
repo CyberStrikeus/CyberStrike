@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-3
   - CP-4
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +85,16 @@ Reviews of provider contingency plans consider the proprietary nature of such pl
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-8(4) Provider Contingency Plan not implemented | Medium | Contingency Planning |
-| CP-8(4) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                           | Severity | Impact                          |
+| ------------------------------------------------- | -------- | ------------------------------- |
+| CP-8(4) Provider Contingency Plan not implemented | Medium   | Contingency Planning            |
+| CP-8(4) partially implemented                     | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

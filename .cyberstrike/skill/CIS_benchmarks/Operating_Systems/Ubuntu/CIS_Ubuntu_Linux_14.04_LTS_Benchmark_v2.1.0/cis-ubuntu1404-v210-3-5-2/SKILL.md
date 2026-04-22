@@ -54,6 +54,7 @@ lsmod | grep sctp
 ```
 install /bin/true
 ```
+
 And no output from `lsmod | grep sctp`.
 
 ## Remediation

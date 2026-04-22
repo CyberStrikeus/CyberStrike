@@ -85,6 +85,7 @@ Example script to create systemd drop-in configuration file:
 ```
 
 Note:
+
 - If these settings appear in a canonically later file, or later in the same file, the setting will be overwritten
 - Logfile size and configuration to move logfiles to a remote log server should be accounted for when configuring these settings
 
@@ -104,14 +105,14 @@ Not specifically configured by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | | | |
-| v7 | 6.2 Activate audit logging | | | |
-| v7 | 6.3 Enable Detailed Logging | | | |
+| Controls Version | Control                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs      |      |      |      |
+| v7               | 6.2 Activate audit logging  |      |      |      |
+| v7               | 6.3 Enable Detailed Logging |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002 | TA0040 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1070, T1070.002            | TA0040  | M1022       |

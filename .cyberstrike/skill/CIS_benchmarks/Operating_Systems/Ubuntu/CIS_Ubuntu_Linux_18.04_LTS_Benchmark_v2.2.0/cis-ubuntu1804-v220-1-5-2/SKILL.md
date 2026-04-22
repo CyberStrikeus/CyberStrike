@@ -153,10 +153,10 @@ systemctl daemon-reload
 ## CIS Controls
 
 | Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
+| ---------------- | ------- | ---- | ---- | ---- |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1005, T1005.000 | TA0007 | M1057 |
+| --------------------------- | ------- | ----------- |
+| T1005, T1005.000            | TA0007  | M1057       |

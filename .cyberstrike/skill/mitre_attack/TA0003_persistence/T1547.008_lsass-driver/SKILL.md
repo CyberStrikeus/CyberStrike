@@ -79,9 +79,9 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Modify Registry to load Arbitrary DLL into LSASS - LsaDbExtPt
 
-The following Atomic will modify an undocumented registry key that may be abused to load a arbitrary DLL into LSASS. 
+The following Atomic will modify an undocumented registry key that may be abused to load a arbitrary DLL into LSASS.
 
-Upon execution, the registry key will be modified and a value will contain the path to the DLL. 
+Upon execution, the registry key will be modified and a value will contain the path to the DLL.
 Reference: https://blog.xpnsec.com/exploring-mimikatz-part-1/ and source https://github.com/oxfemale/LogonCredentialsSteal
 Note that if any LSA based protection is enabled, this will most likely not be successful with LSASS.exe loading the DLL.
 
@@ -93,8 +93,8 @@ New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\NTDS -Name LsaDbE
 ```
 
 **Dependencies:**
-- lsass_lib.dll must exist on disk at specified location (#{dll_path})
 
+- lsass_lib.dll must exist on disk at specified location (#{dll_path})
 
 ### Manual Testing
 
@@ -109,32 +109,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1025 Privileged Process Integrity
+
 On Windows 8.1 and Server 2012 R2, enable LSA Protection by setting the Registry key <code>HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\RunAsPPL</code> to <code>dword:00000001</code>. LSA Protection ensures that LSA plug-ins and drivers are only loaded if they are digitally signed with a Microsoft signature and adhere to the Microsoft Security Development Lifecycle (SDL) process guidance.
 
 ### M1043 Credential Access Protection
+
 On Windows 10 and Server 2016, enable Windows Defender Credential Guard to run lsass.exe in an isolated virtualized environment without any device drivers.
 
 ### M1044 Restrict Library Loading
-Ensure safe DLL search mode is enabled <code>HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\SafeDllSearchMode</code> to mitigate risk that lsass.exe loads a malicious code library.
 
+Ensure safe DLL search mode is enabled <code>HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\SafeDllSearchMode</code> to mitigate risk that lsass.exe loads a malicious code library.
 
 ## Detection
 
 ### Detect unauthorized LSASS driver persistence via LSA plugin abuse (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| LSASS Driver technique applicable | High | Persistence |
+| Finding                           | Severity | Impact      |
+| --------------------------------- | -------- | ----------- |
+| LSASS Driver technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

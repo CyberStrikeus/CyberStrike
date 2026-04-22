@@ -13,33 +13,33 @@ This directory contains **44 SKILL.md files** for the CIS NGINX Benchmark v3.0.0
 
 ## Control Breakdown by Section
 
-| Section | Title | Controls |
-|---------|-------|----------|
-| 1.1 | Installation | 1 |
-| 1.2 | Configure Software Updates | 2 |
-| 2.1 | Minimize NGINX Modules | 1 |
-| 2.2 | Account Security | 3 |
-| 2.3 | Permissions and Ownership | 3 |
-| 2.4 | Network Configuration | 4 |
-| 2.5 | Information Disclosure | 4 |
-| 3 | Logging | 4 |
-| 4.1 | TLS / SSL Configuration | 12 |
-| 5.1 | Access Control | 2 |
-| 5.2 | Request Limits | 5 |
-| 5.3 | Browser Security | 3 |
-| 6 | Mandatory Access Control | 0 (reserved) |
+| Section | Title                      | Controls     |
+| ------- | -------------------------- | ------------ |
+| 1.1     | Installation               | 1            |
+| 1.2     | Configure Software Updates | 2            |
+| 2.1     | Minimize NGINX Modules     | 1            |
+| 2.2     | Account Security           | 3            |
+| 2.3     | Permissions and Ownership  | 3            |
+| 2.4     | Network Configuration      | 4            |
+| 2.5     | Information Disclosure     | 4            |
+| 3       | Logging                    | 4            |
+| 4.1     | TLS / SSL Configuration    | 12           |
+| 5.1     | Access Control             | 2            |
+| 5.2     | Request Limits             | 5            |
+| 5.3     | Browser Security           | 3            |
+| 6       | Mandatory Access Control   | 0 (reserved) |
 
 ## Section Summary
 
-| Major Section | Title | Total |
-|---------------|-------|-------|
-| 1 | Initial Setup | 3 |
-| 2 | Basic Configuration | 15 |
-| 3 | Logging | 4 |
-| 4 | Encryption | 12 |
-| 5 | Request Filtering and Restrictions | 10 |
-| 6 | Mandatory Access Control | 0 |
-| **Total** | | **44** |
+| Major Section | Title                              | Total  |
+| ------------- | ---------------------------------- | ------ |
+| 1             | Initial Setup                      | 3      |
+| 2             | Basic Configuration                | 15     |
+| 3             | Logging                            | 4      |
+| 4             | Encryption                         | 12     |
+| 5             | Request Filtering and Restrictions | 10     |
+| 6             | Mandatory Access Control           | 0      |
+| **Total**     |                                    | **44** |
 
 **Note:** Section 6 (Mandatory Access Control) is intentionally left blank/reserved. NGINX relies on external Identity Providers or the underlying OS for user authentication and authorization.
 
@@ -72,6 +72,7 @@ Example: `cis-nginx-v300-1-1-1/SKILL.md` for control 1.1.1, `cis-nginx-v300-4-1-
 ## Source Document
 
 **CIS NGINX Benchmark v3.0.0**
+
 - Platform: NGINX Web Server on Linux
 - Original PDF: `CIS_NGINX_Benchmark_v3.0.0.pdf`
 

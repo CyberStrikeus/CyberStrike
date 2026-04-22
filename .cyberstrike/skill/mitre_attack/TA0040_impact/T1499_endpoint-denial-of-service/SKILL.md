@@ -38,8 +38,7 @@ chains_with:
   - T1499.002
   - T1499.003
   - T1499.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1499.001: "Chain with T1499.001 for deeper attack path"
   T1499.002: "Chain with T1499.002 for deeper attack path"
@@ -94,26 +93,24 @@ For attacks attempting to saturate the providing network, see Network Denial of 
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport. To defend against SYN floods, enable SYN Cookies.
 
+Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport. To defend against SYN floods, enable SYN Cookies.
 
 ## Detection
 
 ### Endpoint Resource Saturation and Crash Pattern Detection Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Endpoint Denial of Service technique applicable | High | Impact |
+| Finding                                         | Severity | Impact |
+| ----------------------------------------------- | -------- | ------ |
+| Endpoint Denial of Service technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

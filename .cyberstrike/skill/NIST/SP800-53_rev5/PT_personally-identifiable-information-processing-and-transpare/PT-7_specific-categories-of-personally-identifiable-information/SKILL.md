@@ -19,8 +19,7 @@ chains_with:
   - PT-2
   - PT-3
   - RA-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   IR-9: "Chain with IR-9 for comprehensive security coverage"
   PT-2: "Chain with PT-2 for comprehensive security coverage"
@@ -64,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,17 +79,16 @@ Organizations apply any conditions or protections that may be necessary for spec
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-7 Specific Categories of Personally Identifiable Information not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-7 partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                                                                         | Severity | Impact                                                                     |
+| ------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-7 Specific Categories of Personally Identifiable Information not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-7 partially implemented                                                      | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

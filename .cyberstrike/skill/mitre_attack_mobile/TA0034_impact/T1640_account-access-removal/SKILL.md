@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -60,26 +58,24 @@ Review whether mitigations for T1640 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be taught that Device Administrator permissions are very dangerous, and very few applications need it.
 
+Users should be taught that Device Administrator permissions are very dangerous, and very few applications need it.
 
 ## Detection
 
 ### Detection of Account Access Removal
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Account Access Removal technique applicable | High | Impact |
+| Finding                                     | Severity | Impact |
+| ------------------------------------------- | -------- | ------ |
+| Account Access Removal technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

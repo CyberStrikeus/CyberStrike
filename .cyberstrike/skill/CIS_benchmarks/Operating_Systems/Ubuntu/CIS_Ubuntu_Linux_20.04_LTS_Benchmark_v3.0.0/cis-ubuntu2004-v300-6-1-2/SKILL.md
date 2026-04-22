@@ -88,13 +88,13 @@ Not configured by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.14 Log Sensitive Data Access | | | |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.14 Log Sensitive Data Access                                      |      |      |      |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1036, T1036.002, T1036.003, T1036.004, T1036.005, T1565, T1565.001 | TA0040 | M1022 |
+| Techniques / Sub-techniques                                         | Tactics | Mitigations |
+| ------------------------------------------------------------------- | ------- | ----------- |
+| T1036, T1036.002, T1036.003, T1036.004, T1036.005, T1565, T1565.001 | TA0040  | M1022       |

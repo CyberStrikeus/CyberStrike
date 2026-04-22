@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,26 +57,24 @@ Review whether mitigations for T0852 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0816 Mitigation Limited or Not Effective
-Preventing screen capture on a device may require disabling various system calls supported by the operating systems (e.g., Microsoft WindowsGraphicsCaputer APIs), however, these may be needed for other critical applications.
 
+Preventing screen capture on a device may require disabling various system calls supported by the operating systems (e.g., Microsoft WindowsGraphicsCaputer APIs), however, these may be needed for other critical applications.
 
 ## Detection
 
 ### Detection of Screen Capture
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Screen Capture technique applicable | Low | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Screen Capture technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

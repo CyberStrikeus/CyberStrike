@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -49,7 +47,7 @@ Adversaries may shutdown/reboot systems to interrupt access to, or aid in the de
 Shutting down or rebooting systems may disrupt access to computer resources for legitimate users while also impeding incident response/recovery.
 
 Adversaries may also use Windows API functions, such as `InitializeSystemShutdownExW` or `ExitWindowsEx`, to force a system to shut down or reboot. Alternatively, the `NtRaiseHardError`or `ZwRaiseHardError` Windows API functions with the `ResponseOption` parameter set to `OptionShutdownSystem` may deliver a “blue screen of death” (BSOD) to a system. In order to leverage these API functions, an adversary may need to acquire `SeShutdownPrivilege` (e.g., via Access Token Manipulation).
- In some cases, the system may not be able to boot again. 
+In some cases, the system may not be able to boot again.
 
 Adversaries may attempt to shutdown/reboot a system after impacting it in other ways, such as Disk Structure Wipe or Inhibit System Recovery, to hasten the intended effects on system availability.
 
@@ -128,7 +126,6 @@ This test restarts a FreeBSD/macOS/Linux system via `reboot`.
 reboot
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -147,19 +144,17 @@ No specific mitigations documented for this technique.
 
 ### Multi-Platform Shutdown or Reboot Detection via Execution and Host Status Events
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Shutdown/Reboot technique applicable | High | Impact |
+| Finding                                     | Severity | Impact |
+| ------------------------------------------- | -------- | ------ |
+| System Shutdown/Reboot technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

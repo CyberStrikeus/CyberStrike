@@ -29,10 +29,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -85,7 +83,6 @@ $debuggerProcesses = Get-Process | Where-Object { $_.ProcessName -match "dbg" -o
 $debuggingFlags = [System.Diagnostics.Debugger]::IsAttached
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -104,19 +101,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Debugger Evasion (T1622)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Debugger Evasion technique applicable | Medium | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Debugger Evasion technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

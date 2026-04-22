@@ -25,25 +25,31 @@ severity_boost: "medium"
 # 1.1.12 Ensure separate partition exists for /home (Scored)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 The /home directory is used to support disk storage needs of local users.
 
 ## Rationale
+
 If the system is intended to support local users, create a separate partition for the /home directory to protect against resource exhaustion and restrict the type of files that can be stored under /home.
 
 ## Audit Procedure
+
 ```bash
 mount | grep /home
 # Expected output: /dev/xvdf1 on /home type ext4 (rw,nodev,relatime,data=ordered)
 ```
 
 ## Expected Result
+
 Verify output shows /home is mounted on a separate partition.
 
 ## Remediation
+
 ```bash
 # For new installations, during installation create a custom partition setup
 # and specify a separate partition for /home.
@@ -52,11 +58,14 @@ Verify output shows /home is mounted on a separate partition.
 ```
 
 ## Default Value
+
 By default, /home is not mounted on a separate partition.
 
 ## References
+
 - CIS Ubuntu Linux 14.04 LTS Benchmark v2.1.0
 - AJ Lewis, "LVM HOWTO", http://tldp.org/HOWTO/LVM-HOWTO/
 
 ## Profile
+
 - Level 2

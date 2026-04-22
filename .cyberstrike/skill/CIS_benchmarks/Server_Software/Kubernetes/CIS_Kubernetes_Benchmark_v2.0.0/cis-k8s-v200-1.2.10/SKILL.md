@@ -59,7 +59,7 @@ Edit the API server pod specification file `/etc/kubernetes/manifests/kube-apise
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |

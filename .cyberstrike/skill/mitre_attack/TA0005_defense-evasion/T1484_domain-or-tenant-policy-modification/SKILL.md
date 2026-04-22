@@ -29,8 +29,7 @@ cwe_ids:
 chains_with:
   - T1484.001
   - T1484.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1484.001: "Chain with T1484.001 for deeper attack path"
   T1484.002: "Chain with T1484.002 for deeper attack path"
@@ -44,12 +43,12 @@ Adversaries may modify the configuration settings of a domain or identity tenant
 
 Modifications to domain or tenant settings may include altering domain Group Policy Objects (GPOs) in Microsoft Active Directory (AD) or changing trust settings for domains, including federation trusts relationships between domains or tenants.
 
-With sufficient permissions, adversaries can modify domain or tenant policy settings. Since configuration settings for these services apply to a large number of identity resources, there are a great number of potential attacks malicious outcomes that can stem from this abuse. Examples of such abuse include: 
+With sufficient permissions, adversaries can modify domain or tenant policy settings. Since configuration settings for these services apply to a large number of identity resources, there are a great number of potential attacks malicious outcomes that can stem from this abuse. Examples of such abuse include:
 
-* modifying GPOs to push a malicious Scheduled Task to computers throughout the domain environment
-* modifying domain trusts to include an adversary-controlled domain, allowing adversaries to forge access tokens that will subsequently be accepted by victim domain resources
-* changing configuration settings within the AD environment to implement a Rogue Domain Controller.
-* adding new, adversary-controlled federated identity providers to identity tenants, allowing adversaries to authenticate as any user managed by the victim tenant 
+- modifying GPOs to push a malicious Scheduled Task to computers throughout the domain environment
+- modifying domain trusts to include an adversary-controlled domain, allowing adversaries to forge access tokens that will subsequently be accepted by victim domain resources
+- changing configuration settings within the AD environment to implement a Rogue Domain Controller.
+- adding new, adversary-controlled federated identity providers to identity tenants, allowing adversaries to authenticate as any user managed by the victim tenant
 
 Adversaries may temporarily modify domain or tenant policy, carry out a malicious action(s), and then revert the change to remove suspicious indicators.
 
@@ -83,32 +82,32 @@ Adversaries may temporarily modify domain or tenant policy, carry out a maliciou
 ## Remediation Guide
 
 ### M1047 Audit
+
 Identify and correct GPO permissions abuse opportunities (ex: GPO modification privileges) using auditing tools such as BloodHound (version 1.5.1 and later).
 
 ### M1026 Privileged Account Management
+
 Use least privilege and protect administrative access to the Domain Controller and Active Directory Federation Services (AD FS) server. Do not create service accounts with administrative privileges.
 
 ### M1018 User Account Management
-Consider implementing WMI and security filtering to further tailor which users and computers a GPO will apply to.
 
+Consider implementing WMI and security filtering to further tailor which users and computers a GPO will apply to.
 
 ## Detection
 
 ### Detection of Domain or Tenant Policy Modifications via AD and Identity Provider
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain or Tenant Policy Modification technique applicable | High | Defense Evasion |
+| Finding                                                   | Severity | Impact          |
+| --------------------------------------------------------- | -------- | --------------- |
+| Domain or Tenant Policy Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

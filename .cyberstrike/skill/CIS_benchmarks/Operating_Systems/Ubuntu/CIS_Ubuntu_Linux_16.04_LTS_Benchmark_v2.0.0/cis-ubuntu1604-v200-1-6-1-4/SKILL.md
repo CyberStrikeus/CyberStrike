@@ -77,7 +77,7 @@ Run the following command to set all profiles to enforce mode:
 aa-enforce /etc/apparmor.d/*
 ```
 
-*Note: Any unconfined processes may need to have a profile created or activated for them and then be restarted.*
+_Note: Any unconfined processes may need to have a profile created or activated for them and then be restarted._
 
 ## Default Value
 
@@ -89,9 +89,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.6 Protect Information through Access Control Lists |
+| Controls Version | Control                                               |
+| ---------------- | ----------------------------------------------------- |
+| v7               | 14.6 Protect Information through Access Control Lists |
 
 ## Assessment Status
 

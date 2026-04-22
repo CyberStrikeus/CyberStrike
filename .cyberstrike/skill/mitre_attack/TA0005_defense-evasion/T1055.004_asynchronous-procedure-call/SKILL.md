@@ -51,9 +51,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may inject malicious code into processes via the asynchronous procedure call (APC) queue in order to evade process-based defenses as well as possibly elevate privileges. APC injection is a method of executing arbitrary code in the address space of a separate live process. 
+Adversaries may inject malicious code into processes via the asynchronous procedure call (APC) queue in order to evade process-based defenses as well as possibly elevate privileges. APC injection is a method of executing arbitrary code in the address space of a separate live process.
 
-APC injection is commonly performed by attaching malicious code to the APC Queue of a process's thread. Queued APC functions are executed when the thread enters an alterable state. A handle to an existing victim process is first created with native Windows API calls such as <code>OpenThread</code>. At this point <code>QueueUserAPC</code> can be used to invoke a function (such as <code>LoadLibrayA</code> pointing to a malicious DLL). 
+APC injection is commonly performed by attaching malicious code to the APC Queue of a process's thread. Queued APC functions are executed when the thread enters an alterable state. A handle to an existing victim process is first created with native Windows API calls such as <code>OpenThread</code>. At this point <code>QueueUserAPC</code> can be used to invoke a function (such as <code>LoadLibrayA</code> pointing to a malicious DLL).
 
 A variation of APC injection, dubbed "Early Bird injection", involves creating a suspended process in which malicious code can be written and executed before the process' entry point (and potentially subsequent anti-malware hooks) via an APC. AtomBombing is another variation that utilizes APCs to invoke malicious code previously written to the global atom table.
 
@@ -84,12 +84,13 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 Process Injection using C#
 reference: https://github.com/pwndizzle/c-sharp-memory-injection
 Excercises Five Techniques
+
 1. Process injection
 2. ApcInjectionAnyProcess
 3. ApcInjectionNewProcess
 4. IatInjection
 5. ThreadHijack
-Upon successful execution, cmd.exe will execute T1055.exe, which exercises 5 techniques. Output will be via stdout.
+   Upon successful execution, cmd.exe will execute T1055.exe, which exercises 5 techniques. Output will be via stdout.
 
 **Supported Platforms:** windows
 
@@ -98,15 +99,17 @@ Upon successful execution, cmd.exe will execute T1055.exe, which exercises 5 tec
 ```
 
 **Dependencies:**
+
 - #{exe_binary} must be exist on system.
 
 ### Atomic Test 2: EarlyBird APC Queue Injection in Go
 
-Creates a process in a suspended state and calls QueueUserAPC WinAPI to add a UserAPC to the child process that points to allocated shellcode. 
+Creates a process in a suspended state and calls QueueUserAPC WinAPI to add a UserAPC to the child process that points to allocated shellcode.
 ResumeThread is called which then calls NtTestAlert to execute the created UserAPC which then executes the shellcode.
 This technique allows for the early execution of shellcode and potentially before AV/EDR can hook functions to support detection.
+
 - PoC Credit: (https://github.com/Ne0nd0g/go-shellcode#createprocesswithpipe)
-- References: 
+- References:
   - https://www.bleepingcomputer.com/news/security/early-bird-code-injection-technique-helps-malware-stay-undetected/
   - https://www.ired.team/offensive-security/code-injection-process-injection/early-bird-apc-queue-code-injection
 
@@ -118,10 +121,11 @@ $PathToAtomicsFolder\T1055.004\bin\x64\EarlyBird.exe -program "#{spawn_process_p
 
 ### Atomic Test 3: Remote Process Injection with Go using NtQueueApcThreadEx WinAPI
 
-Uses the undocumented NtQueueAPCThreadEx WinAPI to create a "Special User APC" in the current thread of the current process to execute shellcode. 
+Uses the undocumented NtQueueAPCThreadEx WinAPI to create a "Special User APC" in the current thread of the current process to execute shellcode.
 Since the shellcode is loaded and executed in the current process it is considered local shellcode execution.
 
 Steps taken with this technique
+
 1. Allocate memory for the shellcode with VirtualAlloc setting the page permissions to Read/Write
 2. Use the RtlCopyMemory macro to copy the shellcode to the allocated memory space
 3. Change the memory page permissions to Execute/Read with VirtualProtect
@@ -142,7 +146,6 @@ Steps taken with this technique
 $PathToAtomicsFolder\T1055.004\bin\x64\NtQueueApcThreadEx.exe -debug
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -156,26 +159,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
+Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
 ## Detection
 
 ### Behavioral Detection of Asynchronous Procedure Call (APC) Injection via Remote Thread Queuing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Asynchronous Procedure Call technique applicable | High | Defense Evasion |
+| Finding                                          | Severity | Impact          |
+| ------------------------------------------------ | -------- | --------------- |
+| Asynchronous Procedure Call technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

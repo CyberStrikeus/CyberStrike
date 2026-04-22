@@ -126,7 +126,6 @@ printf 'exit 0' | sudo tee -a /etc/rc.local
 sudo chmod +x /etc/rc.local
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -140,26 +139,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Limit privileges of user accounts so only authorized users can edit the `rc.common` file.
 
+Limit privileges of user accounts so only authorized users can edit the `rc.common` file.
 
 ## Detection
 
 ### Detection Strategy for Boot or Logon Initialization Scripts: RC Scripts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RC Scripts technique applicable | High | Persistence |
+| Finding                         | Severity | Impact      |
+| ------------------------------- | -------- | ----------- |
+| RC Scripts technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

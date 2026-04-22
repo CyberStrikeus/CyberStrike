@@ -64,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,17 +83,16 @@ Federal law and policy establish specific requirements for organizations’ proc
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-7(1) Social Security Numbers not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-7(1) partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                                         | Severity | Impact                                                                     |
+| ----------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-7(1) Social Security Numbers not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-7(1) partially implemented                   | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

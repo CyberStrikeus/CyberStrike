@@ -127,6 +127,7 @@ ldapadd -H ldap://#{domain}.#{top_level_domain}:389 -x -D #{admin_user} -w #{adm
 ```
 
 **Dependencies:**
+
 - Packages sssd-ad sssd-tools realmd adcli installed and realm available
 
 ### Atomic Test 5: Active Directory Create User Account (Non-elevated)
@@ -142,8 +143,8 @@ ldapadd -H ldap://#{domain}.#{top_level_domain}:389 -x -D #{admin_user} -w #{adm
 ```
 
 **Dependencies:**
-- Packages sssd-ad sssd-tools realmd adcli installed and realm available, ldapadd, ldapmodify
 
+- Packages sssd-ad sssd-tools realmd adcli installed and realm available, ldapadd, ldapmodify
 
 ### Manual Testing
 
@@ -158,35 +159,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts.
 
 ### M1028 Operating System Configuration
+
 Protect domain controllers by ensuring proper security configuration for critical servers.
 
 ### M1030 Network Segmentation
+
 Configure access controls and firewalls to limit access to domain controllers and systems used to create and manage accounts.
 
 ### M1026 Privileged Account Management
-Limit the number of accounts with permissions to create other accounts. Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
+Limit the number of accounts with permissions to create other accounts. Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ## Detection
 
 ### T1136.002 Detection Strategy - Domain Account Creation Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Account technique applicable | High | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| Domain Account technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

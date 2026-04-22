@@ -34,8 +34,7 @@ chains_with:
   - T1001.001
   - T1001.002
   - T1001.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1001.001: "Chain with T1001.001 for deeper attack path"
   T1001.002: "Chain with T1001.002 for deeper attack path"
@@ -78,26 +77,24 @@ Adversaries may obfuscate command and control traffic to make it more difficult 
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
 ## Detection
 
 ### Detect Obfuscated C2 via Network Traffic Analysis
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Obfuscation technique applicable | Medium | Command And Control |
+| Finding                               | Severity | Impact              |
+| ------------------------------------- | -------- | ------------------- |
+| Data Obfuscation technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

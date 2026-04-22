@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may move onto systems, such as those separated from the enterprise network, by copying malware to removable media which is inserted into the control systems environment. The adversary may rely on unknowing trusted third parties, such as suppliers or contractors with access privileges, to introduce the removable media. This technique enables initial access to target devices that never connect to untrusted networks, but are physically accessible. 
+Adversaries may move onto systems, such as those separated from the enterprise network, by copying malware to removable media which is inserted into the control systems environment. The adversary may rely on unknowing trusted third parties, such as suppliers or contractors with access privileges, to introduce the removable media. This technique enables initial access to target devices that never connect to untrusted networks, but are physically accessible.
 
 Operators of the German nuclear power plant, Gundremmingen, discovered malware on a facility computer not connected to the internet. The malware included Conficker and W32.Ramnit, which were also found on eighteen removable disk drives in the facility. The plant has since checked for infection and cleaned up more than 1,000 computers. An ESET researcher commented that internet disconnection does not guarantee system safety from infection or payload execution.
 
@@ -61,32 +59,32 @@ Review whether mitigations for T0847 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0928 Operating System Configuration
+
 Harden the system through operating system controls to prevent the known or unknown use of malicious removable media.
 
 ### M0934 Limit Hardware Installation
+
 Enforce system policies or physical restrictions to limit hardware such as USB devices on critical assets.
 
 ### M0942 Disable or Remove Feature or Program
-Consider the disabling of features such as AutoRun.
 
+Consider the disabling of features such as AutoRun.
 
 ## Detection
 
 ### Detection of Replication Through Removable Media
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Replication Through Removable Media technique applicable | High | Initial Access |
+| Finding                                                  | Severity | Impact         |
+| -------------------------------------------------------- | -------- | -------------- |
+| Replication Through Removable Media technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

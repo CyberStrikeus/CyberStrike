@@ -4,7 +4,18 @@ description: "Ensure only trusted container images are used (Manual)"
 category: cis-gke
 version: "1.7.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, image-registry, image-scanning, artifact-registry, vulnerability-scanning, binary-authorization]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    image-registry,
+    image-scanning,
+    artifact-registry,
+    vulnerability-scanning,
+    binary-authorization,
+  ]
 cis_id: "5.1.4"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.7.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -119,8 +130,8 @@ By default, Binary Authorization is disabled along with container registry allow
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software |      | x    | x    |
+| v7               | 5.2 Maintain Secure Images        |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images  |      | x    | x    |

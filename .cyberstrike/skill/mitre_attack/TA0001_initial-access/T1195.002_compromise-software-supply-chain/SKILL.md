@@ -82,8 +82,8 @@ kubectl run #{pod_name} --image=#{image_name} --restart=Never --attach --rm -i -
 ```
 
 **Dependencies:**
-- kubectl must be installed and configured
 
+- kubectl must be installed and configured
 
 ### Manual Testing
 
@@ -98,29 +98,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 A patch management process should be implemented to check unused applications, unmaintained and/or previously vulnerable software, unnecessary features, components, files, and documentation.
 
 ### M1016 Vulnerability Scanning
-Continuous monitoring of vulnerability sources and the use of automatic and manual code review tools should also be implemented as well.
 
+Continuous monitoring of vulnerability sources and the use of automatic and manual code review tools should also be implemented as well.
 
 ## Detection
 
 ### Compromised software/update chain (installer/write → first-run/child → egress/signature anomaly)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Software Supply Chain technique applicable | Low | Initial Access |
+| Finding                                               | Severity | Impact         |
+| ----------------------------------------------------- | -------- | -------------- |
+| Compromise Software Supply Chain technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

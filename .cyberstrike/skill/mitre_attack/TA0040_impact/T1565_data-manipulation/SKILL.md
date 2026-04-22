@@ -31,8 +31,7 @@ chains_with:
   - T1565.001
   - T1565.002
   - T1565.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1565.001: "Chain with T1565.001 for deeper attack path"
   T1565.002: "Chain with T1565.002 for deeper attack path"
@@ -77,35 +76,36 @@ The type of modification and the impact it will have depends on the target appli
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 Consider encrypting important information to reduce an adversary’s ability to perform tailored data modifications.
 
 ### M1029 Remote Data Storage
+
 Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and manipulate backups.
 
 ### M1030 Network Segmentation
+
 Identify critical business and system processes that may be targeted by adversaries and work to isolate and secure those systems against unauthorized access and tampering.
 
 ### M1022 Restrict File and Directory Permissions
-Ensure least privilege principles are applied to important information resources to reduce exposure to data manipulation risk.
 
+Ensure least privilege principles are applied to important information resources to reduce exposure to data manipulation risk.
 
 ## Detection
 
 ### Detection Strategy for Data Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Manipulation technique applicable | Low | Impact |
+| Finding                                | Severity | Impact |
+| -------------------------------------- | -------- | ------ |
+| Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

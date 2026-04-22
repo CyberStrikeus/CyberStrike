@@ -12,16 +12,14 @@ tags:
   - pl
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PL-10
   - RA-2
   - RA-3
   - RA-9
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-10: "Chain with PL-10 for comprehensive security coverage"
   RA-2: "Chain with RA-2 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ The concept of tailoring allows organizations to specialize or customize a set o
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-11 Baseline Tailoring not implemented | Medium | Planning |
-| PL-11 partially implemented | Low | Incomplete Planning |
+| Finding                                  | Severity | Impact              |
+| ---------------------------------------- | -------- | ------------------- |
+| PL-11 Baseline Tailoring not implemented | Medium   | Planning            |
+| PL-11 partially implemented              | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

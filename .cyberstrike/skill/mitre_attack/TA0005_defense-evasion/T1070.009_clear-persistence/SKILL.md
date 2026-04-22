@@ -90,29 +90,28 @@ In some instances, artifacts of persistence may also be removed once an adversar
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Protect generated event files that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
 ### M1029 Remote Data Storage
-Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
+Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
 ## Detection
 
 ### Detection of Persistence Artifact Removal Across Host Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clear Persistence technique applicable | Low | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Clear Persistence technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

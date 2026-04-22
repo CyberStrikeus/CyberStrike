@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-778
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - AU-11
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Organizations need to access and read audit records requiring long-term storage 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-11(1) Long-term Retrieval Capability not implemented | Medium | Audit and Accountability |
-| AU-11(1) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                 | Severity | Impact                              |
+| ------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-11(1) Long-term Retrieval Capability not implemented | Medium   | Audit and Accountability            |
+| AU-11(1) partially implemented                          | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

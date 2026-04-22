@@ -86,35 +86,36 @@ An adversary may gain administrative Entra ID privileges if a SAML token is forg
 ## Remediation Guide
 
 ### M1015 Active Directory Configuration
+
 For containing the impact of a previously forged SAML token, rotate the token-signing AD FS certificate in rapid succession twice, which will invalidate any tokens generated using the previous certificate.
 
 ### M1047 Audit
+
 Enable advanced auditing on AD FS. Check the success and failure audit options in the AD FS Management snap-in. Enable Audit Application Generated events on the AD FS farm via Group Policy Object.
 
 ### M1018 User Account Management
+
 Ensure that user accounts with administrative rights follow best practices, including use of privileged access workstations, Just in Time/Just Enough Administration (JIT/JEA), and strong authentication. Reduce the number of users that are members of highly privileged Directory Roles.
 
 ### M1026 Privileged Account Management
-Restrict permissions and access to the AD FS server to only originate from privileged access workstations.
 
+Restrict permissions and access to the AD FS server to only originate from privileged access workstations.
 
 ## Detection
 
 ### Detection Strategy for Forged SAML Tokens
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SAML Tokens technique applicable | High | Credential Access |
+| Finding                          | Severity | Impact            |
+| -------------------------------- | -------- | ----------------- |
+| SAML Tokens technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

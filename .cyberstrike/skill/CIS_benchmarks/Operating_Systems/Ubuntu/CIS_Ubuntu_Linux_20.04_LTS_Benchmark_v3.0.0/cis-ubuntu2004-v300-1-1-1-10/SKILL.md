@@ -54,6 +54,7 @@ WARNING: disabling or denylisting filesystem modules that are in use on the syst
 ### Command Line
 
 Run the following script to:
+
 - Look at the filesystem kernel modules available to the currently running kernel.
 - Exclude mounted filesystem kernel modules that don't currently have a CVE
 - List filesystem kernel modules that are not fully disabled, or are loaded into the kernel
@@ -138,6 +139,7 @@ Example of fully disabling the `gfs2` kernel module:
 ```
 
 Note:
+
 - Disabling a kernel module by modifying the command above for each unused filesystem kernel module
 - The example `gfs2` must be updated with the appropriate module name for the command or example script below to run correctly.
 

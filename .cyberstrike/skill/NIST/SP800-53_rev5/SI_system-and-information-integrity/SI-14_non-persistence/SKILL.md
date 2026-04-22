@@ -22,8 +22,7 @@ chains_with:
   - SC-30
   - SC-34
   - SI-21
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-30: "Chain with SC-30 for comprehensive security coverage"
   SC-34: "Chain with SC-34 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -88,17 +87,16 @@ Non-persistence can be achieved by refreshing system components, periodically re
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-14 Non-persistence not implemented | High | System and Information Integrity |
-| SI-14 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                               | Severity | Impact                                      |
+| ------------------------------------- | -------- | ------------------------------------------- |
+| SI-14 Non-persistence not implemented | High     | System and Information Integrity            |
+| SI-14 partially implemented           | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

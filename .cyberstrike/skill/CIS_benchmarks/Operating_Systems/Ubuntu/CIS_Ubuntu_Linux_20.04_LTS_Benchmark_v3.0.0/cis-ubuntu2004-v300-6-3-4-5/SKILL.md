@@ -10,18 +10,22 @@ severity_boost: {}
 # 6.3.4.5 Ensure audit configuration files mode is configured (Automated)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 Audit configuration files control auditd and what events are audited.
 
 ## Rationale
+
 Access to the audit configuration files could allow unauthorized personnel to prevent the auditing of critical events.
 
 Misconfigured audit configuration files may prevent the auditing of critical events or impact the system's performance by overwhelming the audit log. Misconfiguration of the audit configuration files may also make it more difficult to establish and investigate events relating to an incident.
 
 ## Audit
+
 Run the following script to verify that the audit configuration files are mode `0640` or more restrictive:
 
 ```bash
@@ -46,6 +50,7 @@ Run the following script to verify that the audit configuration files are mode `
 ```
 
 ## Remediation
+
 Run the following command to remove more permissive mode than `0640` from the audit configuration files:
 
 ```bash
@@ -53,13 +58,16 @@ find /etc/audit/ -type f \( -name '*.conf' -o -name '*.rules' \) -exec chmod u-x
 ```
 
 ## References
+
 1. NIST SP 800-53 Rev. 5: AU-3
 
 ## CIS Controls
+
 - v8: 3.3 Configure Data Access Control Lists
 - v7: 14.6 Protect Information through Access Control Lists
 
 ## MITRE ATT&CK Mappings
+
 - **Techniques**: T1070, T1070.002, T1083, T1083.000
 - **Tactics**: TA0007
 - **Mitigations**: M1022

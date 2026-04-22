@@ -21,8 +21,7 @@ chains_with:
   - PS-7
   - SA-4
   - SR-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PS-2: "Chain with PS-2 for comprehensive security coverage"
   PS-3: "Chain with PS-3 for comprehensive security coverage"
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ Developer screening is directed at external developers. Internal developer scree
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-21 Developer Screening not implemented | Medium | System and Services Acquisition |
-| SA-21 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                   | Severity | Impact                                     |
+| ----------------------------------------- | -------- | ------------------------------------------ |
+| SA-21 Developer Screening not implemented | Medium   | System and Services Acquisition            |
+| SA-21 partially implemented               | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

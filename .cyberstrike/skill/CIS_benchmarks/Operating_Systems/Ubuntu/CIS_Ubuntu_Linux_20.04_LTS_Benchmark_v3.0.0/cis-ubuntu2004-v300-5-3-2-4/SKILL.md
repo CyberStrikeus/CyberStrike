@@ -66,7 +66,7 @@ Output should be similar to:
 ```
 
 - IF - similar output is returned:
-Run the following command to update `/etc/pam.d/common-password` with the returned profile:
+  Run the following command to update `/etc/pam.d/common-password` with the returned profile:
 
 ```bash
 # pam-auth-update --enable {PROFILE_NAME}
@@ -79,7 +79,7 @@ Example:
 ```
 
 - IF - similar output is NOT returned:
-Create a `pwhistory` profile in `/usr/share/pam-configs/` with the following lines:
+  Create a `pwhistory` profile in `/usr/share/pam-configs/` with the following lines:
 
 ```
 Name: pwhistory password history checking
@@ -107,6 +107,7 @@ Run the following command to update `/etc/pam.d/common-password` with the `pwhis
 ```
 
 Note:
+
 - The name used for the file must be used in the `pam-auth-update --enable` command
 - The `Name:` line should be easily recognizable and understood
 - The `Priority:` Line is important as it effects the order of the lines in the `/etc/pam.d/` files
@@ -118,13 +119,13 @@ None listed.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 4.4 Use Unique Passwords | | * | * |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | \*   | \*   | \*   |
+| v7               | 4.4 Use Unique Passwords |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1110, T1110.001, T1110.002, T1110.003, T1178.001, T1178.002, T1178.003, T1178.004 | TA0006 | M1027 |
+| Techniques / Sub-techniques                                                        | Tactics | Mitigations |
+| ---------------------------------------------------------------------------------- | ------- | ----------- |
+| T1110, T1110.001, T1110.002, T1110.003, T1178.001, T1178.002, T1178.003, T1178.004 | TA0006  | M1027       |

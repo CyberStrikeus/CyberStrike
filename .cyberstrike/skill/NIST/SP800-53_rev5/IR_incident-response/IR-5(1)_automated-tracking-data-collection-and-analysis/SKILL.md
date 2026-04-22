@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - IR-5
 severity_boost: {}
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,16 +76,16 @@ Automated mechanisms for tracking incidents and collecting and analyzing inciden
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-5(1) Automated Tracking, Data Collection, and Analysis not implemented | Medium | Incident Response |
-| IR-5(1) partially implemented | Low | Incomplete Incident Response |
+| Finding                                                                   | Severity | Impact                       |
+| ------------------------------------------------------------------------- | -------- | ---------------------------- |
+| IR-5(1) Automated Tracking, Data Collection, and Analysis not implemented | Medium   | Incident Response            |
+| IR-5(1) partially implemented                                             | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -24,8 +24,7 @@ cwe_ids:
 chains_with:
   - T1600.001
   - T1600.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1600.001: "Chain with T1600.001 for deeper attack path"
   T1600.002: "Chain with T1600.002 for deeper attack path"
@@ -35,7 +34,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may compromise a network device’s encryption capability in order to bypass encryption that would otherwise protect data communications. 
+Adversaries may compromise a network device’s encryption capability in order to bypass encryption that would otherwise protect data communications.
 
 Encryption can be used to protect transmitted network traffic to maintain its confidentiality (protect against unauthorized disclosure) and integrity (protect against unauthorized changes). Encryption ciphers are used to convert a plaintext message to ciphertext and can be computationally intensive to decipher without the associated decryption key. Typically, longer keys increase the cost of cryptanalysis, or decryption without the key.
 
@@ -73,19 +72,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Weaken Encryption on Network Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Weaken Encryption technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Weaken Encryption technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

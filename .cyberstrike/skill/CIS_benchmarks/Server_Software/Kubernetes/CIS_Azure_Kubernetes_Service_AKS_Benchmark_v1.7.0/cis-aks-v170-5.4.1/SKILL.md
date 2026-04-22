@@ -60,10 +60,7 @@ Output would be similar to:
 {
   "enablePrivateCluster": true,
   "enablePublicFqdn": false,
-  "authorizedIpRanges": [
-    "203.0.113.10/32",
-    "198.51.100.0/24"
-  ]
+  "authorizedIpRanges": ["203.0.113.10/32", "198.51.100.0/24"]
 }
 ```
 
@@ -93,7 +90,7 @@ By default, Endpoint Private Access is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |

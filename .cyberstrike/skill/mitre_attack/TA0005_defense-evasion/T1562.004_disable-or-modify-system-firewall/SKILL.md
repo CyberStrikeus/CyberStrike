@@ -148,7 +148,6 @@ This test will attempt to open a local port defined by input arguments to any pr
 netsh advfirewall firewall add rule name="Open Port to Any" dir=in protocol=tcp localport=#{local_port} action=allow profile=any
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -162,35 +161,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Routinely check account role permissions to ensure only expected users and roles have permission to modify system firewalls.
 
 ### M1018 User Account Management
+
 Ensure proper user permissions are in place to prevent adversaries from disabling or modifying firewall settings.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper Registry permissions are in place to prevent adversaries from disabling or modifying firewall settings.
 
 ### M1022 Restrict File and Directory Permissions
-Ensure proper process and file permissions are in place to prevent adversaries from disabling or modifying firewall settings.
 
+Ensure proper process and file permissions are in place to prevent adversaries from disabling or modifying firewall settings.
 
 ## Detection
 
 ### Detection of Disabled or Modified System Firewalls across OS Platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify System Firewall technique applicable | Low | Defense Evasion |
+| Finding                                                | Severity | Impact          |
+| ------------------------------------------------------ | -------- | --------------- |
+| Disable or Modify System Firewall technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

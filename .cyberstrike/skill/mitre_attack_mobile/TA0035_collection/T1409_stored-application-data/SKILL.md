@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,17 +33,13 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may try to access and collect application data resident on the device. Adversaries often target popular applications, such as Facebook, WeChat, and Gmail. 
+Adversaries may try to access and collect application data resident on the device. Adversaries often target popular applications, such as Facebook, WeChat, and Gmail.
 
- 
+Due to mobile OS sandboxing, this technique is only possible in three scenarios:
 
-Due to mobile OS sandboxing, this technique is only possible in three scenarios: 
-
- 
-
-* An application stores files in unprotected external storage 
-* An application stores files in its internal storage directory with insecure permissions (e.g. 777) 
-* The adversary gains root permissions on the device
+- An application stores files in unprotected external storage
+- An application stores files in its internal storage directory with insecure permissions (e.g. 777)
+- The adversary gains root permissions on the device
 
 ## Kill Chain Phase
 
@@ -74,26 +68,24 @@ Review whether mitigations for T1409 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 9 introduced a new security policy that prevents applications from reading or writing data to other applications’ internal storage directories, regardless of permissions.
 
+Android 9 introduced a new security policy that prevents applications from reading or writing data to other applications’ internal storage directories, regardless of permissions.
 
 ## Detection
 
 ### Detection of Stored Application Data
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Stored Application Data technique applicable | Low | Collection |
+| Finding                                      | Severity | Impact     |
+| -------------------------------------------- | -------- | ---------- |
+| Stored Application Data technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

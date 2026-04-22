@@ -126,6 +126,7 @@ bash #{autosuid}
 ```
 
 **Dependencies:**
+
 - AutoSUID must exist on disk at specified location (#{autosuid})
 
 ### Atomic Test 4: LinEnum tool execution
@@ -140,6 +141,7 @@ bash #{linenum}
 ```
 
 **Dependencies:**
+
 - LinnEnum must exist on disk at specified location (#{linenum})
 
 ### Atomic Test 5: New script file in the tmp directory
@@ -154,7 +156,6 @@ echo "id" > $TMPFILE
 bash $TMPFILE
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -168,26 +169,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Use application control where appropriate. On ESXi hosts, the `execInstalledOnly` feature prevents binaries from being run unless they have been packaged and signed as part of a vSphere installation bundle (VIB).
 
+Use application control where appropriate. On ESXi hosts, the `execInstalledOnly` feature prevents binaries from being run unless they have been packaged and signed as part of a vSphere installation bundle (VIB).
 
 ## Detection
 
 ### Behavioral Detection of Unix Shell Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Unix Shell technique applicable | High | Execution |
+| Finding                         | Severity | Impact    |
+| ------------------------------- | -------- | --------- |
+| Unix Shell technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

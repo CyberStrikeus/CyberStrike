@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,7 +33,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may use legitimate remote access software, such as `VNC`, `TeamViewer`, `AirDroid`, `AirMirror`, etc., to establish an interactive command and control channel to target mobile devices. 
+Adversaries may use legitimate remote access software, such as `VNC`, `TeamViewer`, `AirDroid`, `AirMirror`, etc., to establish an interactive command and control channel to target mobile devices.
 
 Remote access applications may be installed and used post-compromise as an alternate communication channel for redundant access or as a way to establish an interactive remote session with the target device. They may also be used as a component of malware to establish a reverse connection to an adversary-controlled system or service. Installation of remote access tools may also include persistence.
 
@@ -66,29 +64,28 @@ Review whether mitigations for T1663 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 When devices are enrolled in an EMM/MDM using device owner (iOS) or fully managed (Android) mode, the EMM/MDM can collect a list of installed applications on the device. An administrator can then act on, for example blocking, specific remote access applications from being installed on managed devices.
 
 ### M1011 User Guidance
-Users should be encouraged to be very careful with granting dangerous permissions, such as device administrator or access to device accessibility.
 
+Users should be encouraged to be very careful with granting dangerous permissions, such as device administrator or access to device accessibility.
 
 ## Detection
 
 ### Detection of Remote Access Software
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Access Software technique applicable | Low | Command And Control |
+| Finding                                     | Severity | Impact              |
+| ------------------------------------------- | -------- | ------------------- |
+| Remote Access Software technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

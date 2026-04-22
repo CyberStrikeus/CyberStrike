@@ -50,7 +50,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may patch the authentication process on a domain controller to bypass the typical authentication mechanisms and enable access to accounts. 
+Adversaries may patch the authentication process on a domain controller to bypass the typical authentication mechanisms and enable access to accounts.
 
 Malware may be used to inject false credentials into the authentication process on a domain controller with the intent of creating a backdoor used to access any user’s account and/or credentials (ex: Skeleton Key). Skeleton key works through a patch on an enterprise domain controller authentication process (LSASS) with credentials that adversaries may use to bypass the standard authentication system. Once patched, an adversary can use the injected password to successfully authenticate as any domain user account (until the the skeleton key is erased from memory by a reboot of the domain controller). Authenticated access may enable unfettered access to hosts and/or resources within single-factor authentication environments.
 
@@ -91,8 +91,8 @@ Cleanup forces a reboot of the domain controller to evict the skeleton key from 
 ```
 
 **Dependencies:**
-- Mimikatz must be present on the host machine at
 
+- Mimikatz must be present on the host machine at
 
 ### Manual Testing
 
@@ -107,35 +107,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Audit domain and local accounts as well as their permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. These audits should also include if default accounts have been enabled, or if new local accounts are created that have not be authorized. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1025 Privileged Process Integrity
+
 Enabled features, such as Protected Process Light (PPL), for LSA.
 
 ### M1032 Multi-factor Authentication
+
 Integrating multi-factor authentication (MFA) as part of organizational policy can greatly reduce the risk of an adversary gaining control of valid credentials that may be used for additional tactics such as initial access, lateral movement, and collecting information. MFA can also be used to restrict access to cloud resources and APIs.
 
 ### M1017 User Training
-Train users to recognize and handle suspicious email attachments. Emphasize the importance of caution when opening attachments from unknown or unexpected sources, even if they appear legitimate. Implement email warning banners to alert users about emails originating from outside the organization or containing attachments, reinforcing awareness and helping users identify potential spearphishing attempts.
 
+Train users to recognize and handle suspicious email attachments. Emphasize the importance of caution when opening attachments from unknown or unexpected sources, even if they appear legitimate. Implement email warning banners to alert users about emails originating from outside the organization or containing attachments, reinforcing awareness and helping users identify potential spearphishing attempts.
 
 ## Detection
 
 ### Detect Domain Controller Authentication Process Modification (Skeleton Key)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Controller Authentication technique applicable | High | Credential Access |
+| Finding                                               | Severity | Impact            |
+| ----------------------------------------------------- | -------- | ----------------- |
+| Domain Controller Authentication technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -48,9 +48,9 @@ severity_boost:
 
 Adversaries may use utilities to compress and/or encrypt collected data prior to exfiltration. Many utilities include functionalities to compress, encrypt, or otherwise package data into a format that is easier/more secure to transport.
 
-Adversaries may abuse various utilities to compress or encrypt data before exfiltration. Some third party utilities may be preinstalled, such as <code>tar</code> on Linux and macOS or <code>zip</code> on Windows systems. 
+Adversaries may abuse various utilities to compress or encrypt data before exfiltration. Some third party utilities may be preinstalled, such as <code>tar</code> on Linux and macOS or <code>zip</code> on Windows systems.
 
-On Windows, <code>diantz</code> or <code> makecab</code> may be used to package collected files into a cabinet (.cab) file. <code>diantz</code> may also be used to download and compress files from remote locations (i.e. Remote Data Staging). <code>xcopy</code> on Windows can copy files and directories with a variety of options. Additionally, adversaries may use certutil to Base64 encode collected data before exfiltration. 
+On Windows, <code>diantz</code> or <code> makecab</code> may be used to package collected files into a cabinet (.cab) file. <code>diantz</code> may also be used to download and compress files from remote locations (i.e. Remote Data Staging). <code>xcopy</code> on Windows can copy files and directories with a variety of options. Additionally, adversaries may use certutil to Base64 encode collected data before exfiltration.
 
 Adversaries may use also third party utilities, such as 7-Zip, WinRAR, and WinZip, to perform similar activities.
 
@@ -87,6 +87,7 @@ When the test completes you should find the txt files from the %USERPROFILE% dir
 ```
 
 **Dependencies:**
+
 - Rar tool must be installed at specified location (#{rar_exe})
 
 ### Atomic Test 2: Compress Data and lock with password for Exfiltration with winrar
@@ -105,12 +106,13 @@ dir
 ```
 
 **Dependencies:**
+
 - Rar tool must be installed at specified location (#{rar_exe})
 
 ### Atomic Test 3: Compress Data and lock with password for Exfiltration with winzip
 
 Note: Requires winzip installation
-wzzip sample.zip -s"blueblue" *.txt (VARIANT)
+wzzip sample.zip -s"blueblue" \*.txt (VARIANT)
 
 **Supported Platforms:** windows
 
@@ -124,6 +126,7 @@ dir
 ```
 
 **Dependencies:**
+
 - Winzip must be installed
 
 ### Atomic Test 4: Compress Data and lock with password for Exfiltration with 7zip
@@ -141,6 +144,7 @@ dir
 ```
 
 **Dependencies:**
+
 - 7zip tool must be installed at specified location (#{7zip_exe})
 
 ### Atomic Test 5: Data Compressed - nix - zip
@@ -155,8 +159,8 @@ zip #{output_file} #{input_files}
 ```
 
 **Dependencies:**
-- Files to zip must exist (#{input_files})
 
+- Files to zip must exist (#{input_files})
 
 ### Manual Testing
 
@@ -171,26 +175,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
-System scans can be performed to identify unauthorized archival utilities.
 
+System scans can be performed to identify unauthorized archival utilities.
 
 ## Detection
 
 ### Detect Archiving via Utility (T1560.001)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Archive via Utility technique applicable | Low | Collection |
+| Finding                                  | Severity | Impact     |
+| ---------------------------------------- | -------- | ---------- |
+| Archive via Utility technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

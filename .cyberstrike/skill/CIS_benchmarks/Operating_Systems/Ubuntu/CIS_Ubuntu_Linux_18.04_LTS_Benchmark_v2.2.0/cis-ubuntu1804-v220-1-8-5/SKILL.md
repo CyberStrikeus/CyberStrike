@@ -183,13 +183,13 @@ Note: Users must log out and back in again before the system-wide settings take 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.3 Configure Automatic Session Locking on Enterprise Assets | X | X | X |
-| v7 | 16.11 Lock Workstation Sessions After Inactivity | X | X | X |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.3 Configure Automatic Session Locking on Enterprise Assets | X    | X    | X    |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity             | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1456 | TA0027 | M1001 |
+| --------------------------- | ------- | ----------- |
+| T1456                       | TA0027  | M1001       |

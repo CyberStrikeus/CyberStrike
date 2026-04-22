@@ -64,7 +64,7 @@ By default, `--make-iptables-util-chains` argument is set to `true`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software              |      | x    | x    |
+| v7               | 14 Controlled Access Based on the Need to Know |      |      |      |

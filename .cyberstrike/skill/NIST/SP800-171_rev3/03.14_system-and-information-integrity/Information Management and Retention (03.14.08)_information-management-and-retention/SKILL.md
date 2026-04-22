@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -70,10 +68,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -87,17 +85,16 @@ Federal agencies consider data retention requirements for nonfederal organizatio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Information Management and Retention (03.14.08) Information Management and Retention not implemented | High | CUI Protection - System and Information Integrity |
-| Information Management and Retention (03.14.08) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                              | Severity | Impact                                            |
+| ---------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------- |
+| Information Management and Retention (03.14.08) Information Management and Retention not implemented | High     | CUI Protection - System and Information Integrity |
+| Information Management and Retention (03.14.08) partially implemented (POA&M)                        | Medium   | CMMC certification risk                           |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

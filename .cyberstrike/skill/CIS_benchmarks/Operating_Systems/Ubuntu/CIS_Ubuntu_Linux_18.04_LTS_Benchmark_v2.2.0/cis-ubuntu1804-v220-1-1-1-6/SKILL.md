@@ -100,6 +100,7 @@ Run the following script to verify the squashfs module is disabled:
 ```
 
 Note: On operating systems where squashfs is pre-build into the kernel:
+
 - This is considered an acceptable "passing" state
 - The kernel should not be re-compiled to remove squashfs
 - This audit will return as passing state with "module: "squashfs" doesn't exist in ..."
@@ -115,14 +116,17 @@ Note: On operating systems where squashfs is pre-build into the kernel:
 ### Command Line
 
 If the module is available in the running kernel:
+
 - Create a file with `install squashfs /bin/false` in the `/etc/modprobe.d/` directory
 - Create a file with `blacklist squashfs` in the `/etc/modprobe.d/` directory
 - Unload squashfs from the kernel
 
 If available in ANY installed kernel:
+
 - Create a file with `blacklist squashfs` in the `/etc/modprobe.d/` directory
 
 If the kernel module is not available on the system or pre-compiled into the kernel:
+
 - No remediation is necessary
 
 ## Default Value

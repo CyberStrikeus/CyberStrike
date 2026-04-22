@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -67,10 +64,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -85,16 +82,16 @@ A facility can include one or more physical locations containing systems or syst
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Monitoring Physical Access (03.10.02) Monitoring Physical Access not implemented | Medium | CUI Protection - Physical Protection |
-| Monitoring Physical Access (03.10.02) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                                          | Severity | Impact                               |
+| -------------------------------------------------------------------------------- | -------- | ------------------------------------ |
+| Monitoring Physical Access (03.10.02) Monitoring Physical Access not implemented | Medium   | CUI Protection - Physical Protection |
+| Monitoring Physical Access (03.10.02) partially implemented (POA&M)              | Low      | CMMC certification risk              |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

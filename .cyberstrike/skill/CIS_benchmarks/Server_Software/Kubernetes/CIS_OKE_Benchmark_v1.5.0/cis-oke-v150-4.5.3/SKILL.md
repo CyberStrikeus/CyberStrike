@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.5.0 - Control 4.5.3
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Kubernetes provides a default namespace, where objects are placed if no namespace is specified for them. Placing objects in this namespace makes application of RBAC and other controls more difficult.
 
 ## Rationale
+
 Resources in a Kubernetes cluster should be segregated by namespace, to allow for security controls to be applied at that level and to make it easier to manage resources.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -63,26 +67,30 @@ kubectl apply -f <resource.yaml> -n <namespace_name>
 ```
 
 ## Default Value
+
 Unless a namespace is specific, the default namespace will be used.
 
 ## References
+
 1. https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 
 ## Additional Information
+
 Using dedicated namespaces for different workloads provides better isolation, makes RBAC policies easier to implement, and improves overall cluster organization and security posture.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | * | * |
-| v7 | 12.7 Ensure Remote Devices Utilize a VPN and are Connecting to an Enterprise's AAA Infrastructure | | | * |
+| Controls Version | Control                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture                                         |      | \*   | \*   |
+| v7               | 12.7 Ensure Remote Devices Utilize a VPN and are Connecting to an Enterprise's AAA Infrastructure |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1578 | TA0005 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1578                       | TA0005  | M1018       |
 
 ## Profile
+
 **Level 1** (Automated)

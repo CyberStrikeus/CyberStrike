@@ -65,10 +65,10 @@ By default, docker daemon uses `/docker` for fs cgroup driver and `system.slice`
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6 Access Control Management<br>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. | | | |
-| v7 | 18 Application Software Security<br>Application Software Security | | | |
+| Controls Version | Control                                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6 Access Control Management<br>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. |      |      |      |
+| v7               | 18 Application Software Security<br>Application Software Security                                                                                                                                                |      |      |      |
 
 ## Profile/Assessment Status
 

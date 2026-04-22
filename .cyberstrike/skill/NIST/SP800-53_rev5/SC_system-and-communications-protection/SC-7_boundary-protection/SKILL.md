@@ -30,8 +30,7 @@ chains_with:
   - CM-2
   - CM-4
   - CM-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   AC-17: "Chain with AC-17 for comprehensive security coverage"
@@ -76,10 +75,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -95,17 +94,16 @@ Managed interfaces include gateways, routers, firewalls, guards, network-based m
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-7 Boundary Protection not implemented | High | System and Communications Protection |
-| SC-7 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                  | Severity | Impact                                          |
+| ---------------------------------------- | -------- | ----------------------------------------------- |
+| SC-7 Boundary Protection not implemented | High     | System and Communications Protection            |
+| SC-7 partially implemented               | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

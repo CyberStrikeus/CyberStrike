@@ -82,26 +82,24 @@ Adversaries may employ a known symmetric encryption algorithm to conceal command
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detection Strategy for Encrypted Channel via Symmetric Cryptography across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Symmetric Cryptography technique applicable | Low | Command And Control |
+| Finding                                     | Severity | Impact              |
+| ------------------------------------------- | -------- | ------------------- |
+| Symmetric Cryptography technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

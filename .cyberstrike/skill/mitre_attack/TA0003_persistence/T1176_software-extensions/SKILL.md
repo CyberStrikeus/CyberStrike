@@ -30,8 +30,7 @@ cwe_ids:
 chains_with:
   - T1176.001
   - T1176.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1176.001: "Chain with T1176.001 for deeper attack path"
   T1176.002: "Chain with T1176.002 for deeper attack path"
@@ -41,10 +40,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse software extensions to establish persistent access to victim systems. Software extensions are modular components that enhance or customize the functionality of software applications, including web browsers, Integrated Development Environments (IDEs), and other platforms. Extensions are typically installed via official marketplaces, app stores, or manually loaded by users, and they often inherit the permissions and access levels of the host application. 
+Adversaries may abuse software extensions to establish persistent access to victim systems. Software extensions are modular components that enhance or customize the functionality of software applications, including web browsers, Integrated Development Environments (IDEs), and other platforms. Extensions are typically installed via official marketplaces, app stores, or manually loaded by users, and they often inherit the permissions and access levels of the host application.
 
- 
-Malicious extensions can be introduced through various methods, including social engineering, compromised marketplaces, or direct installation by users or by adversaries who have already gained access to a system. Malicious extensions can be named similarly or identically to benign extensions in marketplaces. Security mechanisms in extension marketplaces may be insufficient to detect malicious components, allowing adversaries to bypass automated scanners or exploit trust established during the installation process. Adversaries may also abuse benign extensions to achieve their objectives, such as using legitimate functionality to tunnel data or bypass security controls. 
+Malicious extensions can be introduced through various methods, including social engineering, compromised marketplaces, or direct installation by users or by adversaries who have already gained access to a system. Malicious extensions can be named similarly or identically to benign extensions in marketplaces. Security mechanisms in extension marketplaces may be insufficient to detect malicious components, allowing adversaries to bypass automated scanners or exploit trust established during the installation process. Adversaries may also abuse benign extensions to achieve their objectives, such as using legitimate functionality to tunnel data or bypass security controls.
 
 The modular nature of extensions and their integration with host applications make them an attractive target for adversaries seeking to exploit trusted software ecosystems. Detection can be challenging due to the inherent trust placed in extensions during installation and their ability to blend into normal application workflows.
 
@@ -118,7 +116,6 @@ Expand-Archive extension.zip -Force
 Start-Process .\chrome-win\chrome.exe --load-extension="#{working_dir}\extension\" -PassThru
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -132,38 +129,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Only install extensions from trusted sources that can be verified.
 
 ### M1047 Audit
+
 Ensure extensions that are installed are the intended ones, as many malicious extensions may masquerade as legitimate ones.
 
 ### M1017 User Training
+
 Train users to minimize extension use, and to only install trusted extensions.
 
 ### M1051 Update Software
+
 Ensure operating systems and software are using the most current version.
 
 ### M1038 Execution Prevention
-Set an extension allow or deny list as appropriate for your security policy.
 
+Set an extension allow or deny list as appropriate for your security policy.
 
 ## Detection
 
 ### Detection of Malicious or Unauthorized Software Extensions
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Software Extensions technique applicable | High | Persistence |
+| Finding                                  | Severity | Impact      |
+| ---------------------------------------- | -------- | ----------- |
+| Software Extensions technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

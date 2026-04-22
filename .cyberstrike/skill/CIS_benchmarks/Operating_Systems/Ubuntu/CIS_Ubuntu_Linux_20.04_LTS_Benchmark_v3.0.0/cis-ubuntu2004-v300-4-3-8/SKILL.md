@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.3.8
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -31,6 +32,7 @@ There are two policies: accept (Default) and drop. If the policy is set to `acce
 It is easier to allow list acceptable usage than to deny list unacceptable usage.
 
 Note:
+
 - Allow port 22(ssh) needs to be updated to only allow systems requiring ssh connectivity to connect, as per site policy.
 - Changing firewall settings while connected over network can result in being locked out of the system.
 

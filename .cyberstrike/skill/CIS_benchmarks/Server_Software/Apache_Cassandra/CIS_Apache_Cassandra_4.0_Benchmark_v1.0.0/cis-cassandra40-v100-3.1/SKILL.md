@@ -17,21 +17,27 @@ severity_boost: {}
 # 3.1 Ensure the cassandra and superuser roles are separate
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
 ## Description
+
 The default installation of Cassandra includes a superuser role named `cassandra`. This necessitates the creation of a separate role to be the superuser role.
 
 ## Rationale
+
 Superuser permissions allow for the creation, deletion, and permission management of other users. Considering the cassandra role is well known it should not be a superuser or one which is used for any administrative tasks.
 
 ## Impact
+
 If a separate superuser account is not created and tested for correct functionality prior to removing the superuser role from the `cassandra` account you will no longer be able to perform certain actions, including:
+
 - Create a role with super user status.
 - Perform `DROP` or `CREATE USER` queries.
 
 ## Audit
+
 To verify the configuration, run the following query:
 
 ```sql
@@ -47,6 +53,7 @@ select role from system_auth.roles where is_superuser= True ALLOW FILTERING;
 Looking at the role, verify any show up with is_superuser = True and make sure it is not `cassandra` or any unapproved role. If any are found then, this is a finding.
 
 ## Remediation
+
 To remediate a misconfiguration, perform the following steps:
 
 1. Execute the following command:
@@ -67,17 +74,21 @@ UPDATE system_auth.roles SET is_superuser=null WHERE role='cassandra';
 ```
 
 ## Default Value
+
 N/A
 
 ## References
+
 N/A
 
 ## CIS Controls
+
 - **v8 5.4** Restrict Administrator Privileges to Dedicated Administrator Accounts
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 - **v7 4.3** Ensure the Use of Dedicated Administrative Accounts
   - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities.
 
 ## Profile
+
 - Level 1 - Cassandra | Automated
 - Level 1 - Cassandra on Linux | Automated

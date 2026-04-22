@@ -61,7 +61,7 @@ By default, `--service-account-key-file` argument is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 4.4 Use Unique Passwords | | * | * |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | \*   | \*   | \*   |
+| v7               | 4.4 Use Unique Passwords |      | \*   | \*   |

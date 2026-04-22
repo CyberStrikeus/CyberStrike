@@ -25,7 +25,7 @@ severity_boost: {}
 
 Recent processors in the x86 family support the ability to prevent code execution on a per memory page basis. Generically and on AMD processors, this ability is called No Execute (NX), while on Intel processors it is called Execute Disable (XD). This ability can help prevent exploitation of buffer overflow vulnerabilities and should be activated whenever possible. Extra steps must be taken to ensure that this protection is enabled, particularly on 32-bit x86 systems. Other processors, such as Itanium and POWER, have included such support since inception and the standard kernel for those platforms supports the feature.
 
-*Note: Ensure your system supports the XD or NX bit and has PAE support before implementing this recommendation as this may prevent it from booting if these are not supported by your hardware.*
+_Note: Ensure your system supports the XD or NX bit and has PAE support before implementing this recommendation as this may prevent it from booting if these are not supported by your hardware._
 
 ## Rationale
 
@@ -73,9 +73,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies |
+| Controls Version | Control                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies |
 
 ## Assessment Status
 

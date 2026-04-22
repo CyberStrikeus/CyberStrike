@@ -80,16 +80,16 @@ Compress=yes
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | | | |
-| v8 | 8.3 Ensure Adequate Audit Log Storage | | | |
-| v7 | 6.2 Activate audit logging | | | |
-| v7 | 6.3 Enable Detailed Logging | | | |
-| v7 | 6.4 Ensure adequate storage for logs | | | |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs                |      |      |      |
+| v8               | 8.3 Ensure Adequate Audit Log Storage |      |      |      |
+| v7               | 6.2 Activate audit logging            |      |      |      |
+| v7               | 6.3 Enable Detailed Logging           |      |      |      |
+| v7               | 6.4 Ensure adequate storage for logs  |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1562, T1562.001 | TA0040 | M1053 |
+| --------------------------- | ------- | ----------- |
+| T1562, T1562.001            | TA0040  | M1053       |

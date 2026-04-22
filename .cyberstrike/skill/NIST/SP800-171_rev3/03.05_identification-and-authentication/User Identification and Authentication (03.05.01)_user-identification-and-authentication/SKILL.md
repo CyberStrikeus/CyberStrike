@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-287
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,17 +87,16 @@ System users include individuals (or system processes acting on behalf of indivi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| User Identification and Authentication (03.05.01) User Identification and Authentication not implemented | High | CUI Protection - Identification and Authentication |
-| User Identification and Authentication (03.05.01) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                                  | Severity | Impact                                             |
+| -------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| User Identification and Authentication (03.05.01) User Identification and Authentication not implemented | High     | CUI Protection - Identification and Authentication |
+| User Identification and Authentication (03.05.01) partially implemented (POA&M)                          | Medium   | CMMC certification risk                            |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

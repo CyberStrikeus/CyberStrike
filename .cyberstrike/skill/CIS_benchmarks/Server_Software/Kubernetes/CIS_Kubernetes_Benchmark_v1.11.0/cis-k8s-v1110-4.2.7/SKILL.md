@@ -64,7 +64,7 @@ By default, `--hostname-override` argument is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software                                              |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |

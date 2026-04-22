@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1633.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1633.001: "Chain with T1633.001 for deeper attack path"
 ---
@@ -36,7 +35,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may employ various means to detect and avoid virtualization and analysis environments. This may include changing behaviors after checking for the presence of artifacts indicative of a virtual machine environment (VME) or sandbox. If the adversary detects a VME, they may alter their malware’s behavior to disengage from the victim or conceal the core functions of the payload. They may also search for VME artifacts before dropping further payloads. Adversaries may use the information learned from Virtualization/Sandbox Evasion during automated discovery to shape follow-on behaviors. 
+Adversaries may employ various means to detect and avoid virtualization and analysis environments. This may include changing behaviors after checking for the presence of artifacts indicative of a virtual machine environment (VME) or sandbox. If the adversary detects a VME, they may alter their malware’s behavior to disengage from the victim or conceal the core functions of the payload. They may also search for VME artifacts before dropping further payloads. Adversaries may use the information learned from Virtualization/Sandbox Evasion during automated discovery to shape follow-on behaviors.
 
 Adversaries may use several methods to accomplish Virtualization/Sandbox Evasion such as checking for system artifacts associated with analysis or virtualization. Adversaries may also check for legitimate user activity to help determine if it is in an analysis environment.
 
@@ -71,19 +70,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Virtualization/Sandbox Evasion
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Virtualization/Sandbox Evasion technique applicable | Medium | Defense Evasion |
+| Finding                                             | Severity | Impact          |
+| --------------------------------------------------- | -------- | --------------- |
+| Virtualization/Sandbox Evasion technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may communicate using publish/subscribe (pub/sub) application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. 
+Adversaries may communicate using publish/subscribe (pub/sub) application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server.
 
 Protocols such as <code>MQTT</code>, <code>XMPP</code>, <code>AMQP</code>, and <code>STOMP</code> use a publish/subscribe design, with message distribution managed by a centralized broker. Publishers categorize their messages by topics, while subscribers receive messages according to their subscribed topics. An adversary may abuse publish/subscribe protocols to communicate with systems under their control from behind a message broker while also mimicking normal, expected traffic.
 
@@ -85,29 +85,28 @@ Protocols such as <code>MQTT</code>, <code>XMPP</code>, <code>AMQP</code>, and <
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Consider filtering publish/subscribe protocol requests to untrusted or known bad resources over irregular ports (e.g. MQTT’s standard ports are 1883 or 8883).
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Behavioral Detection of Publish/Subscribe Protocol Misuse for C2
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Publish/Subscribe Protocols technique applicable | Low | Command And Control |
+| Finding                                          | Severity | Impact              |
+| ------------------------------------------------ | -------- | ------------------- |
+| Publish/Subscribe Protocols technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

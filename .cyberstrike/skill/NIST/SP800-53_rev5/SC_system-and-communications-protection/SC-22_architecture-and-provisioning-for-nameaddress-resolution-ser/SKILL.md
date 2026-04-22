@@ -24,8 +24,7 @@ chains_with:
   - SC-20
   - SC-21
   - SC-24
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-2: "Chain with SC-2 for comprehensive security coverage"
   SC-20: "Chain with SC-20 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -86,17 +85,16 @@ Systems that provide name and address resolution services include domain name sy
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-22 Architecture and Provisioning for Name/Address Resolution Service not implemented | High | System and Communications Protection |
-| SC-22 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                                                 | Severity | Impact                                          |
+| --------------------------------------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-22 Architecture and Provisioning for Name/Address Resolution Service not implemented | High     | System and Communications Protection            |
+| SC-22 partially implemented                                                             | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

@@ -69,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ Identity assertions and access tokens are typically digitally signed. The privat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-13(1) Protection of Cryptographic Keys not implemented | High | Identification and Authentication |
-| IA-13(1) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                   | Severity | Impact                                       |
+| --------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-13(1) Protection of Cryptographic Keys not implemented | High     | Identification and Authentication            |
+| IA-13(1) partially implemented                            | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - MP-6
 prerequisites:
@@ -64,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +79,16 @@ Sanitization resistance refers to how resistant media are to non-destructive san
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-7(2) Prohibit Use of Sanitization-resistant Media not implemented | Medium | Media Protection |
-| MP-7(2) partially implemented | Low | Incomplete Media Protection |
+| Finding                                                              | Severity | Impact                      |
+| -------------------------------------------------------------------- | -------- | --------------------------- |
+| MP-7(2) Prohibit Use of Sanitization-resistant Media not implemented | Medium   | Media Protection            |
+| MP-7(2) partially implemented                                        | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

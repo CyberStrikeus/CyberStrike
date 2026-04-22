@@ -88,32 +88,32 @@ Adversaries may combine this technique with Masquerading to blend malicious Auto
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict write access to XDG autostart entries to only select privileged users.
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts so only authorized privileged users can create and modify XDG autostart entries.
 
 ### M1033 Limit Software Installation
-Restrict software installation to trusted repositories only and be cautious of orphaned software packages.
 
+Restrict software installation to trusted repositories only and be cautious of orphaned software packages.
 
 ## Detection
 
 ### Linux Detection Strategy for T1547.013 - XDG Autostart Entries
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| XDG Autostart Entries technique applicable | Low | Persistence |
+| Finding                                    | Severity | Impact      |
+| ------------------------------------------ | -------- | ----------- |
+| XDG Autostart Entries technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

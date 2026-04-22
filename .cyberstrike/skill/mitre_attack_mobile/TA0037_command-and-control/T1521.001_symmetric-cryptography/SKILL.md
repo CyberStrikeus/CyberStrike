@@ -76,19 +76,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Symmetric Cryptography
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Symmetric Cryptography technique applicable | Low | Command And Control |
+| Finding                                     | Severity | Impact              |
+| ------------------------------------------- | -------- | ------------------- |
+| Symmetric Cryptography technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

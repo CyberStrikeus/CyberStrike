@@ -37,8 +37,7 @@ chains_with:
   - T1056.002
   - T1056.003
   - T1056.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1056.001: "Chain with T1056.001 for deeper attack path"
   T1056.002: "Chain with T1056.002 for deeper attack path"
@@ -86,19 +85,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Input Capture Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Input Capture technique applicable | High | Collection |
+| Finding                            | Severity | Impact     |
+| ---------------------------------- | -------- | ---------- |
+| Input Capture technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

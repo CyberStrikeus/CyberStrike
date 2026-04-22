@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SI-10
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ A common vulnerability in organizational systems is unpredictable behavior when 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-10(3) Predictable Behavior not implemented | High | System and Information Integrity |
-| SI-10(3) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                       | Severity | Impact                                      |
+| --------------------------------------------- | -------- | ------------------------------------------- |
+| SI-10(3) Predictable Behavior not implemented | High     | System and Information Integrity            |
+| SI-10(3) partially implemented                | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

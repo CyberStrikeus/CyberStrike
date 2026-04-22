@@ -17,11 +17,12 @@ severity_boost: {}
 # Ensure Only Cipher Suites That Provide Forward Secrecy Are Enabled (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
 
-In cryptography, *forward secrecy* (FS), which is also known as *perfect forward secrecy* (PFS), is a feature of specific key exchange protocols that give assurance that your session keys will not be compromised even if the private key of the server is compromised. Protocols such as RSA do not provide the forward secrecy, while the protocols `ECDHE` (Elliptic-Curve Diffie-Hellman Ephemeral) and the `DHE` (Diffie-Hellman Ephemeral) will provide forward secrecy. The `ECDHE` is the stronger protocol and should be preferred, while the `DHE` may be allowed for greater compatibility with older clients. The TLS ciphers should be configured to require either the `ECDHE` or the `DHE` ephemeral key exchange, while not allowing other cipher suites.
+In cryptography, _forward secrecy_ (FS), which is also known as _perfect forward secrecy_ (PFS), is a feature of specific key exchange protocols that give assurance that your session keys will not be compromised even if the private key of the server is compromised. Protocols such as RSA do not provide the forward secrecy, while the protocols `ECDHE` (Elliptic-Curve Diffie-Hellman Ephemeral) and the `DHE` (Diffie-Hellman Ephemeral) will provide forward secrecy. The `ECDHE` is the stronger protocol and should be preferred, while the `DHE` may be allowed for greater compatibility with older clients. The TLS ciphers should be configured to require either the `ECDHE` or the `DHE` ephemeral key exchange, while not allowing other cipher suites.
 
 ## Rationale
 
@@ -82,14 +83,17 @@ The default value for `SSLCipherSuite` depends on OpenSSL library version used.
 ## CIS Controls
 
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 - 18.5 Use Only Standardized and Extensively Reviewed Encryption Algorithms
   - Use only standardized and extensively reviewed encryption algorithms.
 
 ## Profile
+
 - Level 2

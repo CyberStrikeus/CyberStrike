@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -64,19 +62,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Data Encrypted for Impact
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Encrypted for Impact technique applicable | Low | Impact |
+| Finding                                        | Severity | Impact |
+| ---------------------------------------------- | -------- | ------ |
+| Data Encrypted for Impact technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure All Web Content is Accessed via HTTPS (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -50,13 +51,16 @@ Any URLs which return significant HTML document content, rather than a redirect 
 
 ```html
 === http://www.cisecurity.org/ ===
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
-<html><head>
-<title>301 Moved Permanently</title>
-</head><body>
-<h1>Moved Permanently</h1>
-<p>The document has moved <a href="https://www.cisecurity.org/">here</a>.</p>
-</body></html>
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+  <head>
+    <title>301 Moved Permanently</title>
+  </head>
+  <body>
+    <h1>Moved Permanently</h1>
+    <p>The document has moved <a href="https://www.cisecurity.org/">here</a>.</p>
+  </body>
+</html>
 ```
 
 This compliant example below returns an error, due to using HTTP on a HTTPS website.
@@ -89,14 +93,17 @@ TLS is not enabled by default.
 ## CIS Controls
 
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **v7:**
+
 - 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches
   - Secure Configuration for Network Devices, such as Firewalls, Routers and Switches
 - 14.4 Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 1

@@ -22,8 +22,7 @@ chains_with:
   - PM-9
   - PS-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PS-8: "Chain with PS-8 for comprehensive security coverage"
@@ -68,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Audit and accountability policy and procedures address the controls in the AU fa
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-1 Policy and Procedures not implemented | Medium | Audit and Accountability |
-| AU-1 partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                    | Severity | Impact                              |
+| ------------------------------------------ | -------- | ----------------------------------- |
+| AU-1 Policy and Procedures not implemented | Medium   | Audit and Accountability            |
+| AU-1 partially implemented                 | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

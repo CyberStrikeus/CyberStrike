@@ -76,35 +76,36 @@ SSH Hijacking differs from use of SSH because it hijacks an existing SSH session
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure proper file permissions are set and harden system to prevent root privilege escalation opportunities.
 
 ### M1042 Disable or Remove Feature or Program
+
 Ensure that agent forwarding is disabled on systems that do not explicitly require this feature to prevent misuse.
 
 ### M1027 Password Policies
+
 Ensure SSH key pairs have strong passwords and refrain from using key-store technologies such as ssh-agent unless they are properly protected.
 
 ### M1026 Privileged Account Management
-Do not allow remote access via SSH as root or other privileged accounts.
 
+Do not allow remote access via SSH as root or other privileged accounts.
 
 ## Detection
 
 ### Detection Strategy for SSH Session Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SSH Hijacking technique applicable | High | Lateral Movement |
+| Finding                            | Severity | Impact           |
+| ---------------------------------- | -------- | ---------------- |
+| SSH Hijacking technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

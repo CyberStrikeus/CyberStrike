@@ -69,6 +69,7 @@ true
 ```
 
 Note:
+
 - `gsettings` commands in this section MUST be done from a command window on a graphical desktop or an error will be returned.
 - The system must be restarted after all `gsettings` configurations have been set in order for CIS-CAT Assessor to appropriately assess.
 

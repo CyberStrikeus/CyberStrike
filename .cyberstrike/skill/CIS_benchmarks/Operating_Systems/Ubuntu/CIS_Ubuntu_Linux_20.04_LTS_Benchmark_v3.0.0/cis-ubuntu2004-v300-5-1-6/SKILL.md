@@ -26,6 +26,7 @@ severity_boost: {}
 This variable limits the ciphers that SSH can use during communication.
 
 Notes:
+
 - Some organizations may have stricter requirements for approved ciphers.
 - Ensure that ciphers used are in compliance with site policy.
 - The only "strong" ciphers currently FIPS 140 compliant are:
@@ -77,7 +78,7 @@ Ciphers -3des-cbc,aes128-cbc,aes192-cbc,aes256-cbc,chacha20-poly1305@openssh.com
 ```
 
 - IF - CVE-2023-48795 has been addressed, and it meets local site policy, `chacha20-poly1305@openssh.com` may be removed from the list of excluded ciphers.
-Note: First occurrence of an option takes precedence. If Include locations are enabled, used, and order of precedence is understood in your environment, the entry may be created in a file in Include location.
+  Note: First occurrence of an option takes precedence. If Include locations are enabled, used, and order of precedence is understood in your environment, the entry may be created in a file in Include location.
 
 ## Default Value
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure Only the Necessary SELinux Booleans are Enabled (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -75,14 +76,17 @@ SELinux is not enabled by default.
 ## CIS Controls
 
 **v8:**
+
 - 2.5 Allowlist Authorized Software
   - Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently.
 - 2.7 Allowlist Authorized Scripts
   - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently.
 
 **v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
   - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 
 ## Profile
+
 - Level 2

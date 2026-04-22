@@ -28,8 +28,7 @@ chains_with:
   - T1630.001
   - T1630.002
   - T1630.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1630.001: "Chain with T1630.001 for deeper attack path"
   T1630.002: "Chain with T1630.002 for deeper attack path"
@@ -69,32 +68,32 @@ Review whether mitigations for T1630 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1001 Security Updates
+
 Security updates typically provide patches for vulnerabilities that could be abused by malicious applications.
 
 ### M1011 User Guidance
+
 Inform users that device rooting or granting unnecessary access to the accessibility service presents security risks that could be taken advantage of without their knowledge.
 
 ### M1002 Attestation
-Attestation can detect unauthorized modifications to devices. Mobile security software can then use this information and take appropriate mitigation action.
 
+Attestation can detect unauthorized modifications to devices. Mobile security software can then use this information and take appropriate mitigation action.
 
 ## Detection
 
 ### Detection of Indicator Removal on Host
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indicator Removal on Host technique applicable | Low | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Indicator Removal on Host technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

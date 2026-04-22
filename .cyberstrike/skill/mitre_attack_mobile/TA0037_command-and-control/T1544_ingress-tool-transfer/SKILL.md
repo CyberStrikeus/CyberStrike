@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,19 +66,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Ingress Tool Transfer
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Ingress Tool Transfer technique applicable | Low | Command And Control |
+| Finding                                    | Severity | Impact              |
+| ------------------------------------------ | -------- | ------------------- |
+| Ingress Tool Transfer technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

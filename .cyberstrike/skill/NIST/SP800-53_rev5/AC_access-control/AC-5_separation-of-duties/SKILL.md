@@ -29,8 +29,7 @@ chains_with:
   - IA-2
   - IA-4
   - IA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -93,17 +92,16 @@ Separation of duties addresses the potential for abuse of authorized privileges 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-5 Separation of Duties not implemented | High | Access Control |
-| AC-5 partially implemented | Medium | Incomplete Access Control |
+| Finding                                   | Severity | Impact                    |
+| ----------------------------------------- | -------- | ------------------------- |
+| AC-5 Separation of Duties not implemented | High     | Access Control            |
+| AC-5 partially implemented                | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

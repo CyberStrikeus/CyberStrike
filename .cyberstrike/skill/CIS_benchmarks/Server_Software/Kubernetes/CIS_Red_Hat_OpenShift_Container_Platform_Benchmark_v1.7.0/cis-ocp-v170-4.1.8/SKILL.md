@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 4.1.8
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Ensure that the certificate authorities file ownership is set to `root:root`.
 
 ## Rationale
+
 The certificate authorities file controls the authorities used to validate API requests. You should set its file ownership to maintain the integrity of the file. The file should be owned by `root:root`.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -44,27 +48,31 @@ done
 Verify that the ownership is set to `root:root`.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, in OpenShift 4, the `--client-ca-file` is set to `/etc/kubernetes/kubelet-ca.crt` with ownership `root:root`.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/architecture/control-plane.html#understanding-machine-config-operator_control-plane
 2. https://kubernetes.io/docs/reference/access-authn-authz/authentication/#x509-client-certs
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | * | * | * |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | \*   | \*   | \*   |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                   | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1083, T1222 | TA0005, TA0007 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1083, T1222                | TA0005, TA0007 | M1026       |
 
 ## Profile
+
 **Level 1** (Automated)

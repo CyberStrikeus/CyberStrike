@@ -72,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -89,17 +89,16 @@ Storing auditing information on a system component running a different operating
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-9(7) Store on Component with Different Operating System not implemented | Medium | Audit and Accountability |
-| AU-9(7) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                                    | Severity | Impact                              |
+| -------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-9(7) Store on Component with Different Operating System not implemented | Medium   | Audit and Accountability            |
+| AU-9(7) partially implemented                                              | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

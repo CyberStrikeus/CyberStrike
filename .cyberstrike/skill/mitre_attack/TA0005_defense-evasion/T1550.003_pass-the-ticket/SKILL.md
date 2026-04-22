@@ -84,6 +84,7 @@ Similar to PTH, but attacking Kerberos
 ```
 
 **Dependencies:**
+
 - Mimikatz must exist on disk at specified location (#{mimikatz_exe})
 
 ### Atomic Test 2: Rubeus Kerberos Pass The Ticket
@@ -105,9 +106,9 @@ Remove-Item "PathToAtomicsFolder\..\ExternalPayloads\ticket.kirbi"
 ```
 
 **Dependencies:**
+
 - Rubeus must exist on disk at "PathToAtomicsFolder\..\ExternalPayloads\rubeus.exe"
 - PsExec must exist on disk at "PathToAtomicsFolder\..\ExternalPayloads\PsExec.exe"
-
 
 ### Manual Testing
 
@@ -122,35 +123,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit domain admin account permissions to domain controllers and limited servers. Delegate other admin functions to separate accounts.
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords.
 
 ### M1018 User Account Management
+
 Do not allow a user to be a local administrator for multiple systems.
 
 ### M1015 Active Directory Configuration
-To contain the impact of a previously generated golden ticket, reset the built-in KRBTGT account password twice, which will invalidate any existing golden tickets that have been created with the KRBTGT hash and other Kerberos tickets derived from it. For each domain, change the KRBTGT account password once, force replication, and then change the password a second time. Consider rotating the KRBTGT account password every 180 days.
 
+To contain the impact of a previously generated golden ticket, reset the built-in KRBTGT account password twice, which will invalidate any existing golden tickets that have been created with the KRBTGT hash and other Kerberos tickets derived from it. For each domain, change the KRBTGT account password once, force replication, and then change the password a second time. Consider rotating the KRBTGT account password every 180 days.
 
 ## Detection
 
 ### Detection Strategy for T1550.003 - Pass the Ticket (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Pass the Ticket technique applicable | High | Defense Evasion |
+| Finding                              | Severity | Impact          |
+| ------------------------------------ | -------- | --------------- |
+| Pass the Ticket technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

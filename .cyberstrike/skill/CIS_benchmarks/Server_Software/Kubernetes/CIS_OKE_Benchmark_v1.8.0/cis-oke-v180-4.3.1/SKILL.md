@@ -80,13 +80,13 @@ One example here is Flannel (https://github.com/coreos/flannel) which does not s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.4 Perform Automated Application Patch Management | x | x | x |
-| v7 | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | x | x | x |
+| Controls Version | Control                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.4 Perform Automated Application Patch Management                                            | x    | x    | x    |
+| v7               | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| N/A | N/A | N/A |
+| --------------------------- | ------- | ----------- |
+| N/A                         | N/A     | N/A         |

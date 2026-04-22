@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.8 Ensure the HTTP TRACE Method Is Disabled
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -52,12 +53,13 @@ The `TRACE` method is enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions<br>Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications. | | ● | ● |
-| v7 | 4.7 Limit Access to Script Tools<br>Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities. | | ● | ● |
-| v7 | 7.2 Disable Unnecessary or Unauthorized Browser or Email Client Plugins<br>Uninstall or disable any unauthorized browser or email client plugins or add-on applications. | | ● | ● |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions<br>Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications. |      | ●    | ●    |
+| v7               | 4.7 Limit Access to Script Tools<br>Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.                                     |      | ●    | ●    |
+| v7               | 7.2 Disable Unnecessary or Unauthorized Browser or Email Client Plugins<br>Uninstall or disable any unauthorized browser or email client plugins or add-on applications.                                                                  |      | ●    | ●    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.                            |      | ●    | ●    |
 
 ## Profile
+
 - Level 1 | Automated

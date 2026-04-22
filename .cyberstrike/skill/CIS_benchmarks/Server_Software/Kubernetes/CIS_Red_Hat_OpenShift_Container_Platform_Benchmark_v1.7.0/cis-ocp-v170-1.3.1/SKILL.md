@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 1.3.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Disable profiling, if not needed.
 
 ## Rationale
+
 Profiling allows for the identification of specific performance bottlenecks. It generates a significant amount of program data that could potentially be exploited to uncover system and program details. If you are not experiencing any bottlenecks and do not need the profiler for troubleshooting purposes, it is recommended to turn it off to reduce the potential attack surface.
 
 ## Impact
+
 Profiling information would not be available.
 
 ## Audit Procedure
@@ -109,12 +113,15 @@ oc delete sa permission-test-sa
 ```
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, the operator exposes metrics via metrics service. The metrics are collected from the OpenShift Controller Manager and the Kubernetes Controller Manager and protected by RBAC.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/monitoring/monitoring-overview.html
 2. https://github.com/openshift/cluster-kube-controller-manager-operator/tree/master
 3. https://github.com/openshift/cluster-kube-controller-manager-operator/blob/release-4.5/bindata/bootkube/bootstrap-manifests/kube-controller-manager-pod.yaml
@@ -125,16 +132,17 @@ By default, the operator exposes metrics via metrics service. The metrics are co
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control     |      |      | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078, T1548 | TA0001 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1078, T1548                | TA0001  | M1018       |
 
 ## Profile
+
 **Level 1** (Manual)

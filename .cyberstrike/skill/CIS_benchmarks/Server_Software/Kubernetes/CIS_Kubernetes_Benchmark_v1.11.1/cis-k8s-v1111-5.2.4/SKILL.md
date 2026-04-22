@@ -58,7 +58,7 @@ By default, there are no restrictions on the creation of `hostIPC` containers.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | X | X |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | X | X |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity |      | X    | X    |
+| v7               | 14.1 Segment the Network Based on Sensitivity                 |      | X    | X    |

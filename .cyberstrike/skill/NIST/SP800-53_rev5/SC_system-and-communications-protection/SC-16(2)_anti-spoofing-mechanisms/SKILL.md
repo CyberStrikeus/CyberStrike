@@ -72,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -89,17 +89,16 @@ Some attack vectors operate by altering the security attributes of an informatio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-16(2) Anti-spoofing Mechanisms not implemented | High | System and Communications Protection |
-| SC-16(2) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                           | Severity | Impact                                          |
+| ------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-16(2) Anti-spoofing Mechanisms not implemented | High     | System and Communications Protection            |
+| SC-16(2) partially implemented                    | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

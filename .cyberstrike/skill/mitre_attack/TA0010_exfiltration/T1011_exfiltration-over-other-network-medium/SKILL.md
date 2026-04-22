@@ -29,8 +29,7 @@ cwe_ids:
   - CWE-200
 chains_with:
   - T1011.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1011.001: "Chain with T1011.001 for deeper attack path"
 ---
@@ -73,29 +72,28 @@ Adversaries may choose to do this if they have sufficient access or proximity, a
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable WiFi connection, modem, cellular data connection, Bluetooth, or another radio frequency (RF) channel in local computer security settings or by group policy if it is not needed within an environment.
 
 ### M1028 Operating System Configuration
-Prevent the creation of new network adapters where possible.
 
+Prevent the creation of new network adapters where possible.
 
 ## Detection
 
 ### Detection of Exfiltration Over Alternate Network Interfaces
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Other Network Medium technique applicable | Low | Exfiltration |
+| Finding                                                     | Severity | Impact       |
+| ----------------------------------------------------------- | -------- | ------------ |
+| Exfiltration Over Other Network Medium technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

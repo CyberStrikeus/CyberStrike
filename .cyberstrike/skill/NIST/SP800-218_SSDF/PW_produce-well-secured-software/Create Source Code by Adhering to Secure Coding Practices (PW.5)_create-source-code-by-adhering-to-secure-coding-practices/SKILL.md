@@ -16,10 +16,8 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +59,10 @@ Verify development team understands and follows Create Source Code by Adhering t
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,16 +72,15 @@ Decrease the number of security vulnerabilities in the software, and reduce cost
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Create Source Code by Adhering to Secure Coding Practices (PW.5) Create Source Code by Adhering to Secure Coding Practices not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                                                                                                                                    | Severity | Impact                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------------------------------- |
+| Create Source Code by Adhering to Secure Coding Practices (PW.5) Create Source Code by Adhering to Secure Coding Practices not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

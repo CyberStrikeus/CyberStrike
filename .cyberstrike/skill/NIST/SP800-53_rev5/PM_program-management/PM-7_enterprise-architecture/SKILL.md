@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AU-6
   - PL-2
@@ -23,8 +22,7 @@ chains_with:
   - SA-3
   - SA-8
   - SA-17
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-6: "Chain with AU-6 for comprehensive security coverage"
   PL-2: "Chain with PL-2 for comprehensive security coverage"
@@ -68,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +82,16 @@ The integration of security and privacy requirements and controls into the enter
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-7 Enterprise Architecture not implemented | Medium | Program Management |
-| PM-7 partially implemented | Low | Incomplete Program Management |
+| Finding                                      | Severity | Impact                        |
+| -------------------------------------------- | -------- | ----------------------------- |
+| PM-7 Enterprise Architecture not implemented | Medium   | Program Management            |
+| PM-7 partially implemented                   | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

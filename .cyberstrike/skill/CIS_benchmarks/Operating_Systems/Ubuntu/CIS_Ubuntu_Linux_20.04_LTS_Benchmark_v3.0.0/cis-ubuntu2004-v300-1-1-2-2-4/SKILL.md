@@ -49,8 +49,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/dev/shm`.
-Edit the `/etc/fstab` file and add `noexec` to the fourth field (mounting options) for the `/dev/shm` partition. See the `fstab(5)` manual page for more information.
-Example:
+  Edit the `/etc/fstab` file and add `noexec` to the fourth field (mounting options) for the `/dev/shm` partition. See the `fstab(5)` manual page for more information.
+  Example:
 
 ```
 tmpfs /dev/shm   tmpfs   defaults,rw,nosuid,nodev,noexec,relatime   0 0

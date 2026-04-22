@@ -58,6 +58,7 @@ Run the following command to verify that `maxrepeat` is not set, is `3` or less,
 Nothing should be returned.
 
 Note:
+
 - settings should be configured in only one location for clarity
 - Settings observe an order of precedence:
   - module arguments override the settings in the `/etc/security/pwquality.conf` configuration file
@@ -101,13 +102,13 @@ maxrepeat = 0
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 4.4 Use Unique Passwords | | * | * |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | \*   | \*   | \*   |
+| v7               | 4.4 Use Unique Passwords |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1110, T1110.001, T1110.002, T1110.003, T1178.001, T1178.002, T1178.003, T1178.004 | TA0006 | M1027 |
+| Techniques / Sub-techniques                                                        | Tactics | Mitigations |
+| ---------------------------------------------------------------------------------- | ------- | ----------- |
+| T1110, T1110.001, T1110.002, T1110.003, T1178.001, T1178.002, T1178.003, T1178.004 | TA0006  | M1027       |

@@ -113,9 +113,9 @@ Check if reboot is required:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | X | X |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | X |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs                                     |      | X    | X    |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0007 / M1047

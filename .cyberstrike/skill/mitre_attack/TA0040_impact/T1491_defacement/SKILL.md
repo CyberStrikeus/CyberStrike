@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1491.001
   - T1491.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1491.001: "Chain with T1491.001 for deeper attack path"
   T1491.002: "Chain with T1491.002 for deeper attack path"
@@ -79,26 +78,24 @@ Adversaries may modify visual content available internally or externally to an e
 ## Remediation Guide
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
+Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
 ## Detection
 
 ### Defacement via File and Web Content Modification Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Defacement technique applicable | Low | Impact |
+| Finding                         | Severity | Impact |
+| ------------------------------- | -------- | ------ |
+| Defacement technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

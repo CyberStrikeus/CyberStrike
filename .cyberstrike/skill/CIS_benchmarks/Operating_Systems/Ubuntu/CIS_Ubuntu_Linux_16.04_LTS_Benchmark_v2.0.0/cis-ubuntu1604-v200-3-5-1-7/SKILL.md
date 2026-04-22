@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 3.5.1.7
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 

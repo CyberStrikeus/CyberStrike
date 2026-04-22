@@ -46,7 +46,7 @@ systemctl restart sshd
 
 Run one of the following commands to verify IPv6 is disabled:
 
-*IF IPv6 is disabled through grub:*
+_IF IPv6 is disabled through grub:_
 
 Run the following command:
 
@@ -56,9 +56,9 @@ grep "^\s*linux" /boot/grub/grub.cfg | grep -v "ipv6.disable=1"
 
 No lines should be returned.
 
-*OR*
+_OR_
 
-*IF IPv6 is disabled through sysctl settings:*
+_IF IPv6 is disabled through sysctl settings:_
 
 Run the following commands:
 
@@ -79,12 +79,14 @@ grep -E '^\s*net\.ipv6\.conf\.(all|default)\.disable_ipv6\s*=\s*1\b(\s+#.*)?$' /
 For grub method: no lines should be returned.
 
 For sysctl method:
+
 ```
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 ```
 
 And the grep should return:
+
 ```
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
@@ -96,7 +98,7 @@ net.ipv6.conf.default.disable_ipv6 = 1
 
 Use **one** of the two following methods to disable IPv6 on the system:
 
-*To disable IPv6 through the GRUB2 config:*
+_To disable IPv6 through the GRUB2 config:_
 
 Edit `/etc/default/grub` and add `ipv6.disable=1` to the `GRUB_CMDLINE_LINUX` parameters:
 
@@ -110,9 +112,9 @@ Run the following command to update the grub2 configuration:
 update-grub
 ```
 
-*OR*
+_OR_
 
-*To disable IPv6 through sysctl settings:*
+_To disable IPv6 through sysctl settings:_
 
 Set the following parameters in `/etc/sysctl.conf` or a `/etc/sysctl.d/*` file:
 

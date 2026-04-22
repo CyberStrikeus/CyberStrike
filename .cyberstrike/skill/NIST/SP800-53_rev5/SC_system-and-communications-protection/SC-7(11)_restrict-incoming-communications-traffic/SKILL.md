@@ -68,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -85,17 +85,16 @@ General source address validation techniques are applied to restrict the use of 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-7(11) Restrict Incoming Communications Traffic not implemented | High | System and Communications Protection |
-| SC-7(11) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                           | Severity | Impact                                          |
+| ----------------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-7(11) Restrict Incoming Communications Traffic not implemented | High     | System and Communications Protection            |
+| SC-7(11) partially implemented                                    | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

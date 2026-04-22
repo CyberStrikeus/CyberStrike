@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SA-9
 prerequisites:
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ When the capability of an organization to carry out its mission and business fun
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-2(7) Coordinate with External Service Providers not implemented | Medium | Contingency Planning |
-| CP-2(7) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                                            | Severity | Impact                          |
+| ------------------------------------------------------------------ | -------- | ------------------------------- |
+| CP-2(7) Coordinate with External Service Providers not implemented | Medium   | Contingency Planning            |
+| CP-2(7) partially implemented                                      | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

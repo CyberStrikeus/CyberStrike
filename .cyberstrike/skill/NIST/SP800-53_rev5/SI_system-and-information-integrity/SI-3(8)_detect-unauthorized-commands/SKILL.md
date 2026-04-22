@@ -72,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -90,17 +90,16 @@ Detecting unauthorized commands can be applied to critical interfaces other than
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-3(8) Detect Unauthorized Commands not implemented | High | System and Information Integrity |
-| SI-3(8) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                              | Severity | Impact                                      |
+| ---------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-3(8) Detect Unauthorized Commands not implemented | High     | System and Information Integrity            |
+| SI-3(8) partially implemented                        | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

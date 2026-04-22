@@ -40,7 +40,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may modify Group Policy Objects (GPOs) to subvert the intended discretionary access controls for a domain, usually with the intention of escalating privileges on the domain. Group policy allows for centralized management of user and computer settings in Active Directory (AD). GPOs are containers for group policy settings made up of files stored within a predictable network path `\<DOMAIN>\SYSVOL\<DOMAIN>\Policies\`. 
+Adversaries may modify Group Policy Objects (GPOs) to subvert the intended discretionary access controls for a domain, usually with the intention of escalating privileges on the domain. Group policy allows for centralized management of user and computer settings in Active Directory (AD). GPOs are containers for group policy settings made up of files stored within a predictable network path `\<DOMAIN>\SYSVOL\<DOMAIN>\Policies\`.
 
 Like other objects in AD, GPOs have access controls associated with them. By default all user accounts in the domain have permission to read GPOs. It is possible to delegate GPO access control permissions, e.g. write access, to specific users or groups in the domain.
 
@@ -100,7 +100,6 @@ New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name Enable
 New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name ShellSmartScreenLevel -Force
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -114,29 +113,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Identify and correct GPO permissions abuse opportunities (ex: GPO modification privileges) using auditing tools such as BloodHound (version 1.5.1 and later).
 
 ### M1018 User Account Management
-Consider implementing WMI and security filtering to further tailor which users and computers a GPO will apply to.
 
+Consider implementing WMI and security filtering to further tailor which users and computers a GPO will apply to.
 
 ## Detection
 
 ### Detection of Group Policy Modifications via AD Object Changes and File Activity
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Group Policy Modification technique applicable | High | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Group Policy Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

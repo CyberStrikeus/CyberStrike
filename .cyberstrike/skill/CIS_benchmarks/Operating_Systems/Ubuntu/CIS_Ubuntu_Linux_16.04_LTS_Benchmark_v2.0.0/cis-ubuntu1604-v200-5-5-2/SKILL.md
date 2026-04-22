@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure system accounts are secured
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -44,7 +45,7 @@ awk -F: '$1!~/(root|sync|shutdown|halt|^\+)/ && $3<'"$(awk '/^\s*UID_MIN/{print 
 awk -F: '($1!~/(root|^\+)/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!~/LK?/) {print $1}'
 ```
 
-*Note: The `root`, `sync`, `shutdown`, and `halt` users are exempted from requiring a non-login shell.*
+_Note: The `root`, `sync`, `shutdown`, and `halt` users are exempted from requiring a non-login shell._
 
 ## Remediation
 
@@ -80,9 +81,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 16 Account Monitoring and Control - Account Monitoring and Control |
+| Controls Version | Control                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| v7               | 16 Account Monitoring and Control - Account Monitoring and Control |
 
 ## Profile
 

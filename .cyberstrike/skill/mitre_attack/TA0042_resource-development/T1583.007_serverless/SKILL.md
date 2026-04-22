@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1583/007"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1583
   - T1583.001
@@ -77,25 +76,24 @@ Once acquired, the serverless runtime environment can be leveraged to either res
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Serverless
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Serverless technique applicable | Medium | Resource Development |
+| Finding                         | Severity | Impact               |
+| ------------------------------- | -------- | -------------------- |
+| Serverless technique applicable | Medium   | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

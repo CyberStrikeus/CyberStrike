@@ -63,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,17 +79,16 @@ The principle of self-analysis states that a system component is able to assess 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-8(21) Self-analysis not implemented | Medium | System and Services Acquisition |
-| SA-8(21) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                | Severity | Impact                                     |
+| -------------------------------------- | -------- | ------------------------------------------ |
+| SA-8(21) Self-analysis not implemented | Medium   | System and Services Acquisition            |
+| SA-8(21) partially implemented         | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

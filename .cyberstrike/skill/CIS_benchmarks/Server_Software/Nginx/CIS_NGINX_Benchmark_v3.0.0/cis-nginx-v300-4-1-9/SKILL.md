@@ -17,19 +17,24 @@ severity_boost: {}
 # CIS 4.1.9 — Ensure upstream server traffic is authenticated with a client certificate
 
 ## Profile Applicability
+
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 In a reverse proxy configuration, NGINX acts as a client when communicating with an upstream server. To secure this server-to-server connection based on a Zero Trust principle, **m**utual **TLS** (mTLS) must be used. This is achieved by configuring NGINX to present its own client certificate to the upstream server. The upstream server then authenticates NGINX based on this certificate, ensuring that only trusted proxies can access backend services.
 
 ## Rationale
+
 Authenticating the proxy's connection to the upstream server via a client certificate provides strong, cryptographic proof of identity. This is vastly superior to weaker authentication methods like IP whitelisting, which can be spoofed. In a modern microservices or cloud environment, mTLS is a cornerstone of network security, as it prevents unauthorized services from making requests to sensitive backends, thereby mitigating lateral movement attacks.
 
 ## Impact
+
 Implementing mTLS introduces operational overhead for certificate management. You must have a process (often an internal **P**ublic **K**ey Infrastructure, or PKI) for issuing, renewing, and revoking these client certificates. If the client certificate used by NGINX expires, or if the CA certificate on the upstream server expires, the connection between NGINX and the upstream will fail, leading to a service outage.
 
 ## Audit Procedure
+
 Run the following command to inspect the fully loaded NGINX configuration for the required directives:
 
 ```bash
@@ -42,6 +47,7 @@ Verify that the output includes both `proxy_ssl_certificate` and `proxy_ssl_cert
 **Note:** A complete audit is two-sided. You must also verify that the upstream server is configured to require and validate client certificates against a trusted CA. This part of the audit is outside the scope of the NGINX configuration itself.
 
 ## Remediation
+
 Implementing mTLS requires configuration on both the NGINX proxy (the client) and the upstream server (the server). This example assumes you have a simple internal CA.
 
 **Prerequisite: Create a CA**
@@ -101,24 +107,29 @@ location /api/ {
 ```
 
 ## Default Value
+
 This is not authenticated by default.
 
 ## References
+
 1. https://docs.nginx.com/nginx-instance-manager/system-configuration/secure-traffic/
 2. https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ssl_certificate
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | N | Y | Y |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | N | Y | Y |
+
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            | N    | Y    | Y    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic            | Technique                       |
+| ----------------- | ------------------------------- |
 | Credential Access | T1557 - Adversary-in-the-Middle |
-| Lateral Movement | T1021 - Remote Services |
+| Lateral Movement  | T1021 - Remote Services         |
 
 ## Profile
+
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

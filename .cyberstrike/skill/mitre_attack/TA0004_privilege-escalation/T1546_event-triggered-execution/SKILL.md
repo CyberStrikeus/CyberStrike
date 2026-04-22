@@ -57,8 +57,7 @@ chains_with:
   - T1546.016
   - T1546.017
   - T1546.018
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1546.001: "Chain with T1546.001 for deeper attack path"
   T1546.002: "Chain with T1546.002 for deeper attack path"
@@ -99,7 +98,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Persistence with Custom AutodialDLL
 
-The DLL pointed to by the AutodialDLL registry key is loaded every time a process connects to the internet. Attackers can gain persistent code execution by setting this key to a DLL of their choice. 
+The DLL pointed to by the AutodialDLL registry key is loaded every time a process connects to the internet. Attackers can gain persistent code execution by setting this key to a DLL of their choice.
 
 The sample dll provided, AltWinSock2DLL, will launch the notepad process. Starting and stopping a web browser such as MS Edge or Chrome should result in the dll executing.
 [Blog](https://www.mdsec.co.uk/2022/10/autodialdlling-your-way/)
@@ -112,6 +111,7 @@ Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\WinSock2\Parameters -Na
 ```
 
 **Dependencies:**
+
 - AltWinSock2DLL DLL must exist on disk at specified at PathToAtomicsFolder\T1546\bin\AltWinSock2DLL.dll
 
 ### Atomic Test 2: HKLM - Persistence using CommandProcessor AutoRun key (With Elevation)
@@ -189,7 +189,6 @@ Adding executable of choice will let the executable to auto-execute when during 
 reg add "HKLM\Software\Microsoft\Windows\Windows Error Reporting\Hangs" /v Debugger /t REG_SZ /d "C:\Windows\System32\notepad.exe" /f
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -203,29 +202,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Manage the creation, modification, use, and permissions associated to privileged accounts, including SYSTEM and root.
 
 ### M1051 Update Software
-Perform regular software updates to mitigate exploitation risk.
 
+Perform regular software updates to mitigate exploitation risk.
 
 ## Detection
 
 ### Behavioral Detection of Event Triggered Execution Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Event Triggered Execution technique applicable | High | Privilege Escalation |
+| Finding                                        | Severity | Impact               |
+| ---------------------------------------------- | -------- | -------------------- |
+| Event Triggered Execution technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

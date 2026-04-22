@@ -12,15 +12,13 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PM-9
   - PM-30
   - PS-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PM-30: "Chain with PM-30 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Supply chain risk management policy and procedures address the controls in the S
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-1 Policy and Procedures not implemented | Medium | Supply Chain Risk Management |
-| SR-1 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                    | Severity | Impact                                  |
+| ------------------------------------------ | -------- | --------------------------------------- |
+| SR-1 Policy and Procedures not implemented | Medium   | Supply Chain Risk Management            |
+| SR-1 partially implemented                 | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

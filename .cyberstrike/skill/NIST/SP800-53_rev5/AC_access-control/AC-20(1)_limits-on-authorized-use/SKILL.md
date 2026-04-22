@@ -68,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -87,17 +87,16 @@ Limiting authorized use recognizes circumstances where individuals using externa
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-20(1) Limits on Authorized Use not implemented | High | Access Control |
-| AC-20(1) partially implemented | Medium | Incomplete Access Control |
+| Finding                                           | Severity | Impact                    |
+| ------------------------------------------------- | -------- | ------------------------- |
+| AC-20(1) Limits on Authorized Use not implemented | High     | Access Control            |
+| AC-20(1) partially implemented                    | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

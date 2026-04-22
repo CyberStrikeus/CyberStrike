@@ -148,7 +148,6 @@ sudo chown root #{file_to_setuid}
 sudo chmod g+xs #{file_to_setuid}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -162,26 +161,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-Applications with known vulnerabilities or known shell escapes should not have the setuid or setgid bits set to reduce potential damage if an application is compromised. Additionally, the number of programs with setuid or setgid bits set should be minimized across a system.
 
+Applications with known vulnerabilities or known shell escapes should not have the setuid or setgid bits set to reduce potential damage if an application is compromised. Additionally, the number of programs with setuid or setgid bits set should be minimized across a system.
 
 ## Detection
 
 ### Setuid/Setgid Privilege Abuse Detection (Linux/macOS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Setuid and Setgid technique applicable | High | Privilege Escalation |
+| Finding                                | Severity | Impact               |
+| -------------------------------------- | -------- | -------------------- |
+| Setuid and Setgid technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

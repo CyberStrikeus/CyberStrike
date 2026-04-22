@@ -90,7 +90,7 @@ Google Kubernetes Engine (GKE), both Basic Authentication and Client Certificate
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 16 Account Monitoring and Control | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 16 Account Monitoring and Control                 |      |      |      |

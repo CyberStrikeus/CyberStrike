@@ -87,19 +87,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Dynamic Resolution through DNS Calculation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DNS Calculation technique applicable | Low | Command And Control |
+| Finding                              | Severity | Impact              |
+| ------------------------------------ | -------- | ------------------- |
+| DNS Calculation technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

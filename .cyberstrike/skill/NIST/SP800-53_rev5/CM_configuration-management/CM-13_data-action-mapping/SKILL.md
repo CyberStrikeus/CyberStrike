@@ -28,8 +28,7 @@ chains_with:
   - PT-3
   - RA-3
   - RA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   CM-4: "Chain with CM-4 for comprehensive security coverage"
@@ -73,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -90,17 +89,16 @@ Data actions are system operations that process personally identifiable informat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-13 Data Action Mapping not implemented | Medium | Configuration Management |
-| CM-13 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                   | Severity | Impact                              |
+| ----------------------------------------- | -------- | ----------------------------------- |
+| CM-13 Data Action Mapping not implemented | Medium   | Configuration Management            |
+| CM-13 partially implemented               | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

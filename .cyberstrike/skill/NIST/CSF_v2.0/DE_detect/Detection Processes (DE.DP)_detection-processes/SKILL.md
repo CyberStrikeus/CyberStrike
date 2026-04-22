@@ -18,10 +18,8 @@ tech_stack:
   - siem
 cwe_ids:
   - CWE-778
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -60,10 +58,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -73,16 +71,15 @@ Implement controls that satisfy the Detection Processes outcome per NIST CSF v2.
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Detection Processes (DE.DP) Detection Processes outcome not achieved | High | DETECT Function Gap |
+| Finding                                                              | Severity | Impact              |
+| -------------------------------------------------------------------- | -------- | ------------------- |
+| Detection Processes (DE.DP) Detection Processes outcome not achieved | High     | DETECT Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

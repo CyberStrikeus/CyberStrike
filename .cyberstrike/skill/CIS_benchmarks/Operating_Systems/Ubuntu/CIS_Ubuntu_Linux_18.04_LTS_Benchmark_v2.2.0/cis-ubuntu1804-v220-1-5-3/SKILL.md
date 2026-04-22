@@ -129,13 +129,13 @@ kernel.randomize_va_space = 2
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.5 Enable Anti-Exploitation Features | | X | X |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies | | X | X |
+| Controls Version | Control                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features                                                    |      | X    | X    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1068, T1068.000 | TA0002 | M1050 |
+| --------------------------- | ------- | ----------- |
+| T1068, T1068.000            | TA0002  | M1050       |

@@ -46,8 +46,8 @@ Configure the Cluster Service Account with the appropriate read-only role for AC
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v8 | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets | | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning | | x | x |
+| Controls Version | Control                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists                                 | x    | x    | x    |
+| v8               | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets |      | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning                        |      | x    | x    |

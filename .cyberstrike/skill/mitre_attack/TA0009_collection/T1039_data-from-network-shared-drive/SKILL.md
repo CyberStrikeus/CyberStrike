@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -73,6 +71,7 @@ copy \\#{remote}\C$\#{share_file} %TEMP%\#{local_file}
 ```
 
 **Dependencies:**
+
 - Administrative share must exist on #{remote}
 - "\\#{remote}\C$\#{share_file}" must exist on #{remote}
 
@@ -89,9 +88,9 @@ copy-item -Path "\\#{remote}\C$\#{share_file}" -Destination "$Env:TEMP\#{local_f
 ```
 
 **Dependencies:**
+
 - Administrative share must exist on #{remote}
 - "\\#{remote}\C$\#{share_file}" must exist on #{remote}
-
 
 ### Manual Testing
 
@@ -111,19 +110,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Data from Network Shared Drive
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Network Shared Drive technique applicable | Low | Collection |
+| Finding                                             | Severity | Impact     |
+| --------------------------------------------------- | -------- | ---------- |
+| Data from Network Shared Drive technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

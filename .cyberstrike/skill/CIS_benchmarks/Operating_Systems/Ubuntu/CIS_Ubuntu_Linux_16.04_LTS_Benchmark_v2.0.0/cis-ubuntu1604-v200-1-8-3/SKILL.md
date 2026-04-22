@@ -80,9 +80,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.1 Establish Secure Configurations |
+| Controls Version | Control                             |
+| ---------------- | ----------------------------------- |
+| v7               | 5.1 Establish Secure Configurations |
 
 ## Assessment Status
 

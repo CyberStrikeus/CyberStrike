@@ -26,10 +26,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -37,13 +35,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may abuse clipboard manager APIs to obtain sensitive information copied to the device clipboard. For example, passwords being copied and pasted from a password manager application could be captured by a malicious application installed on the device. 
+Adversaries may abuse clipboard manager APIs to obtain sensitive information copied to the device clipboard. For example, passwords being copied and pasted from a password manager application could be captured by a malicious application installed on the device.
 
- 
-
-On Android, applications can use the `ClipboardManager.OnPrimaryClipChangedListener()` API to register as a listener and monitor the clipboard for changes. However, starting in Android 10, this can only be used if the application is in the foreground, or is set as the device’s default input method editor (IME). 
-
- 
+On Android, applications can use the `ClipboardManager.OnPrimaryClipChangedListener()` API to register as a listener and monitor the clipboard for changes. However, starting in Android 10, this can only be used if the application is in the foreground, or is set as the device’s default input method editor (IME).
 
 On iOS, this can be accomplished by accessing the `UIPasteboard.general.string` field. However, starting in iOS 14, upon accessing the clipboard, the user will be shown a system notification if the accessed text originated in a different application. For example, if the user copies the text of an iMessage from the Messages application, the notification will read “application_name has pasted from Messages” when the text was pasted in a different application.
 
@@ -75,26 +69,24 @@ Review whether mitigations for T1414 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 10 introduced changes to prevent applications from accessing clipboard data if they are not in the foreground or set as the device’s default IME.
 
+Android 10 introduced changes to prevent applications from accessing clipboard data if they are not in the foreground or set as the device’s default IME.
 
 ## Detection
 
 ### Detection of Clipboard Data
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clipboard Data technique applicable | Low | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Clipboard Data technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

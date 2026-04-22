@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-16
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,17 +87,16 @@ When it is known that a system or a system component will be in a high-risk area
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System and Component Configuration for High-Risk Areas (03.04.12) System and Component Configuration for High-Risk Areas not implemented | Medium | CUI Protection - Configuration Management |
-| System and Component Configuration for High-Risk Areas (03.04.12) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                                                                                                  | Severity | Impact                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------- |
+| System and Component Configuration for High-Risk Areas (03.04.12) System and Component Configuration for High-Risk Areas not implemented | Medium   | CUI Protection - Configuration Management |
+| System and Component Configuration for High-Risk Areas (03.04.12) partially implemented (POA&M)                                          | Low      | CMMC certification risk                   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

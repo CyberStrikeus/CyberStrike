@@ -72,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -89,17 +89,16 @@ Requiring the use of non-privileged accounts when accessing nonsecurity function
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-6(2) Non-privileged Access for Nonsecurity Functions not implemented | High | Access Control |
-| AC-6(2) partially implemented | Medium | Incomplete Access Control |
+| Finding                                                                 | Severity | Impact                    |
+| ----------------------------------------------------------------------- | -------- | ------------------------- |
+| AC-6(2) Non-privileged Access for Nonsecurity Functions not implemented | High     | Access Control            |
+| AC-6(2) partially implemented                                           | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

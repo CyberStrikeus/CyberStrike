@@ -51,7 +51,7 @@ severity_boost:
 
 Adversaries may register a device to an adversary-controlled account. Devices may be registered in a multifactor authentication (MFA) system, which handles authentication to the network, or in a device management system, which handles device access and compliance.
 
-MFA systems, such as Duo or Okta, allow users to associate devices with their accounts in order to complete MFA requirements. An adversary that compromises a user’s credentials may enroll a new device in order to bypass initial MFA requirements and gain persistent access to a network. In some cases, the MFA self-enrollment process may require only a username and password to enroll the account's first device or to enroll a device to an inactive account. 
+MFA systems, such as Duo or Okta, allow users to associate devices with their accounts in order to complete MFA requirements. An adversary that compromises a user’s credentials may enroll a new device in order to bypass initial MFA requirements and gain persistent access to a network. In some cases, the MFA self-enrollment process may require only a username and password to enroll the account's first device or to enroll a device to an inactive account.
 
 Similarly, an adversary with existing access to a network may register a device or a virtual machine to Entra ID and/or its device management system, Microsoft Intune, in order to access sensitive data or resources while bypassing conditional access policies.
 
@@ -87,26 +87,24 @@ Devices registered in Entra ID may be able to conduct Internal Spearphishing cam
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
-Require multi-factor authentication to register devices in Entra ID. Configure multi-factor authentication systems to disallow enrolling new devices for inactive accounts. When first enrolling MFA, use conditional access policies to restrict device enrollment to trusted locations or devices, and consider using temporary access passes as an initial MFA solution to enroll a device.
 
+Require multi-factor authentication to register devices in Entra ID. Configure multi-factor authentication systems to disallow enrolling new devices for inactive accounts. When first enrolling MFA, use conditional access policies to restrict device enrollment to trusted locations or devices, and consider using temporary access passes as an initial MFA solution to enroll a device.
 
 ## Detection
 
 ### Suspicious Device Registration via Entra ID or MFA Platform
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Device Registration technique applicable | High | Persistence |
+| Finding                                  | Severity | Impact      |
+| ---------------------------------------- | -------- | ----------- |
+| Device Registration technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

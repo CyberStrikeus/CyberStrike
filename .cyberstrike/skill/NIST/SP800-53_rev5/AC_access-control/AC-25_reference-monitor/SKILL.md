@@ -27,8 +27,7 @@ chains_with:
   - SC-11
   - SC-39
   - SI-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-16: "Chain with AC-16 for comprehensive security coverage"
@@ -72,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ A reference monitor is a set of design requirements on a reference validation me
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-25 Reference Monitor not implemented | High | Access Control |
-| AC-25 partially implemented | Medium | Incomplete Access Control |
+| Finding                                 | Severity | Impact                    |
+| --------------------------------------- | -------- | ------------------------- |
+| AC-25 Reference Monitor not implemented | High     | Access Control            |
+| AC-25 partially implemented             | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

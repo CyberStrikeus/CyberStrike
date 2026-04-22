@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-16
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -73,10 +71,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -93,17 +91,16 @@ Systems can provide a variety of functions and services. Some functions and serv
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Least Functionality (03.04.06) Least Functionality not implemented | Medium | CUI Protection - Configuration Management |
-| Least Functionality (03.04.06) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                            | Severity | Impact                                    |
+| ------------------------------------------------------------------ | -------- | ----------------------------------------- |
+| Least Functionality (03.04.06) Least Functionality not implemented | Medium   | CUI Protection - Configuration Management |
+| Least Functionality (03.04.06) partially implemented (POA&M)       | Low      | CMMC certification risk                   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

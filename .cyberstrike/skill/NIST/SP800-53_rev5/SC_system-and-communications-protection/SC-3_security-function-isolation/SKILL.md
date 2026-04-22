@@ -30,8 +30,7 @@ chains_with:
   - SA-8
   - SA-15
   - SA-17
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ Security functions are isolated from nonsecurity functions by means of an isolat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-3 Security Function Isolation not implemented | High | System and Communications Protection |
-| SC-3 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                          | Severity | Impact                                          |
+| ------------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-3 Security Function Isolation not implemented | High     | System and Communications Protection            |
+| SC-3 partially implemented                       | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

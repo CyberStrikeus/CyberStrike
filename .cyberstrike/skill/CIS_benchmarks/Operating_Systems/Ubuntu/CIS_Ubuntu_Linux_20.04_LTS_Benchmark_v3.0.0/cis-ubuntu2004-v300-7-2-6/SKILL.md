@@ -75,13 +75,13 @@ You can also use the `grpck` command to check for other inconsistencies in the `
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 0.0 Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped |      |      |      |
 
 MITRE ATT&CK Mappings:
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.001, T1078.003 | TA0005 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1078, T1078.001, T1078.003 | TA0005  | M1027       |

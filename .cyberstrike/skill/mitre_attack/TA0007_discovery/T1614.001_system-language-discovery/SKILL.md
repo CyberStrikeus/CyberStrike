@@ -44,7 +44,7 @@ severity_boost:
 
 Adversaries may attempt to gather information about the system language of a victim in order to infer the geographical location of that host. This information may be used to shape follow-on behaviors, including whether the adversary infects the target and/or attempts specific actions. This decision may be employed by malware developers and operators to reduce their risk of attracting the attention of specific law enforcement agencies or prosecution/scrutiny from other entities.
 
-There are various sources of data an adversary could use to infer system language, such as system defaults and keyboard layouts. Specific checks will vary based on the target and/or adversary, but may involve behaviors such as Query Registry and calls to Native API functions. 
+There are various sources of data an adversary could use to infer system language, such as system defaults and keyboard layouts. Specific checks will vary based on the target and/or adversary, but may involve behaviors such as Query Registry and calls to Native API functions.
 
 For example, on a Windows system adversaries may attempt to infer the language of a system by querying the registry key <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Nls\Language</code> or parsing the outputs of Windows API functions <code>GetUserDefaultUILanguage</code>, <code>GetSystemDefaultUILanguage</code>, <code>GetKeyboardLayoutList</code> and <code>GetUserDefaultLangID</code>.
 
@@ -72,7 +72,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Discover System Language by Registry Query
 
-Identify System language by querying the registry on an endpoint. 
+Identify System language by querying the registry on an endpoint.
 
 Upon successful execution, result in number format can be looked up to correlate the language.
 
@@ -136,8 +136,8 @@ language and territory.
 ```
 
 **Dependencies:**
-- Check the location of the locale configuration file.
 
+- Check the location of the locale configuration file.
 
 ### Manual Testing
 
@@ -157,19 +157,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for System Language Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Language Discovery technique applicable | Medium | Discovery |
+| Finding                                        | Severity | Impact    |
+| ---------------------------------------------- | -------- | --------- |
+| System Language Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

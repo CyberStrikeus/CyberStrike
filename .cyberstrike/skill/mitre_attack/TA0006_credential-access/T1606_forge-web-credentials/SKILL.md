@@ -42,8 +42,7 @@ cwe_ids:
 chains_with:
   - T1606.001
   - T1606.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1606.001: "Chain with T1606.001 for deeper attack path"
   T1606.002: "Chain with T1606.002 for deeper attack path"
@@ -91,37 +90,38 @@ Once forged, adversaries may use these web credentials to access resources (ex: 
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Restrict permissions and access to the AD FS server to only originate from privileged access workstations.
 
 ### M1054 Software Configuration
+
 Configure browsers/applications to regularly delete persistent web credentials (such as cookies).
 
 ### M1047 Audit
+
 Administrators should perform an audit of all access lists and the permissions they have been granted to access web applications and services. This should be done extensively on all resources in order to establish a baseline, followed up on with periodic audits of new or updated resources. Suspicious accounts/credentials should be investigated and removed.
- 
+
 Enable advanced auditing on ADFS. Check the success and failure audit options in the ADFS Management snap-in. Enable Audit Application Generated events on the AD FS farm via Group Policy Object.
 
 ### M1018 User Account Management
-Ensure that user accounts with administrative rights follow best practices, including use of privileged access workstations, Just in Time/Just Enough Administration (JIT/JEA), and strong authentication. Reduce the number of users that are members of highly privileged Directory Roles. In AWS environments, prohibit users from calling the `sts:GetFederationToken` API unless explicitly required.
 
+Ensure that user accounts with administrative rights follow best practices, including use of privileged access workstations, Just in Time/Just Enough Administration (JIT/JEA), and strong authentication. Reduce the number of users that are members of highly privileged Directory Roles. In AWS environments, prohibit users from calling the `sts:GetFederationToken` API unless explicitly required.
 
 ## Detection
 
 ### Detection Strategy for Forged Web Credentials
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Forge Web Credentials technique applicable | High | Credential Access |
+| Finding                                    | Severity | Impact            |
+| ------------------------------------------ | -------- | ----------------- |
+| Forge Web Credentials technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

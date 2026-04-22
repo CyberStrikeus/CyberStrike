@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.6.0 - Control 1.2.22
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Retain 10 or an appropriate number of old log files.
 
 ## Rationale
+
 Kubernetes automatically rotates the log files. Retaining old log files ensures that you would have sufficient log data available for carrying out any investigation or correlation. For example, if you have set file size of 100 MB and the number of old log files to keep as 10, you would have approximately 1 GB of log data that you could potentially use for your analysis.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
+
 OpenShift audit works at the API server level, logging all requests coming to the server.
 
 Run the following command to verify the number of retained log files:
@@ -40,12 +45,15 @@ oc get configmap config -n openshift-kube-apiserver -ojson | jq -r '.data["confi
 Verify the output is at least `10`.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, auditing is enabled and the maximum audit log backup is set to `10`.
 
 ## References
+
 1. https://access.redhat.com/solutions/4262201
 2. https://docs.openshift.com/container-platform/latest/security/audit-log-policy-config.html
 3. https://github.com/openshift/cluster-kube-apiserver-operator/blob/master/bindata/v4.1.0/config/defaultconfig.yaml#L165-168
@@ -57,16 +65,17 @@ By default, auditing is enabled and the maximum audit log backup is set to `10`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.3 Ensure Adequate Audit Log Storage | x | x | x |
-| v7 | 6.4 Ensure adequate storage for logs | | x | x |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.3 Ensure Adequate Audit Log Storage | x    | x    | x    |
+| v7               | 6.4 Ensure adequate storage for logs  |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1543 | TA0003, TA0004 | M1047 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1047       |
 
 ## Profile
+
 **Level 1** (Manual)

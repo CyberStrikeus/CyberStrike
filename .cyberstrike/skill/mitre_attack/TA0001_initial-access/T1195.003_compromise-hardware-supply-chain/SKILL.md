@@ -78,26 +78,24 @@ Adversaries may manipulate hardware components in products prior to receipt by a
 ## Remediation Guide
 
 ### M1046 Boot Integrity
-Use Trusted Platform Module technology and a secure or trusted boot process to prevent system integrity from being compromised. Check the integrity of the existing BIOS or EFI to determine if it is vulnerable to modification.
 
+Use Trusted Platform Module technology and a secure or trusted boot process to prevent system integrity from being compromised. Check the integrity of the existing BIOS or EFI to determine if it is vulnerable to modification.
 
 ## Detection
 
 ### Hardware Supply Chain Compromise Detection via Host Status & Boot Integrity Checks
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Hardware Supply Chain technique applicable | High | Initial Access |
+| Finding                                               | Severity | Impact         |
+| ----------------------------------------------------- | -------- | -------------- |
+| Compromise Hardware Supply Chain technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

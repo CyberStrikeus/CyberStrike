@@ -15,8 +15,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-359
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - PT-7
 severity_boost: {}
@@ -62,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,17 +77,16 @@ The [PRIVACT](#18e71fec-c6fd-475a-925a-5d8495cf8455) limits agencies’ ability 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-7(2) First Amendment Information not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-7(2) partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                                             | Severity | Impact                                                                     |
+| --------------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-7(2) First Amendment Information not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-7(2) partially implemented                       | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

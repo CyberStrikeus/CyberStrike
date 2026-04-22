@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - IA-2
   - IA-8
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ Knowing who and what is in the supply chains of organizations is critical to gai
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-4(1) Identity not implemented | Medium | Supply Chain Risk Management |
-| SR-4(1) partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                          | Severity | Impact                                  |
+| -------------------------------- | -------- | --------------------------------------- |
+| SR-4(1) Identity not implemented | Medium   | Supply Chain Risk Management            |
+| SR-4(1) partially implemented    | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

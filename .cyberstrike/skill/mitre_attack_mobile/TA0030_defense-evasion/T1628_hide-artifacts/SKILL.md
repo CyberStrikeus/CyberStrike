@@ -25,8 +25,7 @@ chains_with:
   - T1628.001
   - T1628.002
   - T1628.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1628.001: "Chain with T1628.001 for deeper attack path"
   T1628.002: "Chain with T1628.002 for deeper attack path"
@@ -69,19 +68,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Hide Artifacts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hide Artifacts technique applicable | Low | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Hide Artifacts technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

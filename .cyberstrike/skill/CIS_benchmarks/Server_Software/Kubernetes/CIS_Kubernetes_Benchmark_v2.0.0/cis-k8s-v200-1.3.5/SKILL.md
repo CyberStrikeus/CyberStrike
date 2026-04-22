@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v2.0.0 - Control 1.3.5
 
 ## Profile Applicability
+
 - **Level:** 1 - Master Node
 
 ## Description
+
 Allow pods to verify the API server's serving certificate before establishing connections.
 
 ## Rationale
+
 Processes running within pods that need to contact the API server must verify the API server's serving certificate. Failing to do so could be a subject to man-in-the-middle attacks.
 
 Providing the root certificate for the API server's serving certificate to the controller manager with the `--root-ca-file` argument allows the controller manager to inject the trusted bundle into pods so that they can verify TLS connections to the API server.
 
 ## Impact
+
 You need to setup and maintain root certificate authority file.
 
 ## Audit Procedure
@@ -49,18 +53,21 @@ Edit the Controller Manager pod specification file `/etc/kubernetes/manifests/ku
 ```
 
 ## Default Value
+
 By default, `--root-ca-file` is not set.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kube-controller-manager/
 2. https://github.com/kubernetes/kubernetes/issues/11000
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit<br/>Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). | | ● | ● |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit<br/>Encrypt all sensitive information in transit. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit<br/>Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). |      | ●    | ●    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit<br/>Encrypt all sensitive information in transit.                                                                                |      | ●    | ●    |
 
 ## Profile
+
 **Level 1 - Master Node** (Automated)

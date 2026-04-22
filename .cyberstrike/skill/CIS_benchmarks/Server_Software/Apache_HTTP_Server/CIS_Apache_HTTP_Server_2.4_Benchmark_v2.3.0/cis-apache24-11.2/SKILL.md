@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure Apache Processes Run in the httpd_t Confined Context (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -97,12 +98,15 @@ SELinux is not enabled by default.
 ## CIS Controls
 
 **v8:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 
 **v7:**
+
 - 1.7 Deploy Port Level Access Control
   - Utilize port level access control, following 802.1x standards, to control which devices can authenticate to the network. The authentication system shall be tied into the hardware asset inventory data to ensure only authorized devices can connect to the network.
 
 ## Profile
+
 - Level 2

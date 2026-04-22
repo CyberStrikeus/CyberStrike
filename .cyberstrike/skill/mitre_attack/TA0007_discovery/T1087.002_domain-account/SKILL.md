@@ -118,6 +118,7 @@ Invoke-Expression "#{adrecon_path}"
 ```
 
 **Dependencies:**
+
 - ADRecon must exist on disk at specified location (#{adrecon_path})
 
 ### Atomic Test 5: Adfind -Listing password policy
@@ -132,8 +133,8 @@ reference- http://www.joeware.net/freetools/tools/adfind/, https://social.techne
 ```
 
 **Dependencies:**
-- AdFind.exe must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\AdFind.exe)
 
+- AdFind.exe must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\AdFind.exe)
 
 ### Manual Testing
 
@@ -148,26 +149,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-Prevent administrator accounts from being enumerated when an application is elevating through UAC since it can lead to the disclosure of account names. The Registry key is located at <code>HKLM\ SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\EnumerateAdministrators</code>. It can be disabled through GPO: Computer Configuration > [Policies] > Administrative Templates > Windows Components > Credential User Interface: Enumerate administrator accounts on elevation.
 
+Prevent administrator accounts from being enumerated when an application is elevating through UAC since it can lead to the disclosure of account names. The Registry key is located at <code>HKLM\ SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\EnumerateAdministrators</code>. It can be disabled through GPO: Computer Configuration > [Policies] > Administrative Templates > Windows Components > Credential User Interface: Enumerate administrator accounts on elevation.
 
 ## Detection
 
 ### Domain Account Enumeration Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Account technique applicable | High | Discovery |
+| Finding                             | Severity | Impact    |
+| ----------------------------------- | -------- | --------- |
+| Domain Account technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -69,16 +69,16 @@ By default, there are no restrictions on the creation of `hostPID` containers.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.10 Perform Application Layer Filtering | | | X |
-| v7 | 12.9 Deploy Application Layer Filtering Proxy Server | | | X |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering            |      |      | X    |
+| v7               | 12.9 Deploy Application Layer Filtering Proxy Server |      |      | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.002 | TA0001, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1078, T1078.002            | TA0001, TA0004 | M1026       |
 
 ---
 

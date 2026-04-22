@@ -97,7 +97,7 @@ Reference: https://github.com/nathanlopez/Stitch/blob/master/PyLib/askpass.py
 **Supported Platforms:** windows
 
 ```powershell
-# Creates GUI to prompt for password. Expect long pause before prompt is available.    
+# Creates GUI to prompt for password. Expect long pause before prompt is available.
 $cred = $host.UI.PromptForCredential('Windows Security Update', '',[Environment]::UserName, [Environment]::UserDomainName)
 # Using write-warning to allow message to show on console as echo and other similar commands are not visable from the Invoke-AtomicTest framework.
 write-warning $cred.GetNetworkCredential().Password
@@ -115,7 +115,6 @@ PWD_SPOOF=$(osascript -e 'display dialog "To perform a security update MacOS nee
 echo $PWD_SPOOF
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -129,26 +128,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1017 User Training
-Use user training as a way to bring awareness and raise suspicion for potentially malicious events and dialog boxes (ex: Office documents prompting for credentials).
 
+Use user training as a way to bring awareness and raise suspicion for potentially malicious events and dialog boxes (ex: Office documents prompting for credentials).
 
 ## Detection
 
 ### Behavioral Detection of Spoofed GUI Credential Prompts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| GUI Input Capture technique applicable | High | Collection |
+| Finding                                | Severity | Impact     |
+| -------------------------------------- | -------- | ---------- |
+| GUI Input Capture technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

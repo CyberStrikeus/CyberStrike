@@ -65,9 +65,9 @@ Not applicable.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization<br>Remove sensitive data or systems not regularly accessed by the organization from the network. These systems shall only be used as stand alone systems (disconnected from the network) by the business unit needing to occasionally use the system or completely virtualized and powered off until needed. |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization<br>Remove sensitive data or systems not regularly accessed by the organization from the network. These systems shall only be used as stand alone systems (disconnected from the network) by the business unit needing to occasionally use the system or completely virtualized and powered off until needed. |
 
 ## Assessment Status
 

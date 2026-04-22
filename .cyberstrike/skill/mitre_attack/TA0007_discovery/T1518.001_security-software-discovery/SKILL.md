@@ -83,7 +83,7 @@ and specific security software.
 **Supported Platforms:** windows
 
 ```cmd
-netsh.exe advfirewall  show allprofiles 
+netsh.exe advfirewall  show allprofiles
 netsh.exe advfirewall firewall dump
 netsh.exe advfirewall show currentprofile
 netsh.exe advfirewall firewall show rule name=all
@@ -108,7 +108,7 @@ Methods to identify Security Software on an endpoint
 
 when sucessfully executed, powershell is going to processes related AV products if they are running.
 Note that, depending on the privilege of current user, get-process | ?{$_.Description -like "*"} may not return the processes related to AV products of the check.
-For instance, only with Administrator right, you can see the process description of McAffee processes. Hence, it is better to use get-process | ?{$_.ProcessName -like "*"},
+For instance, only with Administrator right, you can see the process description of McAffee processes. Hence, it is better to use get-process | ?{$\_.ProcessName -like "\*"},
 if you know the name of those processes.
 
 **Supported Platforms:** windows
@@ -126,7 +126,7 @@ get-process | Where-Object { $_.ProcessName -eq "Sysmon" }
 ### Atomic Test 3: Security Software Discovery - ps (macOS)
 
 Methods to identify Security Software on an endpoint
-when sucessfully executed, command shell  is going to display AV/Security software it is running.
+when sucessfully executed, command shell is going to display AV/Security software it is running.
 
 **Supported Platforms:** macos
 
@@ -137,7 +137,7 @@ ps aux | egrep 'Little\ Snitch|CbOsxSensorService|falcond|nessusd|santad|CbDefen
 ### Atomic Test 4: Security Software Discovery - ps (Linux)
 
 Methods to identify Security Software on an endpoint
-when sucessfully executed, command shell  is going to display AV/Security software it is running.
+when sucessfully executed, command shell is going to display AV/Security software it is running.
 
 **Supported Platforms:** linux
 
@@ -155,7 +155,6 @@ when sucessfully executed, command shell is going to display AV/Security softwar
 ```bash
 pgrep -l 'bareos-fd|icinga2|cbagentd|wazuh-agent|packetbeat|filebeat|osqueryd'
 ```
-
 
 ### Manual Testing
 
@@ -175,19 +174,17 @@ No specific mitigations documented for this technique.
 
 ### Security Software Discovery Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Security Software Discovery technique applicable | Medium | Discovery |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Security Software Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

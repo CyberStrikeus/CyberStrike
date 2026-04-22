@@ -26,10 +26,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -69,29 +67,28 @@ Review whether mitigations for T1661 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 Enterprises can provision policies to mobile devices for application allow-listing, ensuring only approved applications are installed onto mobile devices.
 
 ### M1006 Use Recent OS Version
-Android 11 and above implement application hibernation, which can hibernate an application that has not been used for a few months and can reset the application’s permission requests.
 
+Android 11 and above implement application hibernation, which can hibernate an application that has not been used for a few months and can reset the application’s permission requests.
 
 ## Detection
 
 ### Detection of Application Versioning
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Versioning technique applicable | Low | Initial Access |
+| Finding                                     | Severity | Impact         |
+| ------------------------------------------- | -------- | -------------- |
+| Application Versioning technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

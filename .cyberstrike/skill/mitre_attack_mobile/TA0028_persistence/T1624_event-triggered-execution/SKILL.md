@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-276
 chains_with:
   - T1624.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1624.001: "Chain with T1624.001 for deeper attack path"
 ---
@@ -33,7 +32,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence using system mechanisms that trigger execution based on specific events. Mobile operating systems have means to subscribe to events such as receiving an SMS message, device boot completion, or other device activities. 
+Adversaries may establish persistence using system mechanisms that trigger execution based on specific events. Mobile operating systems have means to subscribe to events such as receiving an SMS message, device boot completion, or other device activities.
 
 Adversaries may abuse these mechanisms as a means of maintaining persistent access to a victim via automatically and repeatedly executing malicious code. After gaining access to a victim’s system, adversaries may create or modify event triggers to point to malicious content that will be executed whenever the event trigger is invoked.
 
@@ -63,26 +62,24 @@ Review whether mitigations for T1624 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 8 introduced additional limitations on the implicit intents that an application can register for.
 
+Android 8 introduced additional limitations on the implicit intents that an application can register for.
 
 ## Detection
 
 ### Detection of Event Triggered Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Event Triggered Execution technique applicable | Low | Persistence |
+| Finding                                        | Severity | Impact      |
+| ---------------------------------------------- | -------- | ----------- |
+| Event Triggered Execution technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

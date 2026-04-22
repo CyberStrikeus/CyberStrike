@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AC-7
@@ -26,8 +25,7 @@ chains_with:
   - PM-22
   - SI-12
   - SI-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-7: "Chain with AC-7 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,16 +87,16 @@ Media sanitization applies to all digital and non-digital system media subject t
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-6 Media Sanitization not implemented | Medium | Media Protection |
-| MP-6 partially implemented | Low | Incomplete Media Protection |
+| Finding                                 | Severity | Impact                      |
+| --------------------------------------- | -------- | --------------------------- |
+| MP-6 Media Sanitization not implemented | Medium   | Media Protection            |
+| MP-6 partially implemented              | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

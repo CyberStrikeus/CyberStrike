@@ -54,6 +54,7 @@ Example output:
 ```
 
 Note:
+
 - Output is generated as <CONFIGURATION_FILE>:<PARAMETER>
 - Files are listed in order of precedence. If the same parameter is listed multiple times, only the first occurrence will be used be the `rsyslog` daemon
 
@@ -102,14 +103,14 @@ Not specifically configured by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | | | |
-| v7 | 6.2 Activate audit logging | | | |
-| v7 | 6.3 Enable Detailed Logging | | | |
+| Controls Version | Control                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs      |      |      |      |
+| v7               | 6.2 Activate audit logging  |      |      |      |
+| v7               | 6.3 Enable Detailed Logging |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002 | TA0005 | M1047 |
+| --------------------------- | ------- | ----------- |
+| T1070, T1070.002            | TA0005  | M1047       |

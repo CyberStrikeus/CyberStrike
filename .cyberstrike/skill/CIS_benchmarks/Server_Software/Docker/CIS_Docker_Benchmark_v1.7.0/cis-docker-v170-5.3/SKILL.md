@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.3
 
 ## Profile Applicability
+
 - Level 2 - Docker - Linux
 
 ## Description
+
 SELinux is an effective and easy-to-use Linux application security system. It is available by default on some distributions such as Red Hat and Fedora.
 
 ## Rationale
+
 SELinux provides a Mandatory Access Control (MAC) system that greatly augments the default Discretionary Access Control (DAC) model. You can therefore add an extra layer of safety to your containers by enabling SELinux on your Linux host.
 
 ## Impact
+
 Any restrictions defined in the SELinux policy will be applied to your containers. It should be noted that if your SELinux policy is misconfigured, this may have an impact on the correct operation of the affected containers.
 
 ## Audit Procedure
@@ -66,9 +70,11 @@ docker run --interactive --tty --security-opt label=level:TopSecret centos /bin/
 ```
 
 ## Default Value
+
 By default, no SELinux security options are applied on containers.
 
 ## References
+
 1. https://docs.docker.com/engine/security/#other-kernel-security-features
 2. https://docs.docker.com/engine/reference/run/#security-configuration
 3. https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux_atomic_host/7/html/container_security_guide/docker_selinux_security_policy
@@ -76,10 +82,13 @@ By default, no SELinux security options are applied on containers.
 ## CIS Controls
 
 **v8:**
+
 - 10.5 Enable Anti-Exploitation Features - Enable anti-exploitation features on enterprise assets and software, where possible, such as Microsoft® Data Execution Prevention (DEP), Windows® Defender Exploit Guard (WDEG), or Apple® System Integrity Protection (SIP) and Gatekeeper™.
 
 **v7:**
+
 - 5.2 Maintain Secure Images - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.
 
 ## Assessment Status
+
 Manual

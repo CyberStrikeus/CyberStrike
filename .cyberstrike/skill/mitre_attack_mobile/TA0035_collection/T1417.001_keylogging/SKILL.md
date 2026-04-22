@@ -47,9 +47,9 @@ Adversaries may log user keystrokes to intercept credentials or other informatio
 
 Some methods of keylogging include:
 
-* Masquerading as a legitimate third-party keyboard to record user keystrokes. On both Android and iOS, users must explicitly authorize the use of third-party keyboard apps. Users should be advised to use extreme caution before granting this authorization when it is requested.
-* Abusing accessibility features. On Android, adversaries may abuse accessibility features to record keystrokes by registering an `AccessibilityService` class, overriding the `onAccessibilityEvent` method, and listening for the `AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED` event type. The event object passed into the function will contain the data that the user typed. 
-*Additional methods of keylogging may be possible if root access is available.
+- Masquerading as a legitimate third-party keyboard to record user keystrokes. On both Android and iOS, users must explicitly authorize the use of third-party keyboard apps. Users should be advised to use extreme caution before granting this authorization when it is requested.
+- Abusing accessibility features. On Android, adversaries may abuse accessibility features to record keystrokes by registering an `AccessibilityService` class, overriding the `onAccessibilityEvent` method, and listening for the `AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED` event type. The event object passed into the function will contain the data that the user typed.
+  \*Additional methods of keylogging may be possible if root access is available.
 
 ## Kill Chain Phase
 
@@ -79,29 +79,28 @@ Review whether mitigations for T1417.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 When using Samsung Knox, third-party keyboards must be explicitly added to an allow list in order to be available to the end-user.
 
 ### M1011 User Guidance
-Users should be wary of granting applications dangerous or privacy-intrusive permissions, such as keyboard registration or accessibility service access.
 
+Users should be wary of granting applications dangerous or privacy-intrusive permissions, such as keyboard registration or accessibility service access.
 
 ## Detection
 
 ### Detection of Keylogging
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Keylogging technique applicable | High | Collection |
+| Finding                         | Severity | Impact     |
+| ------------------------------- | -------- | ---------- |
+| Keylogging technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

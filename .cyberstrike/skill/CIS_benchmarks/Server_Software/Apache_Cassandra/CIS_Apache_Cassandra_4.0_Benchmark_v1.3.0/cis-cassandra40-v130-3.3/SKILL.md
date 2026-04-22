@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.3 Ensure there are no unnecessary roles or excessive privileges
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
@@ -55,8 +56,10 @@ Remove any unnecessary roles and/or permissions in accordance with organizationa
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 6.8 Define and Maintain Role-Based Access Control
   - Define and maintain role-based access control, through determining and documenting the access rights necessary for each role within the enterprise to successfully carry out its assigned duties. Perform access control reviews of enterprise assets to validate that all privileges are authorized, on a recurring schedule at a minimum annually, or more frequently.
 
 ## Profile
+
 - Level 1 | Manual

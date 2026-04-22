@@ -75,10 +75,12 @@ The default value for the `server.info` attribute is Apache Tomcat/<version>. Fo
 ## CIS Controls
 
 **v8:**
+
 - 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure
   - Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, and SaaS components. Do not allow in-house developed software to weaken configuration hardening.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 - 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization

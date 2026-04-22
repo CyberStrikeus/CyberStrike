@@ -93,29 +93,28 @@ An adversary may set this property at various scopes through Local Group Policy 
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Audit domain and local accounts as well as their permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. These audits should also include if default accounts have been enabled, or if new local accounts are created that have not be authorized. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1027 Password Policies
-Ensure that <code>AllowReversiblePasswordEncryption</code> property is set to disabled unless there are application requirements.
 
+Ensure that <code>AllowReversiblePasswordEncryption</code> property is set to disabled unless there are application requirements.
 
 ## Detection
 
 ### Detect Modification of Authentication Process via Reversible Encryption
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Reversible Encryption technique applicable | High | Credential Access |
+| Finding                                    | Severity | Impact            |
+| ------------------------------------------ | -------- | ----------------- |
+| Reversible Encryption technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

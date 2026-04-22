@@ -13,15 +13,15 @@ This directory contains **26 SKILL.md files** for the CIS Redhat OpenShift Virtu
 
 ## Control Breakdown by Section
 
-| Section | Title | Controls |
-|---------|-------|----------|
-| 1 | Platform Configuration | 14 |
-| 2 | Virtual Machine Configuration | 2 |
-| 3 | Storage Components | 3 |
-| 4 | Networking Components | 3 |
-| 5 | Host Firmware (KVM options) | 1 |
-| 6 | Host Kernel | 3 |
-| **Total** | | **26** |
+| Section   | Title                         | Controls |
+| --------- | ----------------------------- | -------- |
+| 1         | Platform Configuration        | 14       |
+| 2         | Virtual Machine Configuration | 2        |
+| 3         | Storage Components            | 3        |
+| 4         | Networking Components         | 3        |
+| 5         | Host Firmware (KVM options)   | 1        |
+| 6         | Host Kernel                   | 3        |
+| **Total** |                               | **26**   |
 
 ## Scope
 
@@ -54,6 +54,7 @@ Example: `cis-ocp-vm-v100-1-1/SKILL.md` for control 1.1
 ## Source Document
 
 **CIS Redhat OpenShift Virtual Machine Extension Benchmark v1.0.0**
+
 - Platform: Red Hat OpenShift Virtualization (OCPvirt) / KubeVirt
 - Original PDF: `CIS_Redhat_OpenShift_Virtual_Machine_Extension_Benchmark_V1.0.0_PDF.pdf`
 

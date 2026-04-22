@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure password creation requirements are configured
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -33,8 +34,7 @@ The following options are set in the `/etc/security/pwquality.conf` file:
 - **Password complexity:**
   - `minclass = 4` - The minimum number of required classes of characters for the new password (digits, uppercase, lowercase, others)
 
-  *OR*
-
+  _OR_
   - `dcredit = -1` - provide at least one digit
   - `ucredit = -1` - provide at least one uppercase character
   - `ocredit = -1` - provide at least one special character
@@ -76,7 +76,7 @@ grep '^\s*minclass\s*' /etc/security/pwquality.conf
 minclass = 4
 ```
 
-*OR*
+_OR_
 
 ```bash
 grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf
@@ -125,7 +125,7 @@ Edit the file `/etc/security/pwquality.conf` and add or modify the following lin
 minclass = 4
 ```
 
-*OR*
+_OR_
 
 ```
 dcredit = -1
@@ -152,9 +152,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 4.4 Use Unique Passwords - Where multi-factor authentication is not supported (such as local administrator, root, or service accounts), accounts will use passwords that are unique to that system. |
+| Controls Version | Control                                                                                                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 4.4 Use Unique Passwords - Where multi-factor authentication is not supported (such as local administrator, root, or service accounts), accounts will use passwords that are unique to that system. |
 
 ## Profile
 

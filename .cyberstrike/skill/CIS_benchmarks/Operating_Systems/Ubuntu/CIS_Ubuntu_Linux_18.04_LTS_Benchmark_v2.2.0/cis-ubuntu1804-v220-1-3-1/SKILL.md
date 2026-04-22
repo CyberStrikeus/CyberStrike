@@ -72,14 +72,14 @@ Site policy may mandate a testing period before install onto production systems 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.3 Perform Automated Operating System Patch Management | X | X | X |
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools | X | X | X |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools | X | X | X |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.3 Perform Automated Operating System Patch Management      | X    | X    | X    |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools | X    | X    | X    |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools         | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1211, T1211.000 | TA0004, TA0008 | M1051 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1211, T1211.000            | TA0004, TA0008 | M1051       |

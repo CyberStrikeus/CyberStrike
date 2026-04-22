@@ -112,6 +112,7 @@ systemd-run --user --unit=Atomic-Red-Team --on-calendar '*:0/1' /bin/sh -c 'echo
 ```
 
 **Dependencies:**
+
 - Check if systemd-run exists on the machine
 
 ### Atomic Test 3: Create a system level transient systemd service and timer
@@ -126,8 +127,8 @@ systemd-run --unit=Atomic-Red-Team --on-calendar '*:0/1' /bin/sh -c 'echo "$(dat
 ```
 
 **Dependencies:**
-- Check if systemd-run exists on the machine
 
+- Check if systemd-run exists on the machine
 
 ### Manual Testing
 
@@ -142,32 +143,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict read/write access to systemd <code>.timer</code> unit files to only select privileged users who have a legitimate need to manage system services.
 
 ### M1018 User Account Management
+
 Limit user access to system utilities such as 'systemctl' or 'systemd-run' to users who have a legitimate need.
 
 ### M1026 Privileged Account Management
-Limit access to the root account and prevent users from creating and/or modifying systemd timer unit files.
 
+Limit access to the root account and prevent users from creating and/or modifying systemd timer unit files.
 
 ## Detection
 
 ### Behavioral Detection of Systemd Timer Abuse for Scheduled Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Systemd Timers technique applicable | High | Execution |
+| Finding                             | Severity | Impact    |
+| ----------------------------------- | -------- | --------- |
+| Systemd Timers technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

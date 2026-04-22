@@ -65,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,17 +83,16 @@ Continuous protection also applies to systems designed to operate in varying con
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-8(19) Continuous Protection not implemented | Medium | System and Services Acquisition |
-| SA-8(19) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                        | Severity | Impact                                     |
+| ---------------------------------------------- | -------- | ------------------------------------------ |
+| SA-8(19) Continuous Protection not implemented | Medium   | System and Services Acquisition            |
+| SA-8(19) partially implemented                 | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

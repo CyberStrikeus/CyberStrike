@@ -12,16 +12,14 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - RA-5
   - RA-10
   - SA-11
   - SR-5
   - SR-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   RA-5: "Chain with RA-5 for comprehensive security coverage"
   RA-10: "Chain with RA-10 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ Organizations can use the results of vulnerability analyses to support penetrati
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-8 Penetration Testing not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-8 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                  | Severity | Impact                                               |
+| ---------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-8 Penetration Testing not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-8 partially implemented               | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

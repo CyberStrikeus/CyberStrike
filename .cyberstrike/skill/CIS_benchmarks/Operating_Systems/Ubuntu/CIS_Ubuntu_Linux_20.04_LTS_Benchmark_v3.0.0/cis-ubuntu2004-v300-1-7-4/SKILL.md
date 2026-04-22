@@ -56,6 +56,7 @@ true
 ```
 
 Notes:
+
 - `lock-delay=uint32 {n}` - should be `5` seconds or less and follow local site policy
 - `idle-delay=uint32 {n}` - Should be `900` seconds (15 minutes) or less, not `0` (disabled) and follow local site policy
 - `lock-enabled` - must be set to `true` for screen locks to lock when the user is idle
@@ -79,6 +80,7 @@ Notes:
 ```
 
 Note:
+
 - `gsettings` commands in this section MUST be done from a command window on a graphical desktop or an error will be returned.
 - The system must be restarted after all `gsettings` configurations have been set in order for CIS-CAT Assessor to appropriately assess.
 
@@ -97,6 +99,7 @@ Note: `local` is the name of a dconf database used in the examples.
 3. Create the key file `/etc/dconf/db/local.d/00-screensaver` to provide information for the `local` database:
 
 Example key file:
+
 ```
 # Specify the dconf path
 [org/gnome/desktop/session]
@@ -131,9 +134,9 @@ Note: You must include the uint32 along with the integer key values as shown.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.3 Configure Automatic Session Locking on Enterprise Assets | * | * | * |
-| v7 | 16.11 Lock Workstation Sessions After Inactivity | * | * | * |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.3 Configure Automatic Session Locking on Enterprise Assets | \*   | \*   | \*   |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity             | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1461 | TA0027 | M1012

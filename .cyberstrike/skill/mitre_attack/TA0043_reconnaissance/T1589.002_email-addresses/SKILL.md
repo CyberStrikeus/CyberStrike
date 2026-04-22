@@ -74,26 +74,24 @@ Gathering this information may reveal opportunities for other forms of reconnais
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
 ## Detection
 
 ### Detection of Email Addresses
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Email Addresses technique applicable | High | Reconnaissance |
+| Finding                              | Severity | Impact         |
+| ------------------------------------ | -------- | -------------- |
+| Email Addresses technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

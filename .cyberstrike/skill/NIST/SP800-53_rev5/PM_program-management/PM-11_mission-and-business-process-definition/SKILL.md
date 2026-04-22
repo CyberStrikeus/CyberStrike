@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - PL-2
@@ -23,8 +22,7 @@ chains_with:
   - RA-3
   - RA-9
   - SA-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   PL-2: "Chain with PL-2 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Protection needs are technology-independent capabilities that are required to co
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-11 Mission and Business Process Definition not implemented | Medium | Program Management |
-| PM-11 partially implemented | Low | Incomplete Program Management |
+| Finding                                                       | Severity | Impact                        |
+| ------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-11 Mission and Business Process Definition not implemented | Medium   | Program Management            |
+| PM-11 partially implemented                                   | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

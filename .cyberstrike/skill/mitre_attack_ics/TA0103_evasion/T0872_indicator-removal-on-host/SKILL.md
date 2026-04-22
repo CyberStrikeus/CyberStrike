@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,26 +57,24 @@ Review whether mitigations for T0872 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0922 Restrict File and Directory Permissions
-Protect files stored locally with proper permissions to limit opportunities for adversaries to remove indicators of their activity on the system.
 
+Protect files stored locally with proper permissions to limit opportunities for adversaries to remove indicators of their activity on the system.
 
 ## Detection
 
 ### Detection of Indicator Removal on Host
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indicator Removal on Host technique applicable | Low | Evasion |
+| Finding                                        | Severity | Impact  |
+| ---------------------------------------------- | -------- | ------- |
+| Indicator Removal on Host technique applicable | Low      | Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

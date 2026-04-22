@@ -12,8 +12,7 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-19
   - AU-6
@@ -25,8 +24,7 @@ chains_with:
   - IR-2
   - IR-3
   - IR-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-19: "Chain with AC-19 for comprehensive security coverage"
   AU-6: "Chain with AU-6 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Organizations recognize that incident response capabilities are dependent on the
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-4 Incident Handling not implemented | Medium | Incident Response |
-| IR-4 partially implemented | Low | Incomplete Incident Response |
+| Finding                                | Severity | Impact                       |
+| -------------------------------------- | -------- | ---------------------------- |
+| IR-4 Incident Handling not implemented | Medium   | Incident Response            |
+| IR-4 partially implemented             | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

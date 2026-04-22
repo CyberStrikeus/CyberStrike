@@ -78,7 +78,7 @@ If modifying the Kubelet service config file, edit the kubelet.service file `/et
 
 **Remediation Method 2:**
 If using the api configz endpoint consider searching for the status of `"authentication.*x509":{"clientCAFile":"/etc/kubernetes/pki/ca.crt"` by extracting the live configuration from the nodes running kubelet.
-**See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -110,16 +110,16 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ---
 

@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 4.2.7
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Allow Kubelet to manage iptables.
 
 ## Rationale
+
 Kubelets can automatically manage the required changes to iptables based on how you choose your networking options for the pods. It is recommended to let kubelets manage the changes to iptables. This ensures that the iptables configuration remains in sync with pods networking configuration. Manually configuring iptables with dynamic pod network configuration changes might hamper the communication between pods/containers and to the outside world. You might have iptables rules too restrictive or too open.
 
 ## Impact
+
 Kubelet would manage the iptables on the system and keep it in sync. If you are using any other iptables management solution, then there might be some conflicts.
 
 ## Audit Procedure
@@ -42,28 +46,32 @@ done
 Verify the output returned for each node is `true`.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, the `makeIPTablesUtilChains` argument is set to `true`.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/architecture/control-plane.html#understanding-machine-config-operator_control-plane
 2. https://github.com/openshift/kubernetes-kubelet/blob/origin-4.5-kubernetes-1.18.3/config/v1beta1/types.go#L618-L626
 3. https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | * | * | * |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools | | | * |
+| Controls Version | Control                                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers              | \*   | \*   | \*   |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1190, T1210 | TA0001, TA0008 | M1025 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1190, T1210                | TA0001, TA0008 | M1025       |
 
 ## Profile
+
 **Level 1** (Manual)

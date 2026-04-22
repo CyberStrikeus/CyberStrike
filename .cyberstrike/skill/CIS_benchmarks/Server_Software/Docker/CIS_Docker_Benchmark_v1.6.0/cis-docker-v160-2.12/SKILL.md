@@ -73,10 +73,10 @@ It should be noted that the native Docker authentication plugin is only one meth
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6 Access Control Management<br>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. | | | |
-| v7 | 16 Account Monitoring and Control<br>Account Monitoring and Control | | | |
+| Controls Version | Control                                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6 Access Control Management<br>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. |      |      |      |
+| v7               | 16 Account Monitoring and Control<br>Account Monitoring and Control                                                                                                                                              |      |      |      |
 
 ## Profile/Assessment Status
 

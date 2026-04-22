@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,7 +36,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may search connected removable media on computers they have compromised to find files of interest. Sensitive data can be collected from any removable media (optical disk drive, USB memory, etc.) connected to the compromised system prior to Exfiltration. Interactive command shells may be in use, and common functionality within cmd may be used to gather information. 
+Adversaries may search connected removable media on computers they have compromised to find files of interest. Sensitive data can be collected from any removable media (optical disk drive, USB memory, etc.) connected to the compromised system prior to Exfiltration. Interactive command shells may be in use, and common functionality within cmd may be used to gather information.
 
 Some adversaries may also use Automated Collection on removable media.
 
@@ -65,9 +63,9 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Identify Documents on USB and Removable Media via PowerShell
 
-This test simulates an attack where PowerShell is used to detect connected USB or other removable storage devices and gather a list of specific document files 
-(e.g., .docx, .xls, .txt, .pdf). The command works by first identifying removable drives on the system and then recursively searching through each one for files 
-matching the targeted extensions. If no removable drives are present, the script will return a message stating that no media is detected. This behavior mimics 
+This test simulates an attack where PowerShell is used to detect connected USB or other removable storage devices and gather a list of specific document files
+(e.g., .docx, .xls, .txt, .pdf). The command works by first identifying removable drives on the system and then recursively searching through each one for files
+matching the targeted extensions. If no removable drives are present, the script will return a message stating that no media is detected. This behavior mimics
 how adversaries might scan for sensitive documents on removable devices for exfiltration or analysis.
 
 **Supported Platforms:** windows
@@ -75,7 +73,6 @@ how adversaries might scan for sensitive documents on removable devices for exfi
 ```cmd
 powershell.exe -c "Get-Volume | Where-Object {$_.DriveType -eq 'Removable'} | ForEach-Object { Get-ChildItem -Path ($_.DriveLetter + ':\*') -Recurse -Include '*.doc*','*.xls*','*.txt','*.pdf' -ErrorAction SilentlyContinue | ForEach-Object {Write-Output $_.FullName} } ; if (-not (Get-Volume | Where-Object {$_.DriveType -eq 'Removable'})) { Write-Output 'No removable media.' }"
 ```
-
 
 ### Manual Testing
 
@@ -90,26 +87,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1057 Data Loss Prevention
-Data loss prevention can restrict access to sensitive data and detect sensitive data that is unencrypted.
 
+Data loss prevention can restrict access to sensitive data and detect sensitive data that is unencrypted.
 
 ## Detection
 
 ### Detection of Data Access and Collection from Removable Media
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Removable Media technique applicable | Low | Collection |
+| Finding                                        | Severity | Impact     |
+| ---------------------------------------------- | -------- | ---------- |
+| Data from Removable Media technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

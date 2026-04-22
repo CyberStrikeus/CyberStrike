@@ -67,13 +67,13 @@ Configured with default rotation settings.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.3 Ensure Adequate Audit Log Storage | | | |
-| v7 | 6.4 Ensure adequate storage for logs | | | |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.3 Ensure Adequate Audit Log Storage |      |      |      |
+| v7               | 6.4 Ensure adequate storage for logs  |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002 | TA0040 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1070, T1070.002            | TA0040  | M1022       |

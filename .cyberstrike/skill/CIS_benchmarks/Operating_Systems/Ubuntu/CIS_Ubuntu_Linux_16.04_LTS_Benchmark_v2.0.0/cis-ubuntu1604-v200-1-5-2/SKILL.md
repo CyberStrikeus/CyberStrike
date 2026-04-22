@@ -93,9 +93,9 @@ kernel.randomize_va_space = 2
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies |
+| Controls Version | Control                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features/ Deploy Anti-Exploit Technologies |
 
 ## Assessment Status
 

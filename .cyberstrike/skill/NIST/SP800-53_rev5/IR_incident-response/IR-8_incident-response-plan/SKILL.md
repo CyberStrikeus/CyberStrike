@@ -12,8 +12,7 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - CP-2
@@ -25,8 +24,7 @@ chains_with:
   - PL-2
   - SA-15
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -101,16 +99,16 @@ It is important that organizations develop and implement a coordinated approach 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-8 Incident Response Plan not implemented | Medium | Incident Response |
-| IR-8 partially implemented | Low | Incomplete Incident Response |
+| Finding                                     | Severity | Impact                       |
+| ------------------------------------------- | -------- | ---------------------------- |
+| IR-8 Incident Response Plan not implemented | Medium   | Incident Response            |
+| IR-8 partially implemented                  | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -41,8 +41,7 @@ chains_with:
   - T1566.002
   - T1566.003
   - T1566.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1566.001: "Chain with T1566.001 for deeper attack path"
   T1566.002: "Chain with T1566.002 for deeper attack path"
@@ -89,41 +88,44 @@ Victims may also receive phishing messages that instruct them to call a phone nu
 ## Remediation Guide
 
 ### M1047 Audit
+
 Perform audits or scans of systems, permissions, insecure software, insecure configurations, etc. to identify potential weaknesses.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion prevention systems and systems designed to scan and remove malicious email attachments or links can be used to block activity.
 
 ### M1054 Software Configuration
+
 Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
 ### M1021 Restrict Web-Based Content
+
 Determine if certain websites or attachment types (ex: .scr, .exe, .pif, .cpl, etc.) that can be used for phishing are necessary for business operations and consider blocking access if activity cannot be monitored well or if it poses a significant risk.
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can automatically quarantine suspicious files.
 
 ### M1017 User Training
-Users can be trained to identify social engineering techniques and phishing emails.
 
+Users can be trained to identify social engineering techniques and phishing emails.
 
 ## Detection
 
 ### Detection Strategy for Phishing across platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Phishing technique applicable | High | Initial Access |
+| Finding                       | Severity | Impact         |
+| ----------------------------- | -------- | -------------- |
+| Phishing technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

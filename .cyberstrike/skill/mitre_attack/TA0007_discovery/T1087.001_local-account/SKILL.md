@@ -122,6 +122,7 @@ username=$(id -u -n) && lsof -u $username
 ```
 
 **Dependencies:**
+
 - check if lsof exists
 
 ### Atomic Test 5: Show if a user account has ever logged in remotely
@@ -131,14 +132,14 @@ Show if a user account has ever logged in remotely
 **Supported Platforms:** linux
 
 ```bash
-[ "$(uname)" = 'FreeBSD' ] && cmd="lastlogin" || cmd="lastlog" 
+[ "$(uname)" = 'FreeBSD' ] && cmd="lastlogin" || cmd="lastlog"
 $cmd > #{output_file}
 cat #{output_file}
 ```
 
 **Dependencies:**
-- Check if lastlog command exists on the machine
 
+- Check if lastlog command exists on the machine
 
 ### Manual Testing
 
@@ -153,26 +154,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-Prevent administrator accounts from being enumerated when an application is elevating through UAC since it can lead to the disclosure of account names. The Registry key is located at <code>HKLM\ SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\EnumerateAdministrators</code>. It can be disabled through GPO: Computer Configuration > [Policies] > Administrative Templates > Windows Components > Credential User Interface: Enumerate administrator accounts on elevation.
 
+Prevent administrator accounts from being enumerated when an application is elevating through UAC since it can lead to the disclosure of account names. The Registry key is located at <code>HKLM\ SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\EnumerateAdministrators</code>. It can be disabled through GPO: Computer Configuration > [Policies] > Administrative Templates > Windows Components > Credential User Interface: Enumerate administrator accounts on elevation.
 
 ## Detection
 
 ### Local Account Enumeration Across Host Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Local Account technique applicable | Low | Discovery |
+| Finding                            | Severity | Impact    |
+| ---------------------------------- | -------- | --------- |
+| Local Account technique applicable | Low      | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

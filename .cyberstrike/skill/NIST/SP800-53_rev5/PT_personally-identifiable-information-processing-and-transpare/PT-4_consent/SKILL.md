@@ -18,8 +18,7 @@ chains_with:
   - AC-16
   - PT-2
   - PT-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-16: "Chain with AC-16 for comprehensive security coverage"
   PT-2: "Chain with PT-2 for comprehensive security coverage"
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,17 +78,16 @@ Consent allows individuals to participate in making decisions about the processi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-4 Consent not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-4 partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                      | Severity | Impact                                                                     |
+| ---------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-4 Consent not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-4 partially implemented   | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

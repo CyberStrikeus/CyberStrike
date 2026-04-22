@@ -53,7 +53,7 @@ severity_boost:
 
 Adversaries may abuse mavinject.exe to proxy execution of malicious code. Mavinject.exe is the Microsoft Application Virtualization Injector, a Windows utility that can inject code into external processes as part of Microsoft Application Virtualization (App-V).
 
-Adversaries may abuse mavinject.exe to inject malicious DLLs into running processes (i.e. Dynamic-link Library Injection), allowing for arbitrary code execution (ex. <code>C:\Windows\system32\mavinject.exe PID /INJECTRUNNING PATH_DLL</code>). Since mavinject.exe may be digitally signed by Microsoft, proxying execution via this method may evade detection by security products because the execution is masked under a legitimate process. 
+Adversaries may abuse mavinject.exe to inject malicious DLLs into running processes (i.e. Dynamic-link Library Injection), allowing for arbitrary code execution (ex. <code>C:\Windows\system32\mavinject.exe PID /INJECTRUNNING PATH_DLL</code>). Since mavinject.exe may be digitally signed by Microsoft, proxying execution via this method may evade detection by security products because the execution is masked under a legitimate process.
 
 In addition to Dynamic-link Library Injection, Mavinject.exe can also be abused to perform import descriptor injection via its <code>/HMODULE</code> command-line parameter (ex. <code>mavinject.exe PID /HMODULE=BASE_ADDRESS PATH_DLL ORDINAL_NUMBER</code>). This command would inject an import table entry consisting of the specified DLL into the module at the given base address.
 
@@ -85,29 +85,28 @@ In addition to Dynamic-link Library Injection, Mavinject.exe can also be abused 
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider removing mavinject.exe if Microsoft App-V is not used within a given environment.
 
 ### M1038 Execution Prevention
-Use application control configured to block execution of mavinject.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
+Use application control configured to block execution of mavinject.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detecting Code Injection via mavinject.exe (App-V Injector)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Mavinject technique applicable | High | Defense Evasion |
+| Finding                        | Severity | Impact          |
+| ------------------------------ | -------- | --------------- |
+| Mavinject technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

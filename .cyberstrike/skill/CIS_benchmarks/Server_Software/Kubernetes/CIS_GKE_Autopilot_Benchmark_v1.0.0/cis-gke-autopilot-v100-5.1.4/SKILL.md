@@ -119,8 +119,8 @@ By default, Binary Authorization is disabled along with container registry allow
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software |      | x    | x    |
+| v7               | 5.2 Maintain Secure Images        |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images  |      | x    | x    |

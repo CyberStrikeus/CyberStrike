@@ -43,11 +43,13 @@ Perform the following steps to determine if the recommended state is implemented
 Perform the following to implement the recommended state:
 
 1. Add or modify the `LogLevel` in the Apache configuration to have a value of `info` or lower for the core module and `notice` or lower for all other modules. Note that is it is compliant to have a value of `info` or `debug` if there is a need for a more verbose log and the storage and monitoring processes are capable of handling the extra load. The recommended value is `notice core:info`.
+
    ```
    LogLevel notice core:info
    ```
 
 2. Add an `ErrorLog` directive if not already configured. The file path may be relative or absolute, or the logs may be configured to be sent to a syslog server.
+
    ```
    ErrorLog "logs/error_log"
    ```
@@ -72,10 +74,12 @@ ErrorLog "logs/error_log"
 ## CIS Controls
 
 **v8:**
+
 - 8.2 Collect Audit Logs
   - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.
 
 **v7:**
+
 - 6.2 Activate audit logging
   - Ensure that local logging has been enabled on all systems and networking devices.
 

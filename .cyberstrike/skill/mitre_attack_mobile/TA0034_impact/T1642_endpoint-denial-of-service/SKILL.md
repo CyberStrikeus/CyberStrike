@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,32 +66,31 @@ Review whether mitigations for T1642 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
+
 Android 7 changed how the Device Administrator password APIs function.
 
 ### M1011 User Guidance
-Users should be cautioned against granting administrative access to applications.
 
+Users should be cautioned against granting administrative access to applications.
 
 ## Detection
 
 ### Detection of Endpoint Denial of Service
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Endpoint Denial of Service technique applicable | Low | Impact |
+| Finding                                         | Severity | Impact |
+| ----------------------------------------------- | -------- | ------ |
+| Endpoint Denial of Service technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 
 - [Xiao-KeyRaider](http://researchcenter.paloaltonetworks.com/2015/08/keyraider-ios-malware-steals-over-225000-apple-accounts-to-create-free-app-utopia/)
-- [Android resetPassword](https://developer.android.com/reference/android/app/admin/DevicePolicyManager.html#resetPassword(java.lang.String,%20int))
+- [Android resetPassword](<https://developer.android.com/reference/android/app/admin/DevicePolicyManager.html#resetPassword(java.lang.String,%20int)>)
 - [MITRE ATT&CK Mobile - T1642](https://attack.mitre.org/techniques/T1642)

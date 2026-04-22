@@ -46,12 +46,12 @@ By default the seccomp profile is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.7 Deploy a Host-Based Intrusion Prevention Solution<br>Deploy a host-based intrusion prevention solution on enterprise assets, where appropriate and/or supported. | | | ● |
-| v7 | 5.1 Establish Secure Configurations<br>Maintain documented, standard security configuration standards for all authorized operating systems and software. | ● | ● | ● |
-| v7 | 5.2 Maintain Secure Images<br>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. | | ● | ● |
-| v7 | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices<br>Install the latest stable version of any security-related updates on all network devices. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 13.7 Deploy a Host-Based Intrusion Prevention Solution<br>Deploy a host-based intrusion prevention solution on enterprise assets, where appropriate and/or supported.                      |      |      | ●    |
+| v7               | 5.1 Establish Secure Configurations<br>Maintain documented, standard security configuration standards for all authorized operating systems and software.                                   | ●    | ●    | ●    |
+| v7               | 5.2 Maintain Secure Images<br>Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards.                          |      | ●    | ●    |
+| v7               | 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices<br>Install the latest stable version of any security-related updates on all network devices. | ●    | ●    | ●    |
 
 ## Profile Applicability
 

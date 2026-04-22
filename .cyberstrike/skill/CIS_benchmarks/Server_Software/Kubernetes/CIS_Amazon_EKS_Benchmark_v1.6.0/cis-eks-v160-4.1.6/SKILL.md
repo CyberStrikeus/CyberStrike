@@ -65,7 +65,7 @@ By default, all pods get a service account token mounted in them.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools | | | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools                     |      |      | x    |

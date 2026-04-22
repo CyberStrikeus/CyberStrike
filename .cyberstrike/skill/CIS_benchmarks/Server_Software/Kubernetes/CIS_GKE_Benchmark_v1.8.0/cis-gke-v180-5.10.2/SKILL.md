@@ -4,7 +4,8 @@ description: "Ensure that Alpha clusters are not used for production workloads (
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
+tags:
+  [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
 cis_id: "5.10.2"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -56,7 +57,7 @@ Using Google Cloud Console
 1. Go to Kubernetes Engine by visiting https://console.cloud.google.com/kubernetes/.
 2. Click CREATE CLUSTER, and choose "SWITCH TO STANDARD CLUSTER" in the upper right corner of the screen.
 3. Under Features in the the CLUSTER section, "Enable Kubernetes alpha features in this cluster" will not be available by default and to use Kubernetes alpha features in this cluster, first disable release channels.
-Note: It will only be available if the cluster is created with a Static version for the Control plane version, along with both Automatically upgrade nodes to the next available version and Enable auto-repair being checked under the Node pool details for each node.
+   Note: It will only be available if the cluster is created with a Static version for the Control plane version, along with both Automatically upgrade nodes to the next available version and Enable auto-repair being checked under the Node pool details for each node.
 4. Configure the other settings as required and click CREATE.
 
 Using Command Line:
@@ -79,7 +80,7 @@ By default, Kubernetes Alpha features are disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.8 Separate Production and Non-Production Systems | | x | x |
-| v7 | 18.9 Separate Production and Non-Production Systems | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.8 Separate Production and Non-Production Systems |      | x    | x    |
+| v7               | 18.9 Separate Production and Non-Production Systems |      | x    | x    |

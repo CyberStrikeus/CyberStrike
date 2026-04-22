@@ -21,8 +21,7 @@ chains_with:
   - SA-9
   - SR-3
   - SR-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-7: "Chain with PL-7 for comprehensive security coverage"
   PM-3: "Chain with PM-3 for comprehensive security coverage"
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ Resource allocation for information security and privacy includes funding for sy
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-2 Allocation of Resources not implemented | Medium | System and Services Acquisition |
-| SA-2 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                      | Severity | Impact                                     |
+| -------------------------------------------- | -------- | ------------------------------------------ |
+| SA-2 Allocation of Resources not implemented | Medium   | System and Services Acquisition            |
+| SA-2 partially implemented                   | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

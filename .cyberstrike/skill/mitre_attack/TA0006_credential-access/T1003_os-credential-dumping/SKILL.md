@@ -36,8 +36,7 @@ chains_with:
   - T1003.006
   - T1003.007
   - T1003.008
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1003.001: "Chain with T1003.001 for deeper attack path"
   T1003.002: "Chain with T1003.002 for deeper attack path"
@@ -79,7 +78,7 @@ Dump credentials from memory using Gsecdump.
 
 Upon successful execution, you should see domain\username's followed by two 32 character hashes.
 
-If you see output that says "compat: error: failed to create child process", execution was likely blocked by Anti-Virus. 
+If you see output that says "compat: error: failed to create child process", execution was likely blocked by Anti-Virus.
 You will receive only error output if you do not run this test from an elevated context (run as administrator)
 
 If you see a message saying "The system cannot find the path specified", try using the get-prereq_commands to download and install Gsecdump first.
@@ -92,6 +91,7 @@ If you see a message saying "The system cannot find the path specified", try usi
 ```
 
 **Dependencies:**
+
 - Gsecdump must exist on disk at specified location (#{gsecdump_exe})
 
 ### Atomic Test 2: Credential Dumping with NPPSpy
@@ -118,6 +118,7 @@ echo "[!] Please, logout and log back in. Cleartext password for this account is
 ```
 
 **Dependencies:**
+
 - NPPSpy.dll must be available in ExternalPayloads directory
 
 ### Atomic Test 3: Dump svchost.exe to gather RDP credentials
@@ -151,6 +152,7 @@ C:\Windows\System32\inetsrv\appcmd.exe list apppool /text:*
 ```
 
 **Dependencies:**
+
 - IIS must be installed prior to running the test
 
 ### Atomic Test 5: Retrieve Microsoft IIS Service Account Credentials Using AppCmd (using config)
@@ -166,8 +168,8 @@ C:\Windows\System32\inetsrv\appcmd.exe list apppool /config
 ```
 
 **Dependencies:**
-- IIS must be installed prior to running the test
 
+- IIS must be installed prior to running the test
 
 ### Manual Testing
 
@@ -182,18 +184,23 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 Ensure Domain Controller backups are properly secured.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to secure LSASS and prevent credential stealing.
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1017 User Training
+
 Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ### M1026 Privileged Account Management
+
 Windows:
 Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
@@ -201,35 +208,36 @@ Linux:
 Scraping the passwords from memory requires root privileges. Follow best practices in restricting access to privileged accounts to avoid hostile programs from accessing such sensitive regions of memory.
 
 ### M1025 Privileged Process Integrity
+
 On Windows 8.1 and Windows Server 2012 R2, enable Protected Process Light for LSA.
 
 ### M1043 Credential Access Protection
+
 With Windows 10, Microsoft implemented new protections called Credential Guard to protect the LSA secrets that can be used to obtain credentials through forms of credential dumping. It is not configured by default and has hardware and firmware system requirements. It also does not protect against all forms of credential dumping.
 
 ### M1015 Active Directory Configuration
+
 Manage the access control list for “Replicating Directory Changes All” and other permissions associated with domain controller replication. Consider adding users to the "Protected Users" Active Directory security group. This can help limit the caching of users' plaintext credentials.
 
 ### M1028 Operating System Configuration
-Consider disabling or restricting NTLM. Consider disabling WDigest authentication.
 
+Consider disabling or restricting NTLM. Consider disabling WDigest authentication.
 
 ## Detection
 
 ### Credential Dumping via Sensitive Memory and Registry Access Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| OS Credential Dumping technique applicable | High | Credential Access |
+| Finding                                    | Severity | Impact            |
+| ------------------------------------------ | -------- | ----------------- |
+| OS Credential Dumping technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

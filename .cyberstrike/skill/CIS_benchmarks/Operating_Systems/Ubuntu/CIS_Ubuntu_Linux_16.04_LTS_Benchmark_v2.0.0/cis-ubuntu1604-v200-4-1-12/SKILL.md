@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.12
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -26,6 +27,7 @@ severity_boost: {}
 Monitor the use of the mount system call. The mount (and umount) system call controls the mounting and unmounting of file systems. The parameters below configure the system to create an audit record when the mount system call is used by a non-privileged user.
 
 **Note:**
+
 - This tracks successful and unsuccessful mount commands. File system mounts do not have to come from external media and this action still does not verify write (e.g. CD ROMS).
 - Reloading the auditd config to set active settings requires the auditd service to be restarted, and may require a system reboot.
 
@@ -142,6 +144,6 @@ By default, no audit rules are configured for mount events.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.1 Establish Secure Configurations - Maintain documented, standard security configuration standards for all authorized operating systems and software. |
+| Controls Version | Control                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 5.1 Establish Secure Configurations - Maintain documented, standard security configuration standards for all authorized operating systems and software. |

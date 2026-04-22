@@ -12,14 +12,12 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AU-2
   - PT-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AU-2: "Chain with AU-2 for comprehensive security coverage"
@@ -66,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -88,16 +86,16 @@ Organizations can use any system for keeping notations of disclosures, if it can
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-21 Accounting of Disclosures not implemented | Medium | Program Management |
-| PM-21 partially implemented | Low | Incomplete Program Management |
+| Finding                                         | Severity | Impact                        |
+| ----------------------------------------------- | -------- | ----------------------------- |
+| PM-21 Accounting of Disclosures not implemented | Medium   | Program Management            |
+| PM-21 partially implemented                     | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

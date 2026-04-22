@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -34,7 +32,7 @@ severity_boost: {}
 
 Adversaries may register a rogue Domain Controller to enable manipulation of Active Directory data. DCShadow may be used to create a rogue Domain Controller (DC). DCShadow is a method of manipulating Active Directory (AD) data, including objects and schemas, by registering (or reusing an inactive registration) and simulating the behavior of a DC. Once registered, a rogue DC may be able to inject and replicate changes into AD infrastructure for any domain object, including credentials and keys.
 
-Registering a rogue DC involves creating a new server and nTDSDSA objects in the Configuration partition of the AD schema, which requires Administrator privileges (either Domain or local to the DC) or the KRBTGT hash. 
+Registering a rogue DC involves creating a new server and nTDSDSA objects in the Configuration partition of the AD schema, which requires Administrator privileges (either Domain or local to the DC) or the KRBTGT hash.
 
 This technique may bypass system logging and security monitors such as security information and event management (SIEM) products (since actions taken on a rogue DC may not be reported to these sensors). The technique may also be used to alter and delete replication and other associated metadata to obstruct forensic analysis. Adversaries may also utilize this technique to perform SID-History Injection and/or manipulate AD objects (such as accounts, access control lists, schemas) to establish backdoors for Persistence.
 
@@ -97,9 +95,9 @@ Write-Host "End of DCShadow"
 ```
 
 **Dependencies:**
+
 - Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 - PsExec tool from Sysinternals must exist on disk at specified location (#{psexec_path})
-
 
 ### Manual Testing
 
@@ -119,19 +117,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Rogue Domain Controller (DCShadow) Registration and Replication Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Rogue Domain Controller technique applicable | High | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Rogue Domain Controller technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

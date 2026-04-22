@@ -23,10 +23,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -67,26 +65,24 @@ Review whether mitigations for T1541 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-If a user sees a persistent notification they do not recognize, they should uninstall the source application and look for other unwanted applications or anomalies.
 
+If a user sees a persistent notification they do not recognize, they should uninstall the source application and look for other unwanted applications or anomalies.
 
 ## Detection
 
 ### Detection of Foreground Persistence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Foreground Persistence technique applicable | Low | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Foreground Persistence technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

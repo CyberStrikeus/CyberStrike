@@ -55,9 +55,9 @@ severity_boost:
 
 Adversaries may chain together multiple proxies to disguise the source of malicious traffic. Typically, a defender will be able to identify the last proxy traffic traversed before it enters their network; the defender may or may not be able to identify any previous proxies before the last-hop proxy. This technique makes identifying the original source of the malicious traffic even more difficult by requiring the defender to trace malicious traffic through several proxies to identify its source.
 
-For example, adversaries may construct or use onion routing networks – such as the publicly available Tor network – to transport encrypted C2 traffic through a compromised population, allowing communication with any device within the network. Adversaries may also use operational relay box (ORB) networks composed of virtual private servers (VPS), Internet of Things (IoT) devices, smart devices, and end-of-life routers to obfuscate their operations. 
+For example, adversaries may construct or use onion routing networks – such as the publicly available Tor network – to transport encrypted C2 traffic through a compromised population, allowing communication with any device within the network. Adversaries may also use operational relay box (ORB) networks composed of virtual private servers (VPS), Internet of Things (IoT) devices, smart devices, and end-of-life routers to obfuscate their operations.
 
-In the case of network infrastructure, it is possible for an adversary to leverage multiple compromised devices to create a multi-hop proxy chain (i.e., Network Devices). By leveraging Patch System Image on routers, adversaries can add custom code to the affected network devices that will implement onion routing between those nodes. This method is dependent upon the Network Boundary Bridging method allowing the adversaries to cross the protected network boundary of the Internet perimeter and into the organization’s Wide-Area Network (WAN). Protocols such as ICMP may be used as a transport. 
+In the case of network infrastructure, it is possible for an adversary to leverage multiple compromised devices to create a multi-hop proxy chain (i.e., Network Devices). By leveraging Patch System Image on routers, adversaries can add custom code to the affected network devices that will implement onion routing between those nodes. This method is dependent upon the Network Boundary Bridging method allowing the adversaries to cross the protected network boundary of the Internet perimeter and into the organization’s Wide-Area Network (WAN). Protocols such as ICMP may be used as a transport.
 
 Similarly, adversaries may abuse peer-to-peer (P2P) and blockchain-oriented infrastructure to implement routing between a decentralized network of peers.
 
@@ -98,6 +98,7 @@ https://psiphon.ca/faq.html
 ```
 
 **Dependencies:**
+
 - The proxy settings backup file must exist on disk at $env:Temp\proxy-backup.txt
 - The Psiphon executable must exist in the Downloads folder
 - Batch file containing commands to run must be in src directory
@@ -116,6 +117,7 @@ stop-process -name "tor" | out-null
 ```
 
 **Dependencies:**
+
 - tor.exe must be installed on the machine
 
 ### Atomic Test 3: Tor Proxy Usage - Debian/Ubuntu/FreeBSD
@@ -131,6 +133,7 @@ Upon successful execution, the tor proxy service will be launched.
 ```
 
 **Dependencies:**
+
 - Tor must be installed on the machine
 
 ### Atomic Test 4: Tor Proxy Usage - MacOS
@@ -145,8 +148,8 @@ osascript -e 'tell application "Terminal" to do script "tor"'
 ```
 
 **Dependencies:**
-- Tor must be installed on the machine
 
+- Tor must be installed on the machine
 
 ### Manual Testing
 
@@ -161,26 +164,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Traffic to known anonymity networks and C2 infrastructure can be blocked through the use of network allow and block lists. It should be noted that this kind of blocking may be circumvented by other techniques like Domain Fronting.
 
+Traffic to known anonymity networks and C2 infrastructure can be blocked through the use of network allow and block lists. It should be noted that this kind of blocking may be circumvented by other techniques like Domain Fronting.
 
 ## Detection
 
 ### Multi-hop Proxy Behavior via Relay Node Chaining, Onion Routing, and Network Tunneling
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Multi-hop Proxy technique applicable | Medium | Command And Control |
+| Finding                              | Severity | Impact              |
+| ------------------------------------ | -------- | ------------------- |
+| Multi-hop Proxy technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -41,8 +41,7 @@ chains_with:
   - T1037.003
   - T1037.004
   - T1037.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1037.001: "Chain with T1037.001 for deeper attack path"
   T1037.002: "Chain with T1037.002 for deeper attack path"
@@ -53,9 +52,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use scripts automatically executed at boot or logon initialization to establish persistence. Initialization scripts can be used to perform administrative functions, which may often execute other programs or send information to an internal logging server. These scripts can vary based on operating system and whether applied locally or remotely. 
+Adversaries may use scripts automatically executed at boot or logon initialization to establish persistence. Initialization scripts can be used to perform administrative functions, which may often execute other programs or send information to an internal logging server. These scripts can vary based on operating system and whether applied locally or remotely.
 
-Adversaries may use these scripts to maintain persistence on a single system. Depending on the access configuration of the logon scripts, either local credentials or an administrator account may be necessary. 
+Adversaries may use these scripts to maintain persistence on a single system. Depending on the access configuration of the logon scripts, either local credentials or an administrator account may be necessary.
 
 An adversary may also be able to escalate their privileges since some boot or logon initialization scripts run with higher privileges.
 
@@ -90,29 +89,28 @@ An adversary may also be able to escalate their privileges since some boot or lo
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper permissions are set for Registry hives to prevent users from modifying keys for logon scripts that may lead to persistence.
 
 ### M1022 Restrict File and Directory Permissions
-Restrict write access to logon scripts to specific administrators.
 
+Restrict write access to logon scripts to specific administrators.
 
 ## Detection
 
 ### Boot or Logon Initialization Scripts Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Boot or Logon Initialization Scripts technique applicable | High | Persistence |
+| Finding                                                   | Severity | Impact      |
+| --------------------------------------------------------- | -------- | ----------- |
+| Boot or Logon Initialization Scripts technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

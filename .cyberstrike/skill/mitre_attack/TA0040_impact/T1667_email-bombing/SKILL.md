@@ -30,10 +30,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -79,29 +77,28 @@ This behavior may be a precursor for Spearphishing Voice. For example, an advers
 ## Remediation Guide
 
 ### M1017 User Training
+
 Train users to be aware of access or manipulation attempts by an adversary to reduce the risk of successful social engineering via e-mail bombing.
 
 ### M1054 Software Configuration
-Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation. Note that additional filtering may be necessary if emails are coming from legitimate sources.
 
+Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation. Note that additional filtering may be necessary if emails are coming from legitimate sources.
 
 ## Detection
 
 ### Detection Strategy for Email Bombing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Email Bombing technique applicable | High | Impact |
+| Finding                            | Severity | Impact |
+| ---------------------------------- | -------- | ------ |
+| Email Bombing technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

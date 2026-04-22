@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the TimeOut Is Set to 10 or Less (Automated)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -52,12 +53,15 @@ Timeout 60
 ## CIS Controls
 
 **v8:**
+
 - 13.10 Perform Application Layer Filtering
   - Perform application layer filtering. Example implementations include a filtering proxy, application layer firewall, or gateway.
 
 **v7:**
+
 - 9 Limitation and Control of Network Ports, Protocols, and Services
   - Limitation and Control of Network Ports, Protocols, and Services
 
 ## Profile
+
 - Level 1

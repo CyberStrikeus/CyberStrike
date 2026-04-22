@@ -34,8 +34,7 @@ chains_with:
   - T1102.001
   - T1102.002
   - T1102.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1102.001: "Chain with T1102.001 for deeper attack path"
   T1102.002: "Chain with T1102.002 for deeper attack path"
@@ -80,29 +79,28 @@ Use of Web services may also protect back-end C2 infrastructure from discovery t
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M1021 Restrict Web-Based Content
-Web proxies can be used to enforce external network communication policy that prevents use of unauthorized external services.
 
+Web proxies can be used to enforce external network communication policy that prevents use of unauthorized external services.
 
 ## Detection
 
 ### Suspicious Use of Web Services for C2
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Service technique applicable | Medium | Command And Control |
+| Finding                          | Severity | Impact              |
+| -------------------------------- | -------- | ------------------- |
+| Web Service technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

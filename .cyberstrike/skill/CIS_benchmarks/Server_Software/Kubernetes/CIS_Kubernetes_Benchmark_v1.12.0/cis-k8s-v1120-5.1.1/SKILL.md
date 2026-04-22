@@ -62,7 +62,7 @@ By default a single `clusterrolebinding` called `cluster-admin` is provided with
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | X |
-| v7 | 5.1 Establish Secure Configurations | X | X | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | X    |
+| v7               | 5.1 Establish Secure Configurations               | X    | X    | X    |

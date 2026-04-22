@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v2.0.0 - Control 3.2.2
 
 ## Profile Applicability
+
 - **Level:** 2 - Master Node
 
 ## Description
+
 Ensure that the audit policy created for the cluster covers key security concerns.
 
 ## Rationale
+
 Security audit logs should cover access and modification of key resources in the cluster, to enable them to form an effective part of a security environment.
 
 ## Impact
+
 Increasing audit logging will consume resources on the nodes or other log destination.
 
 ## Audit Procedure
@@ -45,19 +49,22 @@ For most requests, minimally logging at the Metadata level is recommended (the m
 Consider modification of the audit policy in use on the cluster to include these items, at a minimum.
 
 ## Default Value
+
 By default Kubernetes clusters do not log audit information.
 
 ## References
+
 1. https://github.com/k8scop/k8s-security-dashboard/blob/master/configs/kubernetes/adv-audit.yaml
 2. https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#audit-policy
 3. https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/gci/configure-helper.sh#L735
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs<br/>Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. | | ● | ● |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data<br/>Enforce detailed audit logging for access to sensitive data or changes to sensitive data (utilizing tools such as File Integrity Monitoring or Security Information and Event Monitoring). | | | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs<br/>Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation. |      | ●    | ●    |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data<br/>Enforce detailed audit logging for access to sensitive data or changes to sensitive data (utilizing tools such as File Integrity Monitoring or Security Information and Event Monitoring).                       |      |      | ●    |
 
 ## Profile
+
 **Level 2 - Master Node** (Manual)

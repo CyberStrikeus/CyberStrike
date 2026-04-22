@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,10 +70,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -91,17 +89,16 @@ A mobile device is a computing device with a small form factor such that it can 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Access Control for Mobile Devices (03.01.18) Access Control for Mobile Devices not implemented | High | CUI Protection - Access Control |
-| Access Control for Mobile Devices (03.01.18) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                        | Severity | Impact                          |
+| ---------------------------------------------------------------------------------------------- | -------- | ------------------------------- |
+| Access Control for Mobile Devices (03.01.18) Access Control for Mobile Devices not implemented | High     | CUI Protection - Access Control |
+| Access Control for Mobile Devices (03.01.18) partially implemented (POA&M)                     | Medium   | CMMC certification risk         |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

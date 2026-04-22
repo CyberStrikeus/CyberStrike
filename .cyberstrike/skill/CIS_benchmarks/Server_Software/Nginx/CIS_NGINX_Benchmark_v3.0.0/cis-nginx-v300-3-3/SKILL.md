@@ -17,14 +17,17 @@ severity_boost: {}
 # CIS 3.3 — Ensure error logging is enabled and set to the info logging level
 
 ## Profile Applicability
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 The `error_log` directive configures logging for server errors and operational messages. Unlike access logs, error logs capture diagnostic information about failed requests, upstream connection issues, and configuration errors. The log level determines the verbosity of these messages and should be set to capture sufficient detail (typically `notice` or `info`) without overwhelming the storage system.
 
 ## Rationale
+
 While access logs capture incoming request patterns, error logs provide the internal system context required to diagnose why a request failed. They are essential for identifying:
 
 1. **Upstream Failures:** Connection timeouts or refused connections to backend servers (e.g., application server is down).
@@ -34,6 +37,7 @@ While access logs capture incoming request patterns, error logs provide the inte
 Without error logs, an administrator sees a "500 Internal Server Error" in the access log but has no way to determine the root cause.
 
 ## Impact
+
 Setting the log level to `info` (or even `debug`) can generate a significant volume of log data, especially on busy servers or during denial-of-service attacks. This increases disk I/O and storage requirements. Ensure that log rotation (e.g., via `logrotate`) is configured and storage usage is monitored to prevent disk exhaustion.
 
 ## Audit Procedure
@@ -54,6 +58,7 @@ nginx -T 2>/dev/null | grep -i "error_log"
 - **Fail:** If `error_log` points to `/dev/null` or the level is set to `crit`, `alert`, or `emerg` (which suppresses too many relevant warnings).
 
 ## Remediation
+
 Configure the `error_log` directive in the `main` context (at the top of `nginx.conf`) to capture operational events.
 
 **Configuration Example:**
@@ -70,28 +75,34 @@ http {
 **Note:** The specific logging level should be aligned with the organization's "Monitoring and Logging" Policy, balancing the need for forensic detail against storage and processing costs. Typically, `info` or `notice` is recommended.
 
 ## Default Value
+
 By default, NGINX logs errors to `logs/error.log` with the severity level `error`. This configuration misses `warn`, `notice`, and `info` events.
 
 ## References
+
 1. https://nginx.org/en/docs/ngx_core_module.html#error_log
 2. https://docs.nginx.com/nginx/admin-guide/monitoring/logging/
 
 ## Additional Information
+
 Unlike access logs, NGINX Open Source uses a hardcoded text format for error logs and does not support custom `log_format` definitions (e.g., JSON, additional variables).
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | N | Y | Y |
-| v7 | 6.3 Enable Detailed Logging | N | Y | Y |
+
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs | N    | Y    | Y    |
+| v7               | 6.3 Enable Detailed Logging     | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Defense Evasion | T1070 - Indicator Removal |
-| Discovery | T1082 - System Information Discovery |
+
+| Tactic          | Technique                            |
+| --------------- | ------------------------------------ |
+| Defense Evasion | T1070 - Indicator Removal            |
+| Discovery       | T1082 - System Information Discovery |
 
 ## Profile
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

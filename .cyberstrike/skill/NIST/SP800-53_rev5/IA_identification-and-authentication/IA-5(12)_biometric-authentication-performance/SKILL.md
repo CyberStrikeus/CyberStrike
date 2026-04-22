@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Unlike password-based authentication, which provides exact matches of user-input
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-5(12) Biometric Authentication Performance not implemented | High | Identification and Authentication |
-| IA-5(12) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                       | Severity | Impact                                       |
+| ------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-5(12) Biometric Authentication Performance not implemented | High     | Identification and Authentication            |
+| IA-5(12) partially implemented                                | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

@@ -43,7 +43,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may acquire credentials from Keychain. Keychain (or Keychain Services) is the macOS credential management system that stores account names, passwords, private keys, certificates, sensitive application data, payment data, and secure notes. There are three types of Keychains: Login Keychain, System Keychain, and Local Items (iCloud) Keychain. The default Keychain is the Login Keychain, which stores user passwords and information. The System Keychain stores items accessed by the operating system, such as items shared among users on a host. The Local Items (iCloud) Keychain is used for items synced with Apple’s iCloud service. 
+Adversaries may acquire credentials from Keychain. Keychain (or Keychain Services) is the macOS credential management system that stores account names, passwords, private keys, certificates, sensitive application data, payment data, and secure notes. There are three types of Keychains: Login Keychain, System Keychain, and Local Items (iCloud) Keychain. The default Keychain is the Login Keychain, which stores user passwords and information. The System Keychain stores items accessed by the operating system, such as items shared among users on a host. The Local Items (iCloud) Keychain is used for items synced with Apple’s iCloud service.
 
 Keychains can be viewed and edited through the Keychain Access application or using the command-line utility <code>security</code>. Keychain files are located in <code>~/Library/Keychains/</code>, <code>/Library/Keychains/</code>, and <code>/Network/Library/Keychains/</code>.
 
@@ -70,14 +70,15 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Keychain Dump
 
-This command will dump keychain credential information from login.keychain. 
+This command will dump keychain credential information from login.keychain.
 Source: https://www.loobins.io/binaries/security/
 
 ### Keychain File path
-  ~/Library/Keychains/
-  /Library/Keychains/
-  /Network/Library/Keychains/
-  [Security Reference](https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html)
+
+~/Library/Keychains/
+/Library/Keychains/
+/Network/Library/Keychains/
+[Security Reference](https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html)
 
 **Supported Platforms:** macos
 **Elevation Required:** Yes
@@ -116,7 +117,6 @@ This command will copy the keychain using the cat utility in a manner similar to
 cat ~/Library/Keychains/login.keychain-db > #{keychain_export}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -130,26 +130,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
-The password for the user's login keychain can be changed from the user's login password. This increases the complexity for an adversary because they need to know an additional password.
 
+The password for the user's login keychain can be changed from the user's login password. This increases the complexity for an adversary because they need to know an additional password.
 
 ## Detection
 
 ### Detect Access to macOS Keychain for Credential Theft
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Keychain technique applicable | High | Credential Access |
+| Finding                       | Severity | Impact            |
+| ----------------------------- | -------- | ----------------- |
+| Keychain technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

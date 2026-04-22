@@ -4,7 +4,8 @@ description: "Ensure Kubernetes Web UI is Disabled (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
+tags:
+  [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
 cis_id: "5.10.1"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -51,7 +52,7 @@ Ensure the output of the above command has JSON key attribute disabled set to `t
 
 ```json
 {
-    "disabled": true
+  "disabled": true
 }
 ```
 
@@ -76,8 +77,8 @@ The Kubernetes web UI (Dashboard) does not have admin access by default in GKE 1
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 2.2 Ensure Software is Supported by Vendor | x | x | x |
-| v7 | 18.4 Only Use Up-to-date And Trusted Third-Party Components | | x | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 2.2 Ensure Software is Supported by Vendor                                      | x    | x    | x    |
+| v7               | 18.4 Only Use Up-to-date And Trusted Third-Party Components                     |      | x    | x    |

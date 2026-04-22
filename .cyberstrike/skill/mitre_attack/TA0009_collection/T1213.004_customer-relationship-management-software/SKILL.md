@@ -77,35 +77,36 @@ CRM software may be hosted on-premises or in the cloud. Information stored in th
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization.
 
 ### M1017 User Training
+
 Develop and publish policies that define acceptable information to be stored in CRM databases and acceptable handling of customer data. Only store customer information required for business operations.
 
 ### M1054 Software Configuration
+
 Consider implementing data retention policies to automate periodically archiving and/or deleting data that is no longer needed.
 
 ### M1047 Audit
-Consider periodic review of accounts and privileges for critical and sensitive CRM data.
 
+Consider periodic review of accounts and privileges for critical and sensitive CRM data.
 
 ## Detection
 
 ### Detecting Suspicious Access to CRM Data in SaaS Environments
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Customer Relationship Management Software technique applicable | High | Collection |
+| Finding                                                        | Severity | Impact     |
+| -------------------------------------------------------------- | -------- | ---------- |
+| Customer Relationship Management Software technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

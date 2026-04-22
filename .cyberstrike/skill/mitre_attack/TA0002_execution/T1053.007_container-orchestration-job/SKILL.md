@@ -82,6 +82,7 @@ kubectl get cronjobs -n #{namespace}
 ```
 
 **Dependencies:**
+
 - kubectl must be installed
 
 ### Atomic Test 2: CreateCronjob
@@ -95,8 +96,8 @@ kubectl create -f src/cronjob.yaml -n #{namespace}
 ```
 
 **Dependencies:**
-- kubectl must be installed
 
+- kubectl must be installed
 
 ### Manual Testing
 
@@ -111,29 +112,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and remediate privilege escalation vectors so only authorized administrators can create container orchestration jobs.
 
 ### M1026 Privileged Account Management
-Ensure containers are not running as root by default. In Kubernetes environments, consider defining Pod Security Standards that prevent pods from running privileged containers.
 
+Ensure containers are not running as root by default. In Kubernetes environments, consider defining Pod Security Standards that prevent pods from running privileged containers.
 
 ## Detection
 
 ### Detection of Malicious Kubernetes CronJob Scheduling
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container Orchestration Job technique applicable | Low | Execution |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Container Orchestration Job technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

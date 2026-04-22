@@ -4,7 +4,18 @@ description: "Minimize cluster access to read-only for Container Image repositor
 category: cis-gke
 version: "1.7.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, image-registry, image-scanning, artifact-registry, vulnerability-scanning, binary-authorization]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    image-registry,
+    image-scanning,
+    artifact-registry,
+    vulnerability-scanning,
+    binary-authorization,
+  ]
 cis_id: "5.1.3"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.7.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -163,7 +174,7 @@ The default permissions for the cluster Service account is dependent on the init
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning | | x | x |
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists          | x    | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning |      | x    | x    |

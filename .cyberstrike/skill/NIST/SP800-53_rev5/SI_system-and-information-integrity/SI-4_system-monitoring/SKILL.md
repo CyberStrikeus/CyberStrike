@@ -29,8 +29,7 @@ chains_with:
   - AU-7
   - AU-9
   - AU-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -77,10 +76,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -106,17 +105,16 @@ Depending on the security architecture, the distribution and configuration of mo
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-4 System Monitoring not implemented | High | System and Information Integrity |
-| SI-4 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                | Severity | Impact                                      |
+| -------------------------------------- | -------- | ------------------------------------------- |
+| SI-4 System Monitoring not implemented | High     | System and Information Integrity            |
+| SI-4 partially implemented             | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

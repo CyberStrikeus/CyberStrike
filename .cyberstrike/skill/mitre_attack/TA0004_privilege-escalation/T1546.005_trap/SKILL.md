@@ -107,6 +107,7 @@ bash -c 'trap "nohup sh $PathToAtomicsFolder/T1546.005/src/echo-art-fish.sh" EXI
 ```
 
 **Dependencies:**
+
 - Check if bash is installed.
 
 ### Atomic Test 3: Trap SIGINT
@@ -132,8 +133,8 @@ bash -c 'trap "nohup sh $PathToAtomicsFolder/T1546.005/src/echo-art-fish.sh" SIG
 ```
 
 **Dependencies:**
-- Check if bash is installed.
 
+- Check if bash is installed.
 
 ### Manual Testing
 
@@ -153,19 +154,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Event Triggered Execution via Trap (T1546.005)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Trap technique applicable | Low | Privilege Escalation |
+| Finding                   | Severity | Impact               |
+| ------------------------- | -------- | -------------------- |
+| Trap technique applicable | Low      | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

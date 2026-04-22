@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse Compiled HTML files (.chm) to conceal malicious code. CHM files are commonly distributed as part of the Microsoft HTML Help system. CHM files are compressed compilations of various content such as HTML documents, images, and scripting/web related programming languages such VBA, JScript, Java, and ActiveX. CHM content is displayed using underlying components of the Internet Explorer browser loaded by the HTML Help executable program (hh.exe). 
+Adversaries may abuse Compiled HTML files (.chm) to conceal malicious code. CHM files are commonly distributed as part of the Microsoft HTML Help system. CHM files are compressed compilations of various content such as HTML documents, images, and scripting/web related programming languages such VBA, JScript, Java, and ActiveX. CHM content is displayed using underlying components of the Internet Explorer browser loaded by the HTML Help executable program (hh.exe).
 
 A custom CHM file containing embedded payloads could be delivered to a victim then triggered by User Execution. CHM execution may also bypass application application control on older and/or unpatched systems that do not account for execution of binaries through hh.exe.
 
@@ -86,6 +86,7 @@ hh.exe "#{local_chm_file}"
 ```
 
 **Dependencies:**
+
 - The payload must exist on disk at specified location (#{local_chm_file})
 
 ### Atomic Test 2: Compiled HTML Help Remote Payload
@@ -110,6 +111,7 @@ Invoke-ATHCompiledHelp -HHFilePath #{hh_file_path} -CHMFilePath #{chm_file_path}
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Invoke-ATHCompiledHelp must be exported in the module.
 
 ### Atomic Test 4: Invoke CHM with InfoTech Storage Protocol Handler
@@ -123,6 +125,7 @@ Invoke-ATHCompiledHelp -InfoTechStorageHandler #{infotech_storage_handler} -HHFi
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Invoke-ATHCompiledHelp must be exported in the module.
 
 ### Atomic Test 5: Invoke CHM Simulate Double click
@@ -136,8 +139,8 @@ Invoke-ATHCompiledHelp -SimulateUserDoubleClick -CHMFilePath #{chm_file_path}
 ```
 
 **Dependencies:**
-- The AtomicTestHarnesses module must be installed and Invoke-ATHCompiledHelp must be exported in the module.
 
+- The AtomicTestHarnesses module must be installed and Invoke-ATHCompiledHelp must be exported in the module.
 
 ### Manual Testing
 
@@ -152,29 +155,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
+
 Consider blocking download/transfer and execution of potentially uncommon file types known to be used in adversary campaigns, such as CHM files
 
 ### M1038 Execution Prevention
-Consider using application control to prevent execution of hh.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
+Consider using application control to prevent execution of hh.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detection of Suspicious Compiled HTML File Execution via hh.exe
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compiled HTML File technique applicable | Low | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| Compiled HTML File technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

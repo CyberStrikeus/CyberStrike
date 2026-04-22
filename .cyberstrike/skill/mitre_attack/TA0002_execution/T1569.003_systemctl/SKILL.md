@@ -40,7 +40,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse systemctl to execute commands or programs. Systemctl is the primary interface for systemd, the Linux init system and service manager. Typically invoked from a shell, Systemctl can also be integrated into scripts or applications. 
+Adversaries may abuse systemctl to execute commands or programs. Systemctl is the primary interface for systemd, the Linux init system and service manager. Typically invoked from a shell, Systemctl can also be integrated into scripts or applications.
 
 Adversaries may use systemctl to execute commands or programs as Systemd Services. Common subcommands include: `systemctl start`, `systemctl stop`, `systemctl enable`, `systemctl disable`, and `systemctl status`.
 
@@ -95,6 +95,7 @@ systemctl status #{service_name}.service
 ```
 
 **Dependencies:**
+
 - systemctl must be available on the system
 - The test must be run as root or with sudo privileges
 - /etc/systemd/system/ directory must exist and be writable
@@ -127,6 +128,7 @@ systemctl status $(basename #{service_path})
 ```
 
 **Dependencies:**
+
 - systemctl must be available on the system
 - /tmp must exist and be writable
 - The test must be run as root or with sudo privileges
@@ -159,6 +161,7 @@ systemctl status $(basename #{service_path})
 ```
 
 **Dependencies:**
+
 - systemctl must be available on the system
 - /dev/shm must exist and be writable
 - The test must be run as root or with sudo privileges
@@ -193,6 +196,7 @@ systemctl status #{service_name}.service
 ```
 
 **Dependencies:**
+
 - systemctl must be available on the system
 - sed must be available on the system
 - The test must be run as root or with sudo privileges
@@ -217,9 +221,9 @@ systemctl status #{unit_name}.service 2>/dev/null || echo "Transient service has
 ```
 
 **Dependencies:**
+
 - systemd-run must be available on the system
 - The test must be run as root or with sudo privileges
-
 
 ### Manual Testing
 
@@ -234,26 +238,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
-Limit user access to `systemctl` to only users who have a legitimate need.
 
+Limit user access to `systemctl` to only users who have a legitimate need.
 
 ## Detection
 
 ### Detection Strategy for System Services: Systemctl
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Systemctl technique applicable | Low | Execution |
+| Finding                        | Severity | Impact    |
+| ------------------------------ | -------- | --------- |
+| Systemctl technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS 8.5 — Ensure each Zone has a Valid Digital Signature
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 2
 
 ## Description
+
 For each zone of the authoritative name server, verify that the signed zone file has a valid signature for each algorithm in the zone DNSKEY RRSet.
 
 ## Rationale
+
 The zone must have a valid signature before it can be trusted by validating DNSSEC name resolvers.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Perform the following command on each zone providing the signed zone file. The example file name is 'cisecurity.org.signed' for the domain cisecurity.org. If the signed zone file is not generated from inline signing, then the format may be ASCII, and the `-I raw` should be omitted.
 
 ```
@@ -43,6 +48,7 @@ Algorithm: ECDSAP256SHA256: KSKs: 1 active, 0 stand-by, 0 revoked
 The compliant output will include the string `Zone fully signed:`.
 
 ## Remediation
+
 Perform either of the following:
 
 - Enable in-line signing in each zone configuration by setting `inline-signing` to `yes` value. For example:
@@ -86,20 +92,25 @@ rndc reload
 ```
 
 ## Default Value
+
 Not specified.
 
 ## References
+
 None listed in benchmark.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials | N | Y | Y |
+
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic          | Technique             |
+| --------------- | --------------------- |
 | Defense Evasion | T1562 Impair Defenses |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server

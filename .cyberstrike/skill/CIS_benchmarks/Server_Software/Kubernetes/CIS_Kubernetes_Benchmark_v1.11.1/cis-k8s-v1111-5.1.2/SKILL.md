@@ -44,15 +44,15 @@ Where possible, restrict access to secret objects in the cluster by removing get
 
 By default in a kubeadm cluster the following list of principals have `get` privileges on `secret` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin | system:masters |
+| CLUSTERROLEBINDING                                   | SUBJECT                            |
+| ---------------------------------------------------- | ---------------------------------- |
+| cluster-admin                                        | system:masters                     |
 | system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller |
-| system:controller:expand-controller | expand-controller |
-| system:controller:generic-garbage-collector | generic-garbage-collector |
-| system:controller:namespace-controller | namespace-controller |
-| system:controller:persistent-volume-binder | persistent-volume-binder |
-| system:kube-controller-manager | system:kube-controller-manager |
+| system:controller:expand-controller                  | expand-controller                  |
+| system:controller:generic-garbage-collector          | generic-garbage-collector          |
+| system:controller:namespace-controller               | namespace-controller               |
+| system:controller:persistent-volume-binder           | persistent-volume-binder           |
+| system:kube-controller-manager                       | system:kube-controller-manager     |
 
 ## References
 
@@ -60,7 +60,7 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3 Data Protection | | | |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3 Data Protection                              |      |      |      |
+| v7               | 14 Controlled Access Based on the Need to Know |      |      |      |

@@ -53,13 +53,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse features of Winlogon to execute DLLs and/or executables when a user logs in. Winlogon.exe is a Windows component responsible for actions at logon/logoff as well as the secure attention sequence (SAS) triggered by Ctrl-Alt-Delete. Registry entries in <code>HKLM\Software[\\Wow6432Node\\]\Microsoft\Windows NT\CurrentVersion\Winlogon\</code> and <code>HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\</code> are used to manage additional helper programs and functionalities that support Winlogon. 
+Adversaries may abuse features of Winlogon to execute DLLs and/or executables when a user logs in. Winlogon.exe is a Windows component responsible for actions at logon/logoff as well as the secure attention sequence (SAS) triggered by Ctrl-Alt-Delete. Registry entries in <code>HKLM\Software[\\Wow6432Node\\]\Microsoft\Windows NT\CurrentVersion\Winlogon\</code> and <code>HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\</code> are used to manage additional helper programs and functionalities that support Winlogon.
 
-Malicious modifications to these Registry keys may cause Winlogon to load and execute malicious DLLs and/or executables. Specifically, the following subkeys have been known to be possibly vulnerable to abuse: 
+Malicious modifications to these Registry keys may cause Winlogon to load and execute malicious DLLs and/or executables. Specifically, the following subkeys have been known to be possibly vulnerable to abuse:
 
-* Winlogon\Notify - points to notification package DLLs that handle Winlogon events
-* Winlogon\Userinit - points to userinit.exe, the user initialization program executed when a user logs on
-* Winlogon\Shell - points to explorer.exe, the system shell executed when a user logs on
+- Winlogon\Notify - points to notification package DLLs that handle Winlogon events
+- Winlogon\Userinit - points to userinit.exe, the user initialization program executed when a user logs on
+- Winlogon\Shell - points to explorer.exe, the system shell executed when a user logs on
 
 Adversaries may take advantage of these features to repeatedly execute malicious code and establish persistence.
 
@@ -149,7 +149,6 @@ Upon successful execution, PowerShell will modify a registry value to execute cm
 Set-ItemProperty "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\" "Userinit" "Userinit.exe, #{binary_to_execute}" -Force
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -163,29 +162,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Identify and block potentially malicious software that may be executed through the Winlogon helper process by using application control tools like AppLocker that are capable of auditing and/or blocking unknown DLLs.
 
 ### M1018 User Account Management
-Limit the privileges of user accounts so that only authorized administrators can perform Winlogon helper changes.
 
+Limit the privileges of user accounts so that only authorized administrators can perform Winlogon helper changes.
 
 ## Detection
 
 ### Detect Winlogon Helper DLL Abuse via Registry and Process Artifacts on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Winlogon Helper DLL technique applicable | Low | Persistence |
+| Finding                                  | Severity | Impact      |
+| ---------------------------------------- | -------- | ----------- |
+| Winlogon Helper DLL technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

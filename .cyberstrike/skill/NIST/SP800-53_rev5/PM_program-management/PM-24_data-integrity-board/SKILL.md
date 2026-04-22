@@ -12,16 +12,14 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-4
   - PM-19
   - PM-23
   - PT-2
   - PT-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   PM-19: "Chain with PM-19 for comprehensive security coverage"
@@ -66,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +82,16 @@ A Data Integrity Board is the board of senior officials designated by the head o
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-24 Data Integrity Board not implemented | Medium | Program Management |
-| PM-24 partially implemented | Low | Incomplete Program Management |
+| Finding                                    | Severity | Impact                        |
+| ------------------------------------------ | -------- | ----------------------------- |
+| PM-24 Data Integrity Board not implemented | Medium   | Program Management            |
+| PM-24 partially implemented                | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

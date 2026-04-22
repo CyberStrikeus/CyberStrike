@@ -33,8 +33,8 @@ Since the `/var` filesystem is only intended for variable files such as logs, se
 ### Command Line
 
 - IF - a separate partition exists for `/var`, verify that the `nosuid` option is set.
-Run the following command to verify that the `nosuid` mount option is set.
-Example:
+  Run the following command to verify that the `nosuid` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /var | grep -v nosuid
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/var`.
-Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/var` partition.
-Example:
+  Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/var` partition.
+  Example:
 
 ```
 <device> /var   <fstype>   defaults,rw,nosuid,nodev,relatime   0 0

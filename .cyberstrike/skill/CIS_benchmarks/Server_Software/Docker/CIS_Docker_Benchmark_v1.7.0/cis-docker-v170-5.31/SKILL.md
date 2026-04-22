@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.31
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -63,13 +64,16 @@ By default, the host user namespace is shared with containers unless user namesp
 ## CIS Controls
 
 **v8:**
+
 - **3.12 Segment Data Processing and Storage Based on Sensitivity**
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - **12 Boundary Defense**
   - Boundary Defense
 
 **v7:**
+
 - **14.1 Segment the Network Based on Sensitivity**
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).

@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1608/006"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1608
   - T1608.001
@@ -81,25 +80,24 @@ SEO poisoning may also be combined with evasive redirects and other cloaking mec
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of SEO Poisoning
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SEO Poisoning technique applicable | Low | Resource Development |
+| Finding                            | Severity | Impact               |
+| ---------------------------------- | -------- | -------------------- |
+| SEO Poisoning technique applicable | Low      | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

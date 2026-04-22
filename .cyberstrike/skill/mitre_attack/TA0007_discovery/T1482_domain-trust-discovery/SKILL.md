@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -78,6 +76,7 @@ nltest /trusted_domains
 ```
 
 **Dependencies:**
+
 - nltest.exe from RSAT must be present on disk
 
 ### Atomic Test 3: Powershell enumerate domains and forests
@@ -97,6 +96,7 @@ Get-ADGroupMember Administrators -Recursive
 ```
 
 **Dependencies:**
+
 - PowerView PowerShell script must exist on disk
 - RSAT PowerShell AD admin cmdlets must be installed
 
@@ -112,6 +112,7 @@ reference- http://www.joeware.net/freetools/tools/adfind/, https://www.fireeye.c
 ```
 
 **Dependencies:**
+
 - AdFind.exe must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\AdFind.exe)
 
 ### Atomic Test 5: Adfind - Enumerate Active Directory Trusts
@@ -126,8 +127,8 @@ reference- http://www.joeware.net/freetools/tools/adfind/, https://www.fireeye.c
 ```
 
 **Dependencies:**
-- AdFind.exe must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\AdFind.exe)
 
+- AdFind.exe must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\AdFind.exe)
 
 ### Manual Testing
 
@@ -142,35 +143,34 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Map the trusts within existing domains/forests and keep trust relationships to a minimum.
 
 ### M1030 Network Segmentation
-Employ network segmentation for sensitive domains..
 
+Employ network segmentation for sensitive domains..
 
 ## Detection
 
 ### Detection of Domain Trust Discovery via API, Script, and CLI Enumeration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Trust Discovery technique applicable | High | Discovery |
+| Finding                                     | Severity | Impact    |
+| ------------------------------------------- | -------- | --------- |
+| Domain Trust Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 
 - [Microsoft Operation Wilysupply](https://www.microsoft.com/security/blog/2017/05/04/windows-defender-atp-thwarts-operation-wilysupply-software-supply-chain-cyberattack/)
 - [AdSecurity Forging Trust Tickets](https://adsecurity.org/?p=1588)
-- [Microsoft Trusts](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc759554(v=ws.10))
+- [Microsoft Trusts](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc759554(v=ws.10)>)
 - [Microsoft GetAllTrustRelationships](https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectory.domain.getalltrustrelationships?redirectedfrom=MSDN&view=netframework-4.7.2#System_DirectoryServices_ActiveDirectory_Domain_GetAllTrustRelationships)
 - [Harmj0y Domain Trusts](https://posts.specterops.io/a-guide-to-attacking-domain-trusts-971e52cb2944)
 - [Atomic Red Team - T1482](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1482)

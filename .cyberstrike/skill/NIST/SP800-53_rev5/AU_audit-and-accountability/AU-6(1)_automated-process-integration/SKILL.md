@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Organizational processes that benefit from integrated audit record review, analy
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-6(1) Automated Process Integration not implemented | Medium | Audit and Accountability |
-| AU-6(1) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                               | Severity | Impact                              |
+| ----------------------------------------------------- | -------- | ----------------------------------- |
+| AU-6(1) Automated Process Integration not implemented | Medium   | Audit and Accountability            |
+| AU-6(1) partially implemented                         | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

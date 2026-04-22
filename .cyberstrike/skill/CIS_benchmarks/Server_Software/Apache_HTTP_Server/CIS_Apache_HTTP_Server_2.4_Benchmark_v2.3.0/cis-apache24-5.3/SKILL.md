@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.3 Ensure Options for Other Directories Are Minimized
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -67,6 +68,7 @@ Perform the following to implement the recommended state:
 ## CIS Controls
 
 **Controls Version: v8**
+
 - **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts**
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
   - **IG 1:** •
@@ -74,10 +76,12 @@ Perform the following to implement the recommended state:
   - **IG 3:** •
 
 **Controls Version: v7**
+
 - **4.7 Limit Access to Script Tools**
   - Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.
   - **IG 2:** •
   - **IG 3:** •
 
 ## Profile
+
 - Level 2 | Automated

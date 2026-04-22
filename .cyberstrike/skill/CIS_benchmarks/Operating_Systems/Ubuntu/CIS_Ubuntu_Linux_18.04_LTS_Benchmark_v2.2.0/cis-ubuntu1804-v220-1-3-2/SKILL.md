@@ -55,14 +55,14 @@ Configure your package manager repositories according to site policy.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.3 Perform Automated Operating System Patch Management | X | X | X |
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools | X | X | X |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools | X | X | X |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.3 Perform Automated Operating System Patch Management      | X    | X    | X    |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools | X    | X    | X    |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools         | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1068, T1068.000, T1195, T1195.001, T1195.002, T1203, T1203.000, T1210, T1210.000, T1211, T1211.000, T1212, T1212.000 | TA0001 | M1051 |
+| Techniques / Sub-techniques                                                                                           | Tactics | Mitigations |
+| --------------------------------------------------------------------------------------------------------------------- | ------- | ----------- |
+| T1068, T1068.000, T1195, T1195.001, T1195.002, T1203, T1203.000, T1210, T1210.000, T1211, T1211.000, T1212, T1212.000 | TA0001  | M1051       |

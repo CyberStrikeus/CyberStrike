@@ -33,16 +33,16 @@ severity_boost: "low"
 
 The Debian package manager has a number of useful options. One of these, the `--verify` option, can be used to verify that system packages are correctly installed. The `--verify` option can be used to verify a particular package or to verify all system packages. If no output is returned, the package is installed correctly. The following table describes the meaning of output from the verify option:
 
-| Code | Meaning |
-|------|---------|
-| S | File size differs. |
-| M | File mode differs (includes permissions and file type). |
-| 5 | The MD5 checksum differs. |
-| D | The major and minor version numbers differ on a device file. |
-| L | A mismatch occurs in a link. |
-| U | The file ownership differs. |
-| G | The file group owner differs. |
-| T | The file time (mtime) differs. |
+| Code | Meaning                                                      |
+| ---- | ------------------------------------------------------------ |
+| S    | File size differs.                                           |
+| M    | File mode differs (includes permissions and file type).      |
+| 5    | The MD5 checksum differs.                                    |
+| D    | The major and minor version numbers differ on a device file. |
+| L    | A mismatch occurs in a link.                                 |
+| U    | The file ownership differs.                                  |
+| G    | The file group owner differs.                                |
+| T    | The file time (mtime) differs.                               |
 
 The `dpkg -S` command can be used to determine which package a particular file belongs to. For example the following commands determines which package the `/bin/bash` file belongs to:
 

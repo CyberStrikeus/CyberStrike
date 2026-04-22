@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.1
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 Do not enable swarm mode on a Docker engine instance unless this is needed.
 
 ## Rationale
+
 By default, a Docker engine instance will not listen on any network ports, with all communications with the client coming over the Unix socket. When Docker swarm mode is enabled on a Docker engine instance, multiple network ports are opened on the system and made available to other systems on the network for the purposes of cluster management and node communications.
 
 Opening network ports on a system increases its attack surface and this should be avoided unless required.
@@ -30,6 +33,7 @@ Opening network ports on a system increases its attack surface and this should b
 It should be noted that swarm mode is required for the operation of Docker Enterprise components.
 
 ## Impact
+
 Disabling swarm mode will impact the operation of Docker Enterprise components if these are in use.
 
 ## Audit Procedure
@@ -51,18 +55,23 @@ docker swarm leave
 ```
 
 ## Default Value
+
 By default, Docker swarm mode is not enabled.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/commandline/swarm_leave/
 
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 
 ## Assessment Status
+
 Manual

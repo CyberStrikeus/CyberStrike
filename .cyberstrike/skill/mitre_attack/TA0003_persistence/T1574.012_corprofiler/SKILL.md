@@ -103,6 +103,7 @@ START MMC.EXE EVENTVWR.MSC
 ```
 
 **Dependencies:**
+
 - "#{file_name}" must be present
 
 ### Atomic Test 2: System Scope COR_PROFILER
@@ -125,6 +126,7 @@ New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\E
 ```
 
 **Dependencies:**
+
 - "#{file_name}" must be present
 
 ### Atomic Test 3: Registry-free process scope COR_PROFILER
@@ -143,8 +145,8 @@ POWERSHELL -c 'Start-Sleep 1'
 ```
 
 **Dependencies:**
-- "#{file_name}" must be present
 
+- "#{file_name}" must be present
 
 ### Manual Testing
 
@@ -159,37 +161,37 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper permissions are set for Registry hives to prevent users from modifying keys associated with COR_PROFILER.
 
 ### M1038 Execution Prevention
+
 Identify and block potentially malicious unmanaged COR_PROFILER profiling DLLs by using application control solutions like AppLocker that are capable of auditing and/or blocking unapproved DLLs.
 
 ### M1018 User Account Management
-Limit the privileges of user accounts so that only authorized administrators can edit system environment variables.
 
+Limit the privileges of user accounts so that only authorized administrators can edit system environment variables.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow using the Windows COR_PROFILER.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| COR_PROFILER technique applicable | High | Persistence |
+| Finding                           | Severity | Impact      |
+| --------------------------------- | -------- | ----------- |
+| COR_PROFILER technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 
 - [Microsoft Profiling Mar 2017](https://docs.microsoft.com/en-us/dotnet/framework/unmanaged-api/profiling/profiling-overview)
-- [Microsoft COR_PROFILER Feb 2013](https://docs.microsoft.com/en-us/previous-versions/dotnet/netframework-4.0/ee471451(v=vs.100))
+- [Microsoft COR_PROFILER Feb 2013](<https://docs.microsoft.com/en-us/previous-versions/dotnet/netframework-4.0/ee471451(v=vs.100)>)
 - [RedCanary Mockingbird May 2020](https://redcanary.com/blog/blue-mockingbird-cryptominer/)
 - [Red Canary COR_PROFILER May 2020](https://redcanary.com/blog/cor_profiler-for-persistence/)
 - [Almond COR_PROFILER Apr 2019](https://offsec.almond.consulting/UAC-bypass-dotnet.html)

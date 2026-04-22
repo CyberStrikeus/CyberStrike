@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.6
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -94,6 +95,6 @@ By default, no audit rules are configured for MAC policy changes.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.5 Implement Automated Configuration Monitoring Systems - Utilize a Security Content Automation Protocol (SCAP) compliant configuration monitoring system to verify all security configuration elements, catalog approved exceptions, and alert when unauthorized changes occur. |
+| Controls Version | Control                                                                                                                                                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 5.5 Implement Automated Configuration Monitoring Systems - Utilize a Security Content Automation Protocol (SCAP) compliant configuration monitoring system to verify all security configuration elements, catalog approved exceptions, and alert when unauthorized changes occur. |

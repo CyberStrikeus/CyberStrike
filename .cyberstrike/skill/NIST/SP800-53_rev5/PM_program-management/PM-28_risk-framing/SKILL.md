@@ -12,15 +12,13 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-7
   - PM-9
   - RA-3
   - RA-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   PM-9: "Chain with PM-9 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Risk framing is most effective when conducted at the organization level and in c
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-28 Risk Framing not implemented | Medium | Program Management |
-| PM-28 partially implemented | Low | Incomplete Program Management |
+| Finding                            | Severity | Impact                        |
+| ---------------------------------- | -------- | ----------------------------- |
+| PM-28 Risk Framing not implemented | Medium   | Program Management            |
+| PM-28 partially implemented        | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

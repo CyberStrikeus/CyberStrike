@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SI-3
 severity_boost: {}
@@ -67,10 +66,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ The use of malicious code analysis tools provides organizations with a more in-d
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-3(10) Malicious Code Analysis not implemented | High | System and Information Integrity |
-| SI-3(10) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                          | Severity | Impact                                      |
+| ------------------------------------------------ | -------- | ------------------------------------------- |
+| SI-3(10) Malicious Code Analysis not implemented | High     | System and Information Integrity            |
+| SI-3(10) partially implemented                   | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

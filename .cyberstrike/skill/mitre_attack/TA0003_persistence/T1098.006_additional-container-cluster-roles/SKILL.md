@@ -47,8 +47,8 @@ severity_boost:
 ## High-Level Description
 
 An adversary may add additional roles or permissions to an adversary-controlled user or service account to maintain persistent access to a container orchestration system. For example, an adversary with sufficient permissions may create a RoleBinding or a ClusterRoleBinding to bind a Role or ClusterRole to a Kubernetes account. Where attribute-based access control (ABAC) is in use, an adversary with sufficient permissions may modify a Kubernetes ABAC policy to give the target account additional permissions.
- 
-This account modification may immediately follow Create Account or other malicious account activity. Adversaries may also modify existing Valid Accounts that they have compromised. 
+
+This account modification may immediately follow Create Account or other malicious account activity. Adversaries may also modify existing Valid Accounts that they have compromised.
 
 Note that where container orchestration systems are deployed in cloud environments, as with Google Kubernetes Engine, Amazon Elastic Kubernetes Service, and Azure Kubernetes Service, cloud-based role-based access control (RBAC) assignments or ABAC policies can often be used in place of or in addition to local permission assignments. In these cases, this technique may be used in conjunction with Additional Cloud Roles.
 
@@ -81,29 +81,28 @@ Note that where container orchestration systems are deployed in cloud environmen
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Require multi-factor authentication for user accounts integrated into container clusters through cloud deployments or via authentication protocols such as LDAP or SAML.
 
 ### M1018 User Account Management
-Ensure that low-privileged accounts do not have permissions to add permissions to accounts or to update container cluster roles.
 
+Ensure that low-privileged accounts do not have permissions to add permissions to accounts or to update container cluster roles.
 
 ## Detection
 
 ### Suspicious RoleBinding or ClusterRoleBinding Assignment in Kubernetes
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Additional Container Cluster Roles technique applicable | Low | Persistence |
+| Finding                                                 | Severity | Impact      |
+| ------------------------------------------------------- | -------- | ----------- |
+| Additional Container Cluster Roles technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

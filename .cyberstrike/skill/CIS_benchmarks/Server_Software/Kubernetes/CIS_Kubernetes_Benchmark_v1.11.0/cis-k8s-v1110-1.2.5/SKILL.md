@@ -70,7 +70,7 @@ By default, `--kubelet-certificate-authority` argument is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | * | * |
-| v7 | 9 Limitation and Control of Network Ports, Protocols, and Services | | | |
+| Controls Version | Control                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components |      | \*   | \*   |
+| v7               | 9 Limitation and Control of Network Ports, Protocols, and Services            |      |      |      |

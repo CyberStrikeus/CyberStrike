@@ -21,10 +21,8 @@ tech_stack:
   - containers
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,9 +66,9 @@ docker exec t1612_container ./test.sh
 ```
 
 **Dependencies:**
+
 - Verify docker is installed.
 - Verify docker service is running.
-
 
 ### Manual Testing
 
@@ -85,35 +83,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit communications with the container service to local Unix sockets or remote access via SSH. Require secure port access to communicate with the APIs over TLS by disabling unauthenticated access to the Docker API on port 2375. Instead, communicate with the Docker API over TLS on port 2376.
 
 ### M1026 Privileged Account Management
+
 Ensure containers are not running as root by default. In Kubernetes environments, consider defining Pod Security Standards that prevent pods from running privileged containers.
 
 ### M1030 Network Segmentation
+
 Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls.
 
 ### M1047 Audit
-Audit images deployed within the environment to ensure they do not contain any malicious components.
 
+Audit images deployed within the environment to ensure they do not contain any malicious components.
 
 ## Detection
 
 ### Detection Strategy for Build Image on Host
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Build Image on Host technique applicable | Low | Defense Evasion |
+| Finding                                  | Severity | Impact          |
+| ---------------------------------------- | -------- | --------------- |
+| Build Image on Host technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

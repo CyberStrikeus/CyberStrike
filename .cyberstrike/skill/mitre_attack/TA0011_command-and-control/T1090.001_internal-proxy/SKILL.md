@@ -92,12 +92,13 @@ curl #{test_url}
 ```
 
 **Dependencies:**
+
 - Squid must be installed and running
 
 ### Atomic Test 2: Connection Proxy for macOS UI
 
 Enable traffic redirection on macOS UI (not terminal).
-The test will modify and enable the "Web Proxy" and "Secure Web Proxy" settings  in System Preferences => Network => Advanced => Proxies for the specified network interface.
+The test will modify and enable the "Web Proxy" and "Secure Web Proxy" settings in System Preferences => Network => Advanced => Proxies for the specified network interface.
 
 Note that this test may conflict with pre-existing system configuration.
 
@@ -121,7 +122,6 @@ netsh interface portproxy show all
 netsh interface portproxy add v4tov4 listenport=#{listenport} connectport=#{connectport} connectaddress=#{connectaddress}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -135,26 +135,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific C2 protocol used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific C2 protocol used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
 ## Detection
 
 ### Internal Proxy Behavior via Lateral Host-to-Host C2 Relay
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internal Proxy technique applicable | Medium | Command And Control |
+| Finding                             | Severity | Impact              |
+| ----------------------------------- | -------- | ------------------- |
+| Internal Proxy technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

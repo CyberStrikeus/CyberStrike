@@ -121,6 +121,7 @@ attrib.exe +s #{file_to_modify}
 ```
 
 **Dependencies:**
+
 - The file must exist on disk at specified location (#{file_to_modify})
 
 ### Atomic Test 4: Create Windows Hidden File with Attrib
@@ -136,6 +137,7 @@ attrib.exe +h #{file_to_modify}
 ```
 
 **Dependencies:**
+
 - The file must exist on disk at specified location (#{file_to_modify})
 
 ### Atomic Test 5: Hidden files
@@ -147,7 +149,6 @@ Requires Apple Dev Tools
 ```bash
 setfile -a V #{filename}
 ```
-
 
 ### Manual Testing
 
@@ -167,19 +168,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Hidden Files and Directories
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hidden Files and Directories technique applicable | Low | Defense Evasion |
+| Finding                                           | Severity | Impact          |
+| ------------------------------------------------- | -------- | --------------- |
+| Hidden Files and Directories technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -30,10 +30,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-269
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -77,6 +75,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 In this escape `kubectl` is used to launch a new pod, with a container that has the host pids mapped into the container (`hostPID:true`). It uses the alpine linux container image. It runs with privilege on the host (`privileged:true`). When the container is launched the command `nsenter --mount=/proc/1/ns/mnt -- /bin/bash` is ran. Since the host processes have been mapped into the container, the container enters the host namespace, escaping the container.
 
 Additional Details:
+
 - https://twitter.com/mauilion/status/1129468485480751104
 - https://securekubernetes.com/scenario_2_attack/
 
@@ -87,6 +86,7 @@ kubectl --context kind-atomic-cluster run atomic-nsenter-escape-pod --restart=Ne
 ```
 
 **Dependencies:**
+
 - Verify docker is installed.
 - Verify docker service is running.
 - Verify kind is in the path.
@@ -96,7 +96,7 @@ kubectl --context kind-atomic-cluster run atomic-nsenter-escape-pod --restart=Ne
 ### Atomic Test 2: Mount host filesystem to escape privileged Docker container
 
 This technique abuses privileged Docker containers to mount the host's filesystem and then create a cron job to launch a reverse shell as the host's superuser.
-The container running the test needs be privileged.  It may take up to a minute for this to run due to how often crond triggers a job.
+The container running the test needs be privileged. It may take up to a minute for this to run due to how often crond triggers a job.
 Dev note: the echo to create cron_filename is broken up to prevent localized execution of hostname and id by Powershell.
 
 **Supported Platforms:** containers
@@ -113,6 +113,7 @@ netcat -l -p #{listen_port} 2>&1
 ```
 
 **Dependencies:**
+
 - Verify mount is installed.
 - Verify container is privileged.
 - Verify mount device (/dev/dm-0) exists.
@@ -135,9 +136,9 @@ sudo -u docker_user sh -c "sudo docker run -v /:/mnt --rm --name t1611_privesc -
 ```
 
 **Dependencies:**
+
 - Docker
 - Docker Privileged User
-
 
 ### Manual Testing
 
@@ -152,38 +153,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Ensure that hosts are kept up-to-date with security patches.
 
 ### M1038 Execution Prevention
+
 Use read-only containers, read-only file systems, and minimal images when possible to prevent the running of commands. Where possible, also consider using application control and software restriction tools (such as those provided by SELinux) to restrict access to files, processes, and system calls in containers.
 
 ### M1048 Application Isolation and Sandboxing
+
 Consider utilizing seccomp, seccomp-bpf, or a similar solution that restricts certain system calls such as mount. In Kubernetes environments, consider defining Pod Security Standards that limit container access to host process namespaces, the host network, and the host file system.
 
 ### M1026 Privileged Account Management
+
 Ensure containers are not running as root by default and do not use unnecessary privileges or mounted components. In Kubernetes environments, consider defining Pod Security Standards that prevent pods from running privileged containers.
 
 ### M1042 Disable or Remove Feature or Program
-Remove unnecessary tools and software from containers.
 
+Remove unnecessary tools and software from containers.
 
 ## Detection
 
 ### Detection Strategy for Escape to Host
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Escape to Host technique applicable | High | Privilege Escalation |
+| Finding                             | Severity | Impact               |
+| ----------------------------------- | -------- | -------------------- |
+| Escape to Host technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

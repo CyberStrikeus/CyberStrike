@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,26 +64,24 @@ Review whether mitigations for T1643 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be advised that applications generally do not require permission to send SMS messages.
 
+Users should be advised that applications generally do not require permission to send SMS messages.
 
 ## Detection
 
 ### Detection of Generate Traffic from Victim
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Generate Traffic from Victim technique applicable | Low | Impact |
+| Finding                                           | Severity | Impact |
+| ------------------------------------------------- | -------- | ------ |
+| Generate Traffic from Victim technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

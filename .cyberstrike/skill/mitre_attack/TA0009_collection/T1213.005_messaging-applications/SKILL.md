@@ -46,15 +46,15 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may leverage chat and messaging applications, such as Microsoft Teams, Google Chat, and Slack, to mine valuable information. 
+Adversaries may leverage chat and messaging applications, such as Microsoft Teams, Google Chat, and Slack, to mine valuable information.
 
-The following is a brief list of example information that may hold potential value to an adversary and may also be found on messaging applications: 
+The following is a brief list of example information that may hold potential value to an adversary and may also be found on messaging applications:
 
-* Testing / development credentials (i.e., Chat Messages) 
-* Source code snippets 
-* Links to network shares and other internal resources 
-* Proprietary data
-* Discussions about ongoing incident response efforts
+- Testing / development credentials (i.e., Chat Messages)
+- Source code snippets
+- Links to network shares and other internal resources
+- Proprietary data
+- Discussions about ongoing incident response efforts
 
 In addition to exfiltrating data from messaging applications, adversaries may leverage data from chat messages in order to improve their targeting - for example, by learning more about an environment or evading ongoing incident response efforts.
 
@@ -87,32 +87,32 @@ In addition to exfiltrating data from messaging applications, adversaries may le
 ## Remediation Guide
 
 ### M1017 User Training
+
 Develop and publish policies that define acceptable information to be posted in chat applications.
 
 ### M1047 Audit
+
 Preemptively search through communication services to find inappropriately shared data, and take actions to reduce exposure when found.
 
 ### M1060 Out-of-Band Communications Channel
-Implement secure out-of-band communication channels to use as an alternative to in-network chat applications during a security incident. This ensures that critical communications remain secure even if primary messaging channels are compromised by adversaries.
 
+Implement secure out-of-band communication channels to use as an alternative to in-network chat applications during a security incident. This ensures that critical communications remain secure even if primary messaging channels are compromised by adversaries.
 
 ## Detection
 
 ### Detecting Unauthorized Collection from Messaging Applications in SaaS and Office Environments
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Messaging Applications technique applicable | High | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Messaging Applications technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

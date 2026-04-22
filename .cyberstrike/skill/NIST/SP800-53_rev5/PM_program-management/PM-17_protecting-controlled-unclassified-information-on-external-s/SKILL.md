@@ -12,13 +12,11 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-6
   - PM-10
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-6: "Chain with CA-6 for comprehensive security coverage"
   PM-10: "Chain with PM-10 for comprehensive security coverage"
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +77,16 @@ Controlled unclassified information is defined by the National Archives and Reco
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-17 Protecting Controlled Unclassified Information on External Systems not implemented | Medium | Program Management |
-| PM-17 partially implemented | Low | Incomplete Program Management |
+| Finding                                                                                  | Severity | Impact                        |
+| ---------------------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-17 Protecting Controlled Unclassified Information on External Systems not implemented | Medium   | Program Management            |
+| PM-17 partially implemented                                                              | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

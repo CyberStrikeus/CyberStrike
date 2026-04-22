@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-2
   - CM-3
@@ -26,8 +25,7 @@ chains_with:
   - PE-16
   - SI-2
   - SR-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -93,16 +91,16 @@ Controlling system maintenance addresses the information security aspects of the
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-2 Controlled Maintenance not implemented | Medium | Maintenance |
-| MA-2 partially implemented | Low | Incomplete Maintenance |
+| Finding                                     | Severity | Impact                 |
+| ------------------------------------------- | -------- | ---------------------- |
+| MA-2 Controlled Maintenance not implemented | Medium   | Maintenance            |
+| MA-2 partially implemented                  | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

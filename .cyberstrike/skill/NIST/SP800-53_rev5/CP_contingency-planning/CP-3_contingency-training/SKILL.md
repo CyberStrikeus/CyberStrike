@@ -14,8 +14,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-2
   - AT-3
@@ -26,8 +25,7 @@ chains_with:
   - IR-2
   - IR-4
   - IR-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-2: "Chain with AT-2 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -92,16 +90,16 @@ Contingency training provided by organizations is linked to the assigned roles a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-3 Contingency Training not implemented | Medium | Contingency Planning |
-| CP-3 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                   | Severity | Impact                          |
+| ----------------------------------------- | -------- | ------------------------------- |
+| CP-3 Contingency Training not implemented | Medium   | Contingency Planning            |
+| CP-3 partially implemented                | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

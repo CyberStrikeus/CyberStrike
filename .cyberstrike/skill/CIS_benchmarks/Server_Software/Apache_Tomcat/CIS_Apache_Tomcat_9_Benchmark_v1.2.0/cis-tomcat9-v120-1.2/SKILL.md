@@ -57,10 +57,12 @@ connectionTimeout="60000"/>
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
   - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
   - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 

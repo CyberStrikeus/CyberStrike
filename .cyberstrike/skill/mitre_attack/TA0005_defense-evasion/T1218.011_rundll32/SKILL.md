@@ -84,7 +84,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Rundll32 execute JavaScript Remote Payload With GetObject
 
-Test execution of a remote script using rundll32.exe. Upon execution notepad.exe will be opened. 
+Test execution of a remote script using rundll32.exe. Upon execution notepad.exe will be opened.
 This has been used by Win32/Poweliks malware and works as described [here](https://www.stormshield.com/news/poweliks-command-line-confusion/)
 
 Note: The GetObject function is no longer supported in Internet Explorer v9 (2011) and later so this technique would only work where very old versions of IE are installed.
@@ -132,6 +132,7 @@ rundll32.exe advpack.dll,LaunchINFSection "#{inf_to_execute}",DefaultInstall_Sin
 ```
 
 **Dependencies:**
+
 - Inf file must exist on disk at specified location ("#{inf_to_execute}")
 
 ### Atomic Test 5: Rundll32 ieadvpack.dll Execution
@@ -148,8 +149,8 @@ rundll32.exe ieadvpack.dll,LaunchINFSection "#{inf_to_execute}",DefaultInstall_S
 ```
 
 **Dependencies:**
-- Inf file must exist on disk at specified location ("#{inf_to_execute}")
 
+- Inf file must exist on disk at specified location ("#{inf_to_execute}")
 
 ### Manual Testing
 
@@ -164,26 +165,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1050 Exploit Protection
-Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block methods of using rundll32.exe to bypass application control.
 
+Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block methods of using rundll32.exe to bypass application control.
 
 ## Detection
 
 ### Detection Strategy for T1218.011 Rundll32 Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Rundll32 technique applicable | Medium | Defense Evasion |
+| Finding                       | Severity | Impact          |
+| ----------------------------- | -------- | --------------- |
+| Rundll32 technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

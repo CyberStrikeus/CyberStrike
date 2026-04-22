@@ -71,8 +71,8 @@ By default the `default` service account allows for its service account token to
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.3 Disable Dormant Accounts | x | x | x |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | x | x | x |
-| v7 | 16.9 Disable Dormant Accounts | x | x | x |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.3 Disable Dormant Accounts                            | x    | x    | x    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts | x    | x    | x    |
+| v7               | 16.9 Disable Dormant Accounts                           | x    | x    | x    |

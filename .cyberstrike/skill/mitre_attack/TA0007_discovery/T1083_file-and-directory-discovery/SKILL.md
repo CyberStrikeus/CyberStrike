@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,7 +70,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: File and Directory Discovery (cmd.exe)
 
-Find or discover files on the file system.  Upon successful execution, this test will output the results of all the data discovery commands to a specified file.
+Find or discover files on the file system. Upon successful execution, this test will output the results of all the data discovery commands to a specified file.
 
 **Supported Platforms:** windows
 
@@ -157,7 +155,6 @@ foreach ($secondarydirectory in $folderarray)
 cat #{File_to_output}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -176,19 +173,17 @@ No specific mitigations documented for this technique.
 
 ### Recursive Enumeration of Files and Directories Across Privilege Contexts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File and Directory Discovery technique applicable | Medium | Discovery |
+| Finding                                           | Severity | Impact    |
+| ------------------------------------------------- | -------- | --------- |
+| File and Directory Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -131,16 +131,16 @@ if [[ $(auditctl -s | grep "enabled") =~ "2" ]]; then printf "Reboot required to
 
 ## CIS Controls
 
-| Version | Control | IG 1 | IG 2 | IG 3 |
-|---------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | ● | ● |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | ● |
+| Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8      | 8.5 Collect Detailed Audit Logs                                     |      | ●    | ●    |
+| v7      | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | ●    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|----------------------------|---------|-------------|
-| T1562, T1562.006 | TA0005 | M1047 |
+| --------------------------- | ------- | ----------- |
+| T1562, T1562.006            | TA0005  | M1047       |
 
 ## Additional Information
 

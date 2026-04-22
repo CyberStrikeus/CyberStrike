@@ -80,29 +80,28 @@ Adversaries may alter application binaries used to display data in order to caus
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Identify critical business and system processes that may be targeted by adversaries and work to isolate and secure those systems against unauthorized access and tampering.
 
 ### M1022 Restrict File and Directory Permissions
-Prevent critical business and system processes from being replaced, overwritten, or reconfigured to load potentially malicious code.
 
+Prevent critical business and system processes from being replaced, overwritten, or reconfigured to load potentially malicious code.
 
 ## Detection
 
 ### Detection Strategy for Runtime Data Manipulation.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Runtime Data Manipulation technique applicable | Low | Impact |
+| Finding                                        | Severity | Impact |
+| ---------------------------------------------- | -------- | ------ |
+| Runtime Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

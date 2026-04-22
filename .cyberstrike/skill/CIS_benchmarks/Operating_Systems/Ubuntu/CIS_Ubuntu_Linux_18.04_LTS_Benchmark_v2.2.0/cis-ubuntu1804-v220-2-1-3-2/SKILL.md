@@ -38,12 +38,14 @@ Time synchronization is important to support time sensitive security mechanisms 
 IF systemd-timesyncd is in use on the system, run the following commands:
 
 Run the following command to verify that the systemd-timesyncd service is enabled:
+
 ```bash
 # systemctl is-enabled systemd-timesyncd.service
 enabled
 ```
 
 Run the following command to verify that the systemd-timesyncd service is active:
+
 ```bash
 # systemctl is-active systemd-timesyncd.service
 active
@@ -61,11 +63,13 @@ active
 IF systemd-timesyncd is in use on the system, run the following commands:
 
 Run the following command to unmask systemd-timesyncd.service:
+
 ```bash
 # systemctl unmask systemd-timesyncd.service
 ```
 
 Run the following command to enable and start systemd-timesyncd.service:
+
 ```bash
 # systemctl --now enable systemd-timesyncd.service
 ```
@@ -73,6 +77,7 @@ Run the following command to enable and start systemd-timesyncd.service:
 OR
 
 If another time synchronization service is in use on the system, run the following command to stop and mask systemd-timesyncd:
+
 ```bash
 # systemctl --now mask systemd-timesyncd.service
 ```

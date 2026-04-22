@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-22
   - AU-13
@@ -66,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +84,16 @@ Social media, social networking, and external site/application usage restriction
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-4(1) Social Media and External Site/Application Usage Restrictions not implemented | Medium | Planning |
-| PL-4(1) partially implemented | Low | Incomplete Planning |
+| Finding                                                                               | Severity | Impact              |
+| ------------------------------------------------------------------------------------- | -------- | ------------------- |
+| PL-4(1) Social Media and External Site/Application Usage Restrictions not implemented | Medium   | Planning            |
+| PL-4(1) partially implemented                                                         | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

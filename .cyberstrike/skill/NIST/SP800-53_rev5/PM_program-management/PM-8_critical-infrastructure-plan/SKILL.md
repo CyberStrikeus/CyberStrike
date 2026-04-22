@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - CP-4
@@ -24,8 +23,7 @@ chains_with:
   - PM-18
   - RA-3
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-4: "Chain with CP-4 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ Protection strategies are based on the prioritization of critical assets and res
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-8 Critical Infrastructure Plan not implemented | Medium | Program Management |
-| PM-8 partially implemented | Low | Incomplete Program Management |
+| Finding                                           | Severity | Impact                        |
+| ------------------------------------------------- | -------- | ----------------------------- |
+| PM-8 Critical Infrastructure Plan not implemented | Medium   | Program Management            |
+| PM-8 partially implemented                        | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

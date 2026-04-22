@@ -15,8 +15,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-16
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SA-11
 severity_boost: {}
@@ -62,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,17 +77,16 @@ Interactive (also known as instrumentation-based) application security testing i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-11(9) Interactive Application Security Testing not implemented | Medium | System and Services Acquisition |
-| SA-11(9) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                           | Severity | Impact                                     |
+| ----------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-11(9) Interactive Application Security Testing not implemented | Medium   | System and Services Acquisition            |
+| SA-11(9) partially implemented                                    | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

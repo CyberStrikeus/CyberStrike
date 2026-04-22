@@ -54,6 +54,7 @@ lsmod | grep rds
 ```
 install /bin/true
 ```
+
 And no output from `lsmod | grep rds`.
 
 ## Remediation

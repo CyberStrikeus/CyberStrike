@@ -98,6 +98,7 @@ Upon successful execution, cmd will utilize psexec.exe to spawn calc.exe on a re
 ```
 
 **Dependencies:**
+
 - PsExec tool from Sysinternals must exist in the ExternalPayloads directory
 
 ### Atomic Test 4: BlackCat pre-encryption cmds with Lateral Movement
@@ -108,15 +109,16 @@ This atomic attempts to emulate the unique behavior of BlackCat ransomware prior
 **Elevation Required:** Yes
 
 ```powershell
-cmd.exe /c "wmic 	csproduct 	get UUID" 
-cmd.exe /c "fsutil behavior 	set SymlinkEvaluation R2L:1" 
+cmd.exe /c "wmic 	csproduct 	get UUID"
+cmd.exe /c "fsutil behavior 	set SymlinkEvaluation R2L:1"
 cmd.exe /c "fsutil behavior set 	SymlinkEvaluation R2R:1"
-reg    add    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters    /v MaxMpxCt /d 65535 /t REG_DWORD /f      
+reg    add    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters    /v MaxMpxCt /d 65535 /t REG_DWORD /f
 copy "PathToAtomicsFolder\..\ExternalPayloads\PsExec.exe" $env:temp
 cmd.exe /c "$env:temp\psexec.exe  -accepteula  \\#{targethost} cmd.exe  /c echo "--access-token""
 ```
 
 **Dependencies:**
+
 - PsExec must exist on disk at "PathToAtomicsFolder\..\ExternalPayloads\PsExec.exe"
 
 ### Atomic Test 5: Use RemCom to execute a command on a remote host
@@ -132,8 +134,8 @@ Upon successful execution, cmd will utilize RemCom.exe to spawn calc.exe on a re
 ```
 
 **Dependencies:**
-- RemCom tool must exist on disk in the ExternalPayloads folder
 
+- RemCom tool must exist on disk in the ExternalPayloads folder
 
 ### Manual Testing
 
@@ -148,32 +150,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Ensure that permissions disallow services that run at a higher permissions level from being created or interacted with by a user with a lower permission level.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to block processes created by PsExec from running.
 
 ### M1022 Restrict File and Directory Permissions
-Ensure that high permission level service binaries cannot be replaced or modified by users with a lower permission level.
 
+Ensure that high permission level service binaries cannot be replaced or modified by users with a lower permission level.
 
 ## Detection
 
 ### Detection Strategy for System Services Service Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Service Execution technique applicable | High | Execution |
+| Finding                                | Severity | Impact    |
+| -------------------------------------- | -------- | --------- |
+| Service Execution technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

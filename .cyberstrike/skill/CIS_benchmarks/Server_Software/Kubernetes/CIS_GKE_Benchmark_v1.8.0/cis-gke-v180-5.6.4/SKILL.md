@@ -4,7 +4,21 @@ description: "Ensure clusters are created with Private Endpoint Enabled and Publ
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, cluster-networking, vpc-flow-logs, intranode-visibility, vpc-native, private-cluster, authorized-networks, firewall, ssl-certificates]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    cluster-networking,
+    vpc-flow-logs,
+    intranode-visibility,
+    vpc-native,
+    private-cluster,
+    authorized-networks,
+    firewall,
+    ssl-certificates,
+  ]
 cis_id: "5.6.4"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -54,7 +68,7 @@ The output of the above command returns
 
 ```json
 {
-    "enablePrivateEndpoint": true
+  "enablePrivateEndpoint": true
 }
 ```
 
@@ -99,7 +113,7 @@ By default, the Private Endpoint is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 12 Boundary Defense | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | x    | x    | x    |
+| v7               | 12 Boundary Defense                            |      |      |      |

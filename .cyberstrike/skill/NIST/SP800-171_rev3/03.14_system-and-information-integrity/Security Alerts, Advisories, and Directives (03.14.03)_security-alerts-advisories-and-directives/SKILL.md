@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,17 +87,16 @@ There are many publicly available sources of system security alerts and advisori
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Security Alerts, Advisories, and Directives (03.14.03) Security Alerts, Advisories, and Directives not implemented | High | CUI Protection - System and Information Integrity |
-| Security Alerts, Advisories, and Directives (03.14.03) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                                            | Severity | Impact                                            |
+| ------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------------------------------- |
+| Security Alerts, Advisories, and Directives (03.14.03) Security Alerts, Advisories, and Directives not implemented | High     | CUI Protection - System and Information Integrity |
+| Security Alerts, Advisories, and Directives (03.14.03) partially implemented (POA&M)                               | Medium   | CMMC certification risk                           |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

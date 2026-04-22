@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-2
   - AT-3
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Organizations establish requirements for responding to information spillage inci
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-9(2) Training not implemented | Medium | Incident Response |
-| IR-9(2) partially implemented | Low | Incomplete Incident Response |
+| Finding                          | Severity | Impact                       |
+| -------------------------------- | -------- | ---------------------------- |
+| IR-9(2) Training not implemented | Medium   | Incident Response            |
+| IR-9(2) partially implemented    | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

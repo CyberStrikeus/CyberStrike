@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.22
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -61,9 +62,11 @@ When you run a container, it uses the default profile unless you override it wit
 ## CIS Controls
 
 **v8:**
+
 - **4.4 Implement and Manage a Firewall on Servers**
   - Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent.
 
 **v7:**
+
 - **9.5 Implement Application Firewalls**
   - Place application firewalls in front of any critical servers to verify and validate the traffic going to the server. Any unauthorized traffic should be blocked and logged.

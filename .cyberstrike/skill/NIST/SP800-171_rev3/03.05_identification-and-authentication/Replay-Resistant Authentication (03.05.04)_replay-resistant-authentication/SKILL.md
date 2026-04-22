@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-287
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -70,10 +68,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -87,17 +85,16 @@ Authentication processes resist replay attacks if it is impractical to successfu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Replay-Resistant Authentication (03.05.04) Replay-Resistant Authentication not implemented | High | CUI Protection - Identification and Authentication |
-| Replay-Resistant Authentication (03.05.04) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                    | Severity | Impact                                             |
+| ------------------------------------------------------------------------------------------ | -------- | -------------------------------------------------- |
+| Replay-Resistant Authentication (03.05.04) Replay-Resistant Authentication not implemented | High     | CUI Protection - Identification and Authentication |
+| Replay-Resistant Authentication (03.05.04) partially implemented (POA&M)                   | Medium   | CMMC certification risk                            |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

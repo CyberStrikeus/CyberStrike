@@ -85,6 +85,7 @@ Executes an MSI containing embedded JScript code using msiexec.exe
 ```
 
 **Dependencies:**
+
 - The MSI file must exist on disk at specified location (#{msi_payload})
 
 ### Atomic Test 2: Msiexec.exe - Execute Local MSI file with embedded VBScript
@@ -98,6 +99,7 @@ Executes an MSI containing embedded VBScript code using msiexec.exe
 ```
 
 **Dependencies:**
+
 - The MSI file must exist on disk at specified location (#{msi_payload})
 
 ### Atomic Test 3: Msiexec.exe - Execute Local MSI file with an embedded DLL
@@ -111,6 +113,7 @@ Executes an MSI containing an embedded DLL using msiexec.exe
 ```
 
 **Dependencies:**
+
 - The MSI file must exist on disk at specified location (#{msi_payload})
 
 ### Atomic Test 4: Msiexec.exe - Execute Local MSI file with an embedded EXE
@@ -124,6 +127,7 @@ Executes an MSI containing an embedded EXE using msiexec.exe
 ```
 
 **Dependencies:**
+
 - The MSI file must exist on disk at specified location (#{msi_payload})
 
 ### Atomic Test 5: WMI Win32_Product Class - Execute Local MSI file with embedded JScript
@@ -137,8 +141,8 @@ Invoke-CimMethod -ClassName Win32_Product -MethodName #{action} -Arguments @{ Pa
 ```
 
 **Dependencies:**
-- The MSI file must exist on disk at specified location (#{msi_payload})
 
+- The MSI file must exist on disk at specified location (#{msi_payload})
 
 ### Manual Testing
 
@@ -153,29 +157,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling the <code>AlwaysInstallElevated</code> policy to prevent elevated execution of Windows Installer packages.
 
 ### M1026 Privileged Account Management
-Restrict execution of Msiexec.exe to privileged accounts or groups that need to use it to lessen the opportunities for malicious usage.
 
+Restrict execution of Msiexec.exe to privileged accounts or groups that need to use it to lessen the opportunities for malicious usage.
 
 ## Detection
 
 ### Detection of Msiexec Abuse for Local, Network, and DLL Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Msiexec technique applicable | High | Defense Evasion |
+| Finding                      | Severity | Impact          |
+| ---------------------------- | -------- | --------------- |
+| Msiexec technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

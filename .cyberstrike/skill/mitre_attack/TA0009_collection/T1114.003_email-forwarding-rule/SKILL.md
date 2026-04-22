@@ -85,18 +85,22 @@ In some environments, administrators may be able to enable email forwarding rule
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling external email forwarding.
 
 ### M1041 Encrypt Sensitive Information
+
 Use of encryption provides an added layer of security to sensitive information sent over email. Encryption using public key cryptography requires the adversary to obtain the private certificate along with an encryption key to decrypt messages.
 
 ### M1047 Audit
+
 Enterprise email solutions have monitoring mechanisms that may include the ability to audit auto-forwarding rules on a regular basis.
 
 In an Exchange environment, Administrators can use `Get-InboxRule` / `Remove-InboxRule` and `Get-TransportRule` / `Remove-TransportRule` to discover and remove potentially malicious auto-fowarding and transport rules. In addition to this, a MAPI Editor can be utilized to examine the underlying database structure and discover any modifications/tampering of the properties of auto-forwarding rules.
 
 ### M1060 Out-of-Band Communications Channel
-Use secure out-of-band authentication methods to verify the authenticity of critical actions initiated via email, such as password resets, financial transactions, or access requests. 
+
+Use secure out-of-band authentication methods to verify the authenticity of critical actions initiated via email, such as password resets, financial transactions, or access requests.
 
 For highly sensitive information, utilize out-of-band communication channels instead of relying solely on email. This reduces the risk of sensitive data being collected through compromised email accounts.
 
@@ -104,24 +108,21 @@ Set up out-of-band alerts to notify security teams of unusual email activities, 
 
 Create plans for leveraging a secure out-of-band communications channel, rather than an existing in-network email server, in case of a security incident.
 
-
 ## Detection
 
 ### Email Forwarding Rule Abuse Detection Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Email Forwarding Rule technique applicable | High | Collection |
+| Finding                                    | Severity | Impact     |
+| ------------------------------------------ | -------- | ---------- |
+| Email Forwarding Rule technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

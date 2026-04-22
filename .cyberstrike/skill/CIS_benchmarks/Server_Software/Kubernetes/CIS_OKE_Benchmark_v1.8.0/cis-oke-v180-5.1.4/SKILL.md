@@ -4,7 +4,19 @@ description: "Minimize Container Registries to only those approved (Manual)"
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, image-registry, image-scanning, container-registry, ocir, trusted-registries]
+tags:
+  [
+    cis,
+    oke,
+    kubernetes,
+    oci,
+    managed-services,
+    image-registry,
+    image-scanning,
+    container-registry,
+    ocir,
+    trusted-registries,
+  ]
 cis_id: "5.1.4"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -64,13 +76,13 @@ Oracle Kubernetes Engine (OKE) clusters do not restrict which container registri
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v7 | 5.2 Maintain Secure Images | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
+| Controls Version | Control                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------- | ---- | ---- | ---- |
+| v7               | 5.2 Maintain Secure Images       |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1133, T1195 | TA0001, TA0003 | M1016, M1042 |
+| Techniques / Sub-techniques | Tactics        | Mitigations  |
+| --------------------------- | -------------- | ------------ |
+| T1133, T1195                | TA0001, TA0003 | M1016, M1042 |

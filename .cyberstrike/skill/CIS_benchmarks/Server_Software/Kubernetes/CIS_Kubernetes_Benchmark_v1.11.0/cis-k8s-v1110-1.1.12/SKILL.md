@@ -73,7 +73,7 @@ By default, etcd data directory ownership is set to `etcd:etcd`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|:---:|---|:---:|:---:|:---:|
-| v8 | **3.3 Configure Data Access Control Lists** - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | * | * | * |
-| v7 | **16 Account Monitoring and Control** - Account Monitoring and Control | | | |
+| Controls Version | Control                                                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| :--------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--: | :--: | :--: |
+|        v8        | **3.3 Configure Data Access Control Lists** - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. |  \*  |  \*  |  \*  |
+|        v7        | **16 Account Monitoring and Control** - Account Monitoring and Control                                                                                                                                                                              |      |      |      |

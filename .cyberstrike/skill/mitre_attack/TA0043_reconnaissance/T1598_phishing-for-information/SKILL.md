@@ -26,8 +26,7 @@ chains_with:
   - T1598.002
   - T1598.003
   - T1598.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1598.001: "Chain with T1598.001 for deeper attack path"
   T1598.002: "Chain with T1598.002 for deeper attack path"
@@ -44,7 +43,7 @@ All forms of phishing are electronically delivered social engineering. Phishing 
 
 Adversaries may also try to obtain information directly through the exchange of emails, instant messages, or other electronic conversation means. Victims may also receive phishing messages that direct them to call a phone number where the adversary attempts to collect confidential information.
 
-Phishing for information frequently involves social engineering techniques, such as posing as a source with a reason to collect information (ex: Establish Accounts or Compromise Accounts) and/or sending multiple, seemingly urgent messages. Another way to accomplish this is by Email Spoofing the identity of the sender, which can be used to fool both the human recipient as well as automated security tools. 
+Phishing for information frequently involves social engineering techniques, such as posing as a source with a reason to collect information (ex: Establish Accounts or Compromise Accounts) and/or sending multiple, seemingly urgent messages. Another way to accomplish this is by Email Spoofing the identity of the sender, which can be used to fool both the human recipient as well as automated security tools.
 
 Phishing for information may also involve evasive techniques, such as removing or manipulating emails or metadata/headers from compromised accounts being abused to send messages (e.g., Email Hiding Rules).
 
@@ -76,29 +75,28 @@ Phishing for information may also involve evasive techniques, such as removing o
 ## Remediation Guide
 
 ### M1017 User Training
+
 Users can be trained to identify social engineering techniques and spearphishing attempts.
 
 ### M1054 Software Configuration
-Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
+Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
 ## Detection
 
 ### Detection of Phishing for Information
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Phishing for Information technique applicable | High | Reconnaissance |
+| Finding                                       | Severity | Impact         |
+| --------------------------------------------- | -------- | -------------- |
+| Phishing for Information technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

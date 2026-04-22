@@ -69,9 +69,9 @@ By default the `default` service account allows for its service account token to
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.7 Manage Default Accounts on Enterprise Assets and Software | x | x | x |
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.7 Manage Default Accounts on Enterprise Assets and Software             | x    | x    | x    |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                   | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                                |      | x    | x    |

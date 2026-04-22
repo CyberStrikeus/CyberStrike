@@ -69,6 +69,7 @@ autorun-never=true
 ```
 
 Note:
+
 - A user profile must exist in order to apply locks. If a user profile does not exist review the remediation steps in the previous recommendation.
 - Users must log out and back in again before the system-wide settings take effect.
 
@@ -78,9 +79,9 @@ Note:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.3 Disable Autorun and Autoplay for Removable Media | * | * | * |
-| v7 | 8.5 Configure Devices Not To Auto-run Content | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.3 Disable Autorun and Autoplay for Removable Media | \*   | \*   | \*   |
+| v7               | 8.5 Configure Devices Not To Auto-run Content         | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1091, T1091.000 | TA0001, TA0008 | M1028

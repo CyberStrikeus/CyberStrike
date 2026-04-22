@@ -12,8 +12,7 @@ tags:
   - at
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AC-17
@@ -25,8 +24,7 @@ chains_with:
   - IR-2
   - IR-7
   - IR-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-17: "Chain with AC-17 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -96,16 +94,16 @@ Awareness techniques include displaying posters, offering supplies inscribed wit
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AT-2 Literacy Training and Awareness not implemented | Medium | Awareness and Training |
-| AT-2 partially implemented | Low | Incomplete Awareness and Training |
+| Finding                                              | Severity | Impact                            |
+| ---------------------------------------------------- | -------- | --------------------------------- |
+| AT-2 Literacy Training and Awareness not implemented | Medium   | Awareness and Training            |
+| AT-2 partially implemented                           | Low      | Incomplete Awareness and Training |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

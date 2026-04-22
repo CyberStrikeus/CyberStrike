@@ -73,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -90,17 +90,16 @@ Correlating monitoring information from a more diverse set of information source
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-4(17) Integrated Situational Awareness not implemented | High | System and Information Integrity |
-| SI-4(17) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                   | Severity | Impact                                      |
+| --------------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-4(17) Integrated Situational Awareness not implemented | High     | System and Information Integrity            |
+| SI-4(17) partially implemented                            | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

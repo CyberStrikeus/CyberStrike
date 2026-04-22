@@ -92,6 +92,7 @@ set-Content #{rclone_config_path}\rclone\rclone.conf "[#{remote_share}] `n type 
 ```
 
 **Dependencies:**
+
 - rclone must exist at (#{rclone_path})
 
 ### Atomic Test 2: Exfiltrate data with rclone to cloud Storage - AWS S3
@@ -133,10 +134,10 @@ Write-Host "Done!"
 ```
 
 **Dependencies:**
+
 - rclone must exist at (#{rclone_path})
 - terraform must exist at (#{terraform_path})
 - Must provide a valid directory or file path to exfiltrate to AWS S3
-
 
 ### Manual Testing
 
@@ -151,26 +152,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
-Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
+Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration to Cloud Storage
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration to Cloud Storage technique applicable | Low | Exfiltration |
+| Finding                                            | Severity | Impact       |
+| -------------------------------------------------- | -------- | ------------ |
+| Exfiltration to Cloud Storage technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

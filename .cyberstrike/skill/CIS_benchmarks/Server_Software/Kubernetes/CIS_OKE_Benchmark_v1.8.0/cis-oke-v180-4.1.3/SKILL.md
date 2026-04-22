@@ -22,7 +22,7 @@ severity_boost: {}
 
 ## Description
 
-Kubernetes Roles and ClusterRoles provide access to resources based on sets of objects and actions that can be taken on those objects. It is possible to set either of these to be the wildcard "*" which matches all items.
+Kubernetes Roles and ClusterRoles provide access to resources based on sets of objects and actions that can be taken on those objects. It is possible to set either of these to be the wildcard "\*" which matches all items.
 
 Use of wildcards is not optimal from a security perspective as it may allow for inadvertent access to be granted when new resources are added to the Kubernetes API either as CRDs or in later versions of the product.
 
@@ -34,7 +34,7 @@ The principle of least privilege recommends that users are provided only the acc
 
 Retrieve the roles defined across each namespaces in the cluster and review for wildcards.
 
-Here's a null-safe, column-formatted command that shows only Roles and ClusterRoles that use a wildcard (*) anywhere in verbs, resources, or apiGroups -- and tells you which field(s) use the wildcard:
+Here's a null-safe, column-formatted command that shows only Roles and ClusterRoles that use a wildcard (\*) anywhere in verbs, resources, or apiGroups -- and tells you which field(s) use the wildcard:
 
 ```bash
 kubectl get clusterrole,role -A -o json | jq -r '
@@ -78,12 +78,12 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.002 | TA0001, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1078, T1078.002            | TA0001, TA0004 | M1026       |

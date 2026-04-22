@@ -62,7 +62,7 @@ securityPostureConfig: mode: BASIC
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.4 Utilize Automated Software Inventory Tools | | x | x |
-| v7 | 5.5 Implement Automated Configuration Monitoring Systems | | x | x |
+| Controls Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.4 Utilize Automated Software Inventory Tools           |      | x    | x    |
+| v7               | 5.5 Implement Automated Configuration Monitoring Systems |      | x    | x    |

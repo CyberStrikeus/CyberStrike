@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.19
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -66,9 +67,11 @@ Container instances inherit the default ulimit settings set at the Docker daemon
 ## CIS Controls
 
 **v8:**
+
 - **3.12 Segment Data Processing and Storage Based on Sensitivity**
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - **5.2 Maintain Secure Images**
   - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.

@@ -92,6 +92,7 @@ password_pbkdf2 <username> <encrypted-password>
 The superuser/user information and password should not be contained in the `/etc/grub.d/00_header` file as this file could be overwritten in a package update. If there is a requirement to be able to boot/reboot without entering the password, edit `/etc/grub.d/10_linux` and add `--unrestricted` to the line `CLASS=`
 
 Example:
+
 ```
 CLASS="--class gnu-linux --class gnu --class os --unrestricted"
 ```
@@ -119,9 +120,9 @@ Changes to `/etc/grub.d/10_linux` may be overwritten during updates to the `grub
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1542, T1542.000 | TA0003 | M1046

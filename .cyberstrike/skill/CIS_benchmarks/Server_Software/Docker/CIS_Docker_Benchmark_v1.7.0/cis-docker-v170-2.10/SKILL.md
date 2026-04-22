@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 2.10
 
 ## Profile Applicability
+
 - **Level:** 2 - Docker - Linux
 
 ## Description
+
 The `--cgroup-parent` option allows you to set the default cgroup parent to use for all containers. If there is no specific usage requirement for this, the setting should be left at its default.
 
 ## Rationale
+
 System administrators typically define cgroups under which containers are supposed to run. Even if cgroups are not explicitly defined by the system administrators, containers run under `docker` cgroup by default.
 
 It is possible to attach to a different cgroup other than the one which is the default, however this type of usage should be monitored and confirmed because attaching to a different cgroup other than the one that is default, it could be possible to share resources unevenly causing resource utilization problems on the host.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -55,17 +59,20 @@ dockerd --cgroup-parent=/foobar
 ```
 
 ## Default Value
+
 By default, docker daemon uses `/docker` for fs cgroup driver and `system.slice` for systemd cgroup driver.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/commandline/dockerd/#default-cgroup-parent
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6 Access Control Management<br/>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. | | | |
-| v7 | 18 Application Software Security<br/>Application Software Security | | | |
+| Controls Version | Control                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6 Access Control Management<br/>Use processes and tools to create, assign, manage, and revoke access credentials and privileges for user, administrator, and service accounts for enterprise assets and software. |      |      |      |
+| v7               | 18 Application Software Security<br/>Application Software Security                                                                                                                                                |      |      |      |
 
 ## Profile
+
 **Level 2 - Docker - Linux** (Manual)

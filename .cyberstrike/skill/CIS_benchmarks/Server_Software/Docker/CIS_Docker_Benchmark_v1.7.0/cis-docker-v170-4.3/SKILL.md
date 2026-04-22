@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 4.3
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 Containers should have as small a footprint as possible, and should not contain unnecessary software packages which could increase their attack surface.
 
 ## Rationale
+
 Unnecessary software should not be installed into containers, as doing so increases their attack surface. Only packages strictly necessary for the correct operation of the application being deployed should be installed.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -53,19 +57,24 @@ You should consider using a minimal base image rather than the standard Centos, 
 Not only can this trim your image size considerably, but there would also be fewer pieces of software which could contain vectors for attack.
 
 ## Default Value
+
 Not Applicable.
 
 ## References
+
 1. https://docs.docker.com/develop/develop-images/baseimages/
 2. https://jpetazzo.github.io/2020/02/01/quest-minimal-docker-images-part-1/
 
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 5.2 Maintain Secure Images - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.
 
 ## Assessment Status
+
 Manual

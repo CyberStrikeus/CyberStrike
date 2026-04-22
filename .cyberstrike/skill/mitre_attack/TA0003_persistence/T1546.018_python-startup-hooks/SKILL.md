@@ -92,7 +92,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Python Startup Hook - atomic_hook.pth (Windows)
 
-Executes code by placing a .pth file in the site-packages directory. 
+Executes code by placing a .pth file in the site-packages directory.
 Supports python.exe and python3.exe via input arguments.
 
 **Supported Platforms:** windows
@@ -108,11 +108,12 @@ Get-ChildItem -Path "$SitePackages" | Where-Object { $_.Name -like "*.pth" }
 ```
 
 **Dependencies:**
+
 - Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
 ### Atomic Test 2: Python Startup Hook - usercustomize.py (Windows)
 
-Executes code via usercustomize.py. This is a per-user persistence mechanism 
+Executes code via usercustomize.py. This is a per-user persistence mechanism
 that does not require Administrative privileges.
 
 **Supported Platforms:** windows
@@ -126,11 +127,12 @@ Get-ChildItem -Path "$UserDir"
 ```
 
 **Dependencies:**
+
 - Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
 ### Atomic Test 3: Python Startup Hook - atomic_hook.pth (Linux)
 
-Executes code by creating atomic_hook.pth in the site-packages directory. 
+Executes code by creating atomic_hook.pth in the site-packages directory.
 This script runs automatically for every user on the system when Python starts.
 
 **Supported Platforms:** linux
@@ -147,6 +149,7 @@ if [ -f /tmp/atomic_hook_poc.txt ]; then echo "[+] Success: atomic_hook_poc.txt 
 ```
 
 **Dependencies:**
+
 - Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
 ### Atomic Test 4: Python Startup Hook - atomic_hook.pth (macOS)
@@ -166,11 +169,12 @@ echo "import subprocess; subprocess.Popen(['open', '-a', '#{exe_name}'])" > "$SI
 ```
 
 **Dependencies:**
+
 - Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
 ### Atomic Test 5: Python Startup Hook - usercustomize.py (Linux / MacOS)
 
-Executes code via usercustomize.py. This is a per-user persistence mechanism 
+Executes code via usercustomize.py. This is a per-user persistence mechanism
 that does not require root privileges.
 
 **Supported Platforms:** linux, macos
@@ -186,8 +190,8 @@ if [ -f /tmp/poc.txt ]; then echo "Success: poc.txt created under /tmp\n" $(ls -
 ```
 
 **Dependencies:**
-- Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
+- Python must be installed and the specified binary (#{python_exe}) must be in the PATH.
 
 ### Manual Testing
 
@@ -207,19 +211,17 @@ No specific mitigations documented for this technique.
 
 ### Linux Python Startup Hook Persistence via .pth and Customize Files (T1546.018)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Python Startup Hooks technique applicable | Low | Persistence |
+| Finding                                   | Severity | Impact      |
+| ----------------------------------------- | -------- | ----------- |
+| Python Startup Hooks technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

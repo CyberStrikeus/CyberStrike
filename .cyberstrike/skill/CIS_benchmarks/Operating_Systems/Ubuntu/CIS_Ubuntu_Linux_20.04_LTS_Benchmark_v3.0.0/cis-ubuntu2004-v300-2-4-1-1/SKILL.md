@@ -78,13 +78,13 @@ Run the following commands to unmask, enable, and start cron:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped | | | |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1562, T1562.001 | TA0005 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1562, T1562.001            | TA0005  | M1018       |

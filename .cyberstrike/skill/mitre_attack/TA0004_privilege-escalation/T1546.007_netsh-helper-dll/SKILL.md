@@ -97,8 +97,8 @@ taskkill /im notepad.exe /t /f > NUL 2>&1
 ```
 
 **Dependencies:**
-- Helper DLL must exist on disk at specified location (#{helper_file})
 
+- Helper DLL must exist on disk at specified location (#{helper_file})
 
 ### Manual Testing
 
@@ -118,19 +118,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Netsh Helper DLL Persistence via Registry and Child Process Monitoring (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Netsh Helper DLL technique applicable | Low | Privilege Escalation |
+| Finding                               | Severity | Impact               |
+| ------------------------------------- | -------- | -------------------- |
+| Netsh Helper DLL technique applicable | Low      | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

@@ -51,10 +51,10 @@ By default, the host has factory setting and is not hardened.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure<br>Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, or SaaS components. Do not allow in-house developed software to weaken configuration hardening. | | ● | ● |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers<br>Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure<br>Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, or SaaS components. Do not allow in-house developed software to weaken configuration hardening. |      | ●    | ●    |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers<br>Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers                                                                                                                                                                                                                                  |      |      |      |
 
 ## Assessment Status
 

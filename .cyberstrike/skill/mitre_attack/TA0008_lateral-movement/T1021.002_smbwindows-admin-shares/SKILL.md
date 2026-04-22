@@ -102,6 +102,7 @@ Copies a file to a remote host and executes it using PsExec. Requires the downlo
 ```
 
 **Dependencies:**
+
 - PsExec tool from Sysinternals must exist on disk at specified location (#{psexec_exe})
 
 ### Atomic Test 4: Execute command writing output to local Admin Share
@@ -116,7 +117,6 @@ This technique is used by post-exploitation frameworks.
 cmd.exe /Q /c #{command_to_execute} 1> \\127.0.0.1\ADMIN$\#{output_file} 2>&1
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -130,35 +130,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Deny remote use of local admin credentials to log into systems. Do not allow domain user accounts to be in the local Administrators group multiple systems.
 
 ### M1035 Limit Access to Resource Over Network
+
 Consider disabling Windows administrative shares.
 
 ### M1037 Filter Network Traffic
+
 Consider using the host firewall to restrict file sharing communications such as SMB.
 
 ### M1027 Password Policies
-Do not reuse local administrator account passwords across systems. Ensure password complexity and uniqueness such that the passwords cannot be cracked or guessed.
 
+Do not reuse local administrator account passwords across systems. Ensure password complexity and uniqueness such that the passwords cannot be cracked or guessed.
 
 ## Detection
 
 ### Multi-Event Detection for SMB Admin Share Lateral Movement
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SMB/Windows Admin Shares technique applicable | Low | Lateral Movement |
+| Finding                                       | Severity | Impact           |
+| --------------------------------------------- | -------- | ---------------- |
+| SMB/Windows Admin Shares technique applicable | Low      | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

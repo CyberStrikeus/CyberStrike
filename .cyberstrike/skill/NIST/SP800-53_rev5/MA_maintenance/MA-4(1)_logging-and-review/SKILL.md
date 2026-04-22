@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AU-6
   - AU-12
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Audit logging for nonlocal maintenance is enforced by [AU-2](#au-2) . Audit even
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-4(1) Logging and Review not implemented | Medium | Maintenance |
-| MA-4(1) partially implemented | Low | Incomplete Maintenance |
+| Finding                                    | Severity | Impact                 |
+| ------------------------------------------ | -------- | ---------------------- |
+| MA-4(1) Logging and Review not implemented | Medium   | Maintenance            |
+| MA-4(1) partially implemented              | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

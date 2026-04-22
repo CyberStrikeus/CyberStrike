@@ -115,8 +115,8 @@ Wireless interfaces are enabled if wireless hardware is present.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 15.4 Disable Wireless Access on Devices if Not Required | | | x |
-| v7 | 15.5 Limit Wireless Access on Client Devices | | | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 15.4 Disable Wireless Access on Devices if Not Required                         |      |      | x    |
+| v7               | 15.5 Limit Wireless Access on Client Devices                                    |      |      | x    |

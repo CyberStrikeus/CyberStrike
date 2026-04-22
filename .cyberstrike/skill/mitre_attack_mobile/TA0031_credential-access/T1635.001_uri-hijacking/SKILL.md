@@ -39,7 +39,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may register Uniform Resource Identifiers (URIs) to intercept sensitive data. 
+Adversaries may register Uniform Resource Identifiers (URIs) to intercept sensitive data.
 
 Applications regularly register URIs with the operating system to act as a response handler for various actions, such as logging into an app using an external account via single sign-on. This allows redirections to that specific URI to be intercepted by the application. If an adversary were to register for a URI that was already in use by a genuine application, the adversary may be able to intercept data intended for the genuine application or perform a phishing attack against the genuine application. Intercepted data may include OAuth authorization codes or tokens that could be used by the adversary to gain access to protected resources.
 
@@ -70,32 +70,32 @@ Review whether mitigations for T1635.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
+
 Developers should use Android App Links and iOS Universal Links to provide a secure binding between URIs and applications, preventing malicious applications from intercepting redirections. Additionally, for OAuth use cases, PKCE should be used to prevent use of stolen authorization codes.
 
 ### M1011 User Guidance
+
 Users should be instructed to not open links in applications they don’t recognize.
 
 ### M1006 Use Recent OS Version
-iOS 11 introduced a first-come-first-served principle for URIs, allowing only the prior installed app to be launched via the URI. Android 6 introduced App Links.
 
+iOS 11 introduced a first-come-first-served principle for URIs, allowing only the prior installed app to be launched via the URI. Android 6 introduced App Links.
 
 ## Detection
 
 ### Detection of URI Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| URI Hijacking technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| URI Hijacking technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -48,6 +48,7 @@ SSLProtocol +TLSv1.2
 Perform the following to implement the recommended state:
 
 1. Check if the TLSv1.3 protocol is supported by the Apache server by either checking that the version of OpenSSL is 1.1.1 or later or place the TLSv1.3 value in the SSLProtocol string of a configuration file and check the syntax with the `httpd -t` command before using the file in production. Two examples below are shown of servers that do support the TLSv1.3 protocol.
+
    ```
    $ openssl version
    OpenSSL 1.1.1a  20 Nov 2018
@@ -73,7 +74,9 @@ Perform the following to implement the recommended state:
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
 
 **v7:**
+
 - 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices

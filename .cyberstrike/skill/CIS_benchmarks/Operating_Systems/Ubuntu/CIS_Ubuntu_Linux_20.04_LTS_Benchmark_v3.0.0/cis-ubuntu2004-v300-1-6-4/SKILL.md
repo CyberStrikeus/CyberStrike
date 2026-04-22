@@ -74,9 +74,9 @@ Run the following command to remove the `/etc/motd` file:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1222, T1222.002 | TA0005 | M1022

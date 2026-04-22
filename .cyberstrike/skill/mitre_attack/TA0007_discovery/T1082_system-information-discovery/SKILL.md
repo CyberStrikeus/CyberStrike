@@ -36,10 +36,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -106,7 +104,7 @@ Identify System Info
 ```bash
 uname -a >> #{output_file}
 if [ -f /etc/lsb-release ]; then cat /etc/lsb-release >> #{output_file}; fi
-if [ -f /etc/redhat-release ]; then cat /etc/redhat-release >> #{output_file}; fi   
+if [ -f /etc/redhat-release ]; then cat /etc/redhat-release >> #{output_file}; fi
 if [ -f /etc/issue ]; then cat /etc/issue >> #{output_file}; fi
 if [ -f /etc/os-release ]; then cat /etc/os-release >> #{output_file}; fi
 uptime >> #{output_file}
@@ -146,7 +144,6 @@ sudo lsmod | grep -i "virtio_pci\|virtio_net"
 sudo lsmod | grep -i "hv_vmbus\|hv_blkvsc\|hv_netvsc\|hv_utils\|hv_storvsc"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -165,19 +162,17 @@ No specific mitigations documented for this technique.
 
 ### System Discovery via Native and Remote Utilities
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Information Discovery technique applicable | High | Discovery |
+| Finding                                           | Severity | Impact    |
+| ------------------------------------------------- | -------- | --------- |
+| System Information Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 
