@@ -87,6 +87,7 @@ CyberStrike isn't just a wrapper around an LLM. It's an intelligence layer that 
 CyberStrike doesn't just give agents generic security knowledge — it loads domain-specific skills on-demand with zero context pollution.
 
 **What's a skill?** A skill is a structured test procedure that includes:
+
 - Target methodology (OWASP WSTG, MITRE ATT&CK, CIS Benchmark, NIST)
 - Copy-paste ready test commands
 - Tool references and dependencies
@@ -95,12 +96,12 @@ CyberStrike doesn't just give agents generic security knowledge — it loads dom
 
 **Coverage:**
 
-| Framework              | Skills | What It Includes                                                                     |
-| ---------------------- | ------ | ------------------------------------------------------------------------------------ |
-| **MITRE ATT&CK**       | 691    | Enterprise tactics + 2,000+ Atomic Red Team tests (Kerberoasting, LSASS dump, etc.) |
-| **CIS Benchmarks**     | 1,500+ | Cloud (AWS/Azure/GCP), Containers (Docker/K8s), OS (Ubuntu), Server (Apache/Nginx)  |
-| **OWASP WSTG**         | 125    | Web app security testing (XSS, SQLi, AuthN, AuthZ, Session, API)                    |
-| **NIST**               | 200+   | Security controls and compliance frameworks                                          |
+| Framework          | Skills | What It Includes                                                                    |
+| ------------------ | ------ | ----------------------------------------------------------------------------------- |
+| **MITRE ATT&CK**   | 691    | Enterprise tactics + 2,000+ Atomic Red Team tests (Kerberoasting, LSASS dump, etc.) |
+| **CIS Benchmarks** | 1,500+ | Cloud (AWS/Azure/GCP), Containers (Docker/K8s), OS (Ubuntu), Server (Apache/Nginx)  |
+| **OWASP WSTG**     | 125    | Web app security testing (XSS, SQLi, AuthN, AuthZ, Session, API)                    |
+| **NIST**           | 200+   | Security controls and compliance frameworks                                         |
 
 **Lazy Loading** — Skills load only when needed. An agent testing for Kerberoasting pulls T1558.003 skill (7 Atomic tests) into context, runs the tests, then discards it. Next test = new skill. Zero bloat.
 
@@ -309,11 +310,11 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                       |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **7,300+ skills (MITRE, CIS, OWASP, NIST)** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing        |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                        |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                         |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                         |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                        |
 
 ---
 
