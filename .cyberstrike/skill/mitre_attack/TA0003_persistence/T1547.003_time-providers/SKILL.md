@@ -119,7 +119,6 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\TimeProvid
 net start w32time
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -133,29 +132,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
+
 Consider using Group Policy to configure and block modifications to W32Time parameters in the Registry.
 
 ### M1022 Restrict File and Directory Permissions
-Consider using Group Policy to configure and block additions/modifications to W32Time DLLs.
 
+Consider using Group Policy to configure and block additions/modifications to W32Time DLLs.
 
 ## Detection
 
 ### Detect Abuse of Windows Time Providers for Persistence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Time Providers technique applicable | High | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| Time Providers technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

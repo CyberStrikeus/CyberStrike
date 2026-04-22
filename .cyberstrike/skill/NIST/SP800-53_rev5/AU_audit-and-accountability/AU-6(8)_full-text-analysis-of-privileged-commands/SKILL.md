@@ -72,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -89,17 +89,16 @@ Full text analysis of privileged commands requires a distinct environment for th
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-6(8) Full Text Analysis of Privileged Commands not implemented | Medium | Audit and Accountability |
-| AU-6(8) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                           | Severity | Impact                              |
+| ----------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-6(8) Full Text Analysis of Privileged Commands not implemented | Medium   | Audit and Accountability            |
+| AU-6(8) partially implemented                                     | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

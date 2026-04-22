@@ -14,10 +14,8 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - MA-4
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +77,16 @@ Implement this control per organizational risk assessment and system categorizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-4(2) Document Nonlocal Maintenance not implemented | Medium | Maintenance |
-| MA-4(2) partially implemented | Low | Incomplete Maintenance |
+| Finding                                               | Severity | Impact                 |
+| ----------------------------------------------------- | -------- | ---------------------- |
+| MA-4(2) Document Nonlocal Maintenance not implemented | Medium   | Maintenance            |
+| MA-4(2) partially implemented                         | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

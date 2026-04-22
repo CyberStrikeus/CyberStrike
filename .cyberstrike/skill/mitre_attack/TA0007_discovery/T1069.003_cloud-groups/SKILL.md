@@ -91,19 +91,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Cloud Group Enumeration via API and CLI Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Groups technique applicable | High | Discovery |
+| Finding                           | Severity | Impact    |
+| --------------------------------- | -------- | --------- |
+| Cloud Groups technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

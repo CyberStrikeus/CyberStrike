@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -131,7 +129,6 @@ Upon successful execution, WMIC will execute process to list processes. Output w
 wmic process get /format:list
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -150,19 +147,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Adversarial Process Discovery Behavior
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Process Discovery technique applicable | Medium | Discovery |
+| Finding                                | Severity | Impact    |
+| -------------------------------------- | -------- | --------- |
+| Process Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

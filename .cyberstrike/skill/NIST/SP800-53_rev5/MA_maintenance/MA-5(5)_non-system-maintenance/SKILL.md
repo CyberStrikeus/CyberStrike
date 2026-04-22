@@ -14,10 +14,8 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - MA-5
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +77,16 @@ Personnel who perform maintenance activities in other capacities not directly re
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-5(5) Non-system Maintenance not implemented | Medium | Maintenance |
-| MA-5(5) partially implemented | Low | Incomplete Maintenance |
+| Finding                                        | Severity | Impact                 |
+| ---------------------------------------------- | -------- | ---------------------- |
+| MA-5(5) Non-system Maintenance not implemented | Medium   | Maintenance            |
+| MA-5(5) partially implemented                  | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

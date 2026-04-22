@@ -4,13 +4,13 @@ This directory contains **1,606 SKILL.md files** across 4 NIST publications.
 
 ## Overview
 
-| Publication | Version | Skills | Structure |
-|-------------|---------|--------|-----------|
-| **SP 800-53 Rev 5** | 5.2.0 | 1,196 | 20 families → 324 controls + 872 enhancements |
-| **CSF v2.0** | 2.0 | 219 | 6 functions → 34 categories → 185 subcategories |
-| **SP 800-171 Rev 3** | 3.0 | 130 | 17 families → 130 requirements |
-| **SP 800-218 SSDF** | 1.1 | 61 | 4 groups → 19 practices + 42 tasks |
-| **Total** | | **1,606** | |
+| Publication          | Version | Skills    | Structure                                       |
+| -------------------- | ------- | --------- | ----------------------------------------------- |
+| **SP 800-53 Rev 5**  | 5.2.0   | 1,196     | 20 families → 324 controls + 872 enhancements   |
+| **CSF v2.0**         | 2.0     | 219       | 6 functions → 34 categories → 185 subcategories |
+| **SP 800-171 Rev 3** | 3.0     | 130       | 17 families → 130 requirements                  |
+| **SP 800-218 SSDF**  | 1.1     | 61        | 4 groups → 19 practices + 42 tasks              |
+| **Total**            |         | **1,606** |                                                 |
 
 ## Directory Structure
 
@@ -45,41 +45,41 @@ NIST/
 
 The most comprehensive NIST publication. 20 control families:
 
-| Family | Name | Skills |
-|--------|------|--------|
-| AC | Access Control | 147 |
-| AT | Awareness and Training | 17 |
-| AU | Audit and Accountability | 69 |
-| CA | Assessment, Authorization, and Monitoring | 32 |
-| CM | Configuration Management | 66 |
-| CP | Contingency Planning | 56 |
-| IA | Identification and Authentication | 74 |
-| IR | Incident Response | 42 |
-| MA | Maintenance | 30 |
-| MP | Media Protection | 30 |
-| PE | Physical and Environmental Protection | 59 |
-| PL | Planning | 17 |
-| PM | Program Management | 37 |
-| PS | Personnel Security | 18 |
-| PT | PII Processing and Transparency | 21 |
-| RA | Risk Assessment | 26 |
-| SA | System and Services Acquisition | 147 |
-| SC | System and Communications Protection | 162 |
-| SI | System and Information Integrity | 119 |
-| SR | Supply Chain Risk Management | 27 |
+| Family | Name                                      | Skills |
+| ------ | ----------------------------------------- | ------ |
+| AC     | Access Control                            | 147    |
+| AT     | Awareness and Training                    | 17     |
+| AU     | Audit and Accountability                  | 69     |
+| CA     | Assessment, Authorization, and Monitoring | 32     |
+| CM     | Configuration Management                  | 66     |
+| CP     | Contingency Planning                      | 56     |
+| IA     | Identification and Authentication         | 74     |
+| IR     | Incident Response                         | 42     |
+| MA     | Maintenance                               | 30     |
+| MP     | Media Protection                          | 30     |
+| PE     | Physical and Environmental Protection     | 59     |
+| PL     | Planning                                  | 17     |
+| PM     | Program Management                        | 37     |
+| PS     | Personnel Security                        | 18     |
+| PT     | PII Processing and Transparency           | 21     |
+| RA     | Risk Assessment                           | 26     |
+| SA     | System and Services Acquisition           | 147    |
+| SC     | System and Communications Protection      | 162    |
+| SI     | System and Information Integrity          | 119    |
+| SR     | Supply Chain Risk Management              | 27     |
 
 ## CSF v2.0 — Cybersecurity Framework
 
 6 core functions for organizational cybersecurity:
 
-| Function | Name | Skills |
-|----------|------|--------|
-| GV | Govern | 37 |
-| ID | Identify | 46 |
-| PR | Protect | 66 |
-| DE | Detect | 25 |
-| RS | Respond | 30 |
-| RC | Recover | 15 |
+| Function | Name     | Skills |
+| -------- | -------- | ------ |
+| GV       | Govern   | 37     |
+| ID       | Identify | 46     |
+| PR       | Protect  | 66     |
+| DE       | Detect   | 25     |
+| RS       | Respond  | 30     |
+| RC       | Recover  | 15     |
 
 ## SP 800-171 Rev 3 — Protecting CUI
 

@@ -12,12 +12,9 @@ tags:
   - ps
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -58,9 +55,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -74,16 +71,16 @@ Specification of security and privacy roles in individual organizational positio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-9 Position Descriptions not implemented | Medium | Personnel Security |
-| PS-9 partially implemented | Low | Incomplete Personnel Security |
+| Finding                                    | Severity | Impact                        |
+| ------------------------------------------ | -------- | ----------------------------- |
+| PS-9 Position Descriptions not implemented | Medium   | Personnel Security            |
+| PS-9 partially implemented                 | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

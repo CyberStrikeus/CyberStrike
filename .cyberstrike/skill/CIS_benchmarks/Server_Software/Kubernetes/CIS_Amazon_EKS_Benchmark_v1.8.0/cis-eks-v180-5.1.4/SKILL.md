@@ -59,8 +59,8 @@ Container registries are not restricted by default and Kubernetes assumes your d
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | X | X |
-| v7 | 5.3 Securely Store Master Images | | X | X |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers | | X | X |
+| Controls Version | Control                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software                                     |      | X    | X    |
+| v7               | 5.3 Securely Store Master Images                                      |      | X    | X    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers |      | X    | X    |

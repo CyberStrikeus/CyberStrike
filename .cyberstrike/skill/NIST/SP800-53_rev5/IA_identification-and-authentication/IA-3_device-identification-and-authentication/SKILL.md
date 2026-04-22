@@ -29,8 +29,7 @@ chains_with:
   - IA-5
   - IA-9
   - IA-11
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-17: "Chain with AC-17 for comprehensive security coverage"
   AC-18: "Chain with AC-18 for comprehensive security coverage"
@@ -74,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Devices that require unique device-to-device identification and authentication a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-3 Device Identification and Authentication not implemented | High | Identification and Authentication |
-| IA-3 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                       | Severity | Impact                                       |
+| ------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-3 Device Identification and Authentication not implemented | High     | Identification and Authentication            |
+| IA-3 partially implemented                                    | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

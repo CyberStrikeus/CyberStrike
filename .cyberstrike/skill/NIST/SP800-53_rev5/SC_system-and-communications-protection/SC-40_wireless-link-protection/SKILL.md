@@ -22,8 +22,7 @@ cwe_ids:
 chains_with:
   - AC-18
   - SC-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-18: "Chain with AC-18 for comprehensive security coverage"
   SC-5: "Chain with SC-5 for comprehensive security coverage"
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Wireless link protection applies to internal and external wireless communication
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-40 Wireless Link Protection not implemented | High | System and Communications Protection |
-| SC-40 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                        | Severity | Impact                                          |
+| ---------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-40 Wireless Link Protection not implemented | High     | System and Communications Protection            |
+| SC-40 partially implemented                    | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

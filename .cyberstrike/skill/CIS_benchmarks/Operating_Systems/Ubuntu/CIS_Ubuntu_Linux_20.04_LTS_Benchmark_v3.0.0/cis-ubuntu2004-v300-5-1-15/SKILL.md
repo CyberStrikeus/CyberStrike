@@ -26,6 +26,7 @@ severity_boost: {}
 This variable limits the types of MAC algorithms that SSH can use during communication.
 
 Notes:
+
 - Some organizations may have stricter requirements for approved MACs.
 - Ensure that MACs used are in compliance with site policy.
 - The only "strong" MACs currently FIPS 140 approved are:
@@ -82,7 +83,7 @@ MACs -hmac-md5,hmac-md5-96,hmac-ripemd160,hmac-sha1-96,umac-64@openssh.com,hmac-
 ```
 
 - IF - CVE-2023-48795 has not been reviewed and addressed, the following `etm` MACs should be added to the exclude list: hmac-sha1-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
-Note: First occurrence of an option takes precedence. If Include locations are enabled, used, and order of precedence is understood in your environment, the entry may be created in a file in Include location.
+  Note: First occurrence of an option takes precedence. If Include locations are enabled, used, and order of precedence is understood in your environment, the entry may be created in a file in Include location.
 
 ## Default Value
 

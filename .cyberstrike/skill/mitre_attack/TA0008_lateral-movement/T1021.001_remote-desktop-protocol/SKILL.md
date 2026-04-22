@@ -47,7 +47,7 @@ severity_boost:
 
 Adversaries may use Valid Accounts to log into a computer using the Remote Desktop Protocol (RDP). The adversary may then perform actions as the logged-on user.
 
-Remote desktop is a common feature in operating systems. It allows a user to log into an interactive session with a system desktop graphical user interface on a remote system. Microsoft refers to its implementation of the Remote Desktop Protocol (RDP) as Remote Desktop Services (RDS). 
+Remote desktop is a common feature in operating systems. It allows a user to log into an interactive session with a system desktop graphical user interface on a remote system. Microsoft refers to its implementation of the Remote Desktop Protocol (RDP) as Remote Desktop Services (RDS).
 
 Adversaries may connect to a remote system over RDP/RDS to expand access if the service is enabled and allows access to accounts with known credentials. Adversaries will likely use Credential Access techniques to acquire credentials to use with RDP. Adversaries may also use RDP in conjunction with the Accessibility Features or Terminal Services DLL for Persistence.
 
@@ -86,6 +86,7 @@ echo "RDP connection established"
 ```
 
 **Dependencies:**
+
 - Computer must be domain joined
 
 ### Atomic Test 2: Changing RDP Port to Non Standard Port via Powershell
@@ -124,7 +125,6 @@ See also: https://github.com/EmpireProject/Empire/blob/master/lib/modules/powers
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /d 0 /t REG_DWORD /f
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -138,47 +138,52 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Audit the Remote Desktop Users group membership regularly. Remove unnecessary accounts and groups from Remote Desktop Users groups.
 
 ### M1035 Limit Access to Resource Over Network
+
 Use remote desktop gateways.
 
 ### M1030 Network Segmentation
+
 Do not leave RDP accessible from the internet. Enable firewall rules to block RDP traffic between network security zones within a network.
 
 ### M1028 Operating System Configuration
+
 Change GPOs to define shorter timeouts sessions and maximum amount of time any single session can be active. Change GPOs to specify the maximum amount of time that a disconnected session stays active on the RD session host server.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable the RDP service if it is unnecessary.
 
 ### M1018 User Account Management
+
 Limit remote user permissions if remote access is necessary.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for remote logins.
 
 ### M1026 Privileged Account Management
-Consider removing the local Administrators group from the list of groups allowed to log in through RDP.
 
+Consider removing the local Administrators group from the list of groups allowed to log in through RDP.
 
 ## Detection
 
 ### Multi-event Detection Strategy for RDP-Based Remote Logins and Post-Access Activity
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Desktop Protocol technique applicable | High | Lateral Movement |
+| Finding                                      | Severity | Impact           |
+| -------------------------------------------- | -------- | ---------------- |
+| Remote Desktop Protocol technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

@@ -60,7 +60,7 @@ By default, `RBAC` authorization is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control     |      |      | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |

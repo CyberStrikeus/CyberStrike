@@ -33,8 +33,8 @@ Since the `/home` filesystem is not intended to support devices, set this option
 ### Command Line
 
 - IF - a separate partition exists for `/home`, verify that the `nodev` option is set.
-Run the following command to verify that the `nodev` mount option is set.
-Example:
+  Run the following command to verify that the `nodev` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /home | grep -v nodev
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/home`.
-Edit the `/etc/fstab` file and add `nodev` to the fourth field (mounting options) for the `/home` partition.
-Example:
+  Edit the `/etc/fstab` file and add `nodev` to the fourth field (mounting options) for the `/home` partition.
+  Example:
 
 ```
 <device> /home   <fstype>   defaults,rw,nosuid,nodev,relatime   0 0

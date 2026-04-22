@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.5 Ensure that Cassandra only listens for network connections on authorized interfaces
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -59,12 +60,15 @@ listen_interface: eth0, but is commented out by default.
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 4.4 Implement and Manage a Firewall on Servers
   - Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent.
 
 **Controls Version v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
   - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 
 ## Profile
+
 - Level 1 | Manual

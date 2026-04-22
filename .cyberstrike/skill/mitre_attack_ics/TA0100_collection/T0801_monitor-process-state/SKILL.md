@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,26 +57,24 @@ Review whether mitigations for T0801 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0816 Mitigation Limited or Not Effective
-This type of attack technique cannot be easily mitigated with preventive controls since it is based on the abuse of system features.
 
+This type of attack technique cannot be easily mitigated with preventive controls since it is based on the abuse of system features.
 
 ## Detection
 
 ### Detection of Monitor Process State
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Monitor Process State technique applicable | Medium | Collection |
+| Finding                                    | Severity | Impact     |
+| ------------------------------------------ | -------- | ---------- |
+| Monitor Process State technique applicable | Medium   | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

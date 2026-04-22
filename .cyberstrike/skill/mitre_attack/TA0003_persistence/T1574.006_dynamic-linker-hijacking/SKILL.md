@@ -98,6 +98,7 @@ sudo sh -c 'echo #{path_to_shared_library} > /etc/ld.so.preload'
 ```
 
 **Dependencies:**
+
 - The shared library must exist on disk at specified location (#{path_to_shared_library})
 
 ### Atomic Test 2: Shared Library Injection via LD_PRELOAD
@@ -113,6 +114,7 @@ LD_PRELOAD=#{path_to_shared_library} ls
 ```
 
 **Dependencies:**
+
 - The shared library must exist on disk at specified location (#{path_to_shared_library})
 
 ### Atomic Test 3: Dylib Injection via DYLD_INSERT_LIBRARIES
@@ -126,8 +128,8 @@ DYLD_INSERT_LIBRARIES=#{dylib_file} #{file_to_inject}
 ```
 
 **Dependencies:**
-- Compile the dylib from (#{source_file}). Destination is #{dylib_file}
 
+- Compile the dylib from (#{source_file}). Destination is #{dylib_file}
 
 ### Manual Testing
 
@@ -142,29 +144,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-When System Integrity Protection (SIP) is enabled in macOS, the aforementioned environment variables are ignored when executing protected binaries. Third-party applications can also leverage Apple’s Hardened Runtime, ensuring these environment variables are subject to imposed restrictions. Admins can add restrictions to applications by setting the setuid and/or setgid bits, use entitlements, or have a __RESTRICT segment in the Mach-O binary.
+
+When System Integrity Protection (SIP) is enabled in macOS, the aforementioned environment variables are ignored when executing protected binaries. Third-party applications can also leverage Apple’s Hardened Runtime, ensuring these environment variables are subject to imposed restrictions. Admins can add restrictions to applications by setting the setuid and/or setgid bits, use entitlements, or have a \_\_RESTRICT segment in the Mach-O binary.
 
 ### M1038 Execution Prevention
-Adversaries may use new payloads to execute this technique. Identify and block potentially malicious software executed through hijacking by using application control solutions also capable of blocking libraries loaded by legitimate software.
 
+Adversaries may use new payloads to execute this technique. Identify and block potentially malicious software executed through hijacking by using application control solutions also capable of blocking libraries loaded by legitimate software.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow: Dynamic Linker Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dynamic Linker Hijacking technique applicable | High | Persistence |
+| Finding                                       | Severity | Impact      |
+| --------------------------------------------- | -------- | ----------- |
+| Dynamic Linker Hijacking technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

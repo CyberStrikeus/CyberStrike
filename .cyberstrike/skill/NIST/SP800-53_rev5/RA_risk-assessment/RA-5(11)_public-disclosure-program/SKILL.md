@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - RA-5
 severity_boost: {}
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,16 +76,16 @@ The reporting channel is publicly discoverable and contains clear language autho
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-5(11) Public Disclosure Program not implemented | Medium | Risk Assessment |
-| RA-5(11) partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                            | Severity | Impact                     |
+| -------------------------------------------------- | -------- | -------------------------- |
+| RA-5(11) Public Disclosure Program not implemented | Medium   | Risk Assessment            |
+| RA-5(11) partially implemented                     | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

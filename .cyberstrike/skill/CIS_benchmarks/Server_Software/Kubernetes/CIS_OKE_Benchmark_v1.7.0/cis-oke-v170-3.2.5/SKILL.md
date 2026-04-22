@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 3.2.5
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not disable timeouts on streaming connections.
 
 ## Rationale
+
 Setting idle timeouts ensures that you are protected against Denial-of-Service attacks, inactive connections and running out of ephemeral ports.
 
 **Note:** By default, `--streaming-connection-idle-timeout` is set to 4 hours which might be too high for your environment. Setting this as appropriate would additionally ensure that such streaming connections are timed out after serving legitimate use cases.
 
 ## Impact
+
 Long-lived connections could be interrupted.
 
 ## Audit Procedure
@@ -88,7 +92,7 @@ If modifying the Kubelet service config file, edit the kubelet.service file `/et
 
 If using the api configz endpoint consider searching for the status of `"streamingConnectionIdleTimeout":` by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -108,25 +112,28 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. https://github.com/kubernetes/kubernetes/pull/18552
 3. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | * | * |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies | | * | * |
+| Controls Version | Control                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features                                                    |      | \*   | \*   |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1490 | TA0040 | M1028 |
+| --------------------------- | ------- | ----------- |
+| T1490                       | TA0040  | M1028       |
 
 ## Profile
+
 **Level 1** (Automated)

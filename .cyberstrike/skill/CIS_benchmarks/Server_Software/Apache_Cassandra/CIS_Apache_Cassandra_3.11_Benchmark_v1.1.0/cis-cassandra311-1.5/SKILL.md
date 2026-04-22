@@ -17,16 +17,20 @@ severity_boost: {}
 # 1.5 Ensure the Cassandra service is run as a non-root user
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 - Level 2 - Cassandra on Linux
 
 ## Description
+
 Though Cassandra database may be run as root, it should run as another non-root user.
 
 ## Rationale
+
 One of the best ways to reduce your exposure to attack is to create a unique, unprivileged user and group for the server application. A best practice is to follow is ensuring processes run with a user with least privilege.
 
 ## Audit
+
 Logon to the server where Cassandra is running and run the following command
 
 ```bash
@@ -37,6 +41,7 @@ This will show who is running the Cassandra binary.
 If the user is root or has excessive privileges then this is a finding.
 
 ## Remediation
+
 Create a group for cassandra (if it does not already exist)
 
 ```bash
@@ -49,16 +54,20 @@ Replacing <DIRECTORY_WHERE_CASSANDRA_INSTALLED> with the full path of where Cass
 Replacing <USERID_NUMBER> with a number not already used on the server
 
 ## Default Value
+
 No default user exists for running Cassandra.
 
 ## References
+
 Not specified in the benchmark.
 
 ## CIS Controls
+
 - v8: 3.3 Configure Data Access Control Lists
 - v8: 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts
 - v7: 4.3 Ensure the Use of Dedicated Administrative Accounts
 - v7: 14.6 Protect Information through Access Control Lists
 
 ## Profile
+
 - Level 1 | Automated

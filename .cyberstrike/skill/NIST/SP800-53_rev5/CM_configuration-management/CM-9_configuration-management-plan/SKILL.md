@@ -28,8 +28,7 @@ chains_with:
   - RA-8
   - SA-10
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -78,10 +77,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -104,17 +103,16 @@ Organizations can employ templates to help ensure the consistent and timely deve
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-9 Configuration Management Plan not implemented | Medium | Configuration Management |
-| CM-9 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                            | Severity | Impact                              |
+| -------------------------------------------------- | -------- | ----------------------------------- |
+| CM-9 Configuration Management Plan not implemented | Medium   | Configuration Management            |
+| CM-9 partially implemented                         | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -21,10 +21,8 @@ tech_stack:
   - cloud
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -64,26 +62,24 @@ Cloud service providers offer APIs allowing users to enumerate objects stored wi
 ## Remediation Guide
 
 ### M1018 User Account Management
-Restrict granting of permissions related to listing objects in cloud storage to necessary accounts.
 
+Restrict granting of permissions related to listing objects in cloud storage to necessary accounts.
 
 ## Detection
 
 ### Detection Strategy for Cloud Storage Object Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Storage Object Discovery technique applicable | Medium | Discovery |
+| Finding                                             | Severity | Impact    |
+| --------------------------------------------------- | -------- | --------- |
+| Cloud Storage Object Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,7 +36,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may look for folders and drives shared on remote systems as a means of identifying sources of information to gather as a precursor for Collection and to identify potential systems of interest for Lateral Movement. Networks often contain shared network drives and folders that enable users to access file directories on various systems across a network. 
+Adversaries may look for folders and drives shared on remote systems as a means of identifying sources of information to gather as a precursor for Collection and to identify potential systems of interest for Lateral Movement. Networks often contain shared network drives and folders that enable users to access file directories on various systems across a network.
 
 File sharing over a Windows network occurs over the SMB protocol. Net can be used to query a remote system for available shared drives using the <code>net view \\\\remotesystem</code> command. It can also be used to query shared drives on the local system using <code>net share</code>. For macOS, the <code>sharing -l</code> command lists all shared points used for smb services.
 
@@ -87,6 +85,7 @@ smbstatus --shares
 ```
 
 **Dependencies:**
+
 - Package with smbstatus (samba) must exist on device
 
 ### Atomic Test 3: Network Share Discovery - FreeBSD
@@ -101,6 +100,7 @@ smbstatus --shares
 ```
 
 **Dependencies:**
+
 - Package with smbstatus (samba) must exist on device
 
 ### Atomic Test 4: Network Share Discovery command prompt
@@ -125,7 +125,6 @@ Upon execution, available network shares will be displayed in the powershell ses
 get-smbshare
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -139,26 +138,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-Enable Windows Group Policy “Do Not Allow Anonymous Enumeration of SAM Accounts and Shares” security setting to limit users who can enumerate network shares.
 
+Enable Windows Group Policy “Do Not Allow Anonymous Enumeration of SAM Accounts and Shares” security setting to limit users who can enumerate network shares.
 
 ## Detection
 
 ### Behavior-chain detection for T1135 Network Share Discovery across Windows, Linux, and macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Share Discovery technique applicable | Medium | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Network Share Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

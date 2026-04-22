@@ -83,31 +83,30 @@ From the fake website, information is gathered in web forms and sent to the adve
 ## Remediation Guide
 
 ### M1017 User Training
+
 Users can be trained to identify social engineering techniques and spearphishing attempts. Additionally, users may perform visual checks of the domains they visit; however, homographs in ASCII and in IDN domains and URL schema obfuscation may render manual checks difficult. Phishing training and other cybersecurity training may raise awareness to check URLs before visiting the sites.
 
 ### M1054 Software Configuration
+
 Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
 Furthermore, policies may enforce / install browser extensions that protect against IDN and homograph attacks. Browser password managers may also be configured to only populate credential fields when the URL matches that of the original, legitimate site.
-
 
 ## Detection
 
 ### Detection of Spearphishing Link
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Link technique applicable | High | Reconnaissance |
+| Finding                                 | Severity | Impact         |
+| --------------------------------------- | -------- | -------------- |
+| Spearphishing Link technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

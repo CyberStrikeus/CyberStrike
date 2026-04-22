@@ -74,19 +74,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Weaken Encryption: Disable Crypto Hardware on Network Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable Crypto Hardware technique applicable | Low | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Disable Crypto Hardware technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

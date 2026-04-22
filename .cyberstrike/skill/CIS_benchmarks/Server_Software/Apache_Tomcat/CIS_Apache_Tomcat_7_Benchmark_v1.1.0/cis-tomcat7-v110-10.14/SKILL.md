@@ -4,7 +4,7 @@ description: "Do not run applications as privileged"
 category: cis-tomcat
 version: "1.1.0"
 author: cyberstrike-official
-tags: [cis, tomcat, tomcat-7, privilege-escalation,class-loader,security]
+tags: [cis, tomcat, tomcat-7, privilege-escalation, class-loader, security]
 cis_id: "10.14"
 cis_benchmark: "CIS Apache Tomcat 7 Benchmark v1.1.0"
 tech_stack: [tomcat, java]
@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS Apache Tomcat 7 Benchmark v1.1.0 - Control 10.14
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Do not run applications as privileged
 
 **Note**: This is an auto-generated skeleton. Please refer to the CIS Apache Tomcat 7 Benchmark v1.1.0 PDF (pages 9-90) for complete details including:
+
 - Full description and rationale
 - Detailed audit procedures with exact commands
 - Step-by-step remediation instructions
@@ -39,15 +42,18 @@ Refer to CIS Apache Tomcat 7 Benchmark v1.1.0 - Section 10.14
 Refer to CIS Apache Tomcat 7 Benchmark v1.1.0 - Section 10.14
 
 ## References
+
 - CIS Apache Tomcat 7 Benchmark v1.1.0
 - https://www.cisecurity.org/
 
 ## CIS Controls
-| CIS Control | Description |
-|-------------|-------------|
-| Version 7 | Refer to benchmark document |
-| Version 8 | Refer to benchmark document |
+
+| CIS Control | Description                 |
+| ----------- | --------------------------- |
+| Version 7   | Refer to benchmark document |
+| Version 8   | Refer to benchmark document |
 
 ## Assessment Status
+
 - **Scored**: Scored
 - **Profile**: Level 1

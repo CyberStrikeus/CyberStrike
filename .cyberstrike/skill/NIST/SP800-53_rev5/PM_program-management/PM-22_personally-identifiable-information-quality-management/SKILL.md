@@ -12,13 +12,11 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PM-23
   - SI-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-23: "Chain with PM-23 for comprehensive security coverage"
   SI-18: "Chain with SI-18 for comprehensive security coverage"
@@ -66,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Organizations notify individuals or their designated representatives when their 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-22 Personally Identifiable Information Quality Management not implemented | Medium | Program Management |
-| PM-22 partially implemented | Low | Incomplete Program Management |
+| Finding                                                                      | Severity | Impact                        |
+| ---------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-22 Personally Identifiable Information Quality Management not implemented | Medium   | Program Management            |
+| PM-22 partially implemented                                                  | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

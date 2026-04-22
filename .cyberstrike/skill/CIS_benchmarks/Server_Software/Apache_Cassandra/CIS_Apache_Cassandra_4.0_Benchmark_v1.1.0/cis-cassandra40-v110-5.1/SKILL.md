@@ -17,16 +17,21 @@ severity_boost: {}
 # 5.1 Inter-node Encryption
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
+
 Cassandra offers the option to encrypt data in transit between nodes on the cluster. By default, inter-node encryption is turned off.
 
 ## Rationale
+
 Data being transferred on the wire should be encrypted to avoid network snooping, whether legitimate or not.
 
 ## Audit
+
 Run the following command to verify whether inter-node encryption is enabled.
+
 ```bash
 cat cassandra.yaml | grep -in "internode_encryption:"
 ```
@@ -36,6 +41,7 @@ Acceptable values are `all`, `dc` or `rack`. If the `internode_encryption` is se
 **Note:** The Cassandra configuration files can be found in the conf directory of tarballs. For packages, the configuration files will be located in `/etc/cassandra`.
 
 ## Remediation
+
 The inter-node encryption should be implemented before anyone accesses the Cassandra server.
 
 To enable the inter-node encryption mechanism:
@@ -46,19 +52,25 @@ To enable the inter-node encryption mechanism:
 4. Start the Cassandra database.
 
 ## Default Value
+
 ```
 internode_encryption: none
 ```
 
 ## References
+
 1. http://cassandra.apache.org/doc/latest/operating/security.html
 
 ## CIS Controls
+
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 1 | Automated

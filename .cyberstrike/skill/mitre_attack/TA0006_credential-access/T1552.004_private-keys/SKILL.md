@@ -54,13 +54,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may search for private key certificate files on compromised systems for insecurely stored credentials. Private cryptographic keys and certificates are used for authentication, encryption/decryption, and digital signatures. Common key and certificate file extensions include: .key, .pgp, .gpg, .ppk., .p12, .pem, .pfx, .cer, .p7b, .asc. 
+Adversaries may search for private key certificate files on compromised systems for insecurely stored credentials. Private cryptographic keys and certificates are used for authentication, encryption/decryption, and digital signatures. Common key and certificate file extensions include: .key, .pgp, .gpg, .ppk., .p12, .pem, .pfx, .cer, .p7b, .asc.
 
-Adversaries may also look in common key directories, such as <code>~/.ssh</code> for SSH keys on * nix-based systems or <code>C:&#92;Users&#92;(username)&#92;.ssh&#92;</code> on Windows. Adversary tools may also search compromised systems for file extensions relating to cryptographic keys and certificates.
+Adversaries may also look in common key directories, such as <code>~/.ssh</code> for SSH keys on \* nix-based systems or <code>C:&#92;Users&#92;(username)&#92;.ssh&#92;</code> on Windows. Adversary tools may also search compromised systems for file extensions relating to cryptographic keys and certificates.
 
 When a device is registered to Entra ID, a device key and a transport key are generated and used to verify the device’s identity. An adversary with access to the device may be able to export the keys in order to impersonate the device.
 
-On network devices, private keys may be exported via Network Device CLI commands such as `crypto pki export`. 
+On network devices, private keys may be exported via Network Device CLI commands such as `crypto pki export`.
 
 Some private keys require a password or passphrase for operation, so an adversary may also use Input Capture for keylogging or attempt to Brute Force the passphrase off-line. These private keys can be used to authenticate to Remote Services like SSH or for use in decrypting other collected files such as email.
 
@@ -132,6 +132,7 @@ find #{search_path} -name id_rsa 2>/dev/null -exec gcp --parents {} #{output_fol
 ```
 
 **Dependencies:**
+
 - Install GNU cp from coreutils package.
 
 ### Atomic Test 5: Copy Private SSH Keys with rsync
@@ -146,7 +147,6 @@ find #{search_path} -name id_rsa 2>/dev/null -exec rsync -R {} #{output_folder} 
 exit 0
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -160,35 +160,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Use strong passphrases for private keys to make cracking difficult.
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure permissions are properly set on folders containing sensitive private keys to prevent unintended access. Additionally, on Cisco devices, set the `nonexportable` flag during RSA key pair generation.
 
 ### M1047 Audit
+
 Ensure only authorized keys are allowed access to critical resources and audit access lists regularly.
 
 ### M1041 Encrypt Sensitive Information
-When possible, store keys on separate cryptographic hardware instead of on the local system. For example, on Windows systems use a TPM to secure keys and other sensitive credential material.
 
+When possible, store keys on separate cryptographic hardware instead of on the local system. For example, on Windows systems use a TPM to secure keys and other sensitive credential material.
 
 ## Detection
 
 ### Detect Suspicious Access to Private Key Files and Export Attempts Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Private Keys technique applicable | High | Credential Access |
+| Finding                           | Severity | Impact            |
+| --------------------------------- | -------- | ----------------- |
+| Private Keys technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

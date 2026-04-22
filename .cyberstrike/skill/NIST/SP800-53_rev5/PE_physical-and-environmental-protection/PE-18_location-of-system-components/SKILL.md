@@ -12,16 +12,14 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - PE-5
   - PE-19
   - PE-20
   - RA-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   PE-5: "Chain with PE-5 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ Physical and environmental hazards include floods, fires, tornadoes, earthquakes
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-18 Location of System Components not implemented | Medium | Physical and Environmental Protection |
-| PE-18 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                             | Severity | Impact                                           |
+| --------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-18 Location of System Components not implemented | Medium   | Physical and Environmental Protection            |
+| PE-18 partially implemented                         | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

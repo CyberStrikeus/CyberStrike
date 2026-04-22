@@ -34,8 +34,7 @@ chains_with:
   - T1553.004
   - T1553.005
   - T1553.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1553.001: "Chain with T1553.001 for deeper attack path"
   T1553.002: "Chain with T1553.002 for deeper attack path"
@@ -80,38 +79,40 @@ Adversaries may attempt to subvert these trust mechanisms. The method adversarie
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 System settings can prevent applications from running that haven't been downloaded through the Apple Store (or other legitimate repositories) which can help mitigate some of these issues. Also enable application control solutions such as AppLocker and/or Device Guard to block the loading of malicious content.
 
 ### M1028 Operating System Configuration
+
 Windows Group Policy can be used to manage root certificates and the <code>Flags</code> value of <code>HKLM\\SOFTWARE\\Policies\\Microsoft\\SystemCertificates\\Root\\ProtectedRoots</code> can be set to 1 to prevent non-administrator users from making further root installations into their own HKCU certificate store.
 
 ### M1026 Privileged Account Management
+
 Manage the creation, modification, use, and permissions associated to privileged accounts, including SYSTEM and root.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper permissions are set for Registry hives to prevent users from modifying keys related to SIP and trust provider components. Components may still be able to be hijacked to suitable functions already present on disk if malicious modifications to Registry keys are not prevented.
 
 ### M1054 Software Configuration
-HTTP Public Key Pinning (HPKP) is one method to mitigate potential Adversary-in-the-Middle situations where and adversary uses a mis-issued or fraudulent certificate to intercept encrypted communications by enforcing use of an expected certificate.
 
+HTTP Public Key Pinning (HPKP) is one method to mitigate potential Adversary-in-the-Middle situations where and adversary uses a mis-issued or fraudulent certificate to intercept encrypted communications by enforcing use of an expected certificate.
 
 ## Detection
 
 ### Detect Subversion of Trust Controls via Certificate, Registry, and Attribute Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Subvert Trust Controls technique applicable | Low | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Subvert Trust Controls technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

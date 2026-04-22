@@ -17,20 +17,25 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 1.3.4
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Allow pods to verify the API server's serving certificate before establishing connections.
 
 ## Rationale
+
 Processes running within pods that need to contact the API server must verify the API server's serving certificate. Failing to do so could be a subject to man-in-the-middle attacks.
 
 Providing the root certificate for the API server's serving certificate to the controller manager with the `--root-ca-file` argument allows the controller manager to inject the trusted bundle into pods so that they can verify TLS connections to the API server.
 
 ## Impact
+
 OpenShift clusters manage and maintain certificate authorities and certificates for cluster components.
 
 ## Audit Procedure
+
 Certificates for OpenShift platform components are automatically created and rotated by the OpenShift Container Platform.
 
 Run the following command:
@@ -44,14 +49,17 @@ oc get configmaps config -n openshift-kube-controller-manager -ojson | \
 Verify that the `--root-ca-file` argument exists and is set to `/etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt`.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, OpenShift sets the Kubernetes Controller Manager `root-ca-file` to `/etc/kubernetes/static-pod-resources/configmaps/serviceaccount-ca/ca-bundle.crt`.
 
 Certificates for OpenShift platform components are automatically created and rotated by the OpenShift Container Platform.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/4.13/operators/operator-reference.html
 2. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#cluster-openshift-controller-manager-operator_cluster-operators-ref
 3. https://docs.openshift.com/container-platform/4.13/security/certificate_types_descriptions/control-plane-certificates.html
@@ -63,16 +71,17 @@ Certificates for OpenShift platform components are automatically created and rot
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.10 Perform Application Layer Filtering | | | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
+| Controls Version | Control                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering |      |      | X    |
+| v7               | 4.4 Use Unique Passwords                  |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 1** (Manual)

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 3.5.1.5
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Manual
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Configure the firewall rules for new outbound connections.
 
 Notes:
+
 - Changing firewall settings while connected over network can result in being locked out of the system.
 - Unlike iptables, when a new outbound rule is added, ufw automatically takes care of associated established connections, so no rules for the latter kind are required.
 

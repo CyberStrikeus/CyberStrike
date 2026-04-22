@@ -63,7 +63,7 @@ By default, `EventRateLimit` is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | x | x |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies | | x | x |
+| Controls Version | Control                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components             |      | x    | x    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies |      | x    | x    |

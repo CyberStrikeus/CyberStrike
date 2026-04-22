@@ -85,29 +85,28 @@ In UEFI (Unified Extensible Firmware Interface) systems, a bootkit may instead c
 ## Remediation Guide
 
 ### M1046 Boot Integrity
+
 Use Trusted Platform Module technology and a secure or trusted boot process to prevent system integrity from being compromised.
 
 ### M1026 Privileged Account Management
-Ensure proper permissions are in place to help prevent adversary access to privileged accounts necessary to install a bootkit.
 
+Ensure proper permissions are in place to help prevent adversary access to privileged accounts necessary to install a bootkit.
 
 ## Detection
 
 ### Detection Strategy for File Creation or Modification of Boot Files
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Bootkit technique applicable | Low | Persistence |
+| Finding                      | Severity | Impact      |
+| ---------------------------- | -------- | ----------- |
+| Bootkit technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

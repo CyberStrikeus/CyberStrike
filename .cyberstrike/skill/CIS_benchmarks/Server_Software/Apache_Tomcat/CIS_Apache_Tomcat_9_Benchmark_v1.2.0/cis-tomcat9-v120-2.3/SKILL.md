@@ -71,10 +71,12 @@ The default value for the `server.built` attribute is build date and time. For e
 ## CIS Controls
 
 **v8:**
+
 - 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure
   - Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, and SaaS components. Do not allow in-house developed software to weaken configuration hardening.
 
 **v7:**
+
 - 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization
   - Remove sensitive data or systems not regularly accessed by the organization from the network. These systems shall only be used as stand alone systems (disconnected from the network) by the business unit needing to occasionally use the system or completely virtualized and powered off until needed.
 

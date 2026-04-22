@@ -26,6 +26,7 @@ severity_boost: {}
 The ntp package is installed with a dedicated user account `ntp`. This account is granted the access required by the ntpd daemon.
 
 Note:
+
 - If chrony or systemd-timesyncd are used, ntp should be removed and this section skipped
 - This recommendation only applies if ntp is in use on the system
 - Only one time synchronization method should be in use on the system
@@ -69,6 +70,7 @@ RUNASUSER=ntp
 ```
 
 Run the following command to restart ntp.service:
+
 ```bash
 # systemctl restart ntp.service
 ```
@@ -76,6 +78,7 @@ Run the following command to restart ntp.service:
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove ntp:
+
 ```bash
 # apt purge ntp
 ```

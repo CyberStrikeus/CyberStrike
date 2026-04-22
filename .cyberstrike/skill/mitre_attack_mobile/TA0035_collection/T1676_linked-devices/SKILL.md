@@ -26,10 +26,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -41,7 +39,7 @@ Adversaries may abuse the “linked devices” feature on messaging applications
 
 Signal is a messaging application that uses the open-source Signal Protocol to encrypt messages and calls; similarly, WhatsApp is a messaging application that has end-to-end encryption and other security measures to protect messages and calls. Both applications have a “linked devices” feature that allows users to access their Signal and/or WhatsApp accounts from different devices, such as a Windows or Mac desktop, an iPad or an Android tablet.
 
-Adversaries may use Phishing techniques to trick the user into scanning a quick-response (QR) code, which is used to link the user’s Signal and/or WhatsApp account to an adversary-controlled device. For example, adversaries may masquerade QR codes as group invites, security alerts or as legitimate instructions for pairing linked devices. 
+Adversaries may use Phishing techniques to trick the user into scanning a quick-response (QR) code, which is used to link the user’s Signal and/or WhatsApp account to an adversary-controlled device. For example, adversaries may masquerade QR codes as group invites, security alerts or as legitimate instructions for pairing linked devices.
 Upon scanning the QR code in Signal, users may click on the “Transfer Message History” option to sync the linked devices, which may allow adversaries to collect more information about the user. Upon scanning the QR code in WhatsApp, the user’s device will automatically send an end-to-end encrypted copy of recent message history to the adversary-controlled device.
 
 ## Kill Chain Phase
@@ -72,27 +70,25 @@ Review whether mitigations for T1676 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-For Android devices, users should be advised to enable Google Play Protect, which checks the device itself and the applications for malicious behavior. For iOS devices, users who are concerned about being targeted should consider enabling Lockdown Mode, which provides extreme protection of the device as well as data stored and transmitted. 
-In general, users should be advised against scanning QR codes and/or clicking on suspicious links or text messages, which may masquerade as device-linking instructions by Signal or WhatsApp.
 
+For Android devices, users should be advised to enable Google Play Protect, which checks the device itself and the applications for malicious behavior. For iOS devices, users who are concerned about being targeted should consider enabling Lockdown Mode, which provides extreme protection of the device as well as data stored and transmitted.
+In general, users should be advised against scanning QR codes and/or clicking on suspicious links or text messages, which may masquerade as device-linking instructions by Signal or WhatsApp.
 
 ## Detection
 
 ### Detection of Linked Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Linked Devices technique applicable | High | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Linked Devices technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

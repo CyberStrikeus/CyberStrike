@@ -33,8 +33,8 @@ Since the `/var/log/audit` filesystem is not intended to support devices, set th
 ### Command Line
 
 - IF - a separate partition exists for `/var/log/audit`, verify that the `nodev` option is set.
-Run the following command to verify that the `nodev` mount option is set.
-Example:
+  Run the following command to verify that the `nodev` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /var/log/audit | grep -v nodev
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/var/log/audit`.
-Edit the `/etc/fstab` file and add `nodev` to the fourth field (mounting options) for the `/var/log/audit` partition.
-Example:
+  Edit the `/etc/fstab` file and add `nodev` to the fourth field (mounting options) for the `/var/log/audit` partition.
+  Example:
 
 ```
 <device> /var/log/audit   <fstype>   defaults,rw,nosuid,nodev,noexec,relatime   0 0

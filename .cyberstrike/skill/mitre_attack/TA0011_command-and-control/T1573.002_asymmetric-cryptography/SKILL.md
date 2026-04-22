@@ -84,29 +84,28 @@ For efficiency, many protocols (including SSL/TLS) use symmetric cryptography on
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M1020 SSL/TLS Inspection
-SSL/TLS inspection can be used to see the contents of encrypted sessions to look for network-based indicators of malware communication protocols.
 
+SSL/TLS inspection can be used to see the contents of encrypted sessions to look for network-based indicators of malware communication protocols.
 
 ## Detection
 
 ### Detection Strategy for Encrypted Channel via Asymmetric Cryptography across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Asymmetric Cryptography technique applicable | Low | Command And Control |
+| Finding                                      | Severity | Impact              |
+| -------------------------------------------- | -------- | ------------------- |
+| Asymmetric Cryptography technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

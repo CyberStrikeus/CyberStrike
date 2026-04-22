@@ -30,10 +30,8 @@ tech_stack:
   - network devices
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -79,26 +77,24 @@ Aware that some malware cannot survive system reboots, adversaries may entirely 
 ## Remediation Guide
 
 ### M1047 Audit
-Periodically inspect systems for abnormal and unexpected power settings that may indicate malicious activty.
 
+Periodically inspect systems for abnormal and unexpected power settings that may indicate malicious activty.
 
 ## Detection
 
 ### Detection Strategy for Power Settings Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Power Settings technique applicable | Low | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| Power Settings technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

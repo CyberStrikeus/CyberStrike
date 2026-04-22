@@ -81,9 +81,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.6 Protect Information through Access Control Lists |
+| Controls Version | Control                                               |
+| ---------------- | ----------------------------------------------------- |
+| v7               | 14.6 Protect Information through Access Control Lists |
 
 ## Assessment Status
 

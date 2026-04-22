@@ -26,10 +26,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -37,11 +35,11 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may move onto devices by exploiting or copying malware to devices connected via USB. In the case of Lateral Movement, adversaries may utilize the physical connection of a device to a compromised or malicious charging station or PC to bypass application store requirements and install malicious applications directly. In the case of Initial Access, adversaries may attempt to exploit the device via the connection to gain access to data stored on the device. Examples of this include: 
- 
-* Exploiting insecure bootloaders in a Nexus 6 or 6P device over USB and gaining the ability to perform actions including intercepting phone calls, intercepting network traffic, and obtaining the device physical location. 
-* Exploiting weakly-enforced security boundaries in Android devices such as the Google Pixel 2 over USB. 
-* Products from Cellebrite and Grayshift purportedly that can exploit some iOS devices using physical access to the data port to unlock the passcode.
+Adversaries may move onto devices by exploiting or copying malware to devices connected via USB. In the case of Lateral Movement, adversaries may utilize the physical connection of a device to a compromised or malicious charging station or PC to bypass application store requirements and install malicious applications directly. In the case of Initial Access, adversaries may attempt to exploit the device via the connection to gain access to data stored on the device. Examples of this include:
+
+- Exploiting insecure bootloaders in a Nexus 6 or 6P device over USB and gaining the ability to perform actions including intercepting phone calls, intercepting network traffic, and obtaining the device physical location.
+- Exploiting weakly-enforced security boundaries in Android devices such as the Google Pixel 2 over USB.
+- Products from Cellebrite and Grayshift purportedly that can exploit some iOS devices using physical access to the data port to unlock the passcode.
 
 ## Kill Chain Phase
 
@@ -71,38 +69,40 @@ Review whether mitigations for T1458 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1003 Lock Bootloader
+
 Users should ensure bootloaders are locked to prevent arbitrary operating system code from being flashed onto the device.
 
 ### M1006 Use Recent OS Version
+
 iOS 11.4.1 and higher introduce USB Restricted Mode, which disables data access through the device's charging port under certain conditions (making the port only usable for power), likely preventing this technique from working.
 
 ### M1011 User Guidance
+
 Users should be advised not to use public charging stations or computers to charge their devices. Instead, users should be issued a charger acquired from a trustworthy source. Users should be advised not to click on device prompts to trust attached computers unless absolutely necessary.
 
 ### M1012 Enterprise Policy
+
 Enterprise policies should prevent enabling USB debugging on Android devices unless specifically needed (e.g., if the device is used for application development).
 
 ### M1001 Security Updates
-Security updates often contain patches for vulnerabilities.
 
+Security updates often contain patches for vulnerabilities.
 
 ## Detection
 
 ### Detection of Replication Through Removable Media
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Replication Through Removable Media technique applicable | High | Initial Access |
+| Finding                                                  | Severity | Impact         |
+| -------------------------------------------------------- | -------- | -------------- |
+| Replication Through Removable Media technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

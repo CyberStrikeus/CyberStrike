@@ -50,9 +50,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may register malicious password filter dynamic link libraries (DLLs) into the authentication process to acquire user credentials as they are validated. 
+Adversaries may register malicious password filter dynamic link libraries (DLLs) into the authentication process to acquire user credentials as they are validated.
 
-Windows password filters are password policy enforcement mechanisms for both domain and local accounts. Filters are implemented as DLLs containing a method to validate potential passwords against password policies. Filter DLLs can be positioned on local computers for local accounts and/or domain controllers for domain accounts. Before registering new passwords in the Security Accounts Manager (SAM), the Local Security Authority (LSA) requests validation from each registered filter. Any potential changes cannot take effect until every registered filter acknowledges validation. 
+Windows password filters are password policy enforcement mechanisms for both domain and local accounts. Filters are implemented as DLLs containing a method to validate potential passwords against password policies. Filter DLLs can be positioned on local computers for local accounts and/or domain controllers for domain accounts. Before registering new passwords in the Security Accounts Manager (SAM), the Local Security Authority (LSA) requests validation from each registered filter. Any potential changes cannot take effect until every registered filter acknowledges validation.
 
 Adversaries can register malicious password filters to harvest credentials from local computers and/or entire domains. To perform proper validation, filters must receive plain-text credentials from the LSA. A malicious password filter would receive these plain-text credentials every time a password request is made.
 
@@ -81,8 +81,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 Uses PowerShell to install and register a password filter DLL. Requires a reboot and administrative privileges.
 The binary in bin is https://www.virustotal.com/gui/file/95140c1ad39fd632d1c1300b246293297aa272ce6035eecc3da56e337200221d/detection
-Source is in src folder. 
-This does require a reboot to see the filter loaded into lsass.exe. 
+Source is in src folder.
+This does require a reboot to see the filter loaded into lsass.exe.
 It does require Administrative privileges to import the clean registry values back into LSA, it is possible you may have to manually do this after for cleanup.
 
 **Supported Platforms:** windows
@@ -98,6 +98,7 @@ Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\" "Notification Pac
 ```
 
 **Dependencies:**
+
 - AtomicRedTeamPWFilter.dll must exist on disk at specified location (#{dll_path}\#{dll_name})
 
 ### Atomic Test 2: Install Additional Authentication Packages
@@ -105,8 +106,8 @@ Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\" "Notification Pac
 lsass.exe loads all DLLs specified by the Authentication Packages REG_MULTI_SZ value.
 Uses PowerShell to install and register a password filter DLL. Requires a reboot and administrative privileges.
 The binary in bin is https://www.virustotal.com/gui/file/95140c1ad39fd632d1c1300b246293297aa272ce6035eecc3da56e337200221d/detection
-Source is in src folder. 
-This does require a reboot to see the filter loaded into lsass.exe. 
+Source is in src folder.
+This does require a reboot to see the filter loaded into lsass.exe.
 It does require Administrative privileges to import the clean registry values back into LSA, it is possible you may have to manually do this after for cleanup.
 
 **Supported Platforms:** windows
@@ -122,8 +123,8 @@ Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\" "Authentication P
 ```
 
 **Dependencies:**
-- AtomicRedTeamPWFilter.dll must exist on disk at specified location (#{dll_path}\#{dll_name})
 
+- AtomicRedTeamPWFilter.dll must exist on disk at specified location (#{dll_path}\#{dll_name})
 
 ### Manual Testing
 
@@ -138,26 +139,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
-Ensure only valid password filters are registered. Filter DLLs must be present in Windows installation directory (C:\Windows\System32\ by default) of a domain controller and/or local computer with a corresponding entry in HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\Notification Packages.
 
+Ensure only valid password filters are registered. Filter DLLs must be present in Windows installation directory (C:\Windows\System32\ by default) of a domain controller and/or local computer with a corresponding entry in HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\Notification Packages.
 
 ## Detection
 
 ### Detect Malicious Password Filter DLL Registration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Password Filter DLL technique applicable | High | Credential Access |
+| Finding                                  | Severity | Impact            |
+| ---------------------------------------- | -------- | ----------------- |
+| Password Filter DLL technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

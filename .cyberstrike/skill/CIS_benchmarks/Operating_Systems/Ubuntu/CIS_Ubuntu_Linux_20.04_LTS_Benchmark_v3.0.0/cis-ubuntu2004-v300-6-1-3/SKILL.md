@@ -83,12 +83,12 @@ Not configured by default.
 ## CIS Controls
 
 | Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | — | | | |
-| v7 | — | | | |
+| ---------------- | ------- | ---- | ---- | ---- |
+| v8               | —       |      |      |      |
+| v7               | —       |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002, T1083, T1083.000 | TA0007 | M1047 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1070, T1070.002, T1083, T1083.000 | TA0007  | M1047       |

@@ -82,26 +82,24 @@ Adversaries may target resource intensive features of applications to cause a de
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport.
 
+Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport.
 
 ## Detection
 
 ### Application Exhaustion Flood Detection Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Exhaustion Flood technique applicable | Low | Impact |
+| Finding                                           | Severity | Impact |
+| ------------------------------------------------- | -------- | ------ |
+| Application Exhaustion Flood technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

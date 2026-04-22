@@ -48,7 +48,7 @@ Bootstrap token authentication is not enabled by default and requires an API ser
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.2 Establish an Access Revoking Process | X | X | X |
-| v7 | 16.7 Establish Process for Revoking Access | | X | X |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process   | X    | X    | X    |
+| v7               | 16.7 Establish Process for Revoking Access |      | X    | X    |

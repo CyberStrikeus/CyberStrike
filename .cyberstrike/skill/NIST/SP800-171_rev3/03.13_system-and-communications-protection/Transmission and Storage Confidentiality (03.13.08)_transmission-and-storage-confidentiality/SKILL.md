@@ -21,10 +21,8 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-311
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -88,17 +86,16 @@ This requirement applies to internal and external networks and any system compon
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Transmission and Storage Confidentiality (03.13.08) Transmission and Storage Confidentiality not implemented | High | CUI Protection - System and Communications Protection |
-| Transmission and Storage Confidentiality (03.13.08) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                                      | Severity | Impact                                                |
+| ------------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------- |
+| Transmission and Storage Confidentiality (03.13.08) Transmission and Storage Confidentiality not implemented | High     | CUI Protection - System and Communications Protection |
+| Transmission and Storage Confidentiality (03.13.08) partially implemented (POA&M)                            | Medium   | CMMC certification risk                               |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

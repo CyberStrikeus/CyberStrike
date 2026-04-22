@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,19 +64,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Proxy Through Victim
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Proxy Through Victim technique applicable | Medium | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| Proxy Through Victim technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -86,7 +86,7 @@ password_pbkdf2 <username> <encrypted-password>
 EOF
 ```
 
-*The superuser/user information and password should not be contained in the `/etc/grub.d/00_header` file as this file could be overwritten in a package update.*
+_The superuser/user information and password should not be contained in the `/etc/grub.d/00_header` file as this file could be overwritten in a package update._
 
 If there is a requirement to be able to boot/reboot without entering the password, edit `/etc/grub.d/10_linux` and add `--unrestricted` to the line `CLASS=`
 
@@ -114,9 +114,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.1 Establish Secure Configurations |
+| Controls Version | Control                             |
+| ---------------- | ----------------------------------- |
+| v7               | 5.1 Establish Secure Configurations |
 
 ## Assessment Status
 

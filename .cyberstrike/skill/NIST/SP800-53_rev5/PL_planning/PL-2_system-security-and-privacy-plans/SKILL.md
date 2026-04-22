@@ -12,8 +12,7 @@ tags:
   - pl
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-6
@@ -25,8 +24,7 @@ chains_with:
   - CA-7
   - CM-9
   - CM-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -77,9 +75,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -118,16 +116,16 @@ Security- and privacy-related activities that may require coordination and plann
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-2 System Security and Privacy Plans not implemented | Medium | Planning |
-| PL-2 partially implemented | Low | Incomplete Planning |
+| Finding                                                | Severity | Impact              |
+| ------------------------------------------------------ | -------- | ------------------- |
+| PL-2 System Security and Privacy Plans not implemented | Medium   | Planning            |
+| PL-2 partially implemented                             | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

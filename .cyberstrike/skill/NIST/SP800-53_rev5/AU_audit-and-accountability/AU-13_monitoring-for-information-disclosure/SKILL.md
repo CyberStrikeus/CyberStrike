@@ -25,8 +25,7 @@ chains_with:
   - RA-5
   - SC-7
   - SI-20
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-22: "Chain with AC-22 for comprehensive security coverage"
   PE-3: "Chain with PE-3 for comprehensive security coverage"
@@ -71,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Unauthorized disclosure of information is a form of data leakage. Open-source in
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-13 Monitoring for Information Disclosure not implemented | Medium | Audit and Accountability |
-| AU-13 partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                     | Severity | Impact                              |
+| ----------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-13 Monitoring for Information Disclosure not implemented | Medium   | Audit and Accountability            |
+| AU-13 partially implemented                                 | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

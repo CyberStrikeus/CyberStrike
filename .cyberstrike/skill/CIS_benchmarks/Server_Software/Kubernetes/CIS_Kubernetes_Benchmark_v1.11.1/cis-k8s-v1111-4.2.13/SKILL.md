@@ -4,7 +4,23 @@ description: "Ensure that a limit is set on pod PIDs (Manual)"
 category: cis-k8s
 version: "1.11.1"
 author: cyberstrike-official
-tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+tags:
+  [
+    cis,
+    kubernetes,
+    worker-nodes,
+    kubelet,
+    authentication,
+    authorization,
+    tls,
+    streaming,
+    iptables,
+    hostname-override,
+    event-capture,
+    certificate-rotation,
+    seccomp,
+    strong-ciphers,
+  ]
 cis_id: "4.2.13"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
 tech_stack: [kubernetes]
@@ -50,7 +66,7 @@ By default the number of PIDs is not limited.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running            |      | x    | x    |

@@ -22,8 +22,7 @@ chains_with:
   - PM-15
   - RA-5
   - SI-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-15: "Chain with PM-15 for comprehensive security coverage"
   RA-5: "Chain with RA-5 for comprehensive security coverage"
@@ -68,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -88,17 +87,16 @@ The Cybersecurity and Infrastructure Security Agency (CISA) generates security a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-5 Security Alerts, Advisories, and Directives not implemented | High | System and Information Integrity |
-| SI-5 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                          | Severity | Impact                                      |
+| ---------------------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-5 Security Alerts, Advisories, and Directives not implemented | High     | System and Information Integrity            |
+| SI-5 partially implemented                                       | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

@@ -68,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -85,17 +85,16 @@ Preventing the presentation of system management functionality at interfaces to 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-2(1) Interfaces for Non-privileged Users not implemented | High | System and Communications Protection |
-| SC-2(1) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                     | Severity | Impact                                          |
+| ----------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-2(1) Interfaces for Non-privileged Users not implemented | High     | System and Communications Protection            |
+| SC-2(1) partially implemented                               | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

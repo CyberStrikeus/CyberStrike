@@ -86,26 +86,24 @@ Adversaries may also combine voice phishing with Multi-Factor Authentication Req
 ## Remediation Guide
 
 ### M1017 User Training
-Users can be trained to identify and report social engineering techniques and spearphishing attempts, while also being suspicious of and verifying the identify of callers.
 
+Users can be trained to identify and report social engineering techniques and spearphishing attempts, while also being suspicious of and verifying the identify of callers.
 
 ## Detection
 
 ### Detection Strategy for Spearphishing Voice across OS platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Voice technique applicable | High | Initial Access |
+| Finding                                  | Severity | Impact         |
+| ---------------------------------------- | -------- | -------------- |
+| Spearphishing Voice technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

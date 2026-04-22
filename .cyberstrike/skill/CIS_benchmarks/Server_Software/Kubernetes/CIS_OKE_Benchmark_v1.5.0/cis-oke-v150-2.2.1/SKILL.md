@@ -72,16 +72,16 @@ By default, Kubernetes API server logs and Container Engine for Kubernetes audit
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs | x | x | x |
-| v7 | 6.2 Activate audit logging | x | x | x |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | x    | x    | x    |
+| v7               | 6.2 Activate audit logging | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1543 | TA0003, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1026       |
 
 ---
 

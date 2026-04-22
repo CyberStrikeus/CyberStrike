@@ -19,8 +19,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1588"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1588.001
   - T1588.002
@@ -29,8 +28,7 @@ chains_with:
   - T1588.005
   - T1588.006
   - T1588.007
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1588.001: "Chain with T1588.001 for deeper attack path"
   T1588.002: "Chain with T1588.002 for deeper attack path"
@@ -75,25 +73,24 @@ In addition to purchasing capabilities, adversaries may steal capabilities from 
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Obtain Capabilities
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Obtain Capabilities technique applicable | High | Resource Development |
+| Finding                                  | Severity | Impact               |
+| ---------------------------------------- | -------- | -------------------- |
+| Obtain Capabilities technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

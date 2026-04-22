@@ -36,8 +36,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may execute their own malicious payloads by hijacking the way an operating system runs applications. Hijacking execution flow can be for the purposes of persistence since this hijacked execution may reoccur at later points in time. 
-
+Adversaries may execute their own malicious payloads by hijacking the way an operating system runs applications. Hijacking execution flow can be for the purposes of persistence since this hijacked execution may reoccur at later points in time.
 
 On Android, adversaries may overwrite the standard OS API library with a malicious alternative to hook into core functions to achieve persistence. By doing this, the adversary’s code will be executed every time the overwritten API function is called by an app on the infected device.
 
@@ -67,29 +66,28 @@ Review whether mitigations for T1625.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1002 Attestation
+
 Device attestation could detect unauthorized operating system modifications.
 
 ### M1004 System Partition Integrity
-Android Verified Boot can detect unauthorized modifications made to the system partition, which could lead to execution flow hijacking.
 
+Android Verified Boot can detect unauthorized modifications made to the system partition, which could lead to execution flow hijacking.
 
 ## Detection
 
 ### Detection of System Runtime API Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Runtime API Hijacking technique applicable | High | Persistence |
+| Finding                                           | Severity | Impact      |
+| ------------------------------------------------- | -------- | ----------- |
+| System Runtime API Hijacking technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

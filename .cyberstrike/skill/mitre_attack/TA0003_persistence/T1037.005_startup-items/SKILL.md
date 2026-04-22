@@ -46,7 +46,7 @@ severity_boost:
 
 Adversaries may use startup items automatically executed at boot initialization to establish persistence. Startup items execute during the final phase of the boot process and contain shell scripts or other executable files along with configuration information used by the system to determine the execution order for all startup items.
 
-This is technically a deprecated technology (superseded by Launch Daemon), and thus the appropriate folder, <code>/Library/StartupItems</code> isn’t guaranteed to exist on the system by default, but does appear to exist by default on macOS Sierra. A startup item is a directory whose executable and configuration property list (plist), <code>StartupParameters.plist</code>, reside in the top-level directory. 
+This is technically a deprecated technology (superseded by Launch Daemon), and thus the appropriate folder, <code>/Library/StartupItems</code> isn’t guaranteed to exist on the system by default, but does appear to exist by default on macOS Sierra. A startup item is a directory whose executable and configuration property list (plist), <code>StartupParameters.plist</code>, reside in the top-level directory.
 
 An adversary can create the appropriate folders/files in the StartupItems directory to register their own persistence mechanism. Additionally, since StartupItems run during the bootup phase of macOS, they will run as the elevated root user.
 
@@ -98,6 +98,7 @@ sudo /Library/StartupItems/atomic.sh start
 ```
 
 **Dependencies:**
+
 - /Library/StartupItems must exist
 - The shared library must exist on disk at specified location (#{path_malicious_plist})
 - The startup script must exist on disk at specified location (#{path_malicious_script})
@@ -118,10 +119,10 @@ sudo cp #{path_malicious_plist} /tmp/T1037_005_agent.plist
 ```
 
 **Dependencies:**
+
 - /Library/StartupItems must exist
 - The shared library must exist on disk at specified location (#{path_malicious_plist})
 - The startup script must exist on disk at specified location (#{path_malicious_script})
-
 
 ### Manual Testing
 
@@ -136,26 +137,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Since StartupItems are deprecated, preventing all users from writing to the <code>/Library/StartupItems</code> directory would prevent any startup items from getting registered.
 
+Since StartupItems are deprecated, preventing all users from writing to the <code>/Library/StartupItems</code> directory would prevent any startup items from getting registered.
 
 ## Detection
 
 ### Detect Modification of macOS Startup Items
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Startup Items technique applicable | Low | Persistence |
+| Finding                            | Severity | Impact      |
+| ---------------------------------- | -------- | ----------- |
+| Startup Items technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

@@ -96,6 +96,7 @@ Set the following parameter in `/etc/sysctl.conf` or a file in `/etc/sysctl.d/` 
 - `fs.suid_dumpable = 0`
 
 Example:
+
 ```bash
 # printf "\n%s" "fs.suid_dumpable = 0" >> /etc/sysctl.d/60-fs_sysctl.conf
 ```

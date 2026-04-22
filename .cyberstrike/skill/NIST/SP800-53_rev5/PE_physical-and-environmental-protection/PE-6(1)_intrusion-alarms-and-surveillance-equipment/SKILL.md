@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PE-6
 severity_boost: {}
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,16 +76,16 @@ Physical intrusion alarms can be employed to alert security personnel when unaut
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-6(1) Intrusion Alarms and Surveillance Equipment not implemented | Medium | Physical and Environmental Protection |
-| PE-6(1) partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                                             | Severity | Impact                                           |
+| ------------------------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-6(1) Intrusion Alarms and Surveillance Equipment not implemented | Medium   | Physical and Environmental Protection            |
+| PE-6(1) partially implemented                                       | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

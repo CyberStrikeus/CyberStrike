@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,26 +57,24 @@ Review whether mitigations for T0846 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0814 Static Network Configuration
-ICS environments typically have more statically defined devices, therefore minimize the use of both IT discovery protocols (e.g., DHCP, LLDP) and discovery functions in automation protocols. Examples of automation protocols with discovery capabilities include OPC UA Device Discovery , BACnet , and Ethernet/IP.
 
+ICS environments typically have more statically defined devices, therefore minimize the use of both IT discovery protocols (e.g., DHCP, LLDP) and discovery functions in automation protocols. Examples of automation protocols with discovery capabilities include OPC UA Device Discovery , BACnet , and Ethernet/IP.
 
 ## Detection
 
 ### Detection of Remote System Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote System Discovery technique applicable | Medium | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Remote System Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

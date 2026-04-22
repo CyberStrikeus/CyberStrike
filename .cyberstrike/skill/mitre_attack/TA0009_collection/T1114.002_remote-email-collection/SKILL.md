@@ -74,7 +74,8 @@ Adversaries may target an Exchange server, Office 365, or Google Workspace to co
 ## Remediation Guide
 
 ### M1060 Out-of-Band Communications Channel
-Use secure out-of-band authentication methods to verify the authenticity of critical actions initiated via email, such as password resets, financial transactions, or access requests. 
+
+Use secure out-of-band authentication methods to verify the authenticity of critical actions initiated via email, such as password resets, financial transactions, or access requests.
 
 For highly sensitive information, utilize out-of-band communication channels instead of relying solely on email. This reduces the risk of sensitive data being collected through compromised email accounts.
 
@@ -83,29 +84,28 @@ Set up out-of-band alerts to notify security teams of unusual email activities, 
 Create plans for leveraging a secure out-of-band communications channel, rather than an existing in-network email server, in case of a security incident.
 
 ### M1041 Encrypt Sensitive Information
+
 Use of encryption provides an added layer of security to sensitive information sent over email. Encryption using public key cryptography requires the adversary to obtain the private certificate along with an encryption key to decrypt messages.
 
 ### M1032 Multi-factor Authentication
-Use of multi-factor authentication for public-facing webmail servers is a recommended best practice to minimize the usefulness of usernames and passwords to adversaries.
 
+Use of multi-factor authentication for public-facing webmail servers is a recommended best practice to minimize the usefulness of usernames and passwords to adversaries.
 
 ## Detection
 
 ### Detect Remote Email Collection via Abnormal Login and Programmatic Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Email Collection technique applicable | High | Collection |
+| Finding                                      | Severity | Impact     |
+| -------------------------------------------- | -------- | ---------- |
+| Remote Email Collection technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

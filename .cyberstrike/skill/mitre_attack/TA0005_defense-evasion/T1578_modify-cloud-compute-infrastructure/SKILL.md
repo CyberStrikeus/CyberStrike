@@ -27,8 +27,7 @@ chains_with:
   - T1578.003
   - T1578.004
   - T1578.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1578.001: "Chain with T1578.001 for deeper attack path"
   T1578.002: "Chain with T1578.002 for deeper attack path"
@@ -71,29 +70,28 @@ Permissions gained from the modification of infrastructure components may bypass
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit permissions for creating, deleting, and otherwise altering compute components in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
 ### M1047 Audit
-Routinely monitor user permissions to ensure only the expected users have the capability to modify cloud compute infrastructure components.
 
+Routinely monitor user permissions to ensure only the expected users have the capability to modify cloud compute infrastructure components.
 
 ## Detection
 
 ### Detection Strategy for Modify Cloud Compute Infrastructure
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Cloud Compute Infrastructure technique applicable | Low | Defense Evasion |
+| Finding                                                  | Severity | Impact          |
+| -------------------------------------------------------- | -------- | --------------- |
+| Modify Cloud Compute Infrastructure technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

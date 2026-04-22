@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.6 Ensure that Data Center Authorizations is activated
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
@@ -57,12 +58,15 @@ network_authorizer: AllowAllNetworkAuthorizer
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 16.11 Leverage Vetted Modules or Services for Application Security Components
   - Leverage vetted modules or services for application security components, such as identity management, encryption, and auditing and logging. Using platform features in critical security functions will reduce developers' workload and minimize the likelihood of design or implementation errors. Modern operating systems provide effective mechanisms for identification, authentication, and authorization and make those mechanisms available to applications. Use only standardized, currently accepted, and extensively reviewed encryption algorithms. Operating systems also provide mechanisms to create and maintain secure audit logs.
 
 **Controls Version v7:**
+
 - 14.7 Enforce Access Control to Data through Automated Tools
   - Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system.
 
 ## Profile
+
 - Level 1 | Manual

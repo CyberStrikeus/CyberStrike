@@ -72,26 +72,24 @@ Review whether mitigations for T1422.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1009 Encrypt Network Traffic
-Ensure that traffic is encrypted to reduce adversaries’ ability to intercept, decrypt and manipulate traffic.
 
+Ensure that traffic is encrypted to reduce adversaries’ ability to intercept, decrypt and manipulate traffic.
 
 ## Detection
 
 ### Detection of Internet Connection Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internet Connection Discovery technique applicable | Medium | Discovery |
+| Finding                                            | Severity | Impact    |
+| -------------------------------------------------- | -------- | --------- |
+| Internet Connection Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

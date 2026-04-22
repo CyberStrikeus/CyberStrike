@@ -29,8 +29,7 @@ chains_with:
   - IA-9
   - MA-4
   - PE-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -77,10 +76,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -105,17 +104,16 @@ Systems support authenticator management by organization-defined settings and re
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-5 Authenticator Management not implemented | High | Identification and Authentication |
-| IA-5 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                       | Severity | Impact                                       |
+| --------------------------------------------- | -------- | -------------------------------------------- |
+| IA-5 Authenticator Management not implemented | High     | Identification and Authentication            |
+| IA-5 partially implemented                    | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

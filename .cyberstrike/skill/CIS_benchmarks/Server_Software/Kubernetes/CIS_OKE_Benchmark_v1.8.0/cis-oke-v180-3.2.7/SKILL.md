@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.7
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Security relevant information should be captured. The `--event-qps` flag on the Kubelet can be used to limit the rate at which events are gathered. Setting this too low could result in relevant events not being logged, however the unlimited setting of `0` could result in a denial of service on the kubelet.
 
 ## Rationale
+
 It is important to capture all events and not restrict event creation. Events are an important source of security information and analytics that ensure that your environment is consistently monitored using the event data.
 
 ## Impact
+
 Setting this parameter to `0` could result in a denial of service condition due to excessive events being created. The cluster's event processing and storage systems should be scaled to handle expected event loads.
 
 ## Audit Procedure
@@ -101,25 +105,28 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/apis/kubeletconfig/v1beta1/types.go
 3. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | * | * | * |
-| v7 | 6.2 Activate audit logging | * | * | * |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | \*   | \*   | \*   |
+| v7               | 6.2 Activate audit logging | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1543 | TA0003, TA0004 | M1047 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1047       |
 
 ## Profile
+
 **Level 1** (Automated)

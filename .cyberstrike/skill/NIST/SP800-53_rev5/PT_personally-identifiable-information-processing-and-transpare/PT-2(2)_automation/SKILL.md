@@ -74,9 +74,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,17 +90,16 @@ Automated mechanisms augment verification that only authorized processing is occ
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-2(2) Automation not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-2(2) partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                            | Severity | Impact                                                                     |
+| ---------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-2(2) Automation not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-2(2) partially implemented      | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

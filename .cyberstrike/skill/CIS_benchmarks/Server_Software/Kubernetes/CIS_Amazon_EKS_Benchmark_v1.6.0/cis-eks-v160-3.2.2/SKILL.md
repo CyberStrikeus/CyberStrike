@@ -146,7 +146,7 @@ See the EKS documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X | X | X |
-| v7 | 4.2 Change Default Passwords | X | X | X |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X    | X    | X    |
+| v7               | 4.2 Change Default Passwords                                              | X    | X    | X    |

@@ -57,6 +57,7 @@ By default, `maxDays` is not set, meaning log files are not automatically remove
 ## CIS Controls
 
 **v7:**
+
 - 6.4 Ensure adequate storage for logs
   - Ensure that all systems that store logs have adequate storage space for the logs generated.
 

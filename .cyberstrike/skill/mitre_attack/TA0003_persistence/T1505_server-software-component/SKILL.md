@@ -40,8 +40,7 @@ chains_with:
   - T1505.004
   - T1505.005
   - T1505.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1505.001: "Chain with T1505.001 for deeper attack path"
   T1505.002: "Chain with T1505.002 for deeper attack path"
@@ -84,44 +83,48 @@ Adversaries may abuse legitimate extensible development features of servers to e
 ## Remediation Guide
 
 ### M1045 Code Signing
+
 Ensure all application component binaries are signed by the correct application developers.
 
 ### M1047 Audit
+
 Regularly check component software on critical services that adversaries may target for persistence to verify the integrity of the systems and identify if unexpected changes have been made.
 
 ### M1024 Restrict Registry Permissions
+
 Consider using Group Policy to configure and block modifications to service and other critical server parameters in the Registry.
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling software components from servers when possible to prevent abuse by adversaries.
 
 ### M1046 Boot Integrity
+
 Enabling secure boot allows validation of software and drivers during initial system boot.
 
 ### M1018 User Account Management
+
 Enforce the principle of least privilege by limiting privileges of user accounts so only authorized accounts can modify and/or add server software components.
 
 ### M1026 Privileged Account Management
-Do not allow administrator accounts that have permissions to add component software on these services to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
+Do not allow administrator accounts that have permissions to add component software on these services to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ## Detection
 
 ### Detection Strategy for T1505 - Server Software Component
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Server Software Component technique applicable | Low | Persistence |
+| Finding                                        | Severity | Impact      |
+| ---------------------------------------------- | -------- | ----------- |
+| Server Software Component technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

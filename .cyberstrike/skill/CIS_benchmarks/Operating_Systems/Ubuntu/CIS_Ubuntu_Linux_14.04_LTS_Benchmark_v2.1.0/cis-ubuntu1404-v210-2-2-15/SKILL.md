@@ -46,6 +46,7 @@ netstat -an | grep LIST | grep ":25[[:space:]]"
 ```
 
 Expected output:
+
 ```
 tcp 0 0 127.0.0.1:25 0.0.0.0:* LISTEN
 ```

@@ -4,7 +4,21 @@ description: "Ensure use of VPC-native clusters (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, cluster-networking, vpc-flow-logs, intranode-visibility, vpc-native, private-cluster, authorized-networks, firewall, ssl-certificates]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    cluster-networking,
+    vpc-flow-logs,
+    intranode-visibility,
+    vpc-native,
+    private-cluster,
+    authorized-networks,
+    firewall,
+    ssl-certificates,
+  ]
 cis_id: "5.6.2"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -57,7 +71,7 @@ The output of the above command should return
 
 ```json
 {
-    "useIpAliases": true
+  "useIpAliases": true
 }
 ```
 
@@ -93,8 +107,8 @@ By default, VPC-native (using alias IP) is enabled when you create a new cluster
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | x | x |
-| v7 | 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches | | | |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | x | x |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments                              |      | x    | x    |
+| v7               | 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches |      |      |      |
+| v7               | 14.1 Segment the Network Based on Sensitivity                                        |      | x    | x    |

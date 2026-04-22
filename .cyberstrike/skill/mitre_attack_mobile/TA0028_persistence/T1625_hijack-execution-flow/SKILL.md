@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-276
 chains_with:
   - T1625.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1625.001: "Chain with T1625.001 for deeper attack path"
 ---
@@ -33,7 +32,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may execute their own malicious payloads by hijacking the way operating systems run applications. Hijacking execution flow can be for the purposes of persistence since this hijacked execution may reoccur over time. 
+Adversaries may execute their own malicious payloads by hijacking the way operating systems run applications. Hijacking execution flow can be for the purposes of persistence since this hijacked execution may reoccur over time.
 
 There are many ways an adversary may hijack the flow of execution. A primary way is by manipulating how the operating system locates programs to be executed. How the operating system locates libraries to be used by a program can also be intercepted. Locations where the operating system looks for programs or resources, such as file directories, could also be poisoned to include malicious payloads.
 
@@ -63,29 +62,28 @@ Review whether mitigations for T1625 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1004 System Partition Integrity
+
 Android Verified Boot can detect unauthorized modifications made to the system partition, which could lead to execution flow hijacking.
 
 ### M1002 Attestation
-Device attestation could detect unauthorized operating system modifications.
 
+Device attestation could detect unauthorized operating system modifications.
 
 ## Detection
 
 ### Detection of Hijack Execution Flow
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hijack Execution Flow technique applicable | High | Persistence |
+| Finding                                    | Severity | Impact      |
+| ------------------------------------------ | -------- | ----------- |
+| Hijack Execution Flow technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

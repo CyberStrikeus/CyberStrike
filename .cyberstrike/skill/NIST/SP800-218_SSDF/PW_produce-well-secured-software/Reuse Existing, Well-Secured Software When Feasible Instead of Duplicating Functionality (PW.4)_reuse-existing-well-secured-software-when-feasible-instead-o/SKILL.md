@@ -16,10 +16,8 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +59,10 @@ Verify development team understands and follows Reuse Existing, Well-Secured Sof
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,16 +72,15 @@ Lower the costs of software development, expedite software development, and decr
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4) Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                                                                                                                                                                                                  | Severity | Impact                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4) Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

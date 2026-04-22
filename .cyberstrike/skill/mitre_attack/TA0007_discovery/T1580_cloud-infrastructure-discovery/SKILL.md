@@ -21,10 +21,8 @@ tech_stack:
   - cloud
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,26 +64,24 @@ An adversary may enumerate resources using a compromised user's access keys to d
 ## Remediation Guide
 
 ### M1018 User Account Management
-Limit permissions to discover cloud infrastructure in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
+Limit permissions to discover cloud infrastructure in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
 ## Detection
 
 ### Detection Strategy for Cloud Infrastructure Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Infrastructure Discovery technique applicable | Medium | Discovery |
+| Finding                                             | Severity | Impact    |
+| --------------------------------------------------- | -------- | --------- |
+| Cloud Infrastructure Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -35,21 +35,21 @@ mitre_attack_ics/
 
 ## Tactic Breakdown
 
-| Tactic ID | Name | Skills |
-|-----------|------|--------|
-| TA0100 | Collection | 10 |
-| TA0101 | Command and Control | 3 |
-| TA0102 | Discovery | 5 |
-| TA0103 | Evasion | 6 |
-| TA0104 | Execution | 10 |
-| TA0105 | Impact | 12 |
-| TA0106 | Impair Process Control | 3 |
-| TA0107 | Inhibit Response Function | 12 |
-| TA0108 | Initial Access | 12 |
-| TA0109 | Lateral Movement | 4 |
-| TA0110 | Persistence | 5 |
-| TA0111 | Privilege Escalation | 1 |
-| **Total** | | **83** |
+| Tactic ID | Name                      | Skills |
+| --------- | ------------------------- | ------ |
+| TA0100    | Collection                | 10     |
+| TA0101    | Command and Control       | 3      |
+| TA0102    | Discovery                 | 5      |
+| TA0103    | Evasion                   | 6      |
+| TA0104    | Execution                 | 10     |
+| TA0105    | Impact                    | 12     |
+| TA0106    | Impair Process Control    | 3      |
+| TA0107    | Inhibit Response Function | 12     |
+| TA0108    | Initial Access            | 12     |
+| TA0109    | Lateral Movement          | 4      |
+| TA0110    | Persistence               | 5      |
+| TA0111    | Privilege Escalation      | 1      |
+| **Total** |                           | **83** |
 
 ## ICS-Specific Tactics
 
@@ -75,6 +75,7 @@ Some techniques belong to multiple tactics. These are placed in their **primary 
 Each SKILL.md contains:
 
 **YAML Frontmatter:**
+
 - `technique_id` — ATT&CK ICS technique ID (T0817, T0826, etc.)
 - `tactic` — Primary tactic (kill chain phase)
 - `all_tactics` — All tactics this technique belongs to
@@ -87,6 +88,7 @@ Each SKILL.md contains:
 - `severity_boost` — Chain severity mapping
 
 **Body Sections:**
+
 - **High-Level Description** — Full technique description
 - **Kill Chain Phase** — Tactic position with IDs
 - **What to Check** — Checklist for ICS assessment

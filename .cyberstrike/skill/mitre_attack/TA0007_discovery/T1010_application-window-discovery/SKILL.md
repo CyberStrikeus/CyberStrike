@@ -27,10 +27,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -76,8 +74,8 @@ C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe -out:#{output_file_name} "
 ```
 
 **Dependencies:**
-- T1010.cs must exist on disk at specified location (#{input_source_code})
 
+- T1010.cs must exist on disk at specified location (#{input_source_code})
 
 ### Manual Testing
 
@@ -97,19 +95,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Application Window Enumeration via API or Scripting
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Window Discovery technique applicable | Medium | Discovery |
+| Finding                                           | Severity | Impact    |
+| ------------------------------------------------- | -------- | --------- |
+| Application Window Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

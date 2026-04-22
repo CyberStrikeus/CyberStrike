@@ -74,19 +74,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Domain Generation Algorithms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Generation Algorithms technique applicable | Low | Command And Control |
+| Finding                                           | Severity | Impact              |
+| ------------------------------------------------- | -------- | ------------------- |
+| Domain Generation Algorithms technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

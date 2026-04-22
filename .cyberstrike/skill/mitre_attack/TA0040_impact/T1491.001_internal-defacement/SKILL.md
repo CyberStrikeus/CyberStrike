@@ -81,33 +81,33 @@ $url = "#{url_of_wallpaper}"
 $imgLocation = "#{wallpaper_location}"
 $orgWallpaper = (Get-ItemProperty -Path Registry::'HKEY_CURRENT_USER\Control Panel\Desktop\' -Name WallPaper).WallPaper
 $orgWallpaper | Out-File -FilePath "#{pointer_to_orginal_wallpaper}"
-$updateWallpapercode = @' 
-using System.Runtime.InteropServices; 
+$updateWallpapercode = @'
+using System.Runtime.InteropServices;
 namespace Win32{
 
-    public class Wallpaper{ 
-        [DllImport("user32.dll", CharSet=CharSet.Auto)] 
-         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ; 
-         
-         public static void SetWallpaper(string thePath){ 
-            SystemParametersInfo(20,0,thePath,3); 
+    public class Wallpaper{
+        [DllImport("user32.dll", CharSet=CharSet.Auto)]
+         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ;
+
+         public static void SetWallpaper(string thePath){
+            SystemParametersInfo(20,0,thePath,3);
         }
     }
-} 
+}
 '@
-$wc = New-Object System.Net.WebClient  
-try{  
+$wc = New-Object System.Net.WebClient
+try{
     $wc.DownloadFile($url, $imgLocation)
-    add-type $updateWallpapercode 
+    add-type $updateWallpapercode
     [Win32.Wallpaper]::SetWallpaper($imgLocation)
-} 
-catch [System.Net.WebException]{  
-    Write-Host("Cannot download $url") 
-    add-type $updateWallpapercode 
+}
+catch [System.Net.WebException]{
+    Write-Host("Cannot download $url")
+    add-type $updateWallpapercode
     [Win32.Wallpaper]::SetWallpaper($imgLocation)
-} 
-finally{    
-    $wc.Dispose()  
+}
+finally{
+    $wc.Dispose()
 }
 ```
 
@@ -115,8 +115,8 @@ finally{
 
 Display ransom message to users at system start-up by configuring registry keys HKLM\SOFTWARE\Micosoft\Windows\CurrentVersion\Policies\System\LegalNoticeCaption and HKLM\SOFTWARE\Micosoft\Windows\CurrentVersion\Policies\System\LegalNoticeText.
 
-[SynAck Ransomware](https://www.trendmicro.com/vinfo/es/security/news/cybercrime-and-digital-threats/synack-ransomware-leverages-process-doppelg-nging-for-evasion-and-infection), 
-[Grief Ransomware](https://redcanary.com/blog/grief-ransomware/), 
+[SynAck Ransomware](https://www.trendmicro.com/vinfo/es/security/news/cybercrime-and-digital-threats/synack-ransomware-leverages-process-doppelg-nging-for-evasion-and-infection),
+[Grief Ransomware](https://redcanary.com/blog/grief-ransomware/),
 [Maze Ransomware](https://cyware.com/research-and-analysis/maze-ransomware-a-deadly-combination-of-data-theft-and-encryption-to-target-us-organizations-8f27),
 [Pysa Ransomware](https://www.cybereason.com/blog/research/threat-analysis-report-inside-the-destructive-pysa-ransomware),
 [Spook Ransomware](https://community.fortinet.com/t5/FortiEDR/Threat-Coverage-How-FortiEDR-protects-against-Spook-Ransomware/ta-p/204226),
@@ -148,6 +148,7 @@ echo "" | "#{plink_file}" -batch "#{vm_host}" -ssh -l #{vm_user} -pw "#{vm_pass}
 ```
 
 **Dependencies:**
+
 - Check if we have plink
 
 ### Atomic Test 4: Windows - Display a simulated ransom note via Notepad (non-destructive)
@@ -175,8 +176,8 @@ $p.Id | Out-File -FilePath $pidPath -Encoding ascii -Force
 ```
 
 **Dependencies:**
-- Notepad must be present on the system
 
+- Notepad must be present on the system
 
 ### Manual Testing
 
@@ -191,26 +192,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
+Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
 ## Detection
 
 ### Internal Website and System Content Defacement via UI or Messaging Modifications
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internal Defacement technique applicable | Low | Impact |
+| Finding                                  | Severity | Impact |
+| ---------------------------------------- | -------- | ------ |
+| Internal Defacement technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

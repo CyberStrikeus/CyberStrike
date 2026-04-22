@@ -53,8 +53,7 @@ chains_with:
   - T1110.002
   - T1110.003
   - T1110.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1110.001: "Chain with T1110.001 for deeper attack path"
   T1110.002: "Chain with T1110.002 for deeper attack path"
@@ -67,7 +66,7 @@ severity_boost:
 
 Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained. Without knowledge of the password for an account or set of accounts, an adversary may systematically guess the password using a repetitive or iterative mechanism. Brute forcing passwords can take place via interaction with a service that will check the validity of those credentials or offline against previously acquired credential data, such as password hashes.
 
-Brute forcing credentials may take place at various points during a breach. For example, adversaries may attempt to brute force access to Valid Accounts within a victim environment leveraging knowledge gathered from other post-compromise behaviors such as OS Credential Dumping, Account Discovery, or Password Policy Discovery. Adversaries may also combine brute forcing activity with behaviors such as External Remote Services as part of Initial Access. 
+Brute forcing credentials may take place at various points during a breach. For example, adversaries may attempt to brute force access to Valid Accounts within a victim environment leveraging knowledge gathered from other post-compromise behaviors such as OS Credential Dumping, Account Discovery, or Password Policy Discovery. Adversaries may also combine brute forcing activity with behaviors such as External Remote Services as part of Initial Access.
 
 If an adversary guesses the correct password but fails to login to a compromised account due to location-based conditional access policies, they may change their infrastructure until they match the victim’s location and therefore bypass those policies.
 
@@ -101,35 +100,36 @@ If an adversary guesses the correct password but fails to login to a compromised
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Proactively reset accounts that are known to be part of breached credentials either immediately, or after detecting bruteforce attempts.
 
 ### M1036 Account Use Policies
+
 Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed. Too strict a policy may create a denial of service condition and render environments un-usable, with all accounts used in the brute force being locked-out. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges. Consider blocking risky authentication requests, such as those originating from anonymizing services/proxies.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication. Where possible, also enable multi-factor authentication on externally facing services.
 
 ### M1027 Password Policies
-Refer to NIST guidelines when creating password policies.
 
+Refer to NIST guidelines when creating password policies.
 
 ## Detection
 
 ### Brute Force Authentication Failures with Multi-Platform Log Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Brute Force technique applicable | High | Credential Access |
+| Finding                          | Severity | Impact            |
+| -------------------------------- | -------- | ----------------- |
+| Brute Force technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

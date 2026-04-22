@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS Apache Tomcat 7 - 1.2 Disable Unused Connectors (Not Scored)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 The default installation of Tomcat includes connectors with default settings. These are traditionally set up for convenience. It is best to remove these connectors and enable only what is needed.
 
 ## Rationale
+
 Improperly configured or unnecessarily installed Connectors may lead to a security exposure.
 
 ## Audit Procedure
@@ -55,12 +58,16 @@ connectionTimeout="60000"/>
 - An AJP 1.3 Connector bound to port 8009
 
 ## References
+
 - http://tomcat.apache.org/tomcat-7.0-doc/config/http.html#Connector_Comparison
 
 ## CIS Controls
+
 Version 7:
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
 
 ## Assessment Status
+
 - **Not Scored**
 - **Profile**: Level 2

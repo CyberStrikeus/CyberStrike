@@ -109,6 +109,7 @@ Actual: $ActualOutput
 ```
 
 **Dependencies:**
+
 - InstallUtil test harness script must be installed at specified location (#{test_harness})
 
 ### Atomic Test 2: InstallHelper method call
@@ -148,6 +149,7 @@ Actual: $ActualOutput
 ```
 
 **Dependencies:**
+
 - InstallUtil test harness script must be installed at specified location (#{test_harness})
 
 ### Atomic Test 3: InstallUtil class constructor method call
@@ -186,6 +188,7 @@ Actual: $ActualOutput
 ```
 
 **Dependencies:**
+
 - InstallUtil test harness script must be installed at specified location (#{test_harness})
 
 ### Atomic Test 4: InstallUtil Install method call
@@ -224,6 +227,7 @@ Actual: $ActualOutput
 ```
 
 **Dependencies:**
+
 - InstallUtil test harness script must be installed at specified location (#{test_harness})
 
 ### Atomic Test 5: InstallUtil Uninstall method call - /U variant
@@ -262,8 +266,8 @@ Actual: $ActualOutput
 ```
 
 **Dependencies:**
-- InstallUtil test harness script must be installed at specified location (#{test_harness})
 
+- InstallUtil test harness script must be installed at specified location (#{test_harness})
 
 ### Manual Testing
 
@@ -278,29 +282,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control configured to block execution of InstallUtil.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1042 Disable or Remove Feature or Program
-InstallUtil may not be necessary within a given environment.
 
+InstallUtil may not be necessary within a given environment.
 
 ## Detection
 
 ### Detection of Malicious Code Execution via InstallUtil.exe
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| InstallUtil technique applicable | Medium | Defense Evasion |
+| Finding                          | Severity | Impact          |
+| -------------------------------- | -------- | --------------- |
+| InstallUtil technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

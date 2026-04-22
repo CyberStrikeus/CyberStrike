@@ -152,8 +152,8 @@ $FilterToConsumerBinding = Set-WmiInstance -Namespace 'root/subscription' -Class
 ### Atomic Test 3: Windows MOFComp.exe Load MOF File
 
 The following Atomic will utilize MOFComp.exe to load a local MOF file.
-The Managed Object Format (MOF) compiler parses a file containing MOF statements and adds the classes and class instances defined in the file to the WMI repository. 
-To query for the class:  gwmi __eventfilter -namespace root\subscription
+The Managed Object Format (MOF) compiler parses a file containing MOF statements and adds the classes and class instances defined in the file to the WMI repository.
+To query for the class: gwmi \_\_eventfilter -namespace root\subscription
 A successful execution will add the class to WMI root namespace.
 Reference: https://pentestlab.blog/2020/01/21/persistence-wmi-event-subscription/ and https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/.
 
@@ -164,9 +164,9 @@ Reference: https://pentestlab.blog/2020/01/21/persistence-wmi-event-subscription
 ```
 
 **Dependencies:**
+
 - MofComp.exe must exist on disk at specified location (#{mofcomp_path})
 - MofComp.exe must exist on disk at specified location (#{mof_file})
-
 
 ### Manual Testing
 
@@ -181,32 +181,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 By default, only administrators are allowed to connect remotely using WMI; restrict other users that are allowed to connect, or disallow all users from connecting remotely to WMI.
 
 ### M1026 Privileged Account Management
+
 Prevent credential overlap across systems of administrator and privileged accounts.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent malware from abusing WMI to attain persistence.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent malware from abusing WMI to attain persistence.
 
 ## Detection
 
 ### Detect WMI Event Subscription for Persistence via WmiPrvSE Process and MOF Compilation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Management Instrumentation Event Subscription technique applicable | High | Privilege Escalation |
+| Finding                                                                    | Severity | Impact               |
+| -------------------------------------------------------------------------- | -------- | -------------------- |
+| Windows Management Instrumentation Event Subscription technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

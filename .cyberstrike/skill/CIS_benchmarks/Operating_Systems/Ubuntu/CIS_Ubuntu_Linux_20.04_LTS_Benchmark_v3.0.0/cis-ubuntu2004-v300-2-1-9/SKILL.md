@@ -74,9 +74,9 @@ nfs-kernel-server is not installed by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | x    | x    |
 
 MITRE ATT&CK Mappings: T1005, T1039, T1083, T1135, T1210 | TA0008 | M1042

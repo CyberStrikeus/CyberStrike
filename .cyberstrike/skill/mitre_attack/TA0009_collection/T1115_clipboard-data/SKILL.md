@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,7 +36,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may collect data stored in the clipboard from users copying information within or between applications. 
+Adversaries may collect data stored in the clipboard from users copying information within or between applications.
 
 For example, on Windows adversaries can access clipboard data by using <code>clip.exe</code> or <code>Get-Clipboard</code>. Additionally, adversaries may monitor then replace users’ clipboard with their data (e.g., Transmitted Data Manipulation).
 
@@ -112,6 +110,7 @@ Invoke-Maldoc -macroFile "PathToAtomicsFolder\T1115\src\T1115-macrocode.txt" -of
 ```
 
 **Dependencies:**
+
 - Microsoft #{ms_product} must be installed
 
 ### Atomic Test 5: Add or copy content to clipboard with xClip
@@ -125,7 +124,6 @@ apt install xclip -y
 history | tail -n 30 | xclip -sel clip
 xclip -o > history.txt
 ```
-
 
 ### Manual Testing
 
@@ -145,19 +143,17 @@ No specific mitigations documented for this technique.
 
 ### Clipboard Data Access with Anomalous Context
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clipboard Data technique applicable | Low | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Clipboard Data technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

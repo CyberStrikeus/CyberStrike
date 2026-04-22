@@ -79,6 +79,7 @@ kernel.yama.ptrace_scope = 3
 ```
 
 Example:
+
 ```bash
 # printf "\n%s\n" "kernel.yama.ptrace_scope = 1" >> /etc/sysctl.d/60-kernel_sysctl.conf
 ```
@@ -90,6 +91,7 @@ Run the following command to set the active kernel parameter:
 ```
 
 Note:
+
 - If a value of `2` or `3` is preferred, or required by local site policy, replace the `1` with the desired value of `2` or `3` in the example above
 - If this setting appears in a canonically later file, or later in the same file, the setting will be overwritten
 
@@ -109,9 +111,9 @@ Ptrace is very rarely used by regular applications and is mostly used by debugge
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1055, T1055.008 | TA0005 | M1040

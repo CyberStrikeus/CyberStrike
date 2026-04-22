@@ -51,10 +51,10 @@ By default, DNS lookups are disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 9.2 Use DNS Filtering Services<br>Use DNS filtering services on all enterprise assets to block access to known malicious domains. | ● | ● | ● |
-| v7 | 7.7 Use of DNS Filtering Services<br>Use DNS filtering services to help block access to known malicious domains. | ● | ● | ● |
+| Controls Version | Control                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.2 Use DNS Filtering Services<br>Use DNS filtering services on all enterprise assets to block access to known malicious domains. | ●    | ●    | ●    |
+| v7               | 7.7 Use of DNS Filtering Services<br>Use DNS filtering services to help block access to known malicious domains.                  | ●    | ●    | ●    |
 
 ## Profile
 

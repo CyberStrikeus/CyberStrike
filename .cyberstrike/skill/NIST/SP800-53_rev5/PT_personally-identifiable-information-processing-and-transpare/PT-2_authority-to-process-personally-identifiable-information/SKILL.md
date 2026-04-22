@@ -25,8 +25,7 @@ chains_with:
   - PT-3
   - PT-5
   - PT-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -77,9 +76,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -100,17 +99,16 @@ Organizations take steps to ensure that personally identifiable information is o
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-2 Authority to Process Personally Identifiable Information not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-2 partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                                                                       | Severity | Impact                                                                     |
+| ----------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-2 Authority to Process Personally Identifiable Information not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-2 partially implemented                                                    | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

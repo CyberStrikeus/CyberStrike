@@ -87,13 +87,13 @@ Default permissions vary by log file.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | | | |
-| v7 | 14.6 Protect Information through Access Control Lists | | | |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               |      |      |      |
+| v7               | 14.6 Protect Information through Access Control Lists |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002, T1083, T1083.000 | TA0007 | M1022 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1070, T1070.002, T1083, T1083.000 | TA0007  | M1022       |

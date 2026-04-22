@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may perform data destruction over the course of an operation. The adversary may drop or create malware, tools, or other non-native files on a target system to accomplish this, potentially leaving behind traces of malicious activities. Such non-native files and other data may be removed over the course of an intrusion to maintain a small footprint or as a standard part of the post-intrusion cleanup process. 
+Adversaries may perform data destruction over the course of an operation. The adversary may drop or create malware, tools, or other non-native files on a target system to accomplish this, potentially leaving behind traces of malicious activities. Such non-native files and other data may be removed over the course of an intrusion to maintain a small footprint or as a standard part of the post-intrusion cleanup process.
 
 Data destruction may also be used to render operator interfaces unable to respond and to disrupt response functions from occurring as expected. An adversary may also destroy data backups that are vital to recovery after an incident.
 
@@ -63,32 +61,32 @@ Review whether mitigations for T0809 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0922 Restrict File and Directory Permissions
+
 Protect files stored locally with proper permissions to limit opportunities for adversaries to impact data storage.
 
 ### M0953 Data Backup
+
 Utilize central storage servers for critical operations where possible (e.g., historians) and keep remote backups. For outstations, use local redundant storage for event recorders. Have backup control system platforms, preferably as hot-standbys to respond immediately to data destruction events.
 
 ### M0926 Privileged Account Management
-Minimize permissions and access for service accounts to limit the information that may be impacted by malicious users or software.
 
+Minimize permissions and access for service accounts to limit the information that may be impacted by malicious users or software.
 
 ## Detection
 
 ### Detection of Data Destruction
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Destruction technique applicable | High | Inhibit Response Function |
+| Finding                               | Severity | Impact                    |
+| ------------------------------------- | -------- | ------------------------- |
+| Data Destruction technique applicable | High     | Inhibit Response Function |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

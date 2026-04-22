@@ -64,13 +64,13 @@ Unless a namespace is specific on object creation, the `default` namespace will 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | x | x |
-| v7 | 12.7 Deploy Network-Based Intrusion Prevention Systems | | | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture |      | x    | x    |
+| v7               | 12.7 Deploy Network-Based Intrusion Prevention Systems    |      |      | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1578 | TA0005 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1578                       | TA0005  | M1018       |

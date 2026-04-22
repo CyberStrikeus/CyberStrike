@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - CA-3
@@ -23,8 +22,7 @@ chains_with:
   - RA-3
   - SA-10
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-2: "Chain with CA-2 for comprehensive security coverage"
   CA-3: "Chain with CA-3 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -95,16 +93,16 @@ Authorizing officials issue ongoing authorizations of systems based on evidence 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-6 Authorization not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-6 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                            | Severity | Impact                                               |
+| ---------------------------------- | -------- | ---------------------------------------------------- |
+| CA-6 Authorization not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-6 partially implemented         | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

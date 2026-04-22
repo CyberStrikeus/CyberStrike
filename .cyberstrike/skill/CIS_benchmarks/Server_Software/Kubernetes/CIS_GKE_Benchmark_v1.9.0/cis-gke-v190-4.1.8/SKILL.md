@@ -90,7 +90,7 @@ No `clusterrolebindings` nor `rolebindings` with user `system:anonymous`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.5 Establish and Maintain an Inventory of Service Accounts | | * | * |
-| v7 | 16.8 Disable Any Unassociated Accounts | * | * | * |
+| Controls Version | Control                                                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.5 Establish and Maintain an Inventory of Service Accounts |      | \*   | \*   |
+| v7               | 16.8 Disable Any Unassociated Accounts                      | \*   | \*   | \*   |

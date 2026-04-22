@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PS-3
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ Organizational information that requires special protection includes controlled 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-3(3) Information Requiring Special Protective Measures not implemented | Medium | Personnel Security |
-| PS-3(3) partially implemented | Low | Incomplete Personnel Security |
+| Finding                                                                   | Severity | Impact                        |
+| ------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PS-3(3) Information Requiring Special Protective Measures not implemented | Medium   | Personnel Security            |
+| PS-3(3) partially implemented                                             | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

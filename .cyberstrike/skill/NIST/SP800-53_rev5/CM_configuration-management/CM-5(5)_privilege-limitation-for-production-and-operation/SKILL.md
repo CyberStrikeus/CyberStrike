@@ -68,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ In many organizations, systems support multiple mission and business functions. 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-5(5) Privilege Limitation for Production and Operation not implemented | Medium | Configuration Management |
-| CM-5(5) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                                                   | Severity | Impact                              |
+| ------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| CM-5(5) Privilege Limitation for Production and Operation not implemented | Medium   | Configuration Management            |
+| CM-5(5) partially implemented                                             | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -96,6 +96,7 @@ $which_python -c 'import requests;import os;url = "#{script_url}";malicious_comm
 ```
 
 **Dependencies:**
+
 - Verify if python is in the environment variable path and attempt to import requests library.
 
 ### Atomic Test 2: Execute Python via scripts
@@ -120,6 +121,7 @@ $which_python #{python_script_name}
 ```
 
 **Dependencies:**
+
 - Requires Python
 
 ### Atomic Test 3: Execute Python via Python executables
@@ -145,6 +147,7 @@ $which_python #{python_binary_name}
 ```
 
 **Dependencies:**
+
 - Requires Python
 
 ### Atomic Test 4: Python pty module and spawn function used to spawn sh or bash
@@ -162,8 +165,8 @@ exit
 ```
 
 **Dependencies:**
-- Verify if python is in the environment variable path and attempt to import requests library.
 
+- Verify if python is in the environment variable path and attempt to import requests library.
 
 ### Manual Testing
 
@@ -178,35 +181,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Inventory systems for unauthorized Python installations.
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically quarantine suspicious files.
 
 ### M1033 Limit Software Installation
+
 Prevent users from installing Python where not required.
 
 ### M1038 Execution Prevention
-Denylist Python where not required.
 
+Denylist Python where not required.
 
 ## Detection
 
 ### Cross-Platform Behavioral Detection of Python Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Python technique applicable | Low | Execution |
+| Finding                     | Severity | Impact    |
+| --------------------------- | -------- | --------- |
+| Python technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

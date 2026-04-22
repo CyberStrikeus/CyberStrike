@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -43,10 +41,10 @@ severity_boost: {}
 
 Adversaries may gain access to a system through a user visiting a website over the normal course of browsing. Multiple ways of delivering exploit code to a browser exist (i.e., Drive-by Target), including:
 
-* A legitimate website is compromised, allowing adversaries to inject malicious code
-* Script files served to a legitimate website from a publicly writeable cloud storage bucket are modified by an adversary
-* Malicious ads are paid for and served through legitimate ad providers (i.e., Malvertising)
-* Built-in web application interfaces that allow user-controllable content are leveraged for the insertion of malicious scripts or iFrames (e.g., cross-site scripting)
+- A legitimate website is compromised, allowing adversaries to inject malicious code
+- Script files served to a legitimate website from a publicly writeable cloud storage bucket are modified by an adversary
+- Malicious ads are paid for and served through legitimate ad providers (i.e., Malvertising)
+- Built-in web application interfaces that allow user-controllable content are leveraged for the insertion of malicious scripts or iFrames (e.g., cross-site scripting)
 
 Browser push notifications may also be abused by adversaries and leveraged for malicious code injection via User Execution. By clicking "allow" on browser push notifications, users may be granting a website permission to run JavaScript code on their browser.
 
@@ -91,42 +89,44 @@ Unlike Exploit Public-Facing Application, the focus of this technique is to expl
 ## Remediation Guide
 
 ### M1050 Exploit Protection
+
 Security applications that look for behavior used during exploitation such as Windows Defender Exploit Guard (WDEG) and the Enhanced Mitigation Experience Toolkit (EMET) can be used to mitigate some exploitation behavior. Control flow integrity checking is another way to potentially identify and stop a software exploit from occurring. Many of these protections depend on the architecture and target application binary for compatibility.
 
 ### M1051 Update Software
+
 Ensuring that all browsers and plugins are kept updated can help prevent the exploit phase of this technique. Use modern browsers with security features turned on.
 
 ### M1048 Application Isolation and Sandboxing
+
 Browser sandboxes can be used to mitigate some of the impact of exploitation, but sandbox escapes may still exist.
 
 Other types of virtualization and application microsegmentation may also mitigate the impact of client-side exploitation. The risks of additional exploits and weaknesses in implementation may still exist for these types of systems.
 
 ### M1021 Restrict Web-Based Content
-Adblockers can help prevent malicious code served through ads from executing in the first place. Script blocking extensions can also help to prevent the execution of JavaScript. 
+
+Adblockers can help prevent malicious code served through ads from executing in the first place. Script blocking extensions can also help to prevent the execution of JavaScript.
 
 Consider disabling browser push notifications from certain applications and browsers.
 
 ### M1017 User Training
-Train users to be aware of access or manipulation attempts by an adversary to reduce the risk of successful spearphishing, social engineering, and other techniques that involve user interaction.
 
+Train users to be aware of access or manipulation attempts by an adversary to reduce the risk of successful spearphishing, social engineering, and other techniques that involve user interaction.
 
 ## Detection
 
 ### Drive-by Compromise — Behavior-based, Multi-platform Detection Strategy (T1189)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Drive-by Compromise technique applicable | High | Initial Access |
+| Finding                                  | Severity | Impact         |
+| ---------------------------------------- | -------- | -------------- |
+| Drive-by Compromise technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

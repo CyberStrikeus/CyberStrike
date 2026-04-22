@@ -77,7 +77,7 @@ Ensure that the current policy is not configured to allow all images (`evaluatio
 
 ```yaml
 cat current-policy.yaml
-...
+---
 defaultAdmissionRule:
   evaluationMode: ALWAYS_ALLOW
 ```
@@ -131,7 +131,7 @@ By default, Binary Authorization is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.3 Address Unauthorized Software | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 2.3 Address Unauthorized Software | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images        |      | x    | x    |

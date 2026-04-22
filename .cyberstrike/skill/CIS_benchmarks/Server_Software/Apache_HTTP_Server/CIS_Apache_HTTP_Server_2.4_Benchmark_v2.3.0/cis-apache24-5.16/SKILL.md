@@ -35,9 +35,11 @@ To combat this attack vector, either an X-Frame-Options response header or a Con
 Perform the following steps to determine if the recommended state is implemented:
 
 - Ensure a Header directive for Content-Security-Policy is present in the Apache configuration and has the condition always, an action of set or append and a directive of frame-ancestors none or self, as shown below:
+
   ```
   # grep -i Content-Security-Policy $APACHE_PREFIX/conf/httpd.conf
   ```
+
   ```
   Header always append Content-Security-Policy "frame-ancestors 'self'"
   ```
@@ -76,10 +78,12 @@ Neither the Content-Security-Policy HTTP response header nor the X-Frame-Options
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
 **v7:**
+
 - 8.5 Configure Devices Not To Auto-run Content
   - Configure devices to not auto-run content from removable media.
 

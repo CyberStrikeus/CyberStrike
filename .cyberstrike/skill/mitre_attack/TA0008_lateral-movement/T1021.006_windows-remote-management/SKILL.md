@@ -83,8 +83,8 @@ Enable-PSRemoting -Force
 
 ### Atomic Test 2: Remote Code Execution with PS Credentials Using Invoke-Command
 
-Simulate lateral movement with PowerShell Remoting on the local host. 
-Upon successful execution, PowerShell will execute `whoami` using `Invoke-Command`, targeting the 
+Simulate lateral movement with PowerShell Remoting on the local host.
+Upon successful execution, PowerShell will execute `whoami` using `Invoke-Command`, targeting the
 local machine as remote target.
 
 **Supported Platforms:** windows
@@ -106,9 +106,9 @@ evil-winrm -i #{destination_address} -u #{user_name} -p #{password}
 ```
 
 **Dependencies:**
+
 - Computer must have Ruby Installed
 - Computer must have Evil-WinRM installed
-
 
 ### Manual Testing
 
@@ -123,32 +123,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable the WinRM service.
 
 ### M1026 Privileged Account Management
+
 If the service is necessary, lock down critical enclaves with separate WinRM accounts and permissions.
 
 ### M1030 Network Segmentation
-If the service is necessary, lock down critical enclaves with separate WinRM infrastructure and follow WinRM best practices on use of host firewalls to restrict WinRM access to allow communication only to/from specific devices.
 
+If the service is necessary, lock down critical enclaves with separate WinRM infrastructure and follow WinRM best practices on use of host firewalls to restrict WinRM access to allow communication only to/from specific devices.
 
 ## Detection
 
 ### Behavioral Detection of WinRM-Based Remote Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Remote Management technique applicable | Low | Lateral Movement |
+| Finding                                        | Severity | Impact           |
+| ---------------------------------------------- | -------- | ---------------- |
+| Windows Remote Management technique applicable | Low      | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

@@ -17,8 +17,7 @@ cwe_ids:
 chains_with:
   - PL-2
   - SA-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-2: "Chain with PL-2 for comprehensive security coverage"
   SA-3: "Chain with SA-3 for comprehensive security coverage"
@@ -64,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Alternative sources for support address the need to provide continued support fo
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-22 Unsupported System Components not implemented | Medium | System and Services Acquisition |
-| SA-22 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                             | Severity | Impact                                     |
+| --------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-22 Unsupported System Components not implemented | Medium   | System and Services Acquisition            |
+| SA-22 partially implemented                         | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

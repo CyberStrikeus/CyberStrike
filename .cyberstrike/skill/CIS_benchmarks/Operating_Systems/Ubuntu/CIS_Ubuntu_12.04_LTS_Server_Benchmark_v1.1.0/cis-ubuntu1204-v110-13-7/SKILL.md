@@ -17,16 +17,21 @@ severity_boost: {}
 # 13.7 Check Permissions on User Home Directories (Scored)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 While the system administrator can establish secure permissions for users' home directories, the users can easily override these.
 
 ## Rationale
+
 Group or world-writable user home directories may enable malicious users to steal or modify other users' data or to gain another user's system privileges.
 
 ## Audit Procedure
+
 ### Using Command Line
+
 ```bash
 #!/bin/bash
 for dir in `/bin/cat /etc/passwd  | /bin/egrep -v '(root|halt|sync|shutdown)' | /usr/bin/awk -F: '($7 != "/usr/sbin/nologin") { print $6 }'`; do if
@@ -44,17 +49,23 @@ fi done
 ```
 
 ## Expected Result
+
 No output should be returned. Any output indicates home directories with overly permissive settings.
 
 ## Remediation
+
 ### Using Command Line
+
 Making global modifications to user home directories without alerting the user community can result in unexpected outages and unhappy users. Therefore, it is recommended that a monitoring policy be established to report user file permissions and determine the action to be taken in accordance with site policy.
 
 ## Default Value
+
 Default home directory permissions are typically set to `755` (drwxr-xr-x) when created with `useradd`.
 
 ## References
+
 - CIS Ubuntu 12.04 LTS Server Benchmark v1.1.0
 
 ## Profile
+
 Level 1 - Scored

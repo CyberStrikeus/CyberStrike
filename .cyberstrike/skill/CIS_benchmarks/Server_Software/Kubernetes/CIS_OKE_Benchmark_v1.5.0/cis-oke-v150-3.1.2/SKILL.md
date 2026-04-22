@@ -71,19 +71,19 @@ metadata:
   name: file-check
 spec:
   volumes:
-  - name: host-root
-    hostPath:
-      path: /
-      type: Directory
-  containers:
-  - name: nsenter
-    image: busybox
-    command: ["sleep", "3600"]
-    volumeMounts:
     - name: host-root
-      mountPath: /host
-    securityContext:
-      privileged: true
+      hostPath:
+        path: /
+        type: Directory
+  containers:
+    - name: nsenter
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+      securityContext:
+        privileged: true
 ```
 
 Save this to a file (e.g., file-check-pod.yaml) and create the pod:
@@ -126,17 +126,17 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
-| v6 | 5.1 Minimize And Sparingly Use Administrative Privileges | | | |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                                |      | x    | x    |
+| v6               | 5.1 Minimize And Sparingly Use Administrative Privileges                  |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1083, T1222 | TA0005, TA0007 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1083, T1222                | TA0005, TA0007 | M1026       |
 
 ---
 

@@ -64,6 +64,7 @@ IF ntp is in use on the system, run the following command to verify the `restric
 ```
 
 Output should be similar to:
+
 ```
 restrict -4 default kod notrap nomodify nopeer noquery
 restrict -6 default kod notrap nomodify nopeer noquery
@@ -91,6 +92,7 @@ restrict -6 default kod nomodify notrap nopeer noquery
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove ntp from the system:
+
 ```bash
 # apt purge ntp
 ```

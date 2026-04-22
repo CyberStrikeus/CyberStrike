@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 3.1.1
 
 ## Profile Applicability
+
 - **Level:** 2
 
 ## Description
+
 Kubernetes provides the option to use client certificates for user authentication. However as there is no way to revoke these certificates when a user leaves an organization or loses their credential, they are not suitable for this purpose.
 
 It is not possible to fully disable client certificate use within a cluster as it is used for component to component authentication.
 
 ## Rationale
+
 With any authentication mechanism the ability to revoke credentials if they are compromised or no longer required, is a key control. Kubernetes client certificate authentication does not allow for this due to a lack of support for certificate revocation.
 
 ## Impact
+
 External mechanisms for authentication generally require additional software to be deployed.
 
 ## Audit Procedure
@@ -67,31 +71,35 @@ oc get secrets kubeadmin -n kube-system
 No result is expected.
 
 ## Remediation
+
 Configure an identity provider for the OpenShift cluster following the OpenShift [documentation](https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html). Once an identity provider has been defined, you can use RBAC to define and apply permissions.
 
 After you define an identity provider and create a new `cluster-admin` user you can reduce the attack surface by removing the default `kubeadmin` user.
 
 ## Default Value
+
 By default, only a `kubeadmin` user exists on your cluster. To specify an identity provider, you must create a Custom Resource (CR) that describes that identity provider and add it to the cluster.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/authentication/understanding-identity-provider.html
 2. https://docs.openshift.com/container-platform/latest/authentication/using-rbac.html#authorization-overview_using-rbac
 3. https://docs.openshift.com/container-platform/latest/authentication/remove-kubeadmin.html
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | * | * |
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | * | * |
-| v7 | 16.2 Configure Centralized Point of Authentication | | * | * |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | \*   | \*   |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components   |      | \*   | \*   |
+| v7               | 16.2 Configure Centralized Point of Authentication                              |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078, T1098 | TA0003, TA0006 | M1027, M1032 |
+| Techniques / Sub-techniques | Tactics        | Mitigations  |
+| --------------------------- | -------------- | ------------ |
+| T1078, T1098                | TA0003, TA0006 | M1027, M1032 |
 
 ## Profile
+
 **Level 2** (Manual)

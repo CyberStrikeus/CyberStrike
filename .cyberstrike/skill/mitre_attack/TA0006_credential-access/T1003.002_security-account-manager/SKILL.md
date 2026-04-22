@@ -49,23 +49,23 @@ Adversaries may attempt to extract credential material from the Security Account
 
 A number of tools can be used to retrieve the SAM file through in-memory techniques:
 
-* pwdumpx.exe
-* gsecdump
-* Mimikatz
-* secretsdump.py
+- pwdumpx.exe
+- gsecdump
+- Mimikatz
+- secretsdump.py
 
 Alternatively, the SAM can be extracted from the Registry with Reg:
 
-* <code>reg save HKLM\sam sam</code>
-* <code>reg save HKLM\system system</code>
+- <code>reg save HKLM\sam sam</code>
+- <code>reg save HKLM\system system</code>
 
 Creddump7 can then be used to process the SAM database locally to retrieve hashes.
 
-Notes: 
+Notes:
 
-* RID 500 account is the local, built-in administrator.
-* RID 501 is the guest account.
-* User accounts start with a RID of 1,000+.
+- RID 500 account is the local, built-in administrator.
+- RID 501 is the guest account.
+- User accounts start with a RID of 1,000+.
 
 ## Kill Chain Phase
 
@@ -116,6 +116,7 @@ Will create a Python virtual environment within the External Payloads folder tha
 ```
 
 **Dependencies:**
+
 - Computer must have python 3 installed
 - Computer must have venv configured at #{venv_path}
 - pypykatz must be installed
@@ -146,6 +147,7 @@ Invoke-PowerDump
 ```
 
 **Dependencies:**
+
 - PowerDump script must exist on disk at specified location
 
 ### Atomic Test 5: dump volume shadow copy hives with certutil
@@ -158,7 +160,6 @@ This can be done with a non-admin user account. [CVE-2021-36934](https://cve.mit
 ```cmd
 for /L %a in (1,1,#{limit}) do @(certutil -f -v -encodehex "\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy%a\Windows\System32\config\#{target_hive}" %temp%\#{target_hive}vss%a 2 >nul 2>&1) & dir /B %temp%\#{target_hive}vss*
 ```
-
 
 ### Manual Testing
 
@@ -173,35 +174,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1026 Privileged Account Management
+
 Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1028 Operating System Configuration
+
 Consider disabling or restricting NTLM.
 
 ### M1017 User Training
-Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
+Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ## Detection
 
 ### Credential Dumping from SAM via Registry Dump and Local File Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Security Account Manager technique applicable | High | Credential Access |
+| Finding                                       | Severity | Impact            |
+| --------------------------------------------- | -------- | ----------------- |
+| Security Account Manager technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

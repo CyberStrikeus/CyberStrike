@@ -73,6 +73,7 @@ All three lock entries should be present: `idle-delay`, `lock-delay`, and `lock-
 ```
 
 Note:
+
 - A user profile must exist in order to apply locks. If a user profile does not exist review the remediation steps in the previous recommendation.
 - Users must log out and back in again before the system-wide settings take effect.
 
@@ -84,9 +85,9 @@ Note:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.3 Configure Automatic Session Locking on Enterprise Assets | * | * | * |
-| v7 | 16.11 Lock Workstation Sessions After Inactivity | * | * | * |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.3 Configure Automatic Session Locking on Enterprise Assets | \*   | \*   | \*   |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity             | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1456 | TA0027 | M1001

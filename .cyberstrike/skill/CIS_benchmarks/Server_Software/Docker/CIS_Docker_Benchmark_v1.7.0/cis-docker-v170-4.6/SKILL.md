@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 4.6
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 You should add the `HEALTHCHECK` instruction to your Docker container images in order to ensure that health checks are executed against running containers.
 
 ## Rationale
+
 An important security control is that of availability. Adding the `HEALTHCHECK` instruction to your container image ensures that the Docker engine periodically checks the running container instances against that instruction to ensure that containers are still operational.
 
 Based on the results of the health check, the Docker engine could terminate containers which are not responding correctly, and instantiate new ones.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -43,18 +47,23 @@ docker inspect --format='{{ .Config.Healthcheck }}' <IMAGE>
 You should follow the Docker documentation and rebuild your container images to include the `HEALTHCHECK` instruction.
 
 ## Default Value
+
 By default, `HEALTHCHECK` is not set.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/builder/#healthcheck
 
 ## CIS Controls
 
 **v8:**
+
 - 16.12 Implement Code-Level Security Checks - Apply static and dynamic analysis tools within the application life cycle to verify that secure coding practices are being followed.
 
 **v7:**
+
 - 5.2 Maintain Secure Images - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.
 
 ## Assessment Status
+
 Manual

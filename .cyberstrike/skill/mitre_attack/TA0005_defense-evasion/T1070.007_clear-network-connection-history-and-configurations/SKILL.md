@@ -60,8 +60,8 @@ Adversaries may clear or remove evidence of malicious network connections in ord
 
 Network connection history may be stored in various locations. For example, RDP connection history may be stored in Windows Registry values under :
 
-* <code>HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Default</code>
-* <code>HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Servers</code>
+- <code>HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Default</code>
+- <code>HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Servers</code>
 
 Windows may also store information about recent RDP connections in files such as <code>C:\Users\\%username%\Documents\Default.rdp</code> and `C:\Users\%username%\AppData\Local\Microsoft\Terminal
 Server Client\Cache\`. Similarly, macOS and Linux hosts may store information highlighting connection history in system logs (such as those stored in `/Library/Logs` and/or `/var/log/`).
@@ -98,29 +98,28 @@ Malicious network connections may also require changes to third-party applicatio
 ## Remediation Guide
 
 ### M1029 Remote Data Storage
+
 Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
 ### M1024 Restrict Registry Permissions
-Protect generated event files and logs that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
+Protect generated event files and logs that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
 ## Detection
 
 ### Behavioral Detection of Network History and Configuration Tampering
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clear Network Connection History and Configurations technique applicable | Medium | Defense Evasion |
+| Finding                                                                  | Severity | Impact          |
+| ------------------------------------------------------------------------ | -------- | --------------- |
+| Clear Network Connection History and Configurations technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

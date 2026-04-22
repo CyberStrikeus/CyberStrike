@@ -20,8 +20,7 @@ cwe_ids:
   - CWE-284
 chains_with:
   - SC-23
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-23: "Chain with SC-23 for comprehensive security coverage"
 ---
@@ -63,10 +62,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -80,17 +79,16 @@ Organizations may define the maximum number of concurrent sessions for system ac
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-10 Concurrent Session Control not implemented | High | Access Control |
-| AC-10 partially implemented | Medium | Incomplete Access Control |
+| Finding                                          | Severity | Impact                    |
+| ------------------------------------------------ | -------- | ------------------------- |
+| AC-10 Concurrent Session Control not implemented | High     | Access Control            |
+| AC-10 partially implemented                      | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

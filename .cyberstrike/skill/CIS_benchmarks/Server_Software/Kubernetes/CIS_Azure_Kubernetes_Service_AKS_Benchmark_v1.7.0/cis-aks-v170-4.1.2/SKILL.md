@@ -44,15 +44,15 @@ Where possible, remove `get`, `list` and `watch` access to `secret` objects in t
 
 By default, the following list of principals have `get` privileges on `secret` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin (Group) | system:masters |
+| CLUSTERROLEBINDING                                                                | SUBJECT                            |
+| --------------------------------------------------------------------------------- | ---------------------------------- |
+| cluster-admin (Group)                                                             | system:masters                     |
 | system:controller:clusterrole-aggregation-controller (ServiceAccount kube-system) | clusterrole-aggregation-controller |
-| system:controller:expand-controller (ServiceAccount kube-system) | expand-controller |
-| system:controller:generic-garbage-collector (ServiceAccount kube-system) | generic-garbage-collector |
-| system:controller:namespace-controller (ServiceAccount kube-system) | namespace-controller |
-| system:controller:persistent-volume-binder (ServiceAccount kube-system) | persistent-volume-binder |
-| system:kube-controller-manager (User) | system:kube-controller-manager |
+| system:controller:expand-controller (ServiceAccount kube-system)                  | expand-controller                  |
+| system:controller:generic-garbage-collector (ServiceAccount kube-system)          | generic-garbage-collector          |
+| system:controller:namespace-controller (ServiceAccount kube-system)               | namespace-controller               |
+| system:controller:persistent-volume-binder (ServiceAccount kube-system)           | persistent-volume-binder           |
+| system:kube-controller-manager (User)                                             | system:kube-controller-manager     |
 
 ## References
 
@@ -60,7 +60,7 @@ By default, the following list of principals have `get` privileges on `secret` o
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                |      | x    | x    |

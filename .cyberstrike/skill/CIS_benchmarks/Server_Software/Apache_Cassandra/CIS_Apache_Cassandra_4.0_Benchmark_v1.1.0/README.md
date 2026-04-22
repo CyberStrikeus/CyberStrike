@@ -9,6 +9,7 @@ Each control is in its own directory following the naming convention: `cis-cassa
 ## Controls by Section
 
 ### Section 1: Installation and Updates (6 controls)
+
 - **1.1** - Ensure a separate user and group exist for Cassandra (Manual)
 - **1.2** - Ensure the latest version of Java is installed (Automated)
 - **1.3** - Ensure the latest version of Python is installed (Automated)
@@ -17,10 +18,12 @@ Each control is in its own directory following the naming convention: `cis-cassa
 - **1.6** - Ensure clocks are synchronized on all nodes (Manual)
 
 ### Section 2: Authentication and Authorization (2 controls)
+
 - **2.1** - Ensure that authentication is enabled for Cassandra databases (Automated)
 - **2.2** - Ensure that authorization is enabled for Cassandra databases (Automated)
 
 ### Section 3: Access Control / Password Policies (8 controls)
+
 - **3.1** - Ensure the cassandra and superuser roles are separate (Automated)
 - **3.2** - Ensure that the default password is changed for the cassandra role (Automated)
 - **3.3** - Ensure there are no unnecessary roles or excessive privileges (Manual)
@@ -31,10 +34,12 @@ Each control is in its own directory following the naming convention: `cis-cassa
 - **3.8** - Review Superuser/Admin Roles (Manual)
 
 ### Section 4: Auditing and Logging (2 controls)
+
 - **4.1** - Ensure that logging is enabled (Automated)
 - **4.2** - Ensure that auditing is enabled (Manual)
 
 ### Section 5: Encryption (2 controls)
+
 - **5.1** - Inter-node Encryption (Automated)
 - **5.2** - Client Encryption (Automated)
 
@@ -47,6 +52,7 @@ Each control is in its own directory following the naming convention: `cis-cassa
 ## Tags Used
 
 ### By Section
+
 - **Section 1:** installation, updates, java, python, users, groups, ntp, time-sync
 - **Section 2:** authentication, authorization, access-control
 - **Section 3:** access-control, roles, privileges, passwords, default-credentials, least-privilege, service-account, network, interfaces, datacenter, superuser, admin, review
@@ -60,6 +66,7 @@ All controls are mapped to relevant CIS Controls v7 and v8 Implementation Groups
 ## File Format
 
 Each SKILL.md file contains:
+
 - YAML frontmatter with metadata (name, description, category, version, tags, CIS ID, etc.)
 - Profile Applicability
 - Description

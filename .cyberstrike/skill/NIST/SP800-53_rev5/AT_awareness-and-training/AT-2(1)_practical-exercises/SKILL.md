@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - CA-7
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Practical exercises include no-notice social engineering attempts to collect inf
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AT-2(1) Practical Exercises not implemented | Medium | Awareness and Training |
-| AT-2(1) partially implemented | Low | Incomplete Awareness and Training |
+| Finding                                     | Severity | Impact                            |
+| ------------------------------------------- | -------- | --------------------------------- |
+| AT-2(1) Practical Exercises not implemented | Medium   | Awareness and Training            |
+| AT-2(1) partially implemented               | Low      | Incomplete Awareness and Training |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -25,8 +25,7 @@ chains_with:
   - SA-8
   - SA-15
   - SI-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -73,9 +72,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -96,17 +95,16 @@ The configuration items that are placed under configuration management include t
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-10 Developer Configuration Management not implemented | Medium | System and Services Acquisition |
-| SA-10 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                  | Severity | Impact                                     |
+| -------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-10 Developer Configuration Management not implemented | Medium   | System and Services Acquisition            |
+| SA-10 partially implemented                              | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

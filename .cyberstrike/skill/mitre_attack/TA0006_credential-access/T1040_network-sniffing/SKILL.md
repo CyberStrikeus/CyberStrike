@@ -35,10 +35,8 @@ tech_stack:
   - cloud
 cwe_ids:
   - CWE-522
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -93,6 +91,7 @@ tshark -c 5 -i #{interface}
 ```
 
 **Dependencies:**
+
 - Check if at least one of tcpdump or tshark is installed.
 
 ### Atomic Test 2: Packet Capture FreeBSD using tshark or tcpdump
@@ -110,6 +109,7 @@ tshark -c 5 -i #{interface}
 ```
 
 **Dependencies:**
+
 - Check if at least one of tcpdump or tshark is installed.
 
 ### Atomic Test 3: Packet Capture macOS using tcpdump or tshark
@@ -122,11 +122,12 @@ Upon successful execution, tshark or tcpdump will execute and capture 5 packets 
 **Elevation Required:** Yes
 
 ```bash
-sudo tcpdump -c 5 -nnni #{interface}    
+sudo tcpdump -c 5 -nnni #{interface}
 if [ -x "$(command -v tshark)" ]; then sudo tshark -c 5 -i #{interface}; fi;
 ```
 
 **Dependencies:**
+
 - Check if at least one of tcpdump or tshark is installed.
 
 ### Atomic Test 4: Packet Capture Windows Command Prompt
@@ -144,6 +145,7 @@ Upon successful execution, tshark will execute and capture 5 packets on interfac
 ```
 
 **Dependencies:**
+
 - tshark must be installed and in the default path of "c:\Program Files\Wireshark\Tshark.exe".
 - npcap must be installed.
 
@@ -159,7 +161,6 @@ After execution you should find a file named trace.etl and trace.cab in the temp
 netsh trace start capture=yes tracefile=%temp%\trace.etl maxsize=10
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -173,35 +174,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 In cloud environments, ensure that users are not granted permissions to create or modify traffic mirrors unless this is explicitly required.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication wherever possible.
 
 ### M1041 Encrypt Sensitive Information
+
 Ensure that all wired and/or wireless traffic is encrypted appropriately. Use best practices for authentication protocols, such as Kerberos, and ensure web traffic that may contain credentials is protected by SSL/TLS.
 
 ### M1030 Network Segmentation
-Deny direct access of broadcasts and multicast sniffing, and prevent attacks such as LLMNR/NBT-NS Poisoning and SMB Relay
 
+Deny direct access of broadcasts and multicast sniffing, and prevent attacks such as LLMNR/NBT-NS Poisoning and SMB Relay
 
 ## Detection
 
 ### Detection Strategy for Network Sniffing Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Sniffing technique applicable | High | Credential Access |
+| Finding                               | Severity | Impact            |
+| ------------------------------------- | -------- | ----------------- |
+| Network Sniffing technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

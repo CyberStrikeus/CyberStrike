@@ -33,8 +33,7 @@ chains_with:
   - T1497.001
   - T1497.002
   - T1497.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1497.001: "Chain with T1497.001 for deeper attack path"
   T1497.002: "Chain with T1497.002 for deeper attack path"
@@ -84,19 +83,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for T1497 Virtualization/Sandbox Evasion
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Virtualization/Sandbox Evasion technique applicable | Medium | Defense Evasion |
+| Finding                                             | Severity | Impact          |
+| --------------------------------------------------- | -------- | --------------- |
+| Virtualization/Sandbox Evasion technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

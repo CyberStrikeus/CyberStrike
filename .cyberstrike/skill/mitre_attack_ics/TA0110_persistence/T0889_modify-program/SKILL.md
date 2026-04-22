@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,9 +29,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may modify or add a program on a controller to affect how it interacts with the physical process, peripheral devices and other hosts on the network. Modification to controller programs can be accomplished using a Program Download in addition to other types of program modification such as online edit and program append. 
+Adversaries may modify or add a program on a controller to affect how it interacts with the physical process, peripheral devices and other hosts on the network. Modification to controller programs can be accomplished using a Program Download in addition to other types of program modification such as online edit and program append.
 
-Program modification encompasses the addition and modification of instructions and logic contained in Program Organization Units (POU) and similar programming elements found on controllers. This can include, for example, adding new functions to a controller, modifying the logic in existing functions and making new calls from one function to another. 
+Program modification encompasses the addition and modification of instructions and logic contained in Program Organization Units (POU) and similar programming elements found on controllers. This can include, for example, adding new functions to a controller, modifying the logic in existing functions and making new calls from one function to another.
 
 Some programs may allow an adversary to interact directly with the native API of the controller to take advantage of obscure features or vulnerabilities.
 
@@ -63,35 +61,36 @@ Review whether mitigations for T0889 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0947 Audit
+
 Provide the ability to verify the integrity of control logic or programs loaded on a controller. While techniques like CRCs and checksums are commonly used, they are not cryptographically strong and can be vulnerable to collisions. Preferably cryptographic hash functions (e.g., SHA-2, SHA-3) should be used.
 
 ### M0945 Code Signing
+
 Utilize code signatures to verify the integrity and authenticity of programs installed on safety or control assets.
 
 ### M0800 Authorization Enforcement
+
 All field controllers should restrict the modification of programs to only certain users (e.g., engineers, field technician), preferably through implementing a role-based access mechanism.
 
 ### M0804 Human User Authentication
-All field controllers should require users to authenticate for all remote or local management sessions. The authentication mechanisms should also support Account Use Policies, Password Policies, and User Account Management.
 
+All field controllers should require users to authenticate for all remote or local management sessions. The authentication mechanisms should also support Account Use Policies, Password Policies, and User Account Management.
 
 ## Detection
 
 ### Detection of Modify Program
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Program technique applicable | Low | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| Modify Program technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

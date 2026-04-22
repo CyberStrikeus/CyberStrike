@@ -63,7 +63,7 @@ By default, TLS encryption is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | X | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest               |      | X    | X    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | X    | X    |

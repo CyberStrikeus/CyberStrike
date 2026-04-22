@@ -104,7 +104,6 @@ if(#{restart}){
 }
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -118,26 +117,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
-Limit user accounts that can load or unload device drivers by disabling <code>SeLoadDriverPrivilege</code>.
 
+Limit user accounts that can load or unload device drivers by disabling <code>SeLoadDriverPrivilege</code>.
 
 ## Detection
 
 ### Windows Detection Strategy for T1547.012 - Print Processor DLL Persistence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Print Processors technique applicable | High | Persistence |
+| Finding                               | Severity | Impact      |
+| ------------------------------------- | -------- | ----------- |
+| Print Processors technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,13 +33,13 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may gain access to mobile devices through transfers or swaps from victims’ phone numbers to adversary-controlled SIM cards and mobile devices. 
+Adversaries may gain access to mobile devices through transfers or swaps from victims’ phone numbers to adversary-controlled SIM cards and mobile devices.
 
-The typical process is as follows: 
+The typical process is as follows:
 
-1. Adversaries will first gather information about victims through Phishing, social engineering, data breaches, or other avenues. 
-2. Adversaries will then impersonate victims as they contact mobile carriers to request for the SIM swaps. For example, adversaries would provide victims’ name and address to mobile carriers; once authenticated, adversaries would request for victims’ phone numbers to be transferred to adversary-controlled SIM cards. 
-3. Once completed, victims will lose mobile data, such as text messages and phone calls, on their mobile devices. In turn, adversaries will receive mobile data that was intended for the victims. 
+1. Adversaries will first gather information about victims through Phishing, social engineering, data breaches, or other avenues.
+2. Adversaries will then impersonate victims as they contact mobile carriers to request for the SIM swaps. For example, adversaries would provide victims’ name and address to mobile carriers; once authenticated, adversaries would request for victims’ phone numbers to be transferred to adversary-controlled SIM cards.
+3. Once completed, victims will lose mobile data, such as text messages and phone calls, on their mobile devices. In turn, adversaries will receive mobile data that was intended for the victims.
 
 Adversaries may use the intercepted SMS messages to log into online accounts that use SMS-based authentication. Specifically, adversaries may use SMS-based authentication to log into banking and/or cryptocurrency accounts, then transfer funds to adversary-controlled wallets.
 
@@ -72,29 +70,28 @@ Review whether mitigations for T1451 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 Enterprises should monitor for SIM card changes on the Enterprise Mobility Management (EMM) or the Mobile Device Management (MDM).
 
 ### M1011 User Guidance
-The user should become familiar with social engineering tactics that ask for Personally Identifiable Information (PII). Additionally, the user should include the use of hardware tokens, biometrics, and other non-SMS based authentication mechanisms where possible. Finally, the user should enable SIM swapping protections offered by the mobile carrier, such as setting up a PIN or password to authorize any changes to the account.
 
+The user should become familiar with social engineering tactics that ask for Personally Identifiable Information (PII). Additionally, the user should include the use of hardware tokens, biometrics, and other non-SMS based authentication mechanisms where possible. Finally, the user should enable SIM swapping protections offered by the mobile carrier, such as setting up a PIN or password to authorize any changes to the account.
 
 ## Detection
 
 ### Detection of SIM Card Swap
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SIM Card Swap technique applicable | High | Initial Access |
+| Finding                            | Severity | Impact         |
+| ---------------------------------- | -------- | -------------- |
+| SIM Card Swap technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

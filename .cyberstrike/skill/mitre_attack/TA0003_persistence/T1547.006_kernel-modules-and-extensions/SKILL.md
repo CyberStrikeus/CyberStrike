@@ -99,6 +99,7 @@ sudo insmod #{module_path}
 ```
 
 **Dependencies:**
+
 - The kernel module must exist on disk at specified location
 
 ### Atomic Test 2: MacOS - Load Kernel Module via kextload and kmutil
@@ -119,6 +120,7 @@ sudo kmutil unload -p #{module_path}
 ```
 
 **Dependencies:**
+
 - The kernel module must exist on disk at specified location
 
 ### Atomic Test 3: MacOS - Load Kernel Module via KextManagerLoadKextWithURL()
@@ -136,8 +138,8 @@ sudo kextunload /Library/Extensions/SoftRAID.kext
 ```
 
 **Dependencies:**
-- The kernel module must exist on disk at specified location
 
+- The kernel module must exist on disk at specified location
 
 ### Manual Testing
 
@@ -152,35 +154,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit access to the root account and prevent users from loading kernel modules and extensions through proper privilege separation and limiting Privilege Escalation opportunities.
 
 ### M1018 User Account Management
+
 Use MDM to disable user's ability to install or approve kernel extensions, and ensure all approved kernel extensions are in alignment with policies specified in <code>com.apple.syspolicy.kernel-extension-policy</code>.
 
 ### M1049 Antivirus/Antimalware
+
 Common tools for detecting Linux rootkits include: rkhunter , chrootkit , although rootkits may be designed to evade certain detection tools.
 
 ### M1038 Execution Prevention
-Application control and software restriction tools, such as SELinux, KSPP, grsecurity MODHARDEN, and Linux kernel tuning can aid in restricting kernel module loading.
 
+Application control and software restriction tools, such as SELinux, KSPP, grsecurity MODHARDEN, and Linux kernel tuning can aid in restricting kernel module loading.
 
 ## Detection
 
 ### Detection Strategy for Kernel Modules and Extensions Autostart Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Kernel Modules and Extensions technique applicable | High | Persistence |
+| Finding                                            | Severity | Impact      |
+| -------------------------------------------------- | -------- | ----------- |
+| Kernel Modules and Extensions technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

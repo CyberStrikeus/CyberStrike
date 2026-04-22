@@ -57,9 +57,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence by executing malicious content triggered by hijacked references to Component Object Model (COM) objects. COM is a system within Windows to enable interaction between software components through the operating system. References to various COM objects are stored in the Registry. 
+Adversaries may establish persistence by executing malicious content triggered by hijacked references to Component Object Model (COM) objects. COM is a system within Windows to enable interaction between software components through the operating system. References to various COM objects are stored in the Registry.
 
-Adversaries may use the COM system to insert malicious code that can be executed in place of legitimate software through hijacking the COM references and relationships as a means for persistence. Hijacking a COM object requires a change in the Registry to replace a reference to a legitimate system component which may cause that component to not work when executed. When that system component is executed through normal system operation the adversary's code will be executed instead. An adversary is likely to hijack objects that are used frequently enough to maintain a consistent level of persistence, but are unlikely to break noticeable functionality within the system as to avoid system instability that could lead to detection. 
+Adversaries may use the COM system to insert malicious code that can be executed in place of legitimate software through hijacking the COM references and relationships as a means for persistence. Hijacking a COM object requires a change in the Registry to replace a reference to a legitimate system component which may cause that component to not work when executed. When that system component is executed through normal system operation the adversary's code will be executed instead. An adversary is likely to hijack objects that are used frequently enough to maintain a consistent level of persistence, but are unlikely to break noticeable functionality within the system as to avoid system instability that could lead to detection.
 
 One variation of COM hijacking involves abusing Type Libraries (TypeLibs), which provide metadata about COM objects, such as their interfaces and methods. Adversaries may modify Registry keys associated with TypeLibs to redirect legitimate COM object functionality to malicious scripts or payloads. Unlike traditional COM hijacking, which commonly uses local DLLs, this variation may leverage the "script:" moniker to execute remote scripts hosted on external servers. This approach enables stealthy execution of code while maintaining persistence, as the remote payload would be automatically downloaded whenever the hijacked COM object is accessed.
 
@@ -98,6 +98,7 @@ Start-Process -FilePath "C:\Windows\System32\RUNDLL32.EXE" -ArgumentList '-sta #
 ```
 
 **Dependencies:**
+
 - DLL For testing
 
 ### Atomic Test 2: Powershell Execute COM Object
@@ -115,8 +116,8 @@ $item.Document.Application.ShellExecute("cmd.exe","/c calc.exe","C:\windows\syst
 
 ### Atomic Test 3: COM Hijacking with RunDLL32 (Local Server Switch)
 
-This test uses PowerShell to hijack a reference to a Component Object Model by creating registry values under InprocServer32 key in the HKCU hive then calling the Class ID to be executed via "rundll32.exe -localserver [clsid]". 
-This method is generally used as an alternative to 'rundll32.exe -sta [clsid]' to execute dll's while evading detection. 
+This test uses PowerShell to hijack a reference to a Component Object Model by creating registry values under InprocServer32 key in the HKCU hive then calling the Class ID to be executed via "rundll32.exe -localserver [clsid]".
+This method is generally used as an alternative to 'rundll32.exe -sta [clsid]' to execute dll's while evading detection.
 Reference: https://www.hexacorn.com/blog/2020/02/13/run-lola-bin-run/
 Upon successful execution of this test with the default options, whenever certain apps are opened (for example, Notepad), a calculator window will also be opened.
 
@@ -130,6 +131,7 @@ Start-Process -FilePath "C:\Windows\System32\RUNDLL32.EXE" -ArgumentList '-local
 ```
 
 **Dependencies:**
+
 - DLL For testing
 
 ### Atomic Test 4: COM hijacking via TreatAs
@@ -165,7 +167,6 @@ reg add "HKEY_CURRENT_USER\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E
 rundll32.exe -sta "AtomicTest"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -184,19 +185,17 @@ No specific mitigations documented for this technique.
 
 ### Windows COM Hijacking Detection via Registry and DLL Load Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Component Object Model Hijacking technique applicable | High | Privilege Escalation |
+| Finding                                               | Severity | Impact               |
+| ----------------------------------------------------- | -------- | -------------------- |
+| Component Object Model Hijacking technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

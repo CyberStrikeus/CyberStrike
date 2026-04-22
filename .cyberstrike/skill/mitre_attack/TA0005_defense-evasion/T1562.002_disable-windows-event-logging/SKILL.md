@@ -150,7 +150,6 @@ auditpol /clear /y
 auditpol /remove /allusers
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -164,35 +163,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure proper process and file permissions are in place to prevent adversaries from disabling or interfering with logging or deleting or modifying .evtx logging files. Ensure .evtx files, which are located at <code>C:\Windows\system32\Winevt\Logs</code>, have the proper file permissions for limited, legitimate access and audit policies for detection.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper Registry permissions are in place to prevent adversaries from disabling or interfering logging. The addition of the MiniNT registry key disables Event Viewer.
 
 ### M1047 Audit
+
 Consider periodic review of <code>auditpol</code> settings for Administrator accounts and perform dynamic baselining on SIEM(s) to investigate potential malicious activity. Also ensure that the EventLog service and its threads are properly running.
 
 ### M1018 User Account Management
-Ensure proper user permissions are in place to prevent adversaries from disabling or interfering with logging.
 
+Ensure proper user permissions are in place to prevent adversaries from disabling or interfering with logging.
 
 ## Detection
 
 ### Detect disabled Windows event logging
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable Windows Event Logging technique applicable | High | Defense Evasion |
+| Finding                                            | Severity | Impact          |
+| -------------------------------------------------- | -------- | --------------- |
+| Disable Windows Event Logging technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

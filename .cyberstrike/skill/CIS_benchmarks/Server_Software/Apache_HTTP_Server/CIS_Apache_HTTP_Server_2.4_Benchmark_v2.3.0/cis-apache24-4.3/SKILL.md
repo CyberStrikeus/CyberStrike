@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.3 Ensure OverRide Is Disabled for the OS Root Directory
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -79,6 +80,7 @@ The following is the default root directory configuration:
 ## CIS Controls
 
 **Controls Version: v8**
+
 - **3.3 Configure Data Access Control Lists**
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
   - **IG 1:** •
@@ -86,6 +88,7 @@ The following is the default root directory configuration:
   - **IG 3:** •
 
 **Controls Version: v7**
+
 - **14.6 Protect Information through Access Control Lists**
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.
   - **IG 1:** •
@@ -93,4 +96,5 @@ The following is the default root directory configuration:
   - **IG 3:** •
 
 ## Profile
+
 - Level 1 | Automated

@@ -150,7 +150,7 @@ See the GKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts** - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | | | |
-| v7 | **4.2 Change Default Passwords** - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts. | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts** - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. |      |      |      |
+| v7               | **4.2 Change Default Passwords** - Before deploying any new asset, change all default passwords to have values consistent with administrative level accounts.                                                                                                                                                                    |      |      |      |

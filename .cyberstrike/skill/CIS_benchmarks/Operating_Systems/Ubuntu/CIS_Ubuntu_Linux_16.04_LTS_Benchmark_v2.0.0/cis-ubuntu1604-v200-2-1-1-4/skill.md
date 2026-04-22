@@ -21,6 +21,7 @@ severity_boost: {}
 ntp is a daemon which implements the Network Time Protocol (NTP). It is designed to synchronize system clocks across a variety of systems and use a source that is highly accurate. More information on NTP can be found at http://www.ntp.org. ntp can be configured to be a client and/or a server.
 
 Notes:
+
 - If chrony or systemd-timesyncd are used, ntp should be removed and this section skipped
 - This recommendation only applies if ntp is in use on the system
 - Only one time synchronization method should be in use on the system

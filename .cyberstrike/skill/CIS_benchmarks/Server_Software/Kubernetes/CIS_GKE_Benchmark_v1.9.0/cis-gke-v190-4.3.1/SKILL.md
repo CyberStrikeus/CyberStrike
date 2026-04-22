@@ -58,7 +58,7 @@ One example here is Flannel (https://github.com/flannel-io/flannel) which does n
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.5 Use Up-to-Date and Trusted Third-Party Software Components | | * | * |
-| v7 | 18.4 Only Use Up-to-date And Trusted Third-Party Components | | * | * |
+| Controls Version | Control                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.5 Use Up-to-Date and Trusted Third-Party Software Components |      | \*   | \*   |
+| v7               | 18.4 Only Use Up-to-date And Trusted Third-Party Components     |      | \*   | \*   |

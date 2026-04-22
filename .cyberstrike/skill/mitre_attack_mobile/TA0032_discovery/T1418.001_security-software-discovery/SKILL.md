@@ -68,29 +68,28 @@ Review whether mitigations for T1418.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
+
 iOS users should be instructed to not download applications from unofficial sources, as applications distributed via the Apple App Store cannot list installed applications on a device.
 
 ### M1006 Use Recent OS Version
-Android 11 introduced privacy enhancements to package visibility, filtering results that are returned from the package manager. iOS 12 removed the private API that could previously be used to list installed applications on non-app store applications.
 
+Android 11 introduced privacy enhancements to package visibility, filtering results that are returned from the package manager. iOS 12 removed the private API that could previously be used to list installed applications on non-app store applications.
 
 ## Detection
 
 ### Detection of Security Software Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Security Software Discovery technique applicable | Medium | Discovery |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Security Software Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

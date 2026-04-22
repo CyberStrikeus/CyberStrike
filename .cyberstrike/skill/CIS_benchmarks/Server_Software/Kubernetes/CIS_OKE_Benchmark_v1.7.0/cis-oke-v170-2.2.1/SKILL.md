@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 2.2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 The audit logs are part of the OKE managed Kubernetes control plane logs managed by OKE. OKE integrates with Oracle Cloud Infrastructure Audit Service.
 
 All operations performed by the Kubernetes API server are visible as log events on the Oracle Cloud Infrastructure Audit service.
 
 ## Rationale
+
 Logging is a crucial detective control for all systems to detect potential unauthorized access.
 
 ## Impact
+
 The Control plane audit logs are managed by OKE. OKE Control plane logs are written to the Oracle Cloud Infrastructure Audit Service. The Oracle Cloud Infrastructure Audit service automatically records calls to all supported Oracle Cloud Infrastructure public application programming interface (API) endpoints as log events.
 
 ## Audit Procedure
@@ -52,12 +56,15 @@ To view operations performed by Container Engine for Kubernetes and the Kubernet
 - To view operations performed by the Kubernetes API server, enter `OKE API Server Admin Access` in the **Keywords** field and click **Search**.
 
 ## Remediation
+
 No remediation is necessary for this control.
 
 ## Default Value
+
 By default, Kubernetes API server logs and Container Engine for Kubernetes audit events are sent to the Oracle Cloud Infrastructure Audit service. By default, the Audit Log retention period is 90 days.
 
 ## References
+
 1. https://kubernetes.io/docs/tasks/debug-application-cluster/audit/
 2. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengmonitoringoke.htm
 3. https://docs.cloud.oracle.com/en-us/iaas/Content/Audit/Tasks/viewinglogevents.htm#Viewing_Audit_Log_Events
@@ -65,16 +72,17 @@ By default, Kubernetes API server logs and Container Engine for Kubernetes audit
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | * | * | * |
-| v7 | 6.2 Activate audit logging | * | * | * |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | \*   | \*   | \*   |
+| v7               | 6.2 Activate audit logging | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1543 | TA0003, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1026       |
 
 ## Profile
+
 **Level 1** (Manual)

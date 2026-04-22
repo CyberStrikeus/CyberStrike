@@ -72,7 +72,7 @@ severity_boost:
 
 Adversaries may match or approximate the names of legitimate accounts to make newly created ones appear benign. This will typically occur during Create Account, although accounts may also be renamed at a later date. This may also coincide with Account Access Removal if the actor first deletes an account before re-creating one with the same name.
 
-Often, adversaries will attempt to masquerade as service accounts, such as those associated with legitimate software, data backups, or container cluster management. They may also give accounts generic, trustworthy names, such as “admin”, “help”, or “root.” Sometimes adversaries may model account names off of those already existing in the system, as a follow-on behavior to Account Discovery. 
+Often, adversaries will attempt to masquerade as service accounts, such as those associated with legitimate software, data backups, or container cluster management. They may also give accounts generic, trustworthy names, such as “admin”, “help”, or “root.” Sometimes adversaries may model account names off of those already existing in the system, as a follow-on behavior to Account Discovery.
 
 Note that this is distinct from Impersonation, which describes impersonating specific trusted individuals or organizations, rather than user or service account names.
 
@@ -106,29 +106,28 @@ Note that this is distinct from Impersonation, which describes impersonating spe
 ## Remediation Guide
 
 ### M1047 Audit
+
 Audit user accounts to ensure that each one has a defined purpose.
 
 ### M1018 User Account Management
-Consider defining and enforcing a naming convention for user accounts to more easily spot generic account names that do not fit the typical schema.
 
+Consider defining and enforcing a naming convention for user accounts to more easily spot generic account names that do not fit the typical schema.
 
 ## Detection
 
 ### Detection Strategy for Masquerading via Account Name Similarity
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Masquerade Account Name technique applicable | Medium | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Masquerade Account Name technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

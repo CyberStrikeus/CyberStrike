@@ -57,7 +57,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by AppCert DLLs loaded into processes. Dynamic-link libraries (DLLs) that are specified in the <code>AppCertDLLs</code> Registry key under <code>HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\</code> are loaded into every process that calls the ubiquitously used application programming interface (API) functions <code>CreateProcess</code>, <code>CreateProcessAsUser</code>, <code>CreateProcessWithLoginW</code>, <code>CreateProcessWithTokenW</code>, or <code>WinExec</code>. 
+Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by AppCert DLLs loaded into processes. Dynamic-link libraries (DLLs) that are specified in the <code>AppCertDLLs</code> Registry key under <code>HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\</code> are loaded into every process that calls the ubiquitously used application programming interface (API) functions <code>CreateProcess</code>, <code>CreateProcessAsUser</code>, <code>CreateProcessWithLoginW</code>, <code>CreateProcessWithTokenW</code>, or <code>WinExec</code>.
 
 Similar to Process Injection, this value can be abused to obtain elevated privileges by causing a malicious DLL to be loaded and run in the context of separate processes on the computer. Malicious AppCert DLLs may also provide persistence by continuously being triggered by API activity.
 
@@ -83,8 +83,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Create registry persistence via AppCert DLL
 
-Creates a new 'AtomicTest' value pointing to an AppCert DLL in the AppCertDlls registry key. 
-Once the computer restarted, the DLL will be loaded in multiple processes and write an 
+Creates a new 'AtomicTest' value pointing to an AppCert DLL in the AppCertDlls registry key.
+Once the computer restarted, the DLL will be loaded in multiple processes and write an
 'AtomicTest.txt' file in C:\Users\Public\ to validate that the DLL executed succesfully.
 
 Reference: https://skanthak.homepage.t-online.de/appcert.html
@@ -99,8 +99,8 @@ if(#{reboot}){Restart-Computer}
 ```
 
 **Dependencies:**
-- File to copy must exist on disk at specified location (#{dll_path})
 
+- File to copy must exist on disk at specified location (#{dll_path})
 
 ### Manual Testing
 
@@ -115,26 +115,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Adversaries install new AppCertDLL binaries to execute this technique. Identify and block potentially malicious software executed through AppCertDLLs functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
+Adversaries install new AppCertDLL binaries to execute this technique. Identify and block potentially malicious software executed through AppCertDLLs functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
 ## Detection
 
 ### Detection Strategy for AppCert DLLs Persistence via Registry Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AppCert DLLs technique applicable | High | Privilege Escalation |
+| Finding                           | Severity | Impact               |
+| --------------------------------- | -------- | -------------------- |
+| AppCert DLLs technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

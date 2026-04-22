@@ -25,8 +25,7 @@ chains_with:
   - PS-7
   - SA-2
   - SA-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-20: "Chain with AC-20 for comprehensive security coverage"
   CA-3: "Chain with CA-3 for comprehensive security coverage"
@@ -71,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ External system services are provided by an external provider, and the organizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-9 External System Services not implemented | Medium | System and Services Acquisition |
-| SA-9 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                       | Severity | Impact                                     |
+| --------------------------------------------- | -------- | ------------------------------------------ |
+| SA-9 External System Services not implemented | Medium   | System and Services Acquisition            |
+| SA-9 partially implemented                    | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

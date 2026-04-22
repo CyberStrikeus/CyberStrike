@@ -71,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -88,17 +88,16 @@ Cryptographic mechanisms used for protecting the integrity of audit information 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-9(3) Cryptographic Protection not implemented | Medium | Audit and Accountability |
-| AU-9(3) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                          | Severity | Impact                              |
+| ------------------------------------------------ | -------- | ----------------------------------- |
+| AU-9(3) Cryptographic Protection not implemented | Medium   | Audit and Accountability            |
+| AU-9(3) partially implemented                    | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

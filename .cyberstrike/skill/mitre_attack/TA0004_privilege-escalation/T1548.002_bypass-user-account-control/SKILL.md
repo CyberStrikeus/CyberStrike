@@ -51,7 +51,7 @@ If the UAC protection level of a computer is set to anything but the highest lev
 
 Many methods have been discovered to bypass UAC. The Github readme page for UACME contains an extensive list of methods that have been discovered and implemented, but may not be a comprehensive list of bypasses. Additional bypass methods are regularly discovered and some used in the wild, such as:
 
-* <code>eventvwr.exe</code> can auto-elevate and execute a specified binary or script.
+- <code>eventvwr.exe</code> can auto-elevate and execute a specified binary or script.
 
 Another bypass is possible through some lateral movement techniques if credentials for an account with administrator privileges are known, since UAC is a single system security mechanism, and the privilege or integrity of a process running on one system will be unknown on remote systems and default to high integrity.
 
@@ -141,7 +141,6 @@ Set-ItemProperty "HKCU:\software\classes\ms-settings\shell\open\command" -Name "
 Start-Process "C:\Windows\System32\ComputerDefaults.exe"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -155,35 +154,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Consider updating Windows to the latest version and patch level to utilize the latest protective measures against UAC bypass.
 
 ### M1047 Audit
+
 Check for common UAC bypass weaknesses on Windows systems to be aware of the risk posture and address issues where appropriate.
 
 ### M1052 User Account Control
+
 Although UAC bypass techniques exist, it is still prudent to use the highest enforcement level for UAC when possible and mitigate bypass opportunities that exist with techniques such as DLL.
 
 ### M1026 Privileged Account Management
-Remove users from the local administrator group on systems.
 
+Remove users from the local administrator group on systems.
 
 ## Detection
 
 ### Detection Strategy for T1548.002 – Bypass User Account Control (UAC)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Bypass User Account Control technique applicable | High | Privilege Escalation |
+| Finding                                          | Severity | Impact               |
+| ------------------------------------------------ | -------- | -------------------- |
+| Bypass User Account Control technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

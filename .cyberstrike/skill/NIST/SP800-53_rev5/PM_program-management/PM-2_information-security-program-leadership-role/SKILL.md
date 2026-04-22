@@ -12,12 +12,9 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -58,9 +55,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -74,16 +71,16 @@ The senior agency information security officer is an organizational official. Fo
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-2 Information Security Program Leadership Role not implemented | Medium | Program Management |
-| PM-2 partially implemented | Low | Incomplete Program Management |
+| Finding                                                           | Severity | Impact                        |
+| ----------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-2 Information Security Program Leadership Role not implemented | Medium   | Program Management            |
+| PM-2 partially implemented                                        | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

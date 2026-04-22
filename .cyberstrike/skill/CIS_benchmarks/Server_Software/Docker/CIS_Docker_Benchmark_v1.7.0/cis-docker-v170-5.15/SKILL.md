@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.15
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 By using the `--restart` flag in the `docker run` command you can specify a restart policy for how a container should or should not be restarted on exit. You should choose the `on-failure` restart policy and limit the restart attempts to 5.
 
 ## Rationale
+
 If you indefinitely keep trying to start the container, it could possibly lead to a denial of service on the host. It could be an easy way to do a distributed denial of service attack especially if you have many containers on the same host. Additionally, ignoring the exit status of the container and always attempting to restart the container, leads to non-investigation of the root cause behind containers getting terminated. If a container gets terminated, you should investigate the reason behind it instead of just attempting to restart it indefinitely. You should use the `on-failure` restart policy to limit the number of container restarts to a maximum of 5 attempts.
 
 ## Impact
+
 If this option is set, a container will only attempt to restart itself 5 times.
 
 ## Audit Procedure
@@ -51,18 +55,23 @@ docker run --detach --restart=on-failure:5 nginx
 ```
 
 ## Default Value
+
 By default, containers are not configured with restart policies.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/commandline/run/#restart-policies---restart
 
 ## CIS Controls
 
 **v8:**
+
 - 4 Secure Configuration of Enterprise Assets and Software - Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile, network devices, non-computing/IoT devices, and servers) and software (operating systems and applications).
 
 **v7:**
+
 - 5.2 Maintain Secure Images - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.
 
 ## Assessment Status
+
 Manual

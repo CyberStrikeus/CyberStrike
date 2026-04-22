@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 6.1
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -90,9 +91,11 @@ Images and layered filesystems remain accessible on the host until the administr
 ## CIS Controls
 
 **v8:**
+
 - **16.10 Apply Secure Design Principles in Application Architectures**
   - Apply secure design principles in application architectures. Secure design principles include the concept of least privilege and enforcing mediation to validate every operation that the user makes, promoting the concept of "never trust user input." Examples include ensuring that explicit trust zones are documented for all application interactions, such as data encoding/escaping expected outputs, and surface, such as turning off unprotected ports and services; removing unnecessary programs and files; and renaming default accounts.
 
 **v7:**
+
 - **5.3 Securely Store Master Images**
   - Store the master images and templates on securely configured servers, validated with integrity monitoring tools, to ensure that only authorized changes to the images are possible.

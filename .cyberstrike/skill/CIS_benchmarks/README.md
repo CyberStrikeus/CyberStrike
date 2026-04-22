@@ -64,6 +64,7 @@ cis-<product>-<control-number>/
 ```
 
 ### SKILL.md Contents
+
 - YAML frontmatter (name, description, tags)
 - Profile Applicability (Level 1/2, Manual/Automated)
 - Description and Rationale
@@ -76,14 +77,14 @@ cis-<product>-<control-number>/
 
 ## Categories
 
-| Category | Provider/Product | Benchmarks | Controls |
-|----------|-----------------|------------|----------|
-| Cloud | AWS | 5 | 326 |
-| Cloud | Google Cloud Platform | 2 | 203 |
-| Cloud | Google Workspace | 1 | 89 |
-| Cloud | Microsoft Azure | 4 | 367 |
-| Server | Apache Cassandra | 6 | 118 |
-| Server | Apache HTTP Server | 2 | 170 |
-| Server | Apache Tomcat | 4 | 185 |
-| Server | Docker | 3 | 273 |
-| **Total** | | **27** | **1,731** |
+| Category  | Provider/Product      | Benchmarks | Controls  |
+| --------- | --------------------- | ---------- | --------- |
+| Cloud     | AWS                   | 5          | 326       |
+| Cloud     | Google Cloud Platform | 2          | 203       |
+| Cloud     | Google Workspace      | 1          | 89        |
+| Cloud     | Microsoft Azure       | 4          | 367       |
+| Server    | Apache Cassandra      | 6          | 118       |
+| Server    | Apache HTTP Server    | 2          | 170       |
+| Server    | Apache Tomcat         | 4          | 185       |
+| Server    | Docker                | 3          | 273       |
+| **Total** |                       | **27**     | **1,731** |

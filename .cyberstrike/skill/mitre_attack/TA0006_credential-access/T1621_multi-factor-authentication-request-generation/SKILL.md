@@ -39,10 +39,8 @@ tech_stack:
   - identity
 cwe_ids:
   - CWE-522
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -86,32 +84,32 @@ In some cases, adversaries may continuously repeat login attempts in order to bo
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Implement more secure 2FA/MFA mechanisms in replacement of simple push or one-click 2FA/MFA options. For example, having users enter a one-time code provided by the login screen into the 2FA/MFA application or utilizing other out-of-band 2FA/MFA mechanisms (such as rotating code-based hardware tokens providing rotating codes that need an accompanying user pin) may be more secure. Furthermore, change default configurations and implement limits upon the maximum number of 2FA/MFA request prompts that can be sent to users in period of time.
 
 ### M1036 Account Use Policies
+
 Enable account restrictions to prevent login attempts, and the subsequent 2FA/MFA service requests, from being initiated from suspicious locations or when the source of the login attempts do not match the location of the 2FA/MFA smart device. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges.
 
 ### M1017 User Training
-Train users to only accept 2FA/MFA requests from login attempts they initiated, to review source location of the login attempt prompting the 2FA/MFA requests, and to report suspicious/unsolicited prompts.
 
+Train users to only accept 2FA/MFA requests from login attempts they initiated, to review source location of the login attempt prompting the 2FA/MFA requests, and to report suspicious/unsolicited prompts.
 
 ## Detection
 
 ### Detection Strategy for Multi-Factor Authentication Request Generation (T1621)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Multi-Factor Authentication Request Generation technique applicable | High | Credential Access |
+| Finding                                                             | Severity | Impact            |
+| ------------------------------------------------------------------- | -------- | ----------------- |
+| Multi-Factor Authentication Request Generation technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure default user umask is 027 or more restrictive
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -53,6 +54,7 @@ Setting a very secure default value for `umask` ensures that users make a consci
 Setting `USERGROUPS_ENAB no` in `/etc/login.defs` may change the expected behavior of `useradd` and `userdel`.
 
 Setting `USERGROUPS_ENAB yes` in `/etc/login.defs`:
+
 - `userdel` will remove the user's group if it contains no more members
 - `useradd` will create by default a group with the name of the user.
 
@@ -120,7 +122,7 @@ Configure umask in one of the following files:
 - `/etc/profile`
 - `/etc/bash.bashrc`
 
-*Example:* `/etc/profile.d/set_umask.sh`
+_Example:_ `/etc/profile.d/set_umask.sh`
 
 ```
 umask 027
@@ -148,9 +150,9 @@ UMASK 022
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v7               | 14.6 Protect Information through Access Control Lists - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. |
 
 ## Profile
 

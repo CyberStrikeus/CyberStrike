@@ -98,26 +98,24 @@ Compression may be used in combination with Encrypted/Encoded File where compres
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
-Anti-virus can be used to automatically detect and quarantine suspicious files. Consider anti-virus products capable of unpacking and inspecting compressed files recursively, as well as analyzing SFX archives.
 
+Anti-virus can be used to automatically detect and quarantine suspicious files. Consider anti-virus products capable of unpacking and inspecting compressed files recursively, as well as analyzing SFX archives.
 
 ## Detection
 
 ### Detection Strategy for Compressed Payload Creation and Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compression technique applicable | High | Defense Evasion |
+| Finding                          | Severity | Impact          |
+| -------------------------------- | -------- | --------------- |
+| Compression technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

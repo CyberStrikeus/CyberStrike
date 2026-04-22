@@ -21,10 +21,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -32,7 +30,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may abuse ESXi administration services to execute commands on guest machines hosted within an ESXi virtual environment. Persistent background services on ESXi-hosted VMs, such as the VMware Tools Daemon Service, allow for remote management from the ESXi server. The tools daemon service runs as `vmtoolsd.exe` on Windows guest operating systems, `vmware-tools-daemon` on macOS, and `vmtoolsd ` on Linux. 
+Adversaries may abuse ESXi administration services to execute commands on guest machines hosted within an ESXi virtual environment. Persistent background services on ESXi-hosted VMs, such as the VMware Tools Daemon Service, allow for remote management from the ESXi server. The tools daemon service runs as `vmtoolsd.exe` on Windows guest operating systems, `vmware-tools-daemon` on macOS, and `vmtoolsd ` on Linux.
 
 Adversaries may leverage a variety of tools to execute commands on ESXi-hosted VMs – for example, by using the vSphere Web Services SDK to programmatically execute commands and scripts via APIs such as `StartProgramInGuest`, `ListProcessesInGuest`, `ListFileInGuest`, and `InitiateFileTransferFromGuest`. This may enable follow-on behaviors on the guest VMs, such as File and Directory Discovery, Data from Local System, or OS Credential Dumping.
 
@@ -64,26 +62,24 @@ Adversaries may leverage a variety of tools to execute commands on ESXi-hosted V
 ## Remediation Guide
 
 ### M1018 User Account Management
-If not required, restrict the permissions of users to perform Guest Operations on ESXi-hosted VMs.
 
+If not required, restrict the permissions of users to perform Guest Operations on ESXi-hosted VMs.
 
 ## Detection
 
 ### Detection Strategy for ESXi Administration Command
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ESXi Administration Command technique applicable | High | Execution |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| ESXi Administration Command technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -61,7 +61,7 @@ By default, all containers have the UTS namespace enabled and the host UTS names
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments<br>Perform traffic filtering between network segments, where appropriate. | | ● | ● |
-| v7 | 14.1 Segment the Network Based on Sensitivity<br>Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs). | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments<br>Perform traffic filtering between network segments, where appropriate.                                                                                                            |      | ●    | ●    |
+| v7               | 14.1 Segment the Network Based on Sensitivity<br>Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs). |      | ●    | ●    |

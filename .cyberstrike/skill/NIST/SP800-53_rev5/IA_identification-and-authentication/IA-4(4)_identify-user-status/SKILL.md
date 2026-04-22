@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-287
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - IA-4
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Characteristics that identify the status of individuals include contractors, for
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-4(4) Identify User Status not implemented | High | Identification and Authentication |
-| IA-4(4) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                      | Severity | Impact                                       |
+| -------------------------------------------- | -------- | -------------------------------------------- |
+| IA-4(4) Identify User Status not implemented | High     | Identification and Authentication            |
+| IA-4(4) partially implemented                | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

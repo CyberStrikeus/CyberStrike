@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.2 Ensure the Apache User Account Has an Invalid Shell
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -55,11 +56,12 @@ The default Apache user account is `daemon`. The daemon account may have a valid
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.6 Allowlist Authorized Libraries<br>Use technical controls to ensure that only authorized software libraries, such as specific .dll, .ocx, .so, etc., files, are allowed to load into a system process. Block unauthorized libraries from loading into a system process. Reassess bi-annually, or more frequently. | | ● | ● |
-| v7 | 2.7 Allowlist Authorized Scripts<br>Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently. | | | ● |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts<br>Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.6 Allowlist Authorized Libraries<br>Use technical controls to ensure that only authorized software libraries, such as specific .dll, .ocx, .so, etc., files, are allowed to load into a system process. Block unauthorized libraries from loading into a system process. Reassess bi-annually, or more frequently. |      | ●    | ●    |
+| v7               | 2.7 Allowlist Authorized Scripts<br>Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently.            |      |      | ●    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts<br>Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities.            | ●    | ●    | ●    |
 
 ## Profile
+
 - Level 1

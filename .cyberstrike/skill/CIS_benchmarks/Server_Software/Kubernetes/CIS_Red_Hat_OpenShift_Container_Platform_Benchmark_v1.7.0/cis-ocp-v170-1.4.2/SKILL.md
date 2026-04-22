@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 1.4.2
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not bind the scheduler service to non-loopback insecure addresses.
 
 ## Rationale
+
 The Scheduler API service which runs on port 10251/TCP by default is used for health and metrics information and is available without authentication or encryption. As such it should only be bound to a localhost interface, to minimize the cluster's attack surface.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -93,12 +97,15 @@ oc delete sa permission-test-sa
 ```
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, the `--bind-address` parameter is not used and the metrics endpoint is protected by RBAC when using the pod IP address.
 
 ## References
+
 1. https://github.com/openshift/cluster-kube-scheduler-operator
 2. https://github.com/openshift/cluster-kube-scheduler-operator/blob/release-4.5/bindata/v4.1.0/kube-scheduler/svc.yaml
 3. https://github.com/openshift/cluster-kube-scheduler-operator/blob/release-4.5/bindata/v4.1.0/kube-scheduler/pod.yaml
@@ -107,16 +114,17 @@ By default, the `--bind-address` parameter is not used and the metrics endpoint 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters                 |      | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1106 | TA0002 | M1035 |
+| --------------------------- | ------- | ----------- |
+| T1106                       | TA0002  | M1035       |
 
 ## Profile
+
 **Level 1** (Manual)

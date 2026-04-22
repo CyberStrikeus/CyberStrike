@@ -23,8 +23,7 @@ chains_with:
   - CP-13
   - SC-24
   - SI-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-12: "Chain with CP-12 for comprehensive security coverage"
   CP-13: "Chain with CP-13 for comprehensive security coverage"
@@ -68,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ Failure conditions include the loss of communications among critical system comp
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-17 Fail-safe Procedures not implemented | High | System and Information Integrity |
-| SI-17 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                    | Severity | Impact                                      |
+| ------------------------------------------ | -------- | ------------------------------------------- |
+| SI-17 Fail-safe Procedures not implemented | High     | System and Information Integrity            |
+| SI-17 partially implemented                | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

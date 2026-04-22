@@ -43,6 +43,7 @@ To implement the recommended state, do either option 'a' if using the Linux logr
 a) File Logging with Logrotate:
 
 1. Add or modify the web log rotation configuration to match your configured log files in /etc/logrotate.d/httpd or '/etc/logrotate.d/apache2' to be similar to the following.
+
    ```
    /var/log/httpd/*log {
        missingok
@@ -55,6 +56,7 @@ a) File Logging with Logrotate:
    ```
 
 2. Modify the rotation period and number of logs to keep so that at least 13 weeks or 3 months of logs are retained. This may be done as the default value for all logs in /etc/logrotate.conf or in the web specific log rotation configuration in /etc/logrotate.d/httpd to be similar to the following.
+
    ```
    # rotate log files weekly
    weekly
@@ -67,6 +69,7 @@ a) File Logging with Logrotate:
 b) Piped Logging:
 
 1. Configure the log rotation interval and log file names to a suitable interval such as daily.
+
    ```
    CustomLog "|/bin/rotatelogs -l /var/logs/logfile.%Y.%m.%d 86400" combined
    ```
@@ -106,7 +109,9 @@ rotate 4
 ## CIS Controls
 
 **v8:**
+
 - 8.3 Ensure Adequate Audit Log Storage
 
 **v7:**
+
 - 6.4 Ensure adequate storage for logs

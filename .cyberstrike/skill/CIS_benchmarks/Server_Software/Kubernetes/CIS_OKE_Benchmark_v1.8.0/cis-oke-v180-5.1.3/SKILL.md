@@ -4,7 +4,19 @@ description: "Minimize cluster access to read-only (Manual)"
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, image-registry, image-scanning, least-privilege, read-only, service-account]
+tags:
+  [
+    cis,
+    oke,
+    kubernetes,
+    oci,
+    managed-services,
+    image-registry,
+    image-scanning,
+    least-privilege,
+    read-only,
+    service-account,
+  ]
 cis_id: "5.1.3"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -59,13 +71,13 @@ The default permissions for the cluster Service account is dependent on the init
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x | x | x |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | x    | x    | x    |
+| v7               | 14 Controlled Access Based on the Need to Know                            |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1026       |

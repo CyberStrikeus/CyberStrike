@@ -23,10 +23,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -107,8 +105,8 @@ bitsadmin.exe /complete #{bits_job_name}
 ### Atomic Test 4: Bits download using desktopimgdownldr.exe (cmd)
 
 This test simulates using desktopimgdownldr.exe to download a malicious file
-instead of a desktop or lockscreen background img. The process that actually makes 
-the TCP connection and creates the file on the disk is a svchost process (“-k netsvc -p -s BITS”) 
+instead of a desktop or lockscreen background img. The process that actually makes
+the TCP connection and creates the file on the disk is a svchost process (“-k netsvc -p -s BITS”)
 and not desktopimgdownldr.exe. See https://labs.sentinelone.com/living-off-windows-land-a-new-native-file-downldr/
 
 **Supported Platforms:** windows
@@ -116,7 +114,6 @@ and not desktopimgdownldr.exe. See https://labs.sentinelone.com/living-off-windo
 ```cmd
 set "#{download_path}" && cmd /c desktopimgdownldr.exe /lockscreenurl:#{remote_file} /eventName:desktopimgdownldr
 ```
-
 
 ### Manual Testing
 
@@ -131,32 +128,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Consider limiting access to the BITS interface to specific users or groups.
 
 ### M1037 Filter Network Traffic
+
 Modify network and/or host firewall rules, as well as other network controls, to only allow legitimate BITS traffic.
 
 ### M1028 Operating System Configuration
-Consider reducing the default BITS job lifetime in Group Policy or by editing the <code>JobInactivityTimeout</code> and <code>MaxDownloadTime</code> Registry values in <code> HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\BITS</code>.
 
+Consider reducing the default BITS job lifetime in Group Policy or by editing the <code>JobInactivityTimeout</code> and <code>MaxDownloadTime</code> Registry values in <code> HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\BITS</code>.
 
 ## Detection
 
 ### Detect abuse of Windows BITS Jobs for download, execution and persistence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| BITS Jobs technique applicable | Low | Defense Evasion |
+| Finding                        | Severity | Impact          |
+| ------------------------------ | -------- | --------------- |
+| BITS Jobs technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

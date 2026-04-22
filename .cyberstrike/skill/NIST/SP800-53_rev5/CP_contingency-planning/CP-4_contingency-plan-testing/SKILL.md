@@ -14,8 +14,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-3
   - CP-2
@@ -27,8 +26,7 @@ chains_with:
   - PL-2
   - PM-14
   - SR-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-3: "Chain with AT-3 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ Methods for testing contingency plans to determine the effectiveness of the plan
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-4 Contingency Plan Testing not implemented | Medium | Contingency Planning |
-| CP-4 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                       | Severity | Impact                          |
+| --------------------------------------------- | -------- | ------------------------------- |
+| CP-4 Contingency Plan Testing not implemented | Medium   | Contingency Planning            |
+| CP-4 partially implemented                    | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

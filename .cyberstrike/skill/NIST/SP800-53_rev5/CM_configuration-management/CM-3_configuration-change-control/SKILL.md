@@ -29,8 +29,7 @@ chains_with:
   - IA-3
   - MA-2
   - PE-16
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   CM-2: "Chain with CM-2 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -98,17 +97,16 @@ Configuration change control for organizational systems involves the systematic 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-3 Configuration Change Control not implemented | Medium | Configuration Management |
-| CM-3 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                           | Severity | Impact                              |
+| ------------------------------------------------- | -------- | ----------------------------------- |
+| CM-3 Configuration Change Control not implemented | Medium   | Configuration Management            |
+| CM-3 partially implemented                        | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

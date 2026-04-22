@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-200
 chains_with:
   - T1639.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1639.001: "Chain with T1639.001 for deeper attack path"
 ---
@@ -36,7 +35,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server. 
+Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server.
 
 Alternate protocols include FTP, SMTP, HTTP/S, DNS, SMB, or any other network protocol not being used as the main command and control channel. Different protocol channels could also include Web services such as cloud storage. Adversaries may opt to also encrypt and/or obfuscate these alternate channels.
 
@@ -71,19 +70,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Exfiltration Over Alternative Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Alternative Protocol technique applicable | Medium | Exfiltration |
+| Finding                                                     | Severity | Impact       |
+| ----------------------------------------------------------- | -------- | ------------ |
+| Exfiltration Over Alternative Protocol technique applicable | Medium   | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

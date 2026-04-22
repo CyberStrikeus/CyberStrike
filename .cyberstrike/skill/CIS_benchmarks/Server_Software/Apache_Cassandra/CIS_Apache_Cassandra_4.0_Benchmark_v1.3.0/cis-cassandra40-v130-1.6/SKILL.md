@@ -17,6 +17,7 @@ severity_boost: {}
 # 1.6 Ensure clocks are synchronized on all nodes
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -52,12 +53,15 @@ Install and start the time protocol on every node in the Cassandra cluster.
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 8.4 Standardize Time Synchronization
   - Standardize time synchronization. Configure at least two synchronized time sources across enterprise assets, where supported.
 
 **Controls Version v7:**
+
 - 6.1 Utilize Three Synchronized Time Sources
   - Use at least three synchronized time sources from which all servers and network devices retrieve time information on a regular basis so that timestamps in logs are consistent.
 
 ## Profile
+
 - Level 1 | Manual

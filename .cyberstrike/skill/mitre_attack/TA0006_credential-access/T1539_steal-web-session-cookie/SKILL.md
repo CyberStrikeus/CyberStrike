@@ -33,10 +33,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-522
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -77,8 +75,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Steal Firefox Cookies (Windows)
 
-This test queries Firefox's cookies.sqlite database to steal the cookie data contained within it, similar to Zloader/Zbot's cookie theft function. 
-Note: If Firefox is running, the process will be killed to ensure that the DB file isn't locked. 
+This test queries Firefox's cookies.sqlite database to steal the cookie data contained within it, similar to Zloader/Zbot's cookie theft function.
+Note: If Firefox is running, the process will be killed to ensure that the DB file isn't locked.
 See https://www.malwarebytes.com/resources/files/2020/05/the-silent-night-zloader-zbot_final.pdf.
 
 **Supported Platforms:** windows
@@ -90,13 +88,14 @@ $CookieDBLocation = get-childitem -path "$env:appdata\Mozilla\Firefox\Profiles\*
 ```
 
 **Dependencies:**
+
 - Sqlite3 must exist at (#{sqlite3_path})
 
 ### Atomic Test 2: Steal Chrome Cookies (Windows)
 
-This test queries Chrome's SQLite database to steal the encrypted cookie data, designed to function similarly to Zloader/Zbot's cookie theft function. 
-Once an adversary obtains the encrypted cookie info, they could go on to decrypt the encrypted value, potentially allowing for session theft. 
-Note: If Chrome is running, the process will be killed to ensure that the DB file isn't locked. 
+This test queries Chrome's SQLite database to steal the encrypted cookie data, designed to function similarly to Zloader/Zbot's cookie theft function.
+Once an adversary obtains the encrypted cookie info, they could go on to decrypt the encrypted value, potentially allowing for session theft.
+Note: If Chrome is running, the process will be killed to ensure that the DB file isn't locked.
 See https://www.malwarebytes.com/resources/files/2020/05/the-silent-night-zloader-zbot_final.pdf.
 
 **Supported Platforms:** windows
@@ -107,6 +106,7 @@ stop-process -name "chrome" -force -erroraction silentlycontinue
 ```
 
 **Dependencies:**
+
 - Sqlite3 must exist at (#{sqlite3_path})
 
 ### Atomic Test 3: Steal Chrome Cookies via Remote Debugging (Mac)
@@ -130,6 +130,7 @@ sleep 1
 ```
 
 **Dependencies:**
+
 - Install Go
 - Download and compile WhiteChocolateMacademiaNut
 
@@ -186,7 +187,6 @@ This command will copy Safari BinaryCookies files using AppleScript as seen in A
 osascript -e 'tell application "Finder"' -e 'set destinationFolderPath to POSIX file "#{destination_path}"' -e 'set safariFolder to ((path to library folder from user domain as text) & "Containers:com.apple.Safari:Data:Library:Cookies:")' -e 'duplicate file "Cookies.binarycookies" of folder safariFolder to folder destinationFolderPath with replacing' -e 'end tell'
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -200,45 +200,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Implement auditing for authentication activities and user logins to detect the use of stolen session cookies. Monitor for impossible travel scenarios and anomalous behavior that could indicate the use of compromised session tokens or cookies.
 
 ### M1054 Software Configuration
+
 Configure browsers or tasks to regularly delete persistent cookies.
 
 Additionally, minimize the length of time a web cookie is viable to potentially reduce the impact of stolen cookies while also increasing the needed frequency of cookie theft attempts – providing defenders with additional chances at detection. For example, use non-persistent cookies to limit the duration a session ID will remain on the web client cache where an attacker could obtain it.
 
 ### M1021 Restrict Web-Based Content
+
 Restrict or block web-based content that could be used to extract session cookies or credentials stored in browsers. Use browser security settings, such as disabling third-party cookies and restricting browser extensions, to limit the attack surface.
 
 ### M1032 Multi-factor Authentication
+
 Deploy hardware-based token (e.g., YubiKey or FIDO key), which incorporates the target login domain as part of the negotiation protocol, will prevent session cookie theft through proxy methods.
 
 Implement Conditional Access policies to only allow logins from trusted devices, such as those enrolled in Intune or joined via Hybrid/Entra. This mitigates the risk of session cookie replay attacks by ensuring that stolen tokens cannot be reused on unauthorized devices.
 
 ### M1051 Update Software
+
 Regularly update web browsers, password managers, and all related software to the latest versions. Keeping software up-to-date reduces the risk of vulnerabilities being exploited by attackers to extract stored credentials or session cookies.
 
 ### M1017 User Training
-Train users to identify aspects of phishing attempts where they're asked to enter credentials into a site that has the incorrect domain for the application they are logging into. Additionally, train users not to run untrusted JavaScript in their browser, such as by copying and pasting code or dragging and dropping bookmarklets.
 
+Train users to identify aspects of phishing attempts where they're asked to enter credentials into a site that has the incorrect domain for the application they are logging into. Additionally, train users not to run untrusted JavaScript in their browser, such as by copying and pasting code or dragging and dropping bookmarklets.
 
 ## Detection
 
 ### Detection of Web Session Cookie Theft via File, Memory, and Network Artifacts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steal Web Session Cookie technique applicable | High | Credential Access |
+| Finding                                       | Severity | Impact            |
+| --------------------------------------------- | -------- | ----------------- |
+| Steal Web Session Cookie technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -29,8 +29,7 @@ chains_with:
   - PL-9
   - RA-5
   - SC-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   AC-19: "Chain with AC-19 for comprehensive security coverage"
@@ -79,10 +78,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -105,17 +104,16 @@ In situations where malicious code cannot be detected by detection methods or te
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-3 Malicious Code Protection not implemented | High | System and Information Integrity |
-| SI-3 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                        | Severity | Impact                                      |
+| ---------------------------------------------- | -------- | ------------------------------------------- |
+| SI-3 Malicious Code Protection not implemented | High     | System and Information Integrity            |
+| SI-3 partially implemented                     | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

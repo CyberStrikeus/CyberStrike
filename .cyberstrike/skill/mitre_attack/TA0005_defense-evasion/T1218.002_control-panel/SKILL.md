@@ -53,7 +53,7 @@ severity_boost:
 
 Adversaries may abuse control.exe to proxy execution of malicious payloads. The Windows Control Panel process binary (control.exe) handles execution of Control Panel items, which are utilities that allow users to view and adjust computer settings.
 
-Control Panel items are registered executable (.exe) or Control Panel (.cpl) files, the latter are actually renamed dynamic-link library (.dll) files that export a <code>CPlApplet</code> function. For ease of use, Control Panel items typically include graphical menus available to users after being registered and loaded into the Control Panel. Control Panel items can be executed directly from the command line, programmatically via an application programming interface (API) call, or by simply double-clicking the file. 
+Control Panel items are registered executable (.exe) or Control Panel (.cpl) files, the latter are actually renamed dynamic-link library (.dll) files that export a <code>CPlApplet</code> function. For ease of use, Control Panel items typically include graphical menus available to users after being registered and loaded into the Control Panel. Control Panel items can be executed directly from the command line, programmatically via an application programming interface (API) call, or by simply double-clicking the file.
 
 Malicious Control Panel items can be delivered via Phishing campaigns or executed as part of multi-stage malware. Control Panel items, specifically CPL files, may also bypass application and/or file extension allow lists.
 
@@ -90,8 +90,8 @@ control.exe "#{cpl_file_path}"
 ```
 
 **Dependencies:**
-- Cpl file must exist on disk at specified location (#{cpl_file_path})
 
+- Cpl file must exist on disk at specified location (#{cpl_file_path})
 
 ### Manual Testing
 
@@ -106,29 +106,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict storage and execution of Control Panel items to protected directories, such as <code>C:\Windows</code>, rather than user directories.
 
 ### M1038 Execution Prevention
-Identify and block potentially malicious and unknown .cpl files by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
+Identify and block potentially malicious and unknown .cpl files by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
 ## Detection
 
 ### Detection of Malicious Control Panel Item Execution via control.exe or Rundll32
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Control Panel technique applicable | High | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| Control Panel technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

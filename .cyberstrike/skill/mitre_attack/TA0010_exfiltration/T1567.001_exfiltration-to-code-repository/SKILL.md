@@ -84,26 +84,24 @@ Exfiltration to a code repository can also provide a significant amount of cover
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
-Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
+Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration to Code Repository
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration to Code Repository technique applicable | Low | Exfiltration |
+| Finding                                              | Severity | Impact       |
+| ---------------------------------------------------- | -------- | ------------ |
+| Exfiltration to Code Repository technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

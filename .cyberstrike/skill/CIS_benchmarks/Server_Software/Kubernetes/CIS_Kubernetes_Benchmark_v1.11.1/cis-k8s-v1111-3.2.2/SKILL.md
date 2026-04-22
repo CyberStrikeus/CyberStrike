@@ -58,7 +58,7 @@ By default Kubernetes clusters do not log audit information.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | x |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs                                     |      | x    | x    |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | x    |

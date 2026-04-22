@@ -27,10 +27,8 @@ tech_stack:
   - linux
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -74,29 +72,28 @@ Adversaries have also used malicious USB devices to emulate keystrokes that laun
 ## Remediation Guide
 
 ### M1034 Limit Hardware Installation
+
 Limit the use of USB devices and removable media within a network.
 
 ### M1038 Execution Prevention
-Denylist scripting and use application control where appropriate. For example, PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
+Denylist scripting and use application control where appropriate. For example, PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
 ## Detection
 
 ### Detection Strategy for Input Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Input Injection technique applicable | High | Execution |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| Input Injection technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

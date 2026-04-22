@@ -83,32 +83,32 @@ Adversaries may abuse verclsid.exe to execute malicious payloads. This may be ac
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control configured to block execution of verclsid.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1037 Filter Network Traffic
+
 Consider modifying host firewall rules to prevent egress traffic from verclsid.exe.
 
 ### M1042 Disable or Remove Feature or Program
-Consider removing verclsid.exe if it is not necessary within a given environment.
 
+Consider removing verclsid.exe if it is not necessary within a given environment.
 
 ## Detection
 
 ### Detection Strategy for T1218.012 Verclsid Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Verclsid technique applicable | Medium | Defense Evasion |
+| Finding                       | Severity | Impact          |
+| ----------------------------- | -------- | --------------- |
+| Verclsid technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

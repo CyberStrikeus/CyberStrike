@@ -86,6 +86,7 @@ PPID-Spoof -ppid $ppid -spawnto "#{spawnto_process_path}" -dllpath "#{dll_path}"
 ```
 
 **Dependencies:**
+
 - DLL to inject must exist on disk at specified location (#{dll_path})
 - PPID.ps1 must exist on disk at $PathToAtomicsFolder\T1134.004\src\PPID-Spoof.ps1
 
@@ -100,6 +101,7 @@ Start-ATHProcessUnderSpecificParent -FilePath #{file_path} -CommandLine '#{comma
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Start-ATHProcessUnderSpecificParent must be exported in the module.
 
 ### Atomic Test 3: Parent PID Spoofing - Spawn from Specified Process
@@ -113,6 +115,7 @@ Start-ATHProcessUnderSpecificParent  -ParentId #{parent_pid} -TestGuid #{test_gu
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Start-ATHProcessUnderSpecificParent must be exported in the module.
 
 ### Atomic Test 4: Parent PID Spoofing - Spawn from svchost.exe
@@ -126,6 +129,7 @@ Get-CimInstance -ClassName Win32_Process -Property Name, CommandLine, ProcessId 
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Start-ATHProcessUnderSpecificParent must be exported in the module.
 
 ### Atomic Test 5: Parent PID Spoofing - Spawn from New Process
@@ -139,8 +143,8 @@ Start-Process -FilePath #{parent_name} -PassThru | Start-ATHProcessUnderSpecific
 ```
 
 **Dependencies:**
-- The AtomicTestHarnesses module must be installed and Start-ATHProcessUnderSpecificParent must be exported in the module.
 
+- The AtomicTestHarnesses module must be installed and Start-ATHProcessUnderSpecificParent must be exported in the module.
 
 ### Manual Testing
 
@@ -160,19 +164,17 @@ No specific mitigations documented for this technique.
 
 ### Behavior-chain detection for T1134.004 Access Token Manipulation: Parent PID Spoofing (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Parent PID Spoofing technique applicable | High | Defense Evasion |
+| Finding                                  | Severity | Impact          |
+| ---------------------------------------- | -------- | --------------- |
+| Parent PID Spoofing technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

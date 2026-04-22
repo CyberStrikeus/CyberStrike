@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SC-29
   - SR-3
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ Information technology products have different strengths and weaknesses. Providi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-8(2) Supplier Diversity not implemented | Medium | Planning |
-| PL-8(2) partially implemented | Low | Incomplete Planning |
+| Finding                                    | Severity | Impact              |
+| ------------------------------------------ | -------- | ------------------- |
+| PL-8(2) Supplier Diversity not implemented | Medium   | Planning            |
+| PL-8(2) partially implemented              | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

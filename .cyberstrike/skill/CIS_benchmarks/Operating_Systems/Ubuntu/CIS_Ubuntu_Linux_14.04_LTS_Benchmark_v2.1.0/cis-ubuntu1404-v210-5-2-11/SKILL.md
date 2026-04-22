@@ -66,6 +66,7 @@ MACs include all available algorithms by default.
 ## References
 
 1. More information on SSH downgrade attacks can be found here: http://www.mitls.org/pages/attacks/SLOTH
+
 - CIS Controls: 3.4 - Use Only Secure Channels For Remote System Administration
 
 ## Profile

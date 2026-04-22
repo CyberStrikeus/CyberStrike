@@ -53,7 +53,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may execute their own malicious payloads by hijacking the Registry entries used by services. Flaws in the permissions for Registry keys related to services can allow adversaries to redirect the originally specified executable to one they control, launching their own code when a service starts. Windows stores local service configuration information in the Registry under <code>HKLM\SYSTEM\CurrentControlSet\Services</code>. The information stored under a service's Registry keys can be manipulated to modify a service's execution parameters through tools such as the service controller, sc.exe, PowerShell, or Reg. Access to Registry keys is controlled through access control lists and user permissions. 
+Adversaries may execute their own malicious payloads by hijacking the Registry entries used by services. Flaws in the permissions for Registry keys related to services can allow adversaries to redirect the originally specified executable to one they control, launching their own code when a service starts. Windows stores local service configuration information in the Registry under <code>HKLM\SYSTEM\CurrentControlSet\Services</code>. The information stored under a service's Registry keys can be manipulated to modify a service's execution parameters through tools such as the service controller, sc.exe, PowerShell, or Reg. Access to Registry keys is controlled through access control lists and user permissions.
 
 If the permissions for users and groups are not properly set and allow access to the Registry keys for a service, adversaries may change the service's binPath/ImagePath to point to a different executable under their control. When the service starts or is restarted, the adversary-controlled program will execute, allowing the adversary to establish persistence and/or privilege escalation to the account context the service is set to execute under (local/domain account, SYSTEM, LocalService, or NetworkService).
 
@@ -113,8 +113,8 @@ reg.exe add "HKLM\SYSTEM\CurrentControlSet\Services\#{weak_service_name}" /f /v 
 ```
 
 **Dependencies:**
-- The service must exist (#{weak_service_name})
 
+- The service must exist (#{weak_service_name})
 
 ### Manual Testing
 
@@ -129,26 +129,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
-Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
+Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow through Service Registry Premission Weakness.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Services Registry Permissions Weakness technique applicable | High | Persistence |
+| Finding                                                     | Severity | Impact      |
+| ----------------------------------------------------------- | -------- | ----------- |
+| Services Registry Permissions Weakness technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

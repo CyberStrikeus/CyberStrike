@@ -60,7 +60,7 @@ Although the current Kubernetes documentation site says that `--address` is depr
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.6 Use of Secure Network Management and Communication Protocols | | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.6 Use of Secure Network Management and Communication Protocols  |      | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | x    | x    |

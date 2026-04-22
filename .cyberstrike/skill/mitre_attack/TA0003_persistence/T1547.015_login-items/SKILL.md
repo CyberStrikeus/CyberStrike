@@ -93,7 +93,6 @@ In addition to the `osascript` Process Events, file modification events to
 osascript #{scriptfile}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -112,19 +111,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for T1547.015 – Login Items on macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Login Items technique applicable | High | Persistence |
+| Finding                          | Severity | Impact      |
+| -------------------------------- | -------- | ----------- |
+| Login Items technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

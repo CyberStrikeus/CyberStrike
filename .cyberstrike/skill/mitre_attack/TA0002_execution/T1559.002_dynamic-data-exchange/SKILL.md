@@ -95,7 +95,6 @@ Word VBA Macro
 
 **Supported Platforms:** windows
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -109,35 +108,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent DDE attacks and spawning of child processes from Office programs.
 
 ### M1048 Application Isolation and Sandboxing
+
 Ensure Protected View is enabled.
 
 ### M1054 Software Configuration
+
 Consider disabling embedded files in Office programs, such as OneNote, that do not work with Protected View.
 
 ### M1042 Disable or Remove Feature or Program
-Registry keys specific to Microsoft Office feature control security can be set to disable automatic DDE/OLE execution. Microsoft also created, and enabled by default, Registry keys to completely disable DDE execution in Word and Excel.
 
+Registry keys specific to Microsoft Office feature control security can be set to disable automatic DDE/OLE execution. Microsoft also created, and enabled by default, Registry keys to completely disable DDE execution in Word and Excel.
 
 ## Detection
 
 ### Detect Abuse of Dynamic Data Exchange (T1559.002)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dynamic Data Exchange technique applicable | High | Execution |
+| Finding                                    | Severity | Impact    |
+| ------------------------------------------ | -------- | --------- |
+| Dynamic Data Exchange technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

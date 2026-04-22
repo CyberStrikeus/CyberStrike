@@ -62,7 +62,7 @@ severity_boost:
 
 Adversaries may use steganography techniques in order to prevent the detection of hidden information. Steganographic techniques can be used to hide data in digital media such as images, audio tracks, video clips, or text files.
 
-Duqu was an early example of malware that used steganography. It encrypted the gathered information from a victim's system and hid it within an image before exfiltrating the image to a C2 server. 
+Duqu was an early example of malware that used steganography. It encrypted the gathered information from a victim's system and hid it within an image before exfiltrating the image to a C2 server.
 
 By the end of 2017, a threat group used <code>Invoke-PSImage</code> to hide PowerShell commands in an image file (.png) and execute the code on a victim's system. In this particular case the PowerShell code downloaded another obfuscated script to gather intelligence from the victim's machine and communicate it back to the adversary.
 
@@ -100,19 +100,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Steganographic Abuse in File & Script Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steganography technique applicable | Medium | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| Steganography technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

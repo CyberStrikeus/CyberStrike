@@ -20,8 +20,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1608/004"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1608
   - T1608.001
@@ -47,9 +46,9 @@ Adversaries may prepare an operational environment to infect systems that visit 
 
 Adversaries may upload or inject malicious web content, such as JavaScript, into websites. This may be done in a number of ways, including:
 
-* Inserting malicious scripts into web pages or other user controllable web content such as forum posts
-* Modifying script files served to websites from publicly writeable cloud storage buckets
-* Crafting malicious web advertisements and purchasing ad space on a website through legitimate ad providers (i.e., Malvertising)
+- Inserting malicious scripts into web pages or other user controllable web content such as forum posts
+- Modifying script files served to websites from publicly writeable cloud storage buckets
+- Crafting malicious web advertisements and purchasing ad space on a website through legitimate ad providers (i.e., Malvertising)
 
 In addition to staging content to exploit a user's web browser, adversaries may also stage scripting content to profile the user's browser (as in Gather Victim Host Information) to ensure it is vulnerable prior to attempting exploitation.
 
@@ -85,25 +84,24 @@ Adversaries may purchase domains similar to legitimate domains (ex: homoglyphs, 
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Drive-by Target
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Drive-by Target technique applicable | High | Resource Development |
+| Finding                              | Severity | Impact               |
+| ------------------------------------ | -------- | -------------------- |
+| Drive-by Target technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

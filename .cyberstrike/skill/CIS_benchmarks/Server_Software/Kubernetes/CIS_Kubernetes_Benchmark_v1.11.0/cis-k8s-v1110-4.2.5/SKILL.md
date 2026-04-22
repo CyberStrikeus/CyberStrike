@@ -72,7 +72,7 @@ By default, `--streaming-connection-idle-timeout` is set to 4 hours.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.5 Enable Anti-Exploitation Features | | x | x |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies | | x | x |
+| Controls Version | Control                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features                                                    |      | x    | x    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features / Deploy Anti-Exploit Technologies |      | x    | x    |

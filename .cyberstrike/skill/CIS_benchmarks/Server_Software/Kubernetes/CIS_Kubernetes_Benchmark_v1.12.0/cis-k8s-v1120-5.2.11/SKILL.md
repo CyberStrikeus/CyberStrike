@@ -54,7 +54,7 @@ By default, there are no restrictions on the creation of `hostPath` volumes.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.12 Segment Data Processing and Storage Based on Sensitivity | | X | X |
-| v7 | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers | | X | X |
+| Controls Version | Control                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.12 Segment Data Processing and Storage Based on Sensitivity         |      | X    | X    |
+| v7               | 13.4 Only Allow Access to Authorized Cloud Storage or Email Providers |      | X    | X    |

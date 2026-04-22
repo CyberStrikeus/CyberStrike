@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.6.0 - Control 3.2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Kubernetes can audit the details of requests made to the API server.
 
 ## Rationale
+
 Logging is an important detective control for all systems, to detect potential unauthorized access.
 
 ## Impact
+
 Audit logs will be created on the master nodes, which will consume disk space. Care should be taken to avoid generating too large volumes of log information as this could impact the available of the cluster nodes.
 
 ## Audit Procedure
+
 In OpenShift, auditing of the API Server is on by default. Audit provides a security-relevant chronological set of records documenting the sequence of activities that have affected the system by individual users, administrators, or other components of the system. Audit works at the API server level, logging all requests coming to the server.
 
 Each audit log contains two entries:
@@ -44,6 +49,7 @@ A Unique ID allowing to match the response line (see #2)
 - The URI as requested
 
 The response line containing:
+
 - The unique ID from #1
 - The response code
 
@@ -90,30 +96,34 @@ oc adm node-logs --role=master --path=openshift-apiserver/
 Verify logs are returned.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 Auditing logging is enabled by default, using the `Default` audit profile.
 
 Please reference the OpenShift audit logging documentation for more information on various profiles and configuration guidance.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/audit-log-policy-config.html
 2. https://github.com/openshift/cluster-kube-apiserver-operator/blob/master/bindata/v4.1.0/config/defaultconfig.yaml#L17-L31
 3. https://kubernetes.io/docs/tasks/debug-application-cluster/audit/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | X    | X    | X    |
+| v7               | 6.2 Activate audit logging | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1543 | TA0003, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1026       |
 
 ## Profile
+
 **Level 1** (Manual)

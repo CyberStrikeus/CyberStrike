@@ -14,8 +14,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - CP-4
@@ -26,8 +25,7 @@ chains_with:
   - SA-8
   - SC-24
   - SI-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-4: "Chain with CP-4 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Recovery is executing contingency plan activities to restore organizational miss
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-10 System Recovery and Reconstitution not implemented | Medium | Contingency Planning |
-| CP-10 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                                  | Severity | Impact                          |
+| -------------------------------------------------------- | -------- | ------------------------------- |
+| CP-10 System Recovery and Reconstitution not implemented | Medium   | Contingency Planning            |
+| CP-10 partially implemented                              | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

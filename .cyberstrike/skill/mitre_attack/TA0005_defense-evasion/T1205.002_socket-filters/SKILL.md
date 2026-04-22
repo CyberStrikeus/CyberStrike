@@ -86,26 +86,24 @@ Filters can be installed on any Unix-like platform with `libpcap` installed or o
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Mitigation of some variants of this technique could be achieved through the use of stateful firewalls, depending upon how it is implemented.
 
+Mitigation of some variants of this technique could be achieved through the use of stateful firewalls, depending upon how it is implemented.
 
 ## Detection
 
 ### Socket-filter trigger → on-host raw-socket activity → reverse connection (T1205.002)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Socket Filters technique applicable | High | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Socket Filters technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

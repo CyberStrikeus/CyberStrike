@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-778
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,17 +87,16 @@ An event is any observable occurrence in a system, including unlawful or unautho
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Event Logging (03.03.01) Event Logging not implemented | Medium | CUI Protection - Audit and Accountability |
-| Event Logging (03.03.01) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                | Severity | Impact                                    |
+| ------------------------------------------------------ | -------- | ----------------------------------------- |
+| Event Logging (03.03.01) Event Logging not implemented | Medium   | CUI Protection - Audit and Accountability |
+| Event Logging (03.03.01) partially implemented (POA&M) | Low      | CMMC certification risk                   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,10 +63,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -83,16 +80,16 @@ This requirement addresses the need to determine an appropriate response to risk
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Risk Response (03.11.04) Risk Response not implemented | Medium | CUI Protection - Risk Assessment |
-| Risk Response (03.11.04) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                | Severity | Impact                           |
+| ------------------------------------------------------ | -------- | -------------------------------- |
+| Risk Response (03.11.04) Risk Response not implemented | Medium   | CUI Protection - Risk Assessment |
+| Risk Response (03.11.04) partially implemented (POA&M) | Low      | CMMC certification risk          |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

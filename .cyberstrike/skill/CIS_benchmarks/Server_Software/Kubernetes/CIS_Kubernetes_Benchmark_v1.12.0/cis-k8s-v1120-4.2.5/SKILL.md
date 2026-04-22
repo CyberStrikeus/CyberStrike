@@ -72,10 +72,10 @@ By default, `--streaming-connection-idle-timeout` is set to 4 hours.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features<br>Enable anti-exploitation features on enterprise assets and software, where possible. | | ● | ● |
-| v7 | 8.3 Enable Operating System Anti-Exploitation Features/Deploy Anti-Exploit Technologies<br>Enable anti-exploitation features such as Data Execution Prevention (DEP) or Address Space Layout Randomization (ASLR). | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features<br>Enable anti-exploitation features on enterprise assets and software, where possible.                                                                                     |      | ●    | ●    |
+| v7               | 8.3 Enable Operating System Anti-Exploitation Features/Deploy Anti-Exploit Technologies<br>Enable anti-exploitation features such as Data Execution Prevention (DEP) or Address Space Layout Randomization (ASLR). |      | ●    | ●    |
 
 ## Profile Applicability
 

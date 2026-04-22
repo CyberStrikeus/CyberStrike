@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Apache Tomcat 7 - 1.1 Remove extraneous files and directories (Scored)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
+
 The installation may provide example applications, documentation, and other directories which may not serve a production use.
 
 ## Rationale
+
 Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources.
 
 ## Impact
+
 Removal of example applications and documentation reduces available attack surface.
 
 ## Audit Procedure
@@ -73,15 +77,20 @@ $ rm -rf $CATALINA_HOME/server/webapps/host-manager \
 ```
 
 ## Default Value
+
 Depending on your install method, default extraneous resources will vary.
 
 ## References
+
 - CIS Apache Tomcat 7 Benchmark v1.0.0
 
 ## CIS Controls
+
 Version 7:
+
 - 18.9 Limit Use of Live Operating System to Those That Are Needed
 
 ## Assessment Status
+
 - **Scored**
 - **Profile**: Level 2

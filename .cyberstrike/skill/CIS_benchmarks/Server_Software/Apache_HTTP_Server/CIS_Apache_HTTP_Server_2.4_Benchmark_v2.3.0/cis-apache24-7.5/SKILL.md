@@ -79,7 +79,9 @@ The following are the default values:
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
 
 **v7:**
+
 - 11.4 Install the Latest Stable Version of Any Security-related Updates on All Network Devices

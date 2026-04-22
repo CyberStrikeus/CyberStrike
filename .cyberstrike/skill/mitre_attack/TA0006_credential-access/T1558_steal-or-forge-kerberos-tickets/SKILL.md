@@ -33,8 +33,7 @@ chains_with:
   - T1558.003
   - T1558.004
   - T1558.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1558.001: "Chain with T1558.001 for deeper attack path"
   T1558.002: "Chain with T1558.002 for deeper attack path"
@@ -79,43 +78,46 @@ On Windows, the built-in <code>klist</code> utility can be used to list and anal
 ## Remediation Guide
 
 ### M1015 Active Directory Configuration
+
 For containing the impact of a previously generated golden ticket, reset the built-in KRBTGT account password twice, which will invalidate any existing golden tickets that have been created with the KRBTGT hash and other Kerberos tickets derived from it. For each domain, change the KRBTGT account password once, force replication, and then change the password a second time. Consider rotating the KRBTGT account password every 180 days.
 
 ### M1043 Credential Access Protection
+
 On Linux systems, protect resources with Security Enhanced Linux (SELinux) by defining entry points, process types, and file labels.
 
 ### M1041 Encrypt Sensitive Information
+
 Enable AES Kerberos encryption (or another stronger encryption algorithm), rather than RC4, where possible.
 
 ### M1027 Password Policies
+
 Ensure strong password length (ideally 25+ characters) and complexity for service accounts and that these passwords periodically expire. Also consider using Group Managed Service Accounts or another third party product such as password vaulting.
 
 ### M1047 Audit
+
 Perform audits or scans of systems, permissions, insecure software, insecure configurations, etc. to identify potential weaknesses.
 
 ### M1026 Privileged Account Management
+
 Limit domain admin account permissions to domain controllers and limited servers. Delegate other admin functions to separate accounts.
 
 Limit service accounts to minimal required privileges, including membership in privileged groups such as Domain Administrators.
-
 
 ## Detection
 
 ### Detect Kerberos Ticket Theft or Forgery (T1558)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steal or Forge Kerberos Tickets technique applicable | Low | Credential Access |
+| Finding                                              | Severity | Impact            |
+| ---------------------------------------------------- | -------- | ----------------- |
+| Steal or Forge Kerberos Tickets technique applicable | Low      | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

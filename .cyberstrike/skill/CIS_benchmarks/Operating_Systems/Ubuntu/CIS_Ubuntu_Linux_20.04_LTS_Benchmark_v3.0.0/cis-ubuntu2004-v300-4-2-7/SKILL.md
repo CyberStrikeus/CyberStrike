@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.2.7
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Services and ports can be accepted or explicitly rejected.
 
 Note:
+
 - Changing firewall settings while connected over network can result in being locked out of the system
 - The remediation command opens up the port to traffic from all sources. Consult ufw documentation and set any restrictions in compliance with site policy
 

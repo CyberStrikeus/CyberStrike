@@ -53,6 +53,7 @@ The default value is `2097152` (2MB) in Tomcat 8.
 ## CIS Controls
 
 **v7:**
+
 - 9.4 Apply Host-based Firewalls or Port Filtering
   - Apply host-based firewalls or port filtering tools on end systems, with a default-deny rule that drops all traffic except those services and ports that are explicitly allowed.
 

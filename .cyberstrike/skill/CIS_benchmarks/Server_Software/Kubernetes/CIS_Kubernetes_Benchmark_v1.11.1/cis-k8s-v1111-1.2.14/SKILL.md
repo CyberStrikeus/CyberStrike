@@ -62,7 +62,7 @@ By default, `NodeRestriction` is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 13.10 Perform Application Layer Filtering | | | x |
-| v7 | 12.9 Deploy Application Layer Filtering Proxy Server | | | x |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering            |      |      | x    |
+| v7               | 12.9 Deploy Application Layer Filtering Proxy Server |      |      | x    |

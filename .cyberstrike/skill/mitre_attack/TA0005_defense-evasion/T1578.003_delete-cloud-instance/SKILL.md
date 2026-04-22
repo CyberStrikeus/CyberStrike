@@ -74,29 +74,28 @@ An adversary may also Create Cloud Instance and later terminate the instance aft
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit permissions for deleting new instances in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
 ### M1047 Audit
-Routinely check user permissions to ensure only the expected users have the capability to delete new instances.
 
+Routinely check user permissions to ensure only the expected users have the capability to delete new instances.
 
 ## Detection
 
 ### Detection Strategy for Modify Cloud Compute Infrastructure: Delete Cloud Instance
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Delete Cloud Instance technique applicable | Low | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Delete Cloud Instance technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

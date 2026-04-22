@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure minimum days between password changes is configured
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -82,10 +83,10 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v6 | 16 Account Monitoring and Control - Account Monitoring and Control |
-| v7 | 4.4 Use Unique Passwords - Where multi-factor authentication is not supported (such as local administrator, root, or service accounts), accounts will use passwords that are unique to that system. |
+| Controls Version | Control                                                                                                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v6               | 16 Account Monitoring and Control - Account Monitoring and Control                                                                                                                                  |
+| v7               | 4.4 Use Unique Passwords - Where multi-factor authentication is not supported (such as local administrator, root, or service accounts), accounts will use passwords that are unique to that system. |
 
 ## Profile
 

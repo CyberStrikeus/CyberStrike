@@ -4,7 +4,19 @@ description: "Ensure Container-Optimized OS (cos_containerd) is used for GKE Nod
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, node-configuration, container-optimized-os, auto-repair, auto-upgrade, release-channels, shielded-nodes]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    node-configuration,
+    container-optimized-os,
+    auto-repair,
+    auto-upgrade,
+    release-channels,
+    shielded-nodes,
+  ]
 cis_id: "5.5.1"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -97,7 +109,7 @@ Container-optimised OS with containerd (cos_containerd) (default) is the default
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software |      | x    | x    |
+| v7               | 5.2 Maintain Secure Images        |      | x    | x    |

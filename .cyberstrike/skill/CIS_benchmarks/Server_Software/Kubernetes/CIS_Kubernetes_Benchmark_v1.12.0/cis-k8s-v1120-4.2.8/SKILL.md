@@ -72,10 +72,10 @@ By default, eventRecordQPS argument is set to `5`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs<br>Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets. | ● | ● | ● |
-| v7 | 6.2 Activate audit logging<br>Ensure that local logging has been enabled on all systems and networking devices. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs<br>Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets. | ●    | ●    | ●    |
+| v7               | 6.2 Activate audit logging<br>Ensure that local logging has been enabled on all systems and networking devices.                                                  | ●    | ●    | ●    |
 
 ## Profile Applicability
 

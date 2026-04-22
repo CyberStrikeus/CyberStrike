@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS 7.4 — Ensure Either SPF or DKIM DNS Records are Configured
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 2
 
 ## Description
+
 For each authoritative domain that receives SMTP email, add either an SPF (Sender Policy Framework) TXT record and/or add a DKIM (DomainKeys Identified Mail) TXT record.
 
 ## Rationale
+
 The SPF record reduces spam and phishing usage of a domain name, by publishing the IP addresses of the authorized mail servers, allowed to send mail for the domain. SPF compliant mail servers may reject or treat as SPAM, any mail coming from other IP addresses.
 
 The DKIM record publishes a public key which may be used to verify the authenticity and integrity of the message by using the key to verify a digital signature of the message stored in an SMTP header.
@@ -30,9 +33,11 @@ The DKIM record publishes a public key which may be used to verify the authentic
 Either or both of the technologies is recommended to be configured for each domain, to reduced spoofing and phishing attacks that use the domains in a FROM address. Consider the risk of a spoofed phishing email coming from upper management with an urgent request which had a valid FROM address. It might be too easy for someone to trust the email and take the action requested. In addition to SPF and DKIM, configuring a DMARC record, after SPF and/or DKIM records are in place, is helpful for reporting and forensics on attempted usage of the domain name. Only the SPF and DKIM DNS records are audited in this recommendation.
 
 ## Impact
+
 Not specified in the PDF.
 
 ## Audit Procedure
+
 For each authoritative domain, perform the following:
 
 - Check the domain for an MX record to verify that the domain receives SMTP email. If there no MX record, then the domain is considered compliant. The following host command will query the localhost DNS server for any MX records for the given domain. The output below shows a domain that does not have an MX record.
@@ -66,28 +71,34 @@ p=MIGf. . . "
 If there is no output, then a default DKIM record does not exist.
 
 ## Remediation
+
 Add either an SPF TXT record and/or a default DKIM TXT record to the domains with the appropriate values. The SPF record should have a soft fail policy of `~all` or a strict policy of `-all`. There are on-line resources and tools such as MX toolbox that will help in generating and testing SPF, DKIM and DMARC records as shown in the references.
 
 ## Default Value
+
 No SPF or DKIM records are configured by default.
 
 ## References
+
 1. https://mxtoolbox.com/NetworkTools.aspx
 2. https://mxtoolbox.com/spf.aspx
 3. https://mxtoolbox.com/dkim.aspx
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 7 Email and Web Browser Protections | Y | Y | Y |
-| v7 | 7 Email and Web Browser Protections | Y | Y | Y |
+
+| Controls Version | Control                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------- | ---- | ---- | ---- |
+| v6               | 7 Email and Web Browser Protections | Y    | Y    | Y    |
+| v7               | 7 Email and Web Browser Protections | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Initial Access | T1566 - Phishing |
-| Initial Access | T1566.001 - Spearphishing Attachment |
-| Defense Evasion | T1036 - Masquerading |
+
+| Tactic          | Technique                            |
+| --------------- | ------------------------------------ |
+| Initial Access  | T1566 - Phishing                     |
+| Initial Access  | T1566.001 - Spearphishing Attachment |
+| Defense Evasion | T1036 - Masquerading                 |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server

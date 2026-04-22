@@ -12,8 +12,7 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-6
   - CP-2
@@ -21,8 +20,7 @@ chains_with:
   - IR-5
   - IR-8
   - IR-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-6: "Chain with CM-6 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +82,16 @@ The types of incidents reported, the content and timeliness of the reports, and 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-6 Incident Reporting not implemented | Medium | Incident Response |
-| IR-6 partially implemented | Low | Incomplete Incident Response |
+| Finding                                 | Severity | Impact                       |
+| --------------------------------------- | -------- | ---------------------------- |
+| IR-6 Incident Reporting not implemented | Medium   | Incident Response            |
+| IR-6 partially implemented              | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

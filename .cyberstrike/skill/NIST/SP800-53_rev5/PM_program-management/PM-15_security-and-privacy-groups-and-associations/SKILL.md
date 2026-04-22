@@ -12,13 +12,11 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SA-11
   - SI-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SA-11: "Chain with SA-11 for comprehensive security coverage"
   SI-5: "Chain with SI-5 for comprehensive security coverage"
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ Ongoing contact with security and privacy groups and associations is important i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-15 Security and Privacy Groups and Associations not implemented | Medium | Program Management |
-| PM-15 partially implemented | Low | Incomplete Program Management |
+| Finding                                                            | Severity | Impact                        |
+| ------------------------------------------------------------------ | -------- | ----------------------------- |
+| PM-15 Security and Privacy Groups and Associations not implemented | Medium   | Program Management            |
+| PM-15 partially implemented                                        | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

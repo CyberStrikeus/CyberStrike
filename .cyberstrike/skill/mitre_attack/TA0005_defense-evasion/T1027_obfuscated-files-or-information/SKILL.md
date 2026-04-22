@@ -51,8 +51,7 @@ chains_with:
   - T1027.015
   - T1027.016
   - T1027.017
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1027.001: "Chain with T1027.001 for deeper attack path"
   T1027.002: "Chain with T1027.002 for deeper attack path"
@@ -63,11 +62,11 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents on the system or in transit. This is common behavior that can be used across different platforms and the network to evade defenses. 
+Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents on the system or in transit. This is common behavior that can be used across different platforms and the network to evade defenses.
 
-Payloads may be compressed, archived, or encrypted in order to avoid detection. These payloads may be used during Initial Access or later to mitigate detection. Sometimes a user's action may be required to open and Deobfuscate/Decode Files or Information for User Execution. The user may also be required to input a password to open a password protected compressed/encrypted file that was provided by the adversary. Adversaries may also use compressed or archived scripts, such as JavaScript. 
+Payloads may be compressed, archived, or encrypted in order to avoid detection. These payloads may be used during Initial Access or later to mitigate detection. Sometimes a user's action may be required to open and Deobfuscate/Decode Files or Information for User Execution. The user may also be required to input a password to open a password protected compressed/encrypted file that was provided by the adversary. Adversaries may also use compressed or archived scripts, such as JavaScript.
 
-Portions of files can also be encoded to hide the plain-text strings that would otherwise help defenders with discovery. Payloads may also be split into separate, seemingly benign files that only reveal malicious functionality when reassembled. 
+Portions of files can also be encoded to hide the plain-text strings that would otherwise help defenders with discovery. Payloads may also be split into separate, seemingly benign files that only reveal malicious functionality when reassembled.
 
 Adversaries may also abuse Command Obfuscation to obscure commands executed from payloads or directly via Command and Scripting Interpreter. Environment variables, aliases, characters, and other platform/language specific semantics can be used to evade signature based detections and application control mechanisms.
 
@@ -96,7 +95,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 Creates a base64-encoded data file and decodes it into an executable shell script
 
-Upon successful execution, sh will execute art.sh, which is a base64 encoded command, that echoes `Hello from the Atomic Red Team` 
+Upon successful execution, sh will execute art.sh, which is a base64 encoded command, that echoes `Hello from the Atomic Red Team`
 and uname -v
 
 **Supported Platforms:** macos, linux
@@ -109,6 +108,7 @@ chmod +x /tmp/art.sh
 ```
 
 **Dependencies:**
+
 - encode the command into base64 file
 
 ### Atomic Test 2: Execute base64-encoded PowerShell
@@ -156,6 +156,7 @@ Mimic execution of compressed executable. When successfully executed, calculator
 ```
 
 **Dependencies:**
+
 - T1027.exe must exist on disk at PathToAtomicsFolder\..\ExternalPayloads\temp_T1027.zip\T1027.exe
 
 ### Atomic Test 5: DLP Evasion via Sensitive Data in VBA Macro over email
@@ -168,7 +169,6 @@ Sensitive data includes about around 20 odd simulated credit card numbers that p
 ```powershell
 Send-MailMessage -From #{sender} -To #{receiver} -Subject 'T1027_Atomic_Test' -Attachments "#{input_file}" -SmtpServer #{smtp_server}
 ```
-
 
 ### Manual Testing
 
@@ -183,35 +183,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Consider periodic review of common fileless storage locations (such as the Registry or WMI repository) to potentially identify abnormal and malicious data.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10+, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated payloads.
 
 ### M1017 User Training
+
 Ensure that a finite amount of ingress points to a software deployment system exist with restricted access for those required to allow and enable newly deployed software.
 
 ### M1049 Antivirus/Antimalware
-Anti-virus can be used to automatically detect and quarantine suspicious files. Consider utilizing the Antimalware Scan Interface (AMSI) on Windows 10+ to analyze commands after being processed/interpreted.
 
+Anti-virus can be used to automatically detect and quarantine suspicious files. Consider utilizing the Antimalware Scan Interface (AMSI) on Windows 10+ to analyze commands after being processed/interpreted.
 
 ## Detection
 
 ### Behavioral Detection of Obfuscated Files or Information
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Obfuscated Files or Information technique applicable | Medium | Defense Evasion |
+| Finding                                              | Severity | Impact          |
+| ---------------------------------------------------- | -------- | --------------- |
+| Obfuscated Files or Information technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

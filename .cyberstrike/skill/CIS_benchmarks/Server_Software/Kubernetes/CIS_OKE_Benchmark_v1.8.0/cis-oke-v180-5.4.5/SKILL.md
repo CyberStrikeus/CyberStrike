@@ -4,7 +4,8 @@ description: "Encrypt traffic to HTTPS load balancers with TLS certificates (Man
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, cluster-networking, tls, https, load-balancer, encryption-in-transit]
+tags:
+  [cis, oke, kubernetes, oci, managed-services, cluster-networking, tls, https, load-balancer, encryption-in-transit]
 cis_id: "5.4.5"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -38,13 +39,13 @@ Your load balancer vendor can provide details on configuring HTTPS with TLS.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1609 | TA0002 | M1035 |
+| --------------------------- | ------- | ----------- |
+| T1609                       | TA0002  | M1035       |

@@ -83,26 +83,24 @@ ACK floods leverage the stateful nature of the TCP protocol. A flood of ACK pack
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport. To defend against SYN floods, enable SYN Cookies.
 
+Leverage services provided by Content Delivery Networks (CDN) or providers specializing in DoS mitigations to filter traffic upstream from services. Filter boundary traffic by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport. To defend against SYN floods, enable SYN Cookies.
 
 ## Detection
 
 ### Endpoint DoS via OS Exhaustion Flood Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| OS Exhaustion Flood technique applicable | Low | Impact |
+| Finding                                  | Severity | Impact |
+| ---------------------------------------- | -------- | ------ |
+| OS Exhaustion Flood technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

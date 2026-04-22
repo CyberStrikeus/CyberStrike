@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure Insecure SSL Renegotiation Is Not Enabled (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -58,12 +59,15 @@ SSLInsecureRenegotiation off
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
   - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 1

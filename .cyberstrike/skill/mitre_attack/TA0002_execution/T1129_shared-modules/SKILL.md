@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -80,8 +78,8 @@ echo "" | "#{plink_file}" "#{vm_host}" -ssh  -l "#{vm_user}" -pw "#{vm_pass}" -m
 ```
 
 **Dependencies:**
-- Check if plink and pscp are available.
 
+- Check if plink and pscp are available.
 
 ### Manual Testing
 
@@ -96,26 +94,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Identify and block potentially malicious software executed through this technique by using application control tools capable of preventing unknown modules from being loaded.
 
+Identify and block potentially malicious software executed through this technique by using application control tools capable of preventing unknown modules from being loaded.
 
 ## Detection
 
 ### Behavior-chain, platform-aware detection strategy for T1129 Shared Modules
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Shared Modules technique applicable | Low | Execution |
+| Finding                             | Severity | Impact    |
+| ----------------------------------- | -------- | --------- |
+| Shared Modules technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

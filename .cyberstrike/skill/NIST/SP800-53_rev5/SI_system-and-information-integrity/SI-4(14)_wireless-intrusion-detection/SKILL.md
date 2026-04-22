@@ -69,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ Wireless signals may radiate beyond organizational facilities. Organizations pro
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-4(14) Wireless Intrusion Detection not implemented | High | System and Information Integrity |
-| SI-4(14) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                               | Severity | Impact                                      |
+| ----------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-4(14) Wireless Intrusion Detection not implemented | High     | System and Information Integrity            |
+| SI-4(14) partially implemented                        | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

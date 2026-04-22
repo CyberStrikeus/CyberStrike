@@ -31,8 +31,7 @@ chains_with:
   - T1560.001
   - T1560.002
   - T1560.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1560.001: "Chain with T1560.001 for deeper attack path"
   T1560.002: "Chain with T1560.002 for deeper attack path"
@@ -79,7 +78,6 @@ When the test completes you should find the files from the $env:USERPROFILE dire
 dir #{input_file} -Recurse | Compress-Archive -DestinationPath #{output_file}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -93,26 +91,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
-System scans can be performed to identify unauthorized archival utilities.
 
+System scans can be performed to identify unauthorized archival utilities.
 
 ## Detection
 
 ### Detect Archiving and Encryption of Collected Data (T1560)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Archive Collected Data technique applicable | Medium | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Archive Collected Data technique applicable | Medium   | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

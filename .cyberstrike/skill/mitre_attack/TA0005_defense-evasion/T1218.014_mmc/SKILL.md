@@ -53,7 +53,7 @@ severity_boost:
 
 Adversaries may abuse mmc.exe to proxy execution of malicious .msc files. Microsoft Management Console (MMC) is a binary that may be signed by Microsoft and is used in several ways in either its GUI or in a command prompt. MMC can be used to create, open, and save custom consoles that contain administrative tools created by Microsoft, called snap-ins. These snap-ins may be used to manage Windows systems locally or remotely. MMC can also be used to open Microsoft created .msc files to manage system configuration.
 
-For example, <code>mmc C:\Users\foo\admintools.msc /a</code> will open a custom, saved console msc file in author mode. Another common example is <code>mmc gpedit.msc</code>, which will open the Group Policy Editor application window. 
+For example, <code>mmc C:\Users\foo\admintools.msc /a</code> will open a custom, saved console msc file in author mode. Another common example is <code>mmc gpedit.msc</code>, which will open the Group Policy Editor application window.
 
 Adversaries may use MMC commands to perform malicious tasks. For example, <code>mmc wbadmin.msc delete catalog -quiet</code> deletes the backup catalog on the system (i.e. Inhibit System Recovery) without prompts to the user (Note: <code>wbadmin.msc</code> may only be present by default on Windows Server operating systems).
 
@@ -87,29 +87,28 @@ Adversaries may also abuse MMC to execute malicious .msc files. For example, adv
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 MMC may not be necessary within a given environment since it is primarily used by system administrators, not regular users or clients.
 
 ### M1038 Execution Prevention
-Use application control configured to block execution of MMC if it is not required for a given system or network to prevent potential misuse by adversaries.
 
+Use application control configured to block execution of MMC if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detecting MMC (.msc) Proxy Execution and Malicious COM Activation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MMC technique applicable | Medium | Defense Evasion |
+| Finding                  | Severity | Impact          |
+| ------------------------ | -------- | --------------- |
+| MMC technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

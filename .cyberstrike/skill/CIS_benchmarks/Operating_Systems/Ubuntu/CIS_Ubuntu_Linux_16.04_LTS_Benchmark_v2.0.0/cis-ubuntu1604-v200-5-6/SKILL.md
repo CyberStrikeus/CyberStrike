@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure root login is restricted to system console
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -50,9 +51,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities. |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities. |
 
 ## Profile
 

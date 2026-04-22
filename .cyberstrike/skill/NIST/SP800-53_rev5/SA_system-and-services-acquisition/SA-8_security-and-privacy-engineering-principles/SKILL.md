@@ -25,8 +25,7 @@ chains_with:
   - SA-15
   - SA-17
   - SA-20
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-8: "Chain with PL-8 for comprehensive security coverage"
   PM-7: "Chain with PM-7 for comprehensive security coverage"
@@ -74,9 +73,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -94,17 +93,16 @@ Organizations that apply systems security and privacy engineering concepts and p
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-8 Security and Privacy Engineering Principles not implemented | Medium | System and Services Acquisition |
-| SA-8 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                          | Severity | Impact                                     |
+| ---------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-8 Security and Privacy Engineering Principles not implemented | Medium   | System and Services Acquisition            |
+| SA-8 partially implemented                                       | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

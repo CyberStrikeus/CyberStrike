@@ -31,8 +31,7 @@ chains_with:
   - T1569.001
   - T1569.002
   - T1569.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1569.001: "Chain with T1569.001 for deeper attack path"
   T1569.002: "Chain with T1569.002 for deeper attack path"
@@ -75,35 +74,36 @@ Adversaries may abuse system services or daemons to execute commands or programs
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Ensure that permissions disallow services that run at a higher permissions level from being created or interacted with by a user with a lower permission level.
 
 ### M1018 User Account Management
+
 Prevent users from installing their own launch agents or launch daemons.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to block processes created by PsExec from running.
 
 ### M1022 Restrict File and Directory Permissions
-Ensure that high permission level service binaries cannot be replaced or modified by users with a lower permission level.
 
+Ensure that high permission level service binaries cannot be replaced or modified by users with a lower permission level.
 
 ## Detection
 
 ### Detection Strategy for System Services across OS platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Services technique applicable | Low | Execution |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| System Services technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -82,35 +82,36 @@ Targeting may be specific to a desired victim set or may be distributed to a bro
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Where possible, consider requiring developers to pull from internal repositories containing verified and approved packages rather than from external ones.
 
 ### M1016 Vulnerability Scanning
+
 Continuous monitoring of vulnerability sources and the use of automatic and manual code review tools should also be implemented as well.
 
 ### M1051 Update Software
+
 A patch management process should be implemented to check unused dependencies, unmaintained and/or previously vulnerable dependencies, unnecessary features, components, files, and documentation.
 
 ### M1013 Application Developer Guidance
-Application developers should be cautious when selecting third-party libraries to integrate into their application. Additionally, where possible, developers should lock software dependencies to specific versions rather than pulling the latest version on build. GitHub Actions may be pinned to a specific commit hash rather than a tag or branch.
 
+Application developers should be cautious when selecting third-party libraries to integrate into their application. Additionally, where possible, developers should lock software dependencies to specific versions rather than pulling the latest version on build. GitHub Actions may be pinned to a specific commit hash rather than a tag or branch.
 
 ## Detection
 
 ### Supply-chain tamper in dependencies/dev-tools (manager→write/install→first-run→egress)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Software Dependencies and Development Tools technique applicable | High | Initial Access |
+| Finding                                                                     | Severity | Impact         |
+| --------------------------------------------------------------------------- | -------- | -------------- |
+| Compromise Software Dependencies and Development Tools technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

@@ -24,10 +24,8 @@ tech_stack:
   - saas
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -37,7 +35,7 @@ severity_boost: {}
 
 Adversaries may achieve persistence by leveraging OAuth application integrations in a software-as-a-service environment. Adversaries may create a custom application, add a legitimate application into the environment, or even co-opt an existing integration to achieve malicious ends.
 
-OAuth is an open standard that allows users to authorize applications to access their information on their behalf. In a SaaS environment such as Microsoft 365 or Google Workspace, users may integrate applications to improve their workflow and achieve tasks. 
+OAuth is an open standard that allows users to authorize applications to access their information on their behalf. In a SaaS environment such as Microsoft 365 or Google Workspace, users may integrate applications to improve their workflow and achieve tasks.
 
 Leveraging application integrations may allow adversaries to persist in an environment – for example, by granting consent to an application from a high-privileged adversary-controlled account in order to maintain access to its data, even in the event of losing access to the account. In some cases, integrations may remain valid even after the original consenting user account is disabled. Application integrations may also allow adversaries to bypass multi-factor authentication requirements through the use of Application Access Tokens. Finally, they may enable persistent Automated Exfiltration over time.
 
@@ -72,29 +70,28 @@ Creating or adding a new application may require the adversary to create a dedic
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Do not allow users to add new application integrations into a SaaS environment. In Entra ID environments, consider enforcing the “Do not allow user consent” option.
 
 ### M1047 Audit
-Periodically review SaaS integrations for unapproved or potentially malicious applications.
 
+Periodically review SaaS integrations for unapproved or potentially malicious applications.
 
 ## Detection
 
 ### Detection Strategy for Cloud Application Integration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Application Integration technique applicable | High | Persistence |
+| Finding                                            | Severity | Impact      |
+| -------------------------------------------------- | -------- | ----------- |
+| Cloud Application Integration technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

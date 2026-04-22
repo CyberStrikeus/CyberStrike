@@ -16,8 +16,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Reuse Existing, Well-Secured Software When Feasible Instead of Duplicating Functionality (PW.4)
 severity_boost: {}
@@ -63,10 +62,10 @@ Verify development team understands and follows PW.4.2 PW.4.2 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -76,16 +75,15 @@ Create and maintain well-secured software components in-house following SDLC pro
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PW.4.2 PW.4.2 not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                       | Severity | Impact                                             |
+| ----------------------------- | -------- | -------------------------------------------------- |
+| PW.4.2 PW.4.2 not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

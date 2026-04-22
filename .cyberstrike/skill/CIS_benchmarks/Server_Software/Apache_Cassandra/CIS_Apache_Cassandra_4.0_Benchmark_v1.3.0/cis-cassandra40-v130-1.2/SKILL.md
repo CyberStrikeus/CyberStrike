@@ -17,6 +17,7 @@ severity_boost: {}
 # 1.2 Ensure the latest version of Java is installed
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -60,12 +61,15 @@ NOTE: Experimental support for Java 11 was added in Cassandra 4.0 (CASSANDRA-960
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 16.5 Use Up-to-Date and Trusted Third-Party Software Components
   - Use up-to-date and trusted third-party software components. When possible, choose established and proven frameworks and libraries that provide adequate security. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use.
 
 **Controls Version v7:**
+
 - 18.4 Only Use Up-to-date And Trusted Third-Party Components
   - Only use up-to-date and trusted third-party components for the software developed by the organization.
 
 ## Profile
+
 - Level 1 | Automated

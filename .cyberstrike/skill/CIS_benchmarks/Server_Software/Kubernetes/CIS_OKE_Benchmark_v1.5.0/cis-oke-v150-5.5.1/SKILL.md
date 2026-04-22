@@ -79,10 +79,10 @@ By default, users are not assigned any Kubernetes RBAC roles (or clusterroles).
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) - Centralize network AAA. | | x | x |
-| v7 | 16.2 Configure Centralized Point of Authentication - Configure access for all accounts through as few centralized points of authentication as possible, including network, security, and cloud systems. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) - Centralize network AAA.                                                                                                     |      | x    | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication - Configure access for all accounts through as few centralized points of authentication as possible, including network, security, and cloud systems. |      | x    | x    |
 
 ## Profile
 

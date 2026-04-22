@@ -23,10 +23,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -74,7 +72,6 @@ New-Item -Path $Drive/T1091Test1.txt -ItemType "file" -Force -Value "T1091 Test 
 }
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -88,32 +85,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable Autorun if it is unnecessary. Disallow or restrict removable media at an organizational policy level if it is not required for business operations.
 
 ### M1034 Limit Hardware Installation
+
 Limit the use of USB devices and removable media within a network.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to block unsigned/untrusted executable files (such as .exe, .dll, or .scr) from running from USB removable drives.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to block unsigned/untrusted executable files (such as .exe, .dll, or .scr) from running from USB removable drives.
 
 ## Detection
 
 ### Removable Media Execution Chain Detection via File and Process Activity
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Replication Through Removable Media technique applicable | High | Lateral Movement |
+| Finding                                                  | Severity | Impact           |
+| -------------------------------------------------------- | -------- | ---------------- |
+| Replication Through Removable Media technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

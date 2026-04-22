@@ -20,8 +20,7 @@ chains_with:
   - PT-2
   - PT-3
   - PT-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   PM-20: "Chain with PM-20 for comprehensive security coverage"
@@ -66,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ The [PRIVACT](#18e71fec-c6fd-475a-925a-5d8495cf8455) requires that federal agenc
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-6 System of Records Notice not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-6 partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                                       | Severity | Impact                                                                     |
+| --------------------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-6 System of Records Notice not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-6 partially implemented                    | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

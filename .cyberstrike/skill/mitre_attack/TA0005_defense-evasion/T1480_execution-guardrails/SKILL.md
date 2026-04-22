@@ -33,8 +33,7 @@ cwe_ids:
 chains_with:
   - T1480.001
   - T1480.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1480.001: "Chain with T1480.001 for deeper attack path"
   T1480.002: "Chain with T1480.002 for deeper attack path"
@@ -80,26 +79,24 @@ Adversaries may identify and block certain user-agents to evade defenses and nar
 ## Remediation Guide
 
 ### M1055 Do Not Mitigate
-Execution Guardrails likely should not be mitigated with preventative controls because it may protect unintended targets from being compromised. If targeted, efforts should be focused on preventing adversary tools from running earlier in the chain of activity and on identifying subsequent malicious behavior if compromised.
 
+Execution Guardrails likely should not be mitigated with preventative controls because it may protect unintended targets from being compromised. If targeted, efforts should be focused on preventing adversary tools from running earlier in the chain of activity and on identifying subsequent malicious behavior if compromised.
 
 ## Detection
 
 ### Multi-Platform Execution Guardrails Environmental Validation Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Execution Guardrails technique applicable | High | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| Execution Guardrails technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

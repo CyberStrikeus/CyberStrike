@@ -24,8 +24,7 @@ chains_with:
   - SC-8
   - SC-10
   - SC-11
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-10: "Chain with AU-10 for comprehensive security coverage"
   SC-8: "Chain with SC-8 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -86,17 +85,16 @@ Protecting session authenticity addresses communications protection at the sessi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-23 Session Authenticity not implemented | High | System and Communications Protection |
-| SC-23 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                    | Severity | Impact                                          |
+| ------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-23 Session Authenticity not implemented | High     | System and Communications Protection            |
+| SC-23 partially implemented                | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

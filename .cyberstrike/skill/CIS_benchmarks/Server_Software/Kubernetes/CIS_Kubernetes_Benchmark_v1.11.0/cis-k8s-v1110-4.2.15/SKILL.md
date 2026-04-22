@@ -44,7 +44,7 @@ IPAddressDeny=any
 IPAddressAllow={{ kubelet_secure_addresses }}
 ```
 
-*Note
+\*Note
 kubelet_secure_addresses: "localhost link-local {{ kube_pods_subnets | regex_replace(',', ' ') }} {{ kube_node_addresses }} {{ loadbalancer_apiserver.address | default("") }}"
 
 ## Default Value
@@ -58,9 +58,9 @@ By default IPAddressDeny is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v8 | 2.7 Allowlist Authorized Scripts | | | x |
-| v7 | 2.7 Utilize Application Whitelisting | | | x |
-| v7 | 2.9 Implement Application Whitelisting of Scripts | | | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software                 |      | x    | x    |
+| v8               | 2.7 Allowlist Authorized Scripts                  |      |      | x    |
+| v7               | 2.7 Utilize Application Whitelisting              |      |      | x    |
+| v7               | 2.9 Implement Application Whitelisting of Scripts |      |      | x    |

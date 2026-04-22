@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1016.001
   - T1016.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1016.001: "Chain with T1016.001 for deeper attack path"
   T1016.002: "Chain with T1016.002 for deeper attack path"
@@ -117,6 +116,7 @@ if [ -x "$(command -v netstat)" ]; then $cmd | awk '{print $NF}' | grep -v '[[:l
 ```
 
 **Dependencies:**
+
 - Check if arp command exists on the machine
 
 ### Atomic Test 4: System Network Configuration Discovery (TrickBot Style)
@@ -136,7 +136,7 @@ nltest /domain_trusts
 
 ### Atomic Test 5: List Open Egress Ports
 
-This is to test for what ports are open outbound.  The technique used was taken from the following blog:
+This is to test for what ports are open outbound. The technique used was taken from the following blog:
 https://www.blackhillsinfosec.com/poking-holes-in-the-firewall-egress-testing-with-allports-exposed/
 
 Upon successful execution, powershell will read top-128.txt (ports) and contact each port to confirm if open or not. Output will be to Desktop\open-ports.txt.
@@ -155,13 +155,13 @@ foreach ($port in $ports) {
     $wait.asyncwaithandle.waitone(250, $false) | Out-Null
     $totalports++ | Out-Null
     if ($test.Connected) {
-        $result = "$port open" 
+        $result = "$port open"
         Write-Host -ForegroundColor Green $result
         $result | Out-File -Encoding ASCII -append $file
         $totalopen++ | Out-Null
     }
     else {
-        $result = "$port closed" 
+        $result = "$port closed"
         Write-Host -ForegroundColor Red $result
         $totalclosed++ | Out-Null
         $result | Out-File -Encoding ASCII -append $file
@@ -173,8 +173,8 @@ Write-Host $results
 ```
 
 **Dependencies:**
-- Test requires #{port_file} to exist
 
+- Test requires #{port_file} to exist
 
 ### Manual Testing
 
@@ -194,19 +194,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of System Network Configuration Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Network Configuration Discovery technique applicable | Medium | Discovery |
+| Finding                                                     | Severity | Impact    |
+| ----------------------------------------------------------- | -------- | --------- |
+| System Network Configuration Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

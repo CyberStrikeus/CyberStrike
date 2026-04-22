@@ -12,15 +12,13 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-7
   - PL-2
   - RA-3
   - RA-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   PL-2: "Chain with PL-2 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Systems are designed to support a specific mission or business function. However
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-32 Purposing not implemented | Medium | Program Management |
-| PM-32 partially implemented | Low | Incomplete Program Management |
+| Finding                         | Severity | Impact                        |
+| ------------------------------- | -------- | ----------------------------- |
+| PM-32 Purposing not implemented | Medium   | Program Management            |
+| PM-32 partially implemented     | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

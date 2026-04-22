@@ -44,7 +44,7 @@ grep -E -s "^\s*net\.ipv4\.ip_forward\s*=\s*1" /etc/sysctl.conf /etc/sysctl.d/*.
 
 No value should be returned.
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Run the following commands and verify output matches:
 
@@ -58,7 +58,7 @@ grep -E -s "^\s*net\.ipv6\.conf\.all\.forwarding\s*=\s*1" /etc/sysctl.conf /etc/
 
 No value should be returned.
 
-*OR verify IPv6 is disabled:*
+_OR verify IPv6 is disabled:_
 
 Run the following script. Output will confirm if IPv6 is disabled on the system.
 
@@ -80,6 +80,7 @@ net.ipv4.ip_forward = 0
 No value returned from the grep command.
 
 For IPv6 (if enabled):
+
 ```
 net.ipv6.conf.all.forwarding = 0
 ```
@@ -96,7 +97,7 @@ Run the following command to restore the default parameter and set the active ke
 grep -Els "^\s*net\.ipv4\.ip_forward\s*=\s*1" /etc/sysctl.conf /etc/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf /run/sysctl.d/*.conf | while read filename; do sed -ri "s/^\s*(net\.ipv4\.ip_forward\s*)(=)(\s*\S+\b).*$/# *REMOVED* \1/" $filename; done; sysctl -w net.ipv4.ip_forward=0; sysctl -w net.ipv4.route.flush=1
 ```
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Run the following command to restore the default parameter and set the active kernel parameter:
 

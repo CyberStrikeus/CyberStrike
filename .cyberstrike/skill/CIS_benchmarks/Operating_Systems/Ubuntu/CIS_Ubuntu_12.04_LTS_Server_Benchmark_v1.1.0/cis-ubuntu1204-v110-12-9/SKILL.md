@@ -17,33 +17,44 @@ severity_boost: {}
 # 12.9 Find Un-grouped Files and Directories (Scored)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Sometimes when administrators delete users from the password file they neglect to remove all files owned by those users from the system.
 
 ## Rationale
+
 A new user who is assigned the deleted user's user ID or group ID may then end up "owning" these files, and thus have more access on the system than was intended.
 
 ## Audit Procedure
+
 ### Using Command Line
+
 ```bash
 #!/bin/bash
 df --local -P | awk {'if (NR!=1) print $6'} | xargs -I '{}' find '{}' -xdev -nogroup ls
 ```
 
 ## Expected Result
+
 No files should be returned. If any un-grouped files are found, they should be investigated and assigned to an appropriate group.
 
 ## Remediation
+
 ### Using Command Line
+
 Locate files that are owned by users or groups not listed in the system configuration files, and reset the ownership of these files to some active user on the system as appropriate.
 
 ## Default Value
+
 No un-grouped files should exist on a properly maintained system.
 
 ## References
+
 - CIS Ubuntu 12.04 LTS Server Benchmark v1.1.0
 
 ## Profile
+
 Level 1 - Scored

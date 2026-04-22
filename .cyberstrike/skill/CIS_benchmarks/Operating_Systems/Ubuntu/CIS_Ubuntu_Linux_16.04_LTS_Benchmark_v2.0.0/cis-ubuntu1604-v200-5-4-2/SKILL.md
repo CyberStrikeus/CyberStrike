@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure lockout for failed password attempts is configured
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -24,7 +25,7 @@ severity_boost: {}
 
 ## Description
 
-Lock out users after *n* unsuccessful consecutive login attempts. The first sets of changes are made to the PAM configuration files. The second set of changes are applied to the program specific PAM configuration file. The second set of changes must be applied to each program that will lock out users. Check the documentation for each secondary program for instructions on how to configure them to work with PAM.
+Lock out users after _n_ unsuccessful consecutive login attempts. The first sets of changes are made to the PAM configuration files. The second set of changes are applied to the program specific PAM configuration file. The second set of changes must be applied to each program that will lock out users. Check the documentation for each secondary program for instructions on how to configure them to work with PAM.
 
 - `deny=n` - n represents the number of failed attempts before the account is locked
 - `unlock_time=n` - n represents the number of seconds before the account is unlocked
@@ -33,7 +34,7 @@ Lock out users after *n* unsuccessful consecutive login attempts. The first sets
 
 ## Rationale
 
-Locking out user IDs after *n* unsuccessful consecutive login attempts mitigates brute force password attacks against your systems.
+Locking out user IDs after _n_ unsuccessful consecutive login attempts mitigates brute force password attacks against your systems.
 
 ## Audit Procedure
 
@@ -93,9 +94,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 16.7 Establish Process for Revoking Access - Establish and follow an automated process for revoking system access by disabling accounts immediately upon termination or change of responsibilities of an employee or contractor. Disabling these accounts, instead of deleting accounts, allows preservation of audit trails. |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 16.7 Establish Process for Revoking Access - Establish and follow an automated process for revoking system access by disabling accounts immediately upon termination or change of responsibilities of an employee or contractor. Disabling these accounts, instead of deleting accounts, allows preservation of audit trails. |
 
 ## Profile
 

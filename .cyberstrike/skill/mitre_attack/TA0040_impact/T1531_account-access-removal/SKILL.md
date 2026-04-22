@@ -39,10 +39,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -118,6 +116,7 @@ if((Get-ADUser #{remove_user} -Properties memberof).memberof -like "CN=Domain Ad
 ```
 
 **Dependencies:**
+
 - Requires the Active Directory module for powershell to be installed.
 
 ### Atomic Test 4: Change User Password via passwd
@@ -142,7 +141,6 @@ This test deletes the user account using the dscl utility.
 dscl . -delete /Users/#{user_account} #enter admin password
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -161,19 +159,17 @@ No specific mitigations documented for this technique.
 
 ### Account Access Removal via Multi-Platform Audit Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Account Access Removal technique applicable | High | Impact |
+| Finding                                     | Severity | Impact |
+| ------------------------------------------- | -------- | ------ |
+| Account Access Removal technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

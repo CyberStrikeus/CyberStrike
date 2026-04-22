@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-778
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - AU-4
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Audit log transfer, also known as off-loading, is a common process in systems wi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-4(1) Transfer to Alternate Storage not implemented | Medium | Audit and Accountability |
-| AU-4(1) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                               | Severity | Impact                              |
+| ----------------------------------------------------- | -------- | ----------------------------------- |
+| AU-4(1) Transfer to Alternate Storage not implemented | Medium   | Audit and Accountability            |
+| AU-4(1) partially implemented                         | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

@@ -68,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +85,16 @@ Commercial off-the-shelf IA or IA-enabled information technology products used t
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-4(6) Use of Information Assurance Products not implemented | Medium | System and Services Acquisition |
-| SA-4(6) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                       | Severity | Impact                                     |
+| ------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-4(6) Use of Information Assurance Products not implemented | Medium   | System and Services Acquisition            |
+| SA-4(6) partially implemented                                 | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

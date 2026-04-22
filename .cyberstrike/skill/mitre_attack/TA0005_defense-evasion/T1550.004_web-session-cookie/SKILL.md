@@ -86,26 +86,24 @@ There have been examples of malware targeting session cookies to bypass multi-fa
 ## Remediation Guide
 
 ### M1054 Software Configuration
-Configure browsers or tasks to regularly delete persistent cookies.
 
+Configure browsers or tasks to regularly delete persistent cookies.
 
 ## Detection
 
 ### Detect Use of Stolen Web Session Cookies Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Session Cookie technique applicable | High | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| Web Session Cookie technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

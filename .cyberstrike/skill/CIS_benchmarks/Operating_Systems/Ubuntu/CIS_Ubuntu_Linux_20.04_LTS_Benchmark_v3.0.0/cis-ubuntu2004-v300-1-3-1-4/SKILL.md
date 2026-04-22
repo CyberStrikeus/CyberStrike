@@ -86,9 +86,9 @@ Note: Any unconfined processes may need to have a profile created or activated f
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1068, T1068.000, T1565, T1565.001, T1565.003 | TA0005 | M1048

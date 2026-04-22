@@ -27,8 +27,7 @@ chains_with:
   - SC-3
   - SC-7
   - SC-36
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -72,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ System partitioning is part of a defense-in-depth protection strategy. Organizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-32 System Partitioning not implemented | High | System and Communications Protection |
-| SC-32 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                   | Severity | Impact                                          |
+| ----------------------------------------- | -------- | ----------------------------------------------- |
+| SC-32 System Partitioning not implemented | High     | System and Communications Protection            |
+| SC-32 partially implemented               | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

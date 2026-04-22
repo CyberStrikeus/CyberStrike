@@ -70,7 +70,7 @@ Adversaries may trigger a denial-of-service attack via legitimate system process
 
 Adversaries may also tamper with artifacts deployed and utilized by security tools. Security tools may make dynamic changes to system components in order to maintain visibility into specific events. For example, security products may load their own modules and/or modify those loaded by processes to facilitate data collection. Similar to Indicator Blocking, adversaries may unhook or otherwise modify these features added by tools (especially those that exist in userland or are otherwise potentially accessible to adversaries) to avoid detection. For example, adversaries may abuse the Windows process mitigation policy to block certain endpoint detection and response (EDR) products from loading their user-mode code via DLLs. By spawning a process with the PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON attribute using API calls like UpdateProcThreadAttribute, adversaries may evade detection by endpoint security solutions that rely on DLLs that are not signed by Microsoft. Alternatively, they may add new directories to an EDR tool’s exclusion list, enabling them to hide malicious files via File/Path Exclusions.
 
-Adversaries may also focus on specific applications such as Sysmon. For example, the “Start” and “Enable” values in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\WMI\Autologger\EventLog-Microsoft-Windows-Sysmon-Operational</code> may be modified to tamper with and potentially disable Sysmon logging. 
+Adversaries may also focus on specific applications such as Sysmon. For example, the “Start” and “Enable” values in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\WMI\Autologger\EventLog-Microsoft-Windows-Sysmon-Operational</code> may be modified to tamper with and potentially disable Sysmon logging.
 
 On network devices, adversaries may attempt to skip digital signature verification checks by altering startup configuration files and effectively disabling firmware verification that typically occurs at boot.
 
@@ -113,6 +113,7 @@ Disables syslog collection
 ```
 
 **Dependencies:**
+
 - Package with rsyslog must be on system
 
 ### Atomic Test 2: Disable syslog (freebsd)
@@ -156,6 +157,7 @@ setenforce 0
 ```
 
 **Dependencies:**
+
 - SELinux must be installed
 
 ### Atomic Test 5: Stop Crowdstrike Falcon on Linux
@@ -170,7 +172,6 @@ sudo systemctl stop falcon-sensor.service
 sudo systemctl disable falcon-sensor.service
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -184,38 +185,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control where appropriate, especially regarding the execution of tools outside of the organization's security policies (such as rootkit removal tools) that have been abused to impair system defenses. Ensure that only approved security applications are used and running on enterprise systems.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper Registry permissions are in place to prevent adversaries from disabling or interfering with security services.
 
 ### M1018 User Account Management
+
 Ensure proper user permissions are in place to prevent adversaries from disabling or interfering with security services.
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure proper process and file permissions are in place to prevent adversaries from disabling or interfering with security services.
 
 ### M1047 Audit
-Periodically verify that tools are functioning appropriately – for example, that all expected hosts with EDRs or monitoring agents are checking in to the central console. Check EDRs to ensure that no unexpected exclusion paths have been added. In Microsoft Defender for Endpoint, exclusions can be reviewed with the `Get-MpPreference` cmdlet.
 
+Periodically verify that tools are functioning appropriately – for example, that all expected hosts with EDRs or monitoring agents are checking in to the central console. Check EDRs to ensure that no unexpected exclusion paths have been added. In Microsoft Defender for Endpoint, exclusions can be reviewed with the `Get-MpPreference` cmdlet.
 
 ## Detection
 
 ### Detection of Impair Defenses through Disabled or Modified Tools across OS Platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Tools technique applicable | High | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Disable or Modify Tools technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

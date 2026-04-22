@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,7 +33,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may enumerate files and directories or search in specific device locations for desired information within a filesystem. Adversaries may use the information from File and Directory Discovery during automated discovery to shape follow-on behaviors, including deciding if the adversary should fully infect the target and/or attempt specific actions. 
+Adversaries may enumerate files and directories or search in specific device locations for desired information within a filesystem. Adversaries may use the information from File and Directory Discovery during automated discovery to shape follow-on behaviors, including deciding if the adversary should fully infect the target and/or attempt specific actions.
 
 On Android, Linux file permissions and SELinux policies typically stringently restrict what can be accessed by apps without taking advantage of a privilege escalation exploit. The contents of the external storage directory are generally visible, which could present concerns if sensitive data is inappropriately stored there. iOS's security architecture generally restricts the ability to perform any type of File and Directory Discovery without use of escalated privileges.
 
@@ -66,26 +64,24 @@ Review whether mitigations for T1420 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Security architecture improvements in each new version of Android and iOS make it more difficult to escalate privileges. Additionally, newer versions of Android have strengthened the sandboxing applied to applications, restricting their ability to enumerate file system contents.
 
+Security architecture improvements in each new version of Android and iOS make it more difficult to escalate privileges. Additionally, newer versions of Android have strengthened the sandboxing applied to applications, restricting their ability to enumerate file system contents.
 
 ## Detection
 
 ### Detection of File and Directory Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File and Directory Discovery technique applicable | High | Discovery |
+| Finding                                           | Severity | Impact    |
+| ------------------------------------------------- | -------- | --------- |
+| File and Directory Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

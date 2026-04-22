@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 3.5.2.1
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -25,6 +26,7 @@ severity_boost: {}
 nftables provides a new in-kernel packet classification framework that is based on a network-specific Virtual Machine (VM) and a new nft userspace command line tool. nftables reuses the existing Netfilter subsystems such as the existing hook infrastructure, the connection tracking system, NAT, userspace queuing and logging subsystem.
 
 Notes:
+
 - nftables is available in Linux kernel 3.13 and newer.
 - Only one firewall utility should be installed and configured.
 - Changing firewall settings while connected over the network can result in being locked out of the system.

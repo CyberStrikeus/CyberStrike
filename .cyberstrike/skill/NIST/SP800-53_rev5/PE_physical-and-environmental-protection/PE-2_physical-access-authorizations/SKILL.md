@@ -12,8 +12,7 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-3
   - AU-9
@@ -25,8 +24,7 @@ chains_with:
   - PE-5
   - PE-8
   - PM-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-3: "Chain with AT-3 for comprehensive security coverage"
   AU-9: "Chain with AU-9 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Physical access authorizations apply to employees and visitors. Individuals with
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-2 Physical Access Authorizations not implemented | Medium | Physical and Environmental Protection |
-| PE-2 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                             | Severity | Impact                                           |
+| --------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-2 Physical Access Authorizations not implemented | Medium   | Physical and Environmental Protection            |
+| PE-2 partially implemented                          | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

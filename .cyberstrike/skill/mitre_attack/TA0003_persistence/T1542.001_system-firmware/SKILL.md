@@ -75,6 +75,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 ### Atomic Test 1: UEFI Persistence via Wpbbin.exe File Creation
 
 Creates Wpbbin.exe in %systemroot%. This technique can be used for UEFI-based pre-OS boot persistence mechanisms.
+
 - https://grzegorztworek.medium.com/using-uefi-to-inject-executable-files-into-bitlocker-protected-drives-8ff4ca59c94c
 - http://download.microsoft.com/download/8/a/2/8a2fb72d-9b96-4e2d-a559-4a27cf905a80/windows-platform-binary-table.docx
 - https://github.com/tandasat/WPBT-Builder
@@ -83,10 +84,9 @@ Creates Wpbbin.exe in %systemroot%. This technique can be used for UEFI-based pr
 **Elevation Required:** Yes
 
 ```powershell
-echo "Creating %systemroot%\wpbbin.exe"      
+echo "Creating %systemroot%\wpbbin.exe"
 New-Item -ItemType File -Path "$env:SystemRoot\System32\wpbbin.exe"
 ```
-
 
 ### Manual Testing
 
@@ -101,32 +101,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1046 Boot Integrity
+
 Check the integrity of the existing BIOS or EFI to determine if it is vulnerable to modification. Use Trusted Platform Module technology. Move system's root of trust to hardware to prevent tampering with the SPI flash memory. Technologies such as Intel Boot Guard can assist with this.
 
 ### M1051 Update Software
+
 Patch the BIOS and EFI as necessary.
 
 ### M1026 Privileged Account Management
-Prevent adversary access to privileged accounts or access necessary to perform this technique.
 
+Prevent adversary access to privileged accounts or access necessary to perform this technique.
 
 ## Detection
 
 ### Detection Strategy for T1542.001 Pre-OS Boot: System Firmware
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Firmware technique applicable | Low | Persistence |
+| Finding                              | Severity | Impact      |
+| ------------------------------------ | -------- | ----------- |
+| System Firmware technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

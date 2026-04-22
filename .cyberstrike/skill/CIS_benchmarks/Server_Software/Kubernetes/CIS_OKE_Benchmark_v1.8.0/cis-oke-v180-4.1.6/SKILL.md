@@ -58,6 +58,7 @@ kubectl get pods -A -o jsonpath='{range .items[?(@.spec.automountServiceAccountT
 ```
 
 Note:
+
 - If a section is empty, no objects explicitly set `automountServiceAccountToken: false` -- meaning they still auto-mount tokens by default, and may need remediation.
 
 ## Remediation
@@ -74,13 +75,13 @@ By default, all pods get a service account token mounted in them.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
+| v7               | 5.1 Establish Secure Configurations                       | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1528, T1555 | TA0006 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1528, T1555                | TA0006  | M1026       |

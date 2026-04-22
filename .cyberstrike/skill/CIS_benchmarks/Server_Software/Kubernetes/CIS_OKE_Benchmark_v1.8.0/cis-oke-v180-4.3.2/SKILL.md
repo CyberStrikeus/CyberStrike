@@ -83,14 +83,14 @@ By default, network policies are not created.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | x | x |
-| v7 | 14.2 Enable Firewall Filtering Between VLANs | | x | x |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | x    | x    | x    |
+| v7               | 14.1 Segment the Network Based on Sensitivity  |      | x    | x    |
+| v7               | 14.2 Enable Firewall Filtering Between VLANs   |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1046 | TA0007 | M1030, M1042 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1046                       | TA0007  | M1030, M1042 |

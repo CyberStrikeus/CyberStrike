@@ -56,7 +56,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may exfiltrate data to a webhook endpoint rather than over their primary command and control channel. Webhooks are simple mechanisms for allowing a server to push data over HTTP/S to a client without the need for the client to continuously poll the server. Many public and commercial services, such as Discord, Slack, and `webhook.site`, support the creation of webhook endpoints that can be used by other services, such as Github, Jira, or Trello. When changes happen in the linked services (such as pushing a repository update or modifying a ticket), these services will automatically post the data to the webhook endpoint for use by the consuming application. 
+Adversaries may exfiltrate data to a webhook endpoint rather than over their primary command and control channel. Webhooks are simple mechanisms for allowing a server to push data over HTTP/S to a client without the need for the client to continuously poll the server. Many public and commercial services, such as Discord, Slack, and `webhook.site`, support the creation of webhook endpoints that can be used by other services, such as Github, Jira, or Trello. When changes happen in the linked services (such as pushing a repository update or modifying a ticket), these services will automatically post the data to the webhook endpoint for use by the consuming application.
 
 Adversaries may link an adversary-owned environment to a victim-owned SaaS service to achieve repeated Automated Exfiltration of emails, chat messages, and other data. Alternatively, instead of linking the webhook endpoint to a service, an adversary can manually post staged data directly to the URL in order to exfiltrate it.
 
@@ -92,26 +92,24 @@ Access to webhook endpoints is often over HTTPS, which gives the adversary an ad
 ## Remediation Guide
 
 ### M1057 Data Loss Prevention
-Data loss prevention can be detect and block sensitive data being uploaded to web services via web browsers.
 
+Data loss prevention can be detect and block sensitive data being uploaded to web services via web browsers.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration Over Webhook
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Webhook technique applicable | Low | Exfiltration |
+| Finding                                        | Severity | Impact       |
+| ---------------------------------------------- | -------- | ------------ |
+| Exfiltration Over Webhook technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

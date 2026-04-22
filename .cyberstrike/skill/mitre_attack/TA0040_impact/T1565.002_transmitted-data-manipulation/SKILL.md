@@ -80,26 +80,24 @@ Manipulation may be possible over a network connection or between system process
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
-Encrypt all important data flows to reduce the impact of tailored modifications on data in transit.
 
+Encrypt all important data flows to reduce the impact of tailored modifications on data in transit.
 
 ## Detection
 
 ### Detection Strategy of Transmitted Data Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Transmitted Data Manipulation technique applicable | Low | Impact |
+| Finding                                            | Severity | Impact |
+| -------------------------------------------------- | -------- | ------ |
+| Transmitted Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

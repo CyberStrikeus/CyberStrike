@@ -73,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -90,17 +90,16 @@ Prevention of program execution addresses organizational policies, rules of beha
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-7(2) Prevent Program Execution not implemented | Medium | Configuration Management |
-| CM-7(2) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                           | Severity | Impact                              |
+| ------------------------------------------------- | -------- | ----------------------------------- |
+| CM-7(2) Prevent Program Execution not implemented | Medium   | Configuration Management            |
+| CM-7(2) partially implemented                     | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

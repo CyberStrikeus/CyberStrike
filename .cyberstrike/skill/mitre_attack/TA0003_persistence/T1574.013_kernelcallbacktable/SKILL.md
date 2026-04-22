@@ -91,26 +91,24 @@ The tampered function is typically invoked using a Windows message. After the pr
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of behaviors related to process injection/memory tampering based on common sequences of indicators (ex: execution of specific API functions).
 
+Some endpoint security solutions can be configured to block some types of behaviors related to process injection/memory tampering based on common sequences of indicators (ex: execution of specific API functions).
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow through the KernelCallbackTable on Windows.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| KernelCallbackTable technique applicable | High | Persistence |
+| Finding                                  | Severity | Impact      |
+| ---------------------------------------- | -------- | ----------- |
+| KernelCallbackTable technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

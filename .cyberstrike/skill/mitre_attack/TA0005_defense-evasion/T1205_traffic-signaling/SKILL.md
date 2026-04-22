@@ -37,8 +37,7 @@ cwe_ids:
 chains_with:
   - T1205.001
   - T1205.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1205.001: "Chain with T1205.001 for deeper attack path"
   T1205.002: "Chain with T1205.002 for deeper attack path"
@@ -90,29 +89,28 @@ Adversaries may also use the Wake-on-LAN feature to turn on powered off systems.
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Mitigation of some variants of this technique could be achieved through the use of stateful firewalls, depending upon how it is implemented.
 
 ### M1042 Disable or Remove Feature or Program
-Disable Wake-on-LAN if it is not needed within an environment.
 
+Disable Wake-on-LAN if it is not needed within an environment.
 
 ## Detection
 
 ### Traffic Signaling (Port-knock / magic-packet → firewall or service activation) – T1205
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Traffic Signaling technique applicable | Low | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Traffic Signaling technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -44,12 +44,12 @@ Where possible, restrict access to secret objects in the cluster by removing get
 
 By default in a kubeadm cluster the following list of principals have `get` privileges on `secret` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin (Group) | system:masters |
+| CLUSTERROLEBINDING                                                                 | SUBJECT                            |
+| ---------------------------------------------------------------------------------- | ---------------------------------- |
+| cluster-admin (Group)                                                              | system:masters                     |
 | system:controller:clusterrole-aggregation-controller (ServiceAccount, kube-system) | clusterrole-aggregation-controller |
-| system:controller:expand-controller (ServiceAccount, kube-system) | expand-controller |
-| system:controller:generic-garbage-collector (ServiceAccount, kube-system) | generic-garbage-collector |
-| system:controller:namespace-controller (ServiceAccount, kube-system) | namespace-controller |
-| system:controller:persistent-volume-binder (ServiceAccount, kube-system) | persistent-volume-binder |
-| system:kube-controller-manager (User) | system:kube-controller-manager |
+| system:controller:expand-controller (ServiceAccount, kube-system)                  | expand-controller                  |
+| system:controller:generic-garbage-collector (ServiceAccount, kube-system)          | generic-garbage-collector          |
+| system:controller:namespace-controller (ServiceAccount, kube-system)               | namespace-controller               |
+| system:controller:persistent-volume-binder (ServiceAccount, kube-system)           | persistent-volume-binder           |
+| system:kube-controller-manager (User)                                              | system:kube-controller-manager     |

@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 4.1.10
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Ensure that if the kubelet refers to a configuration file with the `--config` argument, that file is owned by `root:root`.
 
 ## Rationale
+
 The kubelet reads various parameters, including security settings, from a config file specified by the `--config` argument. If this file is specified you should restrict its file permissions to maintain the integrity of the file. The file should be owned by `root:root`.
 
 ## Impact
+
 None
 
 ## Audit Procedure
+
 In OpenShift 4, the kubelet configuration file is managed by the Machine Config Operator and is found at `/var/lib/kubelet/config.json` or `/var/data/kubelet/config.json` with ownership set to `root:root`.
 
 In OpenShift 4.13 and above
@@ -56,27 +61,31 @@ done
 Verify that the ownership is set to `root:root`.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, `/var/lib/kubelet/config.json` file is owned by `root:root`.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/architecture/control-plane.html#understanding-machine-config-operator_control-plane
 2. https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | * | * | * |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | \*   | \*   | \*   |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                   | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1083, T1222 | TA0005, TA0007 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1083, T1222                | TA0005, TA0007 | M1026       |
 
 ## Profile
+
 **Level 1** (Automated)

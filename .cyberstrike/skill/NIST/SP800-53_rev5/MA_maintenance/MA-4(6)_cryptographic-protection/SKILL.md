@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SC-8
   - SC-12
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Failure to protect nonlocal maintenance and diagnostic communications can result
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-4(6) Cryptographic Protection not implemented | Medium | Maintenance |
-| MA-4(6) partially implemented | Low | Incomplete Maintenance |
+| Finding                                          | Severity | Impact                 |
+| ------------------------------------------------ | -------- | ---------------------- |
+| MA-4(6) Cryptographic Protection not implemented | Medium   | Maintenance            |
+| MA-4(6) partially implemented                    | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -90,19 +90,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Remote Data Staging Prior to Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Data Staging technique applicable | Low | Collection |
+| Finding                                  | Severity | Impact     |
+| ---------------------------------------- | -------- | ---------- |
+| Remote Data Staging technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

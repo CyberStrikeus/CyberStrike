@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - RA-2
   - RA-9
@@ -70,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +86,16 @@ Supply chain-related events include disruption, use of defective components, ins
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-3(1) Supply Chain Risk Assessment not implemented | Medium | Risk Assessment |
-| RA-3(1) partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                              | Severity | Impact                     |
+| ---------------------------------------------------- | -------- | -------------------------- |
+| RA-3(1) Supply Chain Risk Assessment not implemented | Medium   | Risk Assessment            |
+| RA-3(1) partially implemented                        | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

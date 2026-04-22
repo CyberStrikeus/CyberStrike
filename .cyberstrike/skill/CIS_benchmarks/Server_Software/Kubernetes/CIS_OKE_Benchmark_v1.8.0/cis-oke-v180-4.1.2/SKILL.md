@@ -64,15 +64,15 @@ Where possible, remove `get`, `list` or `watch` access to `secret` objects in th
 
 By default, the following list of principals have `get` privileges on `secret` objects:
 
-| CLUSTERROLEBINDING | SUBJECT | TYPE |
-|---|---|---|
-| cluster-admin | system:masters | Group |
-| system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller ServiceAccount kube-system | |
-| system:controller:expand-controller | expand-controller ServiceAccount kube-system | |
-| system:controller:generic-garbage-collector | generic-garbage-collector ServiceAccount kube-system | |
-| system:controller:namespace-controller | namespace-controller ServiceAccount kube-system | |
-| system:controller:persistent-volume-binder | persistent-volume-binder ServiceAccount kube-system | |
-| system:kube-controller-manager | system:kube-controller-manager User | |
+| CLUSTERROLEBINDING                                   | SUBJECT                                                       | TYPE  |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ----- |
+| cluster-admin                                        | system:masters                                                | Group |
+| system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller ServiceAccount kube-system |       |
+| system:controller:expand-controller                  | expand-controller ServiceAccount kube-system                  |       |
+| system:controller:generic-garbage-collector          | generic-garbage-collector ServiceAccount kube-system          |       |
+| system:controller:namespace-controller               | namespace-controller ServiceAccount kube-system               |       |
+| system:controller:persistent-volume-binder           | persistent-volume-binder ServiceAccount kube-system           |       |
+| system:kube-controller-manager                       | system:kube-controller-manager User                           |       |
 
 ## References
 
@@ -80,12 +80,12 @@ By default, the following list of principals have `get` privileges on `secret` o
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1026       |

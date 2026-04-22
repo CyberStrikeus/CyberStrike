@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v1.12.0 - Control 1.3.3
 
 ## Profile Applicability
+
 - **Level:** 1 - Master Node
 
 ## Description
+
 Use individual service account credentials for each controller.
 
 ## Rationale
+
 The controller manager creates a service account per controller in the `kube-system` namespace, generates a credential for it, and builds a dedicated API client with that service account credential for each controller loop to use. Setting the `--use-service-account-credentials` to `true` runs each control loop within the controller manager using a separate service account credential. When used in combination with RBAC, this ensures that the control loops run with the minimum permissions required to perform their intended tasks.
 
 ## Impact
+
 Whatever authorizer is configured for the cluster, it must grant sufficient permissions to the service accounts to perform their intended tasks. When using the RBAC authorizer, those roles are created and bound to the appropriate service accounts in the `kube-system` namespace automatically with default roles and rolebindings that are auto-reconciled on startup.
 
 If using other authorization methods (ABAC, Webhook, etc), the cluster deployer is responsible for granting appropriate permissions to the service accounts (the required permissions can be seen by inspecting the `controller-roles.yaml` and `controller-role-bindings.yaml` files for the RBAC roles.
@@ -49,9 +53,11 @@ Edit the Controller Manager pod specification file `/etc/kubernetes/manifests/ku
 ```
 
 ## Default Value
+
 By default, `--use-service-account-credentials` is set to false.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kube-controller-manager/
 2. https://kubernetes.io/docs/admin/service-accounts-admin/
 3. https://github.com/kubernetes/kubernetes/blob/release-1.6/plugin/pkg/auth/authorizer/rbac/bootstrappolicy/testdata/controller-roles.yaml
@@ -60,11 +66,12 @@ By default, `--use-service-account-credentials` is set to false.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.2 Use Unique Passwords | | | |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | |
-| v7 | 4.4 Use Unique Passwords | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords                          |      |      |      |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      |      |
+| v7               | 4.4 Use Unique Passwords                          |      |      |      |
 
 ## Profile
+
 **Level 1 - Master Node** (Automated)

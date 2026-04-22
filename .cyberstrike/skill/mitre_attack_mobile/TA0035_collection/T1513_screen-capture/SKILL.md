@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -60,32 +58,32 @@ Review whether mitigations for T1513 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 Enterprise policies should block access to the Android Debug Bridge (ADB) by preventing users from enabling USB debugging on Android devices unless specifically needed (e.g., if the device is used for application development). An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
 ### M1011 User Guidance
+
 Users should be advised not to grant consent for screen captures to occur unless expected. Users should avoid enabling USB debugging (Android Debug Bridge) unless explicitly required.
 
 ### M1013 Application Developer Guidance
-Application developers can apply the `FLAG_SECURE` property to sensitive screens within their apps to make it more difficult for the screen contents to be captured.
 
+Application developers can apply the `FLAG_SECURE` property to sensitive screens within their apps to make it more difficult for the screen contents to be captured.
 
 ## Detection
 
 ### Detection of Screen Capture
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Screen Capture technique applicable | High | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Screen Capture technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

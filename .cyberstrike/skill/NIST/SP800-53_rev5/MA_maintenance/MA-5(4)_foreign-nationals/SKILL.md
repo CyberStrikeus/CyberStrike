@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PS-3
 prerequisites:
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ Personnel who conduct maintenance and diagnostic activities on organizational sy
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-5(4) Foreign Nationals not implemented | Medium | Maintenance |
-| MA-5(4) partially implemented | Low | Incomplete Maintenance |
+| Finding                                   | Severity | Impact                 |
+| ----------------------------------------- | -------- | ---------------------- |
+| MA-5(4) Foreign Nationals not implemented | Medium   | Maintenance            |
+| MA-5(4) partially implemented             | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

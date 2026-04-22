@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -70,29 +68,28 @@ Adversaries can perform command and control between compromised hosts on potenti
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable Autoruns if it is unnecessary.
 
 ### M1028 Operating System Configuration
-Disallow or restrict removable media at an organizational policy level if they are not required for business operations.
 
+Disallow or restrict removable media at an organizational policy level if they are not required for business operations.
 
 ## Detection
 
 ### Cross-host C2 via Removable Media Relay
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Communication Through Removable Media technique applicable | Low | Command And Control |
+| Finding                                                    | Severity | Impact              |
+| ---------------------------------------------------------- | -------- | ------------------- |
+| Communication Through Removable Media technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

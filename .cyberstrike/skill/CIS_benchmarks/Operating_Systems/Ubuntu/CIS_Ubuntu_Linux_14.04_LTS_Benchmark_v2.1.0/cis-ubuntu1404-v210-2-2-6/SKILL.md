@@ -66,6 +66,7 @@ slapd is not enabled by default.
 ## References
 
 1. For more detailed documentation on OpenLDAP, go to the project homepage at http://www.openldap.org.
+
 - CIS Controls: 9.1 Limit Open Ports, Protocols, and Services
 
 ## Profile

@@ -70,31 +70,29 @@ Review whether mitigations for T1629.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Recent versions of Android modified how device administrator applications are uninstalled, making it easier for the user to remove them. Android 7 introduced updates that revoke standard device administrators’ ability to reset the device’s passcode.
 
+Recent versions of Android modified how device administrator applications are uninstalled, making it easier for the user to remove them. Android 7 introduced updates that revoke standard device administrators’ ability to reset the device’s passcode.
 
 ## Detection
 
 ### Detection of Device Lockout
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Device Lockout technique applicable | Low | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Device Lockout technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
 - [Microsoft MalLockerB](https://www.microsoft.com/security/blog/2020/10/08/sophisticated-new-android-malware-marks-the-latest-evolution-of-mobile-ransomware/)
-- [Android resetPassword](https://developer.android.com/reference/android/app/admin/DevicePolicyManager.html#resetPassword(java.lang.String,%20int))
+- [Android resetPassword](<https://developer.android.com/reference/android/app/admin/DevicePolicyManager.html#resetPassword(java.lang.String,%20int)>)
 - [securelist rotexy 2018](https://securelist.com/the-rotexy-mobile-trojan-banker-and-ransomware/88893/)
 - [Talos GPlayed](https://blog.talosintelligence.com/2018/10/gplayedtrojan.html)
 - [NIST Mobile Threat Catalogue](https://pages.nist.gov/mobile-threat-catalogue/application-threats/APP-22.html)

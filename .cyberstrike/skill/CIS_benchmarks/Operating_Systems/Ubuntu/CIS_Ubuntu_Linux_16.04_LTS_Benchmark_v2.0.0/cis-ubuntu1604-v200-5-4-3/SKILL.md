@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure password reuse is limited
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -66,9 +67,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 16 Account Monitoring and Control - Account Monitoring and Control |
+| Controls Version | Control                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| v7               | 16 Account Monitoring and Control - Account Monitoring and Control |
 
 ## Profile
 

@@ -27,10 +27,8 @@ tech_stack:
   - saas
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -76,35 +74,36 @@ Incidents have been observed where adversaries have created backups of cloud ins
 ## Remediation Guide
 
 ### M1057 Data Loss Prevention
+
 Data loss prevention can prevent and block sensitive data from being shared with individuals outside an organization.
 
 ### M1018 User Account Management
+
 Limit user account and IAM policies to the least privileges required.
 
 ### M1054 Software Configuration
+
 Configure appropriate data sharing restrictions in cloud services. For example, external sharing in Microsoft SharePoint and Google Drive can be turned off altogether, blocked for certain domains, or restricted to certain users.
 
 ### M1037 Filter Network Traffic
-Implement network-based filtering restrictions to prohibit data transfers to untrusted VPCs.
 
+Implement network-based filtering restrictions to prohibit data transfers to untrusted VPCs.
 
 ## Detection
 
 ### Cross-Platform Detection of Data Transfer to Cloud Account
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Transfer Data to Cloud Account technique applicable | Low | Exfiltration |
+| Finding                                             | Severity | Impact       |
+| --------------------------------------------------- | -------- | ------------ |
+| Transfer Data to Cloud Account technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -14,12 +14,9 @@ tags:
   - practice
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +58,10 @@ Verify development team understands and follows Analyze Vulnerabilities to Ident
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,15 +71,15 @@ Help reduce the frequency of vulnerabilities in the future.
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Analyze Vulnerabilities to Identify Their Root Causes (RV.3) Analyze Vulnerabilities to Identify Their Root Causes not implemented | Medium | Secure Development - Respond to Vulnerabilities |
+| Finding                                                                                                                            | Severity | Impact                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------- |
+| Analyze Vulnerabilities to Identify Their Root Causes (RV.3) Analyze Vulnerabilities to Identify Their Root Causes not implemented | Medium   | Secure Development - Respond to Vulnerabilities |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

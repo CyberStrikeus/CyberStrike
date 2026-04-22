@@ -46,8 +46,7 @@ chains_with:
   - T1069.001
   - T1069.002
   - T1069.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1069.001: "Chain with T1069.001 for deeper attack path"
   T1069.002: "Chain with T1069.002 for deeper attack path"
@@ -96,19 +95,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Permission Groups Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Permission Groups Discovery technique applicable | Medium | Discovery |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Permission Groups Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

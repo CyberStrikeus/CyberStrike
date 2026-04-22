@@ -66,6 +66,7 @@ true
 ```
 
 Note:
+
 - `gsettings` commands in this section MUST be done from a command window on a graphical desktop or an error will be returned.
 - The system must be restarted after all `gsettings` configurations have been set in order for CIS-CAT Assessor to appropriately assess.
 
@@ -96,9 +97,9 @@ false
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.3 Disable Autorun and Autoplay for Removable Media | * | * | * |
-| v7 | 8.5 Configure Devices Not To Auto-run Content | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.3 Disable Autorun and Autoplay for Removable Media | \*   | \*   | \*   |
+| v7               | 8.5 Configure Devices Not To Auto-run Content         | \*   | \*   | \*   |
 
 MITRE ATT&CK Mappings: T1091, T1091.000 | TA0001, TA0008 | M1042

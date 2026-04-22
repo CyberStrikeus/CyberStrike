@@ -30,8 +30,7 @@ chains_with:
   - SA-4
   - SA-8
   - SA-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-17: "Chain with AC-17 for comprehensive security coverage"
   AU-9: "Chain with AU-9 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ Cryptographic key management and establishment can be performed using manual pro
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-12 Cryptographic Key Establishment and Management not implemented | High | System and Communications Protection |
-| SC-12 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                              | Severity | Impact                                          |
+| -------------------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-12 Cryptographic Key Establishment and Management not implemented | High     | System and Communications Protection            |
+| SC-12 partially implemented                                          | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

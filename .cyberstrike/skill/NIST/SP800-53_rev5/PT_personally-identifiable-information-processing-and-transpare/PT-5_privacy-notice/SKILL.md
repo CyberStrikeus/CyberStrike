@@ -24,8 +24,7 @@ chains_with:
   - RA-3
   - SC-42
   - SI-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-20: "Chain with PM-20 for comprehensive security coverage"
   PM-22: "Chain with PM-22 for comprehensive security coverage"
@@ -72,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -95,17 +94,16 @@ Privacy risk assessments identify the privacy risks associated with the processi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PT-5 Privacy Notice not implemented | Medium | Personally Identifiable Information Processing and Transparency |
-| PT-5 partially implemented | Low | Incomplete Personally Identifiable Information Processing and Transparency |
+| Finding                             | Severity | Impact                                                                     |
+| ----------------------------------- | -------- | -------------------------------------------------------------------------- |
+| PT-5 Privacy Notice not implemented | Medium   | Personally Identifiable Information Processing and Transparency            |
+| PT-5 partially implemented          | Low      | Incomplete Personally Identifiable Information Processing and Transparency |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                    |
+| ------- | ---------------------------------------- |
 | CWE-359 | Exposure of Private Personal Information |
-
 
 ## References
 

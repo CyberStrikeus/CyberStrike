@@ -33,21 +33,21 @@ mitre_attack_mobile/
 
 ## Tactic Breakdown
 
-| Tactic ID | Name | Skills |
-|-----------|------|--------|
-| TA0027 | Initial Access | 11 |
-| TA0028 | Persistence | 7 |
-| TA0029 | Privilege Escalation | 3 |
-| TA0030 | Defense Evasion | 32 |
-| TA0031 | Credential Access | 5 |
-| TA0032 | Discovery | 10 |
-| TA0033 | Lateral Movement | 1 |
-| TA0034 | Impact | 9 |
-| TA0035 | Collection | 23 |
-| TA0036 | Exfiltration | 3 |
-| TA0037 | Command and Control | 16 |
-| TA0041 | Execution | 4 |
-| **Total** | | **124** |
+| Tactic ID | Name                 | Skills  |
+| --------- | -------------------- | ------- |
+| TA0027    | Initial Access       | 11      |
+| TA0028    | Persistence          | 7       |
+| TA0029    | Privilege Escalation | 3       |
+| TA0030    | Defense Evasion      | 32      |
+| TA0031    | Credential Access    | 5       |
+| TA0032    | Discovery            | 10      |
+| TA0033    | Lateral Movement     | 1       |
+| TA0034    | Impact               | 9       |
+| TA0035    | Collection           | 23      |
+| TA0036    | Exfiltration         | 3       |
+| TA0037    | Command and Control  | 16      |
+| TA0041    | Execution            | 4       |
+| **Total** |                      | **124** |
 
 ## Multi-Tactic Techniques
 
@@ -66,6 +66,7 @@ Some techniques belong to multiple tactics. These are placed in their **primary 
 Each SKILL.md contains:
 
 **YAML Frontmatter:**
+
 - `technique_id` — ATT&CK technique ID (T1474, T1474.001, etc.)
 - `tactic` — Primary tactic (kill chain phase)
 - `all_tactics` — All tactics this technique belongs to
@@ -78,6 +79,7 @@ Each SKILL.md contains:
 - `severity_boost` — Chain severity mapping
 
 **Body Sections:**
+
 - **High-Level Description** — Full technique description
 - **Kill Chain Phase** — Tactic position with IDs
 - **What to Check** — Checklist for assessment

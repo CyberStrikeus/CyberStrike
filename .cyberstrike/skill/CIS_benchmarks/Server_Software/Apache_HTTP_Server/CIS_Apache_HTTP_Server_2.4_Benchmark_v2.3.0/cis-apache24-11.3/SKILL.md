@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the httpd_t Type is Not in Permissive Mode (Automated)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -58,14 +59,17 @@ The `httpd_t` type is not in permissive mode by default.
 ## CIS Controls
 
 **v8:**
+
 - 2.5 Allowlist Authorized Software
   - Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently.
 
 **v7:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 - 2.7 Utilize Application Whitelisting
   - Utilize application whitelisting technology on all assets to ensure that only authorized software executes and all unauthorized software is blocked from executing on assets.
 
 ## Profile
+
 - Level 2

@@ -68,35 +68,36 @@ Review whether mitigations for T1629.003 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1004 System Partition Integrity
+
 System partition integrity mechanisms, such as Verified Boot, can detect the unauthorized modification of system files.
 
 ### M1010 Deploy Compromised Device Detection Method
+
 Mobile security software can typically detect if a device has been rooted or jailbroken and can inform the user, who can then take appropriate action.
 
 ### M1011 User Guidance
+
 Users should be taught the dangers of rooting or jailbreaking their device.
 
 ### M1001 Security Updates
-Security updates frequently contain patches to vulnerabilities that can be exploited for root access.
 
+Security updates frequently contain patches to vulnerabilities that can be exploited for root access.
 
 ## Detection
 
 ### Detection of Disable or Modify Tools
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Tools technique applicable | High | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Disable or Modify Tools technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

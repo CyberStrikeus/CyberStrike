@@ -91,13 +91,13 @@ Each program acquires the necessary locks before conversion. `pwconv` and `grpco
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | X | X |
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials | | X | X |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest                 |      | X    | X    |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials |      | X    | X    |
 
 MITRE ATT&CK Mappings:
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1003, T1003.008 | TA0003 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1003, T1003.008            | TA0003  | M1027       |

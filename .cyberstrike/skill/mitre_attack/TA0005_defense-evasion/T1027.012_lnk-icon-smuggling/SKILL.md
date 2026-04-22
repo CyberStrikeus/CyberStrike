@@ -54,7 +54,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may smuggle commands to download malicious payloads past content filters by hiding them within otherwise seemingly benign windows shortcut files. Windows shortcut files (.LNK) include many metadata fields, including an icon location field (also known as the `IconEnvironmentDataBlock`) designed to specify the path to an icon file that is to be displayed for the LNK file within a host directory. 
+Adversaries may smuggle commands to download malicious payloads past content filters by hiding them within otherwise seemingly benign windows shortcut files. Windows shortcut files (.LNK) include many metadata fields, including an icon location field (also known as the `IconEnvironmentDataBlock`) designed to specify the path to an icon file that is to be displayed for the LNK file within a host directory.
 
 Adversaries may abuse this LNK metadata to download malicious payloads. For example, adversaries have been observed using LNK files as phishing payloads to deliver malware. Once invoked (e.g., Malicious File), payloads referenced via external URLs within the LNK icon location field may be downloaded. These files may also then be invoked by Command and Scripting Interpreter/System Binary Proxy Execution arguments within the target path field of the LNK.
 
@@ -88,29 +88,28 @@ LNK Icon Smuggling may also be utilized post compromise, such as malicious scrip
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Use signatures or heuristics to detect malicious LNK and subsequently downloaded files.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated scripts or payloads.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated scripts or payloads.
 
 ## Detection
 
 ### Detection Strategy for LNK Icon Smuggling
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| LNK Icon Smuggling technique applicable | High | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| LNK Icon Smuggling technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

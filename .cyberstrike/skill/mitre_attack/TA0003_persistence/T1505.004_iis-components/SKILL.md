@@ -83,6 +83,7 @@ A successful execution will install a module into IIS using AppCmd.exe.
 ```
 
 **Dependencies:**
+
 - IIS must be installed in order to add a module to IIS.
 
 ### Atomic Test 2: Install IIS Module using PowerShell Cmdlet New-WebGlobalModule
@@ -100,8 +101,8 @@ New-WebGlobalModule -Name #{module_name} -Image #{dll_path}
 ```
 
 **Dependencies:**
-- IIS must be installed in order to add a module to IIS.
 
+- IIS must be installed in order to add a module to IIS.
 
 ### Manual Testing
 
@@ -116,35 +117,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Do not allow administrator accounts that have permissions to add IIS components to be used for day-to-day operations that may expose these permissions to potential adversaries and/or other unprivileged systems.
 
 ### M1038 Execution Prevention
+
 Restrict unallowed ISAPI extensions and filters from running by specifying a list of ISAPI extensions and filters that can run on IIS.
 
 ### M1047 Audit
+
 Regularly check installed IIS components to verify the integrity of the web server and identify if unexpected changes have been made.
 
 ### M1045 Code Signing
-Ensure IIS DLLs and binaries are signed by the correct application developers.
 
+Ensure IIS DLLs and binaries are signed by the correct application developers.
 
 ## Detection
 
 ### Detection Strategy for T1505.004 - Malicious IIS Components
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IIS Components technique applicable | High | Persistence |
+| Finding                             | Severity | Impact      |
+| ----------------------------------- | -------- | ----------- |
+| IIS Components technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 
@@ -154,9 +156,9 @@ Ensure IIS DLLs and binaries are signed by the correct application developers.
 - [ESET IIS Malware 2021](https://i.blackhat.com/USA21/Wednesday-Handouts/us-21-Anatomy-Of-Native-Iis-Malware-wp.pdf)
 - [IIS Backdoor 2011](https://web.archive.org/web/20170106175935/http:/esec-lab.sogeti.com/posts/2011/02/02/iis-backdoor.html)
 - [Microsoft IIS Modules Overview 2007](https://docs.microsoft.com/en-us/iis/get-started/introduction-to-iis/iis-modules-overview)
-- [Microsoft ISAPI Extension All Incoming 2017](https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525696(v=vs.90))
-- [Microsoft ISAPI Extension Overview 2017](https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525172(v=vs.90))
-- [Microsoft ISAPI Filter Overview 2017](https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms524610(v=vs.90))
+- [Microsoft ISAPI Extension All Incoming 2017](<https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525696(v=vs.90)>)
+- [Microsoft ISAPI Extension Overview 2017](<https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms525172(v=vs.90)>)
+- [Microsoft ISAPI Filter Overview 2017](<https://docs.microsoft.com/en-us/previous-versions/iis/6.0-sdk/ms524610(v=vs.90)>)
 - [MMPC ISAPI Filter 2012](https://web.archive.org/web/20140804175025/http:/blogs.technet.com/b/mmpc/archive/2012/10/03/malware-signed-with-the-adobe-code-signing-certificate.aspx)
 - [Atomic Red Team - T1505.004](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1505.004)
 - [MITRE ATT&CK - T1505.004](https://attack.mitre.org/techniques/T1505/004)

@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -120,7 +118,6 @@ identifying daemons, background services, and persistence mechanisms.
 launchctl list
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -139,19 +136,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of System Service Discovery Commands Across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Service Discovery technique applicable | Medium | Discovery |
+| Finding                                       | Severity | Impact    |
+| --------------------------------------------- | -------- | --------- |
+| System Service Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

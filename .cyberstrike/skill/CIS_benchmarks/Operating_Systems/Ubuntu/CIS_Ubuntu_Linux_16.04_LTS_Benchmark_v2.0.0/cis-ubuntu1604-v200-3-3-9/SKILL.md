@@ -32,7 +32,7 @@ None.
 
 ### Command Line
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Run the following commands and verify output matches:
 
@@ -52,7 +52,7 @@ grep "net\.ipv6\.conf\.all\.accept_ra" /etc/sysctl.conf /etc/sysctl.d/*
 grep "net\.ipv6\.conf\.default\.accept_ra" /etc/sysctl.conf /etc/sysctl.d/*
 ```
 
-*OR verify IPv6 is disabled:*
+_OR verify IPv6 is disabled:_
 
 Run the following script. Output will confirm if IPv6 is disabled on the system.
 
@@ -85,7 +85,7 @@ net.ipv6.conf.default.accept_ra = 0
 
 ### Command Line
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Set the following parameters in `/etc/sysctl.conf` or a `/etc/sysctl.d/*` file:
 

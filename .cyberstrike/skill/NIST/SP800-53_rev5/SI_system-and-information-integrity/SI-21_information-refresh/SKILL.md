@@ -20,8 +20,7 @@ cwe_ids:
   - CWE-20
 chains_with:
   - SI-14
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SI-14: "Chain with SI-14 for comprehensive security coverage"
 ---
@@ -63,10 +62,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -80,17 +79,16 @@ Retaining information for longer than it is needed makes it an increasingly valu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-21 Information Refresh not implemented | High | System and Information Integrity |
-| SI-21 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                   | Severity | Impact                                      |
+| ----------------------------------------- | -------- | ------------------------------------------- |
+| SI-21 Information Refresh not implemented | High     | System and Information Integrity            |
+| SI-21 partially implemented               | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

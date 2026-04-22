@@ -18,8 +18,7 @@ chains_with:
   - CP-2
   - RA-9
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   RA-9: "Chain with RA-9 for comprehensive security coverage"
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,17 +78,16 @@ Organizations determine that certain system components likely cannot be trusted 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-20 Customized Development of Critical Components not implemented | Medium | System and Services Acquisition |
-| SA-20 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                             | Severity | Impact                                     |
+| ------------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-20 Customized Development of Critical Components not implemented | Medium   | System and Services Acquisition            |
+| SA-20 partially implemented                                         | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -94,8 +94,8 @@ if (Test-Path "C:\Users\Default\AppData\Local\Temp\hello.log") { Remove-Item "C:
 ```
 
 **Dependencies:**
-- Portable Executable to run must exist at specified location (#{exe_binary})
 
+- Portable Executable to run must exist at specified location (#{exe_binary})
 
 ### Manual Testing
 
@@ -115,19 +115,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Dynamic API Resolution via Hash-Based Function Lookups
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dynamic API Resolution technique applicable | Medium | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Dynamic API Resolution technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

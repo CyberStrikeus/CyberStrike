@@ -30,10 +30,8 @@ tech_stack:
   - identity
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -75,26 +73,24 @@ Depending on the configuration of the environment, an adversary may be able to e
 ## Remediation Guide
 
 ### M1018 User Account Management
-Enforce the principle of least-privilege by limiting dashboard visibility to only the resources required. This may limit the discovery value of the dashboard in the event of a compromised account.
 
+Enforce the principle of least-privilege by limiting dashboard visibility to only the resources required. This may limit the discovery value of the dashboard in the event of a compromised account.
 
 ## Detection
 
 ### Detection of Cloud Service Dashboard Usage via GUI-Based Cloud Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Service Dashboard technique applicable | High | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Cloud Service Dashboard technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

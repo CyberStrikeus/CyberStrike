@@ -107,8 +107,8 @@ $com.ActivateMicrosoftApp("5")
 ```
 
 **Dependencies:**
-- Microsoft Excel must be installed
 
+- Microsoft Excel must be installed
 
 ### Manual Testing
 
@@ -123,44 +123,45 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling DCOM through Dcomcnfg.exe.
 
 ### M1048 Application Isolation and Sandboxing
+
 Ensure all COM alerts and Protected View are enabled.
 
 ### M1030 Network Segmentation
+
 Enable Windows firewall, which prevents DCOM instantiation by default.
 
 ### M1026 Privileged Account Management
+
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AppID\{{AppID_GUID}}` associated with the process-wide security of individual COM applications.
 
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Ole` associated with system-wide security defaults for all COM applications that do not set their own process-wide security.
-
 
 ## Detection
 
 ### Multi-Event Behavioral Detection for DCOM-Based Remote Code Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Distributed Component Object Model technique applicable | High | Lateral Movement |
+| Finding                                                 | Severity | Impact           |
+| ------------------------------------------------------- | -------- | ---------------- |
+| Distributed Component Object Model technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 
 - [Fireeye Hunting COM June 2019](https://www.fireeye.com/blog/threat-research/2019/06/hunting-com-objects.html)
 - [Microsoft COM](https://msdn.microsoft.com/library/windows/desktop/ms680573.aspx)
 - [Microsoft COM ACL](https://docs.microsoft.com/en-us/windows/desktop/com/dcom-security-enhancements-in-windows-xp-service-pack-2-and-windows-server-2003-service-pack-1)
-- [Microsoft Process Wide Com Keys](https://msdn.microsoft.com/en-us/library/windows/desktop/ms687317(v=vs.85).aspx)
+- [Microsoft Process Wide Com Keys](<https://msdn.microsoft.com/en-us/library/windows/desktop/ms687317(v=vs.85).aspx>)
 - [MSDN WMI](https://msdn.microsoft.com/en-us/library/aa394582.aspx)
 - [Enigma DCOM Lateral Movement Jan 2017](https://enigma0x3.net/2017/01/23/lateral-movement-via-dcom-round-2/)
 - [Enigma MMC20 COM Jan 2017](https://enigma0x3.net/2017/01/05/lateral-movement-using-the-mmc20-application-com-object/)

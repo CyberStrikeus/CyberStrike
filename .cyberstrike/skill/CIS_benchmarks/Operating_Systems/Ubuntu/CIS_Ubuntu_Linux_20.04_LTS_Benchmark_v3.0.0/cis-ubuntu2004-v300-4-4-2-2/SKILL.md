@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.4.2.2
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Configure the loopback interface to accept traffic. Configure all other interfaces to deny traffic to the loopback network (127.0.0.0/8).
 
 Note:
+
 - Changing firewall settings while connected over network can result in being locked out of the system
 - Remediation will only affect the active system firewall, be sure to configure the default policy in your firewall management to apply on boot as well
 

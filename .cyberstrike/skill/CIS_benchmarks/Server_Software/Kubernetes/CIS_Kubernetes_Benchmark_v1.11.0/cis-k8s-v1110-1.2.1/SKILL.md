@@ -71,7 +71,7 @@ By default, anonymous access is enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |

@@ -17,6 +17,7 @@ severity_boost: {}
 # 1.3 Ensure the latest version of Python is installed
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -56,12 +57,15 @@ For using cqlsh, the latest version of Python 3.6+ or Python 2.7 (support deprec
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 16.5 Use Up-to-Date and Trusted Third-Party Software Components
   - Use up-to-date and trusted third-party software components. When possible, choose established and proven frameworks and libraries that provide adequate security. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use.
 
 **Controls Version v7:**
+
 - 18.4 Only Use Up-to-date And Trusted Third-Party Components
   - Only use up-to-date and trusted third-party components for the software developed by the organization.
 
 ## Profile
+
 - Level 1 | Automated

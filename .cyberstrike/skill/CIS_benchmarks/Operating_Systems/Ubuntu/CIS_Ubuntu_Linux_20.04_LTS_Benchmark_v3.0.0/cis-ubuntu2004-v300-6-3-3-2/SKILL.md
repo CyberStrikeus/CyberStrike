@@ -106,9 +106,9 @@ Check if reboot is required:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | X | X |
-| v7 | 4.9 Log and Alert on Unsuccessful Administrative Account Login | | X | X |
+| Controls Version | Control                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs                                |      | X    | X    |
+| v7               | 4.9 Log and Alert on Unsuccessful Administrative Account Login |      | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0004 / M1047

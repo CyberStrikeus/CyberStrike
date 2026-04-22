@@ -48,7 +48,7 @@ loglevel INFO
 ```
 
 - IF - `Match` set statements are used in your environment, specify the connection parameters to use for the `-T` extended test mode and run the audit to verify the setting is not incorrectly configured in a match block.
-Example additional audit needed for a match block for the user *sshuser*:
+  Example additional audit needed for a match block for the user _sshuser_:
 
 ```bash
 # sshd -T -C user=sshuser | grep loglevel
@@ -61,7 +61,9 @@ Note: If provided, any Match directives in the configuration file that would app
 ```
 loglevel VERBOSE
 ```
+
 or
+
 ```
 loglevel INFO
 ```

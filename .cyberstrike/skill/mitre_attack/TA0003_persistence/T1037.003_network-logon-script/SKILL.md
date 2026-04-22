@@ -44,8 +44,8 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use network logon scripts automatically executed at logon initialization to establish persistence. Network logon scripts can be assigned using Active Directory or Group Policy Objects. These logon scripts run with the privileges of the user they are assigned to. Depending on the systems within the network, initializing one of these scripts could apply to more than one or potentially all systems. 
- 
+Adversaries may use network logon scripts automatically executed at logon initialization to establish persistence. Network logon scripts can be assigned using Active Directory or Group Policy Objects. These logon scripts run with the privileges of the user they are assigned to. Depending on the systems within the network, initializing one of these scripts could apply to more than one or potentially all systems.
+
 Adversaries may use these scripts to maintain persistence on a network. Depending on the access configuration of the logon scripts, either local credentials or an administrator account may be necessary.
 
 ## Kill Chain Phase
@@ -77,26 +77,24 @@ Adversaries may use these scripts to maintain persistence on a network. Dependin
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Restrict write access to logon scripts to specific administrators.
 
+Restrict write access to logon scripts to specific administrators.
 
 ## Detection
 
 ### Detect Network Logon Script Abuse via Multi-Event Correlation on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Logon Script technique applicable | High | Persistence |
+| Finding                                   | Severity | Impact      |
+| ----------------------------------------- | -------- | ----------- |
+| Network Logon Script technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

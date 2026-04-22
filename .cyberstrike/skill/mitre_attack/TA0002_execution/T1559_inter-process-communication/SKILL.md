@@ -31,8 +31,7 @@ chains_with:
   - T1559.001
   - T1559.002
   - T1559.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1559.001: "Chain with T1559.001 for deeper attack path"
   T1559.002: "Chain with T1559.002 for deeper attack path"
@@ -43,7 +42,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse inter-process communication (IPC) mechanisms for local code or command execution. IPC is typically used by processes to share data, communicate with each other, or synchronize execution. IPC is also commonly used to avoid situations such as deadlocks, which occurs when processes are stuck in a cyclic waiting pattern. 
+Adversaries may abuse inter-process communication (IPC) mechanisms for local code or command execution. IPC is typically used by processes to share data, communicate with each other, or synchronize execution. IPC is also commonly used to avoid situations such as deadlocks, which occurs when processes are stuck in a cyclic waiting pattern.
 
 Adversaries may abuse IPC to execute arbitrary code or commands. IPC mechanisms may differ depending on OS, but typically exists in a form accessible through programming languages/libraries or native interfaces such as Windows Dynamic Data Exchange or Component Object Model. Linux environments support several different IPC mechanisms, two of which being sockets and pipes. Higher level execution mediums, such as those of Command and Scripting Interpreters, may also leverage underlying IPC mechanisms. Adversaries may also use Remote Services such as Distributed Component Object Model to facilitate remote IPC execution.
 
@@ -81,6 +80,7 @@ The named pipe executable will pause for 30 seconds to allow the client and serv
 ```
 
 **Dependencies:**
+
 - Named pipe executors must exist on disk
 
 ### Atomic Test 2: Cobalt Strike Lateral Movement (psexec_psh) pipe
@@ -96,6 +96,7 @@ The named pipe executable will pause for 30 seconds to allow the client and serv
 ```
 
 **Dependencies:**
+
 - Named pipe executors must exist on disk
 
 ### Atomic Test 3: Cobalt Strike SSH (postex_ssh) pipe
@@ -111,6 +112,7 @@ The named pipe executable will pause for 30 seconds to allow the client and serv
 ```
 
 **Dependencies:**
+
 - Named pipe executors must exist on disk
 
 ### Atomic Test 4: Cobalt Strike post-exploitation pipe (4.2 and later)
@@ -126,6 +128,7 @@ The named pipe executable will pause for 30 seconds to allow the client and serv
 ```
 
 **Dependencies:**
+
 - Named pipe executors must exist on disk
 
 ### Atomic Test 5: Cobalt Strike post-exploitation pipe (before 4.2)
@@ -141,8 +144,8 @@ The named pipe executable will pause for 30 seconds to allow the client and serv
 ```
 
 **Dependencies:**
-- Named pipe executors must exist on disk
 
+- Named pipe executors must exist on disk
 
 ### Manual Testing
 
@@ -157,47 +160,50 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Registry keys specific to Microsoft Office feature control security can be set to disable automatic DDE/OLE execution. Microsoft also created, and enabled by default, Registry keys to completely disable DDE execution in Word and Excel.
 
 ### M1054 Software Configuration
+
 Consider disabling embedded files in Office programs, such as OneNote, that do not work with Protected View.
 
 ### M1048 Application Isolation and Sandboxing
+
 Ensure all COM alerts and Protected View are enabled.
 
 ### M1026 Privileged Account Management
+
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\AppID\\{AppID_GUID}` associated with the process-wide security of individual COM applications.
 
 Modify Registry settings (directly or using Dcomcnfg.exe) in `HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Ole` associated with system-wide security defaults for all COM applications that do no set their own process-wide security.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent DDE attacks and spawning of child processes from Office programs.
 
 ### M1013 Application Developer Guidance
-Enable the Hardened Runtime capability when developing applications. Do not include the <code>com.apple.security.get-task-allow</code> entitlement with the value set to any variation of true.
 
+Enable the Hardened Runtime capability when developing applications. Do not include the <code>com.apple.security.get-task-allow</code> entitlement with the value set to any variation of true.
 
 ## Detection
 
 ### Detect Abuse of Inter-Process Communication (T1559)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Inter-Process Communication technique applicable | Low | Execution |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Inter-Process Communication technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 
 - [Fireeye Hunting COM June 2019](https://www.fireeye.com/blog/threat-research/2019/06/hunting-com-objects.html)
-- [Linux IPC](https://www.geeksforgeeks.org/inter-process-communication-ipc/#:~:text=Inter%2Dprocess%20communication%20(IPC),of%20co%2Doperation%20between%20them.)
+- [Linux IPC](<https://www.geeksforgeeks.org/inter-process-communication-ipc/#:~:text=Inter%2Dprocess%20communication%20(IPC),of%20co%2Doperation%20between%20them.>)
 - [Atomic Red Team - T1559](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1559)
 - [MITRE ATT&CK - T1559](https://attack.mitre.org/techniques/T1559)

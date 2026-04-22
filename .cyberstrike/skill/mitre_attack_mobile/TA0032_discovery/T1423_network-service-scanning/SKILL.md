@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,19 +66,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Network Service Scanning
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Service Scanning technique applicable | High | Discovery |
+| Finding                                       | Severity | Impact    |
+| --------------------------------------------- | -------- | --------- |
+| Network Service Scanning technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

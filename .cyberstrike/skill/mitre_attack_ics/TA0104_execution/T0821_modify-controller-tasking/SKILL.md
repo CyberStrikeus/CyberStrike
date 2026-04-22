@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may modify the tasking of a controller to allow for the execution of their own programs. This can allow an adversary to manipulate the execution flow and behavior of a controller. 
+Adversaries may modify the tasking of a controller to allow for the execution of their own programs. This can allow an adversary to manipulate the execution flow and behavior of a controller.
 
 According to 61131-3, the association of a Task with a Program Organization Unit (POU) defines a task association. An adversary may modify these associations or create new ones to manipulate the execution flow of a controller. Modification of controller tasking can be accomplished using a Program Download in addition to other types of program modification such as online edit and program append.
 
@@ -63,35 +61,36 @@ Review whether mitigations for T0821 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0800 Authorization Enforcement
+
 All field controllers should restrict the modification of controller tasks to only certain users (e.g., engineers, field technician), preferably through implementing a role-based access mechanism.
 
 ### M0804 Human User Authentication
+
 All field controllers should require users to authenticate for all remote or local management sessions. The authentication mechanisms should also support Account Use Policies, Password Policies, and User Account Management.
 
 ### M0947 Audit
+
 Provide the ability to verify the integrity of controller tasking. While techniques like CRCs and checksums are commonly used, they are not cryptographically secure and can be vulnerable to collisions. Preferably cryptographic hash functions (e.g., SHA-2, SHA-3) should be used.
 
 ### M0945 Code Signing
-Utilize code signatures to verify the integrity and authenticity of programs installed on safety or control assets, including the associated controller tasking.
 
+Utilize code signatures to verify the integrity and authenticity of programs installed on safety or control assets, including the associated controller tasking.
 
 ## Detection
 
 ### Detection of Modify Controller Tasking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Controller Tasking technique applicable | High | Execution |
+| Finding                                        | Severity | Impact    |
+| ---------------------------------------------- | -------- | --------- |
+| Modify Controller Tasking technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AC-5
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Restricting the use of maintenance tools to only authorized personnel applies to
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-3(4) Restricted Tool Use not implemented | Medium | Maintenance |
-| MA-3(4) partially implemented | Low | Incomplete Maintenance |
+| Finding                                     | Severity | Impact                 |
+| ------------------------------------------- | -------- | ---------------------- |
+| MA-3(4) Restricted Tool Use not implemented | Medium   | Maintenance            |
+| MA-3(4) partially implemented               | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

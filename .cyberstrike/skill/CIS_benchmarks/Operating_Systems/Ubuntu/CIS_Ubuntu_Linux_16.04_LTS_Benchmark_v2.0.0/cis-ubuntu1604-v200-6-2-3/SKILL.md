@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 6.2.3
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -65,8 +66,8 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 16.6 Maintain an Inventory of Accounts<br/>Maintain an inventory of all accounts organized by authentication system. | | | |
-| v7 | 16.7 Establish Process for Revoking Access<br/>Establish and follow an automated process for revoking system access by disabling accounts immediately upon termination or change of responsibilities of an employee or contractor. Disabling these accounts, instead of deleting accounts, allows preservation of audit trails. | | | |
-| v7 | 16.8 Disable Any Unassociated Accounts<br/>Disable any account that cannot be associated with a business process or business owner. | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 16.6 Maintain an Inventory of Accounts<br/>Maintain an inventory of all accounts organized by authentication system.                                                                                                                                                                                                            |      |      |      |
+| v7               | 16.7 Establish Process for Revoking Access<br/>Establish and follow an automated process for revoking system access by disabling accounts immediately upon termination or change of responsibilities of an employee or contractor. Disabling these accounts, instead of deleting accounts, allows preservation of audit trails. |      |      |      |
+| v7               | 16.8 Disable Any Unassociated Accounts<br/>Disable any account that cannot be associated with a business process or business owner.                                                                                                                                                                                             |      |      |      |

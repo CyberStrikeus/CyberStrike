@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,13 +33,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may communicate with compromised devices using out of band data streams. This could be done for a variety of reasons, including evading network traffic monitoring, as a backup method of command and control, or for data exfiltration if the device is not connected to any Internet-providing networks (i.e. cellular or Wi-Fi). Several out of band data streams exist, such as SMS messages, NFC, and Bluetooth. 
+Adversaries may communicate with compromised devices using out of band data streams. This could be done for a variety of reasons, including evading network traffic monitoring, as a backup method of command and control, or for data exfiltration if the device is not connected to any Internet-providing networks (i.e. cellular or Wi-Fi). Several out of band data streams exist, such as SMS messages, NFC, and Bluetooth.
 
- 
-
-On Android, applications can read push notifications to capture content from SMS messages, or other out of band data streams. This requires that the user manually grant notification access to the application via the settings menu. However, the application could launch an Intent to take the user directly there. 
-
- 
+On Android, applications can read push notifications to capture content from SMS messages, or other out of band data streams. This requires that the user manually grant notification access to the application via the settings menu. However, the application could launch an Intent to take the user directly there.
 
 On iOS, there is no way to programmatically read push notifications.
 
@@ -72,26 +66,24 @@ Review whether mitigations for T1644 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be instructed to not grant applications unexpected or unnecessary permissions.
 
+Users should be instructed to not grant applications unexpected or unnecessary permissions.
 
 ## Detection
 
 ### Detection of Out of Band Data
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Out of Band Data technique applicable | Low | Command And Control |
+| Finding                               | Severity | Impact              |
+| ------------------------------------- | -------- | ------------------- |
+| Out of Band Data technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

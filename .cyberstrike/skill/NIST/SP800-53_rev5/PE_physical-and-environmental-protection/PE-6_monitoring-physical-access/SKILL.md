@@ -12,8 +12,7 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AU-2
   - AU-6
@@ -23,8 +22,7 @@ chains_with:
   - CP-10
   - IR-4
   - IR-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-2: "Chain with AU-2 for comprehensive security coverage"
   AU-6: "Chain with AU-6 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Physical access monitoring includes publicly accessible areas within organizatio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-6 Monitoring Physical Access not implemented | Medium | Physical and Environmental Protection |
-| PE-6 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                         | Severity | Impact                                           |
+| ----------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-6 Monitoring Physical Access not implemented | Medium   | Physical and Environmental Protection            |
+| PE-6 partially implemented                      | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

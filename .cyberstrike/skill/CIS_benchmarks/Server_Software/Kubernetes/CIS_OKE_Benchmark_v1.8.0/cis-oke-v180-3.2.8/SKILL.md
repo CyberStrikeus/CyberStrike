@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.8
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Setup TLS connection on the Kubelets.
 
 ## Rationale
+
 Kubelet communication contains sensitive parameters that should remain encrypted in transit. Configure the Kubelets to serve only HTTPS traffic.
 
 ## Impact
+
 TLS and client certificate authentication must be configured for your Kubernetes cluster deployment.
 
 ## Audit Procedure
@@ -102,9 +106,11 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. http://rootsquash.com/2016/05/10/securing-the-kubernetes-api/
 3. https://github.com/kelseyhightower/docker-kubernetes-tls-guide
@@ -113,16 +119,17 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | * | * |
-| v7 | 14.3 Disable Workstation to Workstation Communication | | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit                |      | \*   | \*   |
+| v7               | 14.3 Disable Workstation to Workstation Communication |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078, T1552 | TA0001, TA0006 | M1035, M1041 |
+| Techniques / Sub-techniques | Tactics        | Mitigations  |
+| --------------------------- | -------------- | ------------ |
+| T1078, T1552                | TA0001, TA0006 | M1035, M1041 |
 
 ## Profile
+
 **Level 1** (Automated)

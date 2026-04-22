@@ -155,7 +155,6 @@ After execution the current/new user will be added to the Admin group
 dseditgroup -o edit -a art-user -t user admin
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -169,37 +168,38 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
-Audit local accounts permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. Limit the usage of local administrator accounts to be used for day-to-day operations that may expose them to potential adversaries. 
+
+Audit local accounts permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. Limit the usage of local administrator accounts to be used for day-to-day operations that may expose them to potential adversaries.
 
 For example, audit the use of service accounts in Kubernetes, and avoid automatically granting them access to the Kubernetes API if this is not required. Implementing LAPS may also help prevent reuse of local administrator credentials across a domain.
 
 ### M1032 Multi-factor Authentication
+
 Enable multi-factor authentication (MFA) for local accounts to add an extra layer of protection against credential theft and misuse. MFA can be implemented using methods like mobile-based authenticators or hardware tokens, even in environments that do not rely on domain controllers or cloud services. This additional security measure can help reduce the risk of adversaries gaining unauthorized access to local systems and resources.
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1018 User Account Management
-Enforce user account management practices for local accounts to limit access and remove inactive or unused accounts. By doing so, you reduce the attack surface available to adversaries and prevent unauthorized access to local systems.
 
+Enforce user account management practices for local accounts to limit access and remove inactive or unused accounts. By doing so, you reduce the attack surface available to adversaries and prevent unauthorized access to local systems.
 
 ## Detection
 
 ### Detection of Local Account Abuse for Initial Access and Persistence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Local Accounts technique applicable | High | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Local Accounts technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

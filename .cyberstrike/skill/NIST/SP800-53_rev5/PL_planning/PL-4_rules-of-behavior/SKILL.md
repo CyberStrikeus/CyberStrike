@@ -12,8 +12,7 @@ tags:
   - pl
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-6
@@ -25,8 +24,7 @@ chains_with:
   - AC-20
   - AT-2
   - AT-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Rules of behavior represent a type of access agreement for organizational users.
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-4 Rules of Behavior not implemented | Medium | Planning |
-| PL-4 partially implemented | Low | Incomplete Planning |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| PL-4 Rules of Behavior not implemented | Medium   | Planning            |
+| PL-4 partially implemented             | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

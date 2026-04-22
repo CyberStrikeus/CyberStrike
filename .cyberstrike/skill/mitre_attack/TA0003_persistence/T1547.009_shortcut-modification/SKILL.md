@@ -81,8 +81,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Shortcut Modification
 
-This test to simulate shortcut modification and then execute. example shortcut (*.lnk , .url) strings check with powershell;
-gci -path "C:\Users" -recurse -include *.url -ea SilentlyContinue | Select-String -Pattern "exe" | FL.
+This test to simulate shortcut modification and then execute. example shortcut (_.lnk , .url) strings check with powershell;
+gci -path "C:\Users" -recurse -include _.url -ea SilentlyContinue | Select-String -Pattern "exe" | FL.
 Upon execution, calc.exe will be launched.
 
 **Supported Platforms:** windows
@@ -119,7 +119,6 @@ $ShortCut.Description = "T1547.009.";
 $ShortCut.Save()
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -133,34 +132,34 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
-Limit Privileges for Shortcut Creation: While the SeCreateSymbolicLinkPrivilege is not directly related to .lnk file creation, you should still enforce least privilege principles by limiting user rights to create and modify shortcuts, especially in system-critical locations. This can be done through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create symbolic links. 
+
+Limit Privileges for Shortcut Creation: While the SeCreateSymbolicLinkPrivilege is not directly related to .lnk file creation, you should still enforce least privilege principles by limiting user rights to create and modify shortcuts, especially in system-critical locations. This can be done through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create symbolic links.
 
 Regular User Permissions Review: Regularly review and audit user permissions to ensure that only necessary accounts have write access to startup folders and critical system directories.
 
 ### M1038 Execution Prevention
+
 Prevents malicious shortcuts or LNK files from executing unwanted code by ensuring only authorized applications and scripts are allowed to run.
 
 ### M1022 Restrict File and Directory Permissions
-Applying strict permissions to directories where shortcuts are stored, such as the startup folder, can prevent unauthorized modifications.
 
+Applying strict permissions to directories where shortcuts are stored, such as the startup folder, can prevent unauthorized modifications.
 
 ## Detection
 
 ### Detection Strategy for T1547.009 – Shortcut Modification (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Shortcut Modification technique applicable | High | Persistence |
+| Finding                                    | Severity | Impact      |
+| ------------------------------------------ | -------- | ----------- |
+| Shortcut Modification technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

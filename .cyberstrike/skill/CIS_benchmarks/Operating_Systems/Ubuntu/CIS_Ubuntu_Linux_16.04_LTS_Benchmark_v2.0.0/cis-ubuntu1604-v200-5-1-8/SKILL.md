@@ -26,6 +26,7 @@ severity_boost: {}
 Configure `/etc/cron.allow` to allow specific users to use this service. If `/etc/cron.allow` does not exist, then `/etc/cron.deny` is checked. Any user not specifically defined in this file is allowed to use cron. By removing the file, only users in `/etc/cron.allow` are allowed to use cron.
 
 Notes:
+
 - Other methods, such as `systemd timers`, exist for scheduling jobs. If another method is used, `cron` should be removed, and the alternate method should be secured in accordance with local site policy
 - Even though a given user is not listed in `cron.allow`, cron jobs can still be run as that user
 - The `cron.allow` file only controls administrative access to the crontab command for scheduling and modifying cron jobs
@@ -101,9 +102,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.6 Protect Information through Access Control Lists |
+| Controls Version | Control                                               |
+| ---------------- | ----------------------------------------------------- |
+| v7               | 14.6 Protect Information through Access Control Lists |
 
 ## Assessment Status
 

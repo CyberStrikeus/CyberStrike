@@ -76,10 +76,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -94,17 +94,16 @@ Organizations log system accesses associated with applying configuration changes
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-5(1) Automated Access Enforcement and Audit Records not implemented | Medium | Configuration Management |
-| CM-5(1) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                                                | Severity | Impact                              |
+| ---------------------------------------------------------------------- | -------- | ----------------------------------- |
+| CM-5(1) Automated Access Enforcement and Audit Records not implemented | Medium   | Configuration Management            |
+| CM-5(1) partially implemented                                          | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -78,7 +76,7 @@ This test searches for files of certain extensions and saves them to a single zi
 ```powershell
 $startingDirectory = "#{starting_directory}"
 $outputZip = "#{output_zip_folder_path}"
-$fileExtensionsString = "#{file_extensions}" 
+$fileExtensionsString = "#{file_extensions}"
 $fileExtensions = $fileExtensionsString -split ", "
 
 New-Item -Type Directory $outputZip -ErrorAction Ignore -Force | Out-Null
@@ -120,6 +118,7 @@ find . ! -executable -exec bash -c 'if [[ "$(head -c 15 {} | strings)" == "SQLit
 ```
 
 **Dependencies:**
+
 - Check if running on a Debian based machine.
 
 ### Atomic Test 3: Copy Apple Notes database files using AppleScript
@@ -131,7 +130,6 @@ This command will copy Apple Notes database files using AppleScript as seen in A
 ```bash
 osascript -e 'tell application "Finder"' -e 'set destinationFolderPath to POSIX file "#{destination_path}"' -e 'set notesFolderPath to (path to home folder as text) & "Library:Group Containers:group.com.apple.notes:"' -e 'set notesFolder to folder notesFolderPath' -e 'set notesFiles to {file "NoteStore.sqlite", file "NoteStore.sqlite-shm", file "NoteStore.sqlite-wal"} of notesFolder' -e 'repeat with aFile in notesFiles' -e 'duplicate aFile to folder destinationFolderPath with replacing' -e 'end' -e 'end tell'
 ```
-
 
 ### Manual Testing
 
@@ -146,26 +144,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1057 Data Loss Prevention
-Data loss prevention can restrict access to sensitive data and detect sensitive data that is unencrypted.
 
+Data loss prevention can restrict access to sensitive data and detect sensitive data that is unencrypted.
 
 ## Detection
 
 ### Detection of Local Data Collection Prior to Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Local System technique applicable | Low | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Data from Local System technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

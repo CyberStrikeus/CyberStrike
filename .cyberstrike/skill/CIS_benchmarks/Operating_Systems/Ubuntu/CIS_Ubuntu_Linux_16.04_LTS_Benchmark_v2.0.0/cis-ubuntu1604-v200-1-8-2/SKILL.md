@@ -58,7 +58,7 @@ banner-message-text='<banner message>'
 disable-user-list=true
 ```
 
-*Example banner message:* 'Authorized uses only. All activity may be monitored and reported.'
+_Example banner message:_ 'Authorized uses only. All activity may be monitored and reported.'
 
 Run the following command to re-load GDM on the next login or reboot:
 
@@ -82,9 +82,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.1 Establish Secure Configurations |
+| Controls Version | Control                             |
+| ---------------- | ----------------------------------- |
+| v7               | 5.1 Establish Secure Configurations |
 
 ## Assessment Status
 

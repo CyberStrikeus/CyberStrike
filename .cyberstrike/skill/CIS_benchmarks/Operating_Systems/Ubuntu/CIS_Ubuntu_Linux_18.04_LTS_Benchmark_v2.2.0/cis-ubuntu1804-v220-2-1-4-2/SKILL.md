@@ -49,11 +49,13 @@ Verify that at least one `pool` line and/or at least three `server` lines are re
 Output examples:
 
 pool mode:
+
 ```
 pool time.nist.gov iburst maxsources 4 #The maxsources option is unique to the pool directive
 ```
 
 server mode:
+
 ```
 server time-a-g.nist.gov iburst
 server 132.163.97.3 iburst
@@ -73,11 +75,13 @@ Edit `/etc/ntp.conf` and add or edit server or pool lines as appropriate accordi
 Examples:
 
 pool mode:
+
 ```
 pool time.nist.gov iburst
 ```
 
 server mode:
+
 ```
 server time-a-g.nist.gov iburst
 server 132.163.97.3 iburst
@@ -85,6 +89,7 @@ server time-d-b.nist.gov iburst
 ```
 
 Run the following command to load the updated time sources into ntp running config:
+
 ```bash
 # systemctl restart ntp
 ```
@@ -92,6 +97,7 @@ Run the following command to load the updated time sources into ntp running conf
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove ntp from the system:
+
 ```bash
 # apt purge ntp
 ```

@@ -36,9 +36,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may modify the lifecycle policies of a cloud storage bucket to destroy all objects stored within. 
+Adversaries may modify the lifecycle policies of a cloud storage bucket to destroy all objects stored within.
 
-Cloud storage buckets often allow users to set lifecycle policies to automate the migration, archival, or deletion of objects after a set period of time. If a threat actor has sufficient permissions to modify these policies, they may be able to delete all objects at once. 
+Cloud storage buckets often allow users to set lifecycle policies to automate the migration, archival, or deletion of objects after a set period of time. If a threat actor has sufficient permissions to modify these policies, they may be able to delete all objects at once.
 
 For example, in AWS environments, an adversary with the `PutLifecycleConfiguration` permission may use the `PutBucketLifecycle` API call to apply a lifecycle policy to an S3 bucket that deletes all objects in the bucket after one day. In addition to destroying data for purposes of extortion and Financial Theft, adversaries may also perform this action on buckets storing cloud logs for Indicator Removal.
 
@@ -70,29 +70,28 @@ For example, in AWS environments, an adversary with the `PutLifecycleConfigurati
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 In cloud environments, limit permissions to modify cloud bucket lifecycle policies (e.g., `PutLifecycleConfiguration` in AWS) to only those accounts that require it. In AWS environments, consider using Service Control policies to limit the use of the `PutBucketLifecycle` API call.
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
+Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
 ## Detection
 
 ### Detection of Lifecycle Policy Modifications for Triggered Deletion in IaaS Cloud Storage
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Lifecycle-Triggered Deletion technique applicable | Low | Impact |
+| Finding                                           | Severity | Impact |
+| ------------------------------------------------- | -------- | ------ |
+| Lifecycle-Triggered Deletion technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

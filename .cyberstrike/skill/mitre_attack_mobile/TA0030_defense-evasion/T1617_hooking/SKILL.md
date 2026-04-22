@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -60,29 +58,28 @@ Review whether mitigations for T1617 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1002 Attestation
+
 Device attestation can often detect rooted devices.
 
 ### M1010 Deploy Compromised Device Detection Method
-Mobile security products can often detect rooted devices.
 
+Mobile security products can often detect rooted devices.
 
 ## Detection
 
 ### Detection of Hooking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hooking technique applicable | High | Defense Evasion |
+| Finding                      | Severity | Impact          |
+| ---------------------------- | -------- | --------------- |
+| Hooking technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

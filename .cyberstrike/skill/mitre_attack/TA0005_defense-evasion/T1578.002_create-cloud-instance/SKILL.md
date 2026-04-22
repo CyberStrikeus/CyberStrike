@@ -74,29 +74,28 @@ Creating a new instance may also allow an adversary to carry out malicious activ
 ## Remediation Guide
 
 ### M1047 Audit
+
 Routinely check user permissions to ensure only the expected users have the capability to create new instances.
 
 ### M1018 User Account Management
-Limit permissions for creating new instances in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
+Limit permissions for creating new instances in accordance with least privilege. Organizations should limit the number of users within the organization with an IAM role that has administrative privileges, strive to reduce all permanent privileged role assignments, and conduct periodic entitlement reviews on IAM users, roles and policies.
 
 ## Detection
 
 ### Detection Strategy for Modify Cloud Compute Infrastructure: Create Cloud Instance
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Create Cloud Instance technique applicable | Low | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Create Cloud Instance technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

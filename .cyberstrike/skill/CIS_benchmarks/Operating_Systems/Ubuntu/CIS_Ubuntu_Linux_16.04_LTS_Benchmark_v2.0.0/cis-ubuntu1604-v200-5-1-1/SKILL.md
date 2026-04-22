@@ -85,9 +85,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 6 Maintenance, Monitoring and Analysis of Audit Logs |
+| Controls Version | Control                                              |
+| ---------------- | ---------------------------------------------------- |
+| v7               | 6 Maintenance, Monitoring and Analysis of Audit Logs |
 
 ## Assessment Status
 

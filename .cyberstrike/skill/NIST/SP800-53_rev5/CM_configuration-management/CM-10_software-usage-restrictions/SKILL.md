@@ -25,8 +25,7 @@ chains_with:
   - CM-8
   - PM-30
   - SC-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-17: "Chain with AC-17 for comprehensive security coverage"
   AU-6: "Chain with AU-6 for comprehensive security coverage"
@@ -71,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -90,17 +89,16 @@ Software license tracking can be accomplished by manual or automated methods, de
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-10 Software Usage Restrictions not implemented | Medium | Configuration Management |
-| CM-10 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                           | Severity | Impact                              |
+| ------------------------------------------------- | -------- | ----------------------------------- |
+| CM-10 Software Usage Restrictions not implemented | Medium   | Configuration Management            |
+| CM-10 partially implemented                       | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

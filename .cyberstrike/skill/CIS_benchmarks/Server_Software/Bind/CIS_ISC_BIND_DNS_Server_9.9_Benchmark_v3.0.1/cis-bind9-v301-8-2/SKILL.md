@@ -17,19 +17,24 @@ severity_boost: {}
 # CIS 8.2 — Configure a Logging File Channel
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
 
 ## Rationale
+
 Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks.
 
 ## Impact
+
 None noted.
 
 ## Audit Procedure
+
 Perform the following:
 
 - Search the logging options of the configuration file for configured log files
@@ -54,6 +59,7 @@ tail /var/log/secure.log
 ```
 
 ## Remediation
+
 In `named.conf`, configure a channel for a local security log file with the categories `config`, `dnssec`, `network`, `security`, `updates`, `xfer-in` and `xfer-out`. The local log file will be within the `chroot` directory.
 
 ```
@@ -90,22 +96,27 @@ logging {
 ```
 
 ## Default Value
+
 There is no security log by default.
 
 ## References
+
 None listed.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 6.2 - Ensure Audit Log Settings Support Appropriate Log Entry Formatting | Y | Y | Y |
+
+| Controls Version | Control                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v6               | 6.2 - Ensure Audit Log Settings Support Appropriate Log Entry Formatting | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic          | Technique                 |
+| --------------- | ------------------------- |
 | Defense Evasion | T1070 - Indicator Removal |
-| Defense Evasion | T1562 - Impair Defenses |
+| Defense Evasion | T1562 - Impair Defenses   |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

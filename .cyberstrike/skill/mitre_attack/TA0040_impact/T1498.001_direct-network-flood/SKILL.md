@@ -81,30 +81,28 @@ Botnets are commonly used to conduct network flooding attacks against networks a
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 When flood volumes exceed the capacity of the network connection being targeted, it is typically necessary to intercept the incoming traffic upstream to filter out the attack traffic from the legitimate traffic. Such defenses can be provided by the hosting Internet Service Provider (ISP) or by a 3rd party such as a Content Delivery Network (CDN) or providers specializing in DoS mitigations.
 
 Depending on flood volume, on-premises filtering may be possible by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport.
 
 As immediate response may require rapid engagement of 3rd parties, analyze the risk associated to critical resources being affected by Network DoS attacks and create a disaster recovery plan/business continuity plan to respond to incidents.
 
-
 ## Detection
 
 ### Direct Network Flood Detection across IaaS, Linux, Windows, and macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Direct Network Flood technique applicable | Low | Impact |
+| Finding                                   | Severity | Impact |
+| ----------------------------------------- | -------- | ------ |
+| Direct Network Flood technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

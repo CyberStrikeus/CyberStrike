@@ -12,12 +12,9 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -58,9 +55,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -74,16 +71,16 @@ Implement this control per organizational risk assessment and system categorizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-10 Integrated Information Security Analysis Team not implemented | Medium | Incident Response |
-| IR-10 partially implemented | Low | Incomplete Incident Response |
+| Finding                                                             | Severity | Impact                       |
+| ------------------------------------------------------------------- | -------- | ---------------------------- |
+| IR-10 Integrated Information Security Analysis Team not implemented | Medium   | Incident Response            |
+| IR-10 partially implemented                                         | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

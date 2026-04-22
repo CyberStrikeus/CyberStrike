@@ -4,7 +4,18 @@ description: "Minimize user access to Container Image repositories (Manual)"
 category: cis-gke
 version: "1.9.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, image-registry, image-scanning, artifact-registry, vulnerability-scanning, binary-authorization]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    image-registry,
+    image-scanning,
+    artifact-registry,
+    vulnerability-scanning,
+    binary-authorization,
+  ]
 cis_id: "5.1.2"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.9.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -168,7 +179,7 @@ By default, GCR is disabled and access controls are set during initialisation.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |

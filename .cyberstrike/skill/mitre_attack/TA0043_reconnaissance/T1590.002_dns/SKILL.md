@@ -77,26 +77,24 @@ Adversaries may also use DNS zone transfer (DNS query type AXFR) to collect all 
 ## Remediation Guide
 
 ### M1054 Software Configuration
-Consider implementing policies for DNS servers, such as Zone Transfer Policies, that enforce a list of validated servers permitted for zone transfers.
 
+Consider implementing policies for DNS servers, such as Zone Transfer Policies, that enforce a list of validated servers permitted for zone transfers.
 
 ## Detection
 
 ### Detection of DNS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DNS technique applicable | Low | Reconnaissance |
+| Finding                  | Severity | Impact         |
+| ------------------------ | -------- | -------------- |
+| DNS technique applicable | Low      | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1074.001
   - T1074.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1074.001: "Chain with T1074.001 for deeper attack path"
   T1074.002: "Chain with T1074.002 for deeper attack path"
@@ -87,19 +86,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Data Staging Prior to Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Staged technique applicable | Low | Collection |
+| Finding                          | Severity | Impact     |
+| -------------------------------- | -------- | ---------- |
+| Data Staged technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

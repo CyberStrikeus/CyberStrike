@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.6.0 - Control 1.2.21
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Retain the logs for at least 30 days or as appropriate.
 
 ## Rationale
+
 Retaining logs for at least 30 days ensures that you can go back in time and investigate or correlate any events. Set your audit log retention period to 30 days or as per your business requirements.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
+
 OpenShift audit works at the API server level, logging all requests coming to the server. Audit is on by default. Best practice is to ship audit logs off the cluster for retention. OpenShift includes the optional Cluster Logging operator and the `elasticsearch` operator. OpenShift cluster logging can be configured to send logs to destinations outside of your OpenShift Container Platform cluster instead of the default `elasticsearch` log store using the following methods:
 
 - Sending logs using the `fluentd` forward protocol. You can create a `ConfigMap` to use the `fluentdForward` protocol to securely send logs to an external logging aggregator that accepts the `fluentdForward` protocol.
@@ -39,12 +44,15 @@ Alternatively, you can use the Log Forwarding API, currently in Technology Previ
 Verify that audit log forwarding is configured as appropriate.
 
 ## Remediation
+
 Follow the documentation for log forwarding. [Forwarding logs to third party systems](https://docs.openshift.com/container-platform/latest/logging/cluster-logging-external.html).
 
 ## Default Value
+
 By default, auditing is enabled.
 
 ## References
+
 1. https://access.redhat.com/solutions/4262201
 2. https://docs.openshift.com/container-platform/latest/logging/cluster-logging-external.html
 3. https://docs.openshift.com/container-platform/latest/security/audit-log-view.html
@@ -57,16 +65,17 @@ By default, auditing is enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | x | x | x |
-| v7 | 6.4 Ensure adequate storage for logs | | x | x |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | x    | x    | x    |
+| v7               | 6.4 Ensure adequate storage for logs                       |      | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1543 | TA0003, TA0004 | M1047 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1047       |
 
 ## Profile
+
 **Level 1** (Manual)

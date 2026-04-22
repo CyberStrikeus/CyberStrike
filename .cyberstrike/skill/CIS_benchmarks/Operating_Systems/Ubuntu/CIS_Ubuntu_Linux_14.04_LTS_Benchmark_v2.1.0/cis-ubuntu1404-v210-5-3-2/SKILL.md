@@ -31,13 +31,13 @@ severity_boost: "medium"
 
 ## Description
 
-Lock out users after *n* unsuccessful consecutive login attempts. The first sets of changes are made to the PAM configuration files. The second set of changes are applied to the program specific PAM configuration file. The second set of changes must be applied to each program that will lock out users. Check the documentation for each secondary program for instructions on how to configure them to work with PAM.
+Lock out users after _n_ unsuccessful consecutive login attempts. The first sets of changes are made to the PAM configuration files. The second set of changes are applied to the program specific PAM configuration file. The second set of changes must be applied to each program that will lock out users. Check the documentation for each secondary program for instructions on how to configure them to work with PAM.
 
 Set the lockout number to the policy in effect at your site.
 
 ## Rationale
 
-Locking out user IDs after *n* unsuccessful consecutive login attempts mitigates brute force password attacks against your systems.
+Locking out user IDs after _n_ unsuccessful consecutive login attempts mitigates brute force password attacks against your systems.
 
 ## Audit Procedure
 

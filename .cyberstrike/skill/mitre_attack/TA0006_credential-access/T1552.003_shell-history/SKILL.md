@@ -100,7 +100,6 @@ Search through sh history for specifice commands we want to capture
 cat #{sh_history_filename} | grep #{sh_history_grep_args} > #{output_file}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -114,6 +113,7 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
+
 There are multiple methods of preventing a user's command history from being flushed to their .bash_history file, including use of the following commands:
 <code>set +o history</code> and <code>set -o history</code> to start logging again;
 <code>unset HISTFILE</code> being added to a user's .bash_rc file; and
@@ -123,24 +123,21 @@ In Zsh, `fc -p` can be used to create a private history session. However, previo
 
 In PowerShell, users can utilize `Set-PSReadLineOption` to modify how commands are saved into history. Setting `-HistorySaveStyle SaveNothing` prevents command history from being saved onto the file. Note that setting it from `SaveNothing` to `SaveIncrementally` in the same session will cause all commands from that session to be saved. Alternatively, `-AddToHistoryHandler` can be used to filter certain commands from being saved into the history file.
 
-
 ## Detection
 
 ### Detect Access and Parsing of .bash_history Files for Credential Harvesting
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Shell History technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| Shell History technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

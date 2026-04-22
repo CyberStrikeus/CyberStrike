@@ -57,7 +57,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use hidden windows to conceal malicious activity from the plain sight of users. In some cases, windows that would typically be displayed when an application carries out an operation can be hidden. This may be utilized by system administrators to avoid disrupting user work environments when carrying out administrative tasks. 
+Adversaries may use hidden windows to conceal malicious activity from the plain sight of users. In some cases, windows that would typically be displayed when an application carries out an operation can be hidden. This may be utilized by system administrators to avoid disrupting user work environments when carrying out administrative tasks.
 
 Adversaries may abuse these functionalities to hide otherwise visible windows from users so as not to alert the user to adversary activity on the system.
 
@@ -117,7 +117,7 @@ start "" #{browser} --headless --disable-gpu https://mockbin.org/bin/#{bin_id}
 
 ### Atomic Test 3: Hidden Window-Conhost Execution
 
-Launch conhost.exe in "headless" mode, it means that no visible window will pop up on the victim's machine. 
+Launch conhost.exe in "headless" mode, it means that no visible window will pop up on the victim's machine.
 This could be a sign of "conhost" usage as a LOLBIN or potential process injection activity.
 conhost.exe can be used as proxy the execution of arbitrary commands
 
@@ -127,7 +127,6 @@ conhost.exe can be used as proxy the execution of arbitrary commands
 ```powershell
 conhost.exe --headless calc.exe
 ```
-
 
 ### Manual Testing
 
@@ -142,29 +141,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Limit or restrict program execution using anti-virus software. On MacOS, allowlist programs that are allowed to have the plist tag. All other programs should be considered suspicious.
 
 ### M1033 Limit Software Installation
-Restrict the installation of software that may be abused to create hidden desktops, such as hVNC, to user groups that require it.
 
+Restrict the installation of software that may be abused to create hidden desktops, such as hVNC, to user groups that require it.
 
 ## Detection
 
 ### Detection Strategy for Hidden Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hidden Window technique applicable | High | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| Hidden Window technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

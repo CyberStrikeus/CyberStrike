@@ -74,7 +74,6 @@ sc.exe create sesshijack binpath= "cmd.exe /k tscon #{Session_ID} /dest:#{Destin
 net start sesshijack
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -88,44 +87,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1035 Limit Access to Resource Over Network
+
 Use remote desktop gateways.
 
 ### M1030 Network Segmentation
+
 Enable firewall rules to block RDP traffic between network security zones within a network.
 
 ### M1028 Operating System Configuration
+
 Change GPOs to define shorter timeouts sessions and maximum amount of time any single session can be active. Change GPOs to specify the maximum amount of time that a disconnected session stays active on the RD session host server.
 
 ### M1018 User Account Management
+
 Limit remote user permissions if remote access is necessary.
 
 ### M1047 Audit
+
 Audit the Remote Desktop Users group membership regularly. Remove unnecessary accounts and groups from Remote Desktop Users groups.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable the RDP service if it is unnecessary.
 
 ### M1026 Privileged Account Management
-Consider removing the local Administrators group from the list of groups allowed to log in through RDP.
 
+Consider removing the local Administrators group from the list of groups allowed to log in through RDP.
 
 ## Detection
 
 ### Detection fo Remote Service Session Hijacking for RDP.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RDP Hijacking technique applicable | High | Lateral Movement |
+| Finding                            | Severity | Impact           |
+| ---------------------------------- | -------- | ---------------- |
+| RDP Hijacking technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

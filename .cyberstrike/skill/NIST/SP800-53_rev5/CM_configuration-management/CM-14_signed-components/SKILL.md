@@ -23,8 +23,7 @@ chains_with:
   - SC-12
   - SC-13
   - SI-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-7: "Chain with CM-7 for comprehensive security coverage"
   SC-12: "Chain with SC-12 for comprehensive security coverage"
@@ -68,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -85,17 +84,16 @@ Software and firmware components prevented from installation unless signed with 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-14 Signed Components not implemented | Medium | Configuration Management |
-| CM-14 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                 | Severity | Impact                              |
+| --------------------------------------- | -------- | ----------------------------------- |
+| CM-14 Signed Components not implemented | Medium   | Configuration Management            |
+| CM-14 partially implemented             | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

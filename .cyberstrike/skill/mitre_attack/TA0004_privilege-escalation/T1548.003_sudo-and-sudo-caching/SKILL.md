@@ -87,7 +87,7 @@ Common Sudo enumeration methods.
 **Elevation Required:** Yes
 
 ```bash
-sudo -l      
+sudo -l
 sudo cat /etc/sudoers
 sudo vim /etc/sudoers
 ```
@@ -100,12 +100,13 @@ Common Sudo enumeration methods.
 **Elevation Required:** Yes
 
 ```bash
-sudo -l      
+sudo -l
 sudo cat /usr/local/etc/sudoers
 sudo ee /usr/local/etc/sudoers
 ```
 
 **Dependencies:**
+
 - Check if sudo is installed.
 
 ### Atomic Test 3: Unlimited sudo cache timeout
@@ -133,6 +134,7 @@ sudo visudo -c -f /usr/local/etc/sudoers
 ```
 
 **Dependencies:**
+
 - Check if sudo is installed.
 
 ### Atomic Test 5: Disable tty_tickets for sudo caching
@@ -147,7 +149,6 @@ sudo sh -c "echo Defaults "'!'"tty_tickets >> /etc/sudoers"
 sudo visudo -c -f /etc/sudoers
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -161,32 +162,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 The sudoers file should be strictly edited such that passwords are always required and that users can't spawn risky processes as users with higher privilege.
 
 ### M1028 Operating System Configuration
+
 Ensuring that the <code>tty_tickets</code> setting is enabled will prevent this leakage across tty sessions.
 
 ### M1026 Privileged Account Management
-By requiring a password, even if an adversary can get terminal access, they must know the password to run anything in the sudoers file. Setting the <code>timestamp_timeout</code> to 0 will require the user to input their password every time <code>sudo</code> is executed.
 
+By requiring a password, even if an adversary can get terminal access, they must know the password to run anything in the sudoers file. Setting the <code>timestamp_timeout</code> to 0 will require the user to input their password every time <code>sudo</code> is executed.
 
 ## Detection
 
 ### Behavioral Detection Strategy for Abuse of Sudo and Sudo Caching
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Sudo and Sudo Caching technique applicable | High | Privilege Escalation |
+| Finding                                    | Severity | Impact               |
+| ------------------------------------------ | -------- | -------------------- |
+| Sudo and Sudo Caching technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

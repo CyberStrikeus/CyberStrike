@@ -41,6 +41,7 @@ Review IAM policies associated with Amazon ECR to ensure that access is restrict
 Before you use IAM to manage access to Amazon ECR, you should understand what IAM features are available to use with Amazon ECR. To get a high-level view of how Amazon ECR and other AWS services work with IAM, see AWS Services That Work with IAM in the IAM User Guide.
 
 Topics:
+
 - Amazon ECR Identity-Based Policies
 - Amazon ECR Resource-Based Policies
 - Authorization Based on Amazon ECR Tags
@@ -55,28 +56,33 @@ With IAM identity-based policies, you can specify allowed or denied actions and 
 Policy actions in Amazon ECR use the following prefix before the action: `ecr:`. For example, to grant someone permission to create an Amazon ECR repository with the Amazon ECR CreateRepository API operation, you include the `ecr:CreateRepository` action in their policy.
 
 To specify multiple actions in a single statement, separate them with commas as follows:
+
 ```json
 "Action": [ "ecr:action1", "ecr:action2" ]
 ```
 
-You can specify multiple actions using wildcards (*). For example, to specify all actions that begin with the word Describe, include the following action:
+You can specify multiple actions using wildcards (\*). For example, to specify all actions that begin with the word Describe, include the following action:
+
 ```json
 "Action": "ecr:Describe*"
 ```
 
-**Resources:** The Resource element specifies the object or objects to which the action applies. Statements must include either a Resource or a NotResource element. You specify a resource using an ARN or using the wildcard (*) to indicate that the statement applies to all resources.
+**Resources:** The Resource element specifies the object or objects to which the action applies. Statements must include either a Resource or a NotResource element. You specify a resource using an ARN or using the wildcard (\*) to indicate that the statement applies to all resources.
 
 An Amazon ECR repository resource has the following ARN:
+
 ```
 arn:${Partition}:ecr:${Region}:${Account}:repository/${Repository-name}
 ```
 
 For example, to specify the my-repo repository in the us-east-1 Region in your statement, use the following ARN:
+
 ```json
 "Resource": "arn:aws:ecr:us-east-1:123456789012:repository/my-repo"
 ```
 
-To specify all repositories that belong to a specific account, use the wildcard (*):
+To specify all repositories that belong to a specific account, use the wildcard (\*):
+
 ```json
 "Resource": "arn:aws:ecr:us-east-1:123456789012:repository/*"
 ```
@@ -95,7 +101,7 @@ By default, IAM policies for Amazon ECR are not restrictive.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X | X | X |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | X | X | X |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X    | X    | X    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                   | X    | X    | X    |

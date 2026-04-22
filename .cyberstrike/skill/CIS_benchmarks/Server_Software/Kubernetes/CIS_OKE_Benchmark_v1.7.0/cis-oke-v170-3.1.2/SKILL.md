@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 3.1.2
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 If `kubelet` is running, ensure that the file ownership of its kubelet-config.json file is set to `root:root`.
 
 ## Rationale
+
 The kubelet-config.json file for `kubelet` controls various parameters for the `kubelet` service in the worker node. You should set its file ownership to maintain the integrity of the file. The file should be owned by `root:root`.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -69,19 +73,19 @@ metadata:
   name: file-check
 spec:
   volumes:
-  - name: host-root
-    hostPath:
-      path: /
-      type: Directory
-  containers:
-  - name: nsenter
-    image: busybox
-    command: ["sleep", "3600"]
-    volumeMounts:
     - name: host-root
-      mountPath: /host
-    securityContext:
-      privileged: true
+      hostPath:
+        path: /
+        type: Directory
+  containers:
+    - name: nsenter
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+      securityContext:
+        privileged: true
 ```
 
 Save this to a file (e.g., file-check-pod.yaml) and create the pod:
@@ -105,6 +109,7 @@ ls -l /host/etc/kubernetes/kubelet-config.json
 Verify that the ownership is set to `root:root`.
 
 ## Remediation
+
 Run the below command (based on the file location on your system) on the each worker node. For example,
 
 ```bash
@@ -112,25 +117,28 @@ chown root:root <kubelet-config.json file>
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kube-proxy/
 2. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
-| v7 | 5.2 Maintain Secure Images | | * | * |
-| v6 | 5.1 Minimize And Sparingly Use Administrative Privileges | | | |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | \*   | \*   | \*   |
+| v7               | 5.2 Maintain Secure Images                                                |      | \*   | \*   |
+| v6               | 5.1 Minimize And Sparingly Use Administrative Privileges                  |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1083, T1222 | TA0005, TA0007 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1083, T1222                | TA0005, TA0007 | M1026       |
 
 ## Profile
+
 **Level 1** (Automated)

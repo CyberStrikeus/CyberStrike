@@ -12,8 +12,7 @@ tags:
   - ps
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - IA-4
@@ -24,8 +23,7 @@ chains_with:
   - PS-6
   - PS-7
   - SA-21
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   IA-4: "Chain with IA-4 for comprehensive security coverage"
@@ -70,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Personnel screening and rescreening activities reflect applicable laws, executiv
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-3 Personnel Screening not implemented | Medium | Personnel Security |
-| PS-3 partially implemented | Low | Incomplete Personnel Security |
+| Finding                                  | Severity | Impact                        |
+| ---------------------------------------- | -------- | ----------------------------- |
+| PS-3 Personnel Screening not implemented | Medium   | Personnel Security            |
+| PS-3 partially implemented               | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

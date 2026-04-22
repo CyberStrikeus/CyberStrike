@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS 5.1 — Securely Authenticate Zone Transfers
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 
 ## Description
+
 A zone transfer is a mechanism commonly used by DNS deployments to replicate zone information from master/primary servers to slave/secondary servers. Each pair of name servers participating in zone transfers should authenticate the requests and ensure the integrity of the responses by using a unique shared secret TSIG key. BIND can be configured to respond only to authenticated transfer requests by using the `allow-transfer` statement with a key statement, that restricts the transfers to servers that provide a MAC using the named key.
 
 ## Rationale
+
 A zone transfer is a popular information disclosure attack as it provides the entire list of resource records for a zone. There should be very few systems such as the slave name servers that should be authorized to perform a zone transfer for your domains. Authentication of transfer requests should not be made using only an IP address, since IP addresses can be spoofed, but rather by using TSIG keys.
 
 ## Impact
+
 None noted.
 
 ## Audit Procedure
+
 Perform the following:
 
 - Search all of the included configuration files and zone files for the `allow-transfer` option.
@@ -70,24 +75,30 @@ $ dig @ns1.cisecurity.org cisecurity.org axfr
 ```
 
 ## Remediation
+
 Generate TSIG keys 256 bits in length, unique for each host-to-host communication. Securely Transfer the keys and configure the keys to be required in all `allow-transfer` statements.
 
 ## Default Value
+
 If the `allow-transfer` statement is missing, then transfers are allowed to any host.
 
 ## References
+
 None listed.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 9.1 - Limit Open Ports, Protocols, and Services | Y | Y | Y |
+
+| Controls Version | Control                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------- | ---- | ---- | ---- |
+| v6               | 9.1 - Limit Open Ports, Protocols, and Services | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic         | Technique                                 |
+| -------------- | ----------------------------------------- |
 | Reconnaissance | T1590 - Gather Victim Network Information |
-| Reconnaissance | T1590.002 - DNS |
+| Reconnaissance | T1590.002 - DNS                           |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server

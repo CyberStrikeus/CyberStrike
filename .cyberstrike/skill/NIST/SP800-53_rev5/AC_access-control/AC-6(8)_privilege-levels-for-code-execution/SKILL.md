@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - AC-6
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ In certain situations, software applications or programs need to execute with el
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-6(8) Privilege Levels for Code Execution not implemented | High | Access Control |
-| AC-6(8) partially implemented | Medium | Incomplete Access Control |
+| Finding                                                     | Severity | Impact                    |
+| ----------------------------------------------------------- | -------- | ------------------------- |
+| AC-6(8) Privilege Levels for Code Execution not implemented | High     | Access Control            |
+| AC-6(8) partially implemented                               | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

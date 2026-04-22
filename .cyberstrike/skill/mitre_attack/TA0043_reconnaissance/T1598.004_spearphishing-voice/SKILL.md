@@ -77,26 +77,24 @@ Adversaries may also use information from previous reconnaissance efforts (ex: S
 ## Remediation Guide
 
 ### M1017 User Training
-Users can be trained to identify and report social engineering techniques and spearphishing attempts, while also being suspicious of and verifying the identify of callers.
 
+Users can be trained to identify and report social engineering techniques and spearphishing attempts, while also being suspicious of and verifying the identify of callers.
 
 ## Detection
 
 ### Detection of Spearphishing Voice
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Voice technique applicable | High | Reconnaissance |
+| Finding                                  | Severity | Impact         |
+| ---------------------------------------- | -------- | -------------- |
+| Spearphishing Voice technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -18,8 +18,7 @@ tech_stack:
   - docker
 cwe_ids:
   - CWE-284
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Provide a Mechanism for Verifying Software Release Integrity (PS.2)
 severity_boost: {}
@@ -65,10 +64,10 @@ Verify development team understands and follows PS.2.1 PS.2.1 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -78,16 +77,15 @@ Make software integrity verification information available to software acquirers
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS.2.1 PS.2.1 not implemented | Medium | Secure Development - Protect Software |
+| Finding                       | Severity | Impact                                |
+| ----------------------------- | -------- | ------------------------------------- |
+| PS.2.1 PS.2.1 not implemented | Medium   | Secure Development - Protect Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

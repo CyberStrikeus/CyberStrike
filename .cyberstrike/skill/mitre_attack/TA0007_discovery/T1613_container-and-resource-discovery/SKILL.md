@@ -21,10 +21,8 @@ tech_stack:
   - containers
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -70,6 +68,7 @@ docker inspect $(docker ps -l -q --filter ancestor=t1613)
 ```
 
 **Dependencies:**
+
 - Verify Docker is installed.
 - Verify Docker service is running.
 
@@ -88,9 +87,9 @@ podman inspect $(podman ps -l -q --filter ancestor=t1613)
 ```
 
 **Dependencies:**
+
 - Verify Podman is installed.
 - Verify Podman service is running.
-
 
 ### Manual Testing
 
@@ -105,32 +104,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit communications with the container service to managed and secured channels, such as local Unix sockets or remote access via SSH. Require secure port access to communicate with the APIs over TLS by disabling unauthenticated access to the Docker API and Kubernetes API Server. In Kubernetes clusters deployed in cloud environments, use native cloud platform features to restrict the IP ranges that are permitted to access to API server. Where possible, consider enabling just-in-time (JIT) access to the Kubernetes API to place additional restrictions on access.
 
 ### M1018 User Account Management
-Enforce the principle of least privilege by limiting dashboard visibility to only the required users. When using Kubernetes, avoid giving users wildcard permissions or adding users to the `system:masters` group, and use `RoleBindings` rather than `ClusterRoleBindings` to limit user privileges to specific namespaces.
 
+Enforce the principle of least privilege by limiting dashboard visibility to only the required users. When using Kubernetes, avoid giving users wildcard permissions or adding users to the `system:masters` group, and use `RoleBindings` rather than `ClusterRoleBindings` to limit user privileges to specific namespaces.
 
 ## Detection
 
 ### Detection Strategy for Container and Resource Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container and Resource Discovery technique applicable | Medium | Discovery |
+| Finding                                               | Severity | Impact    |
+| ----------------------------------------------------- | -------- | --------- |
+| Container and Resource Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

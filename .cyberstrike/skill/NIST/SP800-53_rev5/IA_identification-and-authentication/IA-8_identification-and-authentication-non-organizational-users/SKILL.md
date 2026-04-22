@@ -29,8 +29,7 @@ chains_with:
   - IA-4
   - IA-5
   - IA-10
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -74,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Non-organizational users include system users other than organizational users ex
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-8 Identification and Authentication (Non-organizational Users) not implemented | High | Identification and Authentication |
-| IA-8 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                                           | Severity | Impact                                       |
+| --------------------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-8 Identification and Authentication (Non-organizational Users) not implemented | High     | Identification and Authentication            |
+| IA-8 partially implemented                                                        | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

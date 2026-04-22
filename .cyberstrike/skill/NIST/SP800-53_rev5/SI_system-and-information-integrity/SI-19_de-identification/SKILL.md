@@ -25,8 +25,7 @@ chains_with:
   - PM-24
   - RA-2
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   MP-6: "Chain with MP-6 for comprehensive security coverage"
   PM-22: "Chain with PM-22 for comprehensive security coverage"
@@ -71,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ De-identification is the general term for the process of removing the associatio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-19 De-identification not implemented | High | System and Information Integrity |
-| SI-19 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                 | Severity | Impact                                      |
+| --------------------------------------- | -------- | ------------------------------------------- |
+| SI-19 De-identification not implemented | High     | System and Information Integrity            |
+| SI-19 partially implemented             | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

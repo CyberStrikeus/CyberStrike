@@ -25,25 +25,31 @@ severity_boost: "medium"
 # 1.1.10 Ensure separate partition exists for /var/log (Scored)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 The /var/log directory is used by system services to store log data.
 
 ## Rationale
+
 There are two important reasons to ensure that system logs are stored on a separate partition: protection against resource exhaustion (since logs can grow quite large) and protection of audit data.
 
 ## Audit Procedure
+
 ```bash
 mount | grep /var/log
 # Expected output: /dev/xvdh1 on /var/log type ext4 (rw,relatime,data=ordered)
 ```
 
 ## Expected Result
+
 Verify output shows /var/log is mounted on a separate partition.
 
 ## Remediation
+
 ```bash
 # For new installations, during installation create a custom partition setup
 # and specify a separate partition for /var/log.
@@ -52,12 +58,15 @@ Verify output shows /var/log is mounted on a separate partition.
 ```
 
 ## Default Value
+
 By default, /var/log is not mounted on a separate partition.
 
 ## References
+
 - CIS Ubuntu Linux 14.04 LTS Benchmark v2.1.0
 - AJ Lewis, "LVM HOWTO", http://tldp.org/HOWTO/LVM-HOWTO/
 - CIS Controls: 6.3 Ensure Audit Logging Systems Are Not Subject To Loss
 
 ## Profile
+
 - Level 2

@@ -39,8 +39,7 @@ chains_with:
   - T1071.003
   - T1071.004
   - T1071.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1071.001: "Chain with T1071.001 for deeper attack path"
   T1071.002: "Chain with T1071.002 for deeper attack path"
@@ -51,7 +50,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. 
+Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server.
 
 Adversaries may utilize many different protocols, including those used for web browsing, transferring files, electronic mail, DNS, or publishing/subscribing. For connections that occur internally within an enclave (such as those between a proxy or pivot node and other nodes), commonly used protocols are SMB, SSH, or RDP.
 
@@ -87,8 +86,8 @@ An adversary may establish Telnet communication from a compromised endpoint to a
 ```
 
 **Dependencies:**
-- A command and control (C2) server can be established by running PathToAtomicsFolder\T1071\bin\telnet_server.exe on a specified server with a specified IP that must be reachable by a client (telnet_client.exe)
 
+- A command and control (C2) server can be established by running PathToAtomicsFolder\T1071\bin\telnet_server.exe on a specified server with a specified IP that must be reachable by a client (telnet_client.exe)
 
 ### Manual Testing
 
@@ -103,29 +102,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M1037 Filter Network Traffic
-Use network appliances to filter ingress or egress traffic and perform protocol-based filtering. Configure software on endpoints to filter network traffic.
 
+Use network appliances to filter ingress or egress traffic and perform protocol-based filtering. Configure software on endpoints to filter network traffic.
 
 ## Detection
 
 ### Detection of Command and Control Over Application Layer Protocols
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Layer Protocol technique applicable | Medium | Command And Control |
+| Finding                                         | Severity | Impact              |
+| ----------------------------------------------- | -------- | ------------------- |
+| Application Layer Protocol technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -60,10 +60,10 @@ By default, Docker applies a default seccomp profile.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16 Application Software Security<br>Manage the security life cycle of in-house developed, hosted, or acquired software to prevent, detect, and remediate security weaknesses before they can impact the enterprise. | | | |
-| v7 | 18 Application Software Security<br>Application Software Security | | | |
+| Controls Version | Control                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16 Application Software Security<br>Manage the security life cycle of in-house developed, hosted, or acquired software to prevent, detect, and remediate security weaknesses before they can impact the enterprise. |      |      |      |
+| v7               | 18 Application Software Security<br>Application Software Security                                                                                                                                                   |      |      |      |
 
 ## Profile/Assessment Status
 

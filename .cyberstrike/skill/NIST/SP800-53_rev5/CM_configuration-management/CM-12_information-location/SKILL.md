@@ -29,8 +29,7 @@ chains_with:
   - RA-2
   - SA-4
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -94,17 +93,16 @@ Information location addresses the need to understand where information is being
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-12 Information Location not implemented | Medium | Configuration Management |
-| CM-12 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                    | Severity | Impact                              |
+| ------------------------------------------ | -------- | ----------------------------------- |
+| CM-12 Information Location not implemented | Medium   | Configuration Management            |
+| CM-12 partially implemented                | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

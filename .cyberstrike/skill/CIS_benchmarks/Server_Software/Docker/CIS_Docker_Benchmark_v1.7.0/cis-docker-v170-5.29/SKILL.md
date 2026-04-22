@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.29
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -64,9 +65,11 @@ The Default value for `--pids-limit` is 0 which means there is no restriction on
 ## CIS Controls
 
 **v8:**
+
 - **4 Secure Configuration of Enterprise Assets and Software**
   - Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile; network devices; non-computing/IoT devices; and servers) and software (operating systems and applications).
 
 **v7:**
+
 - **5.2 Maintain Secure Images**
   - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.

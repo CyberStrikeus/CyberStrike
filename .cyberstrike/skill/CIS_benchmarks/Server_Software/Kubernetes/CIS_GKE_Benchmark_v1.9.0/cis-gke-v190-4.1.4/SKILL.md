@@ -60,9 +60,9 @@ By default the `default` service account allows for its service account token to
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.3 Disable Dormant Accounts | * | * | * |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | * | * | * |
-| v7 | 5.2 Maintain Secure Images | | * | * |
-| v7 | 16.9 Disable Dormant Accounts | * | * | * |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.3 Disable Dormant Accounts                            | \*   | \*   | \*   |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts | \*   | \*   | \*   |
+| v7               | 5.2 Maintain Secure Images                              |      | \*   | \*   |
+| v7               | 16.9 Disable Dormant Accounts                           | \*   | \*   | \*   |

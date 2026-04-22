@@ -131,7 +131,6 @@ testcat /etc/passwd
 testcat /etc/shadow
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -145,29 +144,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Follow best practices in restricting access to privileged accounts to avoid hostile programs from accessing such sensitive information.
 
 ### M1027 Password Policies
-Ensure that root accounts have complex, unique passwords across all systems on the network.
 
+Ensure that root accounts have complex, unique passwords across all systems on the network.
 
 ## Detection
 
 ### Credential Access via /etc/passwd and /etc/shadow Parsing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| /etc/passwd and /etc/shadow technique applicable | Low | Credential Access |
+| Finding                                          | Severity | Impact            |
+| ------------------------------------------------ | -------- | ----------------- |
+| /etc/passwd and /etc/shadow technique applicable | Low      | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

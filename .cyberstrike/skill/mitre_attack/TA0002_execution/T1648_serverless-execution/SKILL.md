@@ -27,10 +27,8 @@ tech_stack:
   - office
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,7 +36,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may abuse serverless computing, integration, and automation services to execute arbitrary code in cloud environments. Many cloud providers offer a variety of serverless resources, including compute engines, application integration services, and web servers. 
+Adversaries may abuse serverless computing, integration, and automation services to execute arbitrary code in cloud environments. Many cloud providers offer a variety of serverless resources, including compute engines, application integration services, and web servers.
 
 Adversaries may abuse these resources in various ways as a means of executing arbitrary commands. For example, adversaries may use serverless functions to execute malicious code, such as crypto-mining malware (i.e. Resource Hijacking). Adversaries may also create functions that enable further compromise of the cloud environment. For example, an adversary may use the `IAM:PassRole` permission in AWS or the `iam.serviceAccounts.actAs` permission in Google Cloud to add Additional Cloud Roles to a serverless cloud function, which may then be able to perform actions the original user cannot.
 
@@ -74,29 +72,28 @@ Serverless functions can also be invoked in response to cloud events (i.e. Event
 ## Remediation Guide
 
 ### M1036 Account Use Policies
+
 Where possible, consider restricting access to and use of serverless functions. For examples, conditional access policies can be applied to users attempting to create workflows in Microsoft Power Automate. Google Apps Scripts that use OAuth can be limited by restricting access to high-risk OAuth scopes.
 
 ### M1018 User Account Management
-Remove permissions to create, modify, or run serverless resources from users that do not explicitly require them.
 
+Remove permissions to create, modify, or run serverless resources from users that do not explicitly require them.
 
 ## Detection
 
 ### Detection Strategy for Serverless Execution (T1648)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Serverless Execution technique applicable | High | Execution |
+| Finding                                   | Severity | Impact    |
+| ----------------------------------------- | -------- | --------- |
+| Serverless Execution technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

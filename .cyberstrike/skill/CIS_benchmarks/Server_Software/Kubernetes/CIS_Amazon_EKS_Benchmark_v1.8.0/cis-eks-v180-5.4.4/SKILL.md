@@ -59,10 +59,10 @@ By default, Network Policy is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.1 Centralize Security Event Alerting | | ● | ● |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | | ● |
+| Controls Version | Control                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.1 Centralize Security Event Alerting       |      | ●    | ●    |
+| v7               | 14.1 Segment the Network Based on Sensitivity |      |      | ●    |
 
 ## Profile Applicability
 

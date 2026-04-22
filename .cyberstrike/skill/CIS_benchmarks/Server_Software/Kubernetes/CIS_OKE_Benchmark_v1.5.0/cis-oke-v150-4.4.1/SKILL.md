@@ -58,17 +58,17 @@ Mounting secrets as volumes has the additional benefit that secret values can be
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | X | X | X |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | X | X |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | X |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | X    | X    | X    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit         |      | X    | X    |
+| v7               | 14.8 Encrypt Sensitive Information at Rest                |      |      | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1026       |
 
 ---
 

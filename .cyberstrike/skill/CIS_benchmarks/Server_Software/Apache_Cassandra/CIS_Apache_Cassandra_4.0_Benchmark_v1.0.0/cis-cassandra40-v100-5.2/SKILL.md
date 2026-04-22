@@ -17,15 +17,19 @@ severity_boost: {}
 # 5.2 Client Encryption
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
+
 Cassandra offers the option to encrypt data in transit between the client and nodes on the cluster. By default client encryption is turned off.
 
 ## Rationale
+
 Data in transit between the client and node on the cluster should be encrypted to avoid network snooping, whether legitimate or not.
 
 ## Audit
+
 The Cassandra configuration files can be found in the conf directory of tarballs. For packages, the configuration files will be located in /etc/cassandra.
 Open up the cassandra.yaml file, look for client_encryption_options section.
 Look for `enabled:` and `optional:`.
@@ -42,6 +46,7 @@ If enabled is false and optional is true, then enabled wins and all client conne
 If both are set to true, then both unencrypted and encrypted connections are allowed on the same port which makes this not a finding.
 
 ## Remediation
+
 The client encryption should be implemented before anyone accesses the Cassandra server.
 To enable the client encryption mechanism:
 
@@ -55,16 +60,20 @@ optional: false
 ```
 
 ## Default Value
+
 N/A
 
 ## References
+
 N/A
 
 ## CIS Controls
+
 - **v8 3.10** Encrypt Sensitive Data in Transit
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 - **v7 14.4** Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 1 - Cassandra on Linux | Automated

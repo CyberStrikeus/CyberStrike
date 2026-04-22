@@ -96,26 +96,24 @@ The use of junk / dead code insertion is distinct from Binary Padding because th
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
-Anti-virus can be used to automatically detect and quarantine suspicious files. Behavior-based detections, rather than reliance on static code analysis, may help to identify malicious files that rely heavily on junk code.
 
+Anti-virus can be used to automatically detect and quarantine suspicious files. Behavior-based detections, rather than reliance on static code analysis, may help to identify malicious files that rely heavily on junk code.
 
 ## Detection
 
 ### Detection Strategy for Junk Code Obfuscation with Suspicious Execution Patterns
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Junk Code Insertion technique applicable | Medium | Defense Evasion |
+| Finding                                  | Severity | Impact          |
+| ---------------------------------------- | -------- | --------------- |
+| Junk Code Insertion technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

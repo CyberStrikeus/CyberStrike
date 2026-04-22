@@ -111,14 +111,17 @@ Run the following script to verify the freevxfs module is disabled:
 Run the following script to disable the freevxfs module:
 
 If the module is available in the running kernel:
+
 - Create a file with `install freevxfs /bin/false` in the `/etc/modprobe.d/` directory
 - Create a file with `blacklist freevxfs` in the `/etc/modprobe.d/` directory
 - Unload freevxfs from the kernel
 
 If available in ANY installed kernel:
+
 - Create a file with `blacklist freevxfs` in the `/etc/modprobe.d/` directory
 
 If the kernel module is not available on the system or pre-compiled into the kernel:
+
 - No remediation is necessary
 
 ```bash

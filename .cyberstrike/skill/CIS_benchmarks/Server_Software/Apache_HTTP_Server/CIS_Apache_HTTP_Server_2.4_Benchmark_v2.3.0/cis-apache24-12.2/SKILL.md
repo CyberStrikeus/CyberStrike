@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the Apache AppArmor Profile Is Configured Properly (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -59,31 +60,31 @@ Perform the following to implement the recommended state:
 1. Stop the Apache server
    - `# service apache2 stop`
 
-3. Create a mostly empty apache2 profile based on program dependencies.
+2. Create a mostly empty apache2 profile based on program dependencies.
    - `# aa-autodep apache2`
    - `Writing updated profile for /usr/sbin/apache2.`
 
-6. Set the apache2 profile in complain mode so that access violations will be allowed and logged.
+3. Set the apache2 profile in complain mode so that access violations will be allowed and logged.
    - `# aa-complain apache2`
    - `Setting /usr/sbin/apache2 to complain mode.`
 
-9. Start the apache2 service
+4. Start the apache2 service
    - `# service apache2 start`
 
-11. Thoroughly test the web application attempting to exercise all intended functionality so that AppArmor will generate the necessary logs of all resources accessed. The logs are sent via the system syslog utility and are typically found in either the `/var/log/syslog` or `/var/log/messages` files. Also stop and restart the web server as part of the httpd process.
+5. Thoroughly test the web application attempting to exercise all intended functionality so that AppArmor will generate the necessary logs of all resources accessed. The logs are sent via the system syslog utility and are typically found in either the `/var/log/syslog` or `/var/log/messages` files. Also stop and restart the web server as part of the httpd process.
 
-12. Use `aa-logprof` to update the profile based on logs generated during the testing. The tool will prompt for suggested modifications to the profile, based on the logs. The logs may also be reviewed manually in order to update the profile.
-    - `# aa-logprof`
+6. Use `aa-logprof` to update the profile based on logs generated during the testing. The tool will prompt for suggested modifications to the profile, based on the logs. The logs may also be reviewed manually in order to update the profile.
+   - `# aa-logprof`
 
-14. Review and edit the profile, removing any inappropriate content, and adding appropriate access rules. Directories with multiple files accessed with the same permission can be simplified with the usage of wild-cards when appropriate. Reload the updated profile using the `apparmor_parser` command.
-    - `# apparmor_parser -r /etc/apparmor.d/usr.sbin.apache2`
+7. Review and edit the profile, removing any inappropriate content, and adding appropriate access rules. Directories with multiple files accessed with the same permission can be simplified with the usage of wild-cards when appropriate. Reload the updated profile using the `apparmor_parser` command.
+   - `# apparmor_parser -r /etc/apparmor.d/usr.sbin.apache2`
 
-16. Test the new updated profile again and check for any new AppArmor denied logs generated. Update and reload the profile as necessary. Repeat the application tests, until no new AppArmor deny logs are created, except for access which should be prohibited.
-    - `# tail -f /var/log/syslog`
+8. Test the new updated profile again and check for any new AppArmor denied logs generated. Update and reload the profile as necessary. Repeat the application tests, until no new AppArmor deny logs are created, except for access which should be prohibited.
+   - `# tail -f /var/log/syslog`
 
-18. Set the apache2 profile to enforce mode, reload AppArmor, and then test the web site functionality again.
-    - `# aa-enforce /usr/sbin/apache2`
-    - `# /etc/init.d/apparmor reload`
+9. Set the apache2 profile to enforce mode, reload AppArmor, and then test the web site functionality again.
+   - `# aa-enforce /usr/sbin/apache2`
+   - `# /etc/init.d/apparmor reload`
 
 ## Default Value
 
@@ -96,12 +97,15 @@ The default Apache profile is very permissive.
 ## CIS Controls
 
 **v8:**
+
 - 2.5 Allowlist Authorized Software
   - Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently.
 
 **v7:**
+
 - 2.7 Utilize Application Whitelisting
   - Utilize application whitelisting technology on all assets to ensure that only authorized software executes and all unauthorized software is blocked from executing on assets.
 
 ## Profile
+
 - Level 2

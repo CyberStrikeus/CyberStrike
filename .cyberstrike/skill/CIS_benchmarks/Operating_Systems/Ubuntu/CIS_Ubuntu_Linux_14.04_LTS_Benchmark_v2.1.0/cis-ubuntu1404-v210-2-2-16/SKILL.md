@@ -46,6 +46,7 @@ grep ^RSYNC_ENABLE /etc/default/rsync
 ```
 
 Expected output:
+
 ```
 RSYNC_ENABLE=false
 ```

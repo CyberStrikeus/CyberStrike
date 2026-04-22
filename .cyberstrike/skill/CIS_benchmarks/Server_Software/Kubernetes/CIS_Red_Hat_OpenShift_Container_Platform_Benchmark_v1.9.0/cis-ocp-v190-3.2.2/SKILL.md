@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 3.2.2
 
 ## Profile Applicability
+
 - **Level:** 2
 
 ## Description
+
 Ensure that the audit policy created for the cluster covers key security concerns.
 
 ## Rationale
+
 Security audit logs should cover access and modification of key resources in the cluster, to enable them to form an effective part of a security environment.
 
 ## Impact
+
 Increasing audit logging will consume resources on the nodes or other log destinations.
 
 ## Audit Procedure
+
 Review the audit policy provided for the cluster and ensure that it covers the following areas:
 
 - The use of sensitive resources like `Secrets`, `ConfigMaps`, and `TokenReviews` are logged at the `Metadata` level
@@ -52,12 +57,15 @@ oc get configmap -n openshift-apiserver audit -o json | jq -r '.data."policy.yam
 ```
 
 ## Remediation
+
 Update the audit log policy profile to use `WriteRequestBodies`.
 
 ## Default Value
+
 Audit logging is configured by default using the `Default` audit policy, but you are advised to review the log retention settings and log levels to align with your cluster's security posture.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/audit-log-policy-config.html
 2. https://docs.openshift.com/container-platform/latest/security/audit-log-view.html
 3. https://github.com/openshift/cluster-kube-apiserver-operator/blob/release-4.5/bindata/v4.1.0/config/defaultconfig.yaml#L47-L77
@@ -69,16 +77,17 @@ Audit logging is configured by default using the `Default` audit policy, but you
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | X | X |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | X |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs                                     |      | X    | X    |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1543 | TA0003, TA0004 | M1026 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1543                       | TA0003, TA0004 | M1026       |
 
 ## Profile
+
 **Level 2** (Manual)

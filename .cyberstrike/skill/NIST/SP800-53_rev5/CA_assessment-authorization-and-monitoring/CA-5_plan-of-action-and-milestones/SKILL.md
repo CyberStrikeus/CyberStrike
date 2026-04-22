@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - CA-7
@@ -22,8 +21,7 @@ chains_with:
   - RA-7
   - SI-2
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-2: "Chain with CA-2 for comprehensive security coverage"
   CA-7: "Chain with CA-7 for comprehensive security coverage"
@@ -68,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ Plans of action and milestones are useful for any type of organization to track 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-5 Plan of Action and Milestones not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-5 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                            | Severity | Impact                                               |
+| -------------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-5 Plan of Action and Milestones not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-5 partially implemented                         | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

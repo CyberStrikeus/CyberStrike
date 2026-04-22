@@ -28,8 +28,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1631.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1631.001: "Chain with T1631.001 for deeper attack path"
 ---
@@ -38,7 +37,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may inject code into processes in order to evade process-based defenses or even elevate privileges. Process injection is a method of executing arbitrary code in the address space of a separate live process. Running code in the context of another process may allow access to the process's memory, system/network resources, and possibly elevated privileges. Execution via process injection may also evade detection from security products since the execution is masked under a legitimate process. 
+Adversaries may inject code into processes in order to evade process-based defenses or even elevate privileges. Process injection is a method of executing arbitrary code in the address space of a separate live process. Running code in the context of another process may allow access to the process's memory, system/network resources, and possibly elevated privileges. Execution via process injection may also evade detection from security products since the execution is masked under a legitimate process.
 
 Both Android and iOS have no legitimate way to achieve process injection. The only way this is possible is by abusing existing root access or exploiting a vulnerability.
 
@@ -74,19 +73,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Process Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Process Injection technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Process Injection technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

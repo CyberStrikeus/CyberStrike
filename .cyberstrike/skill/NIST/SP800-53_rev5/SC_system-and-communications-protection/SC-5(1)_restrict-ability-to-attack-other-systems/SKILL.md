@@ -20,8 +20,7 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-311
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SC-5
 severity_boost: {}
@@ -67,10 +66,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -84,17 +83,16 @@ Restricting the ability of individuals to launch denial-of-service attacks requi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-5(1) Restrict Ability to Attack Other Systems not implemented | High | System and Communications Protection |
-| SC-5(1) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                          | Severity | Impact                                          |
+| ---------------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-5(1) Restrict Ability to Attack Other Systems not implemented | High     | System and Communications Protection            |
+| SC-5(1) partially implemented                                    | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

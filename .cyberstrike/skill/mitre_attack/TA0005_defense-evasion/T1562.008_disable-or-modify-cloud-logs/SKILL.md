@@ -92,26 +92,24 @@ For example, in AWS an adversary may disable CloudWatch/CloudTrail integrations 
 ## Remediation Guide
 
 ### M1018 User Account Management
-Configure default account policy to enable logging. Manage policies to ensure only necessary users have permissions to make changes to logging policies.
 
+Configure default account policy to enable logging. Manage policies to ensure only necessary users have permissions to make changes to logging policies.
 
 ## Detection
 
 ### Detection Strategy for Disable or Modify Cloud Logs
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Cloud Logs technique applicable | Low | Defense Evasion |
+| Finding                                           | Severity | Impact          |
+| ------------------------------------------------- | -------- | --------------- |
+| Disable or Modify Cloud Logs technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

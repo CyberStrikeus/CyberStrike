@@ -70,6 +70,7 @@ aws eks update-cluster-config --region $AWS_REGION --name $CLUSTER_NAME --resour
 ```
 
 Note:
+
 - The CIDR blocks specified cannot include reserved addresses.
 - There is a maximum number of CIDR blocks that you can specify. For more information, see the EKS Service Quotas link in the references section.
 - For more detailed information, see the EKS Cluster Endpoint documentation link in the references section.
@@ -84,8 +85,8 @@ By default, Endpoint Public Access is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | X | X |
-| v7 | 7.4 Maintain and Enforce Network-Based URL Filters | | X | X |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers     | X    | X    | X    |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters |      | X    | X    |
+| v7               | 7.4 Maintain and Enforce Network-Based URL Filters |      | X    | X    |

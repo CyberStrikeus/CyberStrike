@@ -69,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ Multi-factor authentication requires the use of two or more different factors to
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-2(1) Multi-factor Authentication to Privileged Accounts not implemented | High | Identification and Authentication |
-| IA-2(1) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                                    | Severity | Impact                                       |
+| -------------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-2(1) Multi-factor Authentication to Privileged Accounts not implemented | High     | Identification and Authentication            |
+| IA-2(1) partially implemented                                              | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

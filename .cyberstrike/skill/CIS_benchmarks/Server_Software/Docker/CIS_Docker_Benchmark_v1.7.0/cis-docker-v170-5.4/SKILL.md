@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.4
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 By default, Docker starts containers with a restricted set of Linux kernel capabilities. This means that any process can be granted the required capabilities instead of giving it root access. Using Linux kernel capabilities, processes in general do not need to run as the root user.
 
 ## Rationale
+
 Docker supports the addition and removal of capabilities. You should remove all capabilities not required for the correct function of the container.
 
 Specifically, in the default capability set provided by Docker, the `NET_RAW` capability should be removed if not explicitly required, as it can give an attacker with access to a container the ability to create spoofed network traffic.
 
 ## Impact
+
 Restrictions on processes within a container are based on which Linux capabilities are in force.
 
 ## Audit Procedure
@@ -69,6 +73,7 @@ docker service create --cap-drop=all --cap-add={"Capability 1","Capability 2"} <
 ```
 
 ## Default Value
+
 By default, the capabilities below are applied to containers:
 
 ```
@@ -89,6 +94,7 @@ SYS_CHROOT
 ```
 
 ## References
+
 1. https://docs.docker.com/engine/security/#linux-kernel-capabilities
 2. https://docs.docker.com/compose/compose-file/compose-file-v3/#cap_add-cap_drop
 3. https://docs.docker.com/engine/reference/commandline/service_create/#options
@@ -97,10 +103,13 @@ SYS_CHROOT
 ## CIS Controls
 
 **v8:**
+
 - 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure - Use standard, industry-recommended hardening configuration templates for application infrastructure components. This includes underlying servers, databases, and web servers, and applies to cloud containers, Platform as a Service (PaaS) components, and SaaS components. Do not allow in-house developed software to weaken configuration hardening.
 
 **v7:**
+
 - 5.2 Maintain Secure Images - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.
 
 ## Assessment Status
+
 Manual

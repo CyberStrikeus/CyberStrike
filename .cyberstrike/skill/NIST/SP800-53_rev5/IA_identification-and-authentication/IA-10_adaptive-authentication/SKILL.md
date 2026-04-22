@@ -21,8 +21,7 @@ cwe_ids:
 chains_with:
   - IA-2
   - IA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   IA-2: "Chain with IA-2 for comprehensive security coverage"
   IA-8: "Chain with IA-8 for comprehensive security coverage"
@@ -65,10 +64,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -82,17 +81,16 @@ Adversaries may compromise individual authentication mechanisms employed by orga
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-10 Adaptive Authentication not implemented | High | Identification and Authentication |
-| IA-10 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                       | Severity | Impact                                       |
+| --------------------------------------------- | -------- | -------------------------------------------- |
+| IA-10 Adaptive Authentication not implemented | High     | Identification and Authentication            |
+| IA-10 partially implemented                   | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

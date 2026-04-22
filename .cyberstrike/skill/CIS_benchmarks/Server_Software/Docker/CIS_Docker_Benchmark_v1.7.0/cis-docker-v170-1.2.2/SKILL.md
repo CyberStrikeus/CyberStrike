@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 1.2.2
 
 ## Profile
+
 - **Level:** 1 - Docker - Linux
 - **Assessment Status:** Manual
 
@@ -55,7 +56,7 @@ Not Applicable
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.5 Use Up-to-Date and Trusted Third-Party Software Components<br/>Use up-to-date and trusted third-party software components. When possible, choose established and proven frameworks and libraries that provide adequate security. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use. | | ● | ● |
-| v7 | 3 Continuous Vulnerability Management<br/>Continuous Vulnerability Management | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.5 Use Up-to-Date and Trusted Third-Party Software Components<br/>Use up-to-date and trusted third-party software components. When possible, choose established and proven frameworks and libraries that provide adequate security. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use. |      | ●    | ●    |
+| v7               | 3 Continuous Vulnerability Management<br/>Continuous Vulnerability Management                                                                                                                                                                                                                                                                |      |      |      |

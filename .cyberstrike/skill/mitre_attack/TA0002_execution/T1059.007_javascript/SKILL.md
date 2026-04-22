@@ -96,6 +96,7 @@ cscript "#{jscript}" > %tmp%\T1059.007.out.txt
 ```
 
 **Dependencies:**
+
 - Sample script must exist on disk at specified location (#{jscript})
 
 ### Atomic Test 2: JScript execution to gather local computer information via wscript
@@ -109,8 +110,8 @@ wscript "#{jscript}"
 ```
 
 **Dependencies:**
-- Sample script must exist on disk at specified location (#{jscript})
 
+- Sample script must exist on disk at specified location (#{jscript})
 
 ### Manual Testing
 
@@ -125,35 +126,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent JavaScript scripts from executing potentially malicious downloaded content .
 
 ### M1038 Execution Prevention
+
 Denylist scripting where appropriate.
 
 ### M1042 Disable or Remove Feature or Program
+
 Turn off or restrict access to unneeded scripting components.
 
 ### M1021 Restrict Web-Based Content
-Script blocking extensions can help prevent the execution of JavaScript and HTA files that may commonly be used during the exploitation process. For malicious code served up through ads, adblockers can help prevent that code from executing in the first place.
 
+Script blocking extensions can help prevent the execution of JavaScript and HTA files that may commonly be used during the exploitation process. For malicious code served up through ads, adblockers can help prevent that code from executing in the first place.
 
 ## Detection
 
 ### Cross-Platform Detection of JavaScript Execution Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| JavaScript technique applicable | Medium | Execution |
+| Finding                         | Severity | Impact    |
+| ------------------------------- | -------- | --------- |
+| JavaScript technique applicable | Medium   | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

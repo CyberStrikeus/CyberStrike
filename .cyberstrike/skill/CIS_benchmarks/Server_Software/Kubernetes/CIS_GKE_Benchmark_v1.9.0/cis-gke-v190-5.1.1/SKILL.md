@@ -4,7 +4,18 @@ description: "Ensure Image Vulnerability Scanning is enabled (Automated)"
 category: cis-gke
 version: "1.9.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, image-registry, image-scanning, artifact-registry, vulnerability-scanning, binary-authorization]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    image-registry,
+    image-scanning,
+    artifact-registry,
+    vulnerability-scanning,
+    binary-authorization,
+  ]
 cis_id: "5.1.1"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.9.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -108,9 +119,9 @@ By default, GCR Container Analysis and AR Container Scanning are disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 3 Continuous Vulnerability Management | | | |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools | | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 3 Continuous Vulnerability Management                                             |      |      |      |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools                                    |      | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning                                  |      | x    | x    |

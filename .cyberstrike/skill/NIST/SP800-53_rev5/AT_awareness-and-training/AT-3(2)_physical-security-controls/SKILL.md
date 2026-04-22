@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-2
   - PE-3
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ Physical security controls include physical access control devices, physical int
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AT-3(2) Physical Security Controls not implemented | Medium | Awareness and Training |
-| AT-3(2) partially implemented | Low | Incomplete Awareness and Training |
+| Finding                                            | Severity | Impact                            |
+| -------------------------------------------------- | -------- | --------------------------------- |
+| AT-3(2) Physical Security Controls not implemented | Medium   | Awareness and Training            |
+| AT-3(2) partially implemented                      | Low      | Incomplete Awareness and Training |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

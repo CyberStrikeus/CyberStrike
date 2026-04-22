@@ -81,13 +81,13 @@ Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 42/ shadow)
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | X | X | X |
-| v7 | 14.6 Protect Information through Access Control Lists | X | X | X |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | X    | X    | X    |
+| v7               | 14.6 Protect Information through Access Control Lists | X    | X    | X    |
 
 MITRE ATT&CK Mappings:
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1003, T1003.008, T1222, T1222.002 | TA0005 | M1022 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1003, T1003.008, T1222, T1222.002 | TA0005  | M1022       |

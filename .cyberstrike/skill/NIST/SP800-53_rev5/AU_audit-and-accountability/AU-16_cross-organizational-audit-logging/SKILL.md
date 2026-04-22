@@ -24,8 +24,7 @@ chains_with:
   - AU-7
   - CA-3
   - PT-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-3: "Chain with AU-3 for comprehensive security coverage"
   AU-6: "Chain with AU-6 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -86,17 +85,16 @@ When organizations use systems or services of external organizations, the audit 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-16 Cross-organizational Audit Logging not implemented | Medium | Audit and Accountability |
-| AU-16 partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                  | Severity | Impact                              |
+| -------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-16 Cross-organizational Audit Logging not implemented | Medium   | Audit and Accountability            |
+| AU-16 partially implemented                              | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

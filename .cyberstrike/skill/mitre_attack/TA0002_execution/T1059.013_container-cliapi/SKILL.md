@@ -86,29 +86,28 @@ Kubernetes is responsible for the management and orchestration of containers acr
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Restrict permissions on API access. RBAC in Kubernetes involve permissions that are additive, meaning there are no explicit "deny" rules. These permissions can be defined within a particular namespace or within cluster-scoped resources. Securing the Docker daemon can be done by using SSH or TLS with certificate authorization. Container management tools such as Docker and Podman may offer ways to run containers as rootless, which prevents them from running with privileged permissions.
 
 ### M1038 Execution Prevention
-Deny scripting where appropriate. Tools such as Python or Go can utilize Kubernetes and Docker within a client library and execute commands within their application.
 
+Deny scripting where appropriate. Tools such as Python or Go can utilize Kubernetes and Docker within a client library and execute commands within their application.
 
 ## Detection
 
 ### Container CLI and API Abuse via Docker/Kubernetes (T1059.013)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container CLI/API technique applicable | Medium | Execution |
+| Finding                                | Severity | Impact    |
+| -------------------------------------- | -------- | --------- |
+| Container CLI/API technique applicable | Medium   | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

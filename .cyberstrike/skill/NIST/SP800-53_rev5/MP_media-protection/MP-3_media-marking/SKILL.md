@@ -13,16 +13,14 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-16
   - CP-9
   - MP-5
   - PE-22
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-16: "Chain with AC-16 for comprehensive security coverage"
   CP-9: "Chain with CP-9 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +82,16 @@ Security marking refers to the application or use of human-readable security att
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-3 Media Marking not implemented | Medium | Media Protection |
-| MP-3 partially implemented | Low | Incomplete Media Protection |
+| Finding                            | Severity | Impact                      |
+| ---------------------------------- | -------- | --------------------------- |
+| MP-3 Media Marking not implemented | Medium   | Media Protection            |
+| MP-3 partially implemented         | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

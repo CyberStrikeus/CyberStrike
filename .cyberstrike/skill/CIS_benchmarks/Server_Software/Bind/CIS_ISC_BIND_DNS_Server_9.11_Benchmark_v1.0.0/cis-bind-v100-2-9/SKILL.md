@@ -17,21 +17,26 @@ severity_boost: {}
 # CIS 2.9 — Isolate BIND with chroot'ed Subdirectory
 
 ## Profile Applicability
+
 - Caching Only Name Server Level 2
 - Authoritative Name Server Level 2
 
 ## Description
+
 The `chroot()` system call causes an application to run with limited file system access so that a subdirectory becomes the root directory for the application environment. When this is done, the application is "jailed" and no longer has access to the entire file structure but is limited to the given subdirectory.
 
 The chroot'd subdirectory and the recommendations in section "Enable SELinux to Restrict BIND Processes" provide similar controls, in that the DNS service is prevented from accessing and modifying inappropriate files. SELinux goes well beyond what the chroot is able to prevent, however for audit purposes either control, the chroot'd subdirectory or the SELinux in enforcing mode is sufficient.
 
 ## Rationale
+
 Although there are ways that a `chroot` jail can be broken, most methods require that a process be running as root in order to escape. Since BIND should be run as a different user than root, a `chroot` is an effective defense, to limit access to sensitive system configuration files. In the event that BIND has a vulnerability that allows code execution, the attack will not have access to the real system files such as `/etc/password`, but will be limited to the files placed in the `chroot` subdirectory.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Run the following two commands to find the root directory of the currently running named process. If the named process is `chroot`'ed, then the listing will show a symbolic link to the `chroot` subdirectory. If process is not `chroot`'ed, then the symbolic link will point to the real root directory `/`.
 
 ```bash
@@ -43,6 +48,7 @@ lrwxrwxrwx 1 named named 0 Sep 10 13:21 /proc/423/root -> /var/named/chroot
 **Note:** SELinux in enforcing mode may be used as an audit alternative to the chroot'd subdirectory.
 
 ## Remediation
+
 Perform the following:
 
 - Stop the named service and install the `bind-chroot` package to provide the `chroot` directories.
@@ -67,23 +73,28 @@ ROOTDIR="/var/named/chroot"
 ```
 
 ## Default Value
+
 The BIND service is not `chroot`'ed by default.
 
 ## References
+
 None listed.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 14.4 Protect Information With Access Control Lists | N | Y | Y |
-| v7 | 14.6 Protect Information through Access Control Lists | Y | Y | Y |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 14.4 Protect Information With Access Control Lists    | N    | Y    | Y    |
+| v7               | 14.6 Protect Information through Access Control Lists | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Privilege Escalation | T1611 Escape to Host |
-| Defense Evasion | T1562 Impair Defenses |
+
+| Tactic               | Technique             |
+| -------------------- | --------------------- |
+| Privilege Escalation | T1611 Escape to Host  |
+| Defense Evasion      | T1562 Impair Defenses |
 
 ## Profile
+
 - Level 2 - Caching Only Name Server
 - Level 2 - Authoritative Name Server

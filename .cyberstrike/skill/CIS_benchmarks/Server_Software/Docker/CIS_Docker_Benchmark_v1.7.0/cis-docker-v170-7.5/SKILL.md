@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 7.5
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker Swarm
@@ -78,9 +79,11 @@ By default, the swarm manager does not run in auto-lock mode.
 ## CIS Controls
 
 **v8:**
+
 - **3.11 Encrypt Sensitive Data at Rest**
   - Encrypt sensitive data at rest on servers, applications, and databases containing sensitive data. Storage-layer encryption, also known as server-side encryption, meets the minimum requirement of this Safeguard. Additional encryption methods may include application-layer encryption, also known as client-side encryption, where access to the data storage device(s) does not permit access to the plain-text data.
 
 **v7:**
+
 - **14.8 Encrypt Sensitive Information at Rest**
   - Encrypt all sensitive information at rest using a tool that requires a secondary authentication mechanism not integrated into the operating system, in order to access the information.

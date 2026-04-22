@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-An adversary may attempt to get detailed information about remote systems and their peripherals, such as make/model, role, and configuration. Adversaries may use information from Remote System Information Discovery to aid in targeting and shaping follow-on behaviors. For example, the system's operational role and model information can dictate whether it is a relevant target for the adversary's operational objectives. In addition, the system's configuration may be used to scope subsequent technique usage. 
+An adversary may attempt to get detailed information about remote systems and their peripherals, such as make/model, role, and configuration. Adversaries may use information from Remote System Information Discovery to aid in targeting and shaping follow-on behaviors. For example, the system's operational role and model information can dictate whether it is a relevant target for the adversary's operational objectives. In addition, the system's configuration may be used to scope subsequent technique usage.
 
 Requests for system information are typically implemented using automation and management protocols and are often automatically requested by vendor software during normal operation. This information may be used to tailor management actions, such as program download and system or module firmware. An adversary may leverage this same information by issuing calls directly to the system's API.
 
@@ -61,26 +59,24 @@ Review whether mitigations for T0888 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0814 Static Network Configuration
-ICS environments typically have more statically defined devices, therefore minimize the use of both IT discovery protocols (e.g., DHCP, LLDP) and discovery functions in automation protocols. Examples of automation protocols with discovery capabilities include OPC UA Device Discovery , BACnet , and Ethernet/IP.
 
+ICS environments typically have more statically defined devices, therefore minimize the use of both IT discovery protocols (e.g., DHCP, LLDP) and discovery functions in automation protocols. Examples of automation protocols with discovery capabilities include OPC UA Device Discovery , BACnet , and Ethernet/IP.
 
 ## Detection
 
 ### Detection of Remote System Information Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote System Information Discovery technique applicable | Medium | Discovery |
+| Finding                                                  | Severity | Impact    |
+| -------------------------------------------------------- | -------- | --------- |
+| Remote System Information Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

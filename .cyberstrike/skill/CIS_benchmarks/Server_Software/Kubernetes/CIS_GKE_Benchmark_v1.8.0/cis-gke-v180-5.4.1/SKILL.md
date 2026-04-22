@@ -56,7 +56,7 @@ This should return the following for each Node pool:
 
 ```json
 {
-   "mode": "GKE_METADATA"
+  "mode": "GKE_METADATA"
 }
 ```
 
@@ -105,7 +105,7 @@ By default, running pods to have full access to the node's underlying metadata s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                                         |      | x    | x    |

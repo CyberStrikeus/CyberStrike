@@ -42,8 +42,7 @@ chains_with:
   - T1055.013
   - T1055.014
   - T1055.015
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1055.001: "Chain with T1055.001 for deeper attack path"
   T1055.002: "Chain with T1055.002 for deeper attack path"
@@ -54,9 +53,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may inject code into processes in order to evade process-based defenses as well as possibly elevate privileges. Process injection is a method of executing arbitrary code in the address space of a separate live process. Running code in the context of another process may allow access to the process's memory, system/network resources, and possibly elevated privileges. Execution via process injection may also evade detection from security products since the execution is masked under a legitimate process. 
+Adversaries may inject code into processes in order to evade process-based defenses as well as possibly elevate privileges. Process injection is a method of executing arbitrary code in the address space of a separate live process. Running code in the context of another process may allow access to the process's memory, system/network resources, and possibly elevated privileges. Execution via process injection may also evade detection from security products since the execution is masked under a legitimate process.
 
-There are many different ways to inject code into a process, many of which abuse legitimate functionalities. These implementations exist for every major OS but are typically platform specific. 
+There are many different ways to inject code into a process, many of which abuse legitimate functionalities. These implementations exist for every major OS but are typically platform specific.
 
 More sophisticated samples may perform multiple process injections to segment modules and further evade detection, utilizing named pipes or other inter-process communication (IPC) mechanisms as a communication channel.
 
@@ -99,6 +98,7 @@ Invoke-Maldoc -macroFile "#{txt_path}" -officeProduct "Word" -sub "Execute"
 ```
 
 **Dependencies:**
+
 - The 64-bit version of Microsoft Office must be installed
 - "#{txt_path}" must exist on disk at specified location
 
@@ -117,13 +117,14 @@ The effect of `/inject` is explained in <https://blog.3or.de/mimikatz-deep-dive-
 ```
 
 **Dependencies:**
+
 - Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 - PsExec tool from Sysinternals must exist on disk at specified location (#{psexec_path})
 
 ### Atomic Test 3: Section View Injection
 
 This test creates a section object in the local process followed by a local section view.
-The shellcode is copied into the local section view and a remote section view is created in the target process, pointing to the local section view. 
+The shellcode is copied into the local section view and a remote section view is created in the target process, pointing to the local section view.
 A thread is then created in the target process, using the remote section view as start address.
 
 **Supported Platforms:** windows
@@ -136,7 +137,7 @@ Start-Process "$PathToAtomicsFolder\T1055\bin\x64\InjectView.exe"
 ### Atomic Test 4: Dirty Vanity process Injection
 
 This test used the Windows undocumented remote-fork API RtlCreateProcessReflection to create a cloned process of the parent process
-with shellcode written in its memory. The shellcode is executed after being forked to the child process. The technique was first presented at 
+with shellcode written in its memory. The shellcode is executed after being forked to the child process. The technique was first presented at
 BlackHat Europe 2022. Shellcode will open a messsage box and a notepad.
 
 **Supported Platforms:** windows
@@ -148,7 +149,7 @@ Start-Process "$PathToAtomicsFolder\T1055\bin\x64\redVanity.exe" #{pid}
 ### Atomic Test 5: Read-Write-Execute process Injection
 
 This test exploited the vulnerability in legitimate PE formats where sections have RWX permission and enough space for shellcode.
-The RWX injection avoided the use of VirtualAlloc, WriteVirtualMemory, and ProtectVirtualMemory, thus evading detection mechanisms 
+The RWX injection avoided the use of VirtualAlloc, WriteVirtualMemory, and ProtectVirtualMemory, thus evading detection mechanisms
 that relied on API call sequences and heuristics. The RWX injection utilises API call sequences: LoadLibrary --> GetModuleInformation --> GetModuleHandleA --> RtlCopyMemory --> CreateThread.
 The injected shellcode will open a message box and a notepad.
 RWX Process Injection, also known as MockingJay, was introduced to the security community by SecurityJoes.
@@ -164,8 +165,8 @@ $address = (& "$PathToAtomicsFolder\T1055\bin\x64\searchVuln.exe" "$PathToAtomic
 ```
 
 **Dependencies:**
-- Utility to inject must exist on disk at specified location (#{vuln_dll})
 
+- Utility to inject must exist on disk at specified location (#{vuln_dll})
 
 ### Manual Testing
 
@@ -180,29 +181,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Utilize Yama (ex: /proc/sys/kernel/yama/ptrace_scope) to mitigate ptrace based process injection by restricting the use of ptrace to privileged users only. Other mitigation controls involve the deployment of security kernel modules that provide advanced access control and process restrictions such as SELinux, grsecurity, and AppArmor.
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process. For example, on Windows 10, Attack Surface Reduction (ASR) rules may prevent Office applications from code injection.
 
+Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process. For example, on Windows 10, Attack Surface Reduction (ASR) rules may prevent Office applications from code injection.
 
 ## Detection
 
 ### Behavioral Detection of Process Injection Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Process Injection technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Process Injection technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

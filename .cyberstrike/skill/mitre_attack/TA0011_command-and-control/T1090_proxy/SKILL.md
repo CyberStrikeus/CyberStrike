@@ -38,8 +38,7 @@ chains_with:
   - T1090.002
   - T1090.003
   - T1090.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1090.001: "Chain with T1090.001 for deeper attack path"
   T1090.002: "Chain with T1090.002 for deeper attack path"
@@ -84,32 +83,32 @@ Adversaries can also take advantage of routing schemes in Content Delivery Netwo
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Traffic to known anonymity networks and C2 infrastructure can be blocked through the use of network allow and block lists. It should be noted that this kind of blocking may be circumvented by other techniques like Domain Fronting.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific C2 protocol used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
 ### M1020 SSL/TLS Inspection
-If it is possible to inspect HTTPS traffic, the captures can be analyzed for connections that appear to be domain fronting.
 
+If it is possible to inspect HTTPS traffic, the captures can be analyzed for connections that appear to be domain fronting.
 
 ## Detection
 
 ### Detection of Proxy Infrastructure Setup and Traffic Bridging
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Proxy technique applicable | Medium | Command And Control |
+| Finding                    | Severity | Impact              |
+| -------------------------- | -------- | ------------------- |
+| Proxy technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

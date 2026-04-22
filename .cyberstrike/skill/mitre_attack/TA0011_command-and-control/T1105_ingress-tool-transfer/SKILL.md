@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -44,7 +42,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may transfer tools or other files from an external system into a compromised environment. Tools or files may be copied from an external adversary-controlled system to the victim network through the command and control channel or through alternate protocols such as ftp. Once present, adversaries may also transfer/spread tools between victim devices within a compromised environment (i.e. Lateral Tool Transfer). 
+Adversaries may transfer tools or other files from an external system into a compromised environment. Tools or files may be copied from an external adversary-controlled system to the victim network through the command and control channel or through alternate protocols such as ftp. Once present, adversaries may also transfer/spread tools between victim devices within a compromised environment (i.e. Lateral Tool Transfer).
 
 On Windows, adversaries may use various utilities to download tools, such as `copy`, `finger`, certutil, and PowerShell commands such as <code>IEX(New-Object Net.WebClient).downloadString()</code> and <code>Invoke-WebRequest</code>. On Linux and macOS systems, a variety of utilities also exist, such as `curl`, `scp`, `sftp`, `tftp`, `rsync`, `finger`, and `wget`. A number of these tools, such as `wget`, `curl`, and `scp`, also exist on ESXi. After downloading a file, a threat actor may attempt to verify its integrity by checking its hash value (e.g., via `certutil -hashfile`).
 
@@ -85,6 +83,7 @@ rsync -r #{local_path} #{username}@#{remote_host}:#{remote_path}
 ```
 
 **Dependencies:**
+
 - rsync must be installed on the machine
 
 ### Atomic Test 2: rsync remote file copy (pull)
@@ -98,6 +97,7 @@ rsync -r #{username}@#{remote_host}:#{remote_path} #{local_path}
 ```
 
 **Dependencies:**
+
 - rsync must be installed on the machine
 
 ### Atomic Test 3: scp remote file copy (push)
@@ -130,7 +130,6 @@ Utilize sftp to perform a remote file copy (push)
 sftp #{username}@#{remote_host}:#{remote_path} <<< $'put #{local_file}'
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -144,29 +143,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware or unusual data transfer over known protocols like FTP can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
 ### M1037 Filter Network Traffic
-Use network filtering to block outbound traffic from compromised systems to unapproved external destinations. Restricting access to known, trusted IP addresses and protocols can prevent attackers from downloading malicious tools or payloads onto compromised servers after gaining initial access.
 
+Use network filtering to block outbound traffic from compromised systems to unapproved external destinations. Restricting access to known, trusted IP addresses and protocols can prevent attackers from downloading malicious tools or payloads onto compromised servers after gaining initial access.
 
 ## Detection
 
 ### Detect Ingress Tool Transfers via Behavioral Chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Ingress Tool Transfer technique applicable | High | Command And Control |
+| Finding                                    | Severity | Impact              |
+| ------------------------------------------ | -------- | ------------------- |
+| Ingress Tool Transfer technique applicable | High     | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

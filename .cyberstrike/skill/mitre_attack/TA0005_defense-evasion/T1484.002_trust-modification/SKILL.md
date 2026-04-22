@@ -45,7 +45,7 @@ severity_boost:
 
 Adversaries may add new domain trusts, modify the properties of existing domain trusts, or otherwise change the configuration of trust relationships between domains and tenants to evade defenses and/or elevate privileges.Trust details, such as whether or not user identities are federated, allow authentication and authorization properties to apply between domains or tenants for the purpose of accessing shared resources. These trust objects may include accounts, credentials, and other authentication material applied to servers, tokens, and domains.
 
-Manipulating these trusts may allow an adversary to escalate privileges and/or evade defenses by modifying settings to add objects which they control. For example, in Microsoft Active Directory (AD) environments, this may be used to forge SAML Tokens without the need to compromise the signing certificate to forge new credentials. Instead, an adversary can manipulate domain trusts to add their own signing certificate. An adversary may also convert an AD domain to a federated domain using Active Directory Federation Services (AD FS), which may enable malicious trust modifications such as altering the claim issuance rules to log in any valid set of credentials as a specified user. 
+Manipulating these trusts may allow an adversary to escalate privileges and/or evade defenses by modifying settings to add objects which they control. For example, in Microsoft Active Directory (AD) environments, this may be used to forge SAML Tokens without the need to compromise the signing certificate to forge new credentials. Instead, an adversary can manipulate domain trusts to add their own signing certificate. An adversary may also convert an AD domain to a federated domain using Active Directory Federation Services (AD FS), which may enable malicious trust modifications such as altering the claim issuance rules to log in any valid set of credentials as a specified user.
 
 An adversary may also add a new federated identity provider to an identity tenant such as Okta or AWS IAM Identity Center, which may enable the adversary to authenticate as any user of the tenant. This may enable the threat actor to gain broad access into a variety of cloud-based services that leverage the identity tenant. For example, in AWS environments, an adversary that creates a new identity provider for an AWS Organization will be able to federate into all of the AWS Organization member accounts without creating identities for each of the member accounts.
 
@@ -79,29 +79,28 @@ An adversary may also add a new federated identity provider to an identity tenan
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Use the principal of least privilege and protect administrative access to domain trusts and identity tenants.
 
 ### M1018 User Account Management
-In cloud environments, limit permissions to create new identity providers to only those accounts that require them. In AWS environments, consider using Service Control policies to limit the use of API calls such as `CreateSAMLProvider` or `CreateOpenIDConnectProvider`.
 
+In cloud environments, limit permissions to create new identity providers to only those accounts that require them. In AWS environments, consider using Service Control policies to limit the use of API calls such as `CreateSAMLProvider` or `CreateOpenIDConnectProvider`.
 
 ## Detection
 
 ### Detection of Trust Relationship Modifications in Domain or Tenant Policies
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Trust Modification technique applicable | High | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| Trust Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

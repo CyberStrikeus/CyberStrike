@@ -60,7 +60,7 @@ By default, profiling is enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8 Audit Log Management | | | |
-| v7 | 6 Maintenance, Monitoring and Analysis of Audit Logs | | | |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8 Audit Log Management                               |      |      |      |
+| v7               | 6 Maintenance, Monitoring and Analysis of Audit Logs |      |      |      |

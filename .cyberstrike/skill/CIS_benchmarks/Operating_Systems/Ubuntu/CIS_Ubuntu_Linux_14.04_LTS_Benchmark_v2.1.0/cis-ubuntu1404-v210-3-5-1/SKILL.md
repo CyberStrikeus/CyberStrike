@@ -54,6 +54,7 @@ lsmod | grep dccp
 ```
 install /bin/true
 ```
+
 And no output from `lsmod | grep dccp`.
 
 ## Remediation

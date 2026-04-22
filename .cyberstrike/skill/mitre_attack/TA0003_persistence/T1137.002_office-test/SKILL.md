@@ -1,6 +1,6 @@
 ---
 name: "T1137.002_office-test"
-description: "Adversaries may abuse the Microsoft Office \"Office Test\" Registry key to obtain persistence on a compromised system."
+description: 'Adversaries may abuse the Microsoft Office "Office Test" Registry key to obtain persistence on a compromised system.'
 category: "configuration"
 version: "18.1"
 author: "cyberstrike-official"
@@ -50,8 +50,8 @@ Adversaries may abuse the Microsoft Office "Office Test" Registry key to obtain 
 
 There exist user and global Registry keys for the Office Test feature, such as:
 
-* <code>HKEY_CURRENT_USER\Software\Microsoft\Office test\Special\Perf</code>
-* <code>HKEY_LOCAL_MACHINE\Software\Microsoft\Office test\Special\Perf</code>
+- <code>HKEY_CURRENT_USER\Software\Microsoft\Office test\Special\Perf</code>
+- <code>HKEY_LOCAL_MACHINE\Software\Microsoft\Office test\Special\Perf</code>
 
 Adversaries may add this Registry key and specify a malicious DLL that will be executed whenever an Office application, such as Word or Excel, is started.
 
@@ -84,23 +84,23 @@ application is started. Key is used for debugging purposes. Not created by defau
 
 ```powershell
 $wdApp = New-Object -COMObject "Word.Application"
-if(-not $wdApp.path.contains("Program Files (x86)"))  
+if(-not $wdApp.path.contains("Program Files (x86)"))
 {
   Write-Host "64-bit Office"
-  reg add "HKEY_CURRENT_USER\Software\Microsoft\Office test\Special\Perf" /t REG_SZ /d "PathToAtomicsFolder\T1137.002\bin\officetest_x64.dll" /f       
+  reg add "HKEY_CURRENT_USER\Software\Microsoft\Office test\Special\Perf" /t REG_SZ /d "PathToAtomicsFolder\T1137.002\bin\officetest_x64.dll" /f
 }
 else{
   Write-Host "32-bit Office"
   reg add "HKEY_CURRENT_USER\Software\Microsoft\Office test\Special\Perf" /t REG_SZ /d "PathToAtomicsFolder\T1137.002\bin\officetest_x86.dll" /f
 }
-Stop-Process -Name "WinWord" 
+Stop-Process -Name "WinWord"
 Start-Process "WinWord"
 ```
 
 **Dependencies:**
+
 - Microsoft Word must be installed
 - DLL files must exist on disk at specified location
-
 
 ### Manual Testing
 
@@ -115,29 +115,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Create the Registry key used to execute it and set the permissions to "Read Control" to prevent easy access to the key without administrator permissions or requiring Privilege Escalation.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
 ## Detection
 
 ### Detect Persistence via Office Test Registry DLL Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Office Test technique applicable | Low | Persistence |
+| Finding                          | Severity | Impact      |
+| -------------------------------- | -------- | ----------- |
+| Office Test technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

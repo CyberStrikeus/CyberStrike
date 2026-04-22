@@ -47,8 +47,7 @@ chains_with:
   - T1087.002
   - T1087.003
   - T1087.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1087.001: "Chain with T1087.001 for deeper attack path"
   T1087.002: "Chain with T1087.002 for deeper attack path"
@@ -95,29 +94,28 @@ For examples, cloud environments typically provide easily accessible interfaces 
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
+
 Prevent administrator accounts from being enumerated when an application is elevating through UAC since it can lead to the disclosure of account names. The Registry key is located <code>HKLM\ SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\EnumerateAdministrators</code>. It can be disabled through GPO: Computer Configuration > [Policies] > Administrative Templates > Windows Components > Credential User Interface: E numerate administrator accounts on elevation.
 
 ### M1018 User Account Management
-Manage the creation, modification, use, and permissions associated to user accounts.
 
+Manage the creation, modification, use, and permissions associated to user accounts.
 
 ## Detection
 
 ### Enumeration of User or Account Information Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Account Discovery technique applicable | High | Discovery |
+| Finding                                | Severity | Impact    |
+| -------------------------------------- | -------- | --------- |
+| Account Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

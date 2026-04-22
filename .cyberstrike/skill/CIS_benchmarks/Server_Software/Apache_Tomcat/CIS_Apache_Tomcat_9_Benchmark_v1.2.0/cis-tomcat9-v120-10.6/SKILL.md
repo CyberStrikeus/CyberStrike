@@ -46,10 +46,10 @@ The default value is `false`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 13.10 Perform Application Layer Filtering<br>Perform application layer filtering. Example implementations include a filtering proxy, application layer firewall, or gateway. | | | ● |
-| v7 | 5.1 Establish Secure Configurations<br>Maintain documented, standard security configuration standards for all authorized operating systems and software. | ● | ● | ● |
+| Controls Version | Control                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering<br>Perform application layer filtering. Example implementations include a filtering proxy, application layer firewall, or gateway. |      |      | ●    |
+| v7               | 5.1 Establish Secure Configurations<br>Maintain documented, standard security configuration standards for all authorized operating systems and software.                     | ●    | ●    | ●    |
 
 ## Profile
 

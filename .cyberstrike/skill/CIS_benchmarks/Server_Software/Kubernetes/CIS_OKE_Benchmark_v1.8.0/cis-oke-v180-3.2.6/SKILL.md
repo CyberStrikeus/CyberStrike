@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.6
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Allow Kubelet to manage iptables.
 
 ## Rationale
+
 Kubelets can automatically manage the required changes to iptables based on how you choose your networking options for the pods. It is recommended to let kubelets manage the changes to iptables. This ensures that the iptables configuration remains in sync with pods networking configuration. Manually configuring iptables with dynamic pod network configuration changes might hamper the communication between pods/containers and to the outside world. You might have iptables rules too restrictive or too open.
 
 ## Impact
+
 Kubelet would manage the iptables on the system and keep it in sync. If you are using any other iptables management solution, then there might be some conflicts.
 
 ## Audit Procedure
@@ -101,24 +105,27 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software | | * | * |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
+| Controls Version | Control                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software   |      | \*   | \*   |
+| v7               | 5.1 Establish Secure Configurations | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1190 | TA0001 | |
+| --------------------------- | ------- | ----------- |
+| T1190                       | TA0001  |             |
 
 ## Profile
+
 **Level 1** (Automated)

@@ -30,10 +30,8 @@ tech_stack:
   - saas
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -83,19 +81,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Cloud Service Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Service Discovery technique applicable | High | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Cloud Service Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - CA-8
 severity_boost: {}
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,16 +76,16 @@ Red team exercises extend the objectives of penetration testing by examining the
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-8(2) Red Team Exercises not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-8(2) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                    | Severity | Impact                                               |
+| ------------------------------------------ | -------- | ---------------------------------------------------- |
+| CA-8(2) Red Team Exercises not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-8(2) partially implemented              | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 
