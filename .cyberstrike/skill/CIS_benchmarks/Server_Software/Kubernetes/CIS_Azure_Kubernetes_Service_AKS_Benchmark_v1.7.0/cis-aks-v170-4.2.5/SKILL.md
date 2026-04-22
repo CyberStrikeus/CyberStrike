@@ -1,0 +1,82 @@
+---
+name: cis-aks-v170-4.2.5
+description: "Minimize the admission of containers with allowPrivilegeEscalation (Automated)"
+category: cis-aks
+version: "1.7.0"
+author: cyberstrike-official
+tags: [cis, aks, kubernetes, azure, pod-security, privilege-escalation, allowPrivilegeEscalation, admission-control]
+cis_id: "4.2.5"
+cis_benchmark: "CIS Azure Kubernetes Service (AKS) Benchmark v1.7.0"
+tech_stack: [kubernetes, azure, aks]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 4.2.5 Minimize the admission of containers with allowPrivilegeEscalation (Automated)
+
+## Profile Applicability
+
+- Level 1
+
+## Description
+
+Do not generally permit containers to be run with the `allowPrivilegeEscalation` flag set to `true`. Allowing this right can lead to a process running a container getting more rights than it started with.
+
+It's important to note that these rights are still constrained by the overall container sandbox, and this setting does not relate to the use of privileged containers.
+
+## Rationale
+
+A container running with the `allowPrivilegeEscalation` flag set to `true` may have processes that can gain more privileges than their parent.
+
+There should be at least one admission control policy defined which does not permit containers to allow privilege escalation. The option exists (and is defaulted to true) to permit setuid binaries to run.
+
+If you have need to run containers which use setuid binaries or require privilege escalation, this should be defined in a separate policy and you should carefully check to ensure that only limited service accounts and users are given permission to use that policy.
+
+## Impact
+
+Pods defined with `spec.allowPrivilegeEscalation: true` will not be permitted unless they are run under a specific policy.
+
+## Audit
+
+List the policies in use for each namespace in the cluster, ensure that each policy disallows the admission of containers which allow privilege escalation.
+
+This command gets all pods across all namespaces, outputs their details in JSON format, and uses jq to parse and filter the output for containers with `allowPrivilegeEscalation` set to `true`.
+
+```bash
+kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(any(.spec.containers[]; .securityContext.allowPrivilegeEscalation == true)) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+OR
+
+```bash
+kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(any(.spec.containers[]; .securityContext.allowPrivilegeEscalation == true)) | select(.metadata.namespace != "kube-system" and .metadata.namespace != "gatekeeper-system" and .metadata.namespace != "azure-arc" and .metadata.namespace != "azure-extensions-usage-system") | "\(.metadata.name) \(.metadata.namespace)"'
+```
+
+When creating a Pod Security Policy, ["kube-system", "gatekeeper-system", "azure-arc", "azure-extensions-usage-system"] namespaces are excluded by default.
+
+## Remediation
+
+Add policies to each namespace in the cluster which has user workloads to restrict the admission of containers with `.spec.allowPrivilegeEscalation` set to `true`.
+
+Pod Security Policies and Assignments can be found by searching for Policies in the Azure Portal. A detailed step-by-step guide can be found here:
+
+[https://learn.microsoft.com/en-us/azure/governance/policy/concepts/policy-for-kubernetes](https://learn.microsoft.com/en-us/azure/governance/policy/concepts/policy-for-kubernetes)
+
+## Default Value
+
+By default, there are no restrictions on contained process ability to escalate privileges, within the context of the container.
+
+## References
+
+1. [https://learn.microsoft.com/en-us/azure/governance/policy/concepts/policy-for-kubernetes](https://learn.microsoft.com/en-us/azure/governance/policy/concepts/policy-for-kubernetes)
+2. [https://learn.microsoft.com/en-us/azure/aks/use-azure-policy](https://learn.microsoft.com/en-us/azure/aks/use-azure-policy)
+3. [https://learn.microsoft.com/en-us/azure/aks/use-psa](https://learn.microsoft.com/en-us/azure/aks/use-psa)
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
+| v7 | 5.2 Maintain Secure Images | | x | x |

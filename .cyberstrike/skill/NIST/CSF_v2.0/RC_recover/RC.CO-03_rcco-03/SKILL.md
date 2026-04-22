@@ -1,0 +1,98 @@
+---
+name: "RC.CO-03_rcco-03"
+description: "Recovery activities and progress in restoring operational capabilities are communicated to designated internal and external stakeholders"
+category: "configuration"
+version: "2.0"
+author: "cyberstrike-official"
+tags:
+  - nist
+  - csf
+  - v2.0
+  - rc-co-03
+  - rc
+  - subcategory
+tech_stack:
+  - any
+cwe_ids:
+  []
+chains_with:
+  []
+prerequisites:
+  - Incident Recovery Communication (RC.CO)
+severity_boost: {}
+---
+
+# RC.CO-03 RC.CO-03
+
+> **Subcategory of:** Incident Recovery Communication (RC.CO)
+
+## High-Level Description
+
+**Function:** RECOVER (RC)
+**Framework:** NIST Cybersecurity Framework v2.0
+
+Recovery activities and progress in restoring operational capabilities are communicated to designated internal and external stakeholders
+
+## What to Check
+
+- [ ] Verify RC.CO-03 RC.CO-03 outcome is achieved
+- [ ] Review documentation and evidence for RC.CO-03
+- [ ] Assess organizational maturity for RECOVER function
+- [ ] Map to SP 800-53 controls that satisfy RC.CO-03
+
+## How to Test
+
+### Step 1: Identify Current Profile
+
+Determine the organization's current and target CSF profile tier for RC.CO-03.
+
+### Step 2: Assess Outcome Achievement
+
+```
+# Review organizational policies and procedures
+# Check for evidence that RC.CO-03 outcome is met
+# Interview stakeholders responsible for RECOVER
+```
+
+### Step 3: Map to Technical Controls
+
+Identify which SP 800-53 controls implement this CSF outcome and verify their operating effectiveness.
+
+## Tools
+
+| Tool | Purpose | Usage |
+| ---- | ------- | ----- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
+| Manual Review | Policy and procedure review | Interviews and documentation |
+
+## Remediation Guide
+
+Achieve the RC.CO-03 RC.CO-03 outcome:
+
+Recovery activities and progress in restoring operational capabilities are communicated to designated internal and external stakeholders
+
+## Risk Assessment
+
+| Finding | Severity | Impact |
+| ------- | -------- | ------ |
+| RC.CO-03 RC.CO-03 outcome not achieved | Medium | RECOVER Function Gap |
+
+## CWE Categories
+
+| CWE ID | Title |
+| ------ | ----- |
+| N/A | No direct CWE mapping |
+
+## References
+
+- [NIST CSF v2.0](https://www.nist.gov/cyberframework)
+- [NIST CSF v2.0 Reference Tool](https://csrc.nist.gov/projects/cybersecurity-framework/filters#/csf/filters)
+- [CSF 2.0 Quick Start Guides](https://www.nist.gov/cyberframework/getting-started)
+
+## Checklist
+
+- [ ] Current profile tier assessed
+- [ ] Target profile tier defined
+- [ ] Gap analysis completed
+- [ ] SP 800-53 control mapping verified
+- [ ] Implementation roadmap exists
