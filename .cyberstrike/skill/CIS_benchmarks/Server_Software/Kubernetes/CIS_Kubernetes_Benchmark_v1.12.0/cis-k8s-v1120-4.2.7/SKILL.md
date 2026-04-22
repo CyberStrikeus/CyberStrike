@@ -1,0 +1,78 @@
+---
+name: cis-k8s-v1120-4.2.7
+description: "Ensure that the --hostname-override argument is not set (Manual)"
+category: cis-k8s
+version: "1.12.0"
+author: cyberstrike-official
+tags: [cis, kubernetes, worker-nodes, kubelet]
+cis_id: "4.2.7"
+cis_benchmark: "CIS Kubernetes Benchmark v1.12.0"
+tech_stack: [kubernetes]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# CIS Kubernetes Benchmark v1.12.0 - Control 4.2.7
+
+## Description
+
+Do not override node hostnames.
+
+## Rationale
+
+Overriding hostnames could potentially break TLS setup between the kubelet and the apiserver. Additionally, with overridden hostnames, it becomes increasingly difficult to associate logs with a particular node and process them for security analytics. Hence, you should setup your kubelet nodes with resolvable FQDNs and avoid overriding the hostnames with IPs.
+
+## Impact
+
+Some cloud providers may require this flag to ensure that hostname matches names issued by the cloud provider. In these environments, this recommendation should not apply.
+
+## Audit Procedure
+
+### Step 1: Verify via process arguments
+
+Run the following command on each node:
+
+```bash
+ps -ef | grep kubelet
+```
+
+Verify that `--hostname-override` argument does not exist.
+
+**Note** This setting is not configurable via the Kubelet config file.
+
+## Remediation
+
+Edit the kubelet service file `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf` on each worker node and remove the `--hostname-override` argument from the `KUBELET_SYSTEM_PODS_ARGS` variable.
+
+Based on your system, restart the `kubelet` service. For example:
+
+```bash
+systemctl daemon-reload
+systemctl restart kubelet.service
+```
+
+## Default Value
+
+By default, `--hostname-override` argument is not set.
+
+## References
+
+1. https://kubernetes.io/docs/admin/kubelet/
+2. https://github.com/kubernetes/kubernetes/issues/22063
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 4 Secure Configuration of Enterprise Assets and Software<br>Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile; network devices; non-computing/IoT devices; and servers) and software (operating systems and applications). | | | |
+| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers<br>Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+
+## Profile Applicability
+
+- Level 1 - Worker Node
+
+## Assessment Status
+
+Manual

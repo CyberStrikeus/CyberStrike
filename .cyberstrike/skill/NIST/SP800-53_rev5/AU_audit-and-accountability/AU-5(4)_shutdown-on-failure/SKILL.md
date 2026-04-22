@@ -1,0 +1,111 @@
+---
+name: "AU-5(4)_shutdown-on-failure"
+description: "Invoke a [organization-defined] in the event of [organization-defined] , unless an alternate audit logging capability exists."
+category: "information-gathering"
+version: "5.2.0"
+author: "cyberstrike-official"
+tags:
+  - nist
+  - sp800-53
+  - rev5
+  - au-5-4
+  - au
+  - enhancement
+tech_stack:
+  - aws
+  - azure
+  - gcp
+  - linux
+  - windows
+cwe_ids:
+  - CWE-778
+chains_with:
+  - AU-15
+prerequisites:
+  - AU-5
+severity_boost:
+  AU-15: "Chain with AU-15 for comprehensive security coverage"
+---
+
+# AU-5(4) Shutdown on Failure
+
+> **Enhancement of:** AU-5
+
+## High-Level Description
+
+**Family:** Audit and Accountability (AU)
+**Framework:** NIST SP 800-53 Rev 5
+
+Organizations determine the types of audit logging failures that can trigger automatic system shutdowns or degraded operations. Because of the importance of ensuring mission and business continuity, organizations may determine that the nature of the audit logging failure is not so severe that it warrants a complete shutdown of the system supporting the core organizational mission and business functions. In those instances, partial system shutdowns or operating in a degraded mode with reduced capability may be viable alternatives.
+
+## What to Check
+
+- [ ] Verify AU-5(4) Shutdown on Failure is documented in SSP
+- [ ] Confirm control is operating effectively
+- [ ] Review evidence of continuous monitoring for AU-5(4)
+- [ ] Verify enhancement builds upon base control AU-5
+
+## How to Test
+
+### Step 1: Review Documentation
+
+Examine the System Security Plan (SSP) and related artifacts for AU-5(4) implementation details. Verify the organization has documented how this control is satisfied.
+
+### Step 2: Validate Implementation
+
+```
+# For cloud environments, use cloud-audit-mcp tools
+# For on-premises, review system configurations directly
+
+# Example: Check if account management policies exist
+grep -r "account.management\|access.control" /etc/security/ 2>/dev/null
+```
+
+### Step 3: Test Operating Effectiveness
+
+Verify the control is actively functioning, not just documented. Check logs, configurations, and operational evidence.
+
+## Tools
+
+| Tool | Purpose | Usage |
+| ---- | ------- | ----- |
+| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
+| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+
+## Remediation Guide
+
+### Control Statement
+
+Invoke a [organization-defined] in the event of [organization-defined] , unless an alternate audit logging capability exists.
+
+### Implementation Guidance
+
+Organizations determine the types of audit logging failures that can trigger automatic system shutdowns or degraded operations. Because of the importance of ensuring mission and business continuity, organizations may determine that the nature of the audit logging failure is not so severe that it warrants a complete shutdown of the system supporting the core organizational mission and business functions. In those instances, partial system shutdowns or operating in a degraded mode with reduced capability may be viable alternatives.
+
+## Risk Assessment
+
+| Finding | Severity | Impact |
+| ------- | -------- | ------ |
+| AU-5(4) Shutdown on Failure not implemented | Medium | Audit and Accountability |
+| AU-5(4) partially implemented | Low | Incomplete Audit and Accountability |
+
+## CWE Categories
+
+| CWE ID | Title |
+| ------ | ----- |
+| CWE-778 | Insufficient Logging |
+
+
+## References
+
+- [NIST SP 800-53 Rev 5 - AU-5(4)](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home?element=au-5.4)
+- [NIST SP 800-53A Rev 5 (Assessment Procedures)](https://csrc.nist.gov/pubs/sp/800/53/a/r5/final)
+- [NIST SP 800-53 Rev 5 Full Catalog](https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final)
+
+## Checklist
+
+- [ ] Control documented in SSP
+- [ ] Implementation evidence collected
+- [ ] Operating effectiveness validated
+- [ ] Continuous monitoring in place
+- [ ] Related controls (AU-15) reviewed
