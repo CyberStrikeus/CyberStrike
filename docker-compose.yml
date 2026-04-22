@@ -1,0 +1,21 @@
+services:
+  cyberstrike:
+    image: cyberstrike:latest
+    container_name: cyberstrike
+    ports:
+      - "4096:4096"
+    environment:
+      - CYBERSTRIKE_SERVER_PASSWORD=changeme
+      - NODE_ENV=production
+      - PORT=4096
+      - HOSTNAME=0.0.0.0
+    volumes:
+      - cyberstrike-data:/app/data
+    restart: unless-stopped
+    networks:
+      - cyberstrike-net
+volumes:
+  cyberstrike-data:
+networks:
+  cyberstrike-net:
+    driver: bridge
