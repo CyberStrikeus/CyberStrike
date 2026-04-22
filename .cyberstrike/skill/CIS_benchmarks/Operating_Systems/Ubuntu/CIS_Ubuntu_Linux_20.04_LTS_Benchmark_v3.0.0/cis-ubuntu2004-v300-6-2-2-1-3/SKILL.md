@@ -1,0 +1,88 @@
+---
+name: cis-ubuntu2004-v300-6-2-2-1-3
+description: "Ensure systemd-journal-upload is enabled and active"
+category: cis-logging
+version: "3.0.0"
+author: cyberstrike-official
+tags: [cis, ubuntu, linux, ubuntu-20.04, journald]
+cis_id: "6.2.2.1.3"
+cis_benchmark: "CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0"
+tech_stack: [ubuntu, linux]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 6.2.2.1.3 Ensure systemd-journal-upload is enabled and active (Automated)
+
+## Profile
+
+- Level 1 - Server
+- Level 1 - Workstation
+
+## Description
+
+Journald `systemd-journal-upload` supports the ability to send log events it gathers to a remote log host.
+
+## Rationale
+
+Storing log data on a remote host protects log integrity from local attacks. If an attacker gains root access on the local system, they could tamper with or remove log data that is stored on the local system.
+
+Note: This recommendation only applies if `journald` is the chosen method for client side logging. Do not apply this recommendation if `rsyslog` is used.
+
+## Audit Procedure
+
+### Command Line
+
+Run the following command to verify `systemd-journal-upload` is enabled.
+
+```bash
+# systemctl is-enabled systemd-journal-upload.service
+```
+
+Run the following command to verify `systemd-journal-upload` is active:
+
+```bash
+# systemctl is-active systemd-journal-upload.service
+```
+
+## Expected Result
+
+```
+enabled
+active
+```
+
+## Remediation
+
+### Command Line
+
+Run the following commands to unmask, enable and start `systemd-journal-upload`:
+
+```bash
+# systemctl unmask systemd-journal-upload.service
+# systemctl --now enable systemd-journal-upload.service
+```
+
+## Default Value
+
+Not enabled by default.
+
+## References
+
+1. NIST SP 800-53 Rev. 5: AU-2, AU-12
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 8.2 Collect Audit Logs | | | |
+| v7 | 6.2 Activate audit logging | | | |
+| v7 | 6.3 Enable Detailed Logging | | | |
+
+### MITRE ATT&CK Mappings
+
+| Techniques / Sub-techniques | Tactics | Mitigations |
+|------------------------------|---------|-------------|
+| T1070, T1070.002, T1562, T1562.006 | TA0040 | M1029 |

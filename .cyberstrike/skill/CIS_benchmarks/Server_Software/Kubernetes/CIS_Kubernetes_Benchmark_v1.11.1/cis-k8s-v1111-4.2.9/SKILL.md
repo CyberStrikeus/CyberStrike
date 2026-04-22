@@ -1,0 +1,68 @@
+---
+name: cis-k8s-v1111-4.2.9
+description: "Ensure that the --tls-cert-file and --tls-private-key-file arguments are set as appropriate (Manual)"
+category: cis-k8s
+version: "1.11.1"
+author: cyberstrike-official
+tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+cis_id: "4.2.9"
+cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
+tech_stack: [kubernetes]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 4.2.9 Ensure that the --tls-cert-file and --tls-private-key-file arguments are set as appropriate (Manual)
+
+## Profile Applicability
+
+- Level 1 - Worker Node
+
+## Description
+
+Setup TLS connection on the Kubelets.
+
+## Rationale
+
+The connections from the apiserver to the kubelet are used for fetching logs for pods, attaching (through kubectl) to running pods, and using the kubelet's port-forwarding functionality. These connections terminate at the kubelet's HTTPS endpoint. By default, the apiserver does not verify the kubelet's serving certificate, which makes the connection subject to man-in-the-middle attacks, and unsafe to run over untrusted and/or public networks.
+
+## Audit
+
+Run the following command on each node:
+
+```bash
+ps -ef | grep kubelet
+```
+
+Verify that the --tls-cert-file and --tls-private-key-file arguments exist and they are set as appropriate.
+If these arguments are not present, check that there is a Kubelet config specified by --config and that it contains appropriate settings for tlsCertFile and tlsPrivateKeyFile.
+
+## Remediation
+
+If using a Kubelet config file, edit the file to set tlsCertFile to the location of the certificate file to use to identify this Kubelet, and tlsPrivateKeyFile to the location of the corresponding private key file.
+If using command line arguments, edit the kubelet service file /etc/kubernetes/kubelet.conf on each worker node and set the below parameters in KUBELET_CERTIFICATE_ARGS variable.
+--tls-cert-file=<path/to/tls-certificate-file> --tls-private-key-file=<path/to/tls-key-file>
+Based on your system, restart the kubelet service. For example:
+
+```bash
+systemctl daemon-reload
+systemctl restart kubelet.service
+```
+
+## Default Value
+
+By default, `--tls-cert-file` and `--tls-private-key-file` arguments are not set.
+
+## References
+
+1. [https://kubernetes.io/docs/admin/kubelet/](https://kubernetes.io/docs/admin/kubelet/)
+2. [https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-authentication-authorization/](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-authentication-authorization/)
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
+| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
