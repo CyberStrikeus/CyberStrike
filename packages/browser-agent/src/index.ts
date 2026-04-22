@@ -44,6 +44,7 @@ Options:
                            Examples: --exclude "Delete Account"
                                      --exclude "Cancel Subscription"
   --dry-run                Crawl without sending to CyberStrike; print captures to console
+  --no-panel               Disable the live telemetry panel injected into the browser
   --debug                  Enable verbose debug logging
 
 Examples:
@@ -107,6 +108,7 @@ const config: AgentConfig = {
   maxSteps: getArg("--steps") ? parseInt(getArg("--steps")!) : 50,
   headless: hasFlag("--headless"),
   dryRun: hasFlag("--dry-run"),
+  panel: !hasFlag("--no-panel"),
 }
 
 run(config).catch((err) => {

@@ -225,6 +225,10 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
     const seenRoleSelectors = new Map<string, number>()
 
     for (const el of document.querySelectorAll(INTERACTIVE_SELECTORS)) {
+      // Skip anything inside the injected CyberStrike telemetry panel — LLM
+      // must never see its own UI. Shadow DOM normally hides it, but this is
+      // a defensive guard for any panel DOM that leaks into the light tree.
+      if (el.closest("[data-cyberstrike-ui]")) continue
       const role = getRole(el)
       if (!role) continue
 
@@ -296,6 +300,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
     const interactiveLabels = new Set(elements.map(e => e.label.toLowerCase()))
 
     for (const el of document.querySelectorAll<HTMLElement>("[aria-label]")) {
+      if (el.closest("[data-cyberstrike-ui]")) continue  // defensive: never leak panel UI into info elements
       const tag = el.tagName.toLowerCase()
       const role = (el.getAttribute("role") || "").toLowerCase()
       if (INTERACTIVE_TAGS.has(tag) || INTERACTIVE_ROLES.has(role)) continue

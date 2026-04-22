@@ -269,12 +269,74 @@ export interface AgentConfig {
   headless?: boolean
   // Dry-run mode: crawl without LLM calls, print captures to console instead of sending to CyberStrike
   dryRun?: boolean
+  // Inject the live telemetry panel into every page (PANEL_UI_BRIEF.md). Default: true.
+  panel?: boolean
 }
 
 /** Single credential definition for multi-credential crawl */
 export interface CredentialConfig {
   id: string  // "admin", "user", "manager", etc.
 }
+
+// ============================================================
+// Panel UI Events (PANEL_UI_BRIEF.md §4)
+// ============================================================
+
+/**
+ * Events emitted by the agent to the injected panel via window.__csEvent.
+ * One-way (agent → panel). Panel is defensive: unknown kinds are ignored.
+ */
+export type CSEvent =
+  | { type: "init"; target: string; credentials: string[]; maxPages: number; startedAt: number }
+  | { type: "page-change"; url: string; pageNum: number; maxPages: number; credential: string }
+  | {
+      type: "plan-received"
+      tasks: number
+      pageState: "populated" | "empty" | "unknown"
+      summary: Array<{ kind: "form" | "click"; label: string }>
+      credential: string
+    }
+  | {
+      type: "action-start"
+      kind: "click" | "fill" | "select" | "submit"
+      targetLabel: string
+      targetSelector?: string   // best-effort — panel uses for Target Paint overlay
+      value?: string
+      credential: string
+    }
+  | { type: "action-end"; ok: boolean; mutation?: boolean; credential: string }
+  | {
+      type: "capture"
+      method: string
+      path: string
+      status: number
+      trigger?: string
+      credential: string
+      isMutation: boolean
+    }
+  | {
+      type: "intelligence"
+      kind: "mark-empty" | "drain" | "stale-prune" | "revisit"
+      url: string
+      credential: string
+      note?: string
+    }
+  | {
+      type: "llm-thinking"
+      reason: "page-plan" | "unexplored" | "replan"
+      elements: number
+      credential: string
+    }
+  | { type: "credential-switch"; from: string | null; to: string }
+  | {
+      type: "crawl-done"
+      summary: {
+        pagesExplored: number
+        capturedEndpoints: number
+        mutations: number
+        credentials: string[]
+      }
+    }
 
 // ============================================================
 // Multi-Credential Types (Aşama 12)
