@@ -22,8 +22,7 @@ chains_with:
   - AC-14
   - PL-4
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-14: "Chain with AC-14 for comprehensive security coverage"
   PL-4: "Chain with PL-4 for comprehensive security coverage"
@@ -68,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -94,17 +93,16 @@ System use notifications can be implemented using messages or warning banners di
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-8 System Use Notification not implemented | High | Access Control |
-| AC-8 partially implemented | Medium | Incomplete Access Control |
+| Finding                                      | Severity | Impact                    |
+| -------------------------------------------- | -------- | ------------------------- |
+| AC-8 System Use Notification not implemented | High     | Access Control            |
+| AC-8 partially implemented                   | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

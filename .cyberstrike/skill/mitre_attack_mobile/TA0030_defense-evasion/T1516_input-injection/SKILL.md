@@ -23,10 +23,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,9 +36,9 @@ A malicious application can inject input to the user interface to mimic user int
 
 Input Injection can be achieved using any of the following methods:
 
-* Mimicking user clicks on the screen, for example to steal money from a user's PayPal account.
-* Injecting global actions, such as `GLOBAL_ACTION_BACK` (programatically mimicking a physical back button press), to trigger actions on behalf of the user.
-* Inserting input into text fields on behalf of the user. This method is used legitimately to auto-fill text fields by applications such as password managers.
+- Mimicking user clicks on the screen, for example to steal money from a user's PayPal account.
+- Injecting global actions, such as `GLOBAL_ACTION_BACK` (programatically mimicking a physical back button press), to trigger actions on behalf of the user.
+- Inserting input into text fields on behalf of the user. This method is used legitimately to auto-fill text fields by applications such as password managers.
 
 ## Kill Chain Phase
 
@@ -69,29 +67,28 @@ Review whether mitigations for T1516 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
+
 Users should be warned against granting access to accessibility features, and to carefully scrutinize applications that request this dangerous permission.
 
 ### M1012 Enterprise Policy
-An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
+An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
 ## Detection
 
 ### Detection of Input Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Input Injection technique applicable | High | Defense Evasion |
+| Finding                              | Severity | Impact          |
+| ------------------------------------ | -------- | --------------- |
+| Input Injection technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

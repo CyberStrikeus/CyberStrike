@@ -45,7 +45,7 @@ severity_boost:
 
 Adversaries may host seemingly genuine Wi-Fi access points to deceive users into connecting to malicious networks as a way of supporting follow-on behaviors such as Network Sniffing, Transmitted Data Manipulation, or Input Capture.
 
-By using a Service Set Identifier (SSID) of a legitimate Wi-Fi network, fraudulent Wi-Fi access points may trick devices or users into connecting to malicious Wi-Fi networks. Adversaries may provide a stronger signal strength or block access to Wi-Fi access points to coerce or entice victim devices into connecting to malicious networks. A Wi-Fi Pineapple – a network security auditing and penetration testing tool – may be deployed in Evil Twin attacks for ease of use and broader range. Custom certificates may be used in an attempt to intercept HTTPS traffic. 
+By using a Service Set Identifier (SSID) of a legitimate Wi-Fi network, fraudulent Wi-Fi access points may trick devices or users into connecting to malicious Wi-Fi networks. Adversaries may provide a stronger signal strength or block access to Wi-Fi access points to coerce or entice victim devices into connecting to malicious networks. A Wi-Fi Pineapple – a network security auditing and penetration testing tool – may be deployed in Evil Twin attacks for ease of use and broader range. Custom certificates may be used in an attempt to intercept HTTPS traffic.
 
 Similarly, adversaries may also listen for client devices sending probe requests for known or previously connected networks (Preferred Network Lists or PNLs). When a malicious access point receives a probe request, adversaries can respond with the same SSID to imitate the trusted, known network. Victim devices are led to believe the responding access point is from their PNL and initiate a connection to the fraudulent network.
 
@@ -80,29 +80,28 @@ Upon logging into the malicious Wi-Fi access point, a user may be directed to a 
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Wireless intrusion prevention systems (WIPS) can identify traffic patterns indicative of adversary-in-the-middle activity and scan for evils twins and rogue access points.
 
 ### M1017 User Training
-Train users to be suspicious about access points marked as “Open” or “Unsecure” as well as certificate errors. Certificate errors may arise when the application’s certificate does not match the one expected by the host.
 
+Train users to be suspicious about access points marked as “Open” or “Unsecure” as well as certificate errors. Certificate errors may arise when the application’s certificate does not match the one expected by the host.
 
 ## Detection
 
 ### Detect Evil Twin Wi-Fi Access Points on Network Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Evil Twin technique applicable | High | Credential Access |
+| Finding                        | Severity | Impact            |
+| ------------------------------ | -------- | ----------------- |
+| Evil Twin technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

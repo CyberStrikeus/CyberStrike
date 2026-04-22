@@ -66,6 +66,7 @@ If `logEffectiveWebXml` and/or `metadata-complete` is/are not specified, the def
 ## CIS Controls
 
 **v7:**
+
 - 6.3 Enable Detailed Logging
   - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.4.3.3
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Manual
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Configure the firewall rules for new outbound, and established IPv6 connections.
 
 Note:
+
 - Changing firewall settings while connected over network can result in being locked out of the system
 - Remediation will only affect the active system firewall, be sure to configure the default policy in your firewall management to apply on boot as well
 
@@ -43,8 +45,8 @@ ip6tables -L -v -n
 ```
 
 - OR -
-Verify IPv6 is disabled:
-Run the following script. Output will confirm if IPv6 is enabled on the system.
+  Verify IPv6 is disabled:
+  Run the following script. Output will confirm if IPv6 is enabled on the system.
 
 ```bash
 #!/usr/bin/env bash

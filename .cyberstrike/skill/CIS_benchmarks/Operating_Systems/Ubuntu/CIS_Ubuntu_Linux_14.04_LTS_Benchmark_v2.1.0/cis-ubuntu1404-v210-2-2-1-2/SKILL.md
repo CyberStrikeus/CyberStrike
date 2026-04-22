@@ -48,6 +48,7 @@ grep "^restrict" /etc/ntp.conf
 ```
 
 Expected output:
+
 ```
 restrict -4 default kod nomodify notrap nopeer noquery
 restrict -6 default kod nomodify notrap nopeer noquery
@@ -62,6 +63,7 @@ grep "^(server|pool)" /etc/ntp.conf
 ```
 
 Expected output:
+
 ```
 server <remote-server>
 ```
@@ -75,6 +77,7 @@ grep "RUNASUSER=ntp" /etc/init.d/ntp
 ```
 
 Expected output:
+
 ```
 RUNASUSER=ntp
 ```

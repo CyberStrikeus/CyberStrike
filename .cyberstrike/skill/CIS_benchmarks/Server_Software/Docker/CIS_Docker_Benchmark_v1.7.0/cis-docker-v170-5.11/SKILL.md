@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.11
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 By default, all containers on a Docker host share resources equally. By using the resource management capabilities of the Docker host, you can control the amount of memory that a container is able to use.
 
 ## Rationale
+
 By default a container can use all of the memory on the host. You can use memory limit mechanisms to prevent a denial of service occurring where one container consumes all of the host's resources and other containers on the same host therefore not able to function. Having no limit on memory usage can lead to issues where one container can easily make the whole system unstable and as a result unusable.
 
 ## Impact
+
 If correct memory limits are not set on each container, one process can expand its usage and cause other containers to run out of resources.
 
 ## Audit Procedure
@@ -57,19 +61,24 @@ docker inspect --format='{{ .Id }}: Memory={{ .HostConfig.Memory }} KernelMemory
 ```
 
 ## Default Value
+
 By default, all containers on a Docker host share their resources equally and no memory limits are enforced.
 
 ## References
+
 1. https://docs.docker.com/config/containers/resource_constraints/#limit-a-containers-access-to-memory
 2. https://docs.docker.com/config/containers/runmetrics/
 
 ## CIS Controls
 
 **v8:**
+
 - 3.12 Segment Data Processing and Storage Based on Sensitivity - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - 18 Application Software Security - Application Software Security
 
 ## Assessment Status
+
 Manual

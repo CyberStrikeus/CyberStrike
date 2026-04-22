@@ -110,6 +110,7 @@ Write-Host "[+] Rule '#{rule_name}' created. Emails with subject '#{trigger_subj
 ```
 
 **Dependencies:**
+
 - Classic Outlook must be installed (required for COM automation)
 
 ### Atomic Test 2: Outlook Rule - Sender Address Trigger with DeletePermanently Action via COM Object
@@ -152,6 +153,7 @@ Write-Host "[+] Sender-based rule '#{rule_name}' created. Emails from '#{trigger
 ```
 
 **Dependencies:**
+
 - Classic Outlook must be installed (required for COM automation)
 
 ### Atomic Test 3: Outlook Rule - Auto-Forward Emails to External Address via COM Object
@@ -194,6 +196,7 @@ Write-Host "[!] Run cleanup immediately after verifying rule creation in Outlook
 ```
 
 **Dependencies:**
+
 - Classic Outlook must be installed (required for COM automation)
 
 ### Atomic Test 4: Outlook Rules - Enumerate Existing Rules via PowerShell COM Object
@@ -234,6 +237,7 @@ if ($rules.Count -eq 0) {
 ```
 
 **Dependencies:**
+
 - Classic Outlook must be installed (required for COM automation)
 
 ### Atomic Test 5: Outlook Rule - Create Rule with Obfuscated Blank Name (MAPI Evasion)
@@ -286,9 +290,9 @@ Remove-Item $tmpScript -ErrorAction SilentlyContinue
 ```
 
 **Dependencies:**
+
 - Classic Outlook must be installed (required for COM automation)
 - Sound file must exist for PlaySound action
-
 
 ### Manual Testing
 
@@ -303,29 +307,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 For the Outlook methods, blocking macros may be ineffective as the Visual Basic engine used for these features is separate from the macro scripting engine. Microsoft has released patches to try to address each issue. Ensure KB3191938 which blocks Outlook Visual Basic and displays a malicious code warning, KB4011091 which disables custom forms by default, and KB4011162 which removes the legacy Home Page feature, are applied to systems.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
 ## Detection
 
 ### Detect Persistence via Malicious Outlook Rules
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Outlook Rules technique applicable | Low | Persistence |
+| Finding                            | Severity | Impact      |
+| ---------------------------------- | -------- | ----------- |
+| Outlook Rules technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

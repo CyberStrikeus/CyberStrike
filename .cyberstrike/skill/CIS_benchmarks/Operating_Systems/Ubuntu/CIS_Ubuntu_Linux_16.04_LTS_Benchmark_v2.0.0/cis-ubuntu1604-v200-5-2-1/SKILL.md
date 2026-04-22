@@ -84,9 +84,9 @@ By default, `sudo` is installed on Ubuntu systems.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts |
+| Controls Version | Control                                                 |
+| ---------------- | ------------------------------------------------------- |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts |
 
 ## Assessment Status
 

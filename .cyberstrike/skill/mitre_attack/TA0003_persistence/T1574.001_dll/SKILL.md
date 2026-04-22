@@ -58,24 +58,29 @@ Adversaries may abuse dynamic-link library files (DLLs) in order to achieve pers
 Specific ways DLLs are abused by adversaries include:
 
 ### DLL Sideloading
+
 Adversaries may execute their own malicious payloads by side-loading DLLs. Side-loading involves hijacking which DLL a program loads by planting and then invoking a legitimate application that executes their payload(s).
 
 Side-loading positions both the victim application and malicious payload(s) alongside each other. Adversaries likely use side-loading as a means of masking actions they perform under a legitimate, trusted, and potentially elevated system or software process. Benign executables used to side-load payloads may not be flagged during delivery and/or execution. Adversary payloads may also be encrypted/packed or otherwise obfuscated until loaded into the memory of the trusted process.
 
 Adversaries may also side-load other packages, such as BPLs (Borland Package Library).
 
-Adversaries may chain DLL sideloading multiple times to fragment functionality hindering analysis. Adversaries using multiple DLL files can split the loader functions across different DLLs, with a main DLL loading the separated export functions. Spreading loader functions across multiple DLLs makes analysis harder, since all files must be collected to fully understand the malware’s behavior. Another method implements a “loader-for-a-loader”, where a malicious DLL’s sole role is to load a second DLL (or a chain of DLLs) that contain the real payload. 
+Adversaries may chain DLL sideloading multiple times to fragment functionality hindering analysis. Adversaries using multiple DLL files can split the loader functions across different DLLs, with a main DLL loading the separated export functions. Spreading loader functions across multiple DLLs makes analysis harder, since all files must be collected to fully understand the malware’s behavior. Another method implements a “loader-for-a-loader”, where a malicious DLL’s sole role is to load a second DLL (or a chain of DLLs) that contain the real payload.
 
 ### DLL Search Order Hijacking
+
 Adversaries may execute their own malicious payloads by hijacking the search order that Windows uses to load DLLs. This search order is a sequence of special and standard search locations that a program checks when loading a DLL. An adversary can plant a trojan DLL in a directory that will be prioritized by the DLL search order over the location of a legitimate library. This will cause Windows to load the malicious DLL when it is called for by the victim program.
 
 ### DLL Redirection
+
 Adversaries may directly modify the search order via DLL redirection, which after being enabled (in the Registry or via the creation of a redirection file) may cause a program to load a DLL from a different location.
 
 ### Phantom DLL Hijacking
+
 Adversaries may leverage phantom DLL hijacking by targeting references to non-existent DLL files. They may be able to load their own malicious DLL by planting it with the correct name in the location of the missing module.
 
 ### DLL Substitution
+
 Adversaries may target existing, valid DLL files and substitute them with their own malicious DLLs, planting them with the same name and in the same location as the valid DLL file.
 
 Programs that fall victim to DLL hijacking may appear to behave normally because malicious DLLs may be configured to also load the legitimate DLLs they were meant to replace, evading defenses.
@@ -124,7 +129,7 @@ copy %windir%\System32\amsi.dll %APPDATA%\amsi.dll
 ### Atomic Test 2: Phantom Dll Hijacking - WinAppXRT.dll
 
 .NET components (a couple of DLLs loaded anytime .NET apps are executed) when they are loaded they look for an environment variable called APPX_PROCESS
-Setting the environmental variable and dropping the phantom WinAppXRT.dll in e.g. c:\windows\system32 (or any other location accessible via PATH) will ensure the 
+Setting the environmental variable and dropping the phantom WinAppXRT.dll in e.g. c:\windows\system32 (or any other location accessible via PATH) will ensure the
 WinAppXRT.dll is loaded everytime user launches an application using .NET.
 
 Upon successful execution, amsi.dll will be copied and renamed to WinAppXRT.dll and then WinAppXRT.dll will be copied to system32 folder for loading during execution of any .NET application.
@@ -169,6 +174,7 @@ Upon execution, calc.exe will be opened.
 ```
 
 **Dependencies:**
+
 - Gup.exe binary must exist on disk at specified location (#{gup_executable})
 
 ### Atomic Test 5: DLL Side-Loading using the dotnet startup hook environment variable
@@ -184,9 +190,9 @@ echo.
 ```
 
 **Dependencies:**
+
 - .Net SDK must be installed
 - preloader must exist
-
 
 ### Manual Testing
 
@@ -201,42 +207,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Identify and block potentially malicious software executed through DLL hijacking by using application control solutions capable of blocking DLLs loaded by legitimate software.
 
 ### M1044 Restrict Library Loading
+
 Disallow loading of remote DLLs. This is included by default in Windows Server 2012+ and is available by patch for XP+ and Server 2003+.
 
 Enable Safe DLL Search Mode to move the user's current folder later in the search order. This is included by default in modern versions of Windows; the associated Windows Registry key is located at <code>HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\SafeDLLSearchMode</code>.
 
 ### M1051 Update Software
+
 Update software regularly to include patches that fix DLL side-loading vulnerabilities.
 
 ### M1047 Audit
+
 Use auditing tools capable of detecting DLL search order hijacking opportunities on systems within an enterprise and correct them. Toolkits like the PowerSploit framework contain PowerUp modules that can be used to explore systems for DLL hijacking weaknesses.
 
 Use the program `sxstrace.exe` that is included with Windows, along with manual inspection, to check manifest files for side-by-side problems in software.
 
 ### M1013 Application Developer Guidance
-When possible, include hash values in manifest files to help prevent side-loading of malicious libraries.
 
+When possible, include hash values in manifest files to help prevent side-loading of malicious libraries.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow for DLLs
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DLL technique applicable | High | Persistence |
+| Finding                  | Severity | Impact      |
+| ------------------------ | -------- | ----------- |
+| DLL technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

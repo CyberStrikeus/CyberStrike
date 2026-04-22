@@ -4,7 +4,23 @@ description: "Ensure that the --IPAddressDeny is set to any (Manual)"
 category: cis-k8s
 version: "1.11.1"
 author: cyberstrike-official
-tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+tags:
+  [
+    cis,
+    kubernetes,
+    worker-nodes,
+    kubelet,
+    authentication,
+    authorization,
+    tls,
+    streaming,
+    iptables,
+    hostname-override,
+    event-capture,
+    certificate-rotation,
+    seccomp,
+    strong-ciphers,
+  ]
 cis_id: "4.2.15"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
 tech_stack: [kubernetes]
@@ -44,7 +60,7 @@ IPAddressDeny=any
 IPAddressAllow={{ kubelet_secure_addresses }}
 ```
 
-*Note
+\*Note
 kubelet_secure_addresses: "localhost link-local {{ kube_pods_subnets | regex_replace(',', ' ') }} {{ kube_node_addresses }} {{ loadbalancer_apiserver.address | default("") }}"
 
 ## Default Value
@@ -58,9 +74,9 @@ By default IPAddressDeny is not enabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v8 | 2.7 Allowlist Authorized Scripts | | | x |
-| v7 | 2.7 Utilize Application Whitelisting | | | x |
-| v7 | 2.9 Implement Application Whitelisting of Scripts | | | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software                 |      | x    | x    |
+| v8               | 2.7 Allowlist Authorized Scripts                  |      |      | x    |
+| v7               | 2.7 Utilize Application Whitelisting              |      |      | x    |
+| v7               | 2.9 Implement Application Whitelisting of Scripts |      |      | x    |

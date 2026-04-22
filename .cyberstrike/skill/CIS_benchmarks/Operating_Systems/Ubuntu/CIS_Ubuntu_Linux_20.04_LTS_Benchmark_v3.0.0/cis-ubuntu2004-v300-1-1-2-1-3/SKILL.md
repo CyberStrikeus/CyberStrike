@@ -33,8 +33,8 @@ Since the `/tmp` filesystem is only intended for temporary file storage, set thi
 ### Command Line
 
 - IF - a separate partition exists for `/tmp`, verify that the `nosuid` option is set.
-Run the following command to verify that the `nosuid` mount option is set.
-Example:
+  Run the following command to verify that the `nosuid` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /tmp | grep -v nosuid
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/tmp`.
-Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/tmp` partition.
-Example:
+  Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/tmp` partition.
+  Example:
 
 ```
 <device> /tmp   <fstype>   defaults,rw,nosuid,nodev,noexec,relatime   0 0

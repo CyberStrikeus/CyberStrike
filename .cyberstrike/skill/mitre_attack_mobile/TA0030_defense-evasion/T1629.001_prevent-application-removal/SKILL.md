@@ -44,9 +44,9 @@ Adversaries may abuse the Android device administration API to prevent the user 
 
 Adversaries may also abuse the device accessibility APIs to prevent removal. This set of APIs allows the application to perform certain actions on behalf of the user and programmatically determine what is being shown on the screen. The malicious application could monitor the device screen for certain modals (e.g., the confirmation modal to uninstall an application) and inject screen input or a back button tap to close the modal. For example, Android's `performGlobalAction(int)` API could be utilized to prevent the user from removing the malicious application from the device after installation. If the user wants to uninstall the malicious application, two cases may occur, both preventing the user from removing the application.
 
-* Case 1: If the integer argument passed to the API call is `2` or `GLOBAL_ACTION_HOME`, the malicious application may direct the user to the home screen from settings screen 
+- Case 1: If the integer argument passed to the API call is `2` or `GLOBAL_ACTION_HOME`, the malicious application may direct the user to the home screen from settings screen
 
-* Case 2: If the integer argument passed to the API call is `1` or `GLOBAL_ACTION_BACK`, the malicious application may emulate the back press event
+- Case 2: If the integer argument passed to the API call is `1` or `GLOBAL_ACTION_BACK`, the malicious application may emulate the back press event
 
 ## Kill Chain Phase
 
@@ -74,32 +74,32 @@ Review whether mitigations for T1629.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
+
 Recent versions of Android modified how device administrator applications are uninstalled, making it easier for the user to remove them.
 
 ### M1011 User Guidance
+
 Users should be warned against granting access to accessibility features and device administration services, and to carefully scrutinize applications that request these dangerous permissions. Users should be taught how to boot into safe mode to uninstall malicious applications that may be interfering with the uninstallation process.
 
 ### M1012 Enterprise Policy
-An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
+An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
 ## Detection
 
 ### Detection of Prevent Application Removal
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Prevent Application Removal technique applicable | Low | Defense Evasion |
+| Finding                                          | Severity | Impact          |
+| ------------------------------------------------ | -------- | --------------- |
+| Prevent Application Removal technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

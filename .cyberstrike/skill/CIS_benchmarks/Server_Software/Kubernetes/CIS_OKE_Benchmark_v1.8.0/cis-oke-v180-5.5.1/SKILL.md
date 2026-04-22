@@ -77,7 +77,7 @@ kubectl create clusterrolebinding jdoe_clst_adm \
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) | | x | x |
-| v7 | 16.2 Configure Centralized Point of Authentication | | x | x |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) |      | x    | x    |
+| v7               | 16.2 Configure Centralized Point of Authentication                        |      | x    | x    |

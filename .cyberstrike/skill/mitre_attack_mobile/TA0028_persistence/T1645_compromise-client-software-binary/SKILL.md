@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,7 +33,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may modify system software binaries to establish persistent access to devices. System software binaries are used by the underlying operating system and users over adb or terminal emulators. 
+Adversaries may modify system software binaries to establish persistent access to devices. System software binaries are used by the underlying operating system and users over adb or terminal emulators.
 
 Adversaries may make modifications to client software binaries to carry out malicious tasks when those binaries are executed. For example, malware may come with a pre-compiled malicious binary intended to overwrite the genuine one on the device. Since these binaries may be routinely executed by the system or user, the adversary can leverage this for persistent access to the device.
 
@@ -66,35 +64,36 @@ Review whether mitigations for T1645 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1003 Lock Bootloader
+
 A locked bootloader could prevent unauthorized modifications of protected operating system files.
 
 ### M1004 System Partition Integrity
+
 Android includes system partition integrity mechanisms that could detect unauthorized modifications.
 
 ### M1001 Security Updates
+
 Security updates frequently contain fixes for vulnerabilities that could be leveraged to modify protected operating system files.
 
 ### M1002 Attestation
-Device attestation could detect devices with unauthorized or unsafe modifications.
 
+Device attestation could detect devices with unauthorized or unsafe modifications.
 
 ## Detection
 
 ### Detection of Compromise Client Software Binary
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Client Software Binary technique applicable | Low | Persistence |
+| Finding                                                | Severity | Impact      |
+| ------------------------------------------------------ | -------- | ----------- |
+| Compromise Client Software Binary technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

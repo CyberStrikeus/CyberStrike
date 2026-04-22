@@ -46,9 +46,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse Microsoft Office templates to obtain persistence on a compromised system. Microsoft Office contains templates that are part of common Office applications and are used to customize styles. The base templates within the application are used each time an application starts. 
+Adversaries may abuse Microsoft Office templates to obtain persistence on a compromised system. Microsoft Office contains templates that are part of common Office applications and are used to customize styles. The base templates within the application are used each time an application starts.
 
-Office Visual Basic for Applications (VBA) macros can be inserted into the base template and used to execute code when the respective Office application starts in order to obtain persistence. Examples for both Word and Excel have been discovered and published. By default, Word has a Normal.dotm template created that can be modified to include a malicious macro. Excel does not have a template file created by default, but one can be added that will automatically be loaded. Shared templates may also be stored and pulled from remote locations. 
+Office Visual Basic for Applications (VBA) macros can be inserted into the base template and used to execute code when the respective Office application starts in order to obtain persistence. Examples for both Word and Excel have been discovered and published. By default, Word has a Normal.dotm template created that can be modified to include a malicious macro. Excel does not have a template file created by default, but one can be added that will automatically be loaded. Shared templates may also be stored and pulled from remote locations.
 
 Word Normal.dotm location:<br>
 <code>C:\Users\&lt;username&gt;\AppData\Roaming\Microsoft\Templates\Normal.dotm</code>
@@ -56,7 +56,7 @@ Word Normal.dotm location:<br>
 Excel Personal.xlsb location:<br>
 <code>C:\Users\&lt;username&gt;\AppData\Roaming\Microsoft\Excel\XLSTART\PERSONAL.XLSB</code>
 
-Adversaries may also change the location of the base template to point to their own by hijacking the application's search order, e.g. Word 2016 will first look for Normal.dotm under <code>C:\Program Files (x86)\Microsoft Office\root\Office16\</code>, or by modifying the GlobalDotName registry key. By modifying the GlobalDotName registry key an adversary can specify an arbitrary location, file name, and file extension to use for the template that will be loaded on application startup. To abuse GlobalDotName, adversaries may first need to register the template as a trusted document or place it in a trusted location. 
+Adversaries may also change the location of the base template to point to their own by hijacking the application's search order, e.g. Word 2016 will first look for Normal.dotm under <code>C:\Program Files (x86)\Microsoft Office\root\Office16\</code>, or by modifying the GlobalDotName registry key. By modifying the GlobalDotName registry key an adversary can specify an arbitrary location, file name, and file extension to use for the template that will be loaded on application startup. To abuse GlobalDotName, adversaries may first need to register the template as a trusted document or place it in a trusted location.
 
 An adversary may need to enable macros to execute unrestricted depending on the system or enterprise security policy on use of macros.
 
@@ -97,20 +97,20 @@ $flagPath1 = "$env:USERPROFILE\AppData\Roaming\Microsoft\Templates\T1137-001_Fla
 $flagPath2 = "$env:USERPROFILE\AppData\Roaming\Microsoft\Templates\T1137-001_Flag2.txt"
 # Get the value of the Key/Value pair
 $value = (Get-ItemProperty -Path $registryKey -Name $registryValue -ErrorAction SilentlyContinue).$registryValue
-# Logical operation to: if the value of the key/value is 1, do nothing - 
-# if the value is 0, change it to 1 and create flag1 - 
+# Logical operation to: if the value of the key/value is 1, do nothing -
+# if the value is 0, change it to 1 and create flag1 -
 # if it doesn't exist, create the value and flag2
-if ($value -eq "1") 
+if ($value -eq "1")
 {
   Write-Host "The registry value '$registryValue' already exists with the required setting."
-}   
-  elseif ($value -eq "0") 
+}
+  elseif ($value -eq "0")
 {
   Write-Host "The registry value was set to 0, temporarily changing to 1."
   New-ItemProperty -Path $registryKey -Name $registryValue -Value $registryData -PropertyType DWORD -Force | Out-Null
   echo "flag1" > $flagPath1
-} 
-  else 
+}
+  else
 {
   Write-Host "The registry value '$registryValue' does not exist, temporarily creating it."
   New-ItemProperty -Path $registryKey -Name $registryValue -Value $registryData -PropertyType DWORD -Force | Out-Null
@@ -165,8 +165,8 @@ $word.Quit()
 ```
 
 **Dependencies:**
-- Microsoft Word must be installed
 
+- Microsoft Word must be installed
 
 ### Manual Testing
 
@@ -181,31 +181,30 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
 ### M1042 Disable or Remove Feature or Program
+
 Follow Office macro security best practices suitable for your environment. Disable Office VBA macros from executing.
 
 Disable Office add-ins. If they are required, follow best practices for securing them by requiring them to be signed and disabling user notification for allowing add-ins. For some add-ins types (WLL, VBA) additional mitigation is likely required as disabling add-ins in the Office Trust Center does not disable WLL nor does it prevent VBA code from executing.
-
 
 ## Detection
 
 ### Detect Persistence via Office Template Macro Injection or Registry Hijack
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Office Template Macros technique applicable | High | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Office Template Macros technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

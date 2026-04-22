@@ -63,7 +63,7 @@ By default, seccomp profile is set to `unconfined` which means that no seccomp p
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | X | X |
-| v7 | 5.2 Maintain Secure Images | | X | X |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | X    | X    |
+| v7               | 5.2 Maintain Secure Images                                                         |      | X    | X    |

@@ -45,9 +45,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may utilize standard operating system APIs to gather call log data. On Android, this can be accomplished using the Call Log Content Provider. iOS provides no standard API to access the call log. 
-
- 
+Adversaries may utilize standard operating system APIs to gather call log data. On Android, this can be accomplished using the Call Log Content Provider. iOS provides no standard API to access the call log.
 
 If the device has been jailbroken or rooted, an adversary may be able to access the Call Log without the user’s knowledge or approval.
 
@@ -78,26 +76,24 @@ Review whether mitigations for T1636.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
-Call Log access an uncommonly needed permission, so users should be instructedto use extra scrutiny when granting access to their call logs.
 
+Call Log access an uncommonly needed permission, so users should be instructedto use extra scrutiny when granting access to their call logs.
 
 ## Detection
 
 ### Detection of Call Log
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Call Log technique applicable | Low | Collection |
+| Finding                       | Severity | Impact     |
+| ----------------------------- | -------- | ---------- |
+| Call Log technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

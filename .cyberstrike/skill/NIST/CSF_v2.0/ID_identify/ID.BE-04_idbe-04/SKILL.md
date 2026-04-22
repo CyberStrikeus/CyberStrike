@@ -18,8 +18,7 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-200
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Business Environment (ID.BE)
 severity_boost: {}
@@ -63,10 +62,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -76,16 +75,15 @@ Dependencies and critical functions for delivery of critical services are establ
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ID.BE-04 ID.BE-04 outcome not achieved | Medium | IDENTIFY Function Gap |
+| Finding                                | Severity | Impact                |
+| -------------------------------------- | -------- | --------------------- |
+| ID.BE-04 ID.BE-04 outcome not achieved | Medium   | IDENTIFY Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

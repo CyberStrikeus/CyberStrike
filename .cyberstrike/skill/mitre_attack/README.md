@@ -31,28 +31,29 @@ mitre_attack/
 ```
 
 **Naming convention:** `{technique_id}_{slugified-name}/SKILL.md`
+
 - Main technique: `T1059_command-and-scripting-interpreter/`
 - Sub-technique: `T1059.001_powershell/`
 
 ## Tactic Breakdown
 
-| Tactic ID | Name | Skills |
-|-----------|------|--------|
-| TA0043 | Reconnaissance | 45 |
-| TA0042 | Resource Development | 47 |
-| TA0001 | Initial Access | 15 |
-| TA0002 | Execution | 45 |
-| TA0003 | Persistence | 80 |
-| TA0004 | Privilege Escalation | 25 |
-| TA0005 | Defense Evasion | 183 |
-| TA0006 | Credential Access | 62 |
-| TA0007 | Discovery | 43 |
-| TA0008 | Lateral Movement | 17 |
-| TA0009 | Collection | 36 |
-| TA0010 | Exfiltration | 19 |
-| TA0011 | Command and Control | 41 |
-| TA0040 | Impact | 33 |
-| **Total** | | **691** |
+| Tactic ID | Name                 | Skills  |
+| --------- | -------------------- | ------- |
+| TA0043    | Reconnaissance       | 45      |
+| TA0042    | Resource Development | 47      |
+| TA0001    | Initial Access       | 15      |
+| TA0002    | Execution            | 45      |
+| TA0003    | Persistence          | 80      |
+| TA0004    | Privilege Escalation | 25      |
+| TA0005    | Defense Evasion      | 183     |
+| TA0006    | Credential Access    | 62      |
+| TA0007    | Discovery            | 43      |
+| TA0008    | Lateral Movement     | 17      |
+| TA0009    | Collection           | 36      |
+| TA0010    | Exfiltration         | 19      |
+| TA0011    | Command and Control  | 41      |
+| TA0040    | Impact               | 33      |
+| **Total** |                      | **691** |
 
 ## Multi-Tactic Techniques
 
@@ -71,6 +72,7 @@ mitre_attack/
 Each SKILL.md contains:
 
 **YAML Frontmatter:**
+
 - `technique_id` — ATT&CK technique ID (T1059, T1059.001, etc.)
 - `tactic` — Primary tactic (kill chain phase)
 - `all_tactics` — All tactics this technique belongs to
@@ -79,6 +81,7 @@ Each SKILL.md contains:
 - `severity_boost` — Estimated severity (low/medium/high)
 
 **Body Sections:**
+
 - **Tactic** — Kill chain position with tactic IDs
 - **Platforms** — Target operating systems/environments
 - **Description** — Full technique description from ATT&CK

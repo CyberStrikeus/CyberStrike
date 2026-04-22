@@ -24,10 +24,8 @@ tech_stack:
   - containers
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,32 +66,32 @@ A tool has been developed to facilitate planting backdoors in cloud container im
 ## Remediation Guide
 
 ### M1045 Code Signing
+
 Several cloud service providers support content trust models that require container images be signed by trusted sources.
 
 ### M1026 Privileged Account Management
+
 Limit permissions associated with creating and modifying platform images or containers based on the principle of least privilege.
 
 ### M1047 Audit
-Periodically check the integrity of images and containers used in cloud deployments to ensure they have not been modified to include malicious software.
 
+Periodically check the integrity of images and containers used in cloud deployments to ensure they have not been modified to include malicious software.
 
 ## Detection
 
 ### Detection Strategy for T1525 – Implant Internal Image
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Implant Internal Image technique applicable | High | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Implant Internal Image technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

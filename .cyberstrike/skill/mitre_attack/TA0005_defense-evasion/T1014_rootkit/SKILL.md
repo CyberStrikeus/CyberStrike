@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,9 +36,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may use rootkits to hide the presence of programs, files, network connections, services, drivers, and other system components. Rootkits are programs that hide the existence of malware by intercepting/hooking and modifying operating system API calls that supply system information. 
+Adversaries may use rootkits to hide the presence of programs, files, network connections, services, drivers, and other system components. Rootkits are programs that hide the existence of malware by intercepting/hooking and modifying operating system API calls that supply system information.
 
-Rootkits or rootkit enabling functionality may reside at the user or kernel level in the operating system or lower, to include a hypervisor or System Firmware. Rootkits have been seen for Windows, Linux, and Mac OS X systems. 
+Rootkits or rootkit enabling functionality may reside at the user or kernel level in the operating system or lower, to include a hypervisor or System Firmware. Rootkits have been seen for Windows, Linux, and Mac OS X systems.
 
 Rootkits that reside or modify boot sectors are known as Bootkits and specifically target the boot process of the operating system.
 
@@ -76,6 +74,7 @@ sudo insmod #{rootkit_path}/#{rootkit_name}.ko
 ```
 
 **Dependencies:**
+
 - The kernel module must exist on disk at specified location (#{rootkit_path}/#{rootkit_name}.ko)
 
 ### Atomic Test 2: Loadable Kernel Module based Rootkit
@@ -90,6 +89,7 @@ sudo modprobe #{rootkit_name}
 ```
 
 **Dependencies:**
+
 - The kernel module must exist on disk at specified location (#{rootkit_source_path}/#{rootkit_name}.ko)
 
 ### Atomic Test 3: dynamic-linker based rootkit (libprocesshider)
@@ -105,6 +105,7 @@ echo #{library_path} | tee -a /etc/ld.so.preload
 ```
 
 **Dependencies:**
+
 - The preload library must exist on disk at specified location (#{library_path})
 
 ### Atomic Test 4: Loadable Kernel Module based Rootkit (Diamorphine)
@@ -123,8 +124,8 @@ ps $TARGETPID || echo "process ${TARGETPID} hidden"
 ```
 
 **Dependencies:**
-- The kernel module must exist on disk at specified location (#{rootkit_name}.ko)
 
+- The kernel module must exist on disk at specified location (#{rootkit_name}.ko)
 
 ### Manual Testing
 
@@ -144,19 +145,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Kernel/User-Level Rootkit Behavior Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Rootkit technique applicable | High | Defense Evasion |
+| Finding                      | Severity | Impact          |
+| ---------------------------- | -------- | --------------- |
+| Rootkit technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

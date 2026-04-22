@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-269
 chains_with:
   - T1626.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1626.001: "Chain with T1626.001 for deeper attack path"
 ---
@@ -61,26 +60,24 @@ Review whether mitigations for T1626 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
-Applications very rarely require administrator permission. Developers should be cautioned against using this higher degree of access to avoid being flagged as a potentially malicious application.
 
+Applications very rarely require administrator permission. Developers should be cautioned against using this higher degree of access to avoid being flagged as a potentially malicious application.
 
 ## Detection
 
 ### Detection of Abuse Elevation Control Mechanism
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Abuse Elevation Control Mechanism technique applicable | High | Privilege Escalation |
+| Finding                                                | Severity | Impact               |
+| ------------------------------------------------------ | -------- | -------------------- |
+| Abuse Elevation Control Mechanism technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

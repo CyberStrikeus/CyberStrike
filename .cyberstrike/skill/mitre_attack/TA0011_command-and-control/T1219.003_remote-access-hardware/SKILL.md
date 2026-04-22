@@ -46,7 +46,7 @@ severity_boost:
 
 ## High-Level Description
 
-An adversary may use legitimate remote access hardware to establish an interactive command and control channel to target systems within networks. These services, including IP-based keyboard, video, or mouse (KVM) devices such as TinyPilot and PiKVM, are commonly used as legitimate tools and may be allowed by peripheral device policies within a target environment. 
+An adversary may use legitimate remote access hardware to establish an interactive command and control channel to target systems within networks. These services, including IP-based keyboard, video, or mouse (KVM) devices such as TinyPilot and PiKVM, are commonly used as legitimate tools and may be allowed by peripheral device policies within a target environment.
 
 Remote access hardware may be physically installed and used post-compromise as an alternate communications channel for redundant access or as a way to establish an interactive remote session with the target system. Using hardware-based remote access tools may allow threat actors to bypass software security solutions and gain more control over the compromised device(s).
 
@@ -80,26 +80,24 @@ Remote access hardware may be physically installed and used post-compromise as a
 ## Remediation Guide
 
 ### M1034 Limit Hardware Installation
-Block the use of IP-based KVM devices within the network if they are not required.
 
+Block the use of IP-based KVM devices within the network if they are not required.
 
 ## Detection
 
 ### Detect Remote Access via USB Hardware (TinyPilot, PiKVM)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Access Hardware technique applicable | Low | Command And Control |
+| Finding                                     | Severity | Impact              |
+| ------------------------------------------- | -------- | ------------------- |
+| Remote Access Hardware technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.2.2.2
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -25,7 +26,7 @@ severity_boost: {}
 
 The journald system includes the capability of compressing overly large files to avoid filling up the system with logs or making the logs unmanageably large.
 
-**Note:** The main configuration file `/etc/systemd/journald.conf` is read before any of the custom *.conf files. If there are custom configs present, they override the main configuration parameters.
+**Note:** The main configuration file `/etc/systemd/journald.conf` is read before any of the custom \*.conf files. If there are custom configs present, they override the main configuration parameters.
 
 ## Rationale
 
@@ -72,6 +73,6 @@ Compress is not explicitly set by default but journald defaults to compressing l
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated. | | | |
+| Controls Version | Control                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v7               | 6.4 Ensure adequate storage for logs<br/>Ensure that all systems that store logs have adequate storage space for the logs generated. |      |      |      |

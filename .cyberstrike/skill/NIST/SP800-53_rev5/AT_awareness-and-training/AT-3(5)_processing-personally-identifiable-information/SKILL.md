@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PT-2
   - PT-3
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -84,16 +83,16 @@ Personally identifiable information processing and transparency controls include
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AT-3(5) Processing Personally Identifiable Information not implemented | Medium | Awareness and Training |
-| AT-3(5) partially implemented | Low | Incomplete Awareness and Training |
+| Finding                                                                | Severity | Impact                            |
+| ---------------------------------------------------------------------- | -------- | --------------------------------- |
+| AT-3(5) Processing Personally Identifiable Information not implemented | Medium   | Awareness and Training            |
+| AT-3(5) partially implemented                                          | Low      | Incomplete Awareness and Training |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

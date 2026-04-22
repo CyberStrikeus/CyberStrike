@@ -85,7 +85,6 @@ Allows adversaries to abuse safe mode to disable endpoint defenses that may not 
 bcdedit /set safeboot network
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -99,29 +98,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Restrict administrator accounts to as few individuals as possible, following least privilege principles, that may be abused to remotely boot a machine in safe mode.
 
 ### M1054 Software Configuration
-Ensure that endpoint defenses run in safe mode.
 
+Ensure that endpoint defenses run in safe mode.
 
 ## Detection
 
 ### Detection Strategy for Safe Mode Boot Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Safe Mode Boot technique applicable | Low | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Safe Mode Boot technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

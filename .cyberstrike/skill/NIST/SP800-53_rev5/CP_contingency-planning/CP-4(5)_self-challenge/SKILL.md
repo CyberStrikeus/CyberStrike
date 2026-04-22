@@ -15,10 +15,8 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - CP-4
 severity_boost: {}
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Often, the best method of assessing system resilience is to disrupt the system i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-4(5) Self-challenge not implemented | Medium | Contingency Planning |
-| CP-4(5) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                | Severity | Impact                          |
+| -------------------------------------- | -------- | ------------------------------- |
+| CP-4(5) Self-challenge not implemented | Medium   | Contingency Planning            |
+| CP-4(5) partially implemented          | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -89,8 +87,8 @@ exit 0
 ```
 
 **Dependencies:**
-- Requires telnet
 
+- Requires telnet
 
 ### Manual Testing
 
@@ -105,29 +103,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Properly configure firewalls and proxies to limit outgoing traffic to only necessary ports for that particular network segment.
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detection Strategy for Non-Standard Ports
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Non-Standard Port technique applicable | Low | Command And Control |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| Non-Standard Port technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

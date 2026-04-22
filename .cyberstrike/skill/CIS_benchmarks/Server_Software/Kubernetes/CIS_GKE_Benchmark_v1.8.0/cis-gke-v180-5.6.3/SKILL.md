@@ -4,7 +4,21 @@ description: "Ensure Control Plane Authorized Networks is Enabled (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, cluster-networking, vpc-flow-logs, intranode-visibility, vpc-native, private-cluster, authorized-networks, firewall, ssl-certificates]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    cluster-networking,
+    vpc-flow-logs,
+    intranode-visibility,
+    vpc-native,
+    private-cluster,
+    authorized-networks,
+    firewall,
+    ssl-certificates,
+  ]
 cis_id: "5.6.3"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -94,7 +108,7 @@ By default, Control Plane Authorized Networks is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |

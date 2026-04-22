@@ -28,8 +28,7 @@ chains_with:
   - T1590.004
   - T1590.005
   - T1590.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1590.001: "Chain with T1590.001 for deeper attack path"
   T1590.002: "Chain with T1590.002 for deeper attack path"
@@ -72,26 +71,24 @@ Adversaries may gather this information in various ways, such as direct collecti
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls. Efforts should focus on minimizing the amount and sensitivity of data available to external parties.
 
 ## Detection
 
 ### Detection of Gather Victim Network Information
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Gather Victim Network Information technique applicable | High | Reconnaissance |
+| Finding                                                | Severity | Impact         |
+| ------------------------------------------------------ | -------- | -------------- |
+| Gather Victim Network Information technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -77,41 +77,44 @@ Adversaries may manipulate the configuration on the network device specifying us
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific protocols, such as TFTP, can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific technique used by a particular adversary or tool, and will likely be different across various network configurations.
 
 ### M1028 Operating System Configuration
+
 Follow vendor device hardening best practices to disable unnecessary and unused features and services, avoid using default configurations and passwords, and introduce logging and auditing for detection.
 
 ### M1026 Privileged Account Management
+
 Use of Authentication, Authorization, and Accounting (AAA) systems will limit actions administrators can perform and provide a history of user actions to detect unauthorized use and abuse. TACACS+ can keep control over which commands administrators are permitted to use through the configuration of authentication and command authorization.
 
 ### M1035 Limit Access to Resource Over Network
+
 Restrict use of protocols without encryption or authentication mechanisms. Limit access to administrative and management interfaces from untrusted network sources.
 
 ### M1047 Audit
+
 Periodically check the integrity of the running configuration and system image to ensure they have not been modified.
 
 ### M1046 Boot Integrity
-Enable secure boot features to validate the digital signature of the boot environment and system image using a special purpose hardware device. If the validation check fails, the device will fail to boot preventing loading of unauthorized software.
 
+Enable secure boot features to validate the digital signature of the boot environment and system image using a special purpose hardware device. If the validation check fails, the device will fail to boot preventing loading of unauthorized software.
 
 ## Detection
 
 ### Detection Strategy for T1542.005 Pre-OS Boot: TFTP Boot
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| TFTP Boot technique applicable | High | Defense Evasion |
+| Finding                        | Severity | Impact          |
+| ------------------------------ | -------- | --------------- |
+| TFTP Boot technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

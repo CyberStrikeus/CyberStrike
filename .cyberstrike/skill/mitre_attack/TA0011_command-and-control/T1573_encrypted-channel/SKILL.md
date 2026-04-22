@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1573.001
   - T1573.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1573.001: "Chain with T1573.001 for deeper attack path"
   T1573.002: "Chain with T1573.002 for deeper attack path"
@@ -100,7 +99,6 @@ $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);
 $sslStream.Write($sendbyte,0,$sendbyte.Length);$sslStream.Flush()}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -114,29 +112,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M1020 SSL/TLS Inspection
-SSL/TLS inspection can be used to see the contents of encrypted sessions to look for network-based indicators of malware communication protocols.
 
+SSL/TLS inspection can be used to see the contents of encrypted sessions to look for network-based indicators of malware communication protocols.
 
 ## Detection
 
 ### Detection Strategy for Encrypted Channel across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Encrypted Channel technique applicable | Low | Command And Control |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| Encrypted Channel technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

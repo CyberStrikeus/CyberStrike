@@ -82,19 +82,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Archiving via Custom Method (T1560.003)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Archive via Custom Method technique applicable | Low | Collection |
+| Finding                                        | Severity | Impact     |
+| ---------------------------------------------- | -------- | ---------- |
+| Archive via Custom Method technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

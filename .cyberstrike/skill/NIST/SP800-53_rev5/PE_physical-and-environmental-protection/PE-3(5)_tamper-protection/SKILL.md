@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SA-16
   - SR-9
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ Organizations can implement tamper detection and prevention at selected hardware
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-3(5) Tamper Protection not implemented | Medium | Physical and Environmental Protection |
-| PE-3(5) partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                   | Severity | Impact                                           |
+| ----------------------------------------- | -------- | ------------------------------------------------ |
+| PE-3(5) Tamper Protection not implemented | Medium   | Physical and Environmental Protection            |
+| PE-3(5) partially implemented             | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

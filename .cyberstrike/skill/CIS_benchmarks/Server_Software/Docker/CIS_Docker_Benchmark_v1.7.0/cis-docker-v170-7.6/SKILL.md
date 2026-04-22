@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 7.6
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker Swarm
@@ -58,9 +59,11 @@ By default, keys are not rotated automatically.
 ## CIS Controls
 
 **v8:**
+
 - **5.2 Use Unique Passwords**
   - Use unique passwords for all enterprise assets. Best practice implementation includes, at a minimum, an 8-character password for accounts using MFA and a 14-character password for accounts not using MFA.
 
 **v7:**
+
 - **4.4 Use Unique Passwords**
   - Where multi-factor authentication is not supported (such as local administrator, root, or service accounts), accounts will use passwords that are unique to that system.

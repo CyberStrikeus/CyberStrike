@@ -70,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -89,17 +89,16 @@ Code execution in protected environments applies to all sources of binary or mac
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-7(7) Code Execution in Protected Environments not implemented | Medium | Configuration Management |
-| CM-7(7) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                                          | Severity | Impact                              |
+| ---------------------------------------------------------------- | -------- | ----------------------------------- |
+| CM-7(7) Code Execution in Protected Environments not implemented | Medium   | Configuration Management            |
+| CM-7(7) partially implemented                                    | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

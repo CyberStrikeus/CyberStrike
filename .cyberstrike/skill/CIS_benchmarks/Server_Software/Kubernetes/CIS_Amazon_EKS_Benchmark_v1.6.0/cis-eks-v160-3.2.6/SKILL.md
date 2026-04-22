@@ -120,7 +120,7 @@ See the Amazon EKS documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.3 Securely Manage Network Infrastructure | | X | X |
-| v7 | 11.1 Maintain Standard Security Configurations for Network Devices | | X | X |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.3 Securely Manage Network Infrastructure                        |      | X    | X    |
+| v7               | 11.1 Maintain Standard Security Configurations for Network Devices |      | X    | X    |

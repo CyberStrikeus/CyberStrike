@@ -34,8 +34,7 @@ chains_with:
   - T1195.001
   - T1195.002
   - T1195.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1195.001: "Chain with T1195.001 for deeper attack path"
   T1195.002: "Chain with T1195.002 for deeper attack path"
@@ -50,15 +49,15 @@ Adversaries may manipulate products or product delivery mechanisms prior to rece
 
 Supply chain compromise can take place at any stage of the supply chain including:
 
-* Manipulation of development tools
-* Manipulation of a development environment
-* Manipulation of source code repositories (public or private)
-* Manipulation of source code in open-source dependencies
-* Manipulation of software update/distribution mechanisms
-* Compromised/infected system images (removable media infected at the factory) 
-* Replacement of legitimate software with modified versions
-* Sales of modified/counterfeit products to legitimate distributors
-* Shipment interdiction
+- Manipulation of development tools
+- Manipulation of a development environment
+- Manipulation of source code repositories (public or private)
+- Manipulation of source code in open-source dependencies
+- Manipulation of software update/distribution mechanisms
+- Compromised/infected system images (removable media infected at the factory)
+- Replacement of legitimate software with modified versions
+- Sales of modified/counterfeit products to legitimate distributors
+- Shipment interdiction
 
 While supply chain compromise can impact any component of hardware or software, adversaries looking to gain execution have often focused on malicious additions to legitimate software in software distribution or update channels. Adversaries may limit targeting to a desired victim set or distribute malicious software to a broad set of consumers but only follow up with specific victims. Popular open-source projects that are used as dependencies in many applications may also be targeted as a means to add malicious code to users of the dependency.
 
@@ -99,8 +98,8 @@ schtasks /create /tn ExplorerSync /tr "javaw -jar %temp%\..\Microsoft\ExplorerSy
 ```
 
 **Dependencies:**
-- ExplorerSync.db must exist on disk at specified location (#{rat_payload})
 
+- ExplorerSync.db must exist on disk at specified location (#{rat_payload})
 
 ### Manual Testing
 
@@ -115,41 +114,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1046 Boot Integrity
+
 Use secure methods to boot a system and verify the integrity of the operating system and loading mechanisms.
 
 ### M1013 Application Developer Guidance
+
 Application developers should be cautious when selecting third-party libraries to integrate into their application. Additionally, where possible, developers should lock software dependencies to specific versions rather than pulling the latest version on build.
 
 ### M1051 Update Software
+
 A patch management process should be implemented to check unused dependencies, unmaintained and/or previously vulnerable dependencies, unnecessary features, components, files, and documentation.
 
 ### M1018 User Account Management
+
 Implement robust user account management practices to limit permissions associated with software execution. Ensure that software runs with the lowest necessary privileges, avoiding the use of root or administrator accounts when possible. By restricting permissions, you can minimize the risk of propagation and unauthorized actions in the event of a supply chain compromise, reducing the attack surface for adversaries to exploit within compromised systems.
 
 ### M1016 Vulnerability Scanning
+
 Continuous monitoring of vulnerability sources and the use of automatic and manual code review tools should also be implemented as well.
 
 ### M1033 Limit Software Installation
-Where possible, consider requiring developers to pull from internal repositories containing verified and approved packages rather than from external ones.
 
+Where possible, consider requiring developers to pull from internal repositories containing verified and approved packages rather than from external ones.
 
 ## Detection
 
 ### Behavioral detection for Supply Chain Compromise (package/update tamper → install → first-run)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Supply Chain Compromise technique applicable | Low | Initial Access |
+| Finding                                      | Severity | Impact         |
+| -------------------------------------------- | -------- | -------------- |
+| Supply Chain Compromise technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

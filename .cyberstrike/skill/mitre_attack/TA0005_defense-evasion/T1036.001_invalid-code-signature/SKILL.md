@@ -85,26 +85,24 @@ Unlike Code Signing, this activity will not result in a valid signature.
 ## Remediation Guide
 
 ### M1045 Code Signing
-Require signed binaries.
 
+Require signed binaries.
 
 ## Detection
 
 ### Invalid Code Signature Execution Detection via Metadata and Behavioral Context
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Invalid Code Signature technique applicable | Low | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Invalid Code Signature technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

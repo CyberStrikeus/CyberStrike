@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.4 Ensure that Cassandra is run using a non-privileged, dedicated service account
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -46,16 +47,19 @@ Create a user which is only used for running Cassandra and directly related proc
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 - 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 
 **Controls Version v7:**
+
 - 4.3 Ensure the Use of Dedicated Administrative Accounts
   - Ensure that all users with administrative account access use a dedicated or secondary account for elevated activities. This account should only be used for administrative activities and not internet browsing, email, or similar activities.
 - 14.6 Protect Information through Access Control Lists
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.
 
 ## Profile
+
 - Level 1 | Automated

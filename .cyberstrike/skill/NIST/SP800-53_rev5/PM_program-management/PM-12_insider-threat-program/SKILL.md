@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-6
   - AT-2
@@ -25,8 +24,7 @@ chains_with:
   - CA-7
   - IA-4
   - IR-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-6: "Chain with AC-6 for comprehensive security coverage"
   AT-2: "Chain with AT-2 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Insider threat programs can leverage the existence of incident handling teams th
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-12 Insider Threat Program not implemented | Medium | Program Management |
-| PM-12 partially implemented | Low | Incomplete Program Management |
+| Finding                                      | Severity | Impact                        |
+| -------------------------------------------- | -------- | ----------------------------- |
+| PM-12 Insider Threat Program not implemented | Medium   | Program Management            |
+| PM-12 partially implemented                  | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

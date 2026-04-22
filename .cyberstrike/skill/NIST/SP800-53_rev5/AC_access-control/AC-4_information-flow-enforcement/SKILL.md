@@ -29,8 +29,7 @@ chains_with:
   - CA-3
   - CA-9
   - CM-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -76,10 +75,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -95,17 +94,16 @@ Organizations commonly employ information flow control policies and enforcement 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-4 Information Flow Enforcement not implemented | High | Access Control |
-| AC-4 partially implemented | Medium | Incomplete Access Control |
+| Finding                                           | Severity | Impact                    |
+| ------------------------------------------------- | -------- | ------------------------- |
+| AC-4 Information Flow Enforcement not implemented | High     | Access Control            |
+| AC-4 partially implemented                        | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

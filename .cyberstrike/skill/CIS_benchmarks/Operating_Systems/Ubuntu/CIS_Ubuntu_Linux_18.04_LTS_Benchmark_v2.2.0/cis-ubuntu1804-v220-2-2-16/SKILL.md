@@ -89,6 +89,7 @@ Run the following command to restart `postfix`:
 ```
 
 Note:
+
 - This recommendation is designed around the postfix mail server.
 - Depending on your environment you may have an alternative MTA installed such as exim4. If this is the case consult the documentation for your installed MTA to configure the recommended state.
 

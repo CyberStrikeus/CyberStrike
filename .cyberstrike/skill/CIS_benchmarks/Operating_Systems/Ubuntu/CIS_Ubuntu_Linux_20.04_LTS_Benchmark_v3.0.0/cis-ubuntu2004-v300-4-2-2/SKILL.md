@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.2.2
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -39,8 +40,9 @@ dpkg-query -s nftables &>/dev/null && echo "nftables is installed"
 ```
 
 Nothing should be returned
+
 - OR -
-Run the following command to verify `nftables.service` is not enabled:
+  Run the following command to verify `nftables.service` is not enabled:
 
 ```bash
 systemctl is-enabled nftables.service 2>/dev/null | grep '^enabled'
@@ -70,7 +72,7 @@ apt purge nftables
 ```
 
 - OR -
-Run the following commands to stop and mask `nftables.service`:
+  Run the following commands to stop and mask `nftables.service`:
 
 ```bash
 systemctl stop nftables.service

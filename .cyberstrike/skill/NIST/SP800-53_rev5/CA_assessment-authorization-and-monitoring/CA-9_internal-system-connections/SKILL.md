@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AC-4
@@ -23,8 +22,7 @@ chains_with:
   - IA-3
   - SC-7
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-4: "Chain with AC-4 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -88,16 +86,16 @@ Internal system connections are connections between organizational systems and s
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-9 Internal System Connections not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-9 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                          | Severity | Impact                                               |
+| ------------------------------------------------ | -------- | ---------------------------------------------------- |
+| CA-9 Internal System Connections not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-9 partially implemented                       | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

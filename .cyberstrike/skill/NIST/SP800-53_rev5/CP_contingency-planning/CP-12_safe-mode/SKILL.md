@@ -14,16 +14,14 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-2
   - SA-8
   - SC-24
   - SI-13
   - SI-17
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   SA-8: "Chain with SA-8 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +81,16 @@ For systems that support critical mission and business functions—including mil
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-12 Safe Mode not implemented | Medium | Contingency Planning |
-| CP-12 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                         | Severity | Impact                          |
+| ------------------------------- | -------- | ------------------------------- |
+| CP-12 Safe Mode not implemented | Medium   | Contingency Planning            |
+| CP-12 partially implemented     | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

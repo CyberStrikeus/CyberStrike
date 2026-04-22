@@ -73,6 +73,7 @@ automount-open=false
 ```
 
 Note:
+
 - A user profile must exist in order to apply locks. If a user profile does not exist review the remediation steps in the previous recommendation.
 - Users must log out and back in again before the system-wide settings take effect.
 

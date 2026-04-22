@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.2.1.6
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Manual
@@ -38,6 +39,7 @@ None.
 ## Audit Procedure
 
 Run the following commands and verify the resulting lines are:
+
 - Not commented on designated log hosts
 - Commented or not present on all others
 
@@ -55,7 +57,7 @@ Output for designated log hosts:
 $ModLoad imtcp
 ```
 
-Output for systems that are not log hosts: *(No output is also acceptable)*
+Output for systems that are not log hosts: _(No output is also acceptable)_
 
 ```
 # $ModLoad imtcp
@@ -73,7 +75,7 @@ Output for designated log hosts:
 $InputTCPServerRun 514
 ```
 
-Output for systems that are not log hosts: *(No output is also acceptable)*
+Output for systems that are not log hosts: _(No output is also acceptable)_
 
 ```
 # $InputTCPServerRun 514
@@ -119,6 +121,6 @@ rsyslog does not accept remote messages by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br/>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | | |
+| Controls Version | Control                                                                                                                                                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br/>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. |      |      |      |

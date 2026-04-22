@@ -105,7 +105,7 @@ sc qc win32times
 
 ### Atomic Test 3: linux rename /proc/pid/comm using prctl
 
-Runs a C program that calls prctl(PR_SET_NAME) to modify /proc/pid/comm value to "totally_legit".  This will show up as process name in simple 'ps' listings.
+Runs a C program that calls prctl(PR_SET_NAME) to modify /proc/pid/comm value to "totally_legit". This will show up as process name in simple 'ps' listings.
 
 **Supported Platforms:** linux
 
@@ -117,6 +117,7 @@ exit 0
 ```
 
 **Dependencies:**
+
 - #{exe_path} must be exist on system.
 
 ### Atomic Test 4: Hiding a malicious process with bind mounts
@@ -132,7 +133,6 @@ echo $! > /tmp/evil_pid.txt
 random_kernel_pid=$(ps -ef | grep "\[.*\]" | awk '{print $2}' | shuf -n 1)
 sudo mount -B /proc/$random_kernel_pid /proc/$(cat /tmp/evil_pid.txt)
 ```
-
 
 ### Manual Testing
 
@@ -152,19 +152,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Masqueraded Tasks or Services with Suspicious Naming and Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Masquerade Task or Service technique applicable | Low | Defense Evasion |
+| Finding                                         | Severity | Impact          |
+| ----------------------------------------------- | -------- | --------------- |
+| Masquerade Task or Service technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -54,7 +54,7 @@ One example here is Flannel (https://github.com/coreos/flannel) which does not s
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v7 | 9.5 Implement Application Firewalls | | | X |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | X    | X    | X    |
+| v7               | 9.5 Implement Application Firewalls            |      |      | X    |

@@ -12,8 +12,7 @@ tags:
   - pl
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-2
   - CM-6
@@ -25,8 +24,7 @@ chains_with:
   - RA-9
   - SA-3
   - SA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-2: "Chain with CM-2 for comprehensive security coverage"
   CM-6: "Chain with CM-6 for comprehensive security coverage"
@@ -77,9 +75,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -105,16 +103,16 @@ In today’s modern computing architectures, it is becoming less common for orga
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-8 Security and Privacy Architectures not implemented | Medium | Planning |
-| PL-8 partially implemented | Low | Incomplete Planning |
+| Finding                                                 | Severity | Impact              |
+| ------------------------------------------------------- | -------- | ------------------- |
+| PL-8 Security and Privacy Architectures not implemented | Medium   | Planning            |
+| PL-8 partially implemented                              | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

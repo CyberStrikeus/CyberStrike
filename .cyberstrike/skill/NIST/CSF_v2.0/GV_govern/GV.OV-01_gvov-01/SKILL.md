@@ -13,10 +13,8 @@ tags:
   - subcategory
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - Oversight (GV.OV)
 severity_boost: {}
@@ -60,10 +58,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -73,15 +71,15 @@ Cybersecurity risk management strategy outcomes are reviewed to inform and adjus
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| GV.OV-01 GV.OV-01 outcome not achieved | Medium | GOVERN Function Gap |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| GV.OV-01 GV.OV-01 outcome not achieved | Medium   | GOVERN Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

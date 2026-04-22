@@ -26,6 +26,7 @@ severity_boost: {}
 Key exchange is any method in cryptography by which cryptographic keys are exchanged between two parties, allowing use of a cryptographic algorithm. If the sender and receiver wish to exchange encrypted messages, each must be equipped to encrypt messages to be sent and decrypt messages received.
 
 Notes:
+
 - Kex algorithms have a higher preference the earlier they appear in the list
 - Some organizations may have stricter requirements for approved Key exchange algorithms
 - Ensure that Key exchange algorithms used are in compliance with site policy
@@ -53,6 +54,7 @@ Run the following command to verify none of the "weak" Key Exchange algorithms a
 ```
 
 Nothing should be returned.
+
 - IF - A line is returned, review the list of Key Exchange Algorithms. The following are considered "weak" Key Exchange Algorithms, and should not be used:
 
 ```

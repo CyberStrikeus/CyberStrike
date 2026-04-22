@@ -12,8 +12,7 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-2
   - AT-3
@@ -24,8 +23,7 @@ chains_with:
   - PM-26
   - SA-9
   - SI-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-2: "Chain with AT-2 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -69,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ Incident response support resources provided by organizations include help desks
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-7 Incident Response Assistance not implemented | Medium | Incident Response |
-| IR-7 partially implemented | Low | Incomplete Incident Response |
+| Finding                                           | Severity | Impact                       |
+| ------------------------------------------------- | -------- | ---------------------------- |
+| IR-7 Incident Response Assistance not implemented | Medium   | Incident Response            |
+| IR-7 partially implemented                        | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

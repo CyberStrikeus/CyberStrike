@@ -60,11 +60,11 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may embed payloads within other files to conceal malicious content from defenses. Otherwise seemingly benign files (such as scripts and executables) may be abused to carry and obfuscate malicious payloads and content. In some cases, embedded payloads may also enable adversaries to Subvert Trust Controls by not impacting execution controls such as digital signatures and notarization tickets. 
+Adversaries may embed payloads within other files to conceal malicious content from defenses. Otherwise seemingly benign files (such as scripts and executables) may be abused to carry and obfuscate malicious payloads and content. In some cases, embedded payloads may also enable adversaries to Subvert Trust Controls by not impacting execution controls such as digital signatures and notarization tickets.
 
-Adversaries may embed payloads in various file formats to hide payloads. This is similar to Steganography, though does not involve weaving malicious content into specific bytes and patterns related to legitimate digital media formats. 
+Adversaries may embed payloads in various file formats to hide payloads. This is similar to Steganography, though does not involve weaving malicious content into specific bytes and patterns related to legitimate digital media formats.
 
-For example, adversaries have been observed embedding payloads within or as an overlay of an otherwise benign binary. Adversaries have also been observed nesting payloads (such as executables and run-only scripts) inside a file of the same format. 
+For example, adversaries have been observed embedding payloads within or as an overlay of an otherwise benign binary. Adversaries have also been observed nesting payloads (such as executables and run-only scripts) inside a file of the same format.
 
 Embedded content may also be used as Process Injection payloads used to infect benign system processes. These embedded then injected payloads may be used as part of the modules of malware designed to provide specific features such as encrypting C2 communications in support of an orchestrator module. For example, an embedded module may be injected into default browsers, allowing adversaries to then communicate via the network.
 
@@ -98,29 +98,28 @@ Embedded content may also be used as Process Injection payloads used to infect b
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically detect and quarantine suspicious files.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated scripts.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent execution of potentially obfuscated scripts.
 
 ## Detection
 
 ### Detection Strategy for Embedded Payloads
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Embedded Payloads technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Embedded Payloads technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

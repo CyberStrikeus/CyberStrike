@@ -17,13 +17,16 @@ severity_boost: {}
 # CIS 1.5 — Installing ISC BIND 9
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 The ISC BIND Benchmark recommends using the binary packages provided by your platform vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. The Red Hat Enterprise Linux 7 has been used for testing the benchmark.
 
 ## Rationale
+
 The benefits of using the vendor supplied binaries include:
 
 - Ease of installation.
@@ -36,9 +39,11 @@ The benefits of using the vendor supplied binaries include:
 However, building from source is suitable for those that want full control of the build process, prefer to build from source, or do not have a suitable package available for their platform. Source download and build information is available on the ISC website knowledge base at the URL reference below.
 
 ## Impact
+
 Not Applicable
 
 ## Audit Procedure
+
 Perform the following commands to check for an installed BIND rpm and to search the current path for the named executable.
 
 ```bash
@@ -50,6 +55,7 @@ bind-9.9.4-29.el7_2.3.x86_64
 ```
 
 ## Remediation
+
 Installation depends on the operating system platform. The following commands were tested on RHEL7.
 
 ```bash
@@ -60,22 +66,27 @@ Installation depends on the operating system platform. The following commands we
 ```
 
 ## Default Value
+
 Not Applicable
 
 ## References
+
 1. https://kb.isc.org/article/AA-00768/0/Getting-started-with-BIND-how-to-build-and-run-named-with-a-basic-recursive-configuration.html
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 2 - Inventory of Authorized and Unauthorized Software | Y | Y | Y |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 2 - Inventory of Authorized and Unauthorized Software | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Execution | T1059 - Command and Scripting Interpreter |
+
+| Tactic         | Technique                                 |
+| -------------- | ----------------------------------------- |
+| Execution      | T1059 - Command and Scripting Interpreter |
 | Initial Access | T1190 - Exploit Public-Facing Application |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

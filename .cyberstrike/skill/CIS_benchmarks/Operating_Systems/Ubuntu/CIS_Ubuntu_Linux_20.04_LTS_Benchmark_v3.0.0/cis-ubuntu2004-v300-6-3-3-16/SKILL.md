@@ -115,9 +115,9 @@ Check if reboot is required:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
+| Controls Version | Control                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs     | X    | X    | X    |
+| v7               | 6.2 Activate audit logging | X    | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0005 / M1022

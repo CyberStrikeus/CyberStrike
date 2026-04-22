@@ -49,9 +49,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may grant additional permission levels to maintain persistent access to an adversary-controlled email account. 
+Adversaries may grant additional permission levels to maintain persistent access to an adversary-controlled email account.
 
-For example, the <code>Add-MailboxPermission</code> PowerShell cmdlet, available in on-premises Exchange and in the cloud-based service Office 365, adds permissions to a mailbox. In Google Workspace, delegation can be enabled via the Google Admin console and users can delegate accounts via their Gmail settings. 
+For example, the <code>Add-MailboxPermission</code> PowerShell cmdlet, available in on-premises Exchange and in the cloud-based service Office 365, adds permissions to a mailbox. In Google Workspace, delegation can be enabled via the Google Admin console and users can delegate accounts via their Gmail settings.
 
 Adversaries may also assign mailbox folder permissions through individual folder permissions or roles. In Office 365 environments, adversaries may assign the Default or Anonymous user permissions or roles to the Top of Information Store (root), Inbox, or other mailbox folders. By assigning one or both user permissions to a folder, the adversary can utilize any other account in the tenant to maintain persistence to the target user’s mail folders.
 
@@ -87,32 +87,32 @@ This may be used in persistent threat incidents as well as BEC (Business Email C
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Do not allow domain administrator accounts to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts.
 
 ### M1042 Disable or Remove Feature or Program
-If email delegation is not required, disable it. In Google Workspace this can be accomplished through the Google Admin console.
 
+If email delegation is not required, disable it. In Google Workspace this can be accomplished through the Google Admin console.
 
 ## Detection
 
 ### Detection Strategy for Addition of Email Delegate Permissions
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Additional Email Delegate Permissions technique applicable | High | Persistence |
+| Finding                                                    | Severity | Impact      |
+| ---------------------------------------------------------- | -------- | ----------- |
+| Additional Email Delegate Permissions technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

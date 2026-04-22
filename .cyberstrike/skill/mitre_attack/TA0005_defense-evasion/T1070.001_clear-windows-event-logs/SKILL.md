@@ -49,12 +49,11 @@ severity_boost:
 
 Adversaries may clear Windows Event Logs to hide the activity of an intrusion. Windows Event Logs are a record of a computer's alerts and notifications. There are three system-defined sources of events: System, Application, and Security, with five event types: Error, Warning, Information, Success Audit, and Failure Audit.
 
-
 With administrator privileges, the event logs can be cleared with the following utility commands:
 
-* <code>wevtutil cl system</code>
-* <code>wevtutil cl application</code>
-* <code>wevtutil cl security</code>
+- <code>wevtutil cl system</code>
+- <code>wevtutil cl application</code>
+- <code>wevtutil cl security</code>
 
 These logs may also be cleared through other mechanisms, such as the event viewer GUI or PowerShell. For example, adversaries may use the PowerShell command <code>Remove-EventLog -LogName Security</code> to delete the Security EventLog and after reboot, disable future logging. Note: events may still be generated and logged in the .evtx file between the time the command is run and the reboot.
 
@@ -107,7 +106,7 @@ Get-EventLog -list
 
 ### Atomic Test 3: Clear Event Logs via VBA
 
-This module utilizes WMI via VBA to clear the Security and Backup eventlogs from the system. 
+This module utilizes WMI via VBA to clear the Security and Backup eventlogs from the system.
 
 Elevation is required for this module to execute properly, otherwise WINWORD will throw an "Access Denied" error
 
@@ -121,8 +120,8 @@ Invoke-Maldoc -macroFile "PathToAtomicsFolder\T1070.001\src\T1070.001-macrocode.
 ```
 
 **Dependencies:**
-- Microsoft Word must be installed
 
+- Microsoft Word must be installed
 
 ### Manual Testing
 
@@ -137,32 +136,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Protect generated event files that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
 ### M1029 Remote Data Storage
+
 Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
 ### M1041 Encrypt Sensitive Information
-Obfuscate/encrypt event files locally and in transit to avoid giving feedback to an adversary.
 
+Obfuscate/encrypt event files locally and in transit to avoid giving feedback to an adversary.
 
 ## Detection
 
 ### Detection of Event Log Clearing on Windows via Behavioral Chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clear Windows Event Logs technique applicable | High | Defense Evasion |
+| Finding                                       | Severity | Impact          |
+| --------------------------------------------- | -------- | --------------- |
+| Clear Windows Event Logs technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

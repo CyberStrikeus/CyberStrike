@@ -90,8 +90,8 @@ Integrity Monitoring is disabled by default on GKE clusters. Integrity Monitorin
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets | | x | x |
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets           |      | x    | x    |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images                                                  |      | x    | x    |

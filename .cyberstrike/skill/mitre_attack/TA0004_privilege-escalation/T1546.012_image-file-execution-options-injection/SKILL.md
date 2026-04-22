@@ -57,13 +57,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by Image File Execution Options (IFEO) debuggers. IFEOs enable a developer to attach a debugger to an application. When a process is created, a debugger present in an application’s IFEO will be prepended to the application’s name, effectively launching the new process under the debugger (e.g., <code>C:\dbg\ntsd.exe -g notepad.exe</code>). 
+Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by Image File Execution Options (IFEO) debuggers. IFEOs enable a developer to attach a debugger to an application. When a process is created, a debugger present in an application’s IFEO will be prepended to the application’s name, effectively launching the new process under the debugger (e.g., <code>C:\dbg\ntsd.exe -g notepad.exe</code>).
 
-IFEOs can be set directly via the Registry or in Global Flags via the GFlags tool. IFEOs are represented as <code>Debugger</code> values in the Registry under <code>HKLM\SOFTWARE{\Wow6432Node}\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\<executable></code> where <code>&lt;executable&gt;</code> is the binary on which the debugger is attached. 
+IFEOs can be set directly via the Registry or in Global Flags via the GFlags tool. IFEOs are represented as <code>Debugger</code> values in the Registry under <code>HKLM\SOFTWARE{\Wow6432Node}\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\<executable></code> where <code>&lt;executable&gt;</code> is the binary on which the debugger is attached.
 
-IFEOs can also enable an arbitrary monitor program to be launched when a specified program silently exits (i.e. is prematurely terminated by itself or a second, non kernel-mode process). Similar to debuggers, silent exit monitoring can be enabled through GFlags and/or by directly modifying IFEO and silent process exit Registry values in <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\</code>. 
+IFEOs can also enable an arbitrary monitor program to be launched when a specified program silently exits (i.e. is prematurely terminated by itself or a second, non kernel-mode process). Similar to debuggers, silent exit monitoring can be enabled through GFlags and/or by directly modifying IFEO and silent process exit Registry values in <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\</code>.
 
-Similar to Accessibility Features, on Windows Vista and later as well as Windows Server 2008 and later, a Registry key may be modified that configures "cmd.exe," or another program that provides backdoor access, as a "debugger" for an accessibility program (ex: utilman.exe). After the Registry is modified, pressing the appropriate key combination at the login screen while at the keyboard or when connected with Remote Desktop Protocol will cause the "debugger" program to be executed with SYSTEM privileges. 
+Similar to Accessibility Features, on Windows Vista and later as well as Windows Server 2008 and later, a Registry key may be modified that configures "cmd.exe," or another program that provides backdoor access, as a "debugger" for an accessibility program (ex: utilman.exe). After the Registry is modified, pressing the appropriate key combination at the login screen while at the keyboard or when connected with Remote Desktop Protocol will cause the "debugger" program to be executed with SYSTEM privileges.
 
 Similar to Process Injection, these values may also be abused to obtain privilege escalation by causing a malicious executable to be loaded and run in the context of separate processes on the computer. Installing IFEO mechanisms may also provide Persistence via continuous triggered invocation.
 
@@ -115,7 +115,7 @@ REG ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\#{t
 ### Atomic Test 3: GlobalFlags in Image File Execution Options
 
 The following Atomic Test will create a GlobalFlag key under Image File Execution Options, also a SilentProcessExit Key with ReportingMode and MonitorProcess values. This test is similar to a recent CanaryToken that will generate an EventCode 3000 in the Application log when a command, whoami.exe for example, is executed.
-Upon running Whoami.exe, a command shell will spawn and start calc.exe based on the MonitorProcess value. 
+Upon running Whoami.exe, a command shell will spawn and start calc.exe based on the MonitorProcess value.
 Upon successful execution, powershell will modify the registry and spawn calc.exe. An event 3000 will generate in the Application log.
 
 **Supported Platforms:** windows
@@ -131,14 +131,13 @@ $Name = "ReportingMode"
 $Value = "1"
 $SilentProcessExit = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\#{process}"
 New-Item -Path $SilentProcessExit -Force
-New-ItemProperty -Path $SilentProcessExit -Name $Name -Value $Value -PropertyType DWord -Force 
+New-ItemProperty -Path $SilentProcessExit -Name $Name -Value $Value -PropertyType DWord -Force
 
 $Name = "MonitorProcess"
 $Value = "#{cmd_to_run}"
 New-ItemProperty -Path $SilentProcessExit -Name $Name -Value $Value -PropertyType String -Force
 Start-Process whoami.exe
 ```
-
 
 ### Manual Testing
 
@@ -158,19 +157,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for IFEO Injection on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Image File Execution Options Injection technique applicable | High | Privilege Escalation |
+| Finding                                                     | Severity | Impact               |
+| ----------------------------------------------------------- | -------- | -------------------- |
+| Image File Execution Options Injection technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

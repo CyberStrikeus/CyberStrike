@@ -21,6 +21,7 @@ severity_boost: {}
 System time should be synchronized between all systems in an environment. This is typically done by establishing an authoritative time server or set of servers and having all systems synchronize their clocks to them.
 
 Notes:
+
 - If access to a physical host's clock is available and configured according to site policy, this section can be skipped
 - Only one time synchronization method should be in use on the system
 - Only the section related to the time synchronization method in use on the system should be followed, all other time synchronization recommendations should be skipped

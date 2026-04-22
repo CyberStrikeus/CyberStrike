@@ -22,8 +22,7 @@ cwe_ids:
 chains_with:
   - AC-20
   - MP-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-20: "Chain with AC-20 for comprehensive security coverage"
   MP-7: "Chain with MP-7 for comprehensive security coverage"
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Connection ports include Universal Serial Bus (USB), Thunderbolt, and Firewire (
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-41 Port and I/O Device Access not implemented | High | System and Communications Protection |
-| SC-41 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                          | Severity | Impact                                          |
+| ------------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-41 Port and I/O Device Access not implemented | High     | System and Communications Protection            |
+| SC-41 partially implemented                      | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

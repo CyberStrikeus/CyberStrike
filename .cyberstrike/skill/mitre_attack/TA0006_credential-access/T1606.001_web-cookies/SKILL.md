@@ -86,29 +86,28 @@ Once forged, adversaries may use these web cookies to access resources (Web Sess
 ## Remediation Guide
 
 ### M1047 Audit
+
 Administrators should perform an audit of all access lists and the permissions they have been granted to access web applications and services. This should be done extensively on all resources in order to establish a baseline, followed up on with periodic audits of new or updated resources. Suspicious accounts/credentials should be investigated and removed.
 
 ### M1054 Software Configuration
-Configure browsers/applications to regularly delete persistent web cookies.
 
+Configure browsers/applications to regularly delete persistent web cookies.
 
 ## Detection
 
 ### Detection Strategy for Forged Web Cookies
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Cookies technique applicable | Low | Credential Access |
+| Finding                          | Severity | Impact            |
+| -------------------------------- | -------- | ----------------- |
+| Web Cookies technique applicable | Low      | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

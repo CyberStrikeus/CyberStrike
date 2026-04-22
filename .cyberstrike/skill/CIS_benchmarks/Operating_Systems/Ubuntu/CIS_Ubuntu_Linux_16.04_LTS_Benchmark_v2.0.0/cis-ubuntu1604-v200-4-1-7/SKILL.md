@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.7
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -97,8 +98,8 @@ By default, no audit rules are configured for login/logout events.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 4.9 Log and Alert on Unsuccessful Administrative Account Login - Configure systems to issue a log entry and alert on unsuccessful logins to an administrative account. |
-| v7 | 16.11 Lock Workstation Sessions After Inactivity - Automatically lock workstation sessions after a standard period of inactivity. |
-| v7 | 16.13 Alert on Account Login Behavior Deviation - Alert when users deviate from normal login behavior, such as time-of-day, workstation location and duration. |
+| Controls Version | Control                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 4.9 Log and Alert on Unsuccessful Administrative Account Login - Configure systems to issue a log entry and alert on unsuccessful logins to an administrative account. |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity - Automatically lock workstation sessions after a standard period of inactivity.                                      |
+| v7               | 16.13 Alert on Account Login Behavior Deviation - Alert when users deviate from normal login behavior, such as time-of-day, workstation location and duration.         |

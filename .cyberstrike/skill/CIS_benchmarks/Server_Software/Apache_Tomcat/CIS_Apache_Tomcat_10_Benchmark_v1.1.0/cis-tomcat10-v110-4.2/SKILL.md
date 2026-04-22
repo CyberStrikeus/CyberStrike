@@ -54,9 +54,11 @@ Perform the following to establish the recommended state:
 ## CIS Controls
 
 **v8:**
+
 - 3.3 Configure Data Access Control Lists
 
 **v7:**
+
 - 14.6 Protect Information through Access Control Lists
 
 ## Profile Applicability

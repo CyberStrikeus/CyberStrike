@@ -80,11 +80,11 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: HKLM - Add atomic_test key to launch executable as part of user setup
 
-This test will create an "atomic_test" key under 'HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components' to launch calc by configuring an active setup executable and 
-forcing to run active setup using the "runonce.exe /AlternateShellStartup" command. 
+This test will create an "atomic_test" key under 'HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components' to launch calc by configuring an active setup executable and
+forcing to run active setup using the "runonce.exe /AlternateShellStartup" command.
 Without the "runonce.exe /AlternateShellStartup" command it would run during the next logon for each user.
 
-Note: If you logout before running the cleanup command, you will be required to go through the OOBE (out-of-box experience) setup sequence to log back in. 
+Note: If you logout before running the cleanup command, you will be required to go through the OOBE (out-of-box experience) setup sequence to log back in.
 The payload will only run once unless the cleanup command is run in between tests.
 
 [Active Setup Explained](https://helgeklein.com/blog/active-setup-explained/)
@@ -95,14 +95,14 @@ The payload will only run once unless the cleanup command is run in between test
 ```powershell
 New-Item "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components" -Name "atomic_test" -Force
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\atomic_test" "(Default)" "ART TEST" -Force
-Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\atomic_test" "StubPath" "#{payload}" -Force 
+Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\atomic_test" "StubPath" "#{payload}" -Force
 & $env:SYSTEMROOT\system32\runonce.exe /AlternateShellStartup
 ```
 
 ### Atomic Test 2: HKLM - Add malicious StubPath value to existing Active Setup Entry
 
-This test will add a StubPath entry to the Active Setup native registry key associated with 'Internet Explorer Core Fonts' (UUID {C9E9A340-D1F1-11D0-821E-444553540600}) 
-Said key doesn't have a StubPath value by default, by adding one it will launch calc by forcing to run active setup using runonce.exe /AlternateShellStartup. 
+This test will add a StubPath entry to the Active Setup native registry key associated with 'Internet Explorer Core Fonts' (UUID {C9E9A340-D1F1-11D0-821E-444553540600})
+Said key doesn't have a StubPath value by default, by adding one it will launch calc by forcing to run active setup using runonce.exe /AlternateShellStartup.
 Without the last command it will normally run on next user logon. Note: this test will only run once successfully if no cleanup command is run in between test.
 
 **Supported Platforms:** windows
@@ -115,7 +115,7 @@ Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{C9
 
 ### Atomic Test 3: HKLM - re-execute 'Internet Explorer Core Fonts' StubPath payload by decreasing version number
 
-This test will decrease the version number of the 'Internet Explorer Core Fonts' (UUID {C9E9A340-D1F1-11D0-821E-444553540600}) registry key for the current user, 
+This test will decrease the version number of the 'Internet Explorer Core Fonts' (UUID {C9E9A340-D1F1-11D0-821E-444553540600}) registry key for the current user,
 which will force the StubPath payload (if set) to execute.
 
 **Supported Platforms:** windows
@@ -125,7 +125,6 @@ which will force the StubPath payload (if set) to execute.
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Active Setup\Installed Components\{C9E9A340-D1F1-11D0-821E-444553540600}" -Name "Version" -Value "0,0,0,0"
 & $env:SYSTEMROOT\system32\runonce.exe /AlternateShellStartup
 ```
-
 
 ### Manual Testing
 
@@ -145,19 +144,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Active Setup Persistence via StubPath Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Active Setup technique applicable | Low | Persistence |
+| Finding                           | Severity | Impact      |
+| --------------------------------- | -------- | ----------- |
+| Active Setup technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

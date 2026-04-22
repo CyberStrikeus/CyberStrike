@@ -83,19 +83,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Suspicious Access to securityd Memory for Credential Extraction
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Securityd Memory technique applicable | High | Credential Access |
+| Finding                               | Severity | Impact            |
+| ------------------------------------- | -------- | ----------------- |
+| Securityd Memory technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure Timeout Limits for the Request Body is Set to 20 or Less (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -63,12 +64,15 @@ body=20,MinRate=500
 ## CIS Controls
 
 **v8:**
+
 - 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure
   - Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 
 ## Profile
+
 - Level 1

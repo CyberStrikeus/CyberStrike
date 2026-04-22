@@ -93,19 +93,17 @@ No specific mitigations documented for this technique.
 
 ### Right-to-Left Override Masquerading Detection via Filename and Execution Context
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Right-to-Left Override technique applicable | High | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Right-to-Left Override technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

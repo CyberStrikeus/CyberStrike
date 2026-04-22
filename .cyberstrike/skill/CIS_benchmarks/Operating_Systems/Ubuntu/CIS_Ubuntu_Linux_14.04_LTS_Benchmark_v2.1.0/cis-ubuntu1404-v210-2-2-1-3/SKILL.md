@@ -48,6 +48,7 @@ grep "^(server|pool)" /etc/chrony/chrony.conf
 ```
 
 Expected output:
+
 ```
 server <remote-server>
 ```

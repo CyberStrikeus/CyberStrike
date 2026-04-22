@@ -51,16 +51,16 @@ Where possible, remove `create` access to `pod` objects in the cluster.
 
 By default, the following list of principals have `create` privileges on `pod` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin | system:masters |
+| CLUSTERROLEBINDING                                   | SUBJECT                            |
+| ---------------------------------------------------- | ---------------------------------- |
+| cluster-admin                                        | system:masters                     |
 | system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller |
-| system:controller:daemon-set-controller | daemon-set-controller |
-| system:controller:job-controller | job-controller |
-| system:controller:persistent-volume-binder | persistent-volume-binder |
-| system:controller:replicaset-controller | replicaset-controller |
-| system:controller:replication-controller | replication-controller |
-| system:controller:statefulset-controller | statefulset-controller |
+| system:controller:daemon-set-controller              | daemon-set-controller              |
+| system:controller:job-controller                     | job-controller                     |
+| system:controller:persistent-volume-binder           | persistent-volume-binder           |
+| system:controller:replicaset-controller              | replicaset-controller              |
+| system:controller:replication-controller             | replication-controller             |
+| system:controller:statefulset-controller             | statefulset-controller             |
 
 ## References
 
@@ -68,7 +68,7 @@ None specified.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.7 Allowlist Authorized Scripts | | | x |
-| v7 | 4.7 Limit Access to Script Tools | | x | x |
+| Controls Version | Control                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------- | ---- | ---- | ---- |
+| v8               | 2.7 Allowlist Authorized Scripts |      |      | x    |
+| v7               | 4.7 Limit Access to Script Tools |      | x    | x    |

@@ -86,8 +86,8 @@ Start-Process -FilePath "#{autohotkey_path}" -ArgumentList "#{script_path}"
 ```
 
 **Dependencies:**
-- AutoHotKey executable file must exist on disk at the specified location (#{autohotkey_path})
 
+- AutoHotKey executable file must exist on disk at the specified location (#{autohotkey_path})
 
 ### Manual Testing
 
@@ -102,26 +102,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Use application control to prevent execution of `AutoIt3.exe`, `AutoHotkey.exe`, and other related features that may not be required for a given system or network to prevent potential misuse by adversaries.
 
+Use application control to prevent execution of `AutoIt3.exe`, `AutoHotkey.exe`, and other related features that may not be required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detection Strategy for AutoHotKey & AutoIT Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AutoHotKey & AutoIT technique applicable | High | Execution |
+| Finding                                  | Severity | Impact    |
+| ---------------------------------------- | -------- | --------- |
+| AutoHotKey & AutoIT technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

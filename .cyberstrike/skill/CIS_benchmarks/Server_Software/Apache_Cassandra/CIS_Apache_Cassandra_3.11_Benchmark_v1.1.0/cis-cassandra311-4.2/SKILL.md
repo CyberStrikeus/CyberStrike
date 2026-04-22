@@ -17,13 +17,16 @@ severity_boost: {}
 # 4.2 Ensure that auditing is enabled
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 - Level 2 - Cassandra on Linux
 
 ## Description
-Audit logging in Cassandra logs every incoming CQL command request, Authentication (successful as well as unsuccessful login) to C* node. Currently, there are two implementations provided, the custom logger can be implemented and injected with the class name as parameter in cassandra.yaml.
+
+Audit logging in Cassandra logs every incoming CQL command request, Authentication (successful as well as unsuccessful login) to C\* node. Currently, there are two implementations provided, the custom logger can be implemented and injected with the class name as parameter in cassandra.yaml.
 
 ## Rationale
+
 Unauthorized attempts to create, drop or alter users or data should be a concern.
 
 ## Audit
@@ -57,14 +60,18 @@ Set the logger option to either CassandraAuditWriter, which logs to a table, or
 SLF4JAuditWriter, which logs to the SLF4J logger.
 
 ## Default Value
+
 Auditing is disabled by default.
 
 ## References
+
 1. https://docs.datastax.com/en/datastax_enterprise/4.8/datastax_enterprise/sec/se cAudit.html#secAudit
 
 ## CIS Controls
+
 - v8: 8.2 Collect Audit Logs
 - v7: 6.2 Activate audit logging
 
 ## Profile
+
 - Level 1 | Manual

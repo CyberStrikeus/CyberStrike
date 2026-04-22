@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.4 Ensure Default HTML Content Is Removed
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -118,25 +119,28 @@ Also, the only other default content is a minimal barebones `index.html` in the 
 
 ```html
 <html>
-   <body>
-      <h1>It works!</h1>
-   </body>
+  <body>
+    <h1>It works!</h1>
+  </body>
 </html>
 ```
 
 ## CIS Controls
 
 **Controls Version: v8**
+
 - **9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions**
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
   - **IG 2:** •
   - **IG 3:** •
 
 **Controls Version: v7**
+
 - **7.2 Disable Unnecessary or Unauthorized Browser or Email Client Plugins**
   - Uninstall or disable any unauthorized browser or email client plugins or add-on applications.
   - **IG 2:** •
   - **IG 3:** •
 
 ## Profile
+
 - Level 1 | Manual

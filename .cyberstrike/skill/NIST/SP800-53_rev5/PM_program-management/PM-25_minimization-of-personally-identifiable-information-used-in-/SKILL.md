@@ -12,16 +12,14 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PM-23
   - PT-3
   - SA-3
   - SA-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-23: "Chain with PM-23 for comprehensive security coverage"
   PT-3: "Chain with PT-3 for comprehensive security coverage"
@@ -66,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +83,16 @@ The use of personally identifiable information in testing, research, and trainin
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-25 Minimization of Personally Identifiable Information Used in Testing, Training, and Research not implemented | Medium | Program Management |
-| PM-25 partially implemented | Low | Incomplete Program Management |
+| Finding                                                                                                           | Severity | Impact                        |
+| ----------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-25 Minimization of Personally Identifiable Information Used in Testing, Training, and Research not implemented | Medium   | Program Management            |
+| PM-25 partially implemented                                                                                       | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

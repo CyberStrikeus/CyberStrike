@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -43,7 +41,7 @@ severity_boost: {}
 
 Adversaries may attempt to identify the primary user, currently logged in user, set of users that commonly uses a system, or whether a user is actively using the system. They may do this, for example, by retrieving account usernames or by using OS Credential Dumping. The information may be collected in a number of different ways using other Discovery techniques, because user and username details are prevalent throughout a system and include running process ownership, file/directory ownership, session information, and system logs. Adversaries may use the information from System Owner/User Discovery during automated discovery to shape follow-on behaviors, including whether or not the adversary fully infects the target and/or attempts specific actions.
 
-Various utilities and commands may acquire this information, including <code>whoami</code>. In macOS and Linux, the currently logged in user can be identified with <code>w</code> and <code>who</code>. On macOS the <code>dscl . list /Users | grep -v '_'</code> command can also be used to enumerate user accounts. Environment variables, such as <code>%USERNAME%</code> and <code>$USER</code>, may also be used to access this information.
+Various utilities and commands may acquire this information, including <code>whoami</code>. In macOS and Linux, the currently logged in user can be identified with <code>w</code> and <code>who</code>. On macOS the <code>dscl . list /Users | grep -v '\_'</code> command can also be used to enumerate user accounts. Environment variables, such as <code>%USERNAME%</code> and <code>$USER</code>, may also be used to access this information.
 
 On network devices, Network Device CLI commands such as `show users` and `show ssh` can be used to display users currently logged into the device.
 
@@ -71,7 +69,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 Identify System owner or users on an endpoint.
 
-Upon successful execution, cmd.exe will spawn multiple commands against a target host to identify usernames. Output will be via stdout. 
+Upon successful execution, cmd.exe will spawn multiple commands against a target host to identify usernames. Output will be via stdout.
 Additionally, two files will be written to disk - computers.txt and usernames.txt.
 
 **Supported Platforms:** windows
@@ -119,7 +117,7 @@ Use the PowerShell environment variables to identify the current logged user.
 **Supported Platforms:** windows
 
 ```powershell
-[System.Environment]::UserName | Out-File -FilePath .\CurrentactiveUser.txt 
+[System.Environment]::UserName | Out-File -FilePath .\CurrentactiveUser.txt
 $env:UserName | Out-File -FilePath .\CurrentactiveUser.txt -Append
 ```
 
@@ -132,7 +130,6 @@ Use the PowerShell "GetCurrent" method of the WindowsIdentity .NET class to iden
 ```powershell
 [System.Security.Principal.WindowsIdentity]::GetCurrent() | Out-File -FilePath .\CurrentUserObject.txt
 ```
-
 
 ### Manual Testing
 
@@ -152,19 +149,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of User Discovery via Local and Remote Enumeration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Owner/User Discovery technique applicable | High | Discovery |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| System Owner/User Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

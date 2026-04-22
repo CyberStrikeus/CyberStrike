@@ -31,6 +31,7 @@ Audit records can be generated from various components within the information sy
 ## Audit
 
 ### On disk configuration
+
 Run the following command to check the on disk rules:
 
 ```bash
@@ -40,11 +41,13 @@ awk "/^\s*-a\s+always,exit\s+/&&/\s+-F\s+auid>=${UID_MIN}\s+/&&/\s+-F\s+auid!=42
 ```
 
 Verify the output matches:
+
 ```
 -a always,exit -F path=/usr/bin/chacl -F perm=x -F auid>=1000 -F auid!=4294967295 -k perm_chng
 ```
 
 ### Running configuration
+
 Run the following command to check loaded rules:
 
 ```bash
@@ -53,6 +56,7 @@ UID_MIN=$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)
 ```
 
 Verify the output matches:
+
 ```
 -a always,exit -F path=/usr/bin/chacl -F perm=x -F auid>=1000 -F auid!=4294967295 -k perm_chng
 ```
@@ -62,6 +66,7 @@ Verify the output matches:
 Create audit rules by editing or creating a file in the `/etc/audit/rules.d/` directory, ending in `.rules` extension, with the relevant rules to monitor successful and unsuccessful attempts to use the chacl command.
 
 Example:
+
 ```bash
 UID_MIN=$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)
 [ -n "${UID_MIN}" ] && printf "
@@ -70,11 +75,13 @@ UID_MIN=$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)
 ```
 
 Load audit rules:
+
 ```bash
 augenrules --load
 ```
 
 Check if reboot is required:
+
 ```bash
 if [[ $(auditctl -s | grep "enabled") =~ "2" ]]; then printf "Reboot required to load rules\n"; fi
 ```
@@ -86,13 +93,16 @@ Potential reboot required - If the auditing configuration is locked (-e 2), then
 System call structure - For performance (man 7 audit.rules) reasons it is preferable to have all the system calls on one line. However, your configuration may have them on one line each or some other combination. This is important to understand for both the auditing and remediation sections as the examples given are optimized for performance as per the man page.
 
 **CIS Controls:**
+
 - v8: 8.2 Collect Audit Logs - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.
 - v7: 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices.
 
 **MITRE ATT&CK Mappings:**
+
 - Techniques: T1562, T1562.006
 - Tactics: TA0005
 - Mitigations: M1022
 
 **References:**
+
 - NIST SP 800-53 Rev. 5: AU-2, AU-12, SI-5

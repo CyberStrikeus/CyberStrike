@@ -89,7 +89,7 @@ By default, Kubernetes Alpha features are disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.8 Separate Production and Non-Production Systems | | x | x |
-| v7 | 18.9 Separate Production and Non-Production Systems | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.8 Separate Production and Non-Production Systems |      | x    | x    |
+| v7               | 18.9 Separate Production and Non-Production Systems |      | x    | x    |

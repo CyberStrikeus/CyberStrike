@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may inject malicious code into processes via thread local storage (TLS) callbacks in order to evade process-based defenses as well as possibly elevate privileges. TLS callback injection is a method of executing arbitrary code in the address space of a separate live process. 
+Adversaries may inject malicious code into processes via thread local storage (TLS) callbacks in order to evade process-based defenses as well as possibly elevate privileges. TLS callback injection is a method of executing arbitrary code in the address space of a separate live process.
 
 TLS callback injection involves manipulating pointers inside a portable executable (PE) to redirect a process to malicious code before reaching the code's legitimate entry point. TLS callbacks are normally used by the OS to setup and/or cleanup data used by threads. Manipulating TLS callbacks may be performed by allocating and writing to specific offsets within a process’ memory space using other Process Injection techniques such as Process Hollowing.
 
@@ -86,26 +86,24 @@ Running code in the context of another process may allow access to the process's
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
+Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
 ## Detection
 
 ### Detection Strategy for TLS Callback Injection via PE Memory Modification and Hollowing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Thread Local Storage technique applicable | High | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| Thread Local Storage technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

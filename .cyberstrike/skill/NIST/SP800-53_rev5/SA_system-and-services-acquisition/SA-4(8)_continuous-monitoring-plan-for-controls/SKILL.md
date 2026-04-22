@@ -63,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,17 +79,16 @@ The objective of continuous monitoring plans is to determine if the planned, req
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-4(8) Continuous Monitoring Plan for Controls not implemented | Medium | System and Services Acquisition |
-| SA-4(8) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                         | Severity | Impact                                     |
+| --------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-4(8) Continuous Monitoring Plan for Controls not implemented | Medium   | System and Services Acquisition            |
+| SA-4(8) partially implemented                                   | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

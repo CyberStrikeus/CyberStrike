@@ -51,10 +51,10 @@ In addition to looking for NTDS files on active Domain Controllers, adversaries 
 
 The following tools and techniques can be used to enumerate the NTDS file and the contents of the entire Active Directory hashes.
 
-* Volume Shadow Copy
-* secretsdump.py
-* Using the in-built Windows tool, ntdsutil.exe
-* Invoke-NinjaCopy
+- Volume Shadow Copy
+- secretsdump.py
+- Using the in-built Windows tool, ntdsutil.exe
+- Invoke-NinjaCopy
 
 ## Kill Chain Phase
 
@@ -89,6 +89,7 @@ vssadmin.exe create shadow /for=#{drive_letter}
 ```
 
 **Dependencies:**
+
 - Target must be a Domain Controller
 
 ### Atomic Test 2: Copy NTDS.dit from Volume Shadow Copy
@@ -111,6 +112,7 @@ reg save HKLM\SYSTEM #{extract_path}\SYSTEM_HIVE
 ```
 
 **Dependencies:**
+
 - Target must be a Domain Controller
 - Volume shadow copy must exist
 - Extract path must exist
@@ -134,6 +136,7 @@ ntdsutil "ac i ntds" "ifm" "create full #{output_folder}" q q
 ```
 
 **Dependencies:**
+
 - Target must be a Domain Controller
 
 ### Atomic Test 4: Create Volume Shadow Copy with WMI
@@ -150,6 +153,7 @@ wmic shadowcopy call create Volume=#{drive_letter}
 ```
 
 **Dependencies:**
+
 - Target must be a Domain Controller
 
 ### Atomic Test 5: Create Volume Shadow Copy remotely with WMI
@@ -165,8 +169,8 @@ wmic /node:"#{target_host}" shadowcopy call create Volume=#{drive_letter}
 ```
 
 **Dependencies:**
-- Target must be a reachable Domain Controller, and current context must be domain admin
 
+- Target must be a reachable Domain Controller, and current context must be domain admin
 
 ### Manual Testing
 
@@ -181,35 +185,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1026 Privileged Account Management
+
 Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1017 User Training
+
 Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ### M1041 Encrypt Sensitive Information
-Ensure Domain Controller backups are properly secured.
 
+Ensure Domain Controller backups are properly secured.
 
 ## Detection
 
 ### Detection of NTDS.dit Credential Dumping from Domain Controllers
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| NTDS technique applicable | High | Credential Access |
+| Finding                   | Severity | Impact            |
+| ------------------------- | -------- | ----------------- |
+| NTDS technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

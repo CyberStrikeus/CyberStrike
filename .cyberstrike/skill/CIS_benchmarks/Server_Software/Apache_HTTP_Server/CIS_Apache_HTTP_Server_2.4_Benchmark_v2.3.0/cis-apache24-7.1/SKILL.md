@@ -52,6 +52,7 @@ Results should show either or both of the modules.
 Perform either of the following to implement the recommended state:
 
 1. For Apache installations built from the source, use the option --with-ssl= to specify the openssl path, and the --enable-ssl configure option to add the SSL modules to the build. The --with-included-apr configure option may be necessary if there are conflicts with the APR version. If a new version of Openssl is needed it may be downloaded from http://www.openssl.org/ See the Apache documentation on building from source http://httpd.apache.org/docs/2.4/install.htmlfor details.
+
    ```
    # ./configure --with-included-apr --with-ssl=$OPENSSL_DIR --enable-ssl
    ```
@@ -73,7 +74,9 @@ SSL/TLS is not enabled by default.
 ## CIS Controls
 
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit

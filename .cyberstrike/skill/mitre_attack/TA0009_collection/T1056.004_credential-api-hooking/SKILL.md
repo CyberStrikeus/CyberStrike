@@ -49,13 +49,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may hook into Windows application programming interface (API) functions and Linux system functions to collect user credentials. Malicious hooking mechanisms may capture API or function calls that include parameters that reveal user authentication credentials. Unlike Keylogging, this technique focuses specifically on API functions that include parameters that reveal user credentials. 
+Adversaries may hook into Windows application programming interface (API) functions and Linux system functions to collect user credentials. Malicious hooking mechanisms may capture API or function calls that include parameters that reveal user authentication credentials. Unlike Keylogging, this technique focuses specifically on API functions that include parameters that reveal user credentials.
 
 In Windows, hooking involves redirecting calls to these functions and can be implemented via:
 
-* **Hooks procedures**, which intercept and execute designated code in response to events such as messages, keystrokes, and mouse inputs.
-* **Import address table (IAT) hooking**, which use modifications to a process’s IAT, where pointers to imported API functions are stored.
-* **Inline hooking**, which overwrites the first bytes in an API function to redirect code flow.
+- **Hooks procedures**, which intercept and execute designated code in response to events such as messages, keystrokes, and mouse inputs.
+- **Import address table (IAT) hooking**, which use modifications to a process’s IAT, where pointers to imported API functions are stored.
+- **Inline hooking**, which overwrites the first bytes in an API function to redirect code flow.
 
 In Linux and macOS, adversaries may hook into system functions via the `LD_PRELOAD` (Linux) or `DYLD_INSERT_LIBRARIES` (macOS) environment variables, which enables loading shared libraries into a program’s address space. For example, an adversary may capture credentials by hooking into the `libc read` function leveraged by SSH or SCP.
 
@@ -93,8 +93,8 @@ Invoke-WebRequest #{server_name} -UseBasicParsing
 ```
 
 **Dependencies:**
-- T1056.004x64.dll must exist on disk at specified location (#{file_name})
 
+- T1056.004x64.dll must exist on disk at specified location (#{file_name})
 
 ### Manual Testing
 
@@ -114,19 +114,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Credential Harvesting via API Hooking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credential API Hooking technique applicable | High | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Credential API Hooking technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

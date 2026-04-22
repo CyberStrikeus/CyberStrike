@@ -62,17 +62,17 @@ By default, Kubernetes starts with two initial namespaces:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | X | X | X |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
-| v6 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | X    | X    | X    |
+| v7               | 14 Controlled Access Based on the Need to Know            |      |      |      |
+| v6               | 14 Controlled Access Based on the Need to Know            |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1106, T1609 | TA0002 | M1038 |
+| --------------------------- | ------- | ----------- |
+| T1106, T1609                | TA0002  | M1038       |
 
 ---
 

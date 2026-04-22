@@ -37,8 +37,7 @@ chains_with:
   - T1555.004
   - T1555.005
   - T1555.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1555.001: "Chain with T1555.001 for deeper attack path"
   T1555.002: "Chain with T1555.002 for deeper attack path"
@@ -86,6 +85,7 @@ Invoke-Maldoc -macroFile "PathToAtomicsFolder\T1555\src\T1555-macrocode.txt" -of
 ```
 
 **Dependencies:**
+
 - Microsoft Word must be installed
 
 ### Atomic Test 2: Dump credentials from Windows Credential Manager With PowerShell [windows Credentials]
@@ -128,7 +128,6 @@ This module will enumerate credentials stored in Web Credentials vault of Window
 vaultcmd /listcreds:"Web Credentials" /all
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -142,34 +141,34 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit the number of accounts and services with permission to query information from password stores to only those required. Ensure that accounts and services with permissions to query password stores only have access to the secrets they require.
 
 ### M1051 Update Software
+
 Perform regular software updates to mitigate exploitation risk.
 
 ### M1027 Password Policies
+
 The password for the user's login keychain can be changed from the user's login password. This increases the complexity for an adversary because they need to know an additional password.
 
 Organizations may consider weighing the risk of storing credentials in password stores and web browsers. If system, software, or web browser credential disclosure is a significant concern, technical controls, policy, and user training may be used to prevent storage of credentials in improper locations.
-
 
 ## Detection
 
 ### Detect Credentials Access from Password Stores
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credentials from Password Stores technique applicable | High | Credential Access |
+| Finding                                               | Severity | Impact            |
+| ----------------------------------------------------- | -------- | ----------------- |
+| Credentials from Password Stores technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

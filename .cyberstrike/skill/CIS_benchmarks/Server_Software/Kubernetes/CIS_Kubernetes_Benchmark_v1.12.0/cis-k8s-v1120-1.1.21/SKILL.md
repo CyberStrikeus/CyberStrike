@@ -68,7 +68,7 @@ By default, the keys used by Kubernetes are set to have permissions of `600`
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
-| v7 | 4 Controlled Use of Administrative Privileges | | | |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | \*   | \*   | \*   |
+| v7               | 4 Controlled Use of Administrative Privileges                             |      |      |      |

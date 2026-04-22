@@ -23,8 +23,7 @@ chains_with:
   - PS-8
   - SA-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PS-8: "Chain with PS-8 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ System and information integrity policy and procedures address the controls in t
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-1 Policy and Procedures not implemented | High | System and Information Integrity |
-| SI-1 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                    | Severity | Impact                                      |
+| ------------------------------------------ | -------- | ------------------------------------------- |
+| SI-1 Policy and Procedures not implemented | High     | System and Information Integrity            |
+| SI-1 partially implemented                 | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

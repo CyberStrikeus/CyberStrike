@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-10
   - PM-9
@@ -25,8 +24,7 @@ chains_with:
   - SR-6
   - SR-7
   - SR-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-10: "Chain with CM-10 for comprehensive security coverage"
   PM-9: "Chain with PM-9 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,16 +87,16 @@ An organization-wide supply chain risk management strategy includes an unambiguo
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-30 Supply Chain Risk Management Strategy not implemented | Medium | Program Management |
-| PM-30 partially implemented | Low | Incomplete Program Management |
+| Finding                                                     | Severity | Impact                        |
+| ----------------------------------------------------------- | -------- | ----------------------------- |
+| PM-30 Supply Chain Risk Management Strategy not implemented | Medium   | Program Management            |
+| PM-30 partially implemented                                 | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -19,8 +19,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1584"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1584.001
   - T1584.002
@@ -30,8 +29,7 @@ chains_with:
   - T1584.006
   - T1584.007
   - T1584.008
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1584.001: "Chain with T1584.001 for deeper attack path"
   T1584.002: "Chain with T1584.002 for deeper attack path"
@@ -76,25 +74,24 @@ By using compromised infrastructure, adversaries may enable follow-on malicious 
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Compromise Infrastructure
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Infrastructure technique applicable | High | Resource Development |
+| Finding                                        | Severity | Impact               |
+| ---------------------------------------------- | -------- | -------------------- |
+| Compromise Infrastructure technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

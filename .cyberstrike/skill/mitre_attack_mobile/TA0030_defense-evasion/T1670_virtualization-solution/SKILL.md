@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -32,9 +30,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may carry out malicious operations using virtualization solutions to escape from Android sandboxes and to avoid detection. Android uses sandboxes to separate resources and code execution between applications and the operating system. There are a few virtualization solutions available on Android, such as the Android Virtualization Framework (AVF). 
-
- 
+Adversaries may carry out malicious operations using virtualization solutions to escape from Android sandboxes and to avoid detection. Android uses sandboxes to separate resources and code execution between applications and the operating system. There are a few virtualization solutions available on Android, such as the Android Virtualization Framework (AVF).
 
 Through virtualization solutions, adversaries may execute malicious operations without user knowledge. For example, adversaries may mimic a legitimate banking application’s functionalities in a virtual environment, thanks to the virtualization solution, while malicious code captures credentials.
 
@@ -64,26 +60,24 @@ Review whether mitigations for T1670 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious applications.
 
+Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious applications.
 
 ## Detection
 
 ### Detection of Virtualization Solution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Virtualization Solution technique applicable | High | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Virtualization Solution technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

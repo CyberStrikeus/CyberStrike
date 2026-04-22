@@ -57,10 +57,10 @@ By default, Docker assumes all, but local, registries are secure.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. | | ● | ● |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit<br>Encrypt all sensitive information in transit. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. |      | ●    | ●    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit<br>Encrypt all sensitive information in transit.                                                                                                           |      | ●    | ●    |
 
 ## Profile/Assessment Status
 

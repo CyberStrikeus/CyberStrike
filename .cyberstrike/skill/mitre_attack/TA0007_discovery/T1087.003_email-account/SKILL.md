@@ -83,19 +83,17 @@ No specific mitigations documented for this technique.
 
 ### Enumeration of Global Address Lists via Email Account Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Email Account technique applicable | Low | Discovery |
+| Finding                            | Severity | Impact    |
+| ---------------------------------- | -------- | --------- |
+| Email Account technique applicable | Low      | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

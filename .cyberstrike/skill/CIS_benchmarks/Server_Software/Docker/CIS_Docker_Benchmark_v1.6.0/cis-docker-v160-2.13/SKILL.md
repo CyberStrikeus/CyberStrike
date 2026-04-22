@@ -68,12 +68,12 @@ By default, container logs are maintained as json files
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process<br>Establish and maintain an audit log management process that defines the enterprise's logging requirements. At a minimum, address the collection, review, and retention of audit logs for enterprise assets. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ● | ● | ● |
-| v8 | 8.9 Centralize Audit Logs<br>Centralize, to the extent possible, audit log collection and retention across enterprise assets. | | ● | ● |
-| v7 | 6.6 Deploy SIEM or Log Analytic tool<br>Deploy Security Information and Event Management (SIEM) or log analytic tool for log correlation and analysis. | | ● | ● |
-| v7 | 6.8 Regularly Tune SIEM<br>On a regular basis, tune your SIEM system to better identify actionable events and decrease event noise. | | | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process<br>Establish and maintain an audit log management process that defines the enterprise's logging requirements. At a minimum, address the collection, review, and retention of audit logs for enterprise assets. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard. | ●    | ●    | ●    |
+| v8               | 8.9 Centralize Audit Logs<br>Centralize, to the extent possible, audit log collection and retention across enterprise assets.                                                                                                                                                                                                                                                                      |      | ●    | ●    |
+| v7               | 6.6 Deploy SIEM or Log Analytic tool<br>Deploy Security Information and Event Management (SIEM) or log analytic tool for log correlation and analysis.                                                                                                                                                                                                                                             |      | ●    | ●    |
+| v7               | 6.8 Regularly Tune SIEM<br>On a regular basis, tune your SIEM system to better identify actionable events and decrease event noise.                                                                                                                                                                                                                                                                |      |      | ●    |
 
 ## Profile/Assessment Status
 

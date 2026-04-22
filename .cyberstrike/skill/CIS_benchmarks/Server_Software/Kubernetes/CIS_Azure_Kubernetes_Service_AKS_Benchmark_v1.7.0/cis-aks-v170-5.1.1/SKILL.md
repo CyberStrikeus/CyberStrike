@@ -82,10 +82,10 @@ Images are not scanned by Default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets | | x | x |
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 3 Continuous Vulnerability Management | | | |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools | | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets           |      | x    | x    |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 3 Continuous Vulnerability Management                                             |      |      |      |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools                                    |      | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning                                  |      | x    | x    |

@@ -51,16 +51,16 @@ As well as in-memory techniques, the LSASS process memory can be dumped from the
 
 For example, on the target host use procdump:
 
-* <code>procdump -ma lsass.exe lsass_dump</code>
+- <code>procdump -ma lsass.exe lsass_dump</code>
 
 Locally, mimikatz can be run using:
 
-* <code>sekurlsa::Minidump lsassdump.dmp</code>
-* <code>sekurlsa::logonPasswords</code>
+- <code>sekurlsa::Minidump lsassdump.dmp</code>
+- <code>sekurlsa::logonPasswords</code>
 
 Built-in Windows tools such as `comsvcs.dll` can also be used:
 
-* <code>rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump PID lsass.dmp full</code>
+- <code>rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump PID lsass.dmp full</code>
 
 Similar to Image File Execution Options Injection, the silent process exit mechanism can be abused to create a memory dump of `lsass.exe` through Windows Error Reporting (`WerFault.exe`).
 
@@ -68,10 +68,10 @@ Windows Security Support Provider (SSP) DLLs are loaded into LSASS process at sy
 
 The following SSPs can be used to access credentials:
 
-* Msv: Interactive logons, batch logons, and service logons are done through the MSV authentication package.
-* Wdigest: The Digest Authentication protocol is designed for use with Hypertext Transfer Protocol (HTTP) and Simple Authentication Security Layer (SASL) exchanges.
-* Kerberos: Preferred for mutual client-server domain authentication in Windows 2000 and later.
-* CredSSP: Provides SSO and Network Level Authentication for Remote Desktop Services.
+- Msv: Interactive logons, batch logons, and service logons are done through the MSV authentication package.
+- Wdigest: The Digest Authentication protocol is designed for use with Hypertext Transfer Protocol (HTTP) and Simple Authentication Security Layer (SASL) exchanges.
+- Kerberos: Preferred for mutual client-server domain authentication in Windows 2000 and later.
+- CredSSP: Provides SSO and Network Level Authentication for Remote Desktop Services.
 
 ## Kill Chain Phase
 
@@ -99,7 +99,7 @@ ProcDump.
 
 Upon successful execution, you should see the following file created c:\windows\temp\lsass_dump.dmp.
 
-If you see a message saying "procdump.exe is not recognized as an internal or external command", try using the  get-prereq_commands to download and install the ProcDump tool first.
+If you see a message saying "procdump.exe is not recognized as an internal or external command", try using the get-prereq_commands to download and install the ProcDump tool first.
 
 **Supported Platforms:** windows
 **Elevation Required:** Yes
@@ -109,6 +109,7 @@ If you see a message saying "procdump.exe is not recognized as an internal or ex
 ```
 
 **Dependencies:**
+
 - ProcDump tool from Sysinternals must exist on disk at specified location (#{procdump_exe})
 
 ### Atomic Test 2: Dump LSASS.exe Memory using comsvcs.dll
@@ -126,12 +127,12 @@ C:\Windows\System32\rundll32.exe C:\windows\System32\comsvcs.dll, MiniDump (Get-
 
 ### Atomic Test 3: Dump LSASS.exe Memory using direct system calls and API unhooking
 
-The memory of lsass.exe is often dumped for offline credential theft attacks. This can be achieved using direct system calls and API unhooking in an effort to avoid detection. 
+The memory of lsass.exe is often dumped for offline credential theft attacks. This can be achieved using direct system calls and API unhooking in an effort to avoid detection.
 https://github.com/outflanknl/Dumpert
 https://outflank.nl/blog/2019/06/19/red-team-tactics-combining-direct-system-calls-and-srdi-to-bypass-av-edr/
 Upon successful execution, you should see the following file created C:\\windows\\temp\\dumpert.dmp.
 
-If you see a message saying \"The system cannot find the path specified.\", try using the  get-prereq_commands to download the  tool first.
+If you see a message saying \"The system cannot find the path specified.\", try using the get-prereq_commands to download the tool first.
 
 **Supported Platforms:** windows
 **Elevation Required:** Yes
@@ -141,6 +142,7 @@ If you see a message saying \"The system cannot find the path specified.\", try 
 ```
 
 **Dependencies:**
+
 - Dumpert executable must exist on disk at specified location (#{dumpert_exe})
 
 ### Atomic Test 4: Dump LSASS.exe Memory using NanoDump
@@ -159,6 +161,7 @@ PathToAtomicsFolder\..\ExternalPayloads\nanodump.x64.exe -w "%temp%\nanodump.dmp
 ```
 
 **Dependencies:**
+
 - NanoDump executable must exist on disk at specified location (PathToAtomicsFolder\..\ExternalPayloads\nanodump.x64.exe)
 
 ### Atomic Test 5: Dump LSASS.exe Memory using Windows Task Manager
@@ -167,7 +170,6 @@ The memory of lsass.exe is often dumped for offline credential theft attacks. Th
 Manager and administrative permissions.
 
 **Supported Platforms:** windows
-
 
 ### Manual Testing
 
@@ -182,44 +184,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
+
 Consider disabling or restricting NTLM. Consider disabling WDigest authentication.
 
 ### M1043 Credential Access Protection
+
 With Windows 10, Microsoft implemented new protections called Credential Guard to protect the LSA secrets that can be used to obtain credentials through forms of credential dumping. It is not configured by default and has hardware and firmware system requirements. It also does not protect against all forms of credential dumping.
 
 ### M1025 Privileged Process Integrity
+
 On Windows 8.1 and Windows Server 2012 R2, enable Protected Process Light for LSA.
 
 ### M1026 Privileged Account Management
+
 Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1017 User Training
+
 Limit credential overlap across accounts and systems by training users and administrators not to use the same password for multiple accounts.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to secure LSASS and prevent credential stealing.
 
 ### M1027 Password Policies
-Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
+Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ## Detection
 
 ### Detection of Credential Dumping from LSASS Memory via Access and Dump Sequence
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| LSASS Memory technique applicable | High | Credential Access |
+| Finding                           | Severity | Impact            |
+| --------------------------------- | -------- | ----------------- |
+| LSASS Memory technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

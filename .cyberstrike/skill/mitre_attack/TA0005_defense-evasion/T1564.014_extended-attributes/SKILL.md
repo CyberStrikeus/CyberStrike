@@ -87,26 +87,24 @@ An adversary may leverage xattrs by embedding a second-stage payload into the ex
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-During artifact review, packaging, or deployment stages, scan extended attributes alongside file contents to detect hidden payloads, obfuscated data, or suspicious attribute keys that may indicate malicious behavior.
 
+During artifact review, packaging, or deployment stages, scan extended attributes alongside file contents to detect hidden payloads, obfuscated data, or suspicious attribute keys that may indicate malicious behavior.
 
 ## Detection
 
 ### Detection Strategy for Extended Attributes Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Extended Attributes technique applicable | Low | Defense Evasion |
+| Finding                                  | Severity | Impact          |
+| ---------------------------------------- | -------- | --------------- |
+| Extended Attributes technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

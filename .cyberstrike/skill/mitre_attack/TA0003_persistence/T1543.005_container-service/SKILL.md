@@ -81,29 +81,28 @@ Note that containers can also be configured to run as Systemd Services.
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Where possible, consider enforcing the use of container services in rootless mode to limit the possibility of privilege escalation or malicious effects on the host running the container.
 
 ### M1018 User Account Management
-Limit access to utilities such as docker to only users who have a legitimate need, especially if using docker in rootful mode. In Kubernetes environments, only grant privileges to deploy pods to users that require it.
 
+Limit access to utilities such as docker to only users who have a legitimate need, especially if using docker in rootful mode. In Kubernetes environments, only grant privileges to deploy pods to users that require it.
 
 ## Detection
 
 ### Detect persistent or elevated container services via container runtime or cluster manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container Service technique applicable | High | Persistence |
+| Finding                                | Severity | Impact      |
+| -------------------------------------- | -------- | ----------- |
+| Container Service technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

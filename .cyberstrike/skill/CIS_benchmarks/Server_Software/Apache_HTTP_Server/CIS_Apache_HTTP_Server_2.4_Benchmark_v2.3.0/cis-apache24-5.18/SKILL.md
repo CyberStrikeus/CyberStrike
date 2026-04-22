@@ -68,6 +68,7 @@ Permissions-Policy Policy is not set by Default
 ## CIS Controls
 
 **v8:**
+
 - 2.7 Allowlist Authorized Scripts
   - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently.
 
@@ -75,6 +76,7 @@ Permissions-Policy Policy is not set by Default
   - Perform application layer filtering. Example implementations include a filtering proxy, application layer firewall, or gateway.
 
 **v7:**
+
 - 2.7 Utilize Application Whitelisting
   - Utilize application whitelisting technology on all assets to ensure that only authorized software executes and all unauthorized software is blocked from executing on assets.
 

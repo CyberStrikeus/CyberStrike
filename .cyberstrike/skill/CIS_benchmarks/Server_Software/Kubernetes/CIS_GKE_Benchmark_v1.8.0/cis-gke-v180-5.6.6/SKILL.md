@@ -4,7 +4,21 @@ description: "Consider firewalling GKE worker nodes (Manual)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, cluster-networking, vpc-flow-logs, intranode-visibility, vpc-native, private-cluster, authorized-networks, firewall, ssl-certificates]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    cluster-networking,
+    vpc-flow-logs,
+    intranode-visibility,
+    vpc-native,
+    private-cluster,
+    authorized-networks,
+    firewall,
+    ssl-certificates,
+  ]
 cis_id: "5.6.6"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -134,7 +148,7 @@ The implied rules cannot be removed, but they have the lowest possible prioritie
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 9.5 Implement Application Firewalls | | | x |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | x    | x    | x    |
+| v7               | 9.5 Implement Application Firewalls            |      |      | x    |

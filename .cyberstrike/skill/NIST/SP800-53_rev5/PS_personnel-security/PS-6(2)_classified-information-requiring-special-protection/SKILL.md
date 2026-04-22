@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PS-6
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -82,16 +80,16 @@ Classified information that requires special protection includes collateral info
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-6(2) Classified Information Requiring Special Protection not implemented | Medium | Personnel Security |
-| PS-6(2) partially implemented | Low | Incomplete Personnel Security |
+| Finding                                                                     | Severity | Impact                        |
+| --------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PS-6(2) Classified Information Requiring Special Protection not implemented | Medium   | Personnel Security            |
+| PS-6(2) partially implemented                                               | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

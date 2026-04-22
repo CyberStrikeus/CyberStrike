@@ -62,13 +62,13 @@ apt purge gdm3
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | X | X |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | X | X |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | X    | X    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1543, T1543.002 | TA0002 | M1033 |
+| --------------------------- | ------- | ----------- |
+| T1543, T1543.002            | TA0002  | M1033       |

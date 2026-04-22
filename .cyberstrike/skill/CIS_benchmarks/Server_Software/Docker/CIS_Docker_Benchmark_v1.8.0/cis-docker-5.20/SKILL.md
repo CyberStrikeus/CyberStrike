@@ -64,7 +64,7 @@ By default, the container mounts are private.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3 Data Protection<br>Develop processes and technical controls to identify, classify, securely handle, retain, and dispose of data. | | | |
-| v7 | 13 Data Protection<br>Data Protection | | | |
+| Controls Version | Control                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3 Data Protection<br>Develop processes and technical controls to identify, classify, securely handle, retain, and dispose of data. |      |      |      |
+| v7               | 13 Data Protection<br>Data Protection                                                                                              |      |      |      |

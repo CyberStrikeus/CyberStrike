@@ -90,32 +90,32 @@ Adversaries may modify Mach-O binary headers to load and execute malicious dylib
 ## Remediation Guide
 
 ### M1047 Audit
+
 Binaries can also be baselined for what dynamic libraries they require, and if an app requires a new dynamic library that wasn't included as part of an update, it should be investigated.
 
 ### M1038 Execution Prevention
+
 Allow applications via known hashes.
 
 ### M1045 Code Signing
-Enforce that all binaries be signed by the correct Apple Developer IDs.
 
+Enforce that all binaries be signed by the correct Apple Developer IDs.
 
 ## Detection
 
 ### Detection Strategy for LC_LOAD_DYLIB Modification in Mach-O Binaries on macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| LC_LOAD_DYLIB Addition technique applicable | Low | Privilege Escalation |
+| Finding                                     | Severity | Impact               |
+| ------------------------------------------- | -------- | -------------------- |
+| LC_LOAD_DYLIB Addition technique applicable | Low      | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

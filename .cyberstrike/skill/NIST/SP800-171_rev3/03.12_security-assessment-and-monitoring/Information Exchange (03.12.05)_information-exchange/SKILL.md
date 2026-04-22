@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,10 +65,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -87,16 +84,16 @@ Information exchange applies to information exchanges between two or more system
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Information Exchange (03.12.05) Information Exchange not implemented | Medium | CUI Protection - Security Assessment and Monitoring |
-| Information Exchange (03.12.05) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                              | Severity | Impact                                              |
+| -------------------------------------------------------------------- | -------- | --------------------------------------------------- |
+| Information Exchange (03.12.05) Information Exchange not implemented | Medium   | CUI Protection - Security Assessment and Monitoring |
+| Information Exchange (03.12.05) partially implemented (POA&M)        | Low      | CMMC certification risk                             |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

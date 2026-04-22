@@ -60,7 +60,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may perform software packing or virtual machine software protection to conceal their code. Software packing is a method of compressing or encrypting an executable. Packing an executable changes the file signature in an attempt to avoid signature-based detection. Most decompression techniques decompress the executable code in memory. Virtual machine software protection translates an executable's original code into a special format that only a special virtual machine can run. A virtual machine is then called to run this code. 
+Adversaries may perform software packing or virtual machine software protection to conceal their code. Software packing is a method of compressing or encrypting an executable. Packing an executable changes the file signature in an attempt to avoid signature-based detection. Most decompression techniques decompress the executable code in memory. Virtual machine software protection translates an executable's original code into a special format that only a special virtual machine can run. A virtual machine is then called to run this code.
 
 Utilities used to perform software packing are called packers. Example packers are MPRESS and UPX. A more comprehensive list of known packers is available, but adversaries may create their own packing techniques that do not leave the same artifacts as well-known packers to evade defenses.
 
@@ -133,7 +133,6 @@ by some methods, and especially UPX is not able to uncompress it any more.
 cp #{bin_path} /tmp/packed_bin && /tmp/packed_bin
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -147,26 +146,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
-Employ heuristic-based malware detection. Ensure updated virus definitions and create custom signatures for observed malware.
 
+Employ heuristic-based malware detection. Ensure updated virus definitions and create custom signatures for observed malware.
 
 ## Detection
 
 ### Obfuscated Binary Unpacking Detection via Behavioral Patterns
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Software Packing technique applicable | Low | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Software Packing technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

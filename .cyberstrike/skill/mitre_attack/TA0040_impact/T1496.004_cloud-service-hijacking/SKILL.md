@@ -41,7 +41,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may leverage compromised software-as-a-service (SaaS) applications to complete resource-intensive tasks, which may impact hosted service availability. 
+Adversaries may leverage compromised software-as-a-service (SaaS) applications to complete resource-intensive tasks, which may impact hosted service availability.
 
 For example, adversaries may leverage email and messaging services, such as AWS Simple Email Service (SES), AWS Simple Notification Service (SNS), SendGrid, and Twilio, in order to send large quantities of spam / Phishing emails and SMS messages. Alternatively, they may engage in LLMJacking by leveraging reverse proxies to hijack the power of cloud-hosted AI models.
 
@@ -79,19 +79,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Cloud Service Hijacking via SaaS Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Service Hijacking technique applicable | High | Impact |
+| Finding                                      | Severity | Impact |
+| -------------------------------------------- | -------- | ------ |
+| Cloud Service Hijacking technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

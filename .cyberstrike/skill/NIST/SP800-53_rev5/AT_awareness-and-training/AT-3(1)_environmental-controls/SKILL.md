@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-1
   - PE-11
@@ -69,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +84,16 @@ Environmental controls include fire suppression and detection devices or systems
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AT-3(1) Environmental Controls not implemented | Medium | Awareness and Training |
-| AT-3(1) partially implemented | Low | Incomplete Awareness and Training |
+| Finding                                        | Severity | Impact                            |
+| ---------------------------------------------- | -------- | --------------------------------- |
+| AT-3(1) Environmental Controls not implemented | Medium   | Awareness and Training            |
+| AT-3(1) partially implemented                  | Low      | Incomplete Awareness and Training |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-6
 prerequisites:
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +78,16 @@ Assigning multiple authorizing officials, at least one of whom comes from an ext
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-6(2) Joint Authorization — Inter-organization not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-6(2) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                                          | Severity | Impact                                               |
+| ---------------------------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-6(2) Joint Authorization — Inter-organization not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-6(2) partially implemented                                    | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

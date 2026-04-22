@@ -43,9 +43,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may exploit the lack of authentication in signaling system network nodes to track the location of mobile devices by impersonating a node. 
-
- 
+Adversaries may exploit the lack of authentication in signaling system network nodes to track the location of mobile devices by impersonating a node.
 
 By providing the victim’s MSISDN (phone number) and impersonating network internal nodes to query subscriber information from other nodes, adversaries may use data collected from each hop to eventually determine the device’s geographical cell area or nearest cell tower.
 
@@ -77,26 +75,24 @@ Review whether mitigations for T1430.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1014 Interconnection Filtering
-Filtering requests by checking request origin information may provide some defense against spurious operators.
 
+Filtering requests by checking request origin information may provide some defense against spurious operators.
 
 ## Detection
 
 ### Detection of Impersonate SS7 Nodes
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Impersonate SS7 Nodes technique applicable | High | Collection |
+| Finding                                    | Severity | Impact     |
+| ------------------------------------------ | -------- | ---------- |
+| Impersonate SS7 Nodes technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

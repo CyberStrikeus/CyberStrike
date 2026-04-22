@@ -90,41 +90,44 @@ Adversaries may use ARP cache poisoning as a means to intercept network traffic.
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 Ensure that all wired and/or wireless traffic is encrypted appropriately. Use best practices for authentication protocols, such as Kerberos, and ensure web traffic that may contain credentials is protected by SSL/TLS.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that can identify traffic patterns indicative of AiTM activity can be used to mitigate activity at the network level.
 
 ### M1017 User Training
+
 Train users to be suspicious about certificate errors. Adversaries may use their own certificates in an attempt to intercept HTTPS traffic. Certificate errors may arise when the application’s certificate does not match the one expected by the host.
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling updating the ARP cache on gratuitous ARP replies.
 
 ### M1035 Limit Access to Resource Over Network
+
 Create static ARP entries for networked devices. Implementing static ARP entries may be infeasible for large networks.
 
 ### M1037 Filter Network Traffic
-Consider enabling DHCP Snooping and Dynamic ARP Inspection on switches to create mappings between IP addresses requested via DHCP and ARP tables and tie the values to a port on the switch that may block bogus traffic.
 
+Consider enabling DHCP Snooping and Dynamic ARP Inspection on switches to create mappings between IP addresses requested via DHCP and ARP tables and tie the values to a port on the switch that may block bogus traffic.
 
 ## Detection
 
 ### Detect ARP Cache Poisoning Across Linux, Windows, and macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ARP Cache Poisoning technique applicable | High | Credential Access |
+| Finding                                  | Severity | Impact            |
+| ---------------------------------------- | -------- | ----------------- |
+| ARP Cache Poisoning technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

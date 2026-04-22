@@ -126,7 +126,6 @@ This test adds a script to a /var/spool/cron/crontabs folder configured to execu
 echo "#{command}" >> /var/spool/cron/crontabs/#{cron_script_name}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -140,29 +139,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Review changes to the <code>cron</code> schedule. <code>cron</code> execution can be reviewed within the <code>/var/log</code> directory. To validate the location of the <code>cron</code> log file, check the syslog config at <code>/etc/rsyslog.conf</code> or <code>/etc/syslog.conf</code>.
 
 ### M1018 User Account Management
-<code>cron</code> permissions are controlled by <code>/etc/cron.allow and /etc/cron.deny</code>. If there is a <code>cron.allow</code> file, then the user or users that need to use <code>cron</code> will need to be listed in the file. <code>cron.deny</code> is used to explicitly disallow users from using cron. If neither files exist, then only the super user is allowed to run cron.
 
+<code>cron</code> permissions are controlled by <code>/etc/cron.allow and /etc/cron.deny</code>. If there is a <code>cron.allow</code> file, then the user or users that need to use <code>cron</code> will need to be listed in the file. <code>cron.deny</code> is used to explicitly disallow users from using cron. If neither files exist, then only the super user is allowed to run cron.
 
 ## Detection
 
 ### Cross-Platform Detection of Cron Job Abuse for Persistence and Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cron technique applicable | Low | Execution |
+| Finding                   | Severity | Impact    |
+| ------------------------- | -------- | --------- |
+| Cron technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

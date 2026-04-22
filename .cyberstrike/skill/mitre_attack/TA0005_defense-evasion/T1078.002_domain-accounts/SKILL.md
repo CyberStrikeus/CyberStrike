@@ -93,38 +93,40 @@ Adversaries may compromise domain accounts, some with a high level of privileges
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Regularly review and manage domain accounts to ensure that only active, necessary accounts exist. Remove or disable inactive and unnecessary accounts to reduce the risk of adversaries abusing these accounts to gain unauthorized access or move laterally within the network.
 
 ### M1032 Multi-factor Authentication
+
 Integrating multi-factor authentication (MFA) as part of organizational policy can greatly reduce the risk of an adversary gaining control of valid credentials that may be used for additional tactics such as initial access, lateral movement, and collecting information. MFA can also be used to restrict access to cloud resources and APIs.
 
 ### M1026 Privileged Account Management
+
 Audit domain account permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled and use of accounts is segmented, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers. Limit credential overlap across systems to prevent access if account credentials are obtained.
 
 ### M1017 User Training
+
 Applications may send push notifications to verify a login as a form of multi-factor authentication (MFA). Train users to only accept valid push notifications and to report suspicious push notifications.
 
 ### M1027 Password Policies
-Implement and enforce strong password policies for domain accounts to ensure passwords are complex, unique, and regularly rotated. This reduces the likelihood of password guessing, credential stuffing, and other attack methods that rely on weak or static credentials.
 
+Implement and enforce strong password policies for domain accounts to ensure passwords are complex, unique, and regularly rotated. This reduces the likelihood of password guessing, credential stuffing, and other attack methods that rely on weak or static credentials.
 
 ## Detection
 
 ### Abuse of Domain Accounts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Accounts technique applicable | High | Defense Evasion |
+| Finding                              | Severity | Impact          |
+| ------------------------------------ | -------- | --------------- |
+| Domain Accounts technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -21,10 +21,8 @@ tech_stack:
   - cloud
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -32,7 +30,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may attempt to modify hierarchical structures in infrastructure-as-a-service (IaaS) environments in order to evade defenses. 
+Adversaries may attempt to modify hierarchical structures in infrastructure-as-a-service (IaaS) environments in order to evade defenses.
 
 IaaS environments often group resources into a hierarchy, enabling improved resource management and application of policies to relevant groups. Hierarchical structures differ among cloud providers. For example, in AWS environments, multiple accounts can be grouped under a single organization, while in Azure environments, multiple subscriptions can be grouped under a single management group.
 
@@ -68,32 +66,32 @@ In AWS environments, adversaries with appropriate permissions in a given account
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 In Azure environments, consider setting a policy to block subscription transfers. In AWS environments, consider using Service Control Policies to prevent the use of the `LeaveOrganization` API call.
 
 ### M1018 User Account Management
+
 Limit permissions to add, delete, or modify resource groups to only those required.
 
 ### M1047 Audit
-Periodically audit resource groups in the cloud management console to ensure that only expected items exist, especially close to the top of the hierarchy (e.g., AWS accounts and Azure subscriptions). Typically, top-level accounts (such as the AWS management account) should not contain any workloads or resources.
 
+Periodically audit resource groups in the cloud management console to ensure that only expected items exist, especially close to the top of the hierarchy (e.g., AWS accounts and Azure subscriptions). Typically, top-level accounts (such as the AWS management account) should not contain any workloads or resources.
 
 ## Detection
 
 ### Detection Strategy for Modify Cloud Resource Hierarchy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Cloud Resource Hierarchy technique applicable | High | Defense Evasion |
+| Finding                                              | Severity | Impact          |
+| ---------------------------------------------------- | -------- | --------------- |
+| Modify Cloud Resource Hierarchy technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

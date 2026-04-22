@@ -108,7 +108,7 @@ By default, Workload Identity is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.7 Manage Default Accounts on Enterprise Assets and Software | x | x | x |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | x | x | x |
+| Controls Version | Control                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.7 Manage Default Accounts on Enterprise Assets and Software | x    | x    | x    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts       | x    | x    | x    |

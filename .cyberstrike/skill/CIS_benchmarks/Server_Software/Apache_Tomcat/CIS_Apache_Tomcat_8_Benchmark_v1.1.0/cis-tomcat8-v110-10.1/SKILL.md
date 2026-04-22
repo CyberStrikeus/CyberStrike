@@ -45,10 +45,10 @@ Not Applicable
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software<br>Securely manage enterprise assets and software. Example implementations include managing configuration through version-controlled-infrastructure-as-code and accessing administrative interfaces over secure network protocols, such as Secure Shell (SSH) and Hypertext Transfer Protocol Secure (HTTPS). Do not use insecure management protocols, such as Telnet (Teletype Network) and HTTP, unless operationally essential. | ● | ● | ● |
-| v7 | 2.10 Physically or Logically Segregate High Risk Applications<br>Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization. | | | ● |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software<br>Securely manage enterprise assets and software. Example implementations include managing configuration through version-controlled-infrastructure-as-code and accessing administrative interfaces over secure network protocols, such as Secure Shell (SSH) and Hypertext Transfer Protocol Secure (HTTPS). Do not use insecure management protocols, such as Telnet (Teletype Network) and HTTP, unless operationally essential. | ●    | ●    | ●    |
+| v7               | 2.10 Physically or Logically Segregate High Risk Applications<br>Physically or logically segregated systems should be used to isolate and run software that is required for business operations but incur higher risk for the organization.                                                                                                                                                                                                                                            |      |      | ●    |
 
 ## Profile
 

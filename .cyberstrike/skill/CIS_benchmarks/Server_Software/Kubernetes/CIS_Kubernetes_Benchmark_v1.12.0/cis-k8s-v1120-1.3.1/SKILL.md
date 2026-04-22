@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v1.12.0 - Control 1.3.1
 
 ## Profile Applicability
+
 - **Level:** 1 - Master Node
 
 ## Description
+
 Activate garbage collector on pod termination, as appropriate.
 
 ## Rationale
+
 Garbage collection is important to ensure sufficient resource availability and avoiding degraded performance and availability. In the worst case, the system might crash or just be unusable for a long period of time. The current setting for garbage collection is 12,500 terminated pods which might be too high for your system to sustain. Based on your system resources and tests, choose an appropriate threshold value to activate garbage collection.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -47,18 +51,21 @@ Edit the Controller Manager pod specification file `/etc/kubernetes/manifests/ku
 ```
 
 ## Default Value
+
 By default, `--terminated-pod-gc-threshold` is set to `12500`.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kube-controller-manager/
 2. https://github.com/kubernetes/kubernetes/issues/28484
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | | |
-| v7 | 5.1 Establish Secure Configurations | | | |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features |      |      |      |
+| v7               | 5.1 Establish Secure Configurations    |      |      |      |
 
 ## Profile
+
 **Level 1 - Master Node** (Manual)

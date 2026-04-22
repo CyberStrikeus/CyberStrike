@@ -85,26 +85,24 @@ Malicious component firmware could provide both a persistent level of access to 
 ## Remediation Guide
 
 ### M1051 Update Software
-Perform regular firmware updates to mitigate risks of exploitation and/or abuse.
 
+Perform regular firmware updates to mitigate risks of exploitation and/or abuse.
 
 ## Detection
 
 ### Detection Strategy for T1542.002 Pre-OS Boot: Component Firmware
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Component Firmware technique applicable | Low | Persistence |
+| Finding                                 | Severity | Impact      |
+| --------------------------------------- | -------- | ----------- |
+| Component Firmware technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

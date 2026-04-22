@@ -121,8 +121,9 @@ New-Item -Path "#{output_path}" -ItemType Directory > $null
 ```
 
 **Dependencies:**
+
 - SharpHound binary must exist on disk and at specified location (#{sharphound_path}).
-And the computer must be domain joined (implicit authentication).
+  And the computer must be domain joined (implicit authentication).
 
 ### Atomic Test 5: Wmic Group Discovery
 
@@ -133,7 +134,6 @@ Utilizing wmic.exe to enumerate groups on the local system. Upon execution, info
 ```cmd
 wmic group get name
 ```
-
 
 ### Manual Testing
 
@@ -153,19 +153,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Local Group Enumeration Across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Local Groups technique applicable | Low | Discovery |
+| Finding                           | Severity | Impact    |
+| --------------------------------- | -------- | --------- |
+| Local Groups technique applicable | Low      | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 3.5.3.2.1
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -25,6 +26,7 @@ severity_boost: {}
 A default deny all policy on connections ensures that any unconfigured network usage will be rejected.
 
 Notes:
+
 - Changing firewall settings while connected over network can result in being locked out of the system.
 - Remediation will only affect the active system firewall, be sure to configure the default policy in your firewall management to apply on boot as well.
 

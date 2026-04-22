@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.1 Inter-node Encryption
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -63,12 +64,15 @@ internode_encryption: none
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **Controls Version v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 1 | Automated

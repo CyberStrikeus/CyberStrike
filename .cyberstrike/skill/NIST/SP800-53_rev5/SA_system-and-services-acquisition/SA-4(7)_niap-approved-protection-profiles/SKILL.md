@@ -27,7 +27,7 @@ severity_boost:
   SC-13: "Chain with SC-13 for comprehensive security coverage"
 ---
 
-# SA-4(7) NIAP-approved Protection Profiles 
+# SA-4(7) NIAP-approved Protection Profiles
 
 > **Enhancement of:** SA-4
 
@@ -40,7 +40,7 @@ See [NIAP CCEVS](#795aff72-3e6c-4b6b-a80a-b14d84b7f544) for additional informati
 
 ## What to Check
 
-- [ ] Verify SA-4(7) NIAP-approved Protection Profiles  is documented in SSP
+- [ ] Verify SA-4(7) NIAP-approved Protection Profiles is documented in SSP
 - [ ] Validate all 2 control requirements are implemented
 - [ ] Confirm control is operating effectively
 - [ ] Review evidence of continuous monitoring for SA-4(7)
@@ -68,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +85,16 @@ See [NIAP CCEVS](#795aff72-3e6c-4b6b-a80a-b14d84b7f544) for additional informati
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-4(7) NIAP-approved Protection Profiles  not implemented | Medium | System and Services Acquisition |
-| SA-4(7) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                   | Severity | Impact                                     |
+| --------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-4(7) NIAP-approved Protection Profiles not implemented | Medium   | System and Services Acquisition            |
+| SA-4(7) partially implemented                             | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

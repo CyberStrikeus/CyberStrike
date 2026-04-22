@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-11
   - PE-12
@@ -72,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -88,16 +87,16 @@ Capacity planning is needed because different threats can result in a reduction 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-2(2) Capacity Planning not implemented | Medium | Contingency Planning |
-| CP-2(2) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                   | Severity | Impact                          |
+| ----------------------------------------- | -------- | ------------------------------- |
+| CP-2(2) Capacity Planning not implemented | Medium   | Contingency Planning            |
+| CP-2(2) partially implemented             | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

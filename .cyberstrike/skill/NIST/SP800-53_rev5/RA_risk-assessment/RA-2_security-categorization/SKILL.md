@@ -12,8 +12,7 @@ tags:
   - ra
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-8
   - MP-4
@@ -25,8 +24,7 @@ chains_with:
   - RA-5
   - RA-7
   - RA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-8: "Chain with CM-8 for comprehensive security coverage"
   MP-4: "Chain with MP-4 for comprehensive security coverage"
@@ -75,9 +73,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -97,16 +95,16 @@ Security categorization processes facilitate the development of inventories of i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-2 Security Categorization not implemented | Medium | Risk Assessment |
-| RA-2 partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                      | Severity | Impact                     |
+| -------------------------------------------- | -------- | -------------------------- |
+| RA-2 Security Categorization not implemented | Medium   | Risk Assessment            |
+| RA-2 partially implemented                   | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

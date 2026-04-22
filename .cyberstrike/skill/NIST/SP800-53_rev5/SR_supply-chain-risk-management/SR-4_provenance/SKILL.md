@@ -12,8 +12,7 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-8
   - MA-2
@@ -22,8 +21,7 @@ chains_with:
   - SA-3
   - SA-8
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-8: "Chain with CM-8 for comprehensive security coverage"
   MA-2: "Chain with MA-2 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +81,16 @@ Every system and system component has a point of origin and may be changed throu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-4 Provenance not implemented | Medium | Supply Chain Risk Management |
-| SR-4 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                         | Severity | Impact                                  |
+| ------------------------------- | -------- | --------------------------------------- |
+| SR-4 Provenance not implemented | Medium   | Supply Chain Risk Management            |
+| SR-4 partially implemented      | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

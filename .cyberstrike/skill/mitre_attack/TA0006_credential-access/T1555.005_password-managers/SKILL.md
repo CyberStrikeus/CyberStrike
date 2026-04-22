@@ -52,7 +52,7 @@ severity_boost:
 Adversaries may acquire user credentials from third-party password managers. Password managers are applications designed to store user credentials, normally in an encrypted database. Credentials are typically accessible after a user provides a master password that unlocks the database. After the database is unlocked, these credentials may be copied to memory. These databases can be stored as files on disk.
 
 Adversaries may acquire user credentials from password managers by extracting the master password and/or plain-text credentials from memory. Adversaries may extract credentials from memory via Exploitation for Credential Access.
- Adversaries may also try brute forcing via Password Guessing to obtain the master password of a password manager.
+Adversaries may also try brute forcing via Password Guessing to obtain the master password of a password manager.
 
 ## Kill Chain Phase
 
@@ -84,38 +84,40 @@ Adversaries may acquire user credentials from password managers by extracting th
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Regularly update web browsers, password managers, and all related software to the latest versions. Keeping software up-to-date reduces the risk of vulnerabilities being exploited by attackers to extract stored credentials or session cookies.
 
 ### M1018 User Account Management
+
 Implement strict user account management policies to prevent unnecessary accounts from accessing sensitive systems. Regularly audit user accounts to identify and disable inactive accounts that may be targeted by attackers to extract credentials or gain unauthorized access.
 
 ### M1017 User Training
+
 Provide user training on secure practices for managing credentials, including avoiding storing sensitive passwords in browsers and using password managers securely. Users should also be educated on identifying phishing attempts that could steal session cookies or credentials.
 
 ### M1054 Software Configuration
+
 Consider re-locking password managers after a short timeout to limit the time plaintext credentials live in memory from decrypted databases.
 
 ### M1027 Password Policies
-Refer to NIST guidelines when creating password policies for master passwords.
 
+Refer to NIST guidelines when creating password policies for master passwords.
 
 ## Detection
 
 ### Detect Unauthorized Access to Password Managers
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Password Managers technique applicable | High | Credential Access |
+| Finding                                | Severity | Impact            |
+| -------------------------------------- | -------- | ----------------- |
+| Password Managers technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.2.3
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -69,6 +70,6 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 13 Data Protection<br/>Data Protection | | | |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v7               | 13 Data Protection<br/>Data Protection |      |      |      |

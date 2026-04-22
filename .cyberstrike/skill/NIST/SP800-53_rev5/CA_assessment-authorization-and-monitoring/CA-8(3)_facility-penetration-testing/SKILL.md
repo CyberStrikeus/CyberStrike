@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - PE-3
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ Penetration testing of physical access points can provide information on critica
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-8(3) Facility Penetration Testing not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-8(3) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                              | Severity | Impact                                               |
+| ---------------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-8(3) Facility Penetration Testing not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-8(3) partially implemented                        | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

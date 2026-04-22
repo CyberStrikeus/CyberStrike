@@ -27,6 +27,7 @@ severity_boost: {}
 Journald supports the ability to receive messages from remote hosts, thus acting as a log server. Clients should not receive data from other hosts.
 
 Note:
+
 - The same package, `systemd-journal-remote`, is used for both sending logs to remote hosts and receiving incoming logs.
 - With regards to receiving logs, there are two services; `systemd-journal-remote.socket` and `systemd-journal-remote.service`.
 
@@ -74,10 +75,10 @@ systemd-journal-remote.socket is disabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software. |
-| v8 | 8.2 Collect Audit Logs - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets. |
-| v7 | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices. |
-| v7 | 6.3 Enable Detailed Logging - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements. |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. |
+| Controls Version | Control                                                                                                                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software - Uninstall or disable unnecessary services on enterprise assets and software.                                                |
+| v8               | 8.2 Collect Audit Logs - Collect audit logs. Ensure that logging, per the enterprise's audit log management process, has been enabled across enterprise assets.                                               |
+| v7               | 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices.                                                                                                |
+| v7               | 6.3 Enable Detailed Logging - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.       |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. |

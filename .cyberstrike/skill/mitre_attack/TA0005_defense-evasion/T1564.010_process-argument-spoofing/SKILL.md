@@ -91,19 +91,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Process Argument Spoofing on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Process Argument Spoofing technique applicable | Low | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Process Argument Spoofing technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

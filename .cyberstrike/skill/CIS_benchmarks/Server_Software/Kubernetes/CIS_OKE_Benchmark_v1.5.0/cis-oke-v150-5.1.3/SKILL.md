@@ -63,16 +63,16 @@ The default permissions for the cluster Service account is dependent on the init
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | x | x | x |
-| v7 | 14 Controlled Access Based on the Need to Know - Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account. | x    | x    | x    |
+| v7               | 14 Controlled Access Based on the Need to Know - Controlled Access Based on the Need to Know                                                                                                                                                                                                                                 |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1552 | TA0006 | M1026 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1026       |
 
 ## Profile
 

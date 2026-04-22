@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,10 +69,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,17 +87,16 @@ Privileged functions include establishing system accounts, performing system int
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Least Privilege – Privileged Functions (03.01.07) Least Privilege – Privileged Functions not implemented | High | CUI Protection - Access Control |
-| Least Privilege – Privileged Functions (03.01.07) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                                                                  | Severity | Impact                          |
+| -------------------------------------------------------------------------------------------------------- | -------- | ------------------------------- |
+| Least Privilege – Privileged Functions (03.01.07) Least Privilege – Privileged Functions not implemented | High     | CUI Protection - Access Control |
+| Least Privilege – Privileged Functions (03.01.07) partially implemented (POA&M)                          | Medium   | CMMC certification risk         |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

@@ -73,29 +73,28 @@ Review whether mitigations for T1430.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
+
 Users should protect their account credentials and enable multi-factor authentication options when available.
 
 ### M1012 Enterprise Policy
-If devices are enrolled using Apple User Enrollment or using a profile owner enrollment mode for Android, device controls prevent the enterprise from accessing the device’s physical location. This is typically used for a Bring Your Own Device (BYOD) deployment.
 
+If devices are enrolled using Apple User Enrollment or using a profile owner enrollment mode for Android, device controls prevent the enterprise from accessing the device’s physical location. This is typically used for a Bring Your Own Device (BYOD) deployment.
 
 ## Detection
 
 ### Detection of Remote Device Management Services
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Device Management Services technique applicable | Low | Collection |
+| Finding                                                | Severity | Impact     |
+| ------------------------------------------------------ | -------- | ---------- |
+| Remote Device Management Services technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -15,10 +15,8 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - CP-3
 severity_boost: {}
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Operational mechanisms refer to processes that have been established to accompli
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-3(2) Mechanisms Used in Training Environments not implemented | Medium | Contingency Planning |
-| CP-3(2) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                                          | Severity | Impact                          |
+| ---------------------------------------------------------------- | -------- | ------------------------------- |
+| CP-3(2) Mechanisms Used in Training Environments not implemented | Medium   | Contingency Planning            |
+| CP-3(2) partially implemented                                    | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

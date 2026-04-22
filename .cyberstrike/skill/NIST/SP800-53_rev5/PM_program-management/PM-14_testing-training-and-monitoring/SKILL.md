@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-2
   - AT-3
@@ -22,8 +21,7 @@ chains_with:
   - IR-3
   - PM-12
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-2: "Chain with AT-2 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -68,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ A process for organization-wide security and privacy testing, training, and moni
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-14 Testing, Training, and Monitoring not implemented | Medium | Program Management |
-| PM-14 partially implemented | Low | Incomplete Program Management |
+| Finding                                                 | Severity | Impact                        |
+| ------------------------------------------------------- | -------- | ----------------------------- |
+| PM-14 Testing, Training, and Monitoring not implemented | Medium   | Program Management            |
+| PM-14 partially implemented                             | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

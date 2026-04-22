@@ -17,17 +17,19 @@ severity_boost: {}
 # CIS 10.2 — Ensure BIND Processes Run in the named_t Confined Context Type
 
 ## Profile Applicability
+
 - Caching Only Name Server Level 2
 - Authoritative Name Server Level 2
 
 ## Description
+
 SELinux includes customizable targeted policies that may be used to confine the BIND named server to enforce least privileges so that the server has only the minimal access to specified directories, files and network ports. Access is controlled by process types (domains) defined for the named process. There are about a dozen related types defined in a default named SELinux policy. The default SELinux policies work well for a default BIND installation, however testing of the SELinux policies with the specific BIND operations is highly recommended. All directories and files to be accessed by the named server process must have security labels with appropriate types. The following file context types are a sample of the most commonly used:
 
 - `named_cache_t` - Directories and files with dynamically updated contents
 - `named_conf_t` - Directories and Configuration files to be read, but not updated
 - `named_exec_t` - BIND related Executables
 
-The `seinfo` may be used list the types that are configured. For example, the following will list the relevant types that begin with named_
+The `seinfo` may be used list the types that are configured. For example, the following will list the relevant types that begin with named\_
 
 ```
 # seinfo -t | grep ' named_'
@@ -40,12 +42,15 @@ The `semanage fcontext` command may be used to list file context mapping. For ex
 ```
 
 ## Rationale
+
 With the proper implementation of SELinux, vulnerabilities in the BIND named server may be prevented from being exploited due to the additional restrictions. For example, a vulnerability that allows an attacker to read inappropriate system files may be prevented from execution by SELinux because the inappropriate files are not labeled with necessary `named` specific context. Likewise writing to an unexpected directory or execution of unexpected content can be prevented by similar mandatory security labels enforced by SELinux.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Perform the following steps to determine if the recommended state is implemented: Check that the BIND named process is confined to the `named_t` SELinux context. The type is listed in the third colon separated field and should be `named_t`.
 
 ```
@@ -56,6 +61,7 @@ system_u:system_r:named_t:s0        1792 ?         00:00:00 named
 The service is non-compliant if the output does not show a process type or shows a process type other than `named_t`.
 
 ## Remediation
+
 If the running named process is not confined to the `named_t` SELinux context. Then check the labeled context for the named binaries and set the binary files to have a context of `named_exec_t` as shown below. The `named-checkconf` executable should have `named_checkconf_exec_t` type.
 
 ```
@@ -97,22 +103,27 @@ s0
 Restarting the BIND named service will also be required.
 
 ## Default Value
+
 The `name_t` is the default type for ISC BIND named if SELinux is enabled.
 
 ## References
+
 1. https://wiki.centos.org/HowTos/SELinux
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 14.4 Protect Information With Access Control Lists | Y | Y | Y |
-| v7 | 14.6 Protect Information through Access Control Lists | Y | Y | Y |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 14.4 Protect Information With Access Control Lists    | Y    | Y    | Y    |
+| v7               | 14.6 Protect Information through Access Control Lists | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic               | Technique                               |
+| -------------------- | --------------------------------------- |
 | Privilege Escalation | T1548 Abuse Elevation Control Mechanism |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server
 - Level 2 - Caching Only Name Server

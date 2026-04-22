@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure ETag Response Header Fields Do Not Include Inodes (Automated)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -54,14 +55,17 @@ The default value is `MTime Size`.
 ## CIS Controls
 
 **v8:**
+
 - 9.2 Use DNS Filtering Services
   - Use DNS filtering services on all enterprise assets to block access to known malicious domains.
 
 **v7:**
+
 - 7.4 Maintain and Enforce Network-Based URL Filters
   - Enforce network-based URL filters that limit a system's ability to connect to websites not approved by the organization. This filtering shall be enforced for each of the organization's systems, whether they are physically at an organization's facilities or not.
 - 7.7 Use of DNS Filtering Services
   - Use DNS filtering services to help block access to known malicious domains.
 
 ## Profile
+
 - Level 2

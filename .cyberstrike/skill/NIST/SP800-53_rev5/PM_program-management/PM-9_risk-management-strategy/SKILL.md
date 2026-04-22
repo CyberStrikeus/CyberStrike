@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-1
   - AU-1
@@ -25,8 +24,7 @@ chains_with:
   - CA-7
   - CM-1
   - CP-1
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-1: "Chain with AC-1 for comprehensive security coverage"
   AU-1: "Chain with AU-1 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ An organization-wide risk management strategy includes an expression of the secu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-9 Risk Management Strategy not implemented | Medium | Program Management |
-| PM-9 partially implemented | Low | Incomplete Program Management |
+| Finding                                       | Severity | Impact                        |
+| --------------------------------------------- | -------- | ----------------------------- |
+| PM-9 Risk Management Strategy not implemented | Medium   | Program Management            |
+| PM-9 partially implemented                    | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

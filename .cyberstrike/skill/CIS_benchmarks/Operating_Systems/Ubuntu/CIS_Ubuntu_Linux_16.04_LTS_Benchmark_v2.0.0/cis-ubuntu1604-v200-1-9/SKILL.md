@@ -69,10 +69,10 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools |
+| Controls Version | Control                                                      |
+| ---------------- | ------------------------------------------------------------ |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools         |
 
 ## Assessment Status
 

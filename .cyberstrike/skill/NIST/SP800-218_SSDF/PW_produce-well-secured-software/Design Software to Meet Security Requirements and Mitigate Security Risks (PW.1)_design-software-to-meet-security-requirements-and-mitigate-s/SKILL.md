@@ -16,10 +16,8 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +59,10 @@ Verify development team understands and follows Design Software to Meet Security
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,16 +72,15 @@ Identify and evaluate the security requirements for the software; determine what
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1) Design Software to Meet Security Requirements and Mitigate Security Risks not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                                                                                                                                                                    | Severity | Impact                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| Design Software to Meet Security Requirements and Mitigate Security Risks (PW.1) Design Software to Meet Security Requirements and Mitigate Security Risks not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

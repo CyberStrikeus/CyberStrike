@@ -70,9 +70,9 @@ Example:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 0.0 Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped | | | |
+| Controls Version | Control                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped |      |      |      |
 
 MITRE ATT&CK Mappings: T1082, T1082.000, T1592, T1592.004 | TA0007

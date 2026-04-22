@@ -64,7 +64,7 @@ None specified.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
+| Controls Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software |      |      |      |
+| v7               | 5.1 Establish Secure Configurations                      | \*   | \*   | \*   |

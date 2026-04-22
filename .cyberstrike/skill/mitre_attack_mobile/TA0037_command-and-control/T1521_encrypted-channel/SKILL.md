@@ -28,8 +28,7 @@ chains_with:
   - T1521.001
   - T1521.002
   - T1521.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1521.001: "Chain with T1521.001 for deeper attack path"
   T1521.002: "Chain with T1521.002 for deeper attack path"
@@ -73,19 +72,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Encrypted Channel
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Encrypted Channel technique applicable | Low | Command And Control |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| Encrypted Channel technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-300
 chains_with:
   - T1637.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1637.001: "Chain with T1637.001 for deeper attack path"
 ---
@@ -69,19 +68,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Dynamic Resolution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dynamic Resolution technique applicable | Low | Command And Control |
+| Finding                                 | Severity | Impact              |
+| --------------------------------------- | -------- | ------------------- |
+| Dynamic Resolution technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

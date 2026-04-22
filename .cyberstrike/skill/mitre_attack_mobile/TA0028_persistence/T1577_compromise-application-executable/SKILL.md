@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,29 +64,28 @@ Review whether mitigations for T1577 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1001 Security Updates
+
 Security updates frequently contain patches to vulnerabilities.
 
 ### M1006 Use Recent OS Version
-Many vulnerabilities related to injecting code into existing applications have been patched in previous Android releases.
 
+Many vulnerabilities related to injecting code into existing applications have been patched in previous Android releases.
 
 ## Detection
 
 ### Detection of Compromise Application Executable
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Application Executable technique applicable | High | Persistence |
+| Finding                                                | Severity | Impact      |
+| ------------------------------------------------------ | -------- | ----------- |
+| Compromise Application Executable technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

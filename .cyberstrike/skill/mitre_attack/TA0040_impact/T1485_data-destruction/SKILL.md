@@ -38,8 +38,7 @@ cwe_ids:
   - CWE-400
 chains_with:
   - T1485.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1485.001: "Chain with T1485.001 for deeper attack path"
 ---
@@ -90,6 +89,7 @@ if (-not (Test-Path "#{file_to_delete}")) { New-Item "#{file_to_delete}" -Force 
 ```
 
 **Dependencies:**
+
 - Secure delete tool from SysInternals must exist on disk at specified location (#{sdelete_exe})
 
 ### Atomic Test 2: FreeBSD/macOS/Linux - Overwrite file with DD
@@ -106,7 +106,7 @@ dd of=#{file_to_overwrite} if=#{overwrite_source} count=$(ls -l #{file_to_overwr
 ### Atomic Test 3: Overwrite deleted data on C drive
 
 RansomEXX malware removes all deleted files using windows built-in cipher.exe to prevent forensic recover.
-This process is very slow and test execution may timeout. 
+This process is very slow and test execution may timeout.
 https://www.cybereason.com/blog/cybereason-vs.-ransomexx-ransomware
 https://support.microsoft.com/en-us/topic/cipher-exe-security-tool-for-the-encrypting-file-system-56c85edd-85cf-ac07-f2f7-ca2d35dab7e4
 
@@ -128,8 +128,8 @@ echo "" | "#{plink_file}" -batch "#{vm_host}" -ssh -l #{vm_user} -pw "#{vm_pass}
 ```
 
 **Dependencies:**
-- Check if we have plink
 
+- Check if we have plink
 
 ### Manual Testing
 
@@ -144,36 +144,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Implement multi-factor authentication (MFA) delete for cloud storage resources, such as AWS S3 buckets, to prevent unauthorized deletion of critical data and infrastructure. MFA delete requires additional authentication steps, making it significantly more difficult for adversaries to destroy data without proper credentials. This additional security layer helps protect against the impact of data destruction in cloud environments by ensuring that only authenticated actions can irreversibly delete storage or machine images.
 
 ### M1053 Data Backup
+
 Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
 ### M1018 User Account Management
-In cloud environments, limit permissions to modify cloud bucket lifecycle policies (e.g., `PutLifecycleConfiguration` in AWS) to only those accounts that require it. In AWS environments, consider using Service Control policies to limit the use of the `PutBucketLifecycle` API call.
 
+In cloud environments, limit permissions to modify cloud bucket lifecycle policies (e.g., `PutLifecycleConfiguration` in AWS) to only those accounts that require it. In AWS environments, consider using Service Control policies to limit the use of the `PutBucketLifecycle` API call.
 
 ## Detection
 
 ### Detection of Data Destruction Across Platforms via Mass Overwrite and Deletion Patterns
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Destruction technique applicable | High | Impact |
+| Finding                               | Severity | Impact |
+| ------------------------------------- | -------- | ------ |
+| Data Destruction technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 
-- [DOJ  - Cisco Insider](https://www.justice.gov/usao-ndca/pr/san-jose-man-pleads-guilty-damaging-cisco-s-network)
+- [DOJ - Cisco Insider](https://www.justice.gov/usao-ndca/pr/san-jose-man-pleads-guilty-damaging-cisco-s-network)
 - [Unit 42 Shamoon3 2018](https://unit42.paloaltonetworks.com/shamoon-3-targets-oil-gas-organization/)
 - [Palo Alto Shamoon Nov 2016](http://researchcenter.paloaltonetworks.com/2016/11/unit42-shamoon-2-return-disttrack-wiper/)
 - [FireEye Shamoon Nov 2016](https://web.archive.org/web/20210126065851/https://www.fireeye.com/blog/threat-research/2016/11/fireeye_respondsto.html)

@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.6 Ensure the Default CGI Content test-cgi Script Is Removed
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -52,11 +53,12 @@ The default source installation includes the test-cgi script. However, this scri
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions<br>Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications. | | ● | ● |
-| v7 | 4.7 Limit Access to Script Tools<br>Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities. | | ● | ● |
-| v7 | 7.2 Disable Unnecessary or Unauthorized Browser or Email Client Plugins<br>Uninstall or disable any unauthorized browser or email client plugins or add-on applications. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions<br>Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications. |      | ●    | ●    |
+| v7               | 4.7 Limit Access to Script Tools<br>Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.                                     |      | ●    | ●    |
+| v7               | 7.2 Disable Unnecessary or Unauthorized Browser or Email Client Plugins<br>Uninstall or disable any unauthorized browser or email client plugins or add-on applications.                                                                  |      | ●    | ●    |
 
 ## Profile
+
 - Level 2 | Manual

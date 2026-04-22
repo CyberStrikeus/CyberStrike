@@ -40,6 +40,7 @@ Perform the following steps to determine if the recommended state is implemented
 Perform the following to implement the recommended state:
 
 1. Compile a list of existing file extension on the web server. The following `find/awk` command may be useful, but is likely to need some customization according to the appropriate webroot directory for your web server. Please note that the find command skips over any files without a dot (.) in the file name, as these are not expected to be appropriate web content.
+
    ```
    find */htdocs -type f -name '*.*' | awk -F. '{print $NF}' | sort -u
    ```
@@ -47,6 +48,7 @@ Perform the following to implement the recommended state:
 2. Review the list of existing file extensions, for appropriate content for the web server, remove those that are inappropriate and add any additional file extensions expected to be added to the web server in the near future.
 
 3. Add the `FilesMatch` directive below which denies access to all files by default.
+
    ```
    # Block all files by default, unless specifically allowed.
    <FilesMatch "^.*$">
@@ -75,9 +77,11 @@ There are no restrictions on file extensions in the default configuration.
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
 **v7:**
+
 - 18.2 Ensure Explicit Error Checking is Performed for All In-house Developed Software
   - For in-house developed software, ensure that explicit error checking is performed and documented for all input, including for size, data type, and acceptable ranges or formats.

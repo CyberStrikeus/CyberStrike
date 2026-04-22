@@ -58,7 +58,7 @@ Mounting secrets as volumes has the additional benefit that secret values can be
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3 Data Protection | | | |
-| v7 | 13 Data Protection | | | |
+| Controls Version | Control            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------ | ---- | ---- | ---- |
+| v8               | 3 Data Protection  |      |      |      |
+| v7               | 13 Data Protection |      |      |      |

@@ -60,7 +60,7 @@ By default, network policies are not created.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v7 | 14.2 Enable Firewall Filtering Between VLANs | | X | X |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | X    | X    | X    |
+| v7               | 14.2 Enable Firewall Filtering Between VLANs   |      | X    | X    |

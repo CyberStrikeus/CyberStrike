@@ -68,7 +68,7 @@ By default, no IAM roles are associated with Kubernetes service accounts.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.8 Establish and Maintain Dedicated Computing Resources for All Administrative Work | | | X |
-| v7 | 4.3 Ensure the Use of Dedicated Administrative Accounts | X | X | X |
+| Controls Version | Control                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.8 Establish and Maintain Dedicated Computing Resources for All Administrative Work |      |      | X    |
+| v7               | 4.3 Ensure the Use of Dedicated Administrative Accounts                               | X    | X    | X    |

@@ -18,8 +18,7 @@ tech_stack:
   - docker
 cwe_ids:
   - CWE-284
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Archive and Protect Each Software Release (PS.3)
 severity_boost: {}
@@ -65,10 +64,10 @@ Verify development team understands and follows PS.3.2 PS.3.2 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -78,16 +77,15 @@ Collect, safeguard, maintain, and share provenance data for all components of ea
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS.3.2 PS.3.2 not implemented | Medium | Secure Development - Protect Software |
+| Finding                       | Severity | Impact                                |
+| ----------------------------- | -------- | ------------------------------------- |
+| PS.3.2 PS.3.2 not implemented | Medium   | Secure Development - Protect Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

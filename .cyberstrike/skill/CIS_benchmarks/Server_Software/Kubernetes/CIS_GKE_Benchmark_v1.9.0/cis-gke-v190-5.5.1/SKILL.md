@@ -89,7 +89,7 @@ Container-optimised OS with containerd (cos_containerd) (default) is the default
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.5 Allowlist Authorized Software | | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software |      | x    | x    |
+| v7               | 5.2 Maintain Secure Images        |      | x    | x    |

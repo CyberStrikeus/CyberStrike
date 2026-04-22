@@ -95,7 +95,6 @@ sudo cp "#{plist}" /etc/emond.d/rules/T1546.014_emond.plist
 sudo touch /private/var/db/emondClients/T1546.014
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -109,26 +108,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
-Consider disabling emond by removing the Launch Daemon plist file.
 
+Consider disabling emond by removing the Launch Daemon plist file.
 
 ## Detection
 
 ### Detection Strategy for Event Triggered Execution via emond on macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Emond technique applicable | High | Privilege Escalation |
+| Finding                    | Severity | Impact               |
+| -------------------------- | -------- | -------------------- |
+| Emond technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

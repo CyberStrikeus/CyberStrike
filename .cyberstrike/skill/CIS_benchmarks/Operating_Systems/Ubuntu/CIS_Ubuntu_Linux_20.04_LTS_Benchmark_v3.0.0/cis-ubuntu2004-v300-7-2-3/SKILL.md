@@ -75,13 +75,13 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | X | X | X |
-| v8 | 14.6 Train Workforce Members on Recognizing and Reporting Security Incidents | X | X | X |
+| Controls Version | Control                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists                                      | X    | X    | X    |
+| v8               | 14.6 Train Workforce Members on Recognizing and Reporting Security Incidents | X    | X    | X    |
 
 MITRE ATT&CK Mappings:
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1222, T1222.002 | TA0003 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1222, T1222.002            | TA0003  | M1027       |

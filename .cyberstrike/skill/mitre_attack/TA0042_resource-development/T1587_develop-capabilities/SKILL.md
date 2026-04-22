@@ -19,15 +19,13 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1587"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1587.001
   - T1587.002
   - T1587.003
   - T1587.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1587.001: "Chain with T1587.001 for deeper attack path"
   T1587.002: "Chain with T1587.002 for deeper attack path"
@@ -70,25 +68,24 @@ As with legitimate development efforts, different skill sets may be required for
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Develop Capabilities
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Develop Capabilities technique applicable | High | Resource Development |
+| Finding                                   | Severity | Impact               |
+| ----------------------------------------- | -------- | -------------------- |
+| Develop Capabilities technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

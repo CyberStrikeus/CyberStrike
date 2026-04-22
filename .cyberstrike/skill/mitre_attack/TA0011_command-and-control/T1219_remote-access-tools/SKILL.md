@@ -31,8 +31,7 @@ chains_with:
   - T1219.001
   - T1219.002
   - T1219.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1219.001: "Chain with T1219.001 for deeper attack path"
   T1219.002: "Chain with T1219.002 for deeper attack path"
@@ -80,7 +79,7 @@ An adversary may attempt to trick the user into downloading teamviewer and using
 ```powershell
 Invoke-WebRequest -OutFile C:\Users\$env:username\Desktop\TeamViewer_Setup.exe https://download.teamviewer.com/download/TeamViewer_Setup.exe
 $file1 = "C:\Users\" + $env:username + "\Desktop\TeamViewer_Setup.exe"
-Start-Process -Wait $file1 /S; 
+Start-Process -Wait $file1 /S;
 Start-Process 'C:\Program Files (x86)\TeamViewer\TeamViewer.exe'
 ```
 
@@ -138,7 +137,6 @@ Invoke-WebRequest -OutFile $installer "https://d1kuyuqowve5id.cloudfront.net/Scr
 msiexec /i $installer /qn
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -152,38 +150,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control to mitigate installation and use of unapproved software that can be used for remote access.
 
 ### M1037 Filter Network Traffic
+
 Properly configure firewalls, application firewalls, and proxies to limit outgoing traffic to sites and services used by remote access software.
 
 ### M1034 Limit Hardware Installation
+
 Block the use of IP-based KVM devices within the network if they are not required.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures may be able to prevent traffic to remote access services.
 
 ### M1042 Disable or Remove Feature or Program
-Consider disabling unnecessary remote connection functionality, including both unapproved software installations and specific features built into supported applications.
 
+Consider disabling unnecessary remote connection functionality, including both unapproved software installations and specific features built into supported applications.
 
 ## Detection
 
 ### Behavior-Chain Detection for Remote Access Tools (Tool-Agnostic)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Access Tools technique applicable | Medium | Command And Control |
+| Finding                                  | Severity | Impact              |
+| ---------------------------------------- | -------- | ------------------- |
+| Remote Access Tools technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

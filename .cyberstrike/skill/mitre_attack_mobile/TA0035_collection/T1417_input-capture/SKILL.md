@@ -29,8 +29,7 @@ cwe_ids:
 chains_with:
   - T1417.001
   - T1417.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1417.001: "Chain with T1417.001 for deeper attack path"
   T1417.002: "Chain with T1417.002 for deeper attack path"
@@ -70,32 +69,32 @@ Review whether mitigations for T1417 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 When using Samsung Knox, third-party keyboards must be explicitly added to an allow list in order to be available to the end-user. An EMM/MDM can use the Android `DevicePolicyManager.setPermittedAccessibilityServices` method to set an explicit list of applications that are allowed to use Android's accessibility features.
 
 ### M1011 User Guidance
+
 Users should be wary of granting applications dangerous or privacy-intrusive permissions, such as keyboard registration or accessibility service access.
 
 ### M1006 Use Recent OS Version
-The `HIDE_OVERLAY_WINDOWS` permission was introduced in Android 12 allowing apps to hide overlay windows of type `TYPE_APPLICATION_OVERLAY` drawn by other apps with the `SYSTEM_ALERT_WINDOW` permission, preventing other applications from creating overlay windows on top of the current application.
 
+The `HIDE_OVERLAY_WINDOWS` permission was introduced in Android 12 allowing apps to hide overlay windows of type `TYPE_APPLICATION_OVERLAY` drawn by other apps with the `SYSTEM_ALERT_WINDOW` permission, preventing other applications from creating overlay windows on top of the current application.
 
 ## Detection
 
 ### Detection of Input Capture
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Input Capture technique applicable | High | Collection |
+| Finding                            | Severity | Impact     |
+| ---------------------------------- | -------- | ---------- |
+| Input Capture technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

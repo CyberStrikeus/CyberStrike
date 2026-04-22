@@ -49,7 +49,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse a double extension in the filename as a means of masquerading the true file type. A file name may include a secondary file type extension that may cause only the first extension to be displayed (ex: <code>File.txt.exe</code> may render in some views as just <code>File.txt</code>). However, the second extension is the true file type that determines how the file is opened and executed. The real file extension may be hidden by the operating system in the file browser (ex: explorer.exe), as well as in any software configured using or similar to the system’s policies. 
+Adversaries may abuse a double extension in the filename as a means of masquerading the true file type. A file name may include a secondary file type extension that may cause only the first extension to be displayed (ex: <code>File.txt.exe</code> may render in some views as just <code>File.txt</code>). However, the second extension is the true file type that determines how the file is opened and executed. The real file extension may be hidden by the operating system in the file browser (ex: explorer.exe), as well as in any software configured using or similar to the system’s policies.
 
 Adversaries may abuse double extensions to attempt to conceal dangerous file types of payloads. A very common usage involves tricking a user into opening what they think is a benign file type but is actually executable code. Such files often pose as email attachments and allow an adversary to gain Initial Access into a user’s system via Spearphishing Attachment then User Execution. For example, an executable file attachment named <code>Evil.txt.exe</code> may display as <code>Evil.txt</code> to a user. The user may then view it as a benign text file and open it, inadvertently executing the hidden malware.
 
@@ -104,9 +104,9 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -File %temp%\T1036.007
 ```
 
 **Dependencies:**
+
 - File to copy must exist on disk at specified location (#{vbs_path})
 - File to copy must exist on disk at specified location (#{ps1_path})
-
 
 ### Manual Testing
 
@@ -121,29 +121,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1017 User Training
+
 Train users to look for double extensions in filenames, and in general use training as a way to bring awareness to common phishing and spearphishing techniques and how to raise suspicion for potentially malicious events.
 
 ### M1028 Operating System Configuration
-Disable the default to “hide file extensions for known file types” in Windows OS.
 
+Disable the default to “hide file extensions for known file types” in Windows OS.
 
 ## Detection
 
 ### Detection Strategy for Double File Extension Masquerading
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Double File Extension technique applicable | High | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Double File Extension technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

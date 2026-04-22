@@ -30,10 +30,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -76,6 +74,7 @@ ls -l #{folder_path}
 ```
 
 **Dependencies:**
+
 - The file must exist for the test to run.
 
 ### Atomic Test 2: Network-Based Data Transfer in Small Chunks
@@ -96,7 +95,6 @@ while ($bytesRead = $file.Read($buffer, 0, $buffer.Length)) {
 $file.Close()
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -110,26 +108,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary command and control infrastructure and malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary command and control infrastructure and malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detection Strategy for Data Transfer Size Limits and Chunked Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Transfer Size Limits technique applicable | Low | Exfiltration |
+| Finding                                        | Severity | Impact       |
+| ---------------------------------------------- | -------- | ------------ |
+| Data Transfer Size Limits technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

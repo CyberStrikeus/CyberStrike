@@ -82,32 +82,32 @@ In some cases, threat actors may compromise and backdoor existing popular librar
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Where possible, consider requiring developers to pull from internal repositories containing verified and approved packages rather than from external ones.
 
 ### M1031 Network Intrusion Prevention
+
 Network prevention intrusion systems and systems designed to scan and remove malicious downloads can be used to block activity.
 
 ### M1017 User Training
-Train developers to be aware of the existence of malicious libraries and how to avoid installing them.
 
+Train developers to be aware of the existence of malicious libraries and how to avoid installing them.
 
 ## Detection
 
 ### User-Initiated Malicious Library Installation via Package Manager (T1204.005)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Malicious Library technique applicable | High | Execution |
+| Finding                                | Severity | Impact    |
+| -------------------------------------- | -------- | --------- |
+| Malicious Library technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

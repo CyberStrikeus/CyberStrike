@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1599.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1599.001: "Chain with T1599.001 for deeper attack path"
 ---
@@ -67,38 +66,40 @@ When an adversary takes control of such a boundary device, they can bypass its p
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts. Most embedded network devices support TACACS+ and/or RADIUS. Follow vendor prescribed best practices for hardening access control.
 
 ### M1027 Password Policies
+
 Refer to NIST guidelines when creating password policies.
 
 ### M1026 Privileged Account Management
+
 Restrict administrator accounts to as few individuals as possible, following least privilege principles. Prevent credential overlap across systems of administrator and privileged accounts, particularly between network and non-network platforms, such as servers or endpoints.
 
 ### M1037 Filter Network Traffic
+
 Upon identifying a compromised network device being used to bridge a network boundary, block the malicious packets using an unaffected network device in path, such as a firewall or a router that has not been compromised. Continue to monitor for additional activity and to ensure that the blocks are indeed effective.
 
 ### M1043 Credential Access Protection
-Some embedded network devices are capable of storing passwords for local accounts in either plain-text or encrypted formats. Ensure that, where available, local passwords are always encrypted, per vendor recommendations.
 
+Some embedded network devices are capable of storing passwords for local accounts in either plain-text or encrypted formats. Ensure that, where available, local passwords are always encrypted, per vendor recommendations.
 
 ## Detection
 
 ### Detection Strategy for Network Boundary Bridging
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Boundary Bridging technique applicable | Medium | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Network Boundary Bridging technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

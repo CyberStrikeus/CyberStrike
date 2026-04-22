@@ -101,9 +101,9 @@ Remove-FileShare -Name #{share_name}
 
 ### Atomic Test 4: Disable Administrative Share Creation at Startup
 
-Administrative shares are hidden network shares created by Microsoft’s Windows NT operating systems that grant system administrators 
+Administrative shares are hidden network shares created by Microsoft’s Windows NT operating systems that grant system administrators
 remote access to every disk volume on a network-connected system. These shares are automatically created at started unless they have been
-purposefully disabled as is done in this Atomic test. As Microsoft puts it, "Missing administrative shares typically 
+purposefully disabled as is done in this Atomic test. As Microsoft puts it, "Missing administrative shares typically
 indicate that the computer in question has been compromised by malicious software."
 https://threatpost.com/conti-ransomware-gang-has-full-log4shell-attack-chain/177173/
 
@@ -117,8 +117,8 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Param
 
 ### Atomic Test 5: Remove Administrative Shares
 
-Administrative shares are hidden network shares created by Microsoft’s Windows NT operating systems that grant system administrators 
-remote access to every disk volume on a network-connected system. As Microsoft puts it, “Missing administrative shares typically 
+Administrative shares are hidden network shares created by Microsoft’s Windows NT operating systems that grant system administrators
+remote access to every disk volume on a network-connected system. As Microsoft puts it, “Missing administrative shares typically
 indicate that the computer in question has been compromised by malicious software.
 https://threatpost.com/conti-ransomware-gang-has-full-log4shell-attack-chain/177173/
 
@@ -128,7 +128,6 @@ https://threatpost.com/conti-ransomware-gang-has-full-log4shell-attack-chain/177
 ```cmd
 for %i in (C$ IPC$ ADMIN$) do net share %i /delete
 ```
-
 
 ### Manual Testing
 
@@ -148,19 +147,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Network Share Connection Removal via CLI and SMB Disconnects
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Share Connection Removal technique applicable | Low | Defense Evasion |
+| Finding                                               | Severity | Impact          |
+| ----------------------------------------------------- | -------- | --------------- |
+| Network Share Connection Removal technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

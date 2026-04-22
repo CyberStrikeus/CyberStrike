@@ -18,8 +18,7 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-200
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Supply Chain Risk Management (ID.SC)
 severity_boost: {}
@@ -63,10 +62,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -76,16 +75,15 @@ Suppliers and third party partners of information systems, components, and servi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ID.SC-02 ID.SC-02 outcome not achieved | Medium | IDENTIFY Function Gap |
+| Finding                                | Severity | Impact                |
+| -------------------------------------- | -------- | --------------------- |
+| ID.SC-02 ID.SC-02 outcome not achieved | Medium   | IDENTIFY Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

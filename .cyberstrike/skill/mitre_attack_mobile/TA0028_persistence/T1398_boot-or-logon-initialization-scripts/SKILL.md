@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -64,35 +62,36 @@ Review whether mitigations for T1398 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1001 Security Updates
+
 Security updates frequently contain fixes for vulnerabilities that could be leveraged to modify protected operating system files.
 
 ### M1004 System Partition Integrity
+
 Android and iOS include system partition integrity mechanisms that could detect unauthorized modifications.
 
 ### M1002 Attestation
+
 Device attestation could detect devices with unauthorized or unsafe modifications.
 
 ### M1003 Lock Bootloader
-A locked bootloader could prevent unauthorized modifications to protected operating system files.
 
+A locked bootloader could prevent unauthorized modifications to protected operating system files.
 
 ## Detection
 
 ### Detection of Boot or Logon Initialization Scripts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Boot or Logon Initialization Scripts technique applicable | Low | Persistence |
+| Finding                                                   | Severity | Impact      |
+| --------------------------------------------------------- | -------- | ----------- |
+| Boot or Logon Initialization Scripts technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

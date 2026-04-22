@@ -54,8 +54,7 @@ chains_with:
   - T1552.006
   - T1552.007
   - T1552.008
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1552.001: "Chain with T1552.001 for deeper attack path"
   T1552.002: "Chain with T1552.002 for deeper attack path"
@@ -96,7 +95,7 @@ This atomic runs an API call GetPasswordData from a role that does not have perm
 **Supported Platforms:** linux, macos, iaas:aws
 
 ```bash
-export AWS_REGION=#{aws_region} 
+export AWS_REGION=#{aws_region}
 cd #{stratus_path}
 echo "starting warmup"
 ./stratus warmup aws.credential-access.ec2-get-password-data
@@ -105,6 +104,7 @@ echo "starting detonate"
 ```
 
 **Dependencies:**
+
 - Stratus binary must be present at the (#{stratus_path}/stratus)
 - Check if ~/.aws/credentials file has a default stanza is configured
 
@@ -120,7 +120,6 @@ Searching for following strings: "password", "-p", "key", "pwd", "pass"
 ls -R C:\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt | Select-String "password", "-p", "key", "pwd", "pass"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -134,59 +133,67 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 When possible, store keys on separate cryptographic hardware instead of on the local system.
 
 ### M1051 Update Software
+
 Apply patch KB2962486 which prevents credentials from being stored in GPPs.
 
 ### M1017 User Training
+
 Ensure that developers and system administrators are aware of the risk associated with having plaintext passwords in software configuration files that may be left on endpoint systems or servers.
 
 ### M1015 Active Directory Configuration
+
 Remove vulnerable Group Policy Preferences.
 
 ### M1027 Password Policies
+
 Use strong passphrases for private keys to make cracking difficult. Do not store credentials within the Registry. Establish an organizational policy that prohibits password storage in files.
 
 ### M1028 Operating System Configuration
+
 There are multiple methods of preventing a user's command history from being flushed to their .bash_history file, including use of the following commands:
 <code>set +o history</code> and <code>set -o history</code> to start logging again;
 <code>unset HISTFILE</code> being added to a user's .bash_rc file; and
 <code>ln -s /dev/null ~/.bash_history</code> to write commands to <code>/dev/null</code>instead.
 
 ### M1037 Filter Network Traffic
+
 Limit access to the Instance Metadata API. A properly configured Web Application Firewall (WAF) may help prevent external adversaries from exploiting Server-side Request Forgery (SSRF) attacks that allow access to the Cloud Instance Metadata API.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict file shares to specific directories with access only to necessary users.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit network access to sensitive services, such as the Instance Metadata API.
 
 ### M1047 Audit
+
 Preemptively search for files containing passwords or other credentials and take actions to reduce the exposure risk when found.
 
 ### M1026 Privileged Account Management
-If it is necessary that software must store credentials in the Registry, then ensure the associated accounts have limited permissions so they cannot be abused if obtained by an adversary.
 
+If it is necessary that software must store credentials in the Registry, then ensure the associated accounts have limited permissions so they cannot be abused if obtained by an adversary.
 
 ## Detection
 
 ### Detect Access or Search for Unsecured Credentials Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Unsecured Credentials technique applicable | High | Credential Access |
+| Finding                                    | Severity | Impact            |
+| ------------------------------------------ | -------- | ----------------- |
+| Unsecured Credentials technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

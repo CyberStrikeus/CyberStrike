@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - MP-6
   - PL-2
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +85,16 @@ Procedures for individuals who lack appropriate security clearances or who are n
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-5(1) Individuals Without Appropriate Access not implemented | Medium | Maintenance |
-| MA-5(1) partially implemented | Low | Incomplete Maintenance |
+| Finding                                                        | Severity | Impact                 |
+| -------------------------------------------------------------- | -------- | ---------------------- |
+| MA-5(1) Individuals Without Appropriate Access not implemented | Medium   | Maintenance            |
+| MA-5(1) partially implemented                                  | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

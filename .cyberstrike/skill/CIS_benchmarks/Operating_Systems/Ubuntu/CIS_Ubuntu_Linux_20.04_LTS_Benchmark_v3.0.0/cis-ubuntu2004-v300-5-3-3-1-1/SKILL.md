@@ -87,13 +87,13 @@ None listed.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.2 Establish an Access Revoking Process | * | * | * |
-| v7 | 16.7 Establish Process for Revoking Access | | * | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process   | \*   | \*   | \*   |
+| v7               | 16.7 Establish Process for Revoking Access |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1110, T1110.001, T1110.003 | TA0006 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1110, T1110.001, T1110.003 | TA0006  | M1027       |

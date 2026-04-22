@@ -31,8 +31,7 @@ chains_with:
   - T1137.004
   - T1137.005
   - T1137.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1137.001: "Chain with T1137.001 for deeper attack path"
   T1137.002: "Chain with T1137.002 for deeper attack path"
@@ -69,9 +68,10 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Office Application Startup - Outlook as a C2
 
-As outlined in MDSEC's Blog post https://www.mdsec.co.uk/2020/11/a-fresh-outlook-on-mail-based-persistence/ 
+As outlined in MDSEC's Blog post https://www.mdsec.co.uk/2020/11/a-fresh-outlook-on-mail-based-persistence/
 it is possible to use Outlook Macro as a way to achieve persistance and execute arbitrary commands. This transform Outlook into a C2.
 Too achieve this two things must happened on the syste
+
 - The macro security registry value must be set to '1'
 - A file called VbaProject.OTM must be created in the Outlook Folder.
 
@@ -82,7 +82,6 @@ reg add "HKEY_CURRENT_USER\Software\Microsoft\Office\16.0\Outlook\Security" /v L
 mkdir  %APPDATA%\Microsoft\Outlook\ >nul 2>&1
 echo "Atomic Red Team TEST" > %APPDATA%\Microsoft\Outlook\VbaProject.OTM
 ```
-
 
 ### Manual Testing
 
@@ -97,37 +96,38 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Follow Office macro security best practices suitable for your environment. Disable Office VBA macros from executing.
 
 Disable Office add-ins. If they are required, follow best practices for securing them by requiring them to be signed and disabling user notification for allowing add-ins. For some add-ins types (WLL, VBA) additional mitigation is likely required as disabling add-ins in the Office Trust Center does not disable WLL nor does it prevent VBA code from executing.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
 ### M1051 Update Software
+
 For the Outlook methods, blocking macros may be ineffective as the Visual Basic engine used for these features is separate from the macro scripting engine. Microsoft has released patches to try to address each issue. Ensure KB3191938 which blocks Outlook Visual Basic and displays a malicious code warning, KB4011091 which disables custom forms by default, and KB4011162 which removes the legacy Home Page feature, are applied to systems.
 
 ### M1054 Software Configuration
-For the Office Test method, create the Registry key used to execute it and set the permissions to "Read Control" to prevent easy access to the key without administrator permissions or requiring Privilege Escalation.
 
+For the Office Test method, create the Registry key used to execute it and set the permissions to "Read Control" to prevent easy access to the key without administrator permissions or requiring Privilege Escalation.
 
 ## Detection
 
 ### Detect Office Startup-Based Persistence via Macros, Forms, and Registry Hooks
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Office Application Startup technique applicable | Low | Persistence |
+| Finding                                         | Severity | Impact      |
+| ----------------------------------------------- | -------- | ----------- |
+| Office Application Startup technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

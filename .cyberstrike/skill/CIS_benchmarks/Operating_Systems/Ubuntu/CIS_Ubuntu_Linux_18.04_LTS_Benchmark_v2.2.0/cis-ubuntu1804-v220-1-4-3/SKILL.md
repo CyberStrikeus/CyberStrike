@@ -59,13 +59,13 @@ passwd root
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | X | X | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | X    | X    | X    |
+| v7               | 4.4 Use Unique Passwords |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1548, T1548.000 | TA0005 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1548, T1548.000            | TA0005  | M1022       |

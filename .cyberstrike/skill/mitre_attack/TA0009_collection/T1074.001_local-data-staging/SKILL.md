@@ -93,6 +93,7 @@ curl -s https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/ato
 ```
 
 **Dependencies:**
+
 - Check if curl is installed on the machine.
 
 ### Atomic Test 3: Zip a Folder with PowerShell for Staging in Temp
@@ -105,7 +106,6 @@ was placed in the temp directory.
 ```powershell
 Compress-Archive -Path "#{input_file}" -DestinationPath #{output_file} -Force
 ```
-
 
 ### Manual Testing
 
@@ -125,19 +125,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Local Data Staging Prior to Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Local Data Staging technique applicable | Low | Collection |
+| Finding                                 | Severity | Impact     |
+| --------------------------------------- | -------- | ---------- |
+| Local Data Staging technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

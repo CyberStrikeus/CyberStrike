@@ -86,32 +86,32 @@ Tricking a user into executing a command themselves may help to bypass email fil
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control where appropriate. PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
 ### M1031 Network Intrusion Prevention
+
 If a link is being requested by a user, network intrusion prevention systems and systems designed to scan and remove malicious downloads can be used to block activity.
 
 ### M1021 Restrict Web-Based Content
-If a link is being requested by a user, block unknown or unused files in transit by default that should not be downloaded or by policy from suspicious sites as a best practice to prevent some vectors, such as `.scr`, `.exe`, `.pif`, `.cpl`, etc.
 
+If a link is being requested by a user, block unknown or unused files in transit by default that should not be downloaded or by policy from suspicious sites as a best practice to prevent some vectors, such as `.scr`, `.exe`, `.pif`, `.cpl`, etc.
 
 ## Detection
 
 ### User Execution – Malicious Copy & Paste (browser/email → shell with obfuscated one-liner) – T1204.004
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Malicious Copy and Paste technique applicable | High | Execution |
+| Finding                                       | Severity | Impact    |
+| --------------------------------------------- | -------- | --------- |
+| Malicious Copy and Paste technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

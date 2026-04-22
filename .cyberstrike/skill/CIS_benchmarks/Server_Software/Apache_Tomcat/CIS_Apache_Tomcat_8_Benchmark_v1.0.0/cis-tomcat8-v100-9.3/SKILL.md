@@ -54,6 +54,7 @@ In the `$CATALINA_HOME/conf/server.xml` file, change `deployOnStartup` to `false
 ## CIS Controls
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 

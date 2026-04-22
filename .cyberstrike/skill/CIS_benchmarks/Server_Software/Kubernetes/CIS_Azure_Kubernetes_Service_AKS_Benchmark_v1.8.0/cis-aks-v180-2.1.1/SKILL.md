@@ -68,8 +68,8 @@ By default, cluster control plane logs aren't sent to be Logged.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | X | X | X |
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6 Maintenance, Monitoring and Analysis of Audit Logs | | | |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | X    | X    | X    |
+| v8               | 8.2 Collect Audit Logs                                     | X    | X    | X    |
+| v7               | 6 Maintenance, Monitoring and Analysis of Audit Logs       |      |      |      |

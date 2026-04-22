@@ -4,7 +4,19 @@ description: "Ensure Node Auto-Repair is Enabled for GKE Nodes (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, node-configuration, container-optimized-os, auto-repair, auto-upgrade, release-channels, shielded-nodes]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    node-configuration,
+    container-optimized-os,
+    auto-repair,
+    auto-upgrade,
+    release-channels,
+    shielded-nodes,
+  ]
 cis_id: "5.5.2"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -85,7 +97,7 @@ Node auto-repair is enabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools                                    |      | x    | x    |

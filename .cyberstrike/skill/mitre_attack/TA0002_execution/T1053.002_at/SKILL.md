@@ -107,9 +107,9 @@ echo "#{at_command}" | at #{time_spec}
 ```
 
 **Dependencies:**
+
 - The `at` and `atd` executables must exist in the PATH
 - The `atd` daemon must be running
-
 
 ### Manual Testing
 
@@ -124,35 +124,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
+
 Configure settings for scheduled tasks to force tasks to run under the context of the authenticated account instead of allowing them to run as SYSTEM. The associated Registry key is located at <code>HKLM\SYSTEM\CurrentControlSet\Control\Lsa\SubmitControl</code>. The setting can be configured through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > Security Options: Domain Controller: Allow server operators to schedule tasks, set to disabled.
 
 ### M1047 Audit
+
 Toolkits like the PowerSploit framework contain PowerUp modules that can be used to explore systems for permission weaknesses in scheduled tasks that could be used to escalate privileges. Windows operating system also creates a registry key specifically associated with the creation of a scheduled task on the destination host at: Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\At1. In Linux and macOS environments, scheduled tasks using <code>at</code> can be audited locally, or through centrally collected logging, using syslog, or auditd events from the host.
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and remediate Privilege Escalation vectors so only authorized administrators can create scheduled tasks on remote systems. In Linux environments, users account-level access to <code>at</code> can be managed using <code>at.allow</code> and <code>at.deny</code> files. Users listed in the at.allow are enabled to schedule actions using at, whereas users listed in at.deny file disabled from the utility.
 
 ### M1026 Privileged Account Management
-Configure the Increase Scheduling Priority option to only allow the Administrators group the rights to schedule a priority process. This can be configured through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Increase scheduling priority.
 
+Configure the Increase Scheduling Priority option to only allow the Administrators group the rights to schedule a priority process. This can be configured through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Increase scheduling priority.
 
 ## Detection
 
 ### Cross-Platform Detection of Scheduled Task/Job Abuse via `at` Utility
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| At technique applicable | High | Execution |
+| Finding                 | Severity | Impact    |
+| ----------------------- | -------- | --------- |
+| At technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

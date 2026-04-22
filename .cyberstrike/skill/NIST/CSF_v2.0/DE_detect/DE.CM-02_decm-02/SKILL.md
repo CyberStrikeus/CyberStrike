@@ -18,8 +18,7 @@ tech_stack:
   - siem
 cwe_ids:
   - CWE-778
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Continuous Monitoring (DE.CM)
 severity_boost: {}
@@ -63,10 +62,10 @@ Identify which SP 800-53 controls implement this CSF outcome and verify their op
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools |
-| Manual Review | Policy and procedure review | Interviews and documentation |
+| Tool            | Purpose                       | Usage                        |
+| --------------- | ----------------------------- | ---------------------------- |
+| cloud-audit-mcp | Assess cloud security posture | `cloud_audit_*` tools        |
+| Manual Review   | Policy and procedure review   | Interviews and documentation |
 
 ## Remediation Guide
 
@@ -76,16 +75,15 @@ The physical environment is monitored to find potentially adverse events
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DE.CM-02 DE.CM-02 outcome not achieved | High | DETECT Function Gap |
+| Finding                                | Severity | Impact              |
+| -------------------------------------- | -------- | ------------------- |
+| DE.CM-02 DE.CM-02 outcome not achieved | High     | DETECT Function Gap |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

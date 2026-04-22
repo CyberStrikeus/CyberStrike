@@ -80,7 +80,6 @@ Upon successful execution, information about previously connected Wi-Fi networks
 netsh wlan show profile * key=clear
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -99,19 +98,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Wi-Fi Discovery Activity
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Wi-Fi Discovery technique applicable | High | Discovery |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| Wi-Fi Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

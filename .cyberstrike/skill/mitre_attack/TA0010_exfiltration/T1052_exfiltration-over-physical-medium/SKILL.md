@@ -29,8 +29,7 @@ cwe_ids:
   - CWE-200
 chains_with:
   - T1052.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1052.001: "Chain with T1052.001 for deeper attack path"
 ---
@@ -71,32 +70,32 @@ Adversaries may attempt to exfiltrate data via a physical medium, such as a remo
 ## Remediation Guide
 
 ### M1057 Data Loss Prevention
+
 Data loss prevention can detect and block sensitive data being copied to physical mediums.
 
 ### M1034 Limit Hardware Installation
+
 Limit the use of USB devices and removable media within a network.
 
 ### M1042 Disable or Remove Feature or Program
-Disable Autorun if it is unnecessary. Disallow or restrict removable media at an organizational policy level if they are not required for business operations.
 
+Disable Autorun if it is unnecessary. Disallow or restrict removable media at an organizational policy level if they are not required for business operations.
 
 ## Detection
 
 ### Detection of Data Exfiltration via Removable Media
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Physical Medium technique applicable | Low | Exfiltration |
+| Finding                                                | Severity | Impact       |
+| ------------------------------------------------------ | -------- | ------------ |
+| Exfiltration Over Physical Medium technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-400
 chains_with:
   - T1641.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1641.001: "Chain with T1641.001 for deeper attack path"
 ---
@@ -63,26 +62,24 @@ Review whether mitigations for T1641 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Recent OS versions have limited access to certain APIs unless certain conditions are met, making Data Manipulation more difficult
 
+Recent OS versions have limited access to certain APIs unless certain conditions are met, making Data Manipulation more difficult
 
 ## Detection
 
 ### Detection of Data Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Manipulation technique applicable | Low | Impact |
+| Finding                                | Severity | Impact |
+| -------------------------------------- | -------- | ------ |
+| Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

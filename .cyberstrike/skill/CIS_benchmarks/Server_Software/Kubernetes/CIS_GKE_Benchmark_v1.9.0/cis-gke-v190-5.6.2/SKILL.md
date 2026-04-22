@@ -104,8 +104,8 @@ By default, VPC-native (using alias IP) is enabled when you create a new cluster
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | x | x |
-| v7 | 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches | | | |
-| v7 | 14.1 Segment the Network Based on Sensitivity | | x | x |
+| Controls Version | Control                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments                              |      | x    | x    |
+| v7               | 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches |      |      |      |
+| v7               | 14.1 Segment the Network Based on Sensitivity                                        |      | x    | x    |

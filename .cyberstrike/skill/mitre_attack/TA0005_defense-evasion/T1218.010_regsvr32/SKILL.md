@@ -51,9 +51,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse Regsvr32.exe to proxy execution of malicious code. Regsvr32.exe is a command-line program used to register and unregister object linking and embedding controls, including dynamic link libraries (DLLs), on Windows systems. The Regsvr32.exe binary may also be signed by Microsoft. 
+Adversaries may abuse Regsvr32.exe to proxy execution of malicious code. Regsvr32.exe is a command-line program used to register and unregister object linking and embedding controls, including dynamic link libraries (DLLs), on Windows systems. The Regsvr32.exe binary may also be signed by Microsoft.
 
-Malicious usage of Regsvr32.exe may avoid triggering security tools that may not monitor execution of, and modules loaded by, the regsvr32.exe process because of allowlists or false positives from Windows using regsvr32.exe for normal operations. Regsvr32.exe can also be used to specifically bypass application control using functionality to load COM scriptlets to execute DLLs under user permissions. Since Regsvr32.exe is network and proxy aware, the scripts can be loaded by passing a uniform resource locator (URL) to file on an external Web server as an argument during invocation. This method makes no changes to the Registry as the COM object is not actually registered, only executed. This variation of the technique is often referred to as a "Squiblydoo" and has been used in campaigns targeting governments. 
+Malicious usage of Regsvr32.exe may avoid triggering security tools that may not monitor execution of, and modules loaded by, the regsvr32.exe process because of allowlists or false positives from Windows using regsvr32.exe for normal operations. Regsvr32.exe can also be used to specifically bypass application control using functionality to load COM scriptlets to execute DLLs under user permissions. Since Regsvr32.exe is network and proxy aware, the scripts can be loaded by passing a uniform resource locator (URL) to file on an external Web server as an argument during invocation. This method makes no changes to the Registry as the COM object is not actually registered, only executed. This variation of the technique is often referred to as a "Squiblydoo" and has been used in campaigns targeting governments.
 
 Regsvr32.exe can also be leveraged to register a COM Object used to establish persistence via Component Object Model Hijacking.
 
@@ -87,6 +87,7 @@ Regsvr32.exe is a command-line program used to register and unregister OLE contr
 ```
 
 **Dependencies:**
+
 - Regsvr32.sct must exist on disk at specified location (#{filename})
 
 ### Atomic Test 2: Regsvr32 remote COM scriptlet execution
@@ -111,6 +112,7 @@ IF "%PROCESSOR_ARCHITECTURE%"=="AMD64" (C:\Windows\syswow64\regsvr32.exe /s #{dl
 ```
 
 **Dependencies:**
+
 - AllTheThingsx86.dll must exist on disk at specified location (#{dll_name})
 
 ### Atomic Test 4: Regsvr32 Registering Non DLL
@@ -124,6 +126,7 @@ Replicating observed Gozi maldoc behavior registering a dll with an altered exte
 ```
 
 **Dependencies:**
+
 - Test requires a renamed dll file
 
 ### Atomic Test 5: Regsvr32 Silent DLL Install Call DllRegisterServer
@@ -137,8 +140,8 @@ Regsvr32.exe is a command-line program used to register and unregister OLE contr
 ```
 
 **Dependencies:**
-- AllTheThingsx86.dll must exist on disk at specified location (#{dll_name})
 
+- AllTheThingsx86.dll must exist on disk at specified location (#{dll_name})
 
 ### Manual Testing
 
@@ -153,26 +156,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1050 Exploit Protection
-Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block regsvr32.exe from being used to bypass application control. Identify and block potentially malicious software executed through regsvr32 functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
+Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block regsvr32.exe from being used to bypass application control. Identify and block potentially malicious software executed through regsvr32 functionality by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
 ## Detection
 
 ### Detection Strategy for System Binary Proxy Execution: Regsvr32
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Regsvr32 technique applicable | High | Defense Evasion |
+| Finding                       | Severity | Impact          |
+| ----------------------------- | -------- | --------------- |
+| Regsvr32 technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

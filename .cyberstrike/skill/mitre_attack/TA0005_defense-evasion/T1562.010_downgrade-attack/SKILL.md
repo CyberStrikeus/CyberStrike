@@ -55,7 +55,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may downgrade or use a version of system features that may be outdated, vulnerable, and/or does not support updated security controls. Downgrade attacks typically take advantage of a system’s backward compatibility to force it into less secure modes of operation. 
+Adversaries may downgrade or use a version of system features that may be outdated, vulnerable, and/or does not support updated security controls. Downgrade attacks typically take advantage of a system’s backward compatibility to force it into less secure modes of operation.
 
 Adversaries may downgrade and use various less-secure versions of features of a system, such as Command and Scripting Interpreters or even network protocols that can be abused to enable Adversary-in-the-Middle or Network Sniffing. For example, PowerShell versions 5+ includes Script Block Logging (SBL), which can record executed script content. However, adversaries may attempt to execute a previous version of PowerShell that does not support SBL with the intent to Impair Defenses while running malicious scripts that may have otherwise been detected.
 
@@ -91,13 +91,14 @@ An adversary can change the VIB acceptance level to CommunitySupported to downgr
 **Elevation Required:** Yes
 
 ```powershell
-Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -ParticipateInCEIP:$false -Confirm:$false 
+Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -ParticipateInCEIP:$false -Confirm:$false
 Connect-VIServer -Server #{vm_host} -User #{vm_user} -Password #{vm_pass}
 (Get-EsxCli -VMHost #{vm_host} -V2).software.acceptance.set.Invoke(@{level = "CommunitySupported"})
 Disconnect-VIServer -Confirm:$false
 ```
 
 **Dependencies:**
+
 - Check if VMWARE PowerCLI PowerShell Module is installed.
 
 ### Atomic Test 2: ESXi - Change VIB acceptance level to CommunitySupported via ESXCLI
@@ -112,6 +113,7 @@ echo "" | "#{plink_file}" "#{vm_host}" -ssh  -l "#{vm_user}" -pw "#{vm_pass}" -m
 ```
 
 **Dependencies:**
+
 - Check if plink is available.
 
 ### Atomic Test 3: PowerShell Version 2 Downgrade
@@ -125,8 +127,8 @@ PowerShell -version 2 -command '#{v2_command}'
 ```
 
 **Dependencies:**
-- Check if Version 2 is installed.
 
+- Check if Version 2 is installed.
 
 ### Manual Testing
 
@@ -141,29 +143,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Consider implementing policies on internal web servers, such HTTP Strict Transport Security, that enforce the use of HTTPS/network traffic encryption to prevent insecure connections.
 
 ### M1042 Disable or Remove Feature or Program
-Consider removing previous versions of tools that are unnecessary to the environment when possible.
 
+Consider removing previous versions of tools that are unnecessary to the environment when possible.
 
 ## Detection
 
 ### Detecting Downgrade Attacks
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Downgrade Attack technique applicable | Low | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Downgrade Attack technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

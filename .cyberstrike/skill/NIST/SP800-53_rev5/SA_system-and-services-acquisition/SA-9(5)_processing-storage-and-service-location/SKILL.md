@@ -65,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,17 +81,16 @@ The location of information processing, information and data storage, or system 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-9(5) Processing, Storage, and Service Location not implemented | Medium | System and Services Acquisition |
-| SA-9(5) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                           | Severity | Impact                                     |
+| ----------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-9(5) Processing, Storage, and Service Location not implemented | Medium   | System and Services Acquisition            |
+| SA-9(5) partially implemented                                     | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

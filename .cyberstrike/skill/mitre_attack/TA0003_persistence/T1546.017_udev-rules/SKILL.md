@@ -94,19 +94,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for T1546.017 - Udev Rules (Linux)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Udev Rules technique applicable | Low | Persistence |
+| Finding                         | Severity | Impact      |
+| ------------------------------- | -------- | ----------- |
+| Udev Rules technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

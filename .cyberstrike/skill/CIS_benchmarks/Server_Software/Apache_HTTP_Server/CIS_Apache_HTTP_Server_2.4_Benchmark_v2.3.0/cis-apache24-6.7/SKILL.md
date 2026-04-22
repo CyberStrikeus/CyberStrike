@@ -48,11 +48,13 @@ For the **OWASP ModSecurity CRS version 2.2.9**, perform the following to audit 
 In the 2.2.9 release, the OWASP ModSecurity CRS contains 15 base_rule configuration files, each with rule sets. The CRS also contains 14 optional rule sets, and 17 experimental rule sets. Since it is expected that customization and testing will be necessary to implement the CRS, it is not expected that any site will implement all CRS configuration files / rule sets. Therefore, for the purpose of auditing, the OWASP ModSecurity CRS will be considered implemented if 200 or more of the security rules (SecRule) are active in the CRS configuration files. The default 2.2.9 installation contains 227 security rules. Perform the following to determine if 2.2.9 OWASP ModSecurity CRS is enabled:
 
 - Set RULE_DIR environment variable to the directory where the active rules are included from the modsecurity configuration file. An example is shown below.
+
   ```
   RULE_DIR=$APACHE_PREFIX/modsecurity.d/activated_rules/
   ```
 
 - Use the following command to count the security rules in all of the active CRS configuration files.
+
   ```
   find $APACHE_PREFIX/modsecurity.d/activated_rules/ -name 'modsecurity_crs_*.conf' | xargs grep '^SecRule ' | wc -l
   ```
@@ -66,11 +68,13 @@ In the 3.0 release, the OWASP ModSecurity CRS contains 29 rule configuration fil
 Perform the following to determine if OWASP ModSecurity CRS 3.0 is enabled, and is configured to meet or exceed the expected values:
 
 - Set RULE_DIR environment variable to the directory where the active rules are included from the modsecurity configuration file. An example is shown below.
+
   ```
   RULE_DIR=$APACHE_PREFIX/modsecurity.d/owasp-modsecurity-crs-3.0.0/
   ```
 
 - Use the following command to count the security rules in all of the active CRS configuration files.
+
   ```
   find $RULE_DIR -name '*.conf' | xargs grep -v '^#\s*' | grep 'SecRule ' | wc -l
   ```
@@ -78,11 +82,13 @@ Perform the following to determine if OWASP ModSecurity CRS 3.0 is enabled, and 
 - If the number of active rules is 325 or greater then OWASP ModSecurity CRS 3.0 is considered active.
 
 - The Inbound Anomaly Threshold must be less than or equal to 5, and can be checked with the following command.
+
   ```
   find $RULE_DIR -name '*.conf' | xargs egrep -v '^\s*#' | grep 'setvar:tx.inbound_anomaly_score_threshold'
   ```
 
 - The Outbound Anomaly Threshold must be less than or equal to 4, and may be audited with the following command.
+
   ```
   find $RULE_DIR -name '*.conf' | xargs egrep -v '^\s*#' | grep 'setvar:tx.outbound_anomaly_score_threshold'
   ```
@@ -124,9 +130,11 @@ CRS v3.0 Default Values:
 ## CIS Controls
 
 **v8:**
+
 - 4.4 Implement and Manage a Firewall on Servers
 - 9.5 Implement Application Firewalls
 - 18.10 Deploy Web Application Firewalls (WAFs)
 
 **v7:**
+
 - 18.10 Deploy Web Application Firewalls (WAFs)

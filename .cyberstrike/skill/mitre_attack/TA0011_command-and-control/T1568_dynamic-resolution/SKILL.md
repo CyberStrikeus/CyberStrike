@@ -34,8 +34,7 @@ chains_with:
   - T1568.001
   - T1568.002
   - T1568.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1568.001: "Chain with T1568.001 for deeper attack path"
   T1568.002: "Chain with T1568.002 for deeper attack path"
@@ -80,29 +79,28 @@ Adversaries may use dynamic resolution for the purpose of Fallback Channels. Whe
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Malware researchers can reverse engineer malware variants that use dynamic resolution and determine future C2 infrastructure that the malware will attempt to contact, but this is a time and resource intensive effort.
 
 ### M1021 Restrict Web-Based Content
-In some cases a local DNS sinkhole may be used to help prevent behaviors associated with dynamic resolution.
 
+In some cases a local DNS sinkhole may be used to help prevent behaviors associated with dynamic resolution.
 
 ## Detection
 
 ### Detection Strategy for Dynamic Resolution across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dynamic Resolution technique applicable | Low | Command And Control |
+| Finding                                 | Severity | Impact              |
+| --------------------------------------- | -------- | ------------------- |
+| Dynamic Resolution technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

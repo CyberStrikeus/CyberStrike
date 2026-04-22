@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-3
   - SI-2
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ Organizations can conduct specialized assessments, including verification and va
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-2(2) Specialized Assessments not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-2(2) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                         | Severity | Impact                                               |
+| ----------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-2(2) Specialized Assessments not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-2(2) partially implemented                   | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

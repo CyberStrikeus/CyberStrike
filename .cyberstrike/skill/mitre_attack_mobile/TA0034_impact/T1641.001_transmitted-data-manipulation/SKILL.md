@@ -72,26 +72,24 @@ Review whether mitigations for T1641.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 10 prevents applications from accessing clipboard data unless the application is on the foreground or is set as the device’s default input method editor (IME).
 
+Android 10 prevents applications from accessing clipboard data unless the application is on the foreground or is set as the device’s default input method editor (IME).
 
 ## Detection
 
 ### Detection of Transmitted Data Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Transmitted Data Manipulation technique applicable | Low | Impact |
+| Finding                                            | Severity | Impact |
+| -------------------------------------------------- | -------- | ------ |
+| Transmitted Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

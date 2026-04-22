@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 6.2
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -69,13 +70,16 @@ By default, Docker does not restrict the number of containers you may have on a 
 ## CIS Controls
 
 **v8:**
+
 - **3.12 Segment Data Processing and Storage Based on Sensitivity**
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v8:**
+
 - **4 Secure Configuration of Enterprise Assets and Software**
   - Establish and maintain the secure configuration of enterprise assets (end-user devices, including portable and mobile; network devices; non-computing/IoT devices; and servers) and software (operating systems and applications).
 
 **v7:**
+
 - **5.1 Establish Secure Configurations**
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.

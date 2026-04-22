@@ -25,8 +25,7 @@ chains_with:
   - SR-4
   - SR-5
   - SR-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   MA-6: "Chain with MA-6 for comprehensive security coverage"
   SA-3: "Chain with SA-3 for comprehensive security coverage"
@@ -71,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ Development tools include programming languages and computer-aided design system
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-15 Development Process, Standards, and Tools not implemented | Medium | System and Services Acquisition |
-| SA-15 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                         | Severity | Impact                                     |
+| --------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-15 Development Process, Standards, and Tools not implemented | Medium   | System and Services Acquisition            |
+| SA-15 partially implemented                                     | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

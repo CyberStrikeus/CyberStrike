@@ -32,8 +32,7 @@ cwe_ids:
   - CWE-200
 chains_with:
   - T1614.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1614.001: "Chain with T1614.001 for deeper attack path"
 ---
@@ -79,6 +78,7 @@ Get geolocation info through IP-Lookup services using curl Windows. The default 
 ```
 
 **Dependencies:**
+
 - Curl must be installed on system.
 
 ### Atomic Test 2: Get geolocation info through IP-Lookup services using curl freebsd, linux or macos
@@ -90,7 +90,6 @@ Get geolocation info through IP-Lookup services using curl Windows. The default 
 ```bash
 curl -k #{ip_lookup_url}
 ```
-
 
 ### Manual Testing
 
@@ -110,19 +109,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for System Location Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Location Discovery technique applicable | Medium | Discovery |
+| Finding                                        | Severity | Impact    |
+| ---------------------------------------------- | -------- | --------- |
+| System Location Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

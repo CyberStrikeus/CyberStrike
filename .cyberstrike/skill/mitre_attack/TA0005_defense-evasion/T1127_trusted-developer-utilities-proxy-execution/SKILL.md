@@ -25,8 +25,7 @@ chains_with:
   - T1127.001
   - T1127.002
   - T1127.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1127.001: "Chain with T1127.001 for deeper attack path"
   T1127.002: "Chain with T1127.002 for deeper attack path"
@@ -74,6 +73,7 @@ copy "#{filename}" %TEMP%\hello.js
 ```
 
 **Dependencies:**
+
 - JavaScript code file must exist on disk at specified location (#{filename})
 
 ### Atomic Test 2: Lolbin Jsc.exe compile javascript to dll
@@ -90,8 +90,8 @@ copy "#{filename}" %TEMP%\LibHello.js
 ```
 
 **Dependencies:**
-- JavaScript code file must exist on disk at specified location (#{filename})
 
+- JavaScript code file must exist on disk at specified location (#{filename})
 
 ### Manual Testing
 
@@ -106,32 +106,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Certain developer utilities should be blocked or restricted if not required.
 
 ### M1021 Restrict Web-Based Content
+
 Consider disabling software installation or execution from the internet via developer utilities.
 
 ### M1042 Disable or Remove Feature or Program
-Specific developer utilities may not be necessary within a given environment and should be removed if not used.
 
+Specific developer utilities may not be necessary within a given environment and should be removed if not used.
 
 ## Detection
 
 ### Behavior-chain, platform-aware detection strategy for T1127 Trusted Developer Utilities Proxy Execution (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Trusted Developer Utilities Proxy Execution technique applicable | High | Defense Evasion |
+| Finding                                                          | Severity | Impact          |
+| ---------------------------------------------------------------- | -------- | --------------- |
+| Trusted Developer Utilities Proxy Execution technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

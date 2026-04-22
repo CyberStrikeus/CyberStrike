@@ -36,7 +36,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may collect keychain data from an iOS device to acquire credentials. Keychains are the built-in way for iOS to keep track of users' passwords and credentials for many services and features such as Wi-Fi passwords, websites, secure notes, certificates, private keys, and VPN credentials. 
+Adversaries may collect keychain data from an iOS device to acquire credentials. Keychains are the built-in way for iOS to keep track of users' passwords and credentials for many services and features such as Wi-Fi passwords, websites, secure notes, certificates, private keys, and VPN credentials.
 
 On the device, the keychain database is stored outside of application sandboxes to prevent unauthorized access to the raw data. Standard iOS APIs allow applications access to their own keychain contained within the database. By utilizing a privilege escalation exploit or existing root access, adversaries can access the entire encrypted database.
 
@@ -66,32 +66,32 @@ Review whether mitigations for T1634.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1010 Deploy Compromised Device Detection Method
+
 Mobile security products can take appropriate action when jailbroken devices are detected, potentially limiting the adversary’s access to password stores.
 
 ### M1001 Security Updates
+
 Apple regularly provides security updates for known OS vulnerabilities.
 
 ### M1002 Attestation
-Device attestation can often detect jailbroken devices.
 
+Device attestation can often detect jailbroken devices.
 
 ## Detection
 
 ### Detection of Keychain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Keychain technique applicable | High | Credential Access |
+| Finding                       | Severity | Impact            |
+| ----------------------------- | -------- | ----------------- |
+| Keychain technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

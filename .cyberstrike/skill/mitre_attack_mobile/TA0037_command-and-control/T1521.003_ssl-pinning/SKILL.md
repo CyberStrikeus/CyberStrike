@@ -51,9 +51,9 @@ In normal, not pinned SSL validation, when a client connects to a server using H
 
 There are two types of SSL Pinning :
 
-1.	Certificate Pinning: The client stores a copy of the server’s certificate and compares it with the certificate received during the SSL handshake. If the certificates match, then the client proceeds with the connection. This approach also works with self-signed certificates.
+1. Certificate Pinning: The client stores a copy of the server’s certificate and compares it with the certificate received during the SSL handshake. If the certificates match, then the client proceeds with the connection. This approach also works with self-signed certificates.
 
-2.	Public Key Pinning: Instead of pinning the entire certificate, the client pins just the public key extracted from the certificate. This is often more flexible, as it allows the server to renew its certificate without having to update the pinned certificate or breaking the SSL connection.
+2. Public Key Pinning: Instead of pinning the entire certificate, the client pins just the public key extracted from the certificate. This is often more flexible, as it allows the server to renew its certificate without having to update the pinned certificate or breaking the SSL connection.
 
 ## Kill Chain Phase
 
@@ -82,29 +82,28 @@ Review whether mitigations for T1521.003 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
+
 Users should be advised to not trust or install self-signed certificates.
 
 ### M1012 Enterprise Policy
-Certain enterprise policies can be applied to prevent users from adding certificates to the device and to prevent applications from being able to install their own certificates.
 
+Certain enterprise policies can be applied to prevent users from adding certificates to the device and to prevent applications from being able to install their own certificates.
 
 ## Detection
 
 ### Detection of SSL Pinning
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SSL Pinning technique applicable | Low | Command And Control |
+| Finding                          | Severity | Impact              |
+| -------------------------------- | -------- | ------------------- |
+| SSL Pinning technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

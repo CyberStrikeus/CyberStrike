@@ -66,7 +66,7 @@ This type of file obfuscation can be applied to many file artifacts present on v
 
 The entire content of a file may be obfuscated, or just specific functions or values (such as C2 addresses). Encryption and encoding may also be applied in redundant layers for additional protection.
 
-For example, adversaries may abuse password-protected Word documents or self-extracting (SFX) archives as a method of encrypting/encoding a file such as a Phishing payload. These files typically function by attaching the intended archived content to a decompressor stub that is executed when the file is invoked (e.g., User Execution). 
+For example, adversaries may abuse password-protected Word documents or self-extracting (SFX) archives as a method of encrypting/encoding a file such as a Phishing payload. These files typically function by attaching the intended archived content to a decompressor stub that is executed when the file is invoked (e.g., User Execution).
 
 Adversaries may also abuse file-specific as well as custom encoding schemes. For example, Byte Order Mark (BOM) headers in text files may be abused to manipulate and obfuscate file content until Command and Scripting Interpreter execution.
 
@@ -145,8 +145,8 @@ bash /tmp/art_payload.sh
 ```
 
 **Dependencies:**
-- zip and unzip must be installed
 
+- zip and unzip must be installed
 
 ### Manual Testing
 
@@ -161,31 +161,30 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically detect and quarantine suspicious files, including those with high entropy measurements or with otherwise potentially malicious signs of obfuscation.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10+, enable Attack Surface Reduction (ASR) rules to block execution of potentially obfuscated scripts.
 
 Security tools should be configured to analyze the encoding properties of files and detect anomalies that deviate from standard encoding practices.
-
 
 ## Detection
 
 ### Encrypted or Encoded File Payload Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Encrypted/Encoded File technique applicable | High | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Encrypted/Encoded File technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

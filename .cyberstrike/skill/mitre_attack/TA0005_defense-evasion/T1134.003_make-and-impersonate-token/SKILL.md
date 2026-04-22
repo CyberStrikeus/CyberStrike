@@ -77,31 +77,30 @@ This behavior is distinct from Token Impersonation/Theft in that this refers to 
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token.
 
 Administrators should log in as a standard user but run their tools with administrator privileges using the built-in access token manipulation command <code>runas</code>.
 
 ### M1018 User Account Management
-An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
+An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
 ## Detection
 
 ### Behavior‑chain detection for T1134.003 Make and Impersonate Token (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Make and Impersonate Token technique applicable | High | Defense Evasion |
+| Finding                                         | Severity | Impact          |
+| ----------------------------------------------- | -------- | --------------- |
+| Make and Impersonate Token technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

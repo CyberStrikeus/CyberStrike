@@ -32,10 +32,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -91,8 +89,8 @@ Stop-Process -Name "chrome"
 ```
 
 **Dependencies:**
-- Chrome must be installed
 
+- Chrome must be installed
 
 ### Manual Testing
 
@@ -107,38 +105,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
+
 Restrict all traffic to and from public Tor nodes.
 
 ### M1030 Network Segmentation
+
 Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable or block remotely available services that may be unnecessary.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit access to remote services through centrally managed concentrators such as VPNs and other managed remote access systems.
 
 ### M1032 Multi-factor Authentication
-Use strong two-factor or multi-factor authentication for remote service accounts to mitigate an adversary's ability to leverage stolen credentials, but be aware of Multi-Factor Authentication Interception techniques for some two-factor authentication implementations.
 
+Use strong two-factor or multi-factor authentication for remote service accounts to mitigate an adversary's ability to leverage stolen credentials, but be aware of Multi-Factor Authentication Interception techniques for some two-factor authentication implementations.
 
 ## Detection
 
 ### Behavior-chain detection for T1133 External Remote Services across Windows, Linux, macOS, Containers
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| External Remote Services technique applicable | High | Persistence |
+| Finding                                       | Severity | Impact      |
+| --------------------------------------------- | -------- | ----------- |
+| External Remote Services technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

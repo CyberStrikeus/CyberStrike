@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ The use of automated mechanisms to support the management of distributed functio
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-6(2) Automation Support for Distributed Testing not implemented | High | System and Information Integrity |
-| SI-6(2) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                            | Severity | Impact                                      |
+| ------------------------------------------------------------------ | -------- | ------------------------------------------- |
+| SI-6(2) Automation Support for Distributed Testing not implemented | High     | System and Information Integrity            |
+| SI-6(2) partially implemented                                      | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

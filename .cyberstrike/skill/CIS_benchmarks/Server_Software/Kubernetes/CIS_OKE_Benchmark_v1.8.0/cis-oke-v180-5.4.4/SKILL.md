@@ -4,7 +4,8 @@ description: "Ensure Network Policy is Enabled and set as appropriate (Manual)"
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, cluster-networking, network-policy, calico, pod-isolation, segmentation]
+tags:
+  [cis, oke, kubernetes, oci, managed-services, cluster-networking, network-policy, calico, pod-isolation, segmentation]
 cis_id: "5.4.4"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -104,14 +105,14 @@ By default, Network Policy is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | x | x |
-| v7 | 9.4 Apply Host-based Firewalls or Port Filtering | x | x | x |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers                     | x    | x    | x    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | x    | x    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering                   | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1046 | TA0007 | M1030, M1042 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1046                       | TA0007  | M1030, M1042 |

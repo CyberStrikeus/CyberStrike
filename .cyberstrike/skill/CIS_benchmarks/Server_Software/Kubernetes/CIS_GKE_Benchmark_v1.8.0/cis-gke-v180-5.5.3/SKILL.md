@@ -4,7 +4,19 @@ description: "Ensure Node Auto-Upgrade is Enabled for GKE Nodes (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, node-configuration, container-optimized-os, auto-repair, auto-upgrade, release-channels, shielded-nodes]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    node-configuration,
+    container-optimized-os,
+    auto-repair,
+    auto-upgrade,
+    release-channels,
+    shielded-nodes,
+  ]
 cis_id: "5.5.3"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -100,9 +112,9 @@ Node auto-upgrades is not available for Alpha Clusters.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.3 Perform Automated Operating System Patch Management | x | x | x |
-| v7 | 2.2 Ensure Software is Supported by Vendor | x | x | x |
-| v7 | 3.4 Deploy Automated Operating System Patch Management Tools | x | x | x |
-| v7 | 3.5 Deploy Automated Software Patch Management Tools | x | x | x |
+| Controls Version | Control                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.3 Perform Automated Operating System Patch Management      | x    | x    | x    |
+| v7               | 2.2 Ensure Software is Supported by Vendor                   | x    | x    | x    |
+| v7               | 3.4 Deploy Automated Operating System Patch Management Tools | x    | x    | x    |
+| v7               | 3.5 Deploy Automated Software Patch Management Tools         | x    | x    | x    |

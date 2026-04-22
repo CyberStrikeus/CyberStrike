@@ -178,6 +178,6 @@ Run the following script to lock disable automatic mounting of media for all GNO
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1091, T1091.000 | TA0001, TA0008 | M1042 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1091, T1091.000            | TA0001, TA0008 | M1042       |

@@ -12,8 +12,7 @@ tags:
   - ra
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - CA-7
@@ -22,8 +21,7 @@ chains_with:
   - RA-5
   - RA-6
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-2: "Chain with CA-2 for comprehensive security coverage"
   CA-7: "Chain with CA-7 for comprehensive security coverage"
@@ -68,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,16 +85,16 @@ Threat hunting is an active means of cyber defense in contrast to traditional pr
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-10 Threat Hunting not implemented | Medium | Risk Assessment |
-| RA-10 partially implemented | Low | Incomplete Risk Assessment |
+| Finding                              | Severity | Impact                     |
+| ------------------------------------ | -------- | -------------------------- |
+| RA-10 Threat Hunting not implemented | Medium   | Risk Assessment            |
+| RA-10 partially implemented          | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

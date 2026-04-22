@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 2.7
 
 ## Profile Applicability
+
 - **Level:** 2
 
 ## Description
+
 Use a different certificate authority for etcd from the one used for Kubernetes.
 
 ## Rationale
+
 etcd is a highly available key-value store used by Kubernetes deployments for persistent storage of all of its REST API objects. Its access should be restricted to specifically designated clients and peers only.
 
 Authentication to etcd is based on whether the certificate presented was issued by a trusted certificate authority. There is no checking of certificate attributes such as common name or subject alternative name. As such, if any attackers were able to gain access to any certificate issued by the trusted certificate authority, they would be able to gain full access to the etcd database.
 
 ## Impact
+
 Additional management of the certificates and keys for the dedicated certificate authority will be required.
 
 ## Audit Procedure
@@ -64,12 +68,15 @@ done
 Verify that `--trusted-ca-file=/etc/kubernetes/static-pod-certs/configmaps/etcd-serving-ca/ca-bundle.crt` and `--peer-trusted-ca-file=/etc/kubernetes/static-pod-certs/configmaps/etcd-peer-client-ca/ca-bundle.crt` are returned for each member.
 
 ## Remediation
+
 None required. Certificates for etcd are managed by the OpenShift cluster etcd operator.
 
 ## Default Value
+
 By default, in OpenShift 4, communication with etcd is secured by the etcd serving CA.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/certificate_types_descriptions/etcd-certificates.html
 2. https://github.com/openshift/cluster-etcd-operator
 3. https://github.com/openshift/cluster-etcd-operator/blob/release-4.5/bindata/etcd/pod.yaml#L154-L167
@@ -78,16 +85,17 @@ By default, in OpenShift 4, communication with etcd is secured by the etcd servi
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | * | * |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | \*   | \*   |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 2** (Manual)

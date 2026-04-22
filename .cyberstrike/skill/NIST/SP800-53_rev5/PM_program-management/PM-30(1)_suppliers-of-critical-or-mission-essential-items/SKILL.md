@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - RA-3
   - SR-6
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ The identification and prioritization of suppliers of critical or mission-essent
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-30(1) Suppliers of Critical or Mission-essential Items not implemented | Medium | Program Management |
-| PM-30(1) partially implemented | Low | Incomplete Program Management |
+| Finding                                                                   | Severity | Impact                        |
+| ------------------------------------------------------------------------- | -------- | ----------------------------- |
+| PM-30(1) Suppliers of Critical or Mission-essential Items not implemented | Medium   | Program Management            |
+| PM-30(1) partially implemented                                            | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

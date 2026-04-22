@@ -26,10 +26,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -75,19 +73,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Scheduled Task/Job
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Scheduled Task/Job technique applicable | Low | Execution |
+| Finding                                 | Severity | Impact    |
+| --------------------------------------- | -------- | --------- |
+| Scheduled Task/Job technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

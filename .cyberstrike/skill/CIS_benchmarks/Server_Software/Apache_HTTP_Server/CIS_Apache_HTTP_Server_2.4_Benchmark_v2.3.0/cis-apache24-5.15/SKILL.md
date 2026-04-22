@@ -39,6 +39,7 @@ Verify that no `Listen` directives are in the Apache configuration file with no 
 Perform the following to implement the recommended state:
 
 1. Find any `Listen` directives in the Apache configuration file with no IP address specified, or with an IP addresses of all zeros similar to the examples below. Keep in mind there may be both IPv4 and IPv6 addresses on the system.
+
    ```
    Listen 80
    Listen 0.0.0.0:80
@@ -63,9 +64,11 @@ Perform the following to implement the recommended state:
 ## CIS Controls
 
 **v8:**
+
 - 2.7 Allowlist Authorized Scripts
   - Use technical controls, such as digital signatures and version control, to ensure that only authorized scripts, such as specific .ps1, .py, etc., files, are allowed to execute. Block unauthorized scripts from executing. Reassess bi-annually, or more frequently.
 
 **v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
   - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.

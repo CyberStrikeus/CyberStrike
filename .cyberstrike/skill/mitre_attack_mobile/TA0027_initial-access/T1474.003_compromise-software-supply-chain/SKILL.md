@@ -72,29 +72,28 @@ Review whether mitigations for T1474.003 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1004 System Partition Integrity
+
 Ensure Verified Boot is enabled on devices with that capability.
 
 ### M1001 Security Updates
-Security updates may contain patches that inhibit system software compromises.
 
+Security updates may contain patches that inhibit system software compromises.
 
 ## Detection
 
 ### Detection of Compromise Software Supply Chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Software Supply Chain technique applicable | Low | Initial Access |
+| Finding                                               | Severity | Impact         |
+| ----------------------------------------------------- | -------- | -------------- |
+| Compromise Software Supply Chain technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

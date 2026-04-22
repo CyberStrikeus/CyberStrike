@@ -14,7 +14,7 @@ prerequisites: []
 severity_boost: {}
 ---
 
-# Ensure chrony is running as user _chrony
+# Ensure chrony is running as user \_chrony
 
 ## Profile
 
@@ -23,7 +23,7 @@ severity_boost: {}
 
 ## Description
 
-The chrony package is installed with a dedicated user account _chrony. This account is granted the access required by the chronyd service
+The chrony package is installed with a dedicated user account \_chrony. This account is granted the access required by the chronyd service
 
 ## Rationale
 
@@ -31,7 +31,7 @@ The chronyd service should run with only the required privilidges
 
 ## Audit
 
-- IF - chrony is in use on the system, run the following command to verify the chronyd service is being run as the _chrony user:
+- IF - chrony is in use on the system, run the following command to verify the chronyd service is being run as the \_chrony user:
 
 ### Command Line
 
@@ -64,7 +64,7 @@ If another time synchronization service is in use on the system, run the followi
 
 ## Default Value
 
-user _chrony
+user \_chrony
 
 ## References
 
@@ -72,13 +72,13 @@ user _chrony
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped | | | |
-| v7 | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped | | | |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped |      |      |      |
+| v7               | 0.0 Explicitly Not Mapped<br/>Explicitly Not Mapped |      |      |      |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1070, T1070.002, T1562, T1562.001 | TA0002 | M1022 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1070, T1070.002, T1562, T1562.001 | TA0002  | M1022       |

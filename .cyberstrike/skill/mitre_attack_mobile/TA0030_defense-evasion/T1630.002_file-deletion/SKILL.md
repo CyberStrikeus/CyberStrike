@@ -40,7 +40,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may wipe a device or delete individual files in order to manipulate external outcomes or hide activity. An application must have administrator access to fully wipe the device, while individual files may not require special permissions to delete depending on their storage location. 
+Adversaries may wipe a device or delete individual files in order to manipulate external outcomes or hide activity. An application must have administrator access to fully wipe the device, while individual files may not require special permissions to delete depending on their storage location.
 
 Stored data could include a variety of file formats, such as Office files, databases, stored emails, and custom file formats. The impact file deletion will have depends on the type of data as well as the goals and objectives of the adversary, but can include deleting update files to evade detection or deleting attacker-specified files for impact.
 
@@ -70,26 +70,24 @@ Review whether mitigations for T1630.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be trained on what device administrator permission request prompts look like, and how to avoid granting permissions on phishing popups.
 
+Users should be trained on what device administrator permission request prompts look like, and how to avoid granting permissions on phishing popups.
 
 ## Detection
 
 ### Detection of File Deletion
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File Deletion technique applicable | Low | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| File Deletion technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

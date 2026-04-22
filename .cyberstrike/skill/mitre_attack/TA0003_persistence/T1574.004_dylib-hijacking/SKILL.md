@@ -87,26 +87,24 @@ Adversaries may gain execution by inserting malicious dylibs with the name of th
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Set directory access controls to prevent file writes to the search paths for applications, both in the folders where applications are run from and the standard dylib folders.
 
+Set directory access controls to prevent file writes to the search paths for applications, both in the folders where applications are run from and the standard dylib folders.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow: Dylib Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Dylib Hijacking technique applicable | High | Persistence |
+| Finding                              | Severity | Impact      |
+| ------------------------------------ | -------- | ----------- |
+| Dylib Hijacking technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

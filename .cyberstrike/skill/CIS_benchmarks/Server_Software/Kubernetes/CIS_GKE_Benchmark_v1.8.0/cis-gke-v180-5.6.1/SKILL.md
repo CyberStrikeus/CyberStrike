@@ -4,7 +4,21 @@ description: "Enable VPC Flow Logs and Intranode Visibility (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, cluster-networking, vpc-flow-logs, intranode-visibility, vpc-native, private-cluster, authorized-networks, firewall, ssl-certificates]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    cluster-networking,
+    vpc-flow-logs,
+    intranode-visibility,
+    vpc-native,
+    private-cluster,
+    authorized-networks,
+    firewall,
+    ssl-certificates,
+  ]
 cis_id: "5.6.1"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -50,7 +64,7 @@ The result should return:
 
 ```json
 {
-    "enableIntraNodeVisibility": true
+  "enableIntraNodeVisibility": true
 }
 ```
 
@@ -113,9 +127,9 @@ By default, Intranode Visibility is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | x | x |
-| v8 | 13.6 Collect Network Traffic Flow Logs | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs                         |      | x    | x    |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments |      | x    | x    |
+| v8               | 13.6 Collect Network Traffic Flow Logs                  |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging                             |      | x    | x    |

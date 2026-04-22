@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,35 +57,36 @@ Review whether mitigations for T0882 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0922 Restrict File and Directory Permissions
+
 Protect files stored locally with proper permissions to limit opportunities for adversaries to interact and collect information from databases.
 
 ### M0809 Operational Information Confidentiality
+
 Example mitigations could include minimizing its distribution/storage or obfuscating the information (e.g., facility coverterms, codenames). In many cases this information may be necessary to support critical engineering, maintenance, or operational functions, therefore, it may not be feasible to implement.
 
 ### M0803 Data Loss Prevention
+
 Apply DLP to protect the confidentiality of information related to operational processes, facility locations, device configurations, programs, or databases that may have information that can be used to infer organizational trade-secrets, recipes, and other intellectual property (IP).
 
 ### M0941 Encrypt Sensitive Information
-Encrypt any operational data with strong confidentiality requirements, including organizational trade-secrets, recipes, and other intellectual property (IP).
 
+Encrypt any operational data with strong confidentiality requirements, including organizational trade-secrets, recipes, and other intellectual property (IP).
 
 ## Detection
 
 ### Detection of Theft of Operational Information
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Theft of Operational Information technique applicable | Low | Impact |
+| Finding                                               | Severity | Impact |
+| ----------------------------------------------------- | -------- | ------ |
+| Theft of Operational Information technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

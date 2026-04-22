@@ -17,9 +17,11 @@ severity_boost: {}
 # CIS 8.2 — Ensure Signing Keys are Generated with a Secure Algorithm
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 2
 
 ## Description
+
 When Zone Signing Keys (ZSK) or Key Signing Keys (KSK) are generated there are several secure DNSSEC digital signature algorithms that are recommended. The algorithms are listed below with the standard DNSSEC algorithm number followed by the common name, and then the BIND 9 mnemonic name used by `dnssec-keygen`.
 
 ```
@@ -31,12 +33,15 @@ When Zone Signing Keys (ZSK) or Key Signing Keys (KSK) are generated there are s
 ```
 
 ## Rationale
+
 A secure public key algorithm along with a secure hash algorithm, are part of the foundation for a secure digital secure. Weaknesses in older public key algorithms continue to develop, and it is important to use a recommended algorithm that is expected to be secure for the near future.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 To audit the key algorithms in use, search the private key files for the line that starts with `Algorithm:`, using the following commands.
 
 ```
@@ -51,6 +56,7 @@ To audit the key algorithms in use, search the private key files for the line th
 Any algorithms other than `RSASHA256`, `RSASHA512`, `ECDSAP256SHA256`, `ECDSAP384SHA384` or `ED25519` are not compliant. Likewise, the algorithm number must be one of: `8`, `10`, `13`, `14` or `15`.
 
 ## Remediation
+
 To remediate a weak key, perform the following:
 
 - Generate a new key to replace the weak key using `dnssec-keygen` and one of the recommended algorithms. Examples commands are shown below.
@@ -64,22 +70,27 @@ To remediate a weak key, perform the following:
 - Once the key is fully deleted from active use, remove the file.
 
 ## Default Value
+
 The default algorithm is RSASHA1.
 
 ## References
+
 1. https://tools.ietf.org/id/draft-ietf-dnsop-algorithm-update-01.html#rfc.section.1.1
 2. https://bind.isc.org/doc/arm/9.11/man.dnssec-keygen.html
 3. https://www.isc.org/dnssec/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v7 | 18.5 Use Only Standardized and Extensively Reviewed Encryption Algorithms | N | Y | Y |
+
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 18.5 Use Only Standardized and Extensively Reviewed Encryption Algorithms | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic          | Technique               |
+| --------------- | ----------------------- |
 | Defense Evasion | T1600 Weaken Encryption |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server

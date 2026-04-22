@@ -12,12 +12,9 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -58,9 +55,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -74,16 +71,16 @@ Implement this control per organizational risk assessment and system categorizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-4 Security Certification not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-4 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                     | Severity | Impact                                               |
+| ------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-4 Security Certification not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-4 partially implemented                  | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

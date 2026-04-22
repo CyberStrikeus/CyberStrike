@@ -63,7 +63,7 @@ By default, Kubernetes starts with 4 initial namespaces:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13 Network Monitoring and Defense | | | |
-| v7 | 12 Boundary Defense | | | |
+| Controls Version | Control                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------- | ---- | ---- | ---- |
+| v8               | 13 Network Monitoring and Defense |      |      |      |
+| v7               | 12 Boundary Defense               |      |      |      |

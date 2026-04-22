@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Configure TLS encryption for the `etcd` service.
 
 ## Rationale
+
 `etcd` is a highly-available key value store used by Kubernetes deployments for persistent storage of all of its REST API objects. These objects are sensitive in nature and should be encrypted in transit.
 
 ## Impact
+
 Client connections only over TLS would be served.
 
 ## Audit Procedure
@@ -69,12 +73,15 @@ For example:
 ```
 
 ## Remediation
+
 OpenShift does not use the `etcd-certfile` or `etcd-keyfile` flags. Certificates for `etcd` are managed by the `etcd` cluster operator.
 
 ## Default Value
+
 By default, `etcd` communication is secured with X.509 certificates.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/certificate_types_descriptions/etcd-certificates.html
 2. https://github.com/openshift/cluster-etcd-operator
 3. https://github.com/openshift/cluster-etcd-operator/blob/master/bindata/etcd/pod.yaml#L154-L167
@@ -83,16 +90,17 @@ By default, `etcd` communication is secured with X.509 certificates.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | * | * |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | * | * |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest               |      | \*   | \*   |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 1** (Manual)

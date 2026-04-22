@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.20
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -67,9 +68,11 @@ By default, the container mounts are private.
 ## CIS Controls
 
 **v8:**
+
 - **3 Data Protection**
   - Develop processes and technical controls to identify, classify, securely handle, retain, and dispose of data.
 
 **v7:**
+
 - **13 Data Protection**
   - Data Protection

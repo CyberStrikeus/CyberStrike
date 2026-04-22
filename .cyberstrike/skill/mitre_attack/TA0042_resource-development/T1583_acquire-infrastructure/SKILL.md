@@ -19,8 +19,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1583"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1583.001
   - T1583.002
@@ -30,8 +29,7 @@ chains_with:
   - T1583.006
   - T1583.007
   - T1583.008
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1583.001: "Chain with T1583.001 for deeper attack path"
   T1583.002: "Chain with T1583.002 for deeper attack path"
@@ -74,25 +72,24 @@ Use of these infrastructure solutions allows adversaries to stage, launch, and e
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Acquire Infrastructure
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Acquire Infrastructure technique applicable | High | Resource Development |
+| Finding                                     | Severity | Impact               |
+| ------------------------------------------- | -------- | -------------------- |
+| Acquire Infrastructure technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

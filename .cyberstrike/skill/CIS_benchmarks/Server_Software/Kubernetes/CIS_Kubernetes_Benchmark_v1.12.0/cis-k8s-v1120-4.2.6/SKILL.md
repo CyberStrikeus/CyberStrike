@@ -65,10 +65,10 @@ By default, `--make-iptables-util-chains` argument is set to `true`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. | | ● | ● |
-| v7 | 14 Controlled Access Based on the Need to Know<br>Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. |      | ●    | ●    |
+| v7               | 14 Controlled Access Based on the Need to Know<br>Controlled Access Based on the Need to Know                                                                                                                |      |      |      |
 
 ## Profile Applicability
 

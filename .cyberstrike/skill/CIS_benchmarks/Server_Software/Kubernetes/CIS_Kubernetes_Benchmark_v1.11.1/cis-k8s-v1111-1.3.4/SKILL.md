@@ -60,8 +60,8 @@ By default, `--service-account-private-key-file` it not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.2 Use Unique Passwords | x | x | x |
-| v7 | 4.4 Use Unique Passwords | | x | x |
-| v6 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords                       | x    | x    | x    |
+| v7               | 4.4 Use Unique Passwords                       |      | x    | x    |
+| v6               | 14 Controlled Access Based on the Need to Know |      |      |      |

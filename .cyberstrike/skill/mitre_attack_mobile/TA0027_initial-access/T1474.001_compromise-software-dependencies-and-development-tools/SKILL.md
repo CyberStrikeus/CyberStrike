@@ -72,26 +72,24 @@ Review whether mitigations for T1474.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
-Application developers should be cautious when selecting third-party libraries to integrate into their application.
 
+Application developers should be cautious when selecting third-party libraries to integrate into their application.
 
 ## Detection
 
 ### Detection of Compromise Software Dependencies and Development Tools
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Software Dependencies and Development Tools technique applicable | Low | Initial Access |
+| Finding                                                                     | Severity | Impact         |
+| --------------------------------------------------------------------------- | -------- | -------------- |
+| Compromise Software Dependencies and Development Tools technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

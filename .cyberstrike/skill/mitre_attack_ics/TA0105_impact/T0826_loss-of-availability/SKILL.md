@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may attempt to disrupt essential components or systems to prevent owner and operator from delivering products or services. 
+Adversaries may attempt to disrupt essential components or systems to prevent owner and operator from delivering products or services.
 
 Adversaries may leverage malware to delete or encrypt critical data on HMIs, workstations, or databases.
 
@@ -63,32 +61,32 @@ Review whether mitigations for T0826 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0810 Out-of-Band Communications Channel
+
 Provide operators with redundant, out-of-band communication to support monitoring and control of the operational processes, especially when recovering from a network outage . Out-of-band communication should utilize diverse systems and technologies to minimize common failure modes and vulnerabilities within the communications infrastructure. For example, wireless networks (e.g., 3G, 4G) can be used to provide diverse and redundant delivery of data.
 
 ### M0811 Redundancy of Service
+
 Hot-standbys in diverse locations can ensure continued operations if the primarily system is compromised or unavailable. At the network layer, protocols such as the Parallel Redundancy Protocol can be used to simultaneously use redundant and diverse communication over a local network.
 
 ### M0953 Data Backup
-Take and store data backups from end user systems and critical servers. Ensure backup and storage systems are hardened and kept separate from the corporate network to prevent compromise. Maintain and exercise incident response plans , including the management of gold-copy back-up images and configurations for key systems to enable quick recovery and response from adversarial activities that impact control, view, or availability.
 
+Take and store data backups from end user systems and critical servers. Ensure backup and storage systems are hardened and kept separate from the corporate network to prevent compromise. Maintain and exercise incident response plans , including the management of gold-copy back-up images and configurations for key systems to enable quick recovery and response from adversarial activities that impact control, view, or availability.
 
 ## Detection
 
 ### Detection of Loss of Availability
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Loss of Availability technique applicable | Low | Impact |
+| Finding                                   | Severity | Impact |
+| ----------------------------------------- | -------- | ------ |
+| Loss of Availability technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

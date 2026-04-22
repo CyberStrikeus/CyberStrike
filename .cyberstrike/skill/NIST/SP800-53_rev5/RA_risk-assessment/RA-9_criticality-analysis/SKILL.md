@@ -12,8 +12,7 @@ tags:
   - ra
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - PL-2
@@ -25,8 +24,7 @@ chains_with:
   - SA-8
   - SA-15
   - SA-20
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   PL-2: "Chain with PL-2 for comprehensive security coverage"
@@ -74,9 +72,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -94,16 +92,16 @@ Criticality analysis is performed when an architecture or design is being develo
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-9 Criticality Analysis not implemented | Medium | Risk Assessment |
-| RA-9 partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                   | Severity | Impact                     |
+| ----------------------------------------- | -------- | -------------------------- |
+| RA-9 Criticality Analysis not implemented | Medium   | Risk Assessment            |
+| RA-9 partially implemented                | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

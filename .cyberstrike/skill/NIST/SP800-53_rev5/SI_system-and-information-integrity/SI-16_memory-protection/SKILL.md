@@ -22,8 +22,7 @@ chains_with:
   - AC-25
   - SC-3
   - SI-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-25: "Chain with AC-25 for comprehensive security coverage"
   SC-3: "Chain with SC-3 for comprehensive security coverage"
@@ -67,10 +66,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -84,17 +83,16 @@ Some adversaries launch attacks with the intent of executing code in non-executa
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-16 Memory Protection not implemented | High | System and Information Integrity |
-| SI-16 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                 | Severity | Impact                                      |
+| --------------------------------------- | -------- | ------------------------------------------- |
+| SI-16 Memory Protection not implemented | High     | System and Information Integrity            |
+| SI-16 partially implemented             | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

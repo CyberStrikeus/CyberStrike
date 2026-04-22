@@ -29,8 +29,7 @@ chains_with:
   - CM-5
   - CM-7
   - CM-11
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-19: "Chain with AC-19 for comprehensive security coverage"
@@ -79,10 +78,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -103,17 +102,16 @@ Implementation of a common secure configuration may be mandated at the organizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-6 Configuration Settings not implemented | Medium | Configuration Management |
-| CM-6 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                     | Severity | Impact                              |
+| ------------------------------------------- | -------- | ----------------------------------- |
+| CM-6 Configuration Settings not implemented | Medium   | Configuration Management            |
+| CM-6 partially implemented                  | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -56,8 +56,7 @@ chains_with:
   - T1059.011
   - T1059.012
   - T1059.013
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1059.001: "Chain with T1059.001 for deeper attack path"
   T1059.002: "Chain with T1059.002 for deeper attack path"
@@ -106,8 +105,8 @@ Start-Process -FilePath "#{autoit_path}" -ArgumentList "#{script_path}"
 ```
 
 **Dependencies:**
-- AutoIt executable file must exist on disk at the specified location (#{autoit_path})
 
+- AutoIt executable file must exist on disk at the specified location (#{autoit_path})
 
 ### Manual Testing
 
@@ -122,52 +121,58 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Prevent user installation of unrequired command and scripting interpreters.
 
 ### M1045 Code Signing
+
 Where possible, only permit execution of signed scripts.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable or remove any unnecessary or unused shells or interpreters.
 
 ### M1038 Execution Prevention
+
 Use application control where appropriate. For example, PowerShell Constrained Language mode can be used to restrict access to sensitive or otherwise dangerous language elements such as those used to execute arbitrary Windows APIs or files (e.g., `Add-Type`).
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can be used to automatically quarantine suspicious files.
 
 ### M1026 Privileged Account Management
+
 When PowerShell is necessary, consider restricting PowerShell execution policy to administrators. Be aware that there are methods of bypassing the PowerShell execution policy, depending on environment configuration.
 
 PowerShell JEA (Just Enough Administration) may also be used to sandbox administration and limit what commands admins/users can execute through remote PowerShell sessions.
 
 ### M1047 Audit
+
 Inventory systems for unauthorized command and scripting interpreter installations.
 
 ### M1021 Restrict Web-Based Content
+
 Script blocking extensions can help prevent the execution of scripts and HTA files that may commonly be used during the exploitation process. For malicious code served up through ads, adblockers can help prevent that code from executing in the first place.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Visual Basic and JavaScript scripts from executing potentially malicious downloaded content .
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Visual Basic and JavaScript scripts from executing potentially malicious downloaded content .
 
 ## Detection
 
 ### Behavioral Detection of Command and Scripting Interpreter Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Command and Scripting Interpreter technique applicable | Low | Execution |
+| Finding                                                | Severity | Impact    |
+| ------------------------------------------------------ | -------- | --------- |
+| Command and Scripting Interpreter technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

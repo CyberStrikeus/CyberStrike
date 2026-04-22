@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.5
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 Using the `--privileged` flag provides all Linux kernel capabilities to the container to which it is applied and therefore overwrites the `--cap-add` and `--cap-drop` flags. For this reason you should ensure that it is not used.
 
 ## Rationale
+
 The `--privileged` flag provides all capabilities to the container to which it is applied, and also lifts all the limitations enforced by the device cgroup controller. As a consequence this the container has most of the rights of the underlying host. This flag only exists to allow for specific use cases (for example running Docker within Docker) and should not generally be used.
 
 ## Impact
+
 If you start a container without the `--privileged` flag, it will not have excessive default capabilities.
 
 ## Audit Procedure
@@ -49,18 +53,23 @@ docker run --interactive --tty --privileged centos /bin/bash
 ```
 
 ## Default Value
+
 False.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities
 
 ## CIS Controls
 
 **v8:**
+
 - 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 
 **v7:**
+
 - 4 Controlled Use of Administrative Privileges - Controlled Use of Administrative Privileges
 
 ## Assessment Status
+
 Manual

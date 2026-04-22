@@ -87,6 +87,7 @@ cmstp.exe /s "#{inf_file_path}"
 ```
 
 **Dependencies:**
+
 - INF file must exist on disk at specified location (#{inf_file_path})
 
 ### Atomic Test 2: CMSTP Executing UAC Bypass
@@ -100,8 +101,8 @@ cmstp.exe /s "#{inf_file_uac}" /au
 ```
 
 **Dependencies:**
-- INF file must exist on disk at specified location (#{inf_file_uac})
 
+- INF file must exist on disk at specified location (#{inf_file_uac})
 
 ### Manual Testing
 
@@ -116,34 +117,33 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Consider using application control configured to block execution of CMSTP.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1042 Disable or Remove Feature or Program
-CMSTP.exe may not be necessary within a given environment (unless using it for VPN connection installation).
 
+CMSTP.exe may not be necessary within a given environment (unless using it for VPN connection installation).
 
 ## Detection
 
 ### Detection of Malicious Profile Installation via CMSTP.exe
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CMSTP technique applicable | Medium | Defense Evasion |
+| Finding                    | Severity | Impact          |
+| -------------------------- | -------- | --------------- |
+| CMSTP technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
 - [Twitter CMSTP Usage Jan 2018](https://x.com/ItsReallyNick/status/958789644165894146)
-- [Microsoft Connection Manager Oct 2009](https://docs.microsoft.com/previous-versions/windows/it-pro/windows-server-2003/cc786431(v=ws.10))
+- [Microsoft Connection Manager Oct 2009](<https://docs.microsoft.com/previous-versions/windows/it-pro/windows-server-2003/cc786431(v=ws.10)>)
 - [MSitPros CMSTP Aug 2017](https://msitpros.com/?p=3960)
 - [GitHub Ultimate AppLocker Bypass List](https://github.com/api0cradle/UltimateAppLockerByPassList)
 - [Endurant CMSTP July 2018](https://web.archive.org/web/20190316220149/http://www.endurant.io/cmstp/detecting-cmstp-enabled-code-execution-and-uac-bypass-with-sysmon/)

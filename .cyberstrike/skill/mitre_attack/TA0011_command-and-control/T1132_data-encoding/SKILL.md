@@ -33,8 +33,7 @@ cwe_ids:
 chains_with:
   - T1132.001
   - T1132.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1132.001: "Chain with T1132.001 for deeper attack path"
   T1132.002: "Chain with T1132.002 for deeper attack path"
@@ -76,26 +75,24 @@ Adversaries may encode data to make the content of command and control traffic m
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool C2 signatures over time or construct protocols in such a way as to avoid detection by common defensive tools.
 
 ## Detection
 
 ### Detection Strategy for Data Encoding in C2 Channels
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Encoding technique applicable | Low | Command And Control |
+| Finding                            | Severity | Impact              |
+| ---------------------------------- | -------- | ------------------- |
+| Data Encoding technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

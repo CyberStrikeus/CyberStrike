@@ -58,7 +58,7 @@ By default, there are no restrictions on the creation of `hostPID` containers.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.10 Perform Application Layer Filtering | | | X |
-| v7 | 12.9 Deploy Application Layer Filtering Proxy Server | | | X |
+| Controls Version | Control                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.10 Perform Application Layer Filtering            |      |      | X    |
+| v7               | 12.9 Deploy Application Layer Filtering Proxy Server |      |      | X    |

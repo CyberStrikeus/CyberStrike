@@ -69,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ Audit trails are time-correlated if the time stamps in the individual audit reco
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-12(1) System-wide and Time-correlated Audit Trail not implemented | Medium | Audit and Accountability |
-| AU-12(1) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                              | Severity | Impact                              |
+| -------------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-12(1) System-wide and Time-correlated Audit Trail not implemented | Medium   | Audit and Accountability            |
+| AU-12(1) partially implemented                                       | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

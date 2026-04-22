@@ -27,10 +27,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -92,6 +90,7 @@ xwud -in #{output_file}
 ```
 
 **Dependencies:**
+
 - Package with XWD and XWUD must exist on device
 
 ### Atomic Test 4: X Windows Capture (freebsd)
@@ -106,6 +105,7 @@ xwud -in #{output_file}
 ```
 
 **Dependencies:**
+
 - Package with XWD and XWUD must exist on device
 
 ### Atomic Test 5: Capture Linux Desktop using Import Tool
@@ -119,8 +119,8 @@ import -window root #{output_file}
 ```
 
 **Dependencies:**
-- ImageMagick must be installed
 
+- ImageMagick must be installed
 
 ### Manual Testing
 
@@ -140,19 +140,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Screen Capture via Commands and API Calls
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Screen Capture technique applicable | Low | Collection |
+| Finding                             | Severity | Impact     |
+| ----------------------------------- | -------- | ---------- |
+| Screen Capture technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

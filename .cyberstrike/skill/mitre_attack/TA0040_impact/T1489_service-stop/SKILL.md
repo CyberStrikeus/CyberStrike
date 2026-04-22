@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -44,7 +42,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may stop or disable services on a system to render those services unavailable to legitimate users. Stopping critical services or processes can inhibit or stop response to an incident or aid in the adversary's overall objectives to cause damage to the environment. 
+Adversaries may stop or disable services on a system to render those services unavailable to legitimate users. Stopping critical services or processes can inhibit or stop response to an incident or aid in the adversary's overall objectives to cause damage to the environment.
 
 Adversaries may accomplish this by disabling individual services of high importance to an organization, such as <code>MSExchangeIS</code>, which will make Exchange content inaccessible. In some cases, adversaries may stop or disable many or all services to render systems unusable. Services or processes may not allow for modification of their data stores while running. Adversaries may stop services or processes in order to conduct Data Destruction or Data Encrypted for Impact on the data stores of services like Exchange and SQL Server, or on virtual machines hosted on ESXi infrastructure.
 
@@ -137,7 +135,6 @@ You can list all available services with following command: "systemctl list-unit
 sudo killall -SIGTERM #{process_name}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -151,38 +148,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Operate intrusion detection, analysis, and response systems on a separate network from the production environment to lessen the chances that an adversary can see and interfere with critical response functions.
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and groups so that only authorized administrators can interact with service changes and service configurations.
 
 ### M1060 Out-of-Band Communications Channel
+
 Develop and enforce security policies that include the use of out-of-band communication channels for critical communications during a security incident.
 
 ### M1024 Restrict Registry Permissions
+
 Ensure proper registry permissions are in place to inhibit adversaries from disabling or interfering with critical services.
 
 ### M1022 Restrict File and Directory Permissions
-Ensure proper process and file permissions are in place to inhibit adversaries from disabling or interfering with critical services.
 
+Ensure proper process and file permissions are in place to inhibit adversaries from disabling or interfering with critical services.
 
 ## Detection
 
 ### Behavioral Detection for Service Stop across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Service Stop technique applicable | Low | Impact |
+| Finding                           | Severity | Impact |
+| --------------------------------- | -------- | ------ |
+| Service Stop technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

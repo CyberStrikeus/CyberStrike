@@ -22,6 +22,7 @@ severity_boost: {}
 Monitor the loading and unloading of kernel modules. All the loading / listing / dependency checking of modules is done by kmod via symbolic links.
 
 The following system calls control loading and unloading of modules:
+
 - init_module - load a module
 - finit_module - load a module (used when the overhead of using cryptographically signed modules to determine the authenticity of a module can be avoided)
 - delete_module - delete a module
@@ -36,6 +37,7 @@ Monitoring the use of all the various ways to manipulate kernel modules could pr
 ## Audit
 
 ### On disk configuration
+
 Run the following script to check the on disk rules:
 
 ```bash
@@ -65,12 +67,14 @@ Run the following script to check the on disk rules:
 ```
 
 Verify the output matches:
+
 ```
 -a always,exit -F arch=b64 -S init_module,finit_module,delete_module,create_module,query_module -F auid>=1000 -F auid!=unset -k kernel_modules
 -a always,exit -F path=/usr/bin/kmod -F perm=x -F auid>=1000 -F auid!=unset -k kernel_modules
 ```
 
 ### Running configuration
+
 Run the following script to check loaded rules:
 
 ```bash
@@ -100,12 +104,14 @@ Run the following script to check loaded rules:
 ```
 
 Verify the output includes:
+
 ```
 -a always,exit -F arch=b64 -S create_module,init_module,delete_module,query_module,finit_module -F auid>=1000 -F auid!=-1 -F key=kernel_modules
 -a always,exit -S all -F path=/usr/bin/kmod -F perm=x -F auid>=1000 -F auid!=-1 -F key=kernel_modules
 ```
 
 ### Symlink audit
+
 Run the following script to audit if the kmod symlinks accepts are indeed pointing at it:
 
 ```bash
@@ -129,6 +135,7 @@ Verify the output states OK. If there is a symlink pointing to a different locat
 Create audit rules by editing or creating a file in the `/etc/audit/rules.d/` directory, ending in `.rules` extension, with the relevant rules to monitor kernel module modification.
 
 Example:
+
 ```bash
 #!/usr/bin/env bash
 {
@@ -141,11 +148,13 @@ Example:
 ```
 
 Load audit rules:
+
 ```bash
 augenrules --load
 ```
 
 Check if reboot is required:
+
 ```bash
 if [[ $(auditctl -s | grep "enabled") =~ "2" ]]; then printf "Reboot required to load rules\n"; fi
 ```
@@ -157,15 +166,18 @@ Potential reboot required - If the auditing configuration is locked (-e 2), then
 System call structure - For performance (man 7 audit.rules) reasons it is preferable to have all the system calls on one line. However, your configuration may have them on one line each or some other combination. This is important to understand for both the auditing and remediation sections as the examples given are optimized for performance as per the man page.
 
 **CIS Controls:**
+
 - v8: 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation.
 - v7: 6.2 Activate audit logging - Ensure that local logging has been enabled on all systems and networking devices.
 
 **MITRE ATT&CK Mappings:**
+
 - Techniques: T1562, T1562.006
 - Tactics: TA0004
 - Mitigations: M1047
 
 **References:**
+
 - NIST SP 800-53 Rev. 5: AU-3, CM-6
 - STIG ID: UBTU-20-010296 | RULE ID: SV-238318r991586 | CAT II
 - STIG ID: UBTU-22-654060 | RULE ID: SV-260614r991586 | CAT II

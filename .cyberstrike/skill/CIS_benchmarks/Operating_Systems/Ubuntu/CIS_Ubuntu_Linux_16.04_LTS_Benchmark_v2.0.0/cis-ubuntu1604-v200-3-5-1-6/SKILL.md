@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 3.5.1.6
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Manual
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Any ports that have been opened on non-loopback addresses need firewall rules to govern traffic.
 
 Notes:
+
 - Changing firewall settings while connected over network can result in being locked out of the system.
 - The remediation command opens up the port to traffic from all sources. Consult ufw documentation and set any restrictions in compliance with site policy.
 

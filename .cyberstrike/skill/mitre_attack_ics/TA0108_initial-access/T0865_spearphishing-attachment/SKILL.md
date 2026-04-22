@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may use a spearphishing attachment, a variant of spearphishing, as a form of a social engineering attack against specific targets. Spearphishing attachments are different from other forms of spearphishing in that they employ malware attached to an email. All forms of spearphishing are electronically delivered and target a specific individual, company, or industry. In this scenario, adversaries attach a file to the spearphishing email and usually rely upon User Execution to gain execution and access. 
+Adversaries may use a spearphishing attachment, a variant of spearphishing, as a form of a social engineering attack against specific targets. Spearphishing attachments are different from other forms of spearphishing in that they employ malware attached to an email. All forms of spearphishing are electronically delivered and target a specific individual, company, or industry. In this scenario, adversaries attach a file to the spearphishing email and usually rely upon User Execution to gain execution and access.
 
 A Chinese spearphishing campaign running from December 9, 2011 through February 29, 2012, targeted ONG organizations and their employees. The emails were constructed with a high level of sophistication to convince employees to open the malicious file attachments.
 
@@ -61,38 +59,39 @@ Review whether mitigations for T0865 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0917 User Training
+
 Users can be trained to identify social engineering techniques and spearphishing emails.
 
 ### M0931 Network Intrusion Prevention
+
 Network intrusion prevention systems and systems designed to scan and remove malicious email attachments can be used to block activity.
 
 ### M0949 Antivirus/Antimalware
+
 Deploy anti-virus on all systems that support external email.
 
 ### M0921 Restrict Web-Based Content
-Consider restricting access to email within critical process environments. Additionally, downloads and attachments may be disabled if email is still necessary.
 
+Consider restricting access to email within critical process environments. Additionally, downloads and attachments may be disabled if email is still necessary.
 
 ## Detection
 
 ### Detection of Spearphishing Attachment
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Attachment technique applicable | Low | Initial Access |
+| Finding                                       | Severity | Impact         |
+| --------------------------------------------- | -------- | -------------- |
+| Spearphishing Attachment technique applicable | Low      | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 
-- [CISA AA21-201A Pipeline Intrusion July 2021](https://us-cert.cisa.gov/sites/default/files/publications/AA21-201A_Chinese_Gas_Pipeline_Intrusion_Campaign_2011_to_2013%20(1).pdf)
+- [CISA AA21-201A Pipeline Intrusion July 2021](<https://us-cert.cisa.gov/sites/default/files/publications/AA21-201A_Chinese_Gas_Pipeline_Intrusion_Campaign_2011_to_2013%20(1).pdf>)
 - [Enterprise ATT&CK October 2019](https://attack.mitre.org/techniques/T1193/)
 - [MITRE ATT&CK ICS - T0865](https://attack.mitre.org/techniques/T0865)

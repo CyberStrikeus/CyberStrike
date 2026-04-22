@@ -85,32 +85,32 @@ SSH is a protocol that allows authorized users to open remote shells on other co
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable the SSH daemon on systems that do not require it, especially ESXi servers. For macOS, ensure Remote Login is disabled under Sharing Preferences.
 
 ### M1032 Multi-factor Authentication
+
 Require multi-factor authentication for SSH connections wherever possible, such as password protected SSH keys.
 
 ### M1018 User Account Management
-Limit which user accounts are allowed to login via SSH.
 
+Limit which user accounts are allowed to login via SSH.
 
 ## Detection
 
 ### Behavioral Detection of Remote SSH Logins Followed by Post-Login Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SSH technique applicable | Low | Lateral Movement |
+| Finding                  | Severity | Impact           |
+| ------------------------ | -------- | ---------------- |
+| SSH technique applicable | Low      | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

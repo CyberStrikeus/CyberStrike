@@ -121,6 +121,7 @@ sudo update-ca-certificates
 ```
 
 **Dependencies:**
+
 - Verify the certificate exists. It generates if not on disk.
 
 ### Atomic Test 4: Install root CA on macOS
@@ -135,6 +136,7 @@ sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.key
 ```
 
 **Dependencies:**
+
 - Verify the certificate exists. It generates if not on disk.
 
 ### Atomic Test 5: Install root CA on Windows
@@ -150,8 +152,8 @@ Move-Item -Path $cert.PSPath -Destination "Cert:\LocalMachine\Root"
 ```
 
 **Dependencies:**
-- Verify the certificate exists. It generates if not on disk.
 
+- Verify the certificate exists. It generates if not on disk.
 
 ### Manual Testing
 
@@ -166,29 +168,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 HTTP Public Key Pinning (HPKP) is one method to mitigate potential Adversary-in-the-Middle situations where and adversary uses a mis-issued or fraudulent certificate to intercept encrypted communications by enforcing use of an expected certificate.
 
 ### M1028 Operating System Configuration
-Windows Group Policy can be used to manage root certificates and the <code>Flags</code> value of <code>HKLM\\SOFTWARE\\Policies\\Microsoft\\SystemCertificates\\Root\\ProtectedRoots</code> can be set to 1 to prevent non-administrator users from making further root installations into their own HKCU certificate store.
 
+Windows Group Policy can be used to manage root certificates and the <code>Flags</code> value of <code>HKLM\\SOFTWARE\\Policies\\Microsoft\\SystemCertificates\\Root\\ProtectedRoots</code> can be set to 1 to prevent non-administrator users from making further root installations into their own HKCU certificate store.
 
 ## Detection
 
 ### Detection Strategy for Subvert Trust Controls via Install Root Certificate.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Install Root Certificate technique applicable | High | Defense Evasion |
+| Finding                                       | Severity | Impact          |
+| --------------------------------------------- | -------- | --------------- |
+| Install Root Certificate technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

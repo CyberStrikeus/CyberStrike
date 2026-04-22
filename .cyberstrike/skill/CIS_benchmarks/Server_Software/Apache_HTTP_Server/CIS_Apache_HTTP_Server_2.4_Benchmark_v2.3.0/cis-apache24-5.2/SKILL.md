@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.2 Ensure Options for the Web Root Directory Are Restricted
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -71,6 +72,7 @@ The default value for the web root directory's `Option` directive is `FollowSymL
 ## CIS Controls
 
 **Controls Version: v8**
+
 - **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts**
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
   - **IG 1:** •
@@ -78,10 +80,12 @@ The default value for the web root directory's `Option` directive is `FollowSymL
   - **IG 3:** •
 
 **Controls Version: v7**
+
 - **4.7 Limit Access to Script Tools**
   - Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.
   - **IG 2:** •
   - **IG 3:** •
 
 ## Profile
+
 - Level 2 | Automated

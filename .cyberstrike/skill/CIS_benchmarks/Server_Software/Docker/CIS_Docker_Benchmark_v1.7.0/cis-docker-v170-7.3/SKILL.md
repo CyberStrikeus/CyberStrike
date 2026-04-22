@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 7.3
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker Swarm
@@ -56,9 +57,11 @@ By default, data exchanged in overlay networks in Docker swarm mode is not encry
 ## CIS Controls
 
 **v8:**
+
 - **3.10 Encrypt Sensitive Data in Transit**
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **v7:**
+
 - **14.4 Encrypt All Sensitive Information in Transit**
   - Encrypt all sensitive information in transit.

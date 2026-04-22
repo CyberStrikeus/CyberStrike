@@ -36,6 +36,7 @@ The Simple Network Management Protocol (SNMP) server is used to listen for SNMP 
 The SNMP server can communicate using SNMPv1, which transmits data in the clear and does not require authentication to execute commands. SNMPv3 replaces the simple/clear text password sharing used in SNMPv2 with more securely encoded parameters. If the SNMP service is not required, the snmpd package should be removed to reduce the attack surface of the system.
 
 Note: If SNMP is required:
+
 - The server should be configured for `SNMP v3` only. `User Authentication` and `Message Encryption` should be configured.
 - If `SNMP v2` is absolutely necessary, modify the community strings' values.
 

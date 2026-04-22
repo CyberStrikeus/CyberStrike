@@ -4,7 +4,23 @@ description: "Ensure that the --tls-cert-file and --tls-private-key-file argumen
 category: cis-k8s
 version: "1.11.1"
 author: cyberstrike-official
-tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+tags:
+  [
+    cis,
+    kubernetes,
+    worker-nodes,
+    kubelet,
+    authentication,
+    authorization,
+    tls,
+    streaming,
+    iptables,
+    hostname-override,
+    event-capture,
+    certificate-rotation,
+    seccomp,
+    strong-ciphers,
+  ]
 cis_id: "4.2.9"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
 tech_stack: [kubernetes]
@@ -62,7 +78,7 @@ By default, `--tls-cert-file` and `--tls-private-key-file` arguments are not set
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | x    | x    |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | x    | x    |

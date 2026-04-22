@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.16
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -34,6 +35,7 @@ PID namespace provides separation between processes. It prevents system processe
 Container processes cannot see processes on the host system. In certain circumstances, you may want your container to share the host's process namespace. For example, you could build a container containing debugging tools such as `strace` or `gdb`, and want to use these tools when debugging processes on the host. If this is desired, then share specific host processes using the `-p` switch.
 
 For example:
+
 ```bash
 docker run --pid=host rhel7 strace -p 1234
 ```
@@ -70,9 +72,11 @@ By default, all containers have the PID namespace enabled and the therefore the 
 ## CIS Controls
 
 **v8:**
+
 - **3.12 Segment Data Processing and Storage Based on Sensitivity**
   - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - **14.1 Segment the Network Based on Sensitivity**
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).

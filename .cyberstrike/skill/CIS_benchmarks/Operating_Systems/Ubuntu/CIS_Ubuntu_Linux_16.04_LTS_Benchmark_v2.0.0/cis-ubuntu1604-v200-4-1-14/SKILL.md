@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.14
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -85,6 +86,6 @@ By default, no audit rules are configured for sudoers changes.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 4.8 Log and Alert on Changes to Administrative Group Membership - Configure systems to issue a log entry and alert when an account is added to or removed from any group assigned administrative privileges. |
+| Controls Version | Control                                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v7               | 4.8 Log and Alert on Changes to Administrative Group Membership - Configure systems to issue a log entry and alert when an account is added to or removed from any group assigned administrative privileges. |

@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-10
   - SC-24
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ Recovery is executing contingency plan activities to restore organizational miss
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-4(4) Full Recovery and Reconstitution not implemented | Medium | Contingency Planning |
-| CP-4(4) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                                  | Severity | Impact                          |
+| -------------------------------------------------------- | -------- | ------------------------------- |
+| CP-4(4) Full Recovery and Reconstitution not implemented | Medium   | Contingency Planning            |
+| CP-4(4) partially implemented                            | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

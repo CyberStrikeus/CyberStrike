@@ -25,25 +25,31 @@ severity_boost: "medium"
 # 1.1.5 Ensure separate partition exists for /var (Scored)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 The /var directory is used by daemons and other system services to temporarily store dynamic data. Some directories created by these processes may be world-writable.
 
 ## Rationale
+
 Since the /var directory may contain world-writable files and directories, there is a risk of resource exhaustion if it is not bound to a separate partition.
 
 ## Audit Procedure
+
 ```bash
 mount | grep /var
 # Expected output: /dev/xvdg1 on /var type ext4 (rw,relatime,data=ordered)
 ```
 
 ## Expected Result
+
 Verify output shows /var is mounted on a separate partition.
 
 ## Remediation
+
 ```bash
 # For new installations, during installation create a custom partition setup
 # and specify a separate partition for /var.
@@ -52,11 +58,14 @@ Verify output shows /var is mounted on a separate partition.
 ```
 
 ## Default Value
+
 By default, /var is not mounted on a separate partition.
 
 ## References
+
 - CIS Ubuntu Linux 14.04 LTS Benchmark v2.1.0
 - AJ Lewis, "LVM HOWTO", http://tldp.org/HOWTO/LVM-HOWTO/
 
 ## Profile
+
 - Level 2

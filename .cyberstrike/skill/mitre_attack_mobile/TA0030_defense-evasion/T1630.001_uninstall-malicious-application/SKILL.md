@@ -40,11 +40,11 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may include functionality in malware that uninstalls the malicious application from the device. This can be achieved by: 
- 
-* Abusing device owner permissions to perform silent uninstallation using device owner API calls. 
-* Abusing root permissions to delete files from the filesystem. 
-* Abusing the accessibility service. This requires sending an intent to the system to request uninstallation, and then abusing the accessibility service to click the proper places on the screen to confirm uninstallation.
+Adversaries may include functionality in malware that uninstalls the malicious application from the device. This can be achieved by:
+
+- Abusing device owner permissions to perform silent uninstallation using device owner API calls.
+- Abusing root permissions to delete files from the filesystem.
+- Abusing the accessibility service. This requires sending an intent to the system to request uninstallation, and then abusing the accessibility service to click the proper places on the screen to confirm uninstallation.
 
 ## Kill Chain Phase
 
@@ -72,32 +72,32 @@ Review whether mitigations for T1630.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1001 Security Updates
+
 Security updates typically provide patches for vulnerabilities that enable device rooting.
 
 ### M1011 User Guidance
+
 Inform users that device rooting or granting unnecessary access to the accessibility service presents security risks that could be taken advantage of without their knowledge.
 
 ### M1002 Attestation
-Attestation can detect rooted devices. Mobile security software can then use this information and take appropriate mitigation action. Attestation can detect rooted devices.
 
+Attestation can detect rooted devices. Mobile security software can then use this information and take appropriate mitigation action. Attestation can detect rooted devices.
 
 ## Detection
 
 ### Detection of Uninstall Malicious Application
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Uninstall Malicious Application technique applicable | Low | Defense Evasion |
+| Finding                                              | Severity | Impact          |
+| ---------------------------------------------------- | -------- | --------------- |
+| Uninstall Malicious Application technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

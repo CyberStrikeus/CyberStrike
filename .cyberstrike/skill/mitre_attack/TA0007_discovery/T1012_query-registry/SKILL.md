@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -119,7 +117,7 @@ Get-Item -Path "HKCU:Software\Microsoft\Windows\CurrentVersion\Run"
 Get-Item -Path "HKCU:Software\Microsoft\Windows\CurrentVersion\RunOnce"
 Get-Item -Path "HKLM:Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
 Get-Item -Path "HKCU:Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
-Get-ChildItem -Path "HKLM:system\currentcontrolset\services" 
+Get-ChildItem -Path "HKLM:system\currentcontrolset\services"
 Get-Item -Path "HKLM:Software\Microsoft\Windows\CurrentVersion\Run"
 Get-Item -Path "HKLM:SYSTEM\CurrentControlSet\Control\SafeBoot"
 Get-ChildItem -Path "HKLM:SOFTWARE\Microsoft\Active Setup\Installed Components"
@@ -129,7 +127,7 @@ Get-ChildItem -Path "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy
 ### Atomic Test 3: Enumerate COM Objects in Registry with Powershell
 
 This test is designed to enumerate the COM objects listed in HKCR, then output their methods and CLSIDs to a text file.
-An adversary could then use this information to identify COM objects that might be vulnerable to abuse, such as using them to spawn arbitrary processes. 
+An adversary could then use this information to identify COM objects that might be vulnerable to abuse, such as using them to spawn arbitrary processes.
 See: https://www.mandiant.com/resources/hunting-com-objects
 
 **Supported Platforms:** windows
@@ -160,7 +158,7 @@ reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallEle
 
 ### Atomic Test 5: Check Software Inventory Logging (SIL) status via Registry
 
-Microsoft's Software Inventory Logging (SIL) collects information about software installed per host basis. Adversary can use such logs to passively 
+Microsoft's Software Inventory Logging (SIL) collects information about software installed per host basis. Adversary can use such logs to passively
 check for existence of software of interest to them. Status of SIL can be checked via registry.
 [Reference](https://blog.talosintelligence.com/chinese-hacking-group-apt41-compromised-taiwanese-government-affiliated-research-institute-with-shadowpad-and-cobaltstrike-2/)
 
@@ -170,7 +168,6 @@ check for existence of software of interest to them. Status of SIL can be checke
 ```cmd
 reg.exe query hklm\software\microsoft\windows\softwareinventorylogging /v collectionstate /reg:64
 ```
-
 
 ### Manual Testing
 
@@ -190,19 +187,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Registry Query for Environmental Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Query Registry technique applicable | Medium | Discovery |
+| Finding                             | Severity | Impact    |
+| ----------------------------------- | -------- | --------- |
+| Query Registry technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 3.2.8
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Setup TLS connection on the Kubelets.
 
 ## Rationale
+
 Kubelet communication contains sensitive parameters that should remain encrypted in transit. Configure the Kubelets to serve only HTTPS traffic.
 
 ## Impact
+
 TLS and client certificate authentication must be configured for your Kubernetes cluster deployment.
 
 ## Audit Procedure
@@ -88,7 +92,7 @@ Verify that the `tls-private-key-file=/var/lib/kubelet/pki/tls.key`.
 
 If using the api configz endpoint consider searching for the status of `tlsCertFile` and `tlsPrivateKeyFile` are set by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in [Reconfigure a Node's Kubelet in a Live Cluster](https://kubernetes.io/docs/tasks/administer-cluster/reconfigure-kubelet/), and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -108,9 +112,11 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. http://rootsquash.com/2016/05/10/securing-the-kubernetes-api/
 3. https://github.com/kelseyhightower/docker-kubernetes-tls-guide
@@ -119,16 +125,17 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | * | * |
-| v7 | 14.3 Disable Workstation to Workstation Communication | | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit                |      | \*   | \*   |
+| v7               | 14.3 Disable Workstation to Workstation Communication |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1078, T1552 | TA0001, TA0006 | M1035, M1041 |
+| Techniques / Sub-techniques | Tactics        | Mitigations  |
+| --------------------------- | -------------- | ------------ |
+| T1078, T1552                | TA0001, TA0006 | M1035, M1041 |
 
 ## Profile
+
 **Level 1** (Automated)

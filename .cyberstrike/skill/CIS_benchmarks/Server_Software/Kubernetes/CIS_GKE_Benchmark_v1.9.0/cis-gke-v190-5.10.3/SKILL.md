@@ -74,7 +74,7 @@ The output of the above command will return the following if the Node pool is ru
 
 ```json
 {
-  "sandboxType":"gvisor"
+  "sandboxType": "gvisor"
 }
 ```
 
@@ -125,7 +125,7 @@ It is optional but recommended that you enable Stackdriver Logging and Stackdriv
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.8 Separate Production and Non-Production Systems | | x | x |
-| v7 | 18.9 Separate Production and Non-Production Systems | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.8 Separate Production and Non-Production Systems |      | x    | x    |
+| v7               | 18.9 Separate Production and Non-Production Systems |      | x    | x    |

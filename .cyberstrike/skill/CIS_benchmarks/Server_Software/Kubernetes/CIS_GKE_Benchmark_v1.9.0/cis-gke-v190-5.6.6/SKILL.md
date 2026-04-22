@@ -135,7 +135,7 @@ The implied rules cannot be removed, but they have the lowest possible prioritie
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 9.5 Implement Application Firewalls | | | x |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | x    | x    | x    |
+| v7               | 9.5 Implement Application Firewalls            |      |      | x    |

@@ -27,10 +27,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,29 +70,28 @@ While public references of usage by threat actors are scarce, many red teams/pen
 ## Remediation Guide
 
 ### M1035 Limit Access to Resource Over Network
+
 Establish network access control policies, such as using device certificates and the 802.1x standard. Restrict use of DHCP to registered devices to prevent unregistered devices from communicating with trusted systems.
 
 ### M1034 Limit Hardware Installation
-Block unknown devices and accessories by endpoint security configuration and monitoring agent.
 
+Block unknown devices and accessories by endpoint security configuration and monitoring agent.
 
 ## Detection
 
 ### Detect unauthorized or suspicious Hardware Additions (USB/Thunderbolt/Network)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hardware Additions technique applicable | High | Initial Access |
+| Finding                                 | Severity | Impact         |
+| --------------------------------------- | -------- | -------------- |
+| Hardware Additions technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

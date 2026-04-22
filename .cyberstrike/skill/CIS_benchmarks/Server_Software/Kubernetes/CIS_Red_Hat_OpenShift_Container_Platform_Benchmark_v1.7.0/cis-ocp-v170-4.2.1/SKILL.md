@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 4.2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Configure garbage collection for containers and images as appropriate.
 
 ## Rationale
+
 Garbage collection is important to ensure sufficient resource availability and avoiding degraded performance and availability. In the worst case, the system might crash or just be unusable for a long period of time. Based on your system resources and tests, choose an appropriate threshold value to activate garbage collection.
 
 ## Impact
+
 Incorrect configuration of garbage collection parameters can lead to system instability, degraded performance, and in worst cases, system crashes. Properly set parameters ensure efficient utilization of system resources.
 
 ## Audit Procedure
@@ -63,9 +67,11 @@ You can verify the values of the `evictionHard` settings. Verify the values for 
 - `evictionSoftGracePeriod` (if configured)
 
 ## Remediation
+
 To configure, follow the directions in [Garbage Collection Remediation](https://docs.openshift.com/container-platform/latest/nodes/nodes/nodes-nodes-garbage-collection.html).
 
 ## Default Value
+
 The kubelet has the following default hard eviction thresholds:
 
 ```json
@@ -80,6 +86,7 @@ The kubelet has the following default hard eviction thresholds:
 Note: These default values of hard eviction thresholds will only be set if none of the parameters is changed. If you changed the value of any parameter, then the values of other parameters will not be inherited as the default values and will be set to zero. In order to provide custom values, you should provide all the thresholds respectively.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#cluster-openshift-controller-manager-operator_cluster-operators-ref
 2. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#kube-controller-manager-operator_cluster-operators-ref
 3. https://docs.openshift.com/container-platform/latest/nodes/nodes/nodes-nodes-garbage-collection.html
@@ -89,14 +96,15 @@ Note: These default values of hard eviction thresholds will only be set if none 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | * | * |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features |      | \*   | \*   |
+| v7               | 5.1 Establish Secure Configurations    | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 None specified.
 
 ## Profile
+
 **Level 1** (Manual)

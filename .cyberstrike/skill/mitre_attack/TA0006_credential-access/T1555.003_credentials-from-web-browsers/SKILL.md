@@ -52,7 +52,7 @@ severity_boost:
 Adversaries may acquire credentials from web browsers by reading files specific to the target browser. Web browsers commonly save credentials such as website usernames and passwords so that they do not need to be entered manually in the future. Web browsers typically store the credentials in an encrypted format within a credential store; however, methods exist to extract plaintext credentials from web browsers.
 
 For example, on Windows systems, encrypted credentials may be obtained from Google Chrome by reading a database file, <code>AppData\Local\Google\Chrome\User Data\Default\Login Data</code> and executing a SQL query: <code>SELECT action_url, username_value, password_value FROM logins;</code>. The plaintext password can then be obtained by passing the encrypted credentials to the Windows API function <code>CryptUnprotectData</code>, which uses the victim’s cached logon credentials as the decryption key.
- 
+
 Adversaries have executed similar procedures for common web browsers such as FireFox, Safari, Edge, etc. Windows stores Internet Explorer and Microsoft Edge credentials in Credential Lockers managed by the Windows Credential Manager.
 
 Adversaries may also acquire credentials by searching web browser process memory for patterns that commonly match credentials.
@@ -95,6 +95,7 @@ Start-Process "#{file_path}\Sysinternals\accesschk.exe" -ArgumentList "-accepteu
 ```
 
 **Dependencies:**
+
 - Modified Sysinternals must be located at #{file_path}
 
 ### Atomic Test 2: Search macOS Safari Cookies
@@ -123,6 +124,7 @@ LaZagne is an open source application used to retrieve passwords stored on a loc
 ```
 
 **Dependencies:**
+
 - LaZagne.exe must exist on disk at specified location (#{lazagne_path})
 
 ### Atomic Test 4: Simulating access to Chrome Login Data
@@ -137,6 +139,7 @@ Copy-Item "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Login Data For Acco
 ```
 
 **Dependencies:**
+
 - Chrome must be installed
 
 ### Atomic Test 5: Simulating access to Opera Login Data
@@ -150,9 +153,9 @@ Copy-Item "$env:APPDATA\Opera Software\Opera Stable\Login Data" -Destination "Pa
 ```
 
 **Dependencies:**
+
 - Opera must be installed
 - Opera login data file must exist
-
 
 ### Manual Testing
 
@@ -167,38 +170,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Regularly update web browsers, password managers, and all related software to the latest versions. Keeping software up-to-date reduces the risk of vulnerabilities being exploited by attackers to extract stored credentials or session cookies.
 
 ### M1018 User Account Management
+
 Implement strict user account management policies to prevent unnecessary accounts from accessing sensitive systems. Regularly audit user accounts to identify and disable inactive accounts that may be targeted by attackers to extract credentials or gain unauthorized access.
 
 ### M1017 User Training
+
 Provide user training on secure practices for managing credentials, including avoiding storing sensitive passwords in browsers and using password managers securely. Users should also be educated on identifying phishing attempts that could steal session cookies or credentials.
 
 ### M1021 Restrict Web-Based Content
+
 Restrict or block web-based content that could be used to extract session cookies or credentials stored in browsers. Use browser security settings, such as disabling third-party cookies and restricting browser extensions, to limit the attack surface.
 
 ### M1027 Password Policies
-Organizations may consider weighing the risk of storing credentials in web browsers. If web browser credential disclosure is a significant concern, technical controls, policy, and user training may be used to prevent storage of credentials in web browsers.
 
+Organizations may consider weighing the risk of storing credentials in web browsers. If web browser credential disclosure is a significant concern, technical controls, policy, and user training may be used to prevent storage of credentials in web browsers.
 
 ## Detection
 
 ### Detect Suspicious Access to Browser Credential Stores
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credentials from Web Browsers technique applicable | High | Credential Access |
+| Finding                                            | Severity | Impact            |
+| -------------------------------------------------- | -------- | ----------------- |
+| Credentials from Web Browsers technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

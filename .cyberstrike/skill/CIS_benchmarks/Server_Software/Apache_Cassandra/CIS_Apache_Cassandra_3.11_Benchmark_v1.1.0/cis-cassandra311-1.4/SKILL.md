@@ -17,10 +17,12 @@ severity_boost: {}
 # 1.4 Ensure latest version of Cassandra is installed
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 - Level 2 - Cassandra on Linux
 
 ## Description
+
 The Cassandra installation version, along with the patches, should be the most recent that is compatible with organization's operational needs. When obtaining and installing software packages (typically via apt-get or you compile the source code), it's imperative that packages (or the source code, tarball) are sourced only from valid and authorized repositories.
 
 For Cassandra, a short list of valid repositories may include:
@@ -29,9 +31,11 @@ For Cassandra, a short list of valid repositories may include:
 - DataStax Enterprise: https://www.datastax.com/
 
 ## Rationale
+
 Using the most recent version of Cassandra can help limit the possibilities for vulnerabilities in the software, the installation version applied during setup should be established according to the needs of the organization. Ensure you are using a release that is covered by a level of support which includes regular updates to address vulnerabilities.
 
 ## Audit
+
 To verify the version of Cassandra you have installed:
 
 ```bash
@@ -43,6 +47,7 @@ cassandra -v
 If an old/unsupported version of Cassandra is installed this is a finding.
 
 ## Remediation
+
 Upgrade to the latest version of the Cassandra software:
 For each node in the cluster:
 
@@ -60,14 +65,18 @@ For each node in the cluster:
 12. Using the nodetool command to check status of cluster.
 
 ## Default Value
+
 No default version exists.
 
 ## References
+
 1. http://cassandra.apache.org/doc/latest/getting_started/installing.html#prerequisite s
 
 ## CIS Controls
+
 - v8: 16.5 Use Up-to-Date and Trusted Third-Party Software Components
 - v7: 18.4 Only Use Up-to-date And Trusted Third-Party Components
 
 ## Profile
+
 - Level 1 | Automated

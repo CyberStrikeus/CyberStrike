@@ -70,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -87,17 +87,16 @@ Reliance on certificate authorities for the establishment of secure sessions inc
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-23(5) Allowed Certificate Authorities not implemented | High | System and Communications Protection |
-| SC-23(5) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                  | Severity | Impact                                          |
+| -------------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-23(5) Allowed Certificate Authorities not implemented | High     | System and Communications Protection            |
+| SC-23(5) partially implemented                           | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

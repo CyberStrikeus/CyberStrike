@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.4.1.3
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -43,8 +44,9 @@ dpkg-query -s ufw &>/dev/null && echo "ufw is installed"
 ```
 
 Nothing should be returned.
+
 - OR -
-Run the following command to verify ufw is disabled:
+  Run the following command to verify ufw is disabled:
 
 ```bash
 ufw status
@@ -84,7 +86,7 @@ apt purge ufw
 ```
 
 - OR -
-Run the following commands to disable ufw, and stop and mask `ufw.service`:
+  Run the following commands to disable ufw, and stop and mask `ufw.service`:
 
 ```bash
 ufw disable

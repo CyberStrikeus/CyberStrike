@@ -20,8 +20,7 @@ chains_with:
   - PE-3
   - SA-4
   - SA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-2: "Chain with AT-2 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,17 +80,16 @@ Developer-provided training applies to external and internal (in-house) develope
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-16 Developer-provided Training not implemented | Medium | System and Services Acquisition |
-| SA-16 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                           | Severity | Impact                                     |
+| ------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-16 Developer-provided Training not implemented | Medium   | System and Services Acquisition            |
+| SA-16 partially implemented                       | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

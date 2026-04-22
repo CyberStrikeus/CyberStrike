@@ -22,10 +22,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -33,7 +31,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may deploy rootkits to hide the presence of programs, files, network connections, services, drivers, and other system components. Rootkits are programs that hide the existence of malware by intercepting and modifying operating-system API calls that supply system information. Rootkits or rootkit-enabling functionality may reside at the user or kernel level in the operating system, or lower. 
+Adversaries may deploy rootkits to hide the presence of programs, files, network connections, services, drivers, and other system components. Rootkits are programs that hide the existence of malware by intercepting and modifying operating-system API calls that supply system information. Rootkits or rootkit-enabling functionality may reside at the user or kernel level in the operating system, or lower.
 
 Firmware rootkits that affect the operating system yield nearly full control of the system. While firmware rootkits are normally developed for the main processing board, they can also be developed for the I/O that is attached to an asset. Compromise of this firmware allows the modification of all of the process variables and functions the module engages in. This may result in commands being disregarded and false information being fed to the main device. By tampering with device processes, an adversary may inhibit its expected response functions and possibly enable Impact.
 
@@ -64,29 +62,28 @@ Review whether mitigations for T0851 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0945 Code Signing
+
 Digital signatures may be used to ensure application DLLs are authentic prior to execution.
 
 ### M0947 Audit
-Audit the integrity of PLC system and application code functionality, such as the manipulation of standard function blocks (e.g., Organizational Blocks) that manage the execution of application logic programs.
 
+Audit the integrity of PLC system and application code functionality, such as the manipulation of standard function blocks (e.g., Organizational Blocks) that manage the execution of application logic programs.
 
 ## Detection
 
 ### Detection of Rootkit
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Rootkit technique applicable | High | Evasion |
+| Finding                      | Severity | Impact  |
+| ---------------------------- | -------- | ------- |
+| Rootkit technique applicable | High     | Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

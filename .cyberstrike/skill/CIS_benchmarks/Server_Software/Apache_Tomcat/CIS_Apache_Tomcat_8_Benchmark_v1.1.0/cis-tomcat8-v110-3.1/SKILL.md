@@ -55,6 +55,7 @@ The default value for the `shutdown` attribute is `SHUTDOWN`.
 ## CIS Controls
 
 **v7:**
+
 - 4.7 Limit Access to Script Tools
   - Limit access to scripting tools (such as Microsoft PowerShell and Python) to only administrative or development users with the need to access those capabilities.
 

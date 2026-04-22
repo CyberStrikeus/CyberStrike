@@ -30,8 +30,7 @@ cwe_ids:
 chains_with:
   - T1563.001
   - T1563.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1563.001: "Chain with T1563.001 for deeper attack path"
   T1563.002: "Chain with T1563.002 for deeper attack path"
@@ -75,38 +74,40 @@ Adversaries may commandeer these sessions to carry out actions on remote systems
 ## Remediation Guide
 
 ### M1030 Network Segmentation
+
 Enable firewall rules to block unnecessary traffic between network security zones within a network.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable the remote service (ex: SSH, RDP, etc.) if it is unnecessary.
 
 ### M1027 Password Policies
+
 Set and enforce secure password policies for accounts.
 
 ### M1018 User Account Management
+
 Limit remote user permissions if remote access is necessary.
 
 ### M1026 Privileged Account Management
-Do not allow remote access to services as a privileged account unless necessary.
 
+Do not allow remote access to services as a privileged account unless necessary.
 
 ## Detection
 
 ### Detection of Remote Service Session Hijacking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote Service Session Hijacking technique applicable | High | Lateral Movement |
+| Finding                                               | Severity | Impact           |
+| ----------------------------------------------------- | -------- | ---------------- |
+| Remote Service Session Hijacking technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

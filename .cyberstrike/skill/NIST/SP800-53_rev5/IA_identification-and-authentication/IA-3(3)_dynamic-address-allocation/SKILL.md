@@ -68,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ The Dynamic Host Configuration Protocol (DHCP) is an example of a means by which
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-3(3) Dynamic Address Allocation not implemented | High | Identification and Authentication |
-| IA-3(3) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                            | Severity | Impact                                       |
+| -------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-3(3) Dynamic Address Allocation not implemented | High     | Identification and Authentication            |
+| IA-3(3) partially implemented                      | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

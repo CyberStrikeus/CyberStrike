@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.8.0 - Control 4.2.3
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not allow all requests. Enable explicit authorization.
 
 ## Rationale
+
 Kubelets, by default, allow all authenticated requests (even anonymous ones) without needing explicit authorization checks from the apiserver. You should restrict this behavior and only allow explicitly authorized requests.
 
 ## Impact
+
 Unauthorized requests will be denied.
 
 ## Audit Procedure
@@ -42,12 +46,15 @@ done
 Verify none of the nodes return `AlwaysAllow` for the authorization mode.
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, OpenShift uses `Webhook` authorization.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/4.5/architecture/control-plane.html#understanding-machine-config-operator_control-plane
 2. https://docs.openshift.com/container-platform/4.5/scalability_and_performance/recommended-host-practices.html#create-a-kubeletconfig-crd-to-edit-kubelet-parameters_
 3. https://github.com/openshift/machine-config-operator/blob/release-4.5/docs/KubeletConfigDesign.md
@@ -56,16 +63,17 @@ By default, OpenShift uses `Webhook` authorization.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists                            | \*   | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1190, T1210 | TA0001, TA0008 | M1025 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1190, T1210                | TA0001, TA0008 | M1025       |
 
 ## Profile
+
 **Level 1** (Automated)

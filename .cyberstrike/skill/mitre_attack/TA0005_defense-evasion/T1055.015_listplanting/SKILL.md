@@ -57,7 +57,7 @@ List-view controls are user interface windows used to display collections of ite
 
 ListPlanting (a form of message-passing "shatter attack") may be performed by copying code into the virtual address space of a process that uses a list-view control then using that code as a custom callback for sorting the listed items. Adversaries must first copy code into the target process’ memory space, which can be performed various ways including by directly obtaining a handle to the <code>SysListView32</code> child of the victim process window (via Windows API calls such as <code>FindWindow</code> and/or <code>EnumWindows</code>) or other Process Injection methods.
 
-Some variations of ListPlanting may allocate memory in the target process but then use window messages to copy the payload, to avoid the use of the highly monitored <code>WriteProcessMemory</code> function. For example, an adversary can use the <code>PostMessage</code> and/or <code>SendMessage</code> API functions to send <code>LVM_SETITEMPOSITION</code> and <code>LVM_GETITEMPOSITION</code> messages, effectively copying a payload 2 bytes at a time to the allocated memory. 
+Some variations of ListPlanting may allocate memory in the target process but then use window messages to copy the payload, to avoid the use of the highly monitored <code>WriteProcessMemory</code> function. For example, an adversary can use the <code>PostMessage</code> and/or <code>SendMessage</code> API functions to send <code>LVM_SETITEMPOSITION</code> and <code>LVM_GETITEMPOSITION</code> messages, effectively copying a payload 2 bytes at a time to the allocated memory.
 
 Finally, the payload is triggered by sending the <code>LVM_SORTITEMS</code> message to the <code>SysListView32</code> child of the process window, with the payload within the newly allocated buffer passed and executed as the <code>ListView_SortItems</code> callback.
 
@@ -95,8 +95,8 @@ Get-Process -Name Notepad -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
 **Dependencies:**
-- Injector ListPlanting.exe must exist at specified location (#{exe_binary})
 
+- Injector ListPlanting.exe must exist at specified location (#{exe_binary})
 
 ### Manual Testing
 
@@ -111,26 +111,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
+Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
 ## Detection
 
 ### Detection Strategy for ListPlanting Injection on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| ListPlanting technique applicable | High | Defense Evasion |
+| Finding                           | Severity | Impact          |
+| --------------------------------- | -------- | --------------- |
+| ListPlanting technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

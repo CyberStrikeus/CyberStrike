@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -105,7 +103,7 @@ Scriptrunner.exe -appvscript "#{payload_path}"
 
 ### Atomic Test 5: Indirect Command Execution - RunMRU Dialog
 
-Simulates execution of commands via the Windows Run dialog (Win+R) by programmatically opening the Run dialog, 
+Simulates execution of commands via the Windows Run dialog (Win+R) by programmatically opening the Run dialog,
 copying a command to clipboard, and automating the paste and execution. This generates artifacts in the RunMRU registry key,
 which is commonly abused by threat actors to execute malicious commands disguised as CAPTCHA verification steps.
 Upon execution, a test PowerShell command will be executed through the Run dialog.
@@ -129,7 +127,6 @@ Start-Sleep -Milliseconds 500
 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -148,19 +145,17 @@ No specific mitigations documented for this technique.
 
 ### Indirect Command Execution – Windows utility abuse behavior chain
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indirect Command Execution technique applicable | Medium | Defense Evasion |
+| Finding                                         | Severity | Impact          |
+| ----------------------------------------------- | -------- | --------------- |
+| Indirect Command Execution technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -29,8 +29,7 @@ chains_with:
   - SA-8
   - SA-9
   - SA-10
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -93,17 +92,16 @@ Unauthorized changes to software, firmware, and information can occur due to err
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-7 Software, Firmware, and Information Integrity not implemented | High | System and Information Integrity |
-| SI-7 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                            | Severity | Impact                                      |
+| ------------------------------------------------------------------ | -------- | ------------------------------------------- |
+| SI-7 Software, Firmware, and Information Integrity not implemented | High     | System and Information Integrity            |
+| SI-7 partially implemented                                         | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

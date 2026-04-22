@@ -25,16 +25,20 @@ severity_boost: "low"
 # 1.1.8 Ensure nosuid option set on /var/tmp partition (Scored)
 
 ## Profile Applicability
+
 - Level 1 - Server
 - Level 1 - Workstation
 
 ## Description
+
 The nosuid mount option specifies that the filesystem cannot contain setuid files.
 
 ## Rationale
+
 Since the /var/tmp filesystem is only intended for temporary file storage, set this option to ensure that users cannot create setuid files in /var/tmp.
 
 ## Audit Procedure
+
 ```bash
 mount | grep /var/tmp
 # Verify that the nosuid option is set on /var/tmp
@@ -42,9 +46,11 @@ mount | grep /var/tmp
 ```
 
 ## Expected Result
+
 The output should show the `nosuid` option is set for the /var/tmp partition.
 
 ## Remediation
+
 ```bash
 # Edit the /etc/fstab file and add nosuid to the fourth field (mounting options)
 # for the /var/tmp partition. See the fstab(5) manual page for more information.
@@ -54,10 +60,13 @@ mount -o remount,nosuid /var/tmp
 ```
 
 ## Default Value
+
 By default, the nosuid option is not set on /var/tmp.
 
 ## References
+
 - CIS Ubuntu Linux 14.04 LTS Benchmark v2.1.0
 
 ## Profile
+
 - Level 1

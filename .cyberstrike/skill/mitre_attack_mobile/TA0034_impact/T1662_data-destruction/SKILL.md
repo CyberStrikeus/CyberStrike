@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -32,7 +30,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may destroy data and files on specific devices or in large numbers to interrupt availability to systems, services, and network resources. Data destruction is likely to render stored data irrecoverable by forensic techniques through overwriting files or data on local and remote drives. 
+Adversaries may destroy data and files on specific devices or in large numbers to interrupt availability to systems, services, and network resources. Data destruction is likely to render stored data irrecoverable by forensic techniques through overwriting files or data on local and remote drives.
 
 To achieve data destruction, adversaries may use the `pm uninstall` command to uninstall packages or the `rm` command to remove specific files. For example, adversaries may first use `pm uninstall` to uninstall non-system apps, and then use `rm (-f) <file(s)>` to delete specific files, further hiding malicious activity.
 
@@ -62,26 +60,24 @@ Review whether mitigations for T1662 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be trained on what device administrator permission request prompts look like, and how to avoid granting permissions on phishing popups.
 
+Users should be trained on what device administrator permission request prompts look like, and how to avoid granting permissions on phishing popups.
 
 ## Detection
 
 ### Detection of Data Destruction
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data Destruction technique applicable | Low | Impact |
+| Finding                               | Severity | Impact |
+| ------------------------------------- | -------- | ------ |
+| Data Destruction technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

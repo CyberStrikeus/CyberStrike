@@ -37,9 +37,9 @@ If the `docker/default` seccomp profile is too restrictive for you, you would ha
 Review the pod definitions in your cluster. It should create a line as below:
 
 ```yaml
-  securityContext:
-    seccompProfile:
-      type: RuntimeDefault
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
 ```
 
 ## Remediation
@@ -47,9 +47,9 @@ Review the pod definitions in your cluster. It should create a line as below:
 Use security context to enable the `docker/default` seccomp profile in your pod definitions. An example is as below:
 
 ```yaml
-  securityContext:
-    seccompProfile:
-      type: RuntimeDefault
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
 ```
 
 ## Default Value
@@ -63,7 +63,7 @@ By default, seccomp profile is set to `unconfined` which means that no seccomp p
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure | | X | X |
-| v7 | 5.2 Maintain Secure Images | | X | X |
+| Controls Version | Control                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure |      | X    | X    |
+| v7               | 5.2 Maintain Secure Images                                                         |      | X    | X    |

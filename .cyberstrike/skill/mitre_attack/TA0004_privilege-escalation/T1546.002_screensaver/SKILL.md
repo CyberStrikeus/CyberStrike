@@ -61,10 +61,10 @@ Adversaries may establish persistence by executing malicious content triggered b
 
 The following screensaver settings are stored in the Registry (<code>HKCU\Control Panel\Desktop\</code>) and could be manipulated to achieve persistence:
 
-* <code>SCRNSAVE.exe</code> - set to malicious PE path
-* <code>ScreenSaveActive</code> - set to '1' to enable the screensaver
-* <code>ScreenSaverIsSecure</code> - set to '0' to not require a password to unlock
-* <code>ScreenSaveTimeout</code> - sets user inactivity timeout before screensaver is executed
+- <code>SCRNSAVE.exe</code> - set to malicious PE path
+- <code>ScreenSaveActive</code> - set to '1' to enable the screensaver
+- <code>ScreenSaverIsSecure</code> - set to '0' to not require a password to unlock
+- <code>ScreenSaveTimeout</code> - sets user inactivity timeout before screensaver is executed
 
 Adversaries can use screensaver settings to maintain persistence by setting the screensaver to run malware after a certain timeframe of user inactivity.
 
@@ -105,7 +105,6 @@ reg.exe add "HKEY_CURRENT_USER\Control Panel\Desktop" /v SCRNSAVE.EXE /t REG_SZ 
 if #{reboot} NEQ 0 shutdown /r /t 0
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -119,29 +118,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Block .scr files from being executed from non-standard locations.
 
 ### M1042 Disable or Remove Feature or Program
-Use Group Policy to disable screensavers if they are unnecessary.
 
+Use Group Policy to disable screensavers if they are unnecessary.
 
 ## Detection
 
 ### Detect Screensaver-Based Persistence via Registry and Execution Chains
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Screensaver technique applicable | Low | Privilege Escalation |
+| Finding                          | Severity | Impact               |
+| -------------------------------- | -------- | -------------------- |
+| Screensaver technique applicable | Low      | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

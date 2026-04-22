@@ -17,9 +17,11 @@ severity_boost: {}
 # 1.1 Ensure the Pre-Installation Planning Checklist Has Been Implemented (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Review and implement the following items as appropriate:
 
 - Reviewed and implemented company's security policies as they relate to web security.
@@ -33,23 +35,29 @@ Review and implement the following items as appropriate:
 - Implemented a Network Intrusion Detection System to monitor attacks against the web server.
 
 ## Rationale
+
 Proper planning and preparation are essential for a secure Apache installation. These steps help establish a foundation for security before the web server is even installed.
 
 ## Audit
+
 This is a manual review of organizational policies and procedures. Verify that the pre-installation planning checklist has been reviewed and appropriate items have been implemented based on organizational requirements.
 
 ## Remediation
+
 Review the pre-installation planning checklist and implement all items that are appropriate for your organization's security requirements and operational needs.
 
 ## References
+
 1. Open Web Application Security Project - https://owasp.org/
 2. Web Application Security Consortium - http://www.webappsec.org/
 
 ## CIS Controls
+
 - v8: 13.11 Tune Security Event Alerting Thresholds
 - v8: 16.7 Use Standard Hardening Configuration Templates for Application Infrastructure
 - v7: 13.1 Maintain an Inventory Sensitive Information
 - v7: 18.11 Use Standard Hardening Configuration Templates for Databases
 
 ## Profile
+
 - Level 1

@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-19
   - CP-2
@@ -26,8 +25,7 @@ chains_with:
   - PE-3
   - PL-2
   - SC-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-19: "Chain with AC-19 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,16 +87,16 @@ System media includes digital and non-digital media. Digital media includes flas
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-4 Media Storage not implemented | Medium | Media Protection |
-| MP-4 partially implemented | Low | Incomplete Media Protection |
+| Finding                            | Severity | Impact                      |
+| ---------------------------------- | -------- | --------------------------- |
+| MP-4 Media Storage not implemented | Medium   | Media Protection            |
+| MP-4 partially implemented         | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

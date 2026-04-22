@@ -86,6 +86,7 @@ Start-Process "#{script_path}"
 ```
 
 **Dependencies:**
+
 - Batch file must exist on disk at specified location (#{script_path})
 
 ### Atomic Test 2: Writes text to a file and displays it.
@@ -110,8 +111,8 @@ Command line executed via suspicious invocation. Example is from the 2021 Threat
 
 ### Atomic Test 4: Simulate BlackByte Ransomware Print Bombing
 
-This test attempts to open a file a specified number of times in Wordpad, then prints the contents. 
-It is designed to mimic BlackByte ransomware's print bombing technique, where tree.dll, which contains the ransom note, is opened in Wordpad 75 times and then printed. 
+This test attempts to open a file a specified number of times in Wordpad, then prints the contents.
+It is designed to mimic BlackByte ransomware's print bombing technique, where tree.dll, which contains the ransom note, is opened in Wordpad 75 times and then printed.
 See https://redcanary.com/blog/blackbyte-ransomware/.
 
 **Supported Platforms:** windows
@@ -121,6 +122,7 @@ cmd /c "for /l %x in (1,1,#{max_to_print}) do start wordpad.exe /p #{file_to_pri
 ```
 
 **Dependencies:**
+
 - File to print must exist on disk at specified location (#{file_to_print})
 
 ### Atomic Test 5: Command Prompt read contents from CMD file and execute
@@ -135,8 +137,8 @@ cmd /r cmd<"#{input_file}"
 ```
 
 **Dependencies:**
-- CMD file must exist on disk at specified location (#{input_file})
 
+- CMD file must exist on disk at specified location (#{input_file})
 
 ### Manual Testing
 
@@ -151,26 +153,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Use application control where appropriate.
 
+Use application control where appropriate.
 
 ## Detection
 
 ### Behavioral Detection of Windows Command Shell Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Command Shell technique applicable | Low | Execution |
+| Finding                                    | Severity | Impact    |
+| ------------------------------------------ | -------- | --------- |
+| Windows Command Shell technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

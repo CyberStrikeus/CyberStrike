@@ -12,8 +12,7 @@ tags:
   - ps
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-17
   - PE-2
@@ -25,8 +24,7 @@ chains_with:
   - PS-8
   - SA-21
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-17: "Chain with AC-17 for comprehensive security coverage"
   PE-2: "Chain with PE-2 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ Access agreements include nondisclosure agreements, acceptable use agreements, r
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-6 Access Agreements not implemented | Medium | Personnel Security |
-| PS-6 partially implemented | Low | Incomplete Personnel Security |
+| Finding                                | Severity | Impact                        |
+| -------------------------------------- | -------- | ----------------------------- |
+| PS-6 Access Agreements not implemented | Medium   | Personnel Security            |
+| PS-6 partially implemented             | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

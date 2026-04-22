@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1632.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1632.001: "Chain with T1632.001 for deeper attack path"
 ---
@@ -65,32 +64,32 @@ Review whether mitigations for T1632 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
+
 Typically, insecure or malicious configuration settings are not installed without the user's consent. Users should be advised not to install unexpected configuration settings (CA certificates, iOS Configuration Profiles, Mobile Device Management server provisioning).
 
 ### M1006 Use Recent OS Version
+
 Mobile OSes have implemented measures to make it more difficult to trick users into installing untrusted certificates and configurations. iOS 10.3 and higher add an additional step for users to install new trusted CA certificates and configuration profiles. On Android, apps that target compatibility with Android 7 and higher (API Level 24) default to only trusting CA certificates that are bundled with the operating system, not CA certificates that are added by the user or administrator, hence decreasing their susceptibility to successful adversary-in-the-middle attack.
 
 ### M1012 Enterprise Policy
-On iOS, the `allowEnterpriseAppTrust` and `allowEnterpriseAppTrustModification` configuration profile restrictions can be used to prevent users from installing apps signed using enterprise distribution keys.
 
+On iOS, the `allowEnterpriseAppTrust` and `allowEnterpriseAppTrustModification` configuration profile restrictions can be used to prevent users from installing apps signed using enterprise distribution keys.
 
 ## Detection
 
 ### Detection of Subvert Trust Controls
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Subvert Trust Controls technique applicable | Low | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Subvert Trust Controls technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

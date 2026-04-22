@@ -73,26 +73,24 @@ All forms of spearphishing are electronically delivered social engineering targe
 ## Remediation Guide
 
 ### M1017 User Training
-Users can be trained to identify social engineering techniques and spearphishing attempts.
 
+Users can be trained to identify social engineering techniques and spearphishing attempts.
 
 ## Detection
 
 ### Detection of Spearphishing Service
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Service technique applicable | High | Reconnaissance |
+| Finding                                    | Severity | Impact         |
+| ------------------------------------------ | -------- | -------------- |
+| Spearphishing Service technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

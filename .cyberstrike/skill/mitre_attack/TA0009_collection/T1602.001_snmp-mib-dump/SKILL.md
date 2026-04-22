@@ -72,41 +72,44 @@ Adversaries may use SNMP queries to collect MIB content directly from SNMP-manag
 ## Remediation Guide
 
 ### M1054 Software Configuration
+
 Allowlist MIB objects and implement SNMP views.
 
 ### M1051 Update Software
+
 Keep system images and software updated and migrate to SNMPv3.
 
 ### M1041 Encrypt Sensitive Information
+
 Configure SNMPv3 to use the highest level of security (authPriv) available.
 
 ### M1031 Network Intrusion Prevention
+
 Configure intrusion prevention devices to detect SNMP queries and commands from unauthorized sources.
 
 ### M1030 Network Segmentation
+
 Segregate SNMP traffic on a separate management network.
 
 ### M1037 Filter Network Traffic
-Apply extended ACLs to block unauthorized protocols outside the trusted network.
 
+Apply extended ACLs to block unauthorized protocols outside the trusted network.
 
 ## Detection
 
 ### Detection Strategy for SNMP (MIB Dump) on Network Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SNMP (MIB Dump) technique applicable | High | Collection |
+| Finding                              | Severity | Impact     |
+| ------------------------------------ | -------- | ---------- |
+| SNMP (MIB Dump) technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-693
 chains_with:
   - T1655.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1655.001: "Chain with T1655.001 for deeper attack path"
 ---
@@ -67,26 +66,24 @@ Review whether mitigations for T1655 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious repackaged apps.
 
+Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious repackaged apps.
 
 ## Detection
 
 ### Detection of Masquerading
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Masquerading technique applicable | Low | Defense Evasion |
+| Finding                           | Severity | Impact          |
+| --------------------------------- | -------- | --------------- |
+| Masquerading technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -56,10 +56,10 @@ By default, no security contexts are automatically applied to pods.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | ● | ● | ● |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software                                                    | ●    | ●    | ●    |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |
 
 ## Profile Applicability
 

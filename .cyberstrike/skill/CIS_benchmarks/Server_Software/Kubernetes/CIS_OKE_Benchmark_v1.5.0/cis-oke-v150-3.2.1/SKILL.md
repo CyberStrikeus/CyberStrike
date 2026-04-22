@@ -78,7 +78,7 @@ If modifying the Kubelet service config file, edit the kubelet.service file `/et
 
 **Remediation Method 2:**
 If using the api configz endpoint consider searching for the status of `"authentication.*anonymous":{"enabled":false}` by extracting the live configuration from the nodes running kubelet.
-**See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -110,16 +110,16 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 14.6 Protect Information through Access Control Lists | x | x | x |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | x    | x    | x    |
+| v7               | 14.6 Protect Information through Access Control Lists | x    | x    | x    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1190, T1210 | TA0001, TA0008 | M1025 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1190, T1210                | TA0001, TA0008 | M1025       |
 
 ---
 

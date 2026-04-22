@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -113,9 +111,9 @@ Get-GPO -Domain $ENV:userdnsdomain #{gpo_param} >> #{gpo_output}
 ```
 
 **Dependencies:**
+
 - Add Rsat.ActiveDirectory.DS
 - Add Rsat.GroupPolicy.Management.Tools ###Two RSAT Modules needed for this to work on Win10, WinServer 2019 works by default. This will take a long time (almost 2 minutes) to install RSAT Manually###.
-
 
 ### Manual Testing
 
@@ -135,19 +133,17 @@ No specific mitigations documented for this technique.
 
 ### Detection strategy for Group Policy Discovery on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Group Policy Discovery technique applicable | High | Discovery |
+| Finding                                     | Severity | Impact    |
+| ------------------------------------------- | -------- | --------- |
+| Group Policy Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -24,8 +24,7 @@ chains_with:
   - PM-24
   - PS-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   IA-1: "Chain with IA-1 for comprehensive security coverage"
   PM-9: "Chain with PM-9 for comprehensive security coverage"
@@ -70,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -93,17 +92,16 @@ Access control policy and procedures address the controls in the AC family that 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-1 Policy and Procedures not implemented | High | Access Control |
-| AC-1 partially implemented | Medium | Incomplete Access Control |
+| Finding                                    | Severity | Impact                    |
+| ------------------------------------------ | -------- | ------------------------- |
+| AC-1 Policy and Procedures not implemented | High     | Access Control            |
+| AC-1 partially implemented                 | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

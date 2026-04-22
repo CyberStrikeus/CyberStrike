@@ -91,13 +91,13 @@ Not configured to receive remote logs by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | | |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | | |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      |      |      |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002, T1562, T1562.006 | TA0005, TA0040 | M1029 |
+| Techniques / Sub-techniques        | Tactics        | Mitigations |
+| ---------------------------------- | -------------- | ----------- |
+| T1070, T1070.002, T1562, T1562.006 | TA0005, TA0040 | M1029       |

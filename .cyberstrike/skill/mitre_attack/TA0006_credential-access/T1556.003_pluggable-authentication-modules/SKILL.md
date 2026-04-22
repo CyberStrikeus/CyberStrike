@@ -121,9 +121,9 @@ sudo sed -i "#{index}s,^,#{pam_rule}\n,g" #{path_to_pam_conf}
 ```
 
 **Dependencies:**
+
 - The PAM development library must be installed to build the PAM module
 - The PAM module must exist on disk at specified location (#{path_to_pam_module})
-
 
 ### Manual Testing
 
@@ -138,29 +138,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Integrating multi-factor authentication (MFA) as part of organizational policy can greatly reduce the risk of an adversary gaining control of valid credentials that may be used for additional tactics such as initial access, lateral movement, and collecting information.
 
 ### M1026 Privileged Account Management
-Limit access to the root account and prevent users from modifying PAM components through proper privilege separation (ex SELinux, grsecurity, AppArmor, etc.) and limiting Privilege Escalation opportunities.
 
+Limit access to the root account and prevent users from modifying PAM components through proper privilege separation (ex SELinux, grsecurity, AppArmor, etc.) and limiting Privilege Escalation opportunities.
 
 ## Detection
 
 ### Detect Malicious Modification of Pluggable Authentication Modules (PAM)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Pluggable Authentication Modules technique applicable | High | Credential Access |
+| Finding                                               | Severity | Impact            |
+| ----------------------------------------------------- | -------- | ----------------- |
+| Pluggable Authentication Modules technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

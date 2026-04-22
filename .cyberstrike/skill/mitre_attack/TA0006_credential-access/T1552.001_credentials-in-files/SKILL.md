@@ -140,7 +140,6 @@ type C:\Windows\Panther\unattend.xml
 type C:\Windows\Panther\Unattend\unattend.xml
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -154,35 +153,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1017 User Training
+
 Ensure that developers and system administrators are aware of the risk associated with having plaintext passwords in software configuration files that may be left on endpoint systems or servers.
 
 ### M1047 Audit
+
 Preemptively search for files containing passwords and take actions to reduce the exposure risk when found.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict file shares to specific directories with access only to necessary users.
 
 ### M1027 Password Policies
-Establish an organizational policy that prohibits password storage in files.
 
+Establish an organizational policy that prohibits password storage in files.
 
 ## Detection
 
 ### Detect Access to Unsecured Credential Files Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credentials In Files technique applicable | High | Credential Access |
+| Finding                                   | Severity | Impact            |
+| ----------------------------------------- | -------- | ----------------- |
+| Credentials In Files technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

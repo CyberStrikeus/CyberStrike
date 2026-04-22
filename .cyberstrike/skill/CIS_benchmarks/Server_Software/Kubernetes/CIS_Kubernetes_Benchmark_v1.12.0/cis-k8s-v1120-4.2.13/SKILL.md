@@ -46,10 +46,10 @@ By default the number of PIDs is not limited.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components<br>Leverage vetted modules or services for application security components, such as identity management, encryption, and auditing and logging. | | ● | ● |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                                      | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components<br>Leverage vetted modules or services for application security components, such as identity management, encryption, and auditing and logging. |      | ●    | ●    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.               |      | ●    | ●    |
 
 ## Profile Applicability
 

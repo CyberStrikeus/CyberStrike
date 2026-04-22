@@ -87,7 +87,7 @@ Node auto-repair is enabled by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools                                    |      | x    | x    |

@@ -25,8 +25,7 @@ chains_with:
   - PS-2
   - SA-3
   - SA-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-4: "Chain with CM-4 for comprehensive security coverage"
   CM-6: "Chain with CM-6 for comprehensive security coverage"
@@ -71,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -96,17 +95,16 @@ System artifacts and documentation created by the developer helps organizational
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-5 System Documentation not implemented | Medium | System and Services Acquisition |
-| SA-5 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                   | Severity | Impact                                     |
+| ----------------------------------------- | -------- | ------------------------------------------ |
+| SA-5 System Documentation not implemented | Medium   | System and Services Acquisition            |
+| SA-5 partially implemented                | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

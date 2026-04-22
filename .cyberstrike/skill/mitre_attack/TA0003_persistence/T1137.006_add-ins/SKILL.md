@@ -46,7 +46,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse Microsoft Office add-ins to obtain persistence on a compromised system. Office add-ins can be used to add functionality to Office programs. There are different types of add-ins that can be used by the various Office products; including Word/Excel add-in Libraries (WLL/XLL), VBA add-ins, Office Component Object Model (COM) add-ins, automation add-ins, VBA Editor (VBE), Visual Studio Tools for Office (VSTO) add-ins, and Outlook add-ins. 
+Adversaries may abuse Microsoft Office add-ins to obtain persistence on a compromised system. Office add-ins can be used to add functionality to Office programs. There are different types of add-ins that can be used by the various Office products; including Word/Excel add-in Libraries (WLL/XLL), VBA add-ins, Office Component Object Model (COM) add-ins, automation add-ins, VBA Editor (VBE), Visual Studio Tools for Office (VSTO) add-ins, and Outlook add-ins.
 
 Add-ins can be used to obtain persistence because they can be set to execute code when an Office application starts.
 
@@ -90,6 +90,7 @@ else{
 ```
 
 **Dependencies:**
+
 - Microsoft Excel must be installed
 - XLL files must exist on disk at specified location
 
@@ -120,6 +121,7 @@ Start-Process "Excel"
 ```
 
 **Dependencies:**
+
 - Microsoft Excel must be installed
 - XLL files must exist on disk at specified location
 
@@ -133,20 +135,21 @@ Successfully tested on 32-bit Office 2016. Not successful from microsoft 365 ver
 
 ```powershell
 $wdApp = New-Object -COMObject "Word.Application"
-if(-not $wdApp.path.contains("Program Files (x86)"))  
+if(-not $wdApp.path.contains("Program Files (x86)"))
 {
   Write-Host "64-bit Office"
-  Copy "PathToAtomicsFolder\T1137.006\bin\Addins\wordwll_x64.wll" "$env:APPDATA\Microsoft\Word\Startup\notepad.wll"        
+  Copy "PathToAtomicsFolder\T1137.006\bin\Addins\wordwll_x64.wll" "$env:APPDATA\Microsoft\Word\Startup\notepad.wll"
 }
 else{
   Write-Host "32-bit Office"
   Copy "PathToAtomicsFolder\T1137.006\bin\Addins\wordwll_x86.wll" "$env:APPDATA\Microsoft\Word\Startup\notepad.wll"
 }
-Stop-Process -Name "WinWord" 
+Stop-Process -Name "WinWord"
 Start-Process "WinWord"
 ```
 
 **Dependencies:**
+
 - Microsoft Word must be installed
 - WLL files must exist on disk at specified location
 
@@ -158,11 +161,12 @@ The sample XLAM provided launches the notepad as a proof-of-concept for persiste
 **Supported Platforms:** windows
 
 ```powershell
-Copy "PathToAtomicsFolder\T1137.006\bin\Addins\ExcelVBAaddin.xlam" "$env:APPDATA\Microsoft\Excel\XLSTART\notepad.xlam"        
+Copy "PathToAtomicsFolder\T1137.006\bin\Addins\ExcelVBAaddin.xlam" "$env:APPDATA\Microsoft\Excel\XLSTART\notepad.xlam"
 Start-Process "Excel"
 ```
 
 **Dependencies:**
+
 - Microsoft Excel must be installed
 - XLAM file must exist on disk at specified location
 
@@ -185,9 +189,9 @@ Start-Process "PowerPnt"
 ```
 
 **Dependencies:**
+
 - Microsoft Excel must be installed
 - PPAM file must exist on disk at specified location
-
 
 ### Manual Testing
 
@@ -202,26 +206,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office applications from creating child processes and from writing potentially malicious executable content to disk.
 
 ## Detection
 
 ### Detect Persistence via Malicious Office Add-ins
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Add-ins technique applicable | Low | Persistence |
+| Finding                      | Severity | Impact      |
+| ---------------------------- | -------- | ----------- |
+| Add-ins technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

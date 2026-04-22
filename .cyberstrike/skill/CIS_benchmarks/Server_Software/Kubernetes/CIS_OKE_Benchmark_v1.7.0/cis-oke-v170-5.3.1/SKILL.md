@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 5.3.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Encrypt Kubernetes secrets, stored in etcd, at the application-layer using a customer-managed key.
 
 ## Rationale
+
 The master nodes in a Kubernetes cluster store sensitive configuration data (such as authentication tokens, passwords, and SSH keys) as Kubernetes secret objects in etcd. Etcd is an open source distributed key-value store that Kubernetes uses for cluster coordination and state management. In the Kubernetes clusters created by Container Engine for Kubernetes, etcd writes and reads data to and from block storage volumes in the Oracle Cloud Infrastructure Block Volume service. Although the data in block storage volumes is encrypted, Kubernetes secrets at rest in etcd itself are not encrypted by default.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
+
 Before you can create a cluster where Kubernetes secrets are encrypted in the etcd key-value store, you have to:
 
 - know the name and OCID of a suitable master encryption key in Vault
@@ -36,6 +41,7 @@ Before you can create a cluster where Kubernetes secrets are encrypted in the et
 - create a policy authorizing the dynamic group to use the master encryption key
 
 ## Remediation
+
 You can create a cluster in one tenancy that uses a master encryption key in a different tenancy. In this case, you have to write cross-tenancy policies to enable the cluster in its tenancy to access the master encryption key in the Vault service's tenancy. Note that if you want to create a cluster and specify a master encryption key that's in a different tenancy, you cannot use the Console to create the cluster.
 
 For example, assume the cluster is in the ClusterTenancy, and the master encryption key is in the KeyTenancy. Users belonging to a group (OKEAdminGroup) in the ClusterTenancy have permissions to create clusters. A dynamic group (OKEAdminDynGroup) has been created in the cluster, with the rule ALL `{resource.type = 'cluster', resource.compartment.id = 'ocid1.compartment.oc1..<unique_ID>'}`, so all clusters created in the ClusterTenancy belong to the dynamic group.
@@ -76,23 +82,26 @@ oci ce cluster create --name oke-with-cross-kms --kubernetes-version v1.16.8 --v
 ```
 
 ## Default Value
+
 By default, Kubernetes secrets at rest in etcd are not encrypted at the application layer.
 
 ## References
+
 1. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengencryptingdata.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | * | * |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | \*   | \*   |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 1** (Manual)

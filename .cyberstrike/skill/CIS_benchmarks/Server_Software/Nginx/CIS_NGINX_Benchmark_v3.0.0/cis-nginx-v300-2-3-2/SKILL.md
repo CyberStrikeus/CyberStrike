@@ -17,20 +17,24 @@ severity_boost: {}
 # CIS 2.3.2 — Ensure access to NGINX directories and files is restricted
 
 ## Profile Applicability
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 The NGINX configuration directory (`/etc/nginx` or equivalent) and its contents should have restrictive permissions to enforce the principle of least privilege.
 
 - **Directories** should be accessible only by the `root` user and the `root` group (and potentially read/execute by the group), but not by others.
 - **Files** should be readable/writable by `root` and readable by the group, but inaccessible to others.
 
 ## Rationale
+
 Restrictive file permissions prevent unauthorized users on the system from viewing sensitive configuration details, such as backend IP addresses, routing logic, or loaded module paths. By removing "world" access (permissions for "other"), we ensure that only administrators (via `sudo`) can interact with the web server configuration. This is a fundamental defense against information disclosure.
 
 ## Impact
+
 Setting permissions to `640` (files) and `750` (directories) prevents non-privileged users from listing the configuration directory or reading configuration files.
 
 ## Audit Procedure
@@ -70,6 +74,7 @@ Verify that the output shows permissions of `640` (`-rw-r-----`) or more restric
 - **Hardened Target:** `640` or `600`.
 
 ## Remediation
+
 To restrict access to the NGINX configuration directory and files, execute the following commands:
 
 **1. Restrict Directories (750):**
@@ -91,26 +96,32 @@ find /etc/nginx -type f -exec chmod 640 {} +
 **Note:** Private keys (e.g., `.key` files) require even stricter permissions (`400` or `600`) and should be addressed separately or manually verified here.
 
 ## Default Value
+
 Default permissions are typically `755` for directories and `644` for files (world-readable).
 
 ## Additional Information
+
 **Critical:** If your NGINX setup relies on the worker process (`nginx` user) reading configuration files directly (uncommon for standard configs, but possible with certain includes or SSL certificates not handled by the master process), ensure the `nginx` user is in the group that owns the files, **OR** use `chmod 644` if absolutely necessary. However, the Master Process (`root`) handles parsing, so `640`/`root:root` is usually safe.
 
 ## References
+
 1. https://nginx.org/en/docs/ngx_core_module.html
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | Y | Y | Y |
-| v7 | 14.6 Protect Information through Access Control Lists | Y | Y | Y |
+
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | Y    | Y    | Y    |
+| v7               | 14.6 Protect Information through Access Control Lists | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic      | Technique                                           |
+| ----------- | --------------------------------------------------- |
 | Persistence | T1222 - File and Directory Permissions Modification |
 
 ## Profile
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

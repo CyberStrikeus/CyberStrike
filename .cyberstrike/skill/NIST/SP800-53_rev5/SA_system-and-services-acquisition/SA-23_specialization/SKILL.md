@@ -17,8 +17,7 @@ cwe_ids:
 chains_with:
   - RA-9
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   RA-9: "Chain with RA-9 for comprehensive security coverage"
   SA-8: "Chain with SA-8 for comprehensive security coverage"
@@ -61,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -77,17 +76,16 @@ It is often necessary for a system or system component that supports mission-ess
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-23 Specialization not implemented | Medium | System and Services Acquisition |
-| SA-23 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                              | Severity | Impact                                     |
+| ------------------------------------ | -------- | ------------------------------------------ |
+| SA-23 Specialization not implemented | Medium   | System and Services Acquisition            |
+| SA-23 partially implemented          | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

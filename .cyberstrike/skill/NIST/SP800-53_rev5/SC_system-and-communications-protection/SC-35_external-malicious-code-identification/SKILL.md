@@ -25,8 +25,7 @@ chains_with:
   - SC-44
   - SI-3
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-7: "Chain with SC-7 for comprehensive security coverage"
   SC-26: "Chain with SC-26 for comprehensive security coverage"
@@ -70,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ External malicious code identification differs from decoys in [SC-26](#sc-26) in
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-35 External Malicious Code Identification not implemented | High | System and Communications Protection |
-| SC-35 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                                      | Severity | Impact                                          |
+| ------------------------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-35 External Malicious Code Identification not implemented | High     | System and Communications Protection            |
+| SC-35 partially implemented                                  | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

@@ -12,15 +12,13 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - AC-4
   - AC-16
   - MP-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-4: "Chain with AC-4 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Hardware components that may require marking include input and output devices. I
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-22 Component Marking not implemented | Medium | Physical and Environmental Protection |
-| PE-22 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                 | Severity | Impact                                           |
+| --------------------------------------- | -------- | ------------------------------------------------ |
+| PE-22 Component Marking not implemented | Medium   | Physical and Environmental Protection            |
+| PE-22 partially implemented             | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

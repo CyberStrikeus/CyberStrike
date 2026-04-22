@@ -83,8 +83,8 @@ sudo launchctl load -w /Library/LaunchDaemons/#{plist_filename}
 ```
 
 **Dependencies:**
-- The shared library must exist on disk at specified location (#{path_malicious_plist})
 
+- The shared library must exist on disk at specified location (#{path_malicious_plist})
 
 ### Manual Testing
 
@@ -99,29 +99,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and remediate Privilege Escalation vectors so only authorized administrators can create new Launch Daemons.
 
 ### M1047 Audit
-Use auditing tools capable of detecting folder permissions abuse opportunities on systems, especially reviewing changes made to folders by third-party software.
 
+Use auditing tools capable of detecting folder permissions abuse opportunities on systems, especially reviewing changes made to folders by third-party software.
 
 ## Detection
 
 ### Detection Strategy for Launch Daemon Creation or Modification (macOS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Launch Daemon technique applicable | High | Persistence |
+| Finding                            | Severity | Impact      |
+| ---------------------------------- | -------- | ----------- |
+| Launch Daemon technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

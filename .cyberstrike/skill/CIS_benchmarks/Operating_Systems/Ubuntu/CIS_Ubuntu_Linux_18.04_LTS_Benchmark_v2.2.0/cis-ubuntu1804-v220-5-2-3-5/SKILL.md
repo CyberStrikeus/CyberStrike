@@ -158,16 +158,16 @@ Follow the same procedures as for 64 bit systems and ignore any entries with `b6
 
 ## CIS Controls
 
-| Version | Control | IG 1 | IG 2 | IG 3 |
-|---------|---------|------|------|------|
-| v8 | 8.5 Collect Detailed Audit Logs | | ● | ● |
-| v7 | 5.5 Implement Automated Configuration Monitoring Systems | | ● | ● |
+| Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8      | 8.5 Collect Detailed Audit Logs                          |      | ●    | ●    |
+| v7      | 5.5 Implement Automated Configuration Monitoring Systems |      | ●    | ●    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|----------------------------|---------|-------------|
-| T1562, T1562.006 | TA0003 | M1047 |
+| --------------------------- | ------- | ----------- |
+| T1562, T1562.006            | TA0003  | M1047       |
 
 ## Additional Information
 

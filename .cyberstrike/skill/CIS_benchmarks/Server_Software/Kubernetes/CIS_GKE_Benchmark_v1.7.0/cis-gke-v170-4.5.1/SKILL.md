@@ -55,7 +55,7 @@ By default, image provenance is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | * | * | * |
-| v7 | 18 Application Software Security | | | |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software | \*   | \*   | \*   |
+| v7               | 18 Application Software Security                   |      |      |      |

@@ -24,8 +24,7 @@ cwe_ids:
 chains_with:
   - T1602.001
   - T1602.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1602.001: "Chain with T1602.001 for deeper attack path"
   T1602.002: "Chain with T1602.002 for deeper attack path"
@@ -67,41 +66,44 @@ Adversaries may target these repositories in order to collect large quantities o
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Keep system images and software updated and migrate to SNMPv3.
 
 ### M1054 Software Configuration
+
 Allowlist MIB objects and implement SNMP views.
 
 ### M1030 Network Segmentation
+
 Segregate SNMP traffic on a separate management network.
 
 ### M1037 Filter Network Traffic
+
 Apply extended ACLs to block unauthorized protocols outside the trusted network.
 
 ### M1031 Network Intrusion Prevention
+
 Configure intrusion prevention devices to detect SNMP queries and commands from unauthorized sources.
 
 ### M1041 Encrypt Sensitive Information
-Configure SNMPv3 to use the highest level of security (authPriv) available.
 
+Configure SNMPv3 to use the highest level of security (authPriv) available.
 
 ## Detection
 
 ### Detection Strategy for Data from Configuration Repository on Network Devices
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Configuration Repository technique applicable | Medium | Collection |
+| Finding                                                 | Severity | Impact     |
+| ------------------------------------------------------- | -------- | ---------- |
+| Data from Configuration Repository technique applicable | Medium   | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

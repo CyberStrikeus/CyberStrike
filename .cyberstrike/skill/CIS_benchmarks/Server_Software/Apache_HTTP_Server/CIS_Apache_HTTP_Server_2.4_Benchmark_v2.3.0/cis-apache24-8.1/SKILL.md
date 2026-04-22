@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure ServerTokens is Set to 'Prod' or 'ProductOnly' (Automated)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -50,12 +51,15 @@ The default value is `Full` which provides the most detailed information.
 ## CIS Controls
 
 **v8:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 
 **v7:**
+
 - 14.7 Enforce Access Control to Data through Automated Tools
   - Use an automated tool, such as host-based Data Loss Prevention, to enforce access controls to data even when data is copied off a system.
 
 ## Profile
+
 - Level 1

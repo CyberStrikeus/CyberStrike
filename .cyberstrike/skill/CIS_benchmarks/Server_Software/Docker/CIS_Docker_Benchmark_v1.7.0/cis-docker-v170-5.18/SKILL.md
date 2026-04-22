@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.18
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -82,9 +83,11 @@ By default, host devices are not exposed to containers. If you do not provide sh
 ## CIS Controls
 
 **v8:**
+
 - **5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts**
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 
 **v7:**
+
 - **14 Controlled Access Based on the Need to Know**
   - Controlled Access Based on the Need to Know

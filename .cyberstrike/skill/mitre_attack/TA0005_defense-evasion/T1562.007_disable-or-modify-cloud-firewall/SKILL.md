@@ -49,7 +49,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may disable or modify a firewall within a cloud environment to bypass controls that limit access to cloud resources. Cloud firewalls are separate from system firewalls that are described in Disable or Modify System Firewall. 
+Adversaries may disable or modify a firewall within a cloud environment to bypass controls that limit access to cloud resources. Cloud firewalls are separate from system firewalls that are described in Disable or Modify System Firewall.
 
 Cloud environments typically utilize restrictive security groups and firewall rules that only allow network activity from trusted IP addresses via expected ports and protocols. An adversary with appropriate permissions may introduce new firewall rules or policies to allow access into a victim cloud environment and/or move laterally from the cloud control plane to the data plane. For example, an adversary may use a script or utility that creates new ingress rules in existing security groups (or creates new security groups entirely) to allow any TCP/IP connectivity to a cloud-hosted instance. They may also remove networking limitations to support traffic associated with malicious activity (such as cryptomining).
 
@@ -83,29 +83,28 @@ Modifying or disabling a cloud firewall may enable adversary C2 communications, 
 ## Remediation Guide
 
 ### M1047 Audit
+
 Routinely check account role permissions to ensure only expected users and roles have permission to modify cloud firewalls.
 
 ### M1018 User Account Management
-Ensure least privilege principles are applied to Identity and Access Management (IAM) security policies.
 
+Ensure least privilege principles are applied to Identity and Access Management (IAM) security policies.
 
 ## Detection
 
 ### Detection Strategy for Disable or Modify Cloud Firewall
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Cloud Firewall technique applicable | High | Defense Evasion |
+| Finding                                               | Severity | Impact          |
+| ----------------------------------------------------- | -------- | --------------- |
+| Disable or Modify Cloud Firewall technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

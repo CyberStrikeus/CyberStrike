@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v1.12.0 - Control 1.3.6
 
 ## Profile Applicability
+
 - **Level:** 1 - Master Node
 
 ## Description
+
 Enable kubelet server certificate rotation on controller-manager.
 
 ## Rationale
+
 `RotateKubeletServerCertificate` causes the kubelet to both request a serving certificate after bootstrapping its client credentials and rotate the certificate as its existing credentials expire. This automated periodic rotation ensures that the there are no downtimes due to expired certificates and thus addressing availability in the CIA security triad.
 
 Note: This recommendation only applies if you let kubelets get their certificates from the API server. In case your kubelet certificates come from an outside authority/tool (e.g. Vault) then you need to take care of rotation yourself.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -49,9 +53,11 @@ Edit the Controller Manager pod specification file `/etc/kubernetes/manifests/ku
 ```
 
 ## Default Value
+
 By default, `RotateKubeletServerCertificate` is set to "true" this recommendation verifies that it has not been disabled.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet-tls-bootstrapping/#approval-controller
 2. https://github.com/kubernetes/features/issues/267
 3. https://github.com/kubernetes/kubernetes/pull/45059
@@ -59,10 +65,11 @@ By default, `RotateKubeletServerCertificate` is set to "true" this recommendatio
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | | |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      |      |      |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      |      |      |
 
 ## Profile
+
 **Level 1 - Master Node** (Automated)

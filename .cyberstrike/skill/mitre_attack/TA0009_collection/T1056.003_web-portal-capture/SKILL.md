@@ -84,26 +84,24 @@ This variation on input capture may be conducted post-compromise using legitimat
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
-Do not allow administrator accounts that have permissions to modify the Web content of organization login portals to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
+Do not allow administrator accounts that have permissions to modify the Web content of organization login portals to be used for day-to-day operations that may expose them to potential adversaries on unprivileged systems.
 
 ## Detection
 
 ### Detection of Credential Harvesting via Web Portal Modification
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Portal Capture technique applicable | High | Collection |
+| Finding                                 | Severity | Impact     |
+| --------------------------------------- | -------- | ---------- |
+| Web Portal Capture technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

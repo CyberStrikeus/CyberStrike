@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the LimitRequestBody Directive is Set to 102400 or Less but not 0 (Automated)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -56,12 +57,15 @@ LimitRequestBody 0 (unlimited)
 ## CIS Controls
 
 **v8:**
+
 - 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure
   - Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 
 ## Profile
+
 - Level 2

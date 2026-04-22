@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-300
 chains_with:
   - T1437.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1437.001: "Chain with T1437.001 for deeper attack path"
 ---
@@ -36,7 +35,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may communicate using application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the mobile device, and often the results of those commands, will be embedded within the protocol traffic between the mobile device and server. 
+Adversaries may communicate using application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the mobile device, and often the results of those commands, will be embedded within the protocol traffic between the mobile device and server.
 
 Adversaries may utilize many different protocols, including those used for web browsing, transferring files, electronic mail, or DNS.
 
@@ -71,19 +70,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Application Layer Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Layer Protocol technique applicable | Low | Command And Control |
+| Finding                                         | Severity | Impact              |
+| ----------------------------------------------- | -------- | ------------------- |
+| Application Layer Protocol technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

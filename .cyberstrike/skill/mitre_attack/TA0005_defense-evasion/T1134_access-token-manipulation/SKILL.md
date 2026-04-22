@@ -29,8 +29,7 @@ chains_with:
   - T1134.003
   - T1134.004
   - T1134.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1134.001: "Chain with T1134.001 for deeper attack path"
   T1134.002: "Chain with T1134.002 for deeper attack path"
@@ -76,39 +75,38 @@ Any standard user can use the <code>runas</code> command, and the Windows API fu
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
 ### M1026 Privileged Account Management
+
 Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token.
 
 Administrators should log in as a standard user but run their tools with administrator privileges using the built-in access token manipulation command <code>runas</code>.
-
 
 ## Detection
 
 ### Behavior-chain detection for T1134 Access Token Manipulation on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Access Token Manipulation technique applicable | High | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Access Token Manipulation technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
 - [BlackHat Atkinson Winchester Token Manipulation](https://www.blackhat.com/docs/eu-17/materials/eu-17-Atkinson-A-Process-Is-No-One-Hunting-For-Token-Manipulation.pdf)
 - [Microsoft Command-line Logging](https://technet.microsoft.com/en-us/windows-server-docs/identity/ad-ds/manage/component-updates/command-line-process-auditing)
-- [Microsoft LogonUser](https://msdn.microsoft.com/en-us/library/windows/desktop/aa378184(v=vs.85).aspx)
-- [Microsoft DuplicateTokenEx](https://msdn.microsoft.com/en-us/library/windows/desktop/aa446617(v=vs.85).aspx)
-- [Microsoft ImpersonateLoggedOnUser](https://msdn.microsoft.com/en-us/library/windows/desktop/aa378612(v=vs.85).aspx)
+- [Microsoft LogonUser](<https://msdn.microsoft.com/en-us/library/windows/desktop/aa378184(v=vs.85).aspx>)
+- [Microsoft DuplicateTokenEx](<https://msdn.microsoft.com/en-us/library/windows/desktop/aa446617(v=vs.85).aspx>)
+- [Microsoft ImpersonateLoggedOnUser](<https://msdn.microsoft.com/en-us/library/windows/desktop/aa378612(v=vs.85).aspx>)
 - [Pentestlab Token Manipulation](https://pentestlab.blog/2017/04/03/token-manipulation/)
 - [Atomic Red Team - T1134](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1134)
 - [MITRE ATT&CK - T1134](https://attack.mitre.org/techniques/T1134)

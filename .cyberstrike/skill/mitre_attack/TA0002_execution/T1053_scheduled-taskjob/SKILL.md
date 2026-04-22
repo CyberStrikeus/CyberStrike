@@ -43,8 +43,7 @@ chains_with:
   - T1053.005
   - T1053.006
   - T1053.007
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1053.002: "Chain with T1053.002 for deeper attack path"
   T1053.003: "Chain with T1053.003 for deeper attack path"
@@ -91,38 +90,40 @@ Adversaries may use task scheduling to execute programs at system startup or on 
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and remediate Privilege Escalation vectors so only authorized administrators can create scheduled tasks on remote systems.
 
 ### M1028 Operating System Configuration
+
 Configure settings for scheduled tasks to force tasks to run under the context of the authenticated account instead of allowing them to run as SYSTEM. The associated Registry key is located at <code>HKLM\SYSTEM\CurrentControlSet\Control\Lsa\SubmitControl</code>. The setting can be configured through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > Security Options: Domain Controller: Allow server operators to schedule tasks, set to disabled.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict access by setting directory and file permissions that are not specific to users or privileged accounts.
 
 ### M1026 Privileged Account Management
+
 Configure the Increase Scheduling Priority option to only allow the Administrators group the rights to schedule a priority process. This can be can be configured through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Increase scheduling priority.
 
 ### M1047 Audit
-Toolkits like the PowerSploit framework contain PowerUp modules that can be used to explore systems for permission weaknesses in scheduled tasks that could be used to escalate privileges.
 
+Toolkits like the PowerSploit framework contain PowerUp modules that can be used to explore systems for permission weaknesses in scheduled tasks that could be used to escalate privileges.
 
 ## Detection
 
 ### Cross-Platform Behavioral Detection of Scheduled Task/Job Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Scheduled Task/Job technique applicable | High | Execution |
+| Finding                                 | Severity | Impact    |
+| --------------------------------------- | -------- | --------- |
+| Scheduled Task/Job technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

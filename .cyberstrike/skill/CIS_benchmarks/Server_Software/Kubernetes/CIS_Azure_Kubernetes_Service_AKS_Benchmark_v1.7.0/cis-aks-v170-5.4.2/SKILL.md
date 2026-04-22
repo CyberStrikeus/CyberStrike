@@ -51,10 +51,7 @@ Output would be similar to:
 {
   "enablePrivateCluster": true,
   "enablePublicFqdn": false,
-  "authorizedIpRanges": [
-    "203.0.113.10/32",
-    "198.51.100.0/24"
-  ]
+  "authorizedIpRanges": ["203.0.113.10/32", "198.51.100.0/24"]
 }
 ```
 
@@ -71,7 +68,7 @@ To use a private endpoint, create a new private endpoint in your virtual network
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | x | x | x |
-| v7 | 12 Boundary Defense | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | x    | x    | x    |
+| v7               | 12 Boundary Defense                            |      |      |      |

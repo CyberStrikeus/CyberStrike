@@ -15,8 +15,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-16
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SA-15
 severity_boost: {}
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,17 +80,16 @@ Organizations use quality metrics to establish acceptable levels of system quali
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-15(1) Quality Metrics not implemented | Medium | System and Services Acquisition |
-| SA-15(1) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                  | Severity | Impact                                     |
+| ---------------------------------------- | -------- | ------------------------------------------ |
+| SA-15(1) Quality Metrics not implemented | Medium   | System and Services Acquisition            |
+| SA-15(1) partially implemented           | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

@@ -12,8 +12,7 @@ tags:
   - ra
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-4
   - CM-9
@@ -25,8 +24,7 @@ chains_with:
   - RA-2
   - RA-3
   - RA-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-4: "Chain with CM-4 for comprehensive security coverage"
   CM-9: "Chain with CM-9 for comprehensive security coverage"
@@ -75,9 +73,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -99,16 +97,16 @@ To conduct the privacy impact assessment, organizations can use security and pri
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-8 Privacy Impact Assessments not implemented | Medium | Risk Assessment |
-| RA-8 partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                         | Severity | Impact                     |
+| ----------------------------------------------- | -------- | -------------------------- |
+| RA-8 Privacy Impact Assessments not implemented | Medium   | Risk Assessment            |
+| RA-8 partially implemented                      | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -37,9 +35,9 @@ severity_boost: {}
 
 An adversary with physical access to a mobile device may seek to bypass the device’s lockscreen. Several methods exist to accomplish this, including:
 
-* Biometric spoofing: If biometric authentication is used, an adversary could attempt to spoof a mobile device’s biometric authentication mechanism. Both iOS and Android partly mitigate this attack by requiring the device’s passcode rather than biometrics to unlock the device after every device restart, and after a set or random amount of time.
-* Unlock code bypass: An adversary could attempt to brute-force or otherwise guess the lockscreen passcode (typically a PIN or password), including physically observing (“shoulder surfing”) the device owner’s use of the lockscreen passcode. Mobile OS vendors partly mitigate this by implementing incremental backoff timers after a set number of failed unlock attempts, as well as a configurable full device wipe after several failed unlock attempts.
-* Vulnerability exploit: Techniques have been periodically demonstrated that exploit mobile devices to bypass the lockscreen. The vulnerabilities are generally patched by the device or OS vendor once disclosed.
+- Biometric spoofing: If biometric authentication is used, an adversary could attempt to spoof a mobile device’s biometric authentication mechanism. Both iOS and Android partly mitigate this attack by requiring the device’s passcode rather than biometrics to unlock the device after every device restart, and after a set or random amount of time.
+- Unlock code bypass: An adversary could attempt to brute-force or otherwise guess the lockscreen passcode (typically a PIN or password), including physically observing (“shoulder surfing”) the device owner’s use of the lockscreen passcode. Mobile OS vendors partly mitigate this by implementing incremental backoff timers after a set number of failed unlock attempts, as well as a configurable full device wipe after several failed unlock attempts.
+- Vulnerability exploit: Techniques have been periodically demonstrated that exploit mobile devices to bypass the lockscreen. The vulnerabilities are generally patched by the device or OS vendor once disclosed.
 
 ## Kill Chain Phase
 
@@ -68,29 +66,28 @@ Review whether mitigations for T1461 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1012 Enterprise Policy
+
 Enterprises can provision policies to mobile devices that require a minimum complexity (length, character requirements, etc.) for the device passcode, and cause the device to wipe all data if an incorrect passcode is entered too many times. Both policies would mitigate brute-force, guessing, or shoulder surfing of the device passcode. Enterprises can also provision policies to disable biometric authentication, however, biometric authentication can help make using a longer, more complex passcode more practical because it does not need to be entered as frequently.
 
 ### M1001 Security Updates
-OS security updates typically contain exploit patches when disclosed.
 
+OS security updates typically contain exploit patches when disclosed.
 
 ## Detection
 
 ### Detection of Lockscreen Bypass
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Lockscreen Bypass technique applicable | High | Initial Access |
+| Finding                                | Severity | Impact         |
+| -------------------------------------- | -------- | -------------- |
+| Lockscreen Bypass technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

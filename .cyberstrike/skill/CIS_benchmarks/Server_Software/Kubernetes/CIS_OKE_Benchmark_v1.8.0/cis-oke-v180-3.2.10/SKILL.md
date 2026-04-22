@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.10
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Enable kubelet server certificate rotation.
 
 ## Rationale
+
 `--rotate-server-certificates` causes the kubelet to both request a serving certificate after bootstrapping its client credentials and rotate the certificate as its existing credentials expire. This automated periodic rotation ensures that the there are no downtimes due to expired certificates and thus addressing availability in the CIA security triad.
 
 Note: This recommendation only applies if you let kubelets get their certificates from the API server. In case your kubelet certificates come from an outside authority/tool (e.g. Vault) then you need to take care of rotation yourself.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -103,9 +107,11 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://github.com/kubernetes/kubernetes/pull/45059
 2. https://kubernetes.io/docs/admin/kubelet-tls-bootstrapping/#kubelet-configuration
 3. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
@@ -113,16 +119,17 @@ See the OKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | * | * |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | * | * |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | \*   | \*   |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 1** (Automated)

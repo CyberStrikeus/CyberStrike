@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-3
@@ -67,9 +66,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -83,16 +82,16 @@ To prevent unauthorized individuals and systems from making information transfer
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-3(6) Transfer Authorizations not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-3(6) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                         | Severity | Impact                                               |
+| ----------------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-3(6) Transfer Authorizations not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-3(6) partially implemented                   | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

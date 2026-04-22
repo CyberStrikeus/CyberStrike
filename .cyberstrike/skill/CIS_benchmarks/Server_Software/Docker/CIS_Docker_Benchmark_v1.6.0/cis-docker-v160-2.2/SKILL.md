@@ -72,10 +72,10 @@ By default, all inter-container communication is allowed on the default network 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.3 Securely Manage Network Infrastructure<br>Securely manage network infrastructure. Example implementations include version-controlled-infrastructure-as-code, and the use of secure network protocols, such as SSH and HTTPS. | | ● | ● |
-| v7 | 9 Limitation and Control of Network Ports, Protocols, and Services<br>Limitation and Control of Network Ports, Protocols, and Services | | | |
+| Controls Version | Control                                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.3 Securely Manage Network Infrastructure<br>Securely manage network infrastructure. Example implementations include version-controlled-infrastructure-as-code, and the use of secure network protocols, such as SSH and HTTPS. |      | ●    | ●    |
+| v7               | 9 Limitation and Control of Network Ports, Protocols, and Services<br>Limitation and Control of Network Ports, Protocols, and Services                                                                                            |      |      |      |
 
 ## Profile/Assessment Status
 

@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS 9.6 — Ensure Signing Keys are Scheduled to be Replaced Periodically
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 2
 
 ## Description
+
 Implement a periodic key rollover process for both the Zone Signing Keys (ZSK) and the Key Signing Keys (KSK). The ZSK should be replaced within 2 years or less. The KSK should be replaced within 6 years or less. Keys are replaced by generating a new key before the existing key expires, and scheduling a rollover date when the new key will phase out and replace the old key.
 
 ## Rationale
+
 Cryptographic keys like passwords need to be periodically replaced. By using strong key algorithms and appropriately long bit lengths, the lifetime for keys can be longer than a generally recommended for passwords. Typically, the Zone Signing Keys are rolled over more frequently than the Key Signing Keys.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Perform the following steps to determine if the recommended state is implemented:
 
 - Locate all of the ZSK key files for the name server by searching for the `256` key code using the following command.
@@ -60,6 +65,7 @@ Perform the following steps to determine if the recommended state is implemented
 If all ZSK activation dates are less than two years prior, and the KSK activation dates are less than six years prior, than the server is compliant.
 
 ## Remediation
+
 To replace an aged key, perform the following:
 
 - Generate a new key to replace the old key using `dnssec-keygen` and one of the recommended algorithms. An example command is shown below:
@@ -78,22 +84,27 @@ To replace an aged key, perform the following:
 - Once the date for key deletion has passed, and the key is no longer included in the zone, then remove the key files.
 
 ## Default Value
+
 Signing key rollover is NOT implemented by default.
 
 ## References
+
 1. https://www.dnsinstitute.com/documentation/dnssec-guide/ch06s04.html
 2. https://downloads.isc.org/isc/dnssec-guide/dnssec-guide.pdf
 3. https://tools.ietf.org/html/rfc7583
 
 ## CIS Controls
+
 | Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v7 | N/A | N | N | N |
+| ---------------- | ------- | ---- | ---- | ---- |
+| v7               | N/A     | N    | N    | N    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic            | Technique                   |
+| ----------------- | --------------------------- |
 | Credential Access | T1552 Unsecured Credentials |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server

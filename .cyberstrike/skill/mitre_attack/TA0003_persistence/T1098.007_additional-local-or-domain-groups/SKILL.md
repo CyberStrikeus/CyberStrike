@@ -56,7 +56,7 @@ An adversary may add additional local or domain groups to an adversary-controlle
 
 On Windows, accounts may use the `net localgroup` and `net group` commands to add existing users to local and domain groups. On Linux, adversaries may use the `usermod` command for the same purpose.
 
-For example, accounts may be added to the local administrators group on Windows devices to maintain elevated privileges. They may also be added to the Remote Desktop Users group, which allows them to leverage Remote Desktop Protocol to log into the endpoints in the future. Adversaries may also add accounts to VPN user groups to gain future persistence on the network. On Linux, accounts may be added to the sudoers group, allowing them to persistently leverage Sudo and Sudo Caching for elevated privileges. 
+For example, accounts may be added to the local administrators group on Windows devices to maintain elevated privileges. They may also be added to the Remote Desktop Users group, which allows them to leverage Remote Desktop Protocol to log into the endpoints in the future. Adversaries may also add accounts to VPN user groups to gain future persistence on the network. On Linux, accounts may be added to the sudoers group, allowing them to persistently leverage Sudo and Sudo Caching for elevated privileges.
 
 In Windows environments, machine accounts may also be added to domain groups. This allows the local SYSTEM account to gain privileges on the domain.
 
@@ -95,26 +95,24 @@ No specific mitigations documented for this technique.
 
 ### Suspicious Addition to Local or Domain Groups
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Additional Local or Domain Groups technique applicable | High | Persistence |
+| Finding                                                | Severity | Impact      |
+| ------------------------------------------------------ | -------- | ----------- |
+| Additional Local or Domain Groups technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 
 - [Cyber Security News](https://cybersecuritynews.com/superblack-actors-exploiting-two-fortinet-vulnerabilities/)
 - [Linux Usermod](https://www.man7.org/linux/man-pages/man8/usermod.8.html)
-- [Microsoft Net Group](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc754051(v=ws.11))
-- [Microsoft Net Localgroup](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc725622(v=ws.11))
+- [Microsoft Net Group](<https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc754051(v=ws.11)>)
+- [Microsoft Net Localgroup](<https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc725622(v=ws.11)>)
 - [Microsoft RDP Logons](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/allow-log-on-through-remote-desktop-services)
 - [RootDSE AD Detection 2022](https://rootdse.org/posts/monitoring-realtime-activedirectory-domain-scenarios)
 - [Atomic Red Team - T1098.007](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1098.007)

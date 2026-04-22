@@ -36,10 +36,12 @@ In high security contexts, the risk of detecting unauthorized access or nonrepud
 ## Impact
 
 `disk_full_action` parameter:
+
 - Set to `halt` - the `auditd` daemon will shutdown the system when the disk partition containing the audit logs becomes full.
 - Set to `single` - the `auditd` daemon will put the computer system in single user mode when the disk partition containing the audit logs becomes full.
 
 `disk_error_action` parameter:
+
 - Set to `halt` - the `auditd` daemon will shutdown the system when an error is detected on the partition that holds the audit log files.
 - Set to `single` - the `auditd` daemon will put the computer system in single user mode when an error is detected on the partition that holds the audit log files.
 - Set to `syslog` - the `auditd` daemon will issue no more than 5 consecutive warnings to syslog when an error is detected on the partition that holds the audit log files.
@@ -91,9 +93,9 @@ disk_error_action = halt
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v8 | 8.3 Ensure Adequate Audit Log Storage | X | X | X |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs                | X    | X    | X    |
+| v8               | 8.3 Ensure Adequate Audit Log Storage | X    | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0005 / M1028

@@ -61,7 +61,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may match or approximate the name or location of legitimate files, Registry keys, or other resources when naming/placing them. This is done for the sake of evading defenses and observation. 
+Adversaries may match or approximate the name or location of legitimate files, Registry keys, or other resources when naming/placing them. This is done for the sake of evading defenses and observation.
 
 This may be done by placing an executable in a commonly trusted directory (ex: under System32) or giving it the name of a legitimate, trusted program (ex: `svchost.exe`). Alternatively, a Windows Registry key may be given a close approximation to a key used by a legitimate program. In containerized environments, a threat actor may create a resource in a trusted namespace or one that matches the naming convention of a container pod or cluster.
 
@@ -123,11 +123,13 @@ The test copies cmd.exe, renames it to VEDetector.exe, adds a registry run key f
 This technique may be used to evade detection by mimicking legitimate software names or locations.
 
 **Expected Output:**
+
 - A new process named VEDetector.exe appears in the process list, but its behavior matches cmd.exe.
 - SIEM/EDR systems may detect this as suspicious process activity (e.g., Sysmon Event ID 1 for process creation, or Event ID 13 for registry modifications).
 - Registry modification in HKLM:\Software\Microsoft\Windows\CurrentVersion\Run may trigger persistence alerts in XDR platforms.
 
 **References:**
+
 - [MITRE ATT&CK T1036.005](https://attack.mitre.org/techniques/T1036/005/)
 - [Sysmon Process Creation](https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon)
 
@@ -148,8 +150,8 @@ Start-Sleep -Seconds 5
 ```
 
 **Dependencies:**
-- The source cmd.exe file must exist on the system.
 
+- The source cmd.exe file must exist on the system.
 
 ### Manual Testing
 
@@ -164,32 +166,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Use file system access controls to protect folders such as `C:\Windows\System32`.
 
 ### M1038 Execution Prevention
+
 Use tools that restrict program execution via application control by attributes other than file name for common operating system utilities that are needed.
 
 ### M1045 Code Signing
-Require signed binaries and images.
 
+Require signed binaries and images.
 
 ## Detection
 
 ### Detection Strategy for Masquerading via Legitimate Resource Name or Location
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Match Legitimate Resource Name or Location technique applicable | High | Defense Evasion |
+| Finding                                                         | Severity | Impact          |
+| --------------------------------------------------------------- | -------- | --------------- |
+| Match Legitimate Resource Name or Location technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

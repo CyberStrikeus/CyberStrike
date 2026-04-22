@@ -17,14 +17,17 @@ severity_boost: {}
 # 1.3 Ensure Apache Is Installed From the Appropriate Binaries (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 The CIS Apache Benchmark recommends using the Apache binary provided by your vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. However, to keep the benchmark as generic and applicable to all Unix/Linux platforms as possible, a default source build has been used for this benchmark.
 
 **Important Note**: There is a major difference between source builds and most vendor packages that is very important to highlight. The default source build of Apache is fairly conservative and minimalist in the modules included and therefore starts off in a fairly strong security state, while most vendor binaries are typically very well loaded with most of the functionality that one may be looking for. **Therefore, it is important that you don't assume the default value shown in the benchmark will match default values in your installation.** You should always test any new installation in your environment before putting it into production. Also keep in mind you can install and run a new version alongside the old one by using a different Apache prefix and a different IP address or port number in the Listen directive.
 
 ## Rationale
+
 The benefits of using the vendor supplied binaries include:
 
 - Ease of installation as it will just work, straight out of the box.
@@ -36,9 +39,11 @@ The benefits of using the vendor supplied binaries include:
 - You may be able to get the updates automatically, reducing the window of risk.
 
 ## Audit
+
 Not applicable - this is documentation/planning guidance.
 
 ## Remediation
+
 Installation depends on the operating system platform. For a source build, consult the Apache 2.4 documentation on compiling and installing https://httpd.apache.org/docs/2.4/install.html for a Red Hat Enterprise Linux 5 or 6, the following yum command could be used.
 
 ```bash
@@ -46,12 +51,15 @@ Installation depends on the operating system platform. For a source build, consu
 ```
 
 ## References
+
 1. Apache Compiling and Installation https://httpd.apache.org/docs/2.4/install.html
 
 ## CIS Controls
+
 - v8: 1.2 Address Unauthorized Assets
 - v8: 2.1 Maintain Inventory of Authorized Software
 - v7: 2.2 Ensure Software is Supported by Vendor
 
 ## Profile
+
 - Level 1

@@ -25,8 +25,7 @@ chains_with:
   - T1593.001
   - T1593.002
   - T1593.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1593.001: "Chain with T1593.001 for deeper attack path"
   T1593.002: "Chain with T1593.002 for deeper attack path"
@@ -69,29 +68,28 @@ Adversaries may search in different online sites depending on what information t
 ## Remediation Guide
 
 ### M1047 Audit
+
 Scan public code repositories for exposed credentials or other sensitive information before making commits. Ensure that any leaked credentials are removed from the commit history, not just the current latest version of the code.
 
 ### M1013 Application Developer Guidance
-Application developers uploading to public code repositories should be careful to avoid publishing sensitive information such as credentials and API keys.
 
+Application developers uploading to public code repositories should be careful to avoid publishing sensitive information such as credentials and API keys.
 
 ## Detection
 
 ### Detection of Search Open Websites/Domains
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Search Open Websites/Domains technique applicable | High | Reconnaissance |
+| Finding                                           | Severity | Impact         |
+| ------------------------------------------------- | -------- | -------------- |
+| Search Open Websites/Domains technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

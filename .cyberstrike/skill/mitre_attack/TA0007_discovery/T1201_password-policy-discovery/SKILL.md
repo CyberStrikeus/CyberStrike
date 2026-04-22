@@ -42,10 +42,8 @@ tech_stack:
   - office
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -111,6 +109,7 @@ cat /etc/security/pwquality.conf
 ```
 
 **Dependencies:**
+
 - System must be CentOS or RHEL v7
 
 ### Atomic Test 4: Examine password complexity policy - CentOS/RHEL 6.x
@@ -125,6 +124,7 @@ cat /etc/security/pwquality.conf
 ```
 
 **Dependencies:**
+
 - System must be CentOS or RHEL v6
 
 ### Atomic Test 5: Examine password expiration policy - All Linux
@@ -136,7 +136,6 @@ Lists the password expiration policy to console on CentOS/RHEL/Ubuntu.
 ```bash
 cat /etc/login.defs
 ```
-
 
 ### Manual Testing
 
@@ -151,26 +150,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
-Ensure only valid password filters are registered. Filter DLLs must be present in Windows installation directory (<code>C:\Windows\System32\</code> by default) of a domain controller and/or local computer with a corresponding entry in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\Notification Packages</code>.
 
+Ensure only valid password filters are registered. Filter DLLs must be present in Windows installation directory (<code>C:\Windows\System32\</code> by default) of a domain controller and/or local computer with a corresponding entry in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\Notification Packages</code>.
 
 ## Detection
 
 ### Password Policy Discovery – cross-platform behavior-chain analytics
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Password Policy Discovery technique applicable | Medium | Discovery |
+| Finding                                        | Severity | Impact    |
+| ---------------------------------------------- | -------- | --------- |
+| Password Policy Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

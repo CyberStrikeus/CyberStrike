@@ -54,7 +54,7 @@ clientalivecountmax 3
 ```
 
 - IF - `Match` set statements are used in your environment, specify the connection parameters to use for the `-T` extended test mode and run the audit to verify the setting is not incorrectly configured in a match block.
-Example additional audit needed for a match block for the user *sshuser*:
+  Example additional audit needed for a match block for the user _sshuser_:
 
 ```bash
 # sshd -T -C user=sshuser | grep -Pi -- '(clientaliveinterval|clientalivecountmax)'
@@ -97,6 +97,7 @@ v8 - 0.0 Explicitly Not Mapped
 v7 - 0.0 Explicitly Not Mapped
 
 Additional Information:
+
 - https://bugzilla.redhat.com/show_bug.cgi?id=1873547
 - https://github.com/openssh/openssh-portable/blob/V_8_9/serverloop.c#L137
 

@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-778
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - AU-13
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ The unauthorized use or replication of organizational information by external en
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-13(3) Unauthorized Replication of Information not implemented | Medium | Audit and Accountability |
-| AU-13(3) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                          | Severity | Impact                              |
+| ---------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-13(3) Unauthorized Replication of Information not implemented | Medium   | Audit and Accountability            |
+| AU-13(3) partially implemented                                   | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

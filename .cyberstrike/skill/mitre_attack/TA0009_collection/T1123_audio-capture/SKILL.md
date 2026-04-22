@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -76,6 +74,7 @@ Start-Sleep -Seconds 5
 ```
 
 **Dependencies:**
+
 - AudioDeviceCmdlets module must be installed
 
 ### Atomic Test 2: Registry artefact when application use microphone
@@ -104,7 +103,6 @@ Should create a non-empty m4a file with sound from the microphone.
 sh #{filename} #{audiofile} #{duration}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -123,19 +121,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection Strategy for T1123 Audio Capture Across Windows, Linux, macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Audio Capture technique applicable | Low | Collection |
+| Finding                            | Severity | Impact     |
+| ---------------------------------- | -------- | ---------- |
+| Audio Capture technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

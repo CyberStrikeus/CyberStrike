@@ -56,11 +56,11 @@ Adversaries may log user keystrokes to intercept credentials as the user types t
 
 Keylogging is the most prevalent type of input capture, with many different ways of intercepting keystrokes. Some methods include:
 
-* Hooking API callbacks used for processing keystrokes. Unlike Credential API Hooking, this focuses solely on API functions intended for processing keystroke data.
-* Reading raw keystroke data from the hardware buffer.
-* Windows Registry modifications.
-* Custom drivers.
-* Modify System Image may provide adversaries with hooks into the operating system of network devices to read raw keystrokes for login sessions.
+- Hooking API callbacks used for processing keystrokes. Unlike Credential API Hooking, this focuses solely on API functions intended for processing keystroke data.
+- Reading raw keystroke data from the hardware buffer.
+- Windows Registry modifications.
+- Custom drivers.
+- Modify System Image may provide adversaries with hooks into the operating system of network devices to read raw keystrokes for login sessions.
 
 ## Kill Chain Phase
 
@@ -99,15 +99,16 @@ Upon successful execution, Powershell will execute `Get-Keystrokes.ps1` and outp
 ```
 
 **Dependencies:**
+
 - Get-Keystrokes PowerShell script must exist on disk at PathToAtomicsFolder\T1056.001\src\Get-Keystrokes.ps1
 
 ### Atomic Test 2: Living off the land Terminal Input Capture on Linux with pam.d
 
-Pluggable Access Module, which is present on all modern Linux systems, generally contains a library called pam_tty_audit.so which logs all keystrokes for the selected users and sends it to audit.log.  All terminal activity on any new logins would then be archived and readable by an adversary with elevated privledges.
+Pluggable Access Module, which is present on all modern Linux systems, generally contains a library called pam_tty_audit.so which logs all keystrokes for the selected users and sends it to audit.log. All terminal activity on any new logins would then be archived and readable by an adversary with elevated privledges.
 
-Passwords hidden by the console can also be logged, with 'log_passwd' as in this example.  If root logging is enabled, then output from any process which is later started by root is also logged, even if this policy is carefully enabled (e.g. 'disable=*' as the initial command).
+Passwords hidden by the console can also be logged, with 'log_passwd' as in this example. If root logging is enabled, then output from any process which is later started by root is also logged, even if this policy is carefully enabled (e.g. 'disable=\*' as the initial command).
 
-Use 'aureport --tty' or other audit.d reading tools to read the log output, which is binary.  Mac OS does not currently contain the pam_tty_audit.so library.
+Use 'aureport --tty' or other audit.d reading tools to read the log output, which is binary. Mac OS does not currently contain the pam_tty_audit.so library.
 
 **Supported Platforms:** linux
 **Elevation Required:** Yes
@@ -122,6 +123,7 @@ enable=* log_password" >> /etc/pam.d/system-auth
 ```
 
 **Dependencies:**
+
 - Checking if pam_tty_audit.so is installed
 
 ### Atomic Test 3: Logging bash history to syslog
@@ -140,6 +142,7 @@ tail /var/log/syslog
 ```
 
 **Dependencies:**
+
 - This test requires to be run in a bash shell and that logger and tee are installed.
 
 ### Atomic Test 4: Logging sh history to syslog/messages
@@ -158,11 +161,12 @@ tail /var/log/messages
 ```
 
 **Dependencies:**
+
 - This test requires to be run in a bash shell and that logger and tee are installed.
 
 ### Atomic Test 5: Bash session based keylogger
 
-When a command is executed in bash, the BASH_COMMAND variable contains that command. For example :~$ echo $BASH_COMMAND = "echo $BASH_COMMAND". The trap command is not a external command, but a built-in function of bash and can be used in a script to run a bash function when some event occurs. trap will detect when the BASH_COMMAND variable value changes and then pipe that value into a file, creating a bash session based keylogger. 
+When a command is executed in bash, the BASH_COMMAND variable contains that command. For example :~$ echo $BASH_COMMAND = "echo $BASH_COMMAND". The trap command is not a external command, but a built-in function of bash and can be used in a script to run a bash function when some event occurs. trap will detect when the BASH_COMMAND variable value changes and then pipe that value into a file, creating a bash session based keylogger.
 
 To gain persistence the command could be added to the users .bashrc or .bash_aliases or the systems default .bashrc in /etc/skel/
 
@@ -175,8 +179,8 @@ cat #{output_file}
 ```
 
 **Dependencies:**
-- This test requires to be run in a bash shell
 
+- This test requires to be run in a bash shell
 
 ### Manual Testing
 
@@ -196,19 +200,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Keylogging Activity Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Keylogging technique applicable | High | Collection |
+| Finding                         | Severity | Impact     |
+| ------------------------------- | -------- | ---------- |
+| Keylogging technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -70,26 +70,24 @@ Review whether mitigations for T1422.002 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 10 introduced changes that prevent normal applications from accessing sensitive device identifiers.
 
+Android 10 introduced changes that prevent normal applications from accessing sensitive device identifiers.
 
 ## Detection
 
 ### Detection of Wi-Fi Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Wi-Fi Discovery technique applicable | High | Discovery |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| Wi-Fi Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

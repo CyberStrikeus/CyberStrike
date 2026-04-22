@@ -50,7 +50,7 @@ severity_boost:
 
 An adversary may rely upon a user opening a malicious file in order to gain execution. Users may be subjected to social engineering to get them to open a file that will lead to code execution. This user action will typically be observed as follow-on behavior from Spearphishing Attachment. Adversaries may use several types of files that require a user to execute them, including .doc, .pdf, .xls, .rtf, .scr, .exe, .lnk, .pif, .cpl, .reg, and .iso.
 
-Adversaries may employ various forms of Masquerading and Obfuscated Files or Information to increase the likelihood that a user will open and successfully execute a malicious file. These methods may include using a familiar naming convention and/or password protecting the file and supplying instructions to a user on how to open it. 
+Adversaries may employ various forms of Masquerading and Obfuscated Files or Information to increase the likelihood that a user will open and successfully execute a malicious file. These methods may include using a familiar naming convention and/or password protecting the file and supplying instructions to a user on how to open it.
 
 While Malicious File frequently occurs shortly after Initial Access it may occur at other phases of an intrusion, such as when an adversary places a file in a shared directory or on a user's desktop hoping that a user will click on it. This activity may also be seen shortly after Internal Spearphishing.
 
@@ -81,7 +81,7 @@ This Test uses a VBA macro to create and execute #{jse_path} with cscript.exe. U
 Execution is handled by [Invoke-MalDoc](https://github.com/redcanaryco/invoke-atomicredteam/blob/master/Public/Invoke-MalDoc.ps1) to load and execute VBA code into Excel or Word documents.
 This is a known execution chain observed by the OSTap downloader commonly used in TrickBot campaigns.
 References:
-  https://www.computerweekly.com/news/252470091/TrickBot-Trojan-switches-to-stealthy-Ostap-downloader
+https://www.computerweekly.com/news/252470091/TrickBot-Trojan-switches-to-stealthy-Ostap-downloader
 
 **Supported Platforms:** windows
 
@@ -93,6 +93,7 @@ Invoke-MalDoc -macroCode $macrocode -officeProduct "#{ms_product}"
 ```
 
 **Dependencies:**
+
 - Microsoft #{ms_product} must be installed
 
 ### Atomic Test 2: OSTap Payload Download
@@ -121,6 +122,7 @@ Invoke-MalDoc -macroCode $macrocode -officeProduct "#{ms_product}"
 ```
 
 **Dependencies:**
+
 - Microsoft #{ms_product} must be installed
 
 ### Atomic Test 4: OSTAP JS version
@@ -138,6 +140,7 @@ Invoke-MalDoc -macroCode $macrocode -officeProduct "#{ms_product}"
 ```
 
 **Dependencies:**
+
 - Microsoft #{ms_product} must be installed
 
 ### Atomic Test 5: Office launching .bat file from AppData
@@ -154,8 +157,8 @@ Invoke-MalDoc -macroCode $macrocode -officeProduct #{ms_product}
 ```
 
 **Dependencies:**
-- Microsoft #{ms_product} must be installed
 
+- Microsoft #{ms_product} must be installed
 
 ### Manual Testing
 
@@ -170,32 +173,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Application control may be able to prevent the running of executables masquerading as other files.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, various Attack Surface Reduction (ASR) rules can be enabled to prevent the execution of potentially malicious executable files (such as those that have been downloaded and executed by Office applications/scripting interpreters/email clients or that do not meet specific prevalence, age, or trusted list criteria). Note: cloud-delivered protection must be enabled for certain rules.
 
 ### M1017 User Training
-Use user training as a way to bring awareness to common phishing and spearphishing techniques and how to raise suspicion for potentially malicious events.
 
+Use user training as a way to bring awareness to common phishing and spearphishing techniques and how to raise suspicion for potentially malicious events.
 
 ## Detection
 
 ### User Execution – Malicious File via download/open → spawn chain (T1204.002)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Malicious File technique applicable | High | Execution |
+| Finding                             | Severity | Impact    |
+| ----------------------------------- | -------- | --------- |
+| Malicious File technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

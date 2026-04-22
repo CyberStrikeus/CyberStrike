@@ -25,7 +25,7 @@ severity_boost: {}
 
 Configure AppArmor to be enabled at boot time and verify that it has not been overwritten by the bootloader boot parameters.
 
-*Note: This recommendation is designed around the grub bootloader, if LILO or another bootloader is in use in your environment enact equivalent settings.*
+_Note: This recommendation is designed around the grub bootloader, if LILO or another bootloader is in use in your environment enact equivalent settings._
 
 ## Rationale
 
@@ -79,9 +79,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 14.6 Protect Information through Access Control Lists |
+| Controls Version | Control                                               |
+| ---------------- | ----------------------------------------------------- |
+| v7               | 14.6 Protect Information through Access Control Lists |
 
 ## Assessment Status
 

@@ -50,11 +50,11 @@ Follow the documentation and create namespaces for objects in your deployment as
 
 When you create an AKS cluster, the following namespaces are available:
 
-| NAMESPACE | Description |
-|---|---|
-| default | Where pods and deployments are created by default when none is provided. In smaller environments, you can deploy applications directly into the default namespace without creating additional logical separations. When you interact with the Kubernetes API, such as with kubectl get pods, the default namespace is used when none is specified. |
-| kube-system | Where core resources exist, such as network features like DNS and proxy, or the Kubernetes dashboard. You typically don't deploy your own applications into this namespace. |
-| kube-public | Typically not used, but can be used for resources to be visible across the whole cluster, and can be viewed by any user. |
+| NAMESPACE   | Description                                                                                                                                                                                                                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| default     | Where pods and deployments are created by default when none is provided. In smaller environments, you can deploy applications directly into the default namespace without creating additional logical separations. When you interact with the Kubernetes API, such as with kubectl get pods, the default namespace is used when none is specified. |
+| kube-system | Where core resources exist, such as network features like DNS and proxy, or the Kubernetes dashboard. You typically don't deploy your own applications into this namespace.                                                                                                                                                                        |
+| kube-public | Typically not used, but can be used for resources to be visible across the whole cluster, and can be viewed by any user.                                                                                                                                                                                                                           |
 
 ## References
 
@@ -65,7 +65,7 @@ When you create an AKS cluster, the following namespaces are available:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | x | x | x |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software | x    | x    | x    |
+| v7               | 14 Controlled Access Based on the Need to Know     |      |      |      |

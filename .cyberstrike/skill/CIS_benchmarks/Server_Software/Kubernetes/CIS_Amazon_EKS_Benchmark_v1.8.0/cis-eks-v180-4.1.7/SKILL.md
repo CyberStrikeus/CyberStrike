@@ -72,6 +72,7 @@ Replace `$CLUSTER_NAME` with the name of your EKS cluster.
 The command queries the `cluster.accessConfig` property, which indicates the authentication mode of the cluster.
 
 **Possible Outputs:**
+
 - If the output shows `"authenticationmode": "API"` or `"authenticationmode": "API_AND_CONFIG_MAP"`, it means the Cluster Access Manager API is enabled.
 - If it only shows `"authenticationmode": "CONFIG_MAP"`, then the cluster is still using the traditional `aws-auth` ConfigMap approach.
 
@@ -97,7 +98,7 @@ Under Cluster Authentication Mode for Cluster Access settings:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 14.7 Enforce Access Control to Data through Automated Tools | | | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 14.7 Enforce Access Control to Data through Automated Tools                     |      |      | x    |

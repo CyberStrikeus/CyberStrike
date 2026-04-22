@@ -82,6 +82,7 @@ $which_python -c "import gzip;input_file=open('#{path_to_input_file}', 'rb');con
 ```
 
 **Dependencies:**
+
 - Requires Python
 
 ### Atomic Test 2: Compressing data using bz2 in Python (FreeBSD/Linux)
@@ -96,6 +97,7 @@ $which_python -c "import bz2;input_file=open('#{path_to_input_file}','rb');conte
 ```
 
 **Dependencies:**
+
 - Requires Python
 
 ### Atomic Test 3: Compressing data using zipfile in Python (FreeBSD/Linux)
@@ -110,6 +112,7 @@ $which_python -c "from zipfile import ZipFile; ZipFile('#{path_to_output_file}',
 ```
 
 **Dependencies:**
+
 - Requires Python
 
 ### Atomic Test 4: Compressing data using tarfile in Python (FreeBSD/Linux)
@@ -124,8 +127,8 @@ $which_python -c "import tarfile; output_file = tarfile.open('#{path_to_output_f
 ```
 
 **Dependencies:**
-- Requires Python
 
+- Requires Python
 
 ### Manual Testing
 
@@ -145,19 +148,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Archiving via Library (T1560.002)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Archive via Library technique applicable | Low | Collection |
+| Finding                                  | Severity | Impact     |
+| ---------------------------------------- | -------- | ---------- |
+| Archive via Library technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

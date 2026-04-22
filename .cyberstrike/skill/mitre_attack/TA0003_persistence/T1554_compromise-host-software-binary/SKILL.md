@@ -30,10 +30,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-276
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -79,26 +77,24 @@ After modifying a binary, an adversary may attempt to Impair Defenses by prevent
 ## Remediation Guide
 
 ### M1045 Code Signing
-Ensure all application component binaries are signed by the correct application developers.
 
+Ensure all application component binaries are signed by the correct application developers.
 
 ## Detection
 
 ### Detect Compromise of Host Software Binaries
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compromise Host Software Binary technique applicable | High | Persistence |
+| Finding                                              | Severity | Impact      |
+| ---------------------------------------------------- | -------- | ----------- |
+| Compromise Host Software Binary technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

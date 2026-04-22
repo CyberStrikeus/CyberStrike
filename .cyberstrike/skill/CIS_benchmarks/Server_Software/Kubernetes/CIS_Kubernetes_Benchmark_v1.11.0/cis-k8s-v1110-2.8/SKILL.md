@@ -71,7 +71,7 @@ By default, no etcd certificate is created and used.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.1 Establish an Access Granting Process | X | X | X |
-| v8 | 6.2 Establish an Access Revoking Process | X | X | X |
+| Controls Version | Control                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.1 Establish an Access Granting Process | X    | X    | X    |
+| v8               | 6.2 Establish an Access Revoking Process | X    | X    | X    |

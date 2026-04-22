@@ -143,7 +143,6 @@ This test enables the guest account on macOS using sysadminctl utility.
 sudo sysadminctl -guestAccount on
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -157,29 +156,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Implement multi-factor authentication (MFA) for default accounts whenever possible to prevent unauthorized access, even if credentials for these accounts are compromised. MFA adds an additional layer of security that requires more than just a username and password, making it significantly harder for adversaries to exploit these accounts for initial access or lateral movement.
 
 ### M1027 Password Policies
-Applications and appliances that utilize default username and password should be changed immediately after the installation, and before deployment to a production environment.
 
+Applications and appliances that utilize default username and password should be changed immediately after the installation, and before deployment to a production environment.
 
 ## Detection
 
 ### Detection of Default Account Abuse Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Default Accounts technique applicable | High | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Default Accounts technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

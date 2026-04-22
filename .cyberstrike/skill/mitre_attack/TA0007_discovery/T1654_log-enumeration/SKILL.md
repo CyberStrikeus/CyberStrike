@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -77,7 +75,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 Uses the built-in PowerShell commandlet Get-EventLog to search for 'SYSTEM' keyword and saves results to a text file.
 
-This technique was observed in a [TheDFIRReport case](https://thedfirreport.com/2023/04/03/malicious-iso-file-leads-to-domain-wide-ransomware/) 
+This technique was observed in a [TheDFIRReport case](https://thedfirreport.com/2023/04/03/malicious-iso-file-leads-to-domain-wide-ransomware/)
 where the threat actor enumerated the Windows Security audit log to determine user accounts and associated IPv4 addresses.
 
 Successful execution will save matching log events to the users temp folder.
@@ -91,10 +89,10 @@ powershell -c {get-eventlog 'Security' | where {$_.Message -like '*SYSTEM*'} | e
 
 ### Atomic Test 2: Enumerate Windows Security Log via WevtUtil
 
-WevtUtil is a command line tool that can be utilised by adversaries to gather intelligence on a targeted Windows system's logging infrastructure. 
+WevtUtil is a command line tool that can be utilised by adversaries to gather intelligence on a targeted Windows system's logging infrastructure.
 
 By executing this command, malicious actors can enumerate all available event logs, including both default logs such as Application, Security, and System
-as well as any custom logs created by administrators. 
+as well as any custom logs created by administrators.
 
 This information provides valuable insight into the system's logging mechanisms, potentially allowing attackers to identify gaps or weaknesses in the logging configuration
 
@@ -103,7 +101,6 @@ This information provides valuable insight into the system's logging mechanisms,
 ```cmd
 wevtutil enum-logs
 ```
-
 
 ### Manual Testing
 
@@ -118,26 +115,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
-Limit the ability to access and export sensitive logs to privileged accounts where possible.
 
+Limit the ability to access and export sensitive logs to privileged accounts where possible.
 
 ## Detection
 
 ### Detection Strategy for Log Enumeration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Log Enumeration technique applicable | Medium | Discovery |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| Log Enumeration technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

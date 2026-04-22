@@ -17,13 +17,16 @@ severity_boost: {}
 # 4.1 Ensure that logging is enabled
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
 ## Description
+
 Apache Cassandra uses Logback for logging functionality. While this can be set using `nodetool setlogginglevel` changes made using this method will be reverted to the level specified in the `logback.xml` file the next time the process restarts.
 
 The configurable logging levels are:
+
 - `OFF`
 - `TRACE`
 - `DEBUG`
@@ -32,10 +35,13 @@ The configurable logging levels are:
 - `ERROR`
 
 ## Rationale
+
 If logging is not enabled, issues may go undiscovered, and compromises and other incidents may occur without being quickly detected. It may also not be possible to provide evidence of compliance with security laws, regulations, and other requirements.
 
 ## Audit
+
 Execute the following command to confirm the setting is correct:
+
 ```bash
 $ nodetool getlogginglevels
 Logger Name                                        Log Level
@@ -46,6 +52,7 @@ org.clsecurity.workbench                                WARN
 If set to `OFF` then this is a finding.
 
 ## Remediation
+
 To remediate this setting:
 
 1. Edit the `logback-test.xml` if present; otherwise, edit the `logback.xml`
@@ -76,20 +83,26 @@ To remediate this setting:
 3. Restart the Apache Cassandra
 
 ## Default Value
+
 ```
 INFO
 ```
 
 ## References
+
 1. http://cassandra.apache.org/doc/latest/troubleshooting/reading_logs.html?highlight=logging
 2. https://logback.qos.ch/manual/configuration.html
 
 ## CIS Controls
+
 **v8:**
+
 - 8.5 Collect Detailed Audit Logs - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation.
 
 **v7:**
+
 - 6.3 Enable Detailed Logging - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.
 
 ## Profile
+
 - Level 1 | Automated

@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -67,10 +64,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -85,16 +82,16 @@ This requirement addresses policies and procedures for the protection of CUI. Po
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Policy and Procedures (03.15.01) Policy and Procedures not implemented | Medium | CUI Protection - Planning |
-| Policy and Procedures (03.15.01) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                                | Severity | Impact                    |
+| ---------------------------------------------------------------------- | -------- | ------------------------- |
+| Policy and Procedures (03.15.01) Policy and Procedures not implemented | Medium   | CUI Protection - Planning |
+| Policy and Procedures (03.15.01) partially implemented (POA&M)         | Low      | CMMC certification risk   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

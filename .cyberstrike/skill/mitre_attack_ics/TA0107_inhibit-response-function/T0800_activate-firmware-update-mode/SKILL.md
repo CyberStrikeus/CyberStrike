@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,47 +57,52 @@ Review whether mitigations for T0800 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0807 Network Allowlists
+
 Use host-based allowlists to prevent devices from accepting connections from unauthorized systems. For example, allowlists can be used to ensure devices can only connect with master stations or known management/engineering workstations.
 
 ### M0804 Human User Authentication
+
 Devices that allow remote management of firmware should require authentication before allowing any changes. The authentication mechanisms should also support Account Use Policies, Password Policies, and User Account Management
 
 ### M0813 Software Process and Device Authentication
+
 Authenticate connections fromsoftware and devices to prevent unauthorized systems from accessing protected management functions.
 
 ### M0802 Communication Authenticity
+
 Protocols used for device management should authenticate all network messages to prevent unauthorized system changes.
 
 ### M0801 Access Management
+
 All devices or systems changes, including all administrative functions, should require authentication. Consider using access management technologies to enforce authorization on all management interface access attempts, especially when the device does not inherently provide strong authentication and authorization functions.
 
 ### M0937 Filter Network Traffic
+
 Filter for protocols and payloads associated with firmware activation or updating activity.
 
 ### M0930 Network Segmentation
+
 Segment operational network and systems to restrict access to critical system functions to predetermined management systems.
 
 ### M0800 Authorization Enforcement
-Restrict configurations changes and firmware updating abilities to only authorized individuals.
 
+Restrict configurations changes and firmware updating abilities to only authorized individuals.
 
 ## Detection
 
 ### Detection of Activate Firmware Update Mode
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Activate Firmware Update Mode technique applicable | Medium | Inhibit Response Function |
+| Finding                                            | Severity | Impact                    |
+| -------------------------------------------------- | -------- | ------------------------- |
+| Activate Firmware Update Mode technique applicable | Medium   | Inhibit Response Function |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

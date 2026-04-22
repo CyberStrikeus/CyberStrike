@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PE-6
 severity_boost: {}
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,16 +76,16 @@ Monitoring physical access to systems provides additional monitoring for those a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-6(4) Monitoring Physical Access to Systems not implemented | Medium | Physical and Environmental Protection |
-| PE-6(4) partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                                       | Severity | Impact                                           |
+| ------------------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-6(4) Monitoring Physical Access to Systems not implemented | Medium   | Physical and Environmental Protection            |
+| PE-6(4) partially implemented                                 | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -14,7 +14,7 @@ prerequisites: []
 severity_boost: {}
 ---
 
-# 2.1.2.2 Ensure chrony is running as user _chrony (Automated)
+# 2.1.2.2 Ensure chrony is running as user \_chrony (Automated)
 
 ## Profile
 
@@ -58,13 +58,14 @@ user _chrony
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove chrony from the system:
+
 ```bash
 # apt purge chrony
 ```
 
 ## Default Value
 
-user _chrony
+user \_chrony
 
 ## References
 

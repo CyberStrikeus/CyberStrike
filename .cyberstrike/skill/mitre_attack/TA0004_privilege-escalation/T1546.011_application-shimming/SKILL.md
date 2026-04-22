@@ -57,19 +57,19 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by application shims. The Microsoft Windows Application Compatibility Infrastructure/Framework (Application Shim) was created to allow for backward compatibility of software as the operating system codebase changes over time. For example, the application shimming feature allows developers to apply fixes to applications (without rewriting code) that were created for Windows XP so that it will work with Windows 10. 
+Adversaries may establish persistence and/or elevate privileges by executing malicious content triggered by application shims. The Microsoft Windows Application Compatibility Infrastructure/Framework (Application Shim) was created to allow for backward compatibility of software as the operating system codebase changes over time. For example, the application shimming feature allows developers to apply fixes to applications (without rewriting code) that were created for Windows XP so that it will work with Windows 10.
 
-Within the framework, shims are created to act as a buffer between the program (or more specifically, the Import Address Table) and the Windows OS. When a program is executed, the shim cache is referenced to determine if the program requires the use of the shim database (.sdb). If so, the shim database uses hooking to redirect the code as necessary in order to communicate with the OS. 
+Within the framework, shims are created to act as a buffer between the program (or more specifically, the Import Address Table) and the Windows OS. When a program is executed, the shim cache is referenced to determine if the program requires the use of the shim database (.sdb). If so, the shim database uses hooking to redirect the code as necessary in order to communicate with the OS.
 
 A list of all shims currently installed by the default Windows installer (sdbinst.exe) is kept in:
 
-* <code>%WINDIR%\AppPatch\sysmain.sdb</code> and
-* <code>hklm\software\microsoft\windows nt\currentversion\appcompatflags\installedsdb</code>
+- <code>%WINDIR%\AppPatch\sysmain.sdb</code> and
+- <code>hklm\software\microsoft\windows nt\currentversion\appcompatflags\installedsdb</code>
 
 Custom databases are stored in:
 
-* <code>%WINDIR%\AppPatch\custom & %WINDIR%\AppPatch\AppPatch64\Custom</code> and
-* <code>hklm\software\microsoft\windows nt\currentversion\appcompatflags\custom</code>
+- <code>%WINDIR%\AppPatch\custom & %WINDIR%\AppPatch\AppPatch64\Custom</code> and
+- <code>hklm\software\microsoft\windows nt\currentversion\appcompatflags\custom</code>
 
 To keep shims secure, Windows designed them to run in user mode so they cannot modify the kernel and you must have administrator privileges to install a shim. However, certain shims can be used to Bypass User Account Control (UAC and RedirectEXE), inject DLLs into processes (InjectDLL), disable Data Execution Prevention (DisableNX) and Structure Exception Handling (DisableSEH), and intercept memory addresses (GetProcAddress).
 
@@ -98,7 +98,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 ### Atomic Test 1: Application Shim Installation
 
 Install a shim database. This technique is used for privilege escalation and bypassing user access control.
-Upon execution, "Installation of AtomicShim complete." will be displayed. To verify the shim behavior, run 
+Upon execution, "Installation of AtomicShim complete." will be displayed. To verify the shim behavior, run
 the AtomicTest.exe from the <PathToAtomicsFolder>\\T1546.011\\bin directory. You should see a message box appear
 with "Atomic Shim DLL Test!" as defined in the AtomicTest.dll. To better understand what is happening, review
 the source code files is the <PathToAtomicsFolder>\\T1546.011\\src directory.
@@ -111,6 +111,7 @@ sdbinst.exe "#{file_path}"
 ```
 
 **Dependencies:**
+
 - Shim database file must exist on disk at specified location (#{file_path})
 - AtomicTest.dll must exist at c:\Tools\AtomicTest.dll
 
@@ -143,7 +144,6 @@ New-ItemProperty -Path HKLM:"\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCo
 New-ItemProperty -Path HKLM:"\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB" -Name "AtomicRedTeamT1546.011" -Value "AtomicRedTeamT1546.011"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -157,29 +157,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1052 User Account Control
+
 Changing UAC settings to "Always Notify" will give the user more visibility when UAC elevation is requested, however, this option will not be popular among users due to the constant UAC interruptions.
 
 ### M1051 Update Software
-Microsoft released an optional patch update - KB3045645 - that will remove the "auto-elevate" flag within the sdbinst.exe. This will prevent use of application shimming to bypass UAC.
 
+Microsoft released an optional patch update - KB3045645 - that will remove the "auto-elevate" flag within the sdbinst.exe. This will prevent use of application shimming to bypass UAC.
 
 ## Detection
 
 ### Detection Strategy for Application Shimming via sdbinst.exe and Registry Artifacts (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Shimming technique applicable | High | Privilege Escalation |
+| Finding                                   | Severity | Impact               |
+| ----------------------------------------- | -------- | -------------------- |
+| Application Shimming technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

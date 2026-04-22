@@ -23,8 +23,7 @@ chains_with:
   - PS-8
   - SA-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PS-8: "Chain with PS-8 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ Configuration management policy and procedures address the controls in the CM fa
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-1 Policy and Procedures not implemented | Medium | Configuration Management |
-| CM-1 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                    | Severity | Impact                              |
+| ------------------------------------------ | -------- | ----------------------------------- |
+| CM-1 Policy and Procedures not implemented | Medium   | Configuration Management            |
+| CM-1 partially implemented                 | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

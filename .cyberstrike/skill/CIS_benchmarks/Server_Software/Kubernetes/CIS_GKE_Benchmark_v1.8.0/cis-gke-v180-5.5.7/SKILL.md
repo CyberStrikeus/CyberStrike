@@ -4,7 +4,19 @@ description: "Ensure Secure Boot for Shielded GKE Nodes is Enabled (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, node-configuration, container-optimized-os, auto-repair, auto-upgrade, release-channels, shielded-nodes]
+tags:
+  [
+    cis,
+    gke,
+    kubernetes,
+    gcp,
+    node-configuration,
+    container-optimized-os,
+    auto-repair,
+    auto-upgrade,
+    release-channels,
+    shielded-nodes,
+  ]
 cis_id: "5.5.7"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -87,8 +99,8 @@ By default, Secure Boot is disabled in GKE clusters. By default, Secure Boot is 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets | | x | x |
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 5.3 Securely Store Master Images | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.5 Perform Automated Vulnerability Scans of Internal Enterprise Assets           |      | x    | x    |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 5.3 Securely Store Master Images                                                  |      | x    | x    |

@@ -74,32 +74,32 @@ Adversaries may attempt to exfiltrate data over a USB connected physical device.
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable Autorun if it is unnecessary. Disallow or restrict removable media at an organizational policy level if they are not required for business operations.
 
 ### M1034 Limit Hardware Installation
+
 Limit the use of USB devices and removable media within a network.
 
 ### M1057 Data Loss Prevention
-Data loss prevention can detect and block sensitive data being copied to USB devices.
 
+Data loss prevention can detect and block sensitive data being copied to USB devices.
 
 ## Detection
 
 ### Detection of USB-Based Data Exfiltration
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration over USB technique applicable | Low | Exfiltration |
+| Finding                                    | Severity | Impact       |
+| ------------------------------------------ | -------- | ------------ |
+| Exfiltration over USB technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

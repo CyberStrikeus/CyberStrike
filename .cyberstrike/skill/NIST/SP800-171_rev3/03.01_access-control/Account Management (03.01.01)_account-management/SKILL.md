@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -90,10 +88,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -127,17 +125,16 @@ This requirement focuses on account management for systems and applications. The
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Account Management (03.01.01) Account Management not implemented | High | CUI Protection - Access Control |
-| Account Management (03.01.01) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                          | Severity | Impact                          |
+| ---------------------------------------------------------------- | -------- | ------------------------------- |
+| Account Management (03.01.01) Account Management not implemented | High     | CUI Protection - Access Control |
+| Account Management (03.01.01) partially implemented (POA&M)      | Medium   | CMMC certification risk         |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

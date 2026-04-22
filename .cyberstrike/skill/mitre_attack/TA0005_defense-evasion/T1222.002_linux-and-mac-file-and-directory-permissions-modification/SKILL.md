@@ -117,7 +117,6 @@ Changes a file or folder's ownership and group information using chown.
 chown #{owner}:#{group} #{file_or_folder}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -131,29 +130,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Applying more restrictive permissions to files and directories could prevent adversaries from modifying the access control lists.
 
 ### M1026 Privileged Account Management
-Ensure critical system files as well as those known to be abused by adversaries have restrictive permissions and are owned by an appropriately privileged account, especially if access is not required by users nor will inhibit system functionality.
 
+Ensure critical system files as well as those known to be abused by adversaries have restrictive permissions and are owned by an appropriately privileged account, especially if access is not required by users nor will inhibit system functionality.
 
 ## Detection
 
 ### Unix-like File Permission Manipulation Behavioral Chain Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Linux and Mac File and Directory Permissions Modification technique applicable | High | Defense Evasion |
+| Finding                                                                        | Severity | Impact          |
+| ------------------------------------------------------------------------------ | -------- | --------------- |
+| Linux and Mac File and Directory Permissions Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

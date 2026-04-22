@@ -104,7 +104,7 @@ If using executable arguments, edit the kubelet service file `/etc/systemd/syste
 
 If using the api configz endpoint consider searching for the status of `"RotateKubeletServerCertificate":` by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -136,7 +136,7 @@ See the GKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **3.10 Encrypt Sensitive Data in Transit** - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). | | | |
-| v7 | **14.4 Encrypt All Sensitive Information in Transit** - Encrypt all sensitive information in transit. | | | |
+| Controls Version | Control                                                                                                                                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | **3.10 Encrypt Sensitive Data in Transit** - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH). |      |      |      |
+| v7               | **14.4 Encrypt All Sensitive Information in Transit** - Encrypt all sensitive information in transit.                                                                                |      |      |      |

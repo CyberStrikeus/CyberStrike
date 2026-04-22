@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -38,7 +36,7 @@ Properties within parts may reference shared public resources accessed via onlin
 
 Adversaries may abuse these templates to initially conceal malicious code to be executed via user documents. Template references injected into a document may enable malicious payloads to be fetched and executed when the document is loaded. These documents can be delivered via other techniques such as Phishing and/or Taint Shared Content and may evade static detections since no typical indicators (VBA macro, script, etc.) are present until after the malicious payload is fetched. Examples have been seen in the wild where template injection was used to load malicious code containing an exploit.
 
-Adversaries may also modify the <code>*\template</code> control word within an .rtf file to similarly conceal then download malicious code. This legitimate control word value is intended to be a file destination of a template file resource that is retrieved and loaded when an .rtf file is opened. However, adversaries may alter the bytes of an existing .rtf file to insert a template control word field to include a URL resource of a malicious payload.
+Adversaries may also modify the <code>\*\template</code> control word within an .rtf file to similarly conceal then download malicious code. This legitimate control word value is intended to be a file destination of a template file resource that is retrieved and loaded when an .rtf file is opened. However, adversaries may alter the bytes of an existing .rtf file to insert a template control word field to include a URL resource of a malicious payload.
 
 This technique may also enable Forced Authentication by injecting a SMB/HTTPS (or other credential prompting) URL and triggering an authentication attempt.
 
@@ -63,7 +61,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: WINWORD Remote Template Injection
 
-Open a .docx file that loads a remote .dotm macro enabled template from https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1221/src/opencalc.dotm 
+Open a .docx file that loads a remote .dotm macro enabled template from https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1221/src/opencalc.dotm
 Executes the code specified within the .dotm template.
 Requires download of WINWORD found in Microsoft Ofiice at Microsoft: https://www.microsoft.com/en-us/download/office.aspx.  
 Default docs file opens Calculator.exe when test sucessfully executed, while AV turned off.
@@ -73,7 +71,6 @@ Default docs file opens Calculator.exe when test sucessfully executed, while AV 
 ```cmd
 start "#{docx_file}"
 ```
-
 
 ### Manual Testing
 
@@ -88,39 +85,40 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Network/Host intrusion prevention systems, antivirus, and detonation chambers can be employed to prevent documents from fetching and/or executing malicious payloads.
 
 ### M1031 Network Intrusion Prevention
+
 Network/Host intrusion prevention systems, antivirus, and detonation chambers can be employed to prevent documents from fetching and/or executing malicious payloads.
 
 ### M1017 User Training
+
 Train users to identify social engineering techniques and spearphishing emails that could be used to deliver malicious documents.
 
 ### M1042 Disable or Remove Feature or Program
-Consider disabling Microsoft Office macros/active content to prevent the execution of malicious payloads in documents , though this setting may not mitigate the Forced Authentication use for this technique.
 
+Consider disabling Microsoft Office macros/active content to prevent the execution of malicious payloads in documents , though this setting may not mitigate the Forced Authentication use for this technique.
 
 ## Detection
 
 ### Template Injection Detection - Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Template Injection technique applicable | High | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| Template Injection technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 
-- [Microsoft Open XML July 2017](https://docs.microsoft.com/previous-versions/office/developer/office-2007/aa338205(v=office.12))
+- [Microsoft Open XML July 2017](<https://docs.microsoft.com/previous-versions/office/developer/office-2007/aa338205(v=office.12)>)
 - [SANS Brian Wiltse Template Injection](https://www.sans.org/reading-room/whitepapers/testing/template-injection-attacks-bypassing-security-controls-living-land-38780)
 - [Redxorblue Remote Template Injection](http://blog.redxorblue.com/2018/07/executing-macros-from-docx-with-remote.html)
 - [MalwareBytes Template Injection OCT 2017](https://blog.malwarebytes.com/threat-analysis/2017/10/decoy-microsoft-word-document-delivers-malware-through-rat/)

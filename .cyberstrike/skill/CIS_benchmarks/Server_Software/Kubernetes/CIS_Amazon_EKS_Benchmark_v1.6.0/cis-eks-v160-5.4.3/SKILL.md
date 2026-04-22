@@ -71,7 +71,7 @@ By default, nodes are provisioned with public IP addresses.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 4.4 Implement and Manage a Firewall on Servers | X | X | X |
-| v7 | 12 Boundary Defense | | | |
+| Controls Version | Control                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers | X    | X    | X    |
+| v7               | 12 Boundary Defense                            |      |      |      |

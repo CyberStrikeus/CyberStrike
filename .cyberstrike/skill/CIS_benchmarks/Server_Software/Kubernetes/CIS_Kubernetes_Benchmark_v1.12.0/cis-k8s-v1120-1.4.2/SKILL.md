@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Kubernetes Benchmark v1.12.0 - Control 1.4.2
 
 ## Profile Applicability
+
 - **Level:** 1 - Master Node
 
 ## Description
+
 Do not bind the scheduler service to non-loopback insecure addresses.
 
 ## Rationale
+
 The Scheduler API service which runs on port 10251/TCP by default is used for health and metrics information and is available without authentication or encryption. As such it should only be bound to a localhost interface, to minimize the cluster's attack surface.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -43,17 +47,20 @@ Verify that the `--bind-address` argument is set to 127.0.0.1
 Edit the Scheduler pod specification file `/etc/kubernetes/manifests/kube-scheduler.yaml` on the Control Plane node and ensure the correct value for the `--bind-address` parameter.
 
 ## Default Value
+
 By default, the `--bind-address` parameter is set to 0.0.0.0
 
 ## References
+
 1. https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.6 Use of Secure Network Management and Communication Protocols | | | |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | | |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.6 Use of Secure Network Management and Communication Protocols  |      |      |      |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      |      |      |
 
 ## Profile
+
 **Level 1 - Master Node** (Automated)

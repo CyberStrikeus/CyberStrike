@@ -53,7 +53,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may execute their own malicious payloads by hijacking how the .NET `AppDomainManager` loads assemblies. The .NET framework uses the `AppDomainManager` class to create and manage one or more isolated runtime environments (called application domains) inside a process to host the execution of .NET applications. Assemblies (`.exe` or `.dll` binaries compiled to run as .NET code) may be loaded into an application domain as executable code. 
+Adversaries may execute their own malicious payloads by hijacking how the .NET `AppDomainManager` loads assemblies. The .NET framework uses the `AppDomainManager` class to create and manage one or more isolated runtime environments (called application domains) inside a process to host the execution of .NET applications. Assemblies (`.exe` or `.dll` binaries compiled to run as .NET code) may be loaded into an application domain as executable code.
 
 Known as "AppDomainManager injection," adversaries may execute arbitrary code by hijacking how .NET applications load assemblies. For example, malware may create a custom application domain inside a target process to load and execute an arbitrary assembly. Alternatively, configuration files (`.config`) or process environment variables that define .NET runtime settings may be tampered with to instruct otherwise benign .NET applications to load a malicious assembly (identified by name) into the target process.
 
@@ -87,26 +87,24 @@ Known as "AppDomainManager injection," adversaries may execute arbitrary code by
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Install .NET applications and related software in write-protected locations. Set directory access controls to prevent file writes to the search paths for .NET applications, both in the folders where applications are run from and the standard resources folders.
 
+Install .NET applications and related software in write-protected locations. Set directory access controls to prevent file writes to the search paths for .NET applications, both in the folders where applications are run from and the standard resources folders.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow through the AppDomainManager on Windows.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AppDomainManager technique applicable | High | Persistence |
+| Finding                               | Severity | Impact      |
+| ------------------------------------- | -------- | ----------- |
+| AppDomainManager technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

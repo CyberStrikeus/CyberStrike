@@ -80,32 +80,32 @@ Adversaries may access restricted data or services protected by TCC through abus
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Remove unnecessary users from the local administrator group on systems.
 
 ### M1047 Audit
+
 Routinely check applications using Automation under Security & Privacy System Preferences. To reset permissions, user's can utilize the `tccutil reset` command. When using Mobile Device Management (MDM), review the list of enabled or disabled applications in the `MDMOverrides.plist` which overrides the TCC database.
 
 ### M1022 Restrict File and Directory Permissions
-When using an MDM, ensure the permissions granted are specific to the requirements of the binary. Full Disk Access should be restricted to only necessary binaries in alignment with policy.
 
+When using an MDM, ensure the permissions granted are specific to the requirements of the binary. Full Disk Access should be restricted to only necessary binaries in alignment with policy.
 
 ## Detection
 
 ### TCC Database Manipulation via Launchctl and Unprotected SIP
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| TCC Manipulation technique applicable | High | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| TCC Manipulation technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

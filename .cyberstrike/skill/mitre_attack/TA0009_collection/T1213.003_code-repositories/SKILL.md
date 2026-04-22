@@ -77,35 +77,36 @@ Once adversaries gain access to a victim network or a private code repository, t
 ## Remediation Guide
 
 ### M1017 User Training
+
 Develop and publish policies that define acceptable information to be stored in code repositories.
 
 ### M1047 Audit
+
 Consider periodic reviews of accounts and privileges for critical and sensitive code repositories. Scan code repositories for exposed credentials or other sensitive information.
 
 ### M1018 User Account Management
+
 Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization for code repositories.
 
 ### M1032 Multi-factor Authentication
-Use multi-factor authentication for logons to code repositories.
 
+Use multi-factor authentication for logons to code repositories.
 
 ## Detection
 
 ### Detecting Bulk or Anomalous Access to Private Code Repositories via SaaS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Code Repositories technique applicable | High | Collection |
+| Finding                                | Severity | Impact     |
+| -------------------------------------- | -------- | ---------- |
+| Code Repositories technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Open-source software refers to software that is available in source code form. C
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-10(1) Open-source Software not implemented | Medium | Configuration Management |
-| CM-10(1) partially implemented | Low | Incomplete Configuration Management |
+| Finding                                       | Severity | Impact                              |
+| --------------------------------------------- | -------- | ----------------------------------- |
+| CM-10(1) Open-source Software not implemented | Medium   | Configuration Management            |
+| CM-10(1) partially implemented                | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

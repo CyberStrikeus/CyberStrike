@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.4
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Disable the read-only port.
 
 ## Rationale
+
 The Kubelet process provides a read-only API in addition to the main Kubelet API. Unauthenticated access is provided to this read-only API which could possibly retrieve potentially sensitive information about the cluster.
 
 ## Impact
+
 Removal of the read-only port will require that any service which made use of it will need to be re-configured to use the main Kubelet API.
 
 ## Audit Procedure
@@ -69,23 +73,26 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1133 | TA0001, TA0003 | M1030, M1035 |
+| Techniques / Sub-techniques | Tactics        | Mitigations  |
+| --------------------------- | -------------- | ------------ |
+| T1133                       | TA0001, TA0003 | M1030, M1035 |
 
 ## Profile
+
 **Level 1** (Manual)

@@ -23,10 +23,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -34,9 +32,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may abuse accessibility features in Android devices to steal sensitive data and to spread malware to other devices. Accessibility features in Android are designed to assist users with disabilities, performing a variety of tasks, such as using Action Blocks to control lightbulbs, and changing the device’s user interface, such as changing the font size and adjusting contract or colors. 
+Adversaries may abuse accessibility features in Android devices to steal sensitive data and to spread malware to other devices. Accessibility features in Android are designed to assist users with disabilities, performing a variety of tasks, such as using Action Blocks to control lightbulbs, and changing the device’s user interface, such as changing the font size and adjusting contract or colors.
 
-One example of how adversaries abuse accessibility features is overlaying an HTML object mimicking a legitimate login screen. The user types their credentials in the overlay HTML object, which is then sent to the adversaries. 
+One example of how adversaries abuse accessibility features is overlaying an HTML object mimicking a legitimate login screen. The user types their credentials in the overlay HTML object, which is then sent to the adversaries.
 
 Another example is a malicious accessibility feature acting as a keylogger. The keylogger monitors changes on the EditText fields and sends it to the adversaries. This method of attack is also described in Keylogging; whereas Abuse Accessibility Features captures the overall abuse of accessibility features.
 
@@ -67,26 +65,24 @@ Review whether mitigations for T1453 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-First, users should be wary of clicking on suspicious text messages, links and emails. Secondly, users should be wary of granting applications accessibility features. Users may check applications that have been granted accessibility features by going to Settings, then Accessibility. Finally, users should be wary of downloading applications; although applications may be on the Google Play Store, they may not be benign (see Application Versioning).
 
+First, users should be wary of clicking on suspicious text messages, links and emails. Secondly, users should be wary of granting applications accessibility features. Users may check applications that have been granted accessibility features by going to Settings, then Accessibility. Finally, users should be wary of downloading applications; although applications may be on the Google Play Store, they may not be benign (see Application Versioning).
 
 ## Detection
 
 ### Detection of Abuse Accessibility Features
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Abuse Accessibility Features technique applicable | High | Collection |
+| Finding                                           | Severity | Impact     |
+| ------------------------------------------------- | -------- | ---------- |
+| Abuse Accessibility Features technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

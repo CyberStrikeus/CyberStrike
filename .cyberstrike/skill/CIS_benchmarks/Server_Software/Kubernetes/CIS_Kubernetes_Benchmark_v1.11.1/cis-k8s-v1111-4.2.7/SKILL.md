@@ -4,7 +4,23 @@ description: "Ensure that the --hostname-override argument is not set (Manual)"
 category: cis-k8s
 version: "1.11.1"
 author: cyberstrike-official
-tags: [cis, kubernetes, worker-nodes, kubelet, authentication, authorization, tls, streaming, iptables, hostname-override, event-capture, certificate-rotation, seccomp, strong-ciphers]
+tags:
+  [
+    cis,
+    kubernetes,
+    worker-nodes,
+    kubelet,
+    authentication,
+    authorization,
+    tls,
+    streaming,
+    iptables,
+    hostname-override,
+    event-capture,
+    certificate-rotation,
+    seccomp,
+    strong-ciphers,
+  ]
 cis_id: "4.2.7"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.1"
 tech_stack: [kubernetes]
@@ -64,7 +80,7 @@ By default, `--hostname-override` argument is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4 Secure Configuration of Enterprise Assets and Software | | | |
-| v7 | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers | | | |
+| Controls Version | Control                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4 Secure Configuration of Enterprise Assets and Software                                              |      |      |      |
+| v7               | 5 Secure Configuration for Hardware and Software on Mobile Devices, Laptops, Workstations and Servers |      |      |      |

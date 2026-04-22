@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,29 +59,28 @@ Review whether mitigations for T0807 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0938 Execution Prevention
+
 Execution prevention may block malicious software from accessing protected resources through the command line interface.
 
 ### M0942 Disable or Remove Feature or Program
-Consider removing or restricting features that are unnecessary to an asset's intended function within the control environment.
 
+Consider removing or restricting features that are unnecessary to an asset's intended function within the control environment.
 
 ## Detection
 
 ### Detection of Command-Line Interface
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Command-Line Interface technique applicable | Low | Execution |
+| Finding                                     | Severity | Impact    |
+| ------------------------------------------- | -------- | --------- |
+| Command-Line Interface technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

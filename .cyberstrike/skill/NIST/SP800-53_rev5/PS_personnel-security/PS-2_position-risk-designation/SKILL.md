@@ -12,8 +12,7 @@ tags:
   - ps
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-5
   - AT-3
@@ -25,8 +24,7 @@ chains_with:
   - SA-5
   - SA-21
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-5: "Chain with AC-5 for comprehensive security coverage"
   AT-3: "Chain with AT-3 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,16 +87,16 @@ Position risk designations reflect Office of Personnel Management (OPM) policy a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PS-2 Position Risk Designation not implemented | Medium | Personnel Security |
-| PS-2 partially implemented | Low | Incomplete Personnel Security |
+| Finding                                        | Severity | Impact                        |
+| ---------------------------------------------- | -------- | ----------------------------- |
+| PS-2 Position Risk Designation not implemented | Medium   | Personnel Security            |
+| PS-2 partially implemented                     | Low      | Incomplete Personnel Security |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 
