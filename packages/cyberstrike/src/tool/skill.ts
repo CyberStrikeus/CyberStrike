@@ -118,13 +118,26 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       }
 
       if (params.action === "search") {
+        const limit = 50
         let results: SkillIndex.Entry[] = []
+        let totalCount = 0
 
-        if (params.cwe) results = SkillIndex.byCWE(params.cwe)
-        else if (params.tech?.length) results = SkillIndex.byTechStack(params.tech)
-        else if (params.category) results = SkillIndex.byCategory(params.category)
-        else if (params.query) results = SkillIndex.search(params.query)
-        else results = SkillIndex.all()
+        if (params.cwe) {
+          results = SkillIndex.byCWE(params.cwe, limit)
+          totalCount = SkillIndex.byCWE(params.cwe, Infinity).length
+        } else if (params.tech?.length) {
+          results = SkillIndex.byTechStack(params.tech, limit)
+          totalCount = SkillIndex.byTechStack(params.tech, Infinity).length
+        } else if (params.category) {
+          results = SkillIndex.byCategory(params.category, limit)
+          totalCount = SkillIndex.byCategory(params.category, Infinity).length
+        } else if (params.query) {
+          results = SkillIndex.search(params.query, limit)
+          totalCount = results.length
+        } else {
+          results = SkillIndex.all().slice(0, limit)
+          totalCount = SkillIndex.all().length
+        }
 
         if (results.length === 0)
           return {
@@ -133,10 +146,15 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
             metadata: {} as { name?: string; dir?: string },
           }
 
+        const truncated = totalCount > results.length
+        const header = truncated
+          ? `## Search Results (top ${results.length} of ${totalCount} — refine your query for more specific results)`
+          : `## Search Results (${results.length})`
+
         return {
-          title: `${results.length} skills found`,
+          title: truncated ? `${results.length}/${totalCount} skills found` : `${results.length} skills found`,
           output: [
-            `## Search Results (${results.length})`,
+            header,
             "",
             ...results.map(
               (r) =>

@@ -86,52 +86,62 @@ export namespace SkillIndex {
     return Array.from(entries.values())
   }
 
-  export function search(query: string): Entry[] {
+  export function search(query: string, limit = 50): Entry[] {
     const q = query.toLowerCase()
-    const result: Entry[] = []
+    const scored: Array<{ entry: Entry; score: number }> = []
     for (const entry of entries.values()) {
-      const matches =
-        entry.name.toLowerCase().includes(q) ||
-        entry.description.toLowerCase().includes(q) ||
-        entry.tags.some((t) => t.toLowerCase().includes(q)) ||
-        (entry.owasp_id?.toLowerCase().includes(q) ?? false) ||
-        (entry.category?.toLowerCase().includes(q) ?? false)
-      if (matches) result.push(entry)
+      let score = 0
+      if (entry.name.toLowerCase() === q) score += 100
+      else if (entry.name.toLowerCase().startsWith(q)) score += 50
+      else if (entry.name.toLowerCase().includes(q)) score += 20
+      if (entry.tags.some((t) => t.toLowerCase() === q)) score += 40
+      else if (entry.tags.some((t) => t.toLowerCase().includes(q))) score += 15
+      if (entry.owasp_id?.toLowerCase().includes(q)) score += 30
+      if (entry.category?.toLowerCase().includes(q)) score += 10
+      if (entry.description.toLowerCase().includes(q)) score += 5
+      if (score > 0) scored.push({ entry, score })
     }
-    return result
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((s) => s.entry)
   }
 
-  export function byTechStack(stack: string[]): Entry[] {
+  export function byTechStack(stack: string[], limit = 50): Entry[] {
     const names = new Set<string>()
     for (const tech of stack) {
       const set = techIndex.get(tech.toLowerCase())
       if (set) for (const name of set) names.add(name)
     }
-    return Array.from(names)
+    const results = Array.from(names)
       .map((n) => entries.get(n)!)
       .filter(Boolean)
+    return results.slice(0, limit)
   }
 
-  export function byCWE(cweId: string): Entry[] {
+  export function byCWE(cweId: string, limit = 50): Entry[] {
     const set = cweIndex.get(cweId.toUpperCase())
     if (!set) return []
     return Array.from(set)
+      .slice(0, limit)
       .map((n) => entries.get(n)!)
       .filter(Boolean)
   }
 
-  export function byCategory(cat: string): Entry[] {
+  export function byCategory(cat: string, limit = 50): Entry[] {
     const set = categoryIndex.get(cat.toLowerCase())
     if (!set) return []
     return Array.from(set)
+      .slice(0, limit)
       .map((n) => entries.get(n)!)
       .filter(Boolean)
   }
 
-  export function byTag(tag: string): Entry[] {
+  export function byTag(tag: string, limit = 50): Entry[] {
     const set = tagIndex.get(tag.toLowerCase())
     if (!set) return []
     return Array.from(set)
+      .slice(0, limit)
       .map((n) => entries.get(n)!)
       .filter(Boolean)
   }
