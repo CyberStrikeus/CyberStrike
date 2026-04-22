@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BUG-12 — Same-label siblings (toolbar + form submit)</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    // Admin table page with the classic BUG-12 pattern:
+    //   - Toolbar "Add User" button (opens the form)
+    //   - Form with Full Name + Email + submit button also labeled "Add User"
+    //   - Three action buttons in a row with identical label (e.g. "Export")
+    //     to stress the N-duplicate case
+    document.getElementById('app').innerHTML = `
+      <section id="admin-page">
+        <header>
+          <h1>Users</h1>
+          <button type="button" id="toolbar-add">Add User</button>
+          <button type="button" class="btn-export">Export</button>
+          <button type="button" class="btn-export">Export</button>
+          <button type="button" class="btn-export">Export</button>
+        </header>
+
+        <form id="add-user-form">
+          <label for="new-name">Full Name</label>
+          <input type="text" id="new-name" name="name">
+          <label for="new-email">Email</label>
+          <input type="email" id="new-email" name="email">
+          <button type="submit" id="form-submit">Add User</button>
+        </form>
+      </section>
+    `;
+  </script>
+</body>
+</html>
