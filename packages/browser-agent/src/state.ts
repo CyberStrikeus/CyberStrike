@@ -1,4 +1,4 @@
-import type { RawElement, GlobalState, PageState, ActionRecord, ActionResult, DeferredAuthPage } from "./types.ts"
+import type { RawElement, GlobalState, IntelligenceState, PageState, ActionRecord, ActionResult, DeferredAuthPage } from "./types.ts"
 
 // ============================================================
 // Constants
@@ -11,18 +11,129 @@ const MAX_FAILED_ELEMENTS = 20
 // State factories
 // ============================================================
 
-export function createGlobalState(): GlobalState {
+export function createGlobalState(opts?: { outOfScope?: readonly string[] }): GlobalState {
   return {
     visitedPages: new Set(),
     capturedEndpoints: new Set(),
-    pageFingerprints: new Map(),
     authPhase: "anonymous",
     totalSteps: 0,
     pageQueue: [],
     deferredAuthPages: [],
     pendingReDiscovery: false,
     pathPatternCounts: new Map(),
+    outOfScope: opts?.outOfScope ?? [],
+    intelligenceByCredential: new Map(),
   }
+}
+
+// ============================================================
+// Credential-scoped intelligence access
+// ============================================================
+
+/**
+ * Sentinel credential ID for single-credential mode. Multi-credential mode
+ * uses the credential's declared label instead. Both share the same API,
+ * differing only by which IntelligenceState entry is addressed.
+ */
+export const SINGLE_CRED = "__single__"
+
+/**
+ * Get (or lazily create) the intelligence state for a credential.
+ * Callers pass SINGLE_CRED in single-cred mode, the credential id otherwise.
+ */
+export function getIntelligence(state: GlobalState, credId: string): IntelligenceState {
+  let intel = state.intelligenceByCredential.get(credId)
+  if (!intel) {
+    intel = {
+      emptyStateQueue: new Map(),
+      revisitCount: new Map(),
+      pageFingerprints: new Map(),
+    }
+    state.intelligenceByCredential.set(credId, intel)
+  }
+  return intel
+}
+
+// ============================================================
+// Journey Awareness — Empty-State Revisit (Aşama 13 §3.5.1)
+// ============================================================
+
+/** Maximum revisits per URL — combined with fingerprint skip, loops are impossible. */
+export const MAX_REVISITS_PER_URL = 2
+
+/** Wildcard keyword — URL drains on any successful mutation (legacy/fallback). */
+export const ANY_MUTATION = "*"
+
+/**
+ * Mark a URL for revisit after a mutation, scoped to a credential.
+ * Respects hard limit (MAX_REVISITS_PER_URL per credential).
+ * @returns true if queued, false if rejected by hard limit.
+ */
+export function markPageEmpty(
+  state: GlobalState,
+  credId: string,
+  url: string,
+  expectedMutation?: string,
+): boolean {
+  const intel = getIntelligence(state, credId)
+  const count = intel.revisitCount.get(url) ?? 0
+  if (count >= MAX_REVISITS_PER_URL) return false
+  intel.emptyStateQueue.set(url, expectedMutation ?? ANY_MUTATION)
+  return true
+}
+
+/**
+ * Drain empty-state URLs matching the given mutation keyword, for one credential.
+ *   - URLs marked with ANY_MUTATION ("*") drain on any mutation.
+ *   - URLs marked with a specific keyword drain ONLY on exact match.
+ *   - URLs with a specific keyword and no match remain pending (may be drained
+ *     by a later matching mutation, up to the hard limit).
+ *
+ * Other credentials' intelligence is untouched — cross-credential drain does
+ * not occur. This preserves each credential's journey independence.
+ */
+export function drainOnMutation(
+  state: GlobalState,
+  credId: string,
+  taskMutation?: string,
+): string[] {
+  const intel = getIntelligence(state, credId)
+  if (intel.emptyStateQueue.size === 0) return []
+  const drained: string[] = []
+  for (const [url, expected] of intel.emptyStateQueue) {
+    const matches =
+      expected === ANY_MUTATION ||
+      (taskMutation !== undefined && expected === taskMutation)
+    if (!matches) continue
+    state.pageQueue.unshift(url)
+    intel.revisitCount.set(url, (intel.revisitCount.get(url) ?? 0) + 1)
+    // Input-only fingerprint matches on button-only pages — clear so revisit explores. §3.5.1
+    intel.pageFingerprints.delete(url)
+    drained.push(url)
+  }
+  for (const url of drained) intel.emptyStateQueue.delete(url)
+  return drained
+}
+
+/** Legacy alias kept for existing call sites. Drains ONLY ANY_MUTATION URLs for the credential. */
+export function drainEmptyStateQueue(state: GlobalState, credId: string): string[] {
+  return drainOnMutation(state, credId, undefined)
+}
+
+/**
+ * Detect whether an ActionResult's httpRequests list contains any successful
+ * mutation (POST/PUT/PATCH/DELETE with 2xx status). Format: "METHOD /path [status]".
+ */
+export function hasSuccessfulMutation(httpRequests: string[] | undefined): boolean {
+  if (!httpRequests?.length) return false
+  for (const line of httpRequests) {
+    // e.g. "POST /api/Users/ [201]"
+    const match = line.match(/^(POST|PUT|PATCH|DELETE)\s+\S+\s+\[(\d+)\]/)
+    if (!match) continue
+    const status = parseInt(match[2]!, 10)
+    if (status >= 200 && status < 300) return true
+  }
+  return false
 }
 
 // ============================================================
@@ -197,6 +308,11 @@ export function normalizeUrl(url: string): string {
     if (hash && hash !== "#" && !hash.startsWith("#/")) {
       hash = "#/" + hash.slice(1)
     }
+    // BUG-5 / Aşama 13: unify root representations — "", "#", "#/" all mean
+    // the SPA root. Also strip trailing slash from hash routes ("#/cart/" →
+    // "#/cart"). Prevents duplicate queueing of the same logical page.
+    hash = hash.replace(/\/+$/, "")
+    if (hash === "#") hash = ""
     return u.origin + path + u.search + hash
   } catch {
     return url
@@ -223,6 +339,7 @@ interface PromptElement {
   placeholder?: string
   href?: string
   options?: string
+  constraints?: string
   enabled?: boolean
 }
 
@@ -236,6 +353,7 @@ function elementToPrompt(el: RawElement): PromptElement {
   if (el.value) result.value = el.value
   if (el.placeholder) result.placeholder = el.placeholder
   if (el.options) result.options = el.options
+  if (el.constraints) result.constraints = el.constraints
   if (!el.enabled) result.enabled = false  // only include when disabled (saves tokens)
   if (el.href) {
     // Show only path+hash, not full URL (saves tokens)
@@ -309,22 +427,45 @@ export interface PlannerSnapshot {
   viewportCenterBlocked: boolean
   totalPagesVisited: number
   elements: PromptElement[]
+  /** Aşama 13 §3.3.1 — out-of-scope labels. Omitted when empty (token saving). */
+  outOfScope?: string[]
+  /** Aşama 13 Mutation Matching — keywords currently awaiting a triggering mutation.
+   *  LLM should tag matching tasks with triggersMutation=<keyword> for targeted drain. */
+  pendingMutations?: string[]
 }
 
 /**
  * Build the minimal snapshot for the LLM planner.
  * Only includes what the LLM needs to decide what to do — no state tracking fields.
+ *
+ * @param outOfScope  Labels the planner must never plan tasks for (semantic match).
+ *                    Omitted from the snapshot when empty/undefined.
  */
 export function buildPlannerSnapshot(
   url: string,
   elements: RawElement[],
   globalState: GlobalState,
+  credId: string,
   viewportCenterBlocked: boolean,
 ): PlannerSnapshot {
-  return {
+  const snapshot: PlannerSnapshot = {
     url,
     viewportCenterBlocked,
     totalPagesVisited: globalState.visitedPages.size,
     elements: elements.map(elementToPrompt),
   }
+  if (globalState.outOfScope.length > 0) {
+    snapshot.outOfScope = [...globalState.outOfScope]
+  }
+  // Aşama 13 Mutation Matching — unique pending keywords for this credential
+  // (exclude ANY_MUTATION fallback). Each credential's own pending list is used.
+  const intel = getIntelligence(globalState, credId)
+  const pending = new Set<string>()
+  for (const kw of intel.emptyStateQueue.values()) {
+    if (kw !== ANY_MUTATION) pending.add(kw)
+  }
+  if (pending.size > 0) {
+    snapshot.pendingMutations = [...pending]
+  }
+  return snapshot
 }

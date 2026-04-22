@@ -10,8 +10,6 @@ const log = Log.create({ service: "browser-agent:scanner" })
 // ============================================================
 
 const MAX_ELEMENTS = 50
-const MAX_SCROLL_VIEWPORTS = 3
-const SCROLL_WAIT_MS = 300
 
 // ============================================================
 // Element collection — runs inside browser via page.evaluate
@@ -27,40 +25,35 @@ interface BrowserElement {
   type: string
   placeholder: string
   options: string        // comma-separated option values for <select>
+  constraints: string    // HTML5 validation meta (min/max/step/maxlength/pattern/type)
   selectorRole: string   // role=button[name="..."]
   selectorCSS: string    // fallback CSS selector
 }
 
 /**
- * Collect visible interactive elements from the current viewport.
+ * Collect all structurally-visible interactive elements from the page DOM.
+ * Scanner is viewport-agnostic: it observes DOM structure, not presentation.
+ * Viewport visibility is a presentation concern handled by Playwright at
+ * action-time (scrollIntoViewIfNeeded).
+ *
  * Runs entirely inside the browser context via page.evaluate.
  * Returns raw data — IDs are assigned by the caller.
  */
-async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]> {
+async function collectInteractiveElements(page: Page): Promise<BrowserElement[]> {
   return page.evaluate((): BrowserElement[] => {
-    // ---- isVisible: proven solution from v1 (Angular Material compatible) ----
-    function isVisible(el: Element): boolean {
+    // ---- isStructurallyVisible: DOM-level visibility (not viewport) ----
+    function isStructurallyVisible(el: Element): boolean {
       const rect = el.getBoundingClientRect()
-      if (rect.width === 0 || rect.height === 0) return false
-      if (rect.top >= window.innerHeight || rect.bottom <= 0) return false
-      if (rect.left >= window.innerWidth || rect.right <= 0) return false
+      // Zero-size elements (display:none collapsed, a11y-hidden off-screen tricks)
+      if (rect.width === 0 && rect.height === 0) return false
       const style = window.getComputedStyle(el)
       if (style.display === "none") return false
       if (style.visibility === "hidden") return false
       if (parseFloat(style.opacity) === 0) return false
-      // pointer-events:none on disabled buttons is normal (Angular Material, MUI, etc.)
-      // Skip this check for disabled elements — they are visually present, just not clickable
-      if (style.pointerEvents === "none" && !(el as HTMLButtonElement).disabled) return false
       if (el.getAttribute("aria-hidden") === "true") return false
-      // Disabled elements with pointer-events:none won't be returned by elementFromPoint
-      // — skip the overlay check for them (they are visually present, just not clickable yet)
-      if ((el as HTMLButtonElement).disabled) return true
-      // Overlay/backdrop check: topEl must be el, child of el, or ancestor of el
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const topEl = document.elementFromPoint(cx, cy)
-      if (!topEl) return false
-      if (topEl !== el && !el.contains(topEl) && !topEl.contains(el)) return false
+      // pointer-events:none on non-disabled interactives usually means overlay blocker
+      // (disabled buttons legitimately have pointer-events:none on Angular Material/MUI)
+      if (style.pointerEvents === "none" && !(el as HTMLButtonElement).disabled) return false
       return true
     }
 
@@ -87,6 +80,13 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       }
       const text = (el as HTMLElement).innerText?.trim()
       if (text && text.length < 80) return text
+      // BUG-4: inputs wrapped in <label>text</label> have no innerText of their own —
+      // the parent <label> textContent is the visible label. This matches capture.getLabel.
+      const parentLabel = (el as HTMLElement).closest?.("label")
+      if (parentLabel && !parentLabel.isSameNode(el)) {
+        const parentText = parentLabel.textContent?.trim()
+        if (parentText && parentText.length < 80) return parentText
+      }
       const placeholder = (el as HTMLInputElement).placeholder
       if (placeholder) return placeholder
       const name = el.getAttribute("name") || el.getAttribute("data-testid")
@@ -184,18 +184,58 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       "[onclick]",
     ].join(", ")
 
+    // Serialize HTML5 validation attributes into a compact string the LLM can
+    // interpret. Empty return = no constraints (saves tokens). Only meaningful
+    // attributes emitted — range types get min/max/step, text/textarea get
+    // maxlength, email/url/tel emit type hint, pattern forwarded when present.
+    function serializeConstraints(el: Element, type: string): string {
+      const tag = el.tagName.toLowerCase()
+      if (tag !== "input" && tag !== "textarea") return ""
+      const parts: string[] = []
+      const getAttr = (name: string) => el.getAttribute(name)?.trim() ?? ""
+
+      const min = getAttr("min")
+      const max = getAttr("max")
+      const step = getAttr("step")
+      const maxlength = getAttr("maxlength")
+      const minlength = getAttr("minlength")
+      const pattern = getAttr("pattern")
+
+      const isNumericRange = type === "range" || type === "number"
+      const isDateTime = type === "date" || type === "time" || type === "datetime-local" || type === "month" || type === "week"
+
+      if (isNumericRange || isDateTime) {
+        if (min) parts.push(`min:${min}`)
+        if (max) parts.push(`max:${max}`)
+        if (isNumericRange && step && step !== "any") parts.push(`step:${step}`)
+      }
+      if ((tag === "textarea" || ["text", "email", "url", "tel", "password", "search"].includes(type)) && maxlength) {
+        parts.push(`maxlength:${maxlength}`)
+      }
+      if (minlength) parts.push(`minlength:${minlength}`)
+      if (pattern) parts.push(`pattern:${pattern}`)
+      // Semantic type hint — lets LLM pick format-correct values for email/url/tel
+      if (["email", "url", "tel"].includes(type)) parts.push(`type:${type}`)
+
+      return parts.join(" ")
+    }
+
     const elements: BrowserElement[] = []
     const seenCount = new Map<string, number>()
     const seenRoleSelectors = new Map<string, number>()
 
     for (const el of document.querySelectorAll(INTERACTIVE_SELECTORS)) {
+      // Skip anything inside the injected CyberStrike telemetry panel — LLM
+      // must never see its own UI. Shadow DOM normally hides it, but this is
+      // a defensive guard for any panel DOM that leaks into the light tree.
+      if (el.closest("[data-cyberstrike-ui]")) continue
       const role = getRole(el)
       if (!role) continue
 
       // Sliders (mat-slider, [role=slider]) often have pointer-events:none or opacity:0
       // on the container — skip visibility check, use input[type=range] as selector
       const isSlider = role === "slider"
-      if (!isSlider && !isVisible(el)) continue
+      if (!isSlider && !isStructurallyVisible(el)) continue
 
       const label = getLabel(el)
       const tag = el.tagName.toLowerCase()
@@ -216,27 +256,39 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
             .join(", ")
         : ""
 
+      // HTML5 validation constraints for the LLM to honor
+      const constraints = serializeConstraints(el, type)
+
       // Dedup key includes innerText to differentiate same-label elements (e.g. product cards)
       const innerText = (el as HTMLElement).innerText?.trim().slice(0, 40) || ""
       const dedupKey = `${role}::${label}::${href}::${innerText}`
       const count = (seenCount.get(dedupKey) ?? 0) + 1
       seenCount.set(dedupKey, count)
-      if (count > 1) continue
+      // BUG-12: allow up to 3 true duplicates (same role+label+innerText) — aligns with
+      // collectElements cross-viewport dedup policy (§6.2). Disambiguate via index suffix
+      // so LLM and executor can address each instance separately (e.g. toolbar "Add User"
+      // vs form-submit "Add User"). innerText-differentiated elements still unique without
+      // suffix.
+      if (count > 3) continue
+      const disambiguatedLabel = count > 1 ? `${label} (${count})` : label
 
-      // Selector always uses raw aria-label (stable for Playwright)
+      // Selector always uses raw aria-label (stable for Playwright).
+      // For duplicates (count > 1), the role-based selector is ambiguous —
+      // Playwright's role=button[name=X] matches by accessible name, which is
+      // identical across siblings by definition. Force CSS fallback so the
+      // executor resolves to the exact DOM element.
       const ariaLabelRaw = (el.getAttribute("aria-label") || "").trim()
       const safeAriaLabel = ariaLabelRaw.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      const selectorRole = safeAriaLabel
-        ? `role=${role}[name="${safeAriaLabel}"]`
-        : `role=${role}`
-      // For sliders, use input[type=range] as CSS fallback (mat-slider wraps one)
-      const selectorCSS = isSlider ? "input[type=range]" : buildCSSSelector(el)
+      const selectorRole = count > 1
+        ? ""
+        : (safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`)
+      const selectorCSS = buildCSSSelector(el)
 
       // Track selectorRole usage — if duplicated, mark for CSS fallback
       const roleCount = (seenRoleSelectors.get(selectorRole) ?? 0) + 1
       seenRoleSelectors.set(selectorRole, roleCount)
 
-      elements.push({ tag, role, label, value, enabled, href, type, placeholder, options, selectorRole, selectorCSS })
+      elements.push({ tag, role, label: disambiguatedLabel, value, enabled, href, type, placeholder, options, constraints, selectorRole, selectorCSS })
     }
 
     // ---- Info elements (CAPTCHA, hints, contextual labels) ----
@@ -248,10 +300,11 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
     const interactiveLabels = new Set(elements.map(e => e.label.toLowerCase()))
 
     for (const el of document.querySelectorAll<HTMLElement>("[aria-label]")) {
+      if (el.closest("[data-cyberstrike-ui]")) continue  // defensive: never leak panel UI into info elements
       const tag = el.tagName.toLowerCase()
       const role = (el.getAttribute("role") || "").toLowerCase()
       if (INTERACTIVE_TAGS.has(tag) || INTERACTIVE_ROLES.has(role)) continue
-      if (!isVisible(el)) continue
+      if (!isStructurallyVisible(el)) continue
       const ariaLabel = el.getAttribute("aria-label")?.trim()
       if (!ariaLabel) continue
       // Skip if same label already captured as interactive element (e.g. slider child sharing parent's aria-label)
@@ -265,7 +318,7 @@ async function collectElementsFromViewport(page: Page): Promise<BrowserElement[]
       elements.push({
         tag, role: "info", label: ariaLabel, value: text,
         enabled: false, href: "", type: "", placeholder: "", options: "",
-        selectorRole: "", selectorCSS: "",
+        constraints: "", selectorRole: "", selectorCSS: "",
       })
     }
 
@@ -296,6 +349,7 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
     type: el.type,
     placeholder: el.placeholder,
     options: el.options,
+    constraints: el.constraints,
     // Prefer role+name selector (unique); bare role without name is ambiguous — use CSS instead
     selector: el.selectorRole.includes("[name=") ? el.selectorRole : (el.selectorCSS || el.selectorRole),
   }))
@@ -306,58 +360,20 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
 // ============================================================
 
 /**
- * Scroll through the page, collect elements from each viewport, dedup, truncate to MAX_ELEMENTS.
- * Returns complete element list with assigned IDs.
- */
-export async function scrollAndCollect(page: Page): Promise<RawElement[]> {
-  const allElements: RawElement[] = []
-  const seenCount = new Map<string, number>()
-
-  function addNew(elements: RawElement[]) {
-    for (const el of elements) {
-      const key = `${el.role}::${el.label}::${el.href}`
-      const count = (seenCount.get(key) ?? 0) + 1
-      seenCount.set(key, count)
-      if (count > 3) continue // allow up to 3 duplicates (e.g. product cards)
-      allElements.push(el)
-    }
-  }
-
-  // Collect from initial viewport
-  const initial = await collectElementsFromViewport(page)
-  addNew(assignIds(initial, 1))
-
-  // Scroll down and collect more
-  for (let i = 0; i < MAX_SCROLL_VIEWPORTS; i++) {
-    const scrolledDown = await page.evaluate(() => {
-      const before = window.scrollY
-      window.scrollBy(0, window.innerHeight)
-      return window.scrollY !== before
-    })
-    if (!scrolledDown) break // reached bottom
-    await page.waitForTimeout(SCROLL_WAIT_MS)
-
-    const more = await collectElementsFromViewport(page)
-    addNew(assignIds(more, allElements.length + 1))
-  }
-
-  // Scroll back to top
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await page.waitForTimeout(200)
-
-  // Truncate and re-assign sequential IDs
-  const truncated = allElements.slice(0, MAX_ELEMENTS)
-  return truncated.map((el, i) => ({ ...el, id: `E${i + 1}` }))
-}
-
-/**
- * Quick collect from current viewport only (no scroll).
- * Used for re-scanning after an action within the same page.
+ * Collect all structurally-visible interactive elements from the page DOM.
+ *
+ * Single-pass, viewport-agnostic: the scanner observes DOM structure, not
+ * presentation. Visibility is DOM-level (display/visibility/opacity/aria-hidden);
+ * viewport position is irrelevant. Playwright handles scroll-into-view at
+ * action-time, so the executor resolves any element regardless of fold position.
+ *
+ * This avoids the pathologies of scroll-and-collect: duplicate emission across
+ * viewports, per-viewport suffix inconsistency, budget waste on ghost copies,
+ * and side effects from scroll (lazy-load triggers, IntersectionObserver).
  */
 export async function collectElements(page: Page): Promise<RawElement[]> {
-  const browserElements = await collectElementsFromViewport(page)
-  const elements = assignIds(browserElements, 1)
-  return elements.slice(0, MAX_ELEMENTS)
+  const browserElements = await collectInteractiveElements(page)
+  return assignIds(browserElements, 1).slice(0, MAX_ELEMENTS)
 }
 
 /**

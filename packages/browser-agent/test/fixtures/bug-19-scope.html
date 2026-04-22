@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BUG-19 SPA fixture — scope resolution (form / dialog / table-row / form-less)</title>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // SPA mount — 4 scope scenarios rendered together, so one snapshot call can
+    // exercise all branches by picking different triggers:
+    //   1. Contact form  (submit button inside <form>)  → form scope
+    //   2. Feedback form (separate sibling <form>)       → form scope (must NOT see contact fields)
+    //   3. Modal dialog  (role=dialog, input without form inside) → dialog scope
+    //   4. Users table   (delete button in <tr>, no form ancestor)  → empty fields
+    //   5. Form-less card (div-wrapped input + onClick button, no form, no dialog) → empty (known limitation)
+    function render() {
+      document.getElementById("app").innerHTML = `
+
+        <!-- Scenario 1: Contact form -->
+        <form id="contact-form" novalidate>
+          <label>Name  <input type="text" name="name" value="Alice"></label>
+          <label>Email <input type="email" name="email" value="a@x.com"></label>
+          <label>Message <textarea name="message">hello</textarea></label>
+          <button type="submit" data-test="contact-submit">Send</button>
+        </form>
+
+        <!-- Scenario 2: Feedback form (sibling — should be isolated from contact) -->
+        <form id="feedback-form" novalidate>
+          <label>Rating   <input type="number" name="rating" value="5"></label>
+          <label>Comment  <textarea name="comment">nice</textarea></label>
+          <button type="submit" data-test="feedback-submit">Submit Feedback</button>
+        </form>
+
+        <!-- Scenario 3: Modal dialog, no <form> inside -->
+        <div role="dialog" aria-modal="true" aria-label="Confirm Delete">
+          <p>Are you sure?</p>
+          <label>Reason <input type="text" name="reason" value="cleanup"></label>
+          <button type="button" data-test="modal-confirm">Confirm</button>
+          <button type="button" data-test="modal-cancel">Cancel</button>
+        </div>
+
+        <!-- Scenario 4: Users table — delete button in row, NO form ancestor -->
+        <table>
+          <thead><tr><th>Name</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Bob</td>
+              <td><button type="button" data-test="delete-bob">Delete</button></td>
+            </tr>
+            <tr>
+              <td>Carol</td>
+              <td><button type="button" data-test="delete-carol">Delete</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Scenario 5: Form-less SPA card (known limitation — no <form>, no dialog) -->
+        <div class="login-card">
+          <label>Username <input type="text" name="username" value="user1"></label>
+          <label>Password <input type="password" name="password" value="p"></label>
+          <button type="button" data-test="formless-login">Log In</button>
+        </div>
+      `;
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", render);
+    } else {
+      render();
+    }
+  </script>
+</body>
+</html>

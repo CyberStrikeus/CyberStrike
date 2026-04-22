@@ -6,7 +6,7 @@ import { createOpenAI } from "@ai-sdk/openai"
 import { readFileSync } from "fs"
 import { join, dirname } from "path"
 import { fileURLToPath } from "url"
-import type { PagePlan, PageTask } from "./types.ts"
+import type { PagePlan, PageTask, PageStateKind, RevisitTrigger } from "./types.ts"
 import type { PlannerSnapshot } from "./state.ts"
 
 const log = Log.create({ service: "browser-agent:navigator" })
@@ -187,6 +187,9 @@ function validatePlan(raw: Record<string, unknown>): PagePlan {
   const tasks: PageTask[] = []
   for (const t of raw["tasks"] as unknown[]) {
     const task = t as Record<string, unknown>
+    const triggersMutation = typeof task["triggersMutation"] === "string" && task["triggersMutation"].length > 0
+      ? (task["triggersMutation"] as string)
+      : undefined
     if (task["type"] === "form") {
       const fields = Array.isArray(task["fields"])
         ? (task["fields"] as Record<string, unknown>[]).map(f => ({
@@ -201,16 +204,72 @@ function validatePlan(raw: Record<string, unknown>): PagePlan {
           type: "form",
           fields,
           submit: { role: String(sub["role"] ?? "button"), label: String(sub["label"] ?? "") },
+          triggersMutation,
         })
       }
     } else if (task["type"] === "click") {
       const role = String(task["role"] ?? "")
       const label = String(task["label"] ?? "")
       if (role && label) {
-        tasks.push({ type: "click", role, label, reason: task["reason"] as string | undefined })
+        tasks.push({ type: "click", role, label, reason: task["reason"] as string | undefined, triggersMutation })
       }
     }
   }
 
-  return { tasks }
+  return { tasks, ...validateIntelligence(raw) }
+}
+
+/**
+ * Validate PagePlan v2 Intelligence fields (Aşama 13 §3.3.1):
+ * pageState, revisitAfter, revisitReason.
+ * All optional — missing/invalid fields fall to safe defaults.
+ * revisitReason is REQUIRED when pageState === "empty" (Zod-style refinement).
+ * Exported for unit testing — primary callers use validatePlan.
+ */
+export function validateIntelligence(raw: Record<string, unknown>): {
+  pageState?: PageStateKind
+  revisitAfter?: RevisitTrigger | null
+  revisitReason?: string
+  revisitOn?: string
+} {
+  const out: {
+    pageState?: PageStateKind
+    revisitAfter?: RevisitTrigger | null
+    revisitReason?: string
+    revisitOn?: string
+  } = {}
+
+  const ps = raw["pageState"]
+  if (ps === "populated" || ps === "empty" || ps === "unknown") {
+    out.pageState = ps
+  }
+
+  const ra = raw["revisitAfter"]
+  if (ra === "any-mutation") {
+    out.revisitAfter = "any-mutation"
+  } else if (ra === null) {
+    out.revisitAfter = null
+  }
+
+  const reason = raw["revisitReason"]
+  if (typeof reason === "string" && reason.length > 0) {
+    out.revisitReason = reason
+  }
+
+  const on = raw["revisitOn"]
+  if (typeof on === "string" && on.length > 0) {
+    out.revisitOn = on
+  }
+
+  // Refinement: if pageState="empty" but revisitReason missing, log and
+  // downgrade to "unknown" (safe default). This enforces §3.3.1 contract
+  // without crashing on LLM drift.
+  if (out.pageState === "empty" && !out.revisitReason) {
+    log.warn("pageState='empty' without revisitReason — downgrading to 'unknown'")
+    out.pageState = "unknown"
+    out.revisitAfter = null
+    out.revisitOn = undefined
+  }
+
+  return out
 }

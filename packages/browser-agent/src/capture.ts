@@ -1,4 +1,4 @@
-import type { Page, Request as PWRequest } from "playwright"
+import type { Page, Locator, ElementHandle, Request as PWRequest } from "playwright"
 import type { UIField, UIContext } from "./types.ts"
 
 // ============================================================
@@ -6,17 +6,38 @@ import type { UIField, UIContext } from "./types.ts"
 // ============================================================
 
 /**
- * Snapshot interactive form fields scoped to a specific form.
- * Called right before a form submission so we know the exact UI state at request time.
+ * Snapshot form fields scoped to the trigger element's enclosing form/dialog.
+ * Called right before a form-submitting action so the snapshot reflects pre-action UI state.
  *
- * @param formSelector  CSS selector for the form (e.g. "form#login", "body").
- *                      When "body", falls back to full-page scan but still filters noise.
+ * @param trigger  Playwright Locator of the element being clicked. When null, falls back
+ *                 to a full-page scan (legacy / debug path). When non-null, scope resolution
+ *                 follows Kural 3: form → dialog → empty fields.
+ * @param componentPath  Human-readable path used in returned UIContext (cosmetic).
  */
-export async function snapshotPageUI(page: Page, formSelector: string, componentPath = ""): Promise<UIContext> {
+export async function snapshotPageUI(
+  page: Page,
+  trigger: Locator | null,
+  componentPath = "",
+): Promise<UIContext> {
   const pageUrl = page.url()
   const pageTitle = await page.title()
 
-  const fields = await page.evaluate((formSel: string): UIField[] => {
+  // Resolve the trigger to a real DOM handle. If the locator can't find an element
+  // (detached, stale), we fall through to null — the conservative body-scope fallback.
+  let triggerHandle: ElementHandle | null = null
+  if (trigger) {
+    try {
+      triggerHandle = await trigger.elementHandle({ timeout: 500 })
+    } catch {
+      triggerHandle = null
+    }
+  }
+
+  const fields = await page.evaluate((triggerEl: Element | null): UIField[] => {
+    // Kural 3: modal/dialog container selectors (ARIA-first, widely-used frameworks only)
+    const DIALOG_SEL =
+      "[role=dialog], [role=alertdialog], [aria-modal='true'], mat-dialog-container, .cdk-overlay-pane"
+
     const results: UIField[] = []
 
     function getLabel(el: HTMLElement): string {
@@ -38,32 +59,106 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
       return (el as HTMLInputElement).name || el.getAttribute("data-name") || ""
     }
 
+    // Kural 4 (BUG-17): compute WHY a field is hidden. Walks ancestors because
+    // display:none and opacity:0 don't inherit via computed style of the child.
+    // Returns the first hiding reason encountered on el or any ancestor.
+    function computeHidden(el: HTMLElement, type: string):
+      { isHidden: boolean; hiddenReason?: "type=hidden" | "display:none" | "visibility:hidden" | "opacity:0" } {
+      if (type === "hidden") return { isHidden: true, hiddenReason: "type=hidden" }
+      let cur: Element | null = el
+      while (cur && cur !== document.documentElement) {
+        const style = window.getComputedStyle(cur)
+        if (style.display === "none") return { isHidden: true, hiddenReason: "display:none" }
+        if (style.visibility === "hidden") return { isHidden: true, hiddenReason: "visibility:hidden" }
+        if (parseFloat(style.opacity) === 0) return { isHidden: true, hiddenReason: "opacity:0" }
+        cur = cur.parentElement
+      }
+      return { isHidden: false }
+    }
+
+    // Back-compat alias for the radio collapse block which only needs a boolean signal.
     function isHiddenCSS(el: HTMLElement): boolean {
-      const style = window.getComputedStyle(el)
-      return style.display === "none" || style.visibility === "hidden" || style.opacity === "0"
+      return computeHidden(el, "").isHidden
     }
 
     // Noise patterns — Angular CDK / Material internals that are never real form fields
     const NOISE_ID_PREFIX = /^(cdk-|mat-)/i
 
-    // Scope to the form element when possible, fall back to full document
-    const root: ParentNode =
-      formSel && formSel !== "body"
-        ? (document.querySelector(formSel) ?? document)
-        : document
+    // Kural 3: resolve scope from trigger element.
+    //   1. closest("form")           → form scope
+    //   2. closest(dialog selectors) → dialog scope
+    //   3. trigger present, neither  → return [] (outside form context)
+    //   4. no trigger                → document (legacy body scan)
+    let root: ParentNode | null
+    if (triggerEl) {
+      root = triggerEl.closest("form") ?? triggerEl.closest(DIALOG_SEL)
+      if (!root) return []  // action outside any form/dialog — no meaningful ui_context
+    } else {
+      root = document
+    }
 
     // --- Form inputs ---
     const inputs = root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
       "input, textarea, select"
     )
 
+    // Radio inputs are collected into groups (by name) and emitted as one field each — see Kural 1.
+    type RadioGroup = {
+      name: string
+      label: string
+      checkedValue: string
+      allValues: string[]
+      anyRequired: boolean
+      allDisabled: boolean
+      anyCSSHidden: boolean
+    }
+    const radioGroups = new Map<string, RadioGroup>()
+
     for (const el of inputs) {
       const tagName = el.tagName.toLowerCase()
       const type = tagName === "input" ? (el as HTMLInputElement).type.toLowerCase() : tagName
-      const name = el.getAttribute("name") || el.getAttribute("id") || el.getAttribute("data-name") || ""
+      // Identifier fallback chain — modern SPAs often omit name/id and rely on
+      // test-hook attributes (data-testid/data-test/data-cy) or accessibility
+      // labels. Ordered by reliability: form-standard → DOM unique → custom
+      // semantic → test infrastructure → accessibility.
+      const name =
+           el.getAttribute("name")
+        || el.getAttribute("id")
+        || el.getAttribute("data-name")
+        || el.getAttribute("data-testid")
+        || el.getAttribute("data-test")
+        || el.getAttribute("data-cy")
+        || el.getAttribute("aria-label")
+        || ""
 
       // Skip Angular/CDK internal inputs that have no user-meaningful name
       if (NOISE_ID_PREFIX.test(name) && el.disabled) continue
+
+      // Kural 1: collapse radios by name — accumulate here, emit after the loop
+      if (type === "radio") {
+        const radioName = el.getAttribute("name") || ""
+        if (!radioName) continue // nameless radio can't be grouped; skip (rare, handled by Kural 5 later)
+        const input = el as HTMLInputElement
+        const existing = radioGroups.get(radioName)
+        if (existing) {
+          existing.allValues.push(input.value)
+          if (input.checked) existing.checkedValue = input.value
+          if (input.required) existing.anyRequired = true
+          if (!input.disabled) existing.allDisabled = false
+          if (isHiddenCSS(input)) existing.anyCSSHidden = true
+        } else {
+          radioGroups.set(radioName, {
+            name: radioName,
+            label: getLabel(input),
+            checkedValue: input.checked ? input.value : "",
+            allValues: [input.value],
+            anyRequired: input.required,
+            allDisabled: input.disabled,
+            anyCSSHidden: isHiddenCSS(input),
+          })
+        }
+        continue
+      }
 
       const value = type === "checkbox"
         ? String((el as HTMLInputElement).checked)
@@ -71,7 +166,7 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
           ? (el as HTMLSelectElement).value
           : (el as HTMLInputElement | HTMLTextAreaElement).value ?? ""
 
-      const isHidden = type === "hidden" || isHiddenCSS(el as HTMLElement)
+      const hidden = computeHidden(el as HTMLElement, type)
 
       results.push({
         name,
@@ -80,7 +175,8 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
         type,
         isReadOnly: (el as HTMLInputElement).readOnly ?? false,
         isDisabled: el.disabled,
-        isHidden,
+        isHidden: hidden.isHidden,
+        hiddenReason: hidden.hiddenReason,
         isDisplayOnly: false,
         validation: {
           min: (el as HTMLInputElement).min || undefined,
@@ -91,6 +187,24 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
           pattern: (el as HTMLInputElement).pattern || undefined,
           required: el.required || false,
         },
+      })
+    }
+
+    // Emit one UIField per radio group (Kural 1). options = first 3 + ", ..." if >3.
+    for (const group of radioGroups.values()) {
+      const first3 = group.allValues.slice(0, 3).join(", ")
+      const options = group.allValues.length > 3 ? `${first3}, ...` : first3
+      results.push({
+        name: group.name,
+        label: group.label,
+        value: group.checkedValue,
+        type: "radio",
+        options,
+        isReadOnly: false,
+        isDisabled: group.allDisabled,
+        isHidden: group.anyCSSHidden,
+        isDisplayOnly: false,
+        validation: { required: group.anyRequired },
       })
     }
 
@@ -105,6 +219,12 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
       const els = root.querySelectorAll<HTMLElement>(sel)
       for (const el of els) {
         if (el.querySelector("input, select, textarea, button")) continue
+
+        // Kural 2: listbox/menu/combobox entries are NOT form fields —
+        // they are option pickers. Skip both the entries themselves and
+        // any descendant of a listbox/menu/combobox container.
+        if (el.matches("[role=option], [role=menuitem], [role=tab]")) continue
+        if (el.closest("[role=listbox], [role=menu], [role=combobox]")) continue
 
         const name =
           el.getAttribute("data-field") ||
@@ -133,7 +253,12 @@ export async function snapshotPageUI(page: Page, formSelector: string, component
     }
 
     return results
-  }, formSelector) as UIField[]
+  }, triggerHandle) as UIField[]
+
+  // Release the handle after evaluate — avoid leaks if caller keeps page alive
+  if (triggerHandle) {
+    await triggerHandle.dispose().catch(() => {})
+  }
 
   // Best-guess form name from the page
   const formName = await page.evaluate(() => {
