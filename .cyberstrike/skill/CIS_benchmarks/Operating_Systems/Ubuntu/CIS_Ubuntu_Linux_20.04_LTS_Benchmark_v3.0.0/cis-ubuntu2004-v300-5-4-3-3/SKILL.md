@@ -44,7 +44,7 @@ Setting the default umask:
 - `System Wide Shell Configuration File`:
   - `/etc/profile` - used to set system wide environmental variables on users shells. The variables are sometimes the same ones that are in the `.bash_profile`, however this file is used to set an initial PATH or PS1 for all shell users of the system. is only executed for interactive login shells, or shells executed with the --login parameter.
   - `/etc/profile.d` - `/etc/profile` will execute the scripts within `/etc/profile.d/*.sh`. It is recommended to place your configuration in a shell script within `/etc/profile.d` to set your own system wide environmental variables.
-  - `/etc/bashrc` - System wide version of `.bashrc`. In Fedora derived distributions, `etc/bashrc` also invokes /etc/profile.d/*.sh if non-login shell, but redirects output to `/dev/null` if non-interactive. Is only executed for interactive shells or if `BASH_ENV` is set to `/etc/bashrc`.
+  - `/etc/bashrc` - System wide version of `.bashrc`. In Fedora derived distributions, `etc/bashrc` also invokes /etc/profile.d/\*.sh if non-login shell, but redirects output to `/dev/null` if non-interactive. Is only executed for interactive shells or if `BASH_ENV` is set to `/etc/bashrc`.
 
 User Shell Configuration Files:
 

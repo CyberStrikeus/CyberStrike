@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS 2.5.3 — Ensure hidden file serving is disabled
 
 ## Profile Applicability
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 Hidden files and directories (starting with a dot, e.g., `.git`, `.env`) often contain sensitive metadata, version control history, or environment configurations. Serving these files should be globally disabled.
 
 ## Rationale
+
 Version control systems (Git, SVN) and editors create hidden files that may unintentionally be deployed to the web root. If accessible, files like `.git/config` or `.env` can leak database credentials, source code, and infrastructure details, leading to full system compromise. Blocking requests to any path starting with a dot (`.`) neutralizes this risk.
 
 ## Impact
+
 Blocking all dot-files will break Let's Encrypt / Certbot validation (`.well-known/acme-challenge`) unless explicitly allowed. Ensure the exception rule is placed **before** the deny rule or is more specific.
 
 ## Audit Procedure
@@ -58,6 +62,7 @@ curl -k -I https://127.0.0.1/.git/HEAD
 - **FAIL:** Returns `200 OK` (if file exists) or the content of the file.
 
 ## Remediation
+
 To restrict access to hidden files, add the configuration block below inside each server block.
 
 **Option A: Direct Configuration**
@@ -103,27 +108,32 @@ server {
 ```
 
 ## Default Value
+
 This protection is not set by default. NGINX will serve any hidden file if it exists in the web root.
 
 ## References
+
 1. https://nginx.org/en/docs/http/ngx_http_core_module.html#location
 2. https://nginx.org/en/docs/http/ngx_http_access_module.html#deny
 3. https://capec.mitre.org/data/definitions/139.html
 4. https://cwe.mitre.org/data/definitions/538.html
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 16.1 Establish and Maintain a Secure Application Development Process | N | Y | Y |
-| v7 | 18.1 Establish Secure Coding Practices | N | Y | Y |
+
+| Controls Version | Control                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.1 Establish and Maintain a Secure Application Development Process | N    | Y    | Y    |
+| v7               | 18.1 Establish Secure Coding Practices                               | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Reconnaissance | T1592 - Gather Victim Host Information |
-| Collection | T1213 - Data from Information Repositories |
+
+| Tactic         | Technique                                  |
+| -------------- | ------------------------------------------ |
+| Reconnaissance | T1592 - Gather Victim Host Information     |
+| Collection     | T1213 - Data from Information Repositories |
 
 ## Profile
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

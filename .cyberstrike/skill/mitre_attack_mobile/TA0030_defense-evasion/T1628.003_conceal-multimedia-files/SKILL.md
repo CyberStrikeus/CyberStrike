@@ -40,9 +40,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may attempt to hide multimedia files from the user. By doing so, adversaries may conceal captured files, such as pictures, videos and/or screenshots, then later exfiltrate those files. 
+Adversaries may attempt to hide multimedia files from the user. By doing so, adversaries may conceal captured files, such as pictures, videos and/or screenshots, then later exfiltrate those files.
 
-Specific to Android devices, if the `.nomedia` file is present in a folder, multimedia files in that folder will not be visible to the user in the Gallery application. Additionally, other applications are asked not to scan the folder with the `.nomedia` file, effectively making the folder appear invisible to the user. 
+Specific to Android devices, if the `.nomedia` file is present in a folder, multimedia files in that folder will not be visible to the user in the Gallery application. Additionally, other applications are asked not to scan the folder with the `.nomedia` file, effectively making the folder appear invisible to the user.
 
 This technique is often used by stalkerware and spyware applications.
 
@@ -72,26 +72,24 @@ Review whether mitigations for T1628.003 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1059 Do Not Mitigate
-Conceal Multimedia Files likely should not be mitigated with preventative controls because the `.nomedia` file may be used legitimately.
 
+Conceal Multimedia Files likely should not be mitigated with preventative controls because the `.nomedia` file may be used legitimately.
 
 ## Detection
 
 ### Detection of Conceal Multimedia Files
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Conceal Multimedia Files technique applicable | Low | Defense Evasion |
+| Finding                                       | Severity | Impact          |
+| --------------------------------------------- | -------- | --------------- |
+| Conceal Multimedia Files technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

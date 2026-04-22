@@ -12,15 +12,13 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - IR-7
   - IR-9
   - PM-22
   - SI-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   IR-7: "Chain with IR-7 for comprehensive security coverage"
   IR-9: "Chain with IR-9 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +84,16 @@ Complaints, concerns, and questions from individuals can serve as valuable sourc
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-26 Complaint Management not implemented | Medium | Program Management |
-| PM-26 partially implemented | Low | Incomplete Program Management |
+| Finding                                    | Severity | Impact                        |
+| ------------------------------------------ | -------- | ----------------------------- |
+| PM-26 Complaint Management not implemented | Medium   | Program Management            |
+| PM-26 partially implemented                | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

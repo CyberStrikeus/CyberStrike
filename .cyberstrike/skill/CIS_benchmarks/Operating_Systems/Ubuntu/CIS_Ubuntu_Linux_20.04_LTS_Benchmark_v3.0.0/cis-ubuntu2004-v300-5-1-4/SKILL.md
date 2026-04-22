@@ -57,8 +57,9 @@ denygroups <grouplist>
 ```
 
 Review the list(s) to ensure included users and/or groups follow local site policy.
+
 - IF - `Match` set statements are used in your environment, specify the connection parameters to use for the `-T` extended test mode and run the audit to verify the setting is not incorrectly configured in a match block.
-Example additional audit needed for a match block for the user *sshuser*:
+  Example additional audit needed for a match block for the user _sshuser_:
 
 ```bash
 # sshd -T -C user=sshuser | grep -Pi -- '^\h*(allow|deny)(users|groups)\h+\H+'
@@ -83,6 +84,7 @@ AllowGroups <grouplist>
 ```
 
 Note:
+
 - First occurrence of a option takes precedence, `Match` set statements withstanding. If `Include` locations are enabled, used, and order of precedence is understood in your environment, the entry may be created in a `.conf` file in a `Include` directory.
 - Be advised that these options are "ANDed" together. If both `AllowUsers` and `AllowGroups` are set, connections will be limited to the list of users that are also a member of an allowed group. It is recommended that only one be set for clarity and ease of administration.
 - It is easier to manage an allow list than a deny list. In a deny list, you could potentially add a user or group and forget to add it to the deny list.

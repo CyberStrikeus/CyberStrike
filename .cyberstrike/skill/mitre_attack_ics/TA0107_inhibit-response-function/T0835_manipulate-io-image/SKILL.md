@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may manipulate the I/O image of PLCs through various means to prevent them from functioning as expected. Methods of I/O image manipulation may include overriding the I/O table via direct memory manipulation or using the override function used for testing PLC programs. During the scan cycle, a PLC reads the status of all inputs and stores them in an image table. The image table is the PLCs internal storage location where values of inputs/outputs for one scan are stored while it executes the user program. After the PLC has solved the entire logic program, it updates the output image table. The contents of this output image table are written to the corresponding output points in I/O Modules. 
+Adversaries may manipulate the I/O image of PLCs through various means to prevent them from functioning as expected. Methods of I/O image manipulation may include overriding the I/O table via direct memory manipulation or using the override function used for testing PLC programs. During the scan cycle, a PLC reads the status of all inputs and stores them in an image table. The image table is the PLCs internal storage location where values of inputs/outputs for one scan are stored while it executes the user program. After the PLC has solved the entire logic program, it updates the output image table. The contents of this output image table are written to the corresponding output points in I/O Modules.
 
 One of the unique characteristics of PLCs is their ability to override the status of a physical discrete input or to override the logic driving a physical output coil and force the output to a desired status.
 
@@ -61,26 +59,24 @@ Review whether mitigations for T0835 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0816 Mitigation Limited or Not Effective
-This technique may not be effectively mitigated against, consider controls for assets and processes that lead to the use of this technique.
 
+This technique may not be effectively mitigated against, consider controls for assets and processes that lead to the use of this technique.
 
 ## Detection
 
 ### Detection of Manipulate I/O Image
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Manipulate I/O Image technique applicable | High | Inhibit Response Function |
+| Finding                                   | Severity | Impact                    |
+| ----------------------------------------- | -------- | ------------------------- |
+| Manipulate I/O Image technique applicable | High     | Inhibit Response Function |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

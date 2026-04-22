@@ -55,10 +55,10 @@ Not Applicable
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 16.5 Use Up-to-Date and Trusted Third-Party Software Components<br>Use up-to-date and trusted third-party software components. When possible, choose established and proven software components that are adequately secure. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use. | | ● | ● |
-| v7 | 3 Continuous Vulnerability Management<br>Continuous Vulnerability Management | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.5 Use Up-to-Date and Trusted Third-Party Software Components<br>Use up-to-date and trusted third-party software components. When possible, choose established and proven software components that are adequately secure. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use. |      | ●    | ●    |
+| v7               | 3 Continuous Vulnerability Management<br>Continuous Vulnerability Management                                                                                                                                                                                                                                                       |      |      |      |
 
 ## Assessment Status
 

@@ -82,6 +82,7 @@ kubectl get secrets --all-namespaces
 ```
 
 **Dependencies:**
+
 - kubectl must be installed
 
 ### Atomic Test 2: ListSecrets
@@ -95,8 +96,8 @@ kubectl get secrets -n #{namespace}
 ```
 
 **Dependencies:**
-- kubectl must be installed
 
+- kubectl must be installed
 
 ### Manual Testing
 
@@ -111,35 +112,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Use the principle of least privilege for privileged accounts such as the service account in Kubernetes. For example, if a pod is not required to access the Kubernetes API, consider disabling the service account altogether.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit communications with the container service to managed and secured channels, such as local Unix sockets or remote access via SSH. Require secure port access to communicate with the APIs over TLS by disabling unauthenticated access to the Docker API and Kubernetes API Server. In Kubernetes clusters deployed in cloud environments, use native cloud platform features to restrict the IP ranges that are permitted to access to API server. Where possible, consider enabling just-in-time (JIT) access to the Kubernetes API to place additional restrictions on access.
 
 ### M1030 Network Segmentation
+
 Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls.
 
 ### M1018 User Account Management
-Enforce authentication and role-based access control on the container API to restrict users to the least privileges required. When using Kubernetes, avoid giving users wildcard permissions or adding users to the `system:masters` group, and use `RoleBindings` rather than `ClusterRoleBindings` to limit user privileges to specific namespaces.
 
+Enforce authentication and role-based access control on the container API to restrict users to the least privileges required. When using Kubernetes, avoid giving users wildcard permissions or adding users to the `system:masters` group, and use `RoleBindings` rather than `ClusterRoleBindings` to limit user privileges to specific namespaces.
 
 ## Detection
 
 ### Detect Abuse of Container APIs for Credential Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Container API technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| Container API technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

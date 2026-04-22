@@ -14,8 +14,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - CP-7
@@ -27,8 +26,7 @@ chains_with:
   - PE-3
   - SC-36
   - SI-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-7: "Chain with CP-7 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Alternate storage sites are geographically distinct from primary storage sites a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-6 Alternate Storage Site not implemented | Medium | Contingency Planning |
-| CP-6 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                     | Severity | Impact                          |
+| ------------------------------------------- | -------- | ------------------------------- |
+| CP-6 Alternate Storage Site not implemented | Medium   | Contingency Planning            |
+| CP-6 partially implemented                  | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

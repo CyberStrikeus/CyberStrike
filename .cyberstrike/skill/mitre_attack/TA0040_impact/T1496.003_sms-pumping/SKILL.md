@@ -73,26 +73,24 @@ Threat actors often use publicly available web forms, such as one-time password 
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
-Consider implementing CAPTCHA protection on forms that send messages via SMS.
 
+Consider implementing CAPTCHA protection on forms that send messages via SMS.
 
 ## Detection
 
 ### Detection Strategy for Resource Hijacking: SMS Pumping via SaaS Application Logs
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SMS Pumping technique applicable | Low | Impact |
+| Finding                          | Severity | Impact |
+| -------------------------------- | -------- | ------ |
+| SMS Pumping technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

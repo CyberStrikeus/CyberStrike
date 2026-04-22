@@ -23,10 +23,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -77,7 +75,7 @@ reg add HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Adv
 
 ### Atomic Test 2: Modify Registry of Local Machine - cmd
 
-Modify the Local Machine registry RUN key to change Windows Defender executable that should be ran on startup.  This should only be possible when
+Modify the Local Machine registry RUN key to change Windows Defender executable that should be ran on startup. This should only be possible when
 CMD is ran as Administrative rights. Upon execution, the message "The operation completed successfully."
 will be displayed. Additionally, open Registry Editor to view the modified entry in HKLM\Software\Microsoft\Windows\CurrentVersion\Run.
 
@@ -132,7 +130,6 @@ new-itemproperty $key$name -Name http  -Value 2 -Type DWORD;
 new-itemproperty $key$name -Name *     -Value 2 -Type DWORD;
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -146,26 +143,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
-Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
+Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
 ## Detection
 
 ### Behavior-Based Registry Modification Detection on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Modify Registry technique applicable | High | Defense Evasion |
+| Finding                              | Severity | Impact          |
+| ------------------------------------ | -------- | --------------- |
+| Modify Registry technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

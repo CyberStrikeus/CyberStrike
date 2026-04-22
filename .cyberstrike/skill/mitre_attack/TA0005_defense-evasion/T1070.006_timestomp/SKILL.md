@@ -99,6 +99,7 @@ touch -a -t 197001010000.00 #{target_filename}
 ```
 
 **Dependencies:**
+
 - The file must exist in order to be timestomped
 
 ### Atomic Test 2: Set a file's modification timestamp
@@ -112,6 +113,7 @@ touch -m -t 197001010000.00 #{target_filename}
 ```
 
 **Dependencies:**
+
 - The file must exist in order to be timestomped
 
 ### Atomic Test 3: Set a file's creation timestamp
@@ -157,8 +159,8 @@ Get-ChildItem "#{file_path}" | % { $_.CreationTime = "#{target_date_time}" }
 ```
 
 **Dependencies:**
-- A file must exist at the path (#{file_path}) to change the creation time on
 
+- A file must exist at the path (#{file_path}) to change the creation time on
 
 ### Manual Testing
 
@@ -178,19 +180,17 @@ No specific mitigations documented for this technique.
 
 ### Cross-Platform Behavioral Detection of File Timestomping via Metadata Tampering
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Timestomp technique applicable | High | Defense Evasion |
+| Finding                        | Severity | Impact          |
+| ------------------------------ | -------- | --------------- |
+| Timestomp technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

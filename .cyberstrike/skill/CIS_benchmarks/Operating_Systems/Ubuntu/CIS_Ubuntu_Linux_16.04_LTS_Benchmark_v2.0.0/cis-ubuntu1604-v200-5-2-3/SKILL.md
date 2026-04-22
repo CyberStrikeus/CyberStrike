@@ -85,9 +85,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 6.3 Enable Detailed Logging |
+| Controls Version | Control                     |
+| ---------------- | --------------------------- |
+| v7               | 6.3 Enable Detailed Logging |
 
 ## Assessment Status
 

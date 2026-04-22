@@ -27,8 +27,7 @@ cwe_ids:
 chains_with:
   - T1422.001
   - T1422.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1422.001: "Chain with T1422.001 for deeper attack path"
   T1422.002: "Chain with T1422.002 for deeper attack path"
@@ -38,17 +37,13 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may look for details about the network configuration and settings, such as IP and/or MAC addresses, of devices they access or through information discovery of remote systems. 
+Adversaries may look for details about the network configuration and settings, such as IP and/or MAC addresses, of devices they access or through information discovery of remote systems.
 
-Adversaries may use the information from System Network Configuration Discovery during automated discovery to shape follow-on behaviors, including determining certain access within the target network and what actions to do next. 
+Adversaries may use the information from System Network Configuration Discovery during automated discovery to shape follow-on behaviors, including determining certain access within the target network and what actions to do next.
 
-On Android, details of onboard network interfaces are accessible to apps through the `java.net.NetworkInterface` class. Previously, the Android `TelephonyManager` class could be used to gather telephony-related device identifiers, information such as the IMSI, IMEI, and phone number. However, starting with Android 10, only preloaded, carrier, the default SMS, or device and profile owner applications can access the telephony-related device identifiers. 
+On Android, details of onboard network interfaces are accessible to apps through the `java.net.NetworkInterface` class. Previously, the Android `TelephonyManager` class could be used to gather telephony-related device identifiers, information such as the IMSI, IMEI, and phone number. However, starting with Android 10, only preloaded, carrier, the default SMS, or device and profile owner applications can access the telephony-related device identifiers.
 
- 
-
-On iOS, gathering network configuration information is not possible without root access. 
-
- 
+On iOS, gathering network configuration information is not possible without root access.
 
 Adversaries may use the information from System Network Configuration Discovery during automated discovery to shape follow-on behaviors, including determining certain access within the target network and what actions to do next.
 
@@ -79,26 +74,24 @@ Review whether mitigations for T1422 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
-Android 10 introduced changes that prevent normal applications from accessing sensitive device identifiers.
 
+Android 10 introduced changes that prevent normal applications from accessing sensitive device identifiers.
 
 ## Detection
 
 ### Detection of System Network Configuration Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Network Configuration Discovery technique applicable | Medium | Discovery |
+| Finding                                                     | Severity | Impact    |
+| ----------------------------------------------------------- | -------- | --------- |
+| System Network Configuration Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

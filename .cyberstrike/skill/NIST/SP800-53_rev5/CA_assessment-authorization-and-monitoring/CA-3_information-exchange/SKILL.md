@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-4
   - AC-20
@@ -25,8 +24,7 @@ chains_with:
   - PT-7
   - RA-3
   - SA-9
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-4: "Chain with AC-4 for comprehensive security coverage"
   AC-20: "Chain with AC-20 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -93,16 +91,16 @@ Authorizing officials determine the risk associated with system information exch
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-3 Information Exchange not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-3 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                   | Severity | Impact                                               |
+| ----------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-3 Information Exchange not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-3 partially implemented                | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

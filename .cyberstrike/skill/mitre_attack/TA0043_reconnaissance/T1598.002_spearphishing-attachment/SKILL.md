@@ -75,29 +75,28 @@ Adversaries may also use information from previous reconnaissance efforts (ex: S
 ## Remediation Guide
 
 ### M1017 User Training
+
 Users can be trained to identify social engineering techniques and spearphishing attempts.
 
 ### M1054 Software Configuration
-Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
+Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
 ## Detection
 
 ### Detection of Spearphishing Attachment
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Attachment technique applicable | High | Reconnaissance |
+| Finding                                       | Severity | Impact         |
+| --------------------------------------------- | -------- | -------------- |
+| Spearphishing Attachment technique applicable | High     | Reconnaissance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -46,8 +46,8 @@ severity_boost:
 
 Adversaries may create or modify launch agents to repeatedly execute malicious payloads as part of persistence. When a user logs in, a per-user launchd process is started which loads the parameters for each launch-on-demand user agent from the property list (.plist) file found in <code>/System/Library/LaunchAgents</code>, <code>/Library/LaunchAgents</code>, and <code>~/Library/LaunchAgents</code>. Property list files use the <code>Label</code>, <code>ProgramArguments </code>, and <code>RunAtLoad</code> keys to identify the Launch Agent's name, executable location, and execution time. Launch Agents are often installed to perform updates to programs, launch user specified programs at login, or to conduct other developer tasks.
 
- Launch Agents can also be executed using the Launchctl command.
- 
+Launch Agents can also be executed using the Launchctl command.
+
 Adversaries may install a new Launch Agent that executes at login by placing a .plist file into the appropriate folders with the <code>RunAtLoad</code> or <code>KeepAlive</code> keys set to <code>true</code>. The Launch Agent name may be disguised by using a name from the related operating system or benign software. Launch Agents are created with user level privileges and execute with user level permissions.
 
 ## Kill Chain Phase
@@ -84,6 +84,7 @@ sudo launchctl load -w ~/Library/LaunchAgents/#{plist_filename}
 ```
 
 **Dependencies:**
+
 - The shared library must exist on disk at specified location (#{path_malicious_plist})
 
 ### Atomic Test 2: Event Monitor Daemon Persistence
@@ -111,9 +112,9 @@ launchctl load -w /Library/LaunchAgents/#{plist_filename}
 ```
 
 **Dependencies:**
+
 - /Library/LaunchAgents must exist
 - The shared library must exist on disk at specified location (#{path_malicious_plist})
-
 
 ### Manual Testing
 
@@ -128,26 +129,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Set group policies to restrict file permissions to the <code>~/launchagents</code> folder.
 
+Set group policies to restrict file permissions to the <code>~/launchagents</code> folder.
 
 ## Detection
 
 ### Detection of Launch Agent Creation or Modification on macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Launch Agent technique applicable | High | Persistence |
+| Finding                           | Severity | Impact      |
+| --------------------------------- | -------- | ----------- |
+| Launch Agent technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

@@ -39,7 +39,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may match or approximate the name or location of legitimate files or resources when naming/placing them. This is done for the sake of evading defenses and observation. This may be done by giving artifacts the name and icon of a legitimate, trusted application (i.e., Settings), or using a package name that matches legitimate, trusted applications (i.e., `com.google.android.gm`). 
+Adversaries may match or approximate the name or location of legitimate files or resources when naming/placing them. This is done for the sake of evading defenses and observation. This may be done by giving artifacts the name and icon of a legitimate, trusted application (i.e., Settings), or using a package name that matches legitimate, trusted applications (i.e., `com.google.android.gm`).
 
 Adversaries may also use the same icon of the file or application they are trying to mimic.
 
@@ -70,26 +70,24 @@ Review whether mitigations for T1655.001 are in place. If defenses are absent or
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious repackaged apps.
 
+Users should be encouraged to only install apps from authorized app stores, which are less likely to contain malicious repackaged apps.
 
 ## Detection
 
 ### Detection of Match Legitimate Name or Location
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Match Legitimate Name or Location technique applicable | Low | Defense Evasion |
+| Finding                                                | Severity | Impact          |
+| ------------------------------------------------------ | -------- | --------------- |
+| Match Legitimate Name or Location technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

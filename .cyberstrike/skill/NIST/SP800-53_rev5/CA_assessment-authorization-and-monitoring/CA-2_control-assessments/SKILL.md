@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-20
   - CA-5
@@ -25,8 +24,7 @@ chains_with:
   - SA-11
   - SC-38
   - SI-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-20: "Chain with AC-20 for comprehensive security coverage"
   CA-5: "Chain with CA-5 for comprehensive security coverage"
@@ -79,9 +77,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -111,16 +109,16 @@ To satisfy annual assessment requirements, organizations can use assessment resu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-2 Control Assessments not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-2 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                  | Severity | Impact                                               |
+| ---------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-2 Control Assessments not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-2 partially implemented               | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

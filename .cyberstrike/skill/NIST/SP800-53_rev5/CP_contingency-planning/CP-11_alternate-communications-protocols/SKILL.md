@@ -14,14 +14,12 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - CP-8
   - CP-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-8: "Chain with CP-8 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ Contingency plans and the contingency training or testing associated with those 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-11 Alternate Communications Protocols not implemented | Medium | Contingency Planning |
-| CP-11 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                                  | Severity | Impact                          |
+| -------------------------------------------------------- | -------- | ------------------------------- |
+| CP-11 Alternate Communications Protocols not implemented | Medium   | Contingency Planning            |
+| CP-11 partially implemented                              | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

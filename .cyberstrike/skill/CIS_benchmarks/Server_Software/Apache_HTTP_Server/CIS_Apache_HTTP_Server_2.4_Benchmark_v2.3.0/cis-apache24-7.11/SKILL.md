@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure HTTP Strict Transport Security Is Enabled (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -88,12 +89,15 @@ The Strict Transport Security header is not present by default.
 ## CIS Controls
 
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
   - Encrypt sensitive data in transit. Example implementations can include: Transport Layer Security (TLS) and Open Secure Shell (OpenSSH).
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit
   - Encrypt all sensitive information in transit.
 
 ## Profile
+
 - Level 2

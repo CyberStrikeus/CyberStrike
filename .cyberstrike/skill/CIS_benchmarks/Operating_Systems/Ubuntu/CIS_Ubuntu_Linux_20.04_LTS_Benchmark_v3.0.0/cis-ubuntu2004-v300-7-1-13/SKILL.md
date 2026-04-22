@@ -97,13 +97,13 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.3 Configure Data Access Control Lists | X | X | X |
-| v7 | 14.6 Protect Information through Access Control Lists | X | X | X |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | X    | X    | X    |
+| v7               | 14.6 Protect Information through Access Control Lists | X    | X    | X    |
 
 MITRE ATT&CK Mappings:
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1548, T1548.001 | TA0004 | M1028 |
+| --------------------------- | ------- | ----------- |
+| T1548, T1548.001            | TA0004  | M1028       |

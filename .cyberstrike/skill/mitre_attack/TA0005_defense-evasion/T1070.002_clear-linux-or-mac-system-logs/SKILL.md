@@ -52,13 +52,13 @@ severity_boost:
 
 Adversaries may clear system logs to hide evidence of an intrusion. macOS and Linux both keep track of system or user-initiated actions via system logs. The majority of native system logging is stored under the <code>/var/log/</code> directory. Subfolders in this directory categorize logs by their related functions, such as:
 
-* <code>/var/log/messages:</code>: General and system-related messages
-* <code>/var/log/secure</code> or <code>/var/log/auth.log</code>: Authentication logs
-* <code>/var/log/utmp</code> or <code>/var/log/wtmp</code>: Login records
-* <code>/var/log/kern.log</code>: Kernel logs
-* <code>/var/log/cron.log</code>: Crond logs
-* <code>/var/log/maillog</code>: Mail server logs
-* <code>/var/log/httpd/</code>: Web server access and error logs
+- <code>/var/log/messages:</code>: General and system-related messages
+- <code>/var/log/secure</code> or <code>/var/log/auth.log</code>: Authentication logs
+- <code>/var/log/utmp</code> or <code>/var/log/wtmp</code>: Login records
+- <code>/var/log/kern.log</code>: Kernel logs
+- <code>/var/log/cron.log</code>: Crond logs
+- <code>/var/log/maillog</code>: Mail server logs
+- <code>/var/log/httpd/</code>: Web server access and error logs
 
 ## Kill Chain Phase
 
@@ -93,6 +93,7 @@ if [ -d /var/audit ] ; then sudo rm -rf #{macos_audit_path} ; fi
 ```
 
 **Dependencies:**
+
 - target files must exist
 
 ### Atomic Test 2: rm -rf
@@ -131,6 +132,7 @@ sudo truncate -s 0 #{system_log_path} #size parameter shorthand
 ```
 
 **Dependencies:**
+
 - target files must exist
 
 ### Atomic Test 5: Truncate system log files via truncate utility (freebsd)
@@ -145,7 +147,6 @@ truncate -s 0 /var/log/messages #size parameter shorthand
 truncate --size=0 /var/log/security #size parameter
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -159,32 +160,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1029 Remote Data Storage
+
 Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
 ### M1022 Restrict File and Directory Permissions
+
 Protect generated event files that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
 ### M1041 Encrypt Sensitive Information
-Obfuscate/encrypt event files locally and in transit to avoid giving feedback to an adversary.
 
+Obfuscate/encrypt event files locally and in transit to avoid giving feedback to an adversary.
 
 ## Detection
 
 ### Behavioral Detection of Log File Clearing on Linux and macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clear Linux or Mac System Logs technique applicable | Low | Defense Evasion |
+| Finding                                             | Severity | Impact          |
+| --------------------------------------------------- | -------- | --------------- |
+| Clear Linux or Mac System Logs technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

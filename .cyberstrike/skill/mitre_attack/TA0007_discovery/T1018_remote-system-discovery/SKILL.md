@@ -33,10 +33,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -121,7 +119,7 @@ for /l %i in (#{start_host},1,#{stop_host}) do ping -n 1 -w 100 #{subnet}.%i
 
 ### Atomic Test 5: Remote System Discovery - arp
 
-Identify remote systems via arp. 
+Identify remote systems via arp.
 
 Upon successful execution, cmd.exe will execute arp to list out the arp cache. Output will be via stdout.
 
@@ -130,7 +128,6 @@ Upon successful execution, cmd.exe will execute arp to list out the arp cache. O
 ```cmd
 arp -a
 ```
-
 
 ### Manual Testing
 
@@ -150,19 +147,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Remote System Enumeration Behavior
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Remote System Discovery technique applicable | Medium | Discovery |
+| Finding                                      | Severity | Impact    |
+| -------------------------------------------- | -------- | --------- |
+| Remote System Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

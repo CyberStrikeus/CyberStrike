@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.28
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -60,9 +61,11 @@ By default, Docker commands extract the local copy unless version pinning mechan
 ## CIS Controls
 
 **v8:**
+
 - **16 Application Software Security**
   - Manage the security life cycle of in-house developed, hosted, or acquired software to prevent, detect, and remediate security weaknesses before they can impact the enterprise.
 
 **v7:**
+
 - **5.2 Maintain Secure Images**
   - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates.

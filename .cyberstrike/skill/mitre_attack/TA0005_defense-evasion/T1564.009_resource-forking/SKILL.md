@@ -83,26 +83,24 @@ Adversaries can use resource forks to hide malicious data that may otherwise be 
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
-Configure applications to use the application bundle structure which leverages the <code>/Resources</code> folder location.
 
+Configure applications to use the application bundle structure which leverages the <code>/Resources</code> folder location.
 
 ## Detection
 
 ### Detection Strategy for Resource Forking on macOS
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Resource Forking technique applicable | Medium | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Resource Forking technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

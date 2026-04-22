@@ -23,8 +23,7 @@ chains_with:
   - CM-4
   - CM-6
   - SI-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-7: "Chain with CA-7 for comprehensive security coverage"
   CM-4: "Chain with CM-4 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ Transitional states for systems include system startup, restart, shutdown, and a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-6 Security and Privacy Function Verification not implemented | High | System and Information Integrity |
-| SI-6 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                         | Severity | Impact                                      |
+| --------------------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-6 Security and Privacy Function Verification not implemented | High     | System and Information Integrity            |
+| SI-6 partially implemented                                      | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

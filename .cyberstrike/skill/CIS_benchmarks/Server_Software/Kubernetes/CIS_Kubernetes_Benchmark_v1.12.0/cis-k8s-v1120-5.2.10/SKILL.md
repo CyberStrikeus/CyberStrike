@@ -55,8 +55,8 @@ By default, there are no restrictions on the creation of `hostProcess` container
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.11 Leverage Vetted Modules or Services for Application Security Components | | X | X |
-| v7 | 4.7 Limit Access to Script Tools | | X | X |
-| v7 | 14.6 Protect Information through Access Control Lists | X | X | X |
+| Controls Version | Control                                                                       | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.11 Leverage Vetted Modules or Services for Application Security Components |      | X    | X    |
+| v7               | 4.7 Limit Access to Script Tools                                              |      | X    | X    |
+| v7               | 14.6 Protect Information through Access Control Lists                         | X    | X    | X    |

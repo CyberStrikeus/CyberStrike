@@ -25,10 +25,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -40,12 +38,12 @@ Adversaries may make, forward, or block phone calls without user authorization. 
 
 Several permissions may be used to programmatically control phone calls, including:
 
-* `ANSWER_PHONE_CALLS` - Allows the application to answer incoming phone calls
-* `CALL_PHONE` - Allows the application to initiate a phone call without going through the Dialer interface
-* `PROCESS_OUTGOING_CALLS` - Allows the application to see the number being dialed during an outgoing call with the option to redirect the call to a different number or abort the call altogether
-* `MANAGE_OWN_CALLS` - Allows a calling application which manages its own calls through the self-managed `ConnectionService` APIs
-* `BIND_TELECOM_CONNECTION_SERVICE` - Required permission when using a `ConnectionService`
-* `WRITE_CALL_LOG` - Allows an application to write to the device call log, potentially to hide malicious phone calls
+- `ANSWER_PHONE_CALLS` - Allows the application to answer incoming phone calls
+- `CALL_PHONE` - Allows the application to initiate a phone call without going through the Dialer interface
+- `PROCESS_OUTGOING_CALLS` - Allows the application to see the number being dialed during an outgoing call with the option to redirect the call to a different number or abort the call altogether
+- `MANAGE_OWN_CALLS` - Allows a calling application which manages its own calls through the self-managed `ConnectionService` APIs
+- `BIND_TELECOM_CONNECTION_SERVICE` - Required permission when using a `ConnectionService`
+- `WRITE_CALL_LOG` - Allows an application to write to the device call log, potentially to hide malicious phone calls
 
 When granted some of these permissions, an application can make a phone call without opening the dialer first. However, if an application desires to simply redirect the user to the dialer with a phone number filled in, it can launch an Intent using `Intent.ACTION_DIAL`, which requires no specific permissions. This then requires the user to explicitly initiate the call or use some form of Input Injection to programmatically initiate it.
 
@@ -77,26 +75,24 @@ Review whether mitigations for T1616 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be encouraged to be very careful with what applications they grant phone call-based permissions to. Further, users should not change their default call handler to applications they do not recognize.
 
+Users should be encouraged to be very careful with what applications they grant phone call-based permissions to. Further, users should not change their default call handler to applications they do not recognize.
 
 ## Detection
 
 ### Detection of Call Control
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Call Control technique applicable | High | Collection |
+| Finding                           | Severity | Impact     |
+| --------------------------------- | -------- | ---------- |
+| Call Control technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

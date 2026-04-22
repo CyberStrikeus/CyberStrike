@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-3
@@ -26,8 +25,7 @@ chains_with:
   - MP-2
   - PE-2
   - PE-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -90,16 +88,16 @@ Maintenance personnel refers to individuals who perform hardware or software mai
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-5 Maintenance Personnel not implemented | Medium | Maintenance |
-| MA-5 partially implemented | Low | Incomplete Maintenance |
+| Finding                                    | Severity | Impact                 |
+| ------------------------------------------ | -------- | ---------------------- |
+| MA-5 Maintenance Personnel not implemented | Medium   | Maintenance            |
+| MA-5 partially implemented                 | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

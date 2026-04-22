@@ -25,8 +25,7 @@ chains_with:
   - IA-8
   - IA-9
   - IA-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   IA-2: "Chain with IA-2 for comprehensive security coverage"
@@ -70,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ Identity providers, both internal and external to the organization, manage the u
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-13 Identity Providers and Authorization Servers not implemented | High | Identification and Authentication |
-| IA-13 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                            | Severity | Impact                                       |
+| ------------------------------------------------------------------ | -------- | -------------------------------------------- |
+| IA-13 Identity Providers and Authorization Servers not implemented | High     | Identification and Authentication            |
+| IA-13 partially implemented                                        | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

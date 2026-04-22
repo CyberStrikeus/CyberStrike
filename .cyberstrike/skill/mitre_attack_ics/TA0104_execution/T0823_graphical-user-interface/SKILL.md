@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,26 +59,24 @@ Review whether mitigations for T0823 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0816 Mitigation Limited or Not Effective
-Once an adversary has access to a remote GUI they can abuse system features, such as required HMI functions.
 
+Once an adversary has access to a remote GUI they can abuse system features, such as required HMI functions.
 
 ## Detection
 
 ### Detection of Graphical User Interface
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Graphical User Interface technique applicable | Low | Execution |
+| Finding                                       | Severity | Impact    |
+| --------------------------------------------- | -------- | --------- |
+| Graphical User Interface technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

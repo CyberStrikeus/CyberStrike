@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -66,29 +64,28 @@ Another example involves pivoting browser traffic from the adversary's browser t
 ## Remediation Guide
 
 ### M1017 User Training
+
 Close all browser sessions regularly and when they are no longer needed.
 
 ### M1018 User Account Management
-Since browser pivoting requires a high integrity process to launch from, restricting user permissions and addressing Privilege Escalation and Bypass User Account Control opportunities can limit the exposure to this technique.
 
+Since browser pivoting requires a high integrity process to launch from, restricting user permissions and addressing Privilege Escalation and Bypass User Account Control opportunities can limit the exposure to this technique.
 
 ## Detection
 
 ### Detect browser session hijacking via privilege, handle access, and remote thread into browsers
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Browser Session Hijacking technique applicable | High | Collection |
+| Finding                                        | Severity | Impact     |
+| ---------------------------------------------- | -------- | ---------- |
+| Browser Session Hijacking technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-3
   - PM-19
@@ -21,8 +20,7 @@ chains_with:
   - PT-6
   - PT-7
   - RA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   PM-19: "Chain with PM-19 for comprehensive security coverage"
@@ -67,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +84,16 @@ For federal agencies, the webpage is located at www.[agency].gov/privacy. Federa
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-20 Dissemination of Privacy Program Information not implemented | Medium | Program Management |
-| PM-20 partially implemented | Low | Incomplete Program Management |
+| Finding                                                            | Severity | Impact                        |
+| ------------------------------------------------------------------ | -------- | ----------------------------- |
+| PM-20 Dissemination of Privacy Program Information not implemented | Medium   | Program Management            |
+| PM-20 partially implemented                                        | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

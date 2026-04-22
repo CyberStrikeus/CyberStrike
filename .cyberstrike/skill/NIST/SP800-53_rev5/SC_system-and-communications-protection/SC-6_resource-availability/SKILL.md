@@ -21,8 +21,7 @@ cwe_ids:
   - CWE-311
 chains_with:
   - SC-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-5: "Chain with SC-5 for comprehensive security coverage"
 ---
@@ -64,10 +63,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -81,17 +80,16 @@ Priority protection prevents lower-priority processes from delaying or interferi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-6 Resource Availability not implemented | High | System and Communications Protection |
-| SC-6 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                    | Severity | Impact                                          |
+| ------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-6 Resource Availability not implemented | High     | System and Communications Protection            |
+| SC-6 partially implemented                 | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

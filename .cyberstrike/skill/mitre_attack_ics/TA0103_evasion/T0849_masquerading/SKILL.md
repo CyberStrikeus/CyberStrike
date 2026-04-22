@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,7 +29,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may use masquerading to disguise a malicious application or executable as another file, to avoid operator and engineer suspicion. Possible disguises of these masquerading files can include commonly found programs, expected vendor executables and configuration files, and other commonplace application and naming conventions. By impersonating expected and vendor-relevant files and applications, operators and engineers may not notice the presence of the underlying malicious content and possibly end up running those masquerading as legitimate functions. 
+Adversaries may use masquerading to disguise a malicious application or executable as another file, to avoid operator and engineer suspicion. Possible disguises of these masquerading files can include commonly found programs, expected vendor executables and configuration files, and other commonplace application and naming conventions. By impersonating expected and vendor-relevant files and applications, operators and engineers may not notice the presence of the underlying malicious content and possibly end up running those masquerading as legitimate functions.
 
 Applications and other files commonly found on Windows systems or in engineering workstations have been impersonated before. This can be as simple as renaming a file to effectively disguise it in the ICS environment.
 
@@ -61,32 +59,32 @@ Review whether mitigations for T0849 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0945 Code Signing
+
 Require signed binaries.
 
 ### M0938 Execution Prevention
+
 Use tools that restrict program execution via application control by attributes other than file name for common system and application utilities.
 
 ### M0922 Restrict File and Directory Permissions
-Use file system access controls to protect system and application folders.
 
+Use file system access controls to protect system and application folders.
 
 ## Detection
 
 ### Detection of Masquerading
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Masquerading technique applicable | Low | Evasion |
+| Finding                           | Severity | Impact  |
+| --------------------------------- | -------- | ------- |
+| Masquerading technique applicable | Low      | Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

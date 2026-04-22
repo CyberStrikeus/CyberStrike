@@ -80,10 +80,12 @@ CIS_Apache_Tomcat_8_Benchmark_v1.0.0/
 ## Controls by Section
 
 ### Section 1: Remove Extraneous Resources (2 controls)
+
 - 1.1 - Remove extraneous files and directories (Level 2, Scored)
 - 1.2 - Disable Unused Connectors (Level 2, Not Scored)
 
 ### Section 2: Limit Server Platform Information Leaks (6 controls)
+
 - 2.1 - Alter server.info String (Level 2, Scored)
 - 2.2 - Alter server.number String (Level 2, Scored)
 - 2.3 - Alter server.built Date (Level 2, Scored)
@@ -92,29 +94,37 @@ CIS_Apache_Tomcat_8_Benchmark_v1.0.0/
 - 2.6 - Turn off TRACE (Level 1, Scored)
 
 ### Section 3: Protect the Shutdown Port (2 controls)
+
 - 3.1 - Set nondeterministic Shutdown command (Level 1, Scored)
 - 3.2 - Disable the Shutdown port (Level 2, Not Scored)
 
 ### Section 4: Protect Tomcat Configurations (14 controls)
+
 - 4.1-4.14 - Restrict access to various Tomcat directories and files (Level 1, Scored)
 
 ### Section 5: Configure Realms (2 controls)
+
 - 5.1 - Use secure Realms (Level 2, Scored)
 - 5.2 - Use LockOut Realms (Level 2, Scored)
 
 ### Section 6: Connector Security (5 controls)
+
 - 6.1-6.5 - SSL/TLS configuration controls
 
 ### Section 7: Establish and Protect Logging Facilities (7 controls)
+
 - 7.1-7.7 - Logging configuration and protection
 
 ### Section 8: Configure Catalina Policy (1 control)
+
 - 8.1 - Restrict runtime access to sensitive packages (Level 1, Scored)
 
 ### Section 9: Application Deployment (3 controls)
+
 - 9.1-9.3 - Security Manager and deployment controls
 
 ### Section 10: Miscellaneous Configuration Settings (19 controls)
+
 - 10.1-10.20 - Various hardening controls (Note: 10.13 is skipped in the benchmark)
 
 ## Profile Definitions

@@ -21,8 +21,7 @@ cwe_ids:
   - CWE-311
 chains_with:
   - SC-15
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-15: "Chain with SC-15 for comprehensive security coverage"
 ---
@@ -65,10 +64,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Sensor capability and data applies to types of systems or system components char
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-42 Sensor Capability and Data not implemented | High | System and Communications Protection |
-| SC-42 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                          | Severity | Impact                                          |
+| ------------------------------------------------ | -------- | ----------------------------------------------- |
+| SC-42 Sensor Capability and Data not implemented | High     | System and Communications Protection            |
+| SC-42 partially implemented                      | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

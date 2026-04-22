@@ -50,7 +50,7 @@ grep "net\.ipv4\.conf\.all\.accept_redirects" /etc/sysctl.conf /etc/sysctl.d/*
 grep "net\.ipv4\.conf\.default\.accept_redirects" /etc/sysctl.conf /etc/sysctl.d/*
 ```
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Run the following commands and verify output matches:
 
@@ -70,7 +70,7 @@ grep "net\.ipv6\.conf\.all\.accept_redirects" /etc/sysctl.conf /etc/sysctl.d/*
 grep "net\.ipv6\.conf\.default\.accept_redirects" /etc/sysctl.conf /etc/sysctl.d/*
 ```
 
-*OR verify IPv6 is disabled.*
+_OR verify IPv6 is disabled._
 
 ## Expected Result
 
@@ -119,7 +119,7 @@ sysctl -w net.ipv4.conf.default.accept_redirects=0
 sysctl -w net.ipv4.route.flush=1
 ```
 
-*IF IPv6 is enabled:*
+_IF IPv6 is enabled:_
 
 Set the following parameters in `/etc/sysctl.conf` or a `/etc/sysctl.d/*` file:
 

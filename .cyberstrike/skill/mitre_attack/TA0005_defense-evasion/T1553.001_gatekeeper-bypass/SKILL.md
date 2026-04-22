@@ -88,7 +88,6 @@ Gatekeeper Bypass via command line
 xattr -d com.apple.quarantine #{app_path}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -102,26 +101,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-System settings can prevent applications from running that haven't been downloaded through the Apple Store which can help mitigate some of these issues.
 
+System settings can prevent applications from running that haven't been downloaded through the Apple Store which can help mitigate some of these issues.
 
 ## Detection
 
 ### Detect Gatekeeper Bypass via Quarantine Flag and Trust Control Manipulation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Gatekeeper Bypass technique applicable | High | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Gatekeeper Bypass technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

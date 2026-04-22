@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -34,7 +32,7 @@ severity_boost: {}
 
 Adversaries may abuse Windows Management Instrumentation (WMI) to execute malicious commands and payloads. WMI is designed for programmers and is the infrastructure for management data and operations on Windows systems. WMI is an administration feature that provides a uniform environment to access Windows system components.
 
-The WMI service enables both local and remote access, though the latter is facilitated by Remote Services such as Distributed Component Object Model and Windows Remote Management. Remote WMI over DCOM operates using port 135, whereas WMI over WinRM operates over port 5985 when using HTTP and 5986 for HTTPS. 
+The WMI service enables both local and remote access, though the latter is facilitated by Remote Services such as Distributed Component Object Model and Windows Remote Management. Remote WMI over DCOM operates using port 135, whereas WMI over WinRM operates over port 5985 when using HTTP and 5986 for HTTPS.
 
 An adversary can use WMI to interact with local and remote systems and use it as a means to execute various behaviors, such as gathering information for Discovery as well as Execution of commands and payloads. For example, `wmic.exe` can be abused by an adversary to delete shadow copies with the command `wmic.exe Shadowcopy Delete` (i.e., Inhibit System Recovery).
 
@@ -61,7 +59,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: WMI Reconnaissance Users
 
-An adversary might use WMI to list all local User Accounts. 
+An adversary might use WMI to list all local User Accounts.
 When the test completes , there should be local user accounts information displayed on the command line.
 
 **Supported Platforms:** windows
@@ -94,10 +92,10 @@ wmic qfe get description,installedOn /format:csv
 
 ### Atomic Test 4: WMI Reconnaissance List Remote Services
 
-An adversary might use WMI to check if a certain Remote Service is running on a remote device. 
+An adversary might use WMI to check if a certain Remote Service is running on a remote device.
 When the test completes, a service information will be displayed on the screen if it exists.
 A common feedback message is that "No instance(s) Available" if the service queried is not running.
-A common error message is "Node - (provided IP or default)  ERROR Description =The RPC server is unavailable" 
+A common error message is "Node - (provided IP or default) ERROR Description =The RPC server is unavailable"
 if the provided remote host is unreachable
 
 **Supported Platforms:** windows
@@ -117,7 +115,6 @@ When the test completes , a new process will be started locally .A notepad appli
 wmic process call create #{process_to_execute}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -131,35 +128,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Prevent credential overlap across systems of administrator and privileged accounts.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to block processes created by WMI commands from running. Note: many legitimate tools and applications utilize WMI for command execution.
 
 ### M1018 User Account Management
+
 By default, only administrators are allowed to connect remotely using WMI. Restrict other users who are allowed to connect, or disallow all users to connect remotely to WMI.
 
 ### M1038 Execution Prevention
-Use application control configured to block execution of <code>wmic.exe</code> if it is not required for a given system or network to prevent potential misuse by adversaries. For example, in Windows 10 and Windows Server 2016 and above, Windows Defender Application Control (WDAC) policy rules may be applied to block the <code>wmic.exe</code> application and to prevent abuse.
 
+Use application control configured to block execution of <code>wmic.exe</code> if it is not required for a given system or network to prevent potential misuse by adversaries. For example, in Windows 10 and Windows Server 2016 and above, Windows Defender Application Control (WDAC) policy rules may be applied to block the <code>wmic.exe</code> application and to prevent abuse.
 
 ## Detection
 
 ### Behavioral Detection Strategy for WMI Execution Abuse on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Management Instrumentation technique applicable | Medium | Execution |
+| Finding                                                 | Severity | Impact    |
+| ------------------------------------------------------- | -------- | --------- |
+| Windows Management Instrumentation technique applicable | Medium   | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

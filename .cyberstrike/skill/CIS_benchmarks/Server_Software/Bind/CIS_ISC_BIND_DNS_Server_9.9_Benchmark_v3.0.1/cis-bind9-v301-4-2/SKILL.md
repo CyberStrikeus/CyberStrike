@@ -17,19 +17,24 @@ severity_boost: {}
 # CIS 4.2 — Include Cryptographic Key Files
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 Do not place keys directly in the BIND `named.conf`, but use separate configuration files for the keys and include them into the `named.conf` file, in order to protect the keys from unintentional disclosure.
 
 ## Rationale
+
 Although the keys may be placed directly in the named.conf file, putting it in a separate file will limit the number of times it needs to be viewed, and make it independent of viewing and changes to the main configuration file.
 
 ## Impact
+
 None noted.
 
 ## Audit Procedure
+
 Use the grep command below to search the `named.conf` file to ensure it doesn't have any secret keys placed in the file.
 
 ```bash
@@ -42,6 +47,7 @@ key host1-host2.cisecurity.org {
 ```
 
 ## Remediation
+
 Move each key definition statement from the `named.conf` file into its own key file. It is recommended to name both the key and the key file after the two hosts that will be sharing the secret key, in order to avoid confusion. Then include the key files with include statements in the `named.conf`. An example is shown below with the key definition statement moved to a separate key file, however it is also accepted for only the secret statement to be moved to another file.
 
 ```bash
@@ -57,22 +63,27 @@ key host1-host2.cisecurity.org {
 ```
 
 ## Default Value
+
 During a default install an `rndc` key is generated in a separate file `/etc/rndc.key` and included in the `named.conf`.
 
 ## References
+
 None listed.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 14 - Controlled Access Based on the Need to Know | Y | Y | Y |
+
+| Controls Version | Control                                          | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------ | ---- | ---- | ---- |
+| v6               | 14 - Controlled Access Based on the Need to Know | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Credential Access | T1552 - Unsecured Credentials |
-| Collection | T1005 - Data from Local System |
+
+| Tactic            | Technique                      |
+| ----------------- | ------------------------------ |
+| Credential Access | T1552 - Unsecured Credentials  |
+| Collection        | T1005 - Data from Local System |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

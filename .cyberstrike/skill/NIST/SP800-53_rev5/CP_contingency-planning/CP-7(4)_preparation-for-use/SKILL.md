@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-2
   - CM-6
@@ -69,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +84,16 @@ Site preparation includes establishing configuration settings for systems at the
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-7(4) Preparation for Use not implemented | Medium | Contingency Planning |
-| CP-7(4) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                     | Severity | Impact                          |
+| ------------------------------------------- | -------- | ------------------------------- |
+| CP-7(4) Preparation for Use not implemented | Medium   | Contingency Planning            |
+| CP-7(4) partially implemented               | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

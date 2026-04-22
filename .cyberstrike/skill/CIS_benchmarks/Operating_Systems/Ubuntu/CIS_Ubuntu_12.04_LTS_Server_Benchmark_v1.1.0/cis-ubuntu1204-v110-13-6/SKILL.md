@@ -17,16 +17,21 @@ severity_boost: {}
 # 13.6 Ensure root PATH Integrity (Scored)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 The `root` user can execute any command on the system and could be fooled into executing programs unintentionally if the `PATH` is not set correctly.
 
 ## Rationale
+
 Including the current working directory (.) or other writable directory in `root`'s executable path makes it likely that an attacker can gain superuser access by forcing an administrator operating as `root` to execute a Trojan horse program.
 
 ## Audit Procedure
+
 ### Using Command Line
+
 ```bash
 #!/bin/bash
 if [ "`echo $PATH | grep ::`" != "" ]; then
@@ -63,17 +68,23 @@ done
 ```
 
 ## Expected Result
+
 No output should be returned. Any output indicates a problem with the root PATH configuration.
 
 ## Remediation
+
 ### Using Command Line
+
 Correct or justify any items discovered in the Audit step.
 
 ## Default Value
+
 The default root PATH on Ubuntu 12.04 does not contain `.` or world-writable directories.
 
 ## References
+
 - CIS Ubuntu 12.04 LTS Server Benchmark v1.1.0
 
 ## Profile
+
 Level 1 - Scored

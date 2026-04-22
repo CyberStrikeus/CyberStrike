@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,32 +57,32 @@ Review whether mitigations for T0869 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0930 Network Segmentation
+
 Ensure proper network segmentation between higher level corporate resources and the control process environment.
 
 ### M0931 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ### M0807 Network Allowlists
-Network allowlists can be implemented through either host-based files or system host files to specify what external connections (e.g., IP address, MAC address, port, protocol) can be made from a device. Allowlist techniques that operate at the application layer (e.g., DNP3, Modbus, HTTP) are addressed in the Filter Network Traffic mitigation.
 
+Network allowlists can be implemented through either host-based files or system host files to specify what external connections (e.g., IP address, MAC address, port, protocol) can be made from a device. Allowlist techniques that operate at the application layer (e.g., DNP3, Modbus, HTTP) are addressed in the Filter Network Traffic mitigation.
 
 ## Detection
 
 ### Detection of Standard Application Layer Protocol
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Standard Application Layer Protocol technique applicable | Low | Command And Control |
+| Finding                                                  | Severity | Impact              |
+| -------------------------------------------------------- | -------- | ------------------- |
+| Standard Application Layer Protocol technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

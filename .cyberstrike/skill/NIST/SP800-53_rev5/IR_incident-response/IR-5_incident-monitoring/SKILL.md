@@ -12,8 +12,7 @@ tags:
   - ir
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AU-6
   - AU-7
@@ -25,8 +24,7 @@ chains_with:
   - SC-5
   - SC-7
   - SI-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-6: "Chain with AU-6 for comprehensive security coverage"
   AU-7: "Chain with AU-7 for comprehensive security coverage"
@@ -70,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +84,16 @@ Documenting incidents includes maintaining records about each incident, the stat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IR-5 Incident Monitoring not implemented | Medium | Incident Response |
-| IR-5 partially implemented | Low | Incomplete Incident Response |
+| Finding                                  | Severity | Impact                       |
+| ---------------------------------------- | -------- | ---------------------------- |
+| IR-5 Incident Monitoring not implemented | Medium   | Incident Response            |
+| IR-5 partially implemented               | Low      | Incomplete Incident Response |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

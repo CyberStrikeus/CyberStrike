@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 2.4
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 etcd should be configured to make use of TLS encryption for peer connections.
 
 ## Rationale
+
 etcd is a highly-available key value store used by Kubernetes deployments for persistent storage of all of its REST API objects. These objects are sensitive in nature and should be encrypted in transit and also amongst peers in the etcd clusters.
 
 ## Impact
+
 etcd cluster peers are set up TLS for their communication.
 
 ## Audit Procedure
@@ -55,20 +59,25 @@ done
 ```
 
 Verify that the following is returned for each etcd member:
+
 - `--peer-cert-file=/etc/kubernetes/static-pod-certs/secrets/etcd-all-peer/etcd-peer-${ETCD_DNS_NAME}.crt`
 - `--peer-key-file=/etc/kubernetes/static-pod-certs/secrets/etcd-all-peer/etcd-peer-${ETCD_DNS_NAME}.key`
 
 For example:
+
 - `--peer-cert-file=/etc/kubernetes/static-pod-certs/secrets/etcd-all-peer/etcd-peer-ip-10-0-158-52.us-east-2.compute.internal.crt`
 - `--peer-key-file=/etc/kubernetes/static-pod-certs/secrets/etcd-all-peer/etcd-peer-ip-10-0-158-52.us-east-2.compute.internal.key`
 
 ## Remediation
+
 None. This configuration is managed by the etcd operator.
 
 ## Default Value
+
 By default, peer communication over TLS is configured.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/latest/security/certificate_types_descriptions/etcd-certificates.html
 2. https://github.com/openshift/cluster-etcd-operator
 3. https://github.com/openshift/cluster-etcd-operator/blob/release-4.5/bindata/etcd/pod.yaml#L154-L167
@@ -78,16 +87,17 @@ By default, peer communication over TLS is configured.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | * | * |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | * | * |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | \*   | \*   |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1552 | TA0006 | M1022 |
+| --------------------------- | ------- | ----------- |
+| T1552                       | TA0006  | M1022       |
 
 ## Profile
+
 **Level 1** (Manual)

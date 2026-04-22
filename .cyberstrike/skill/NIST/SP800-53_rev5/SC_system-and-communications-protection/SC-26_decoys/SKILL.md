@@ -27,8 +27,7 @@ chains_with:
   - SC-44
   - SI-3
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   RA-5: "Chain with RA-5 for comprehensive security coverage"
   SC-7: "Chain with SC-7 for comprehensive security coverage"
@@ -72,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ Decoys (i.e., honeypots, honeynets, or deception nets) are established to attrac
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-26 Decoys not implemented | High | System and Communications Protection |
-| SC-26 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                      | Severity | Impact                                          |
+| ---------------------------- | -------- | ----------------------------------------------- |
+| SC-26 Decoys not implemented | High     | System and Communications Protection            |
+| SC-26 partially implemented  | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

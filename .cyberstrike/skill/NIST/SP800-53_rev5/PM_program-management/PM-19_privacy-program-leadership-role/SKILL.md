@@ -12,16 +12,14 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PM-18
   - PM-20
   - PM-23
   - PM-24
   - PM-27
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-18: "Chain with PM-18 for comprehensive security coverage"
   PM-20: "Chain with PM-20 for comprehensive security coverage"
@@ -65,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ The privacy officer is an organizational official. For federal agencies—as def
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-19 Privacy Program Leadership Role not implemented | Medium | Program Management |
-| PM-19 partially implemented | Low | Incomplete Program Management |
+| Finding                                               | Severity | Impact                        |
+| ----------------------------------------------------- | -------- | ----------------------------- |
+| PM-19 Privacy Program Leadership Role not implemented | Medium   | Program Management            |
+| PM-19 partially implemented                           | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

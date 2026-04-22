@@ -20,10 +20,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-778
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -72,10 +70,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -91,17 +89,16 @@ Audit record review, analysis, and reporting cover information security logging 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Audit Record Review, Analysis, and Reporting (03.03.05) Audit Record Review, Analysis, and Reporting not implemented | Medium | CUI Protection - Audit and Accountability |
-| Audit Record Review, Analysis, and Reporting (03.03.05) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                                                                              | Severity | Impact                                    |
+| -------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------- |
+| Audit Record Review, Analysis, and Reporting (03.03.05) Audit Record Review, Analysis, and Reporting not implemented | Medium   | CUI Protection - Audit and Accountability |
+| Audit Record Review, Analysis, and Reporting (03.03.05) partially implemented (POA&M)                                | Low      | CMMC certification risk                   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

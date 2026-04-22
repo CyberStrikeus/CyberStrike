@@ -17,6 +17,7 @@ severity_boost: {}
 # 4.1 Ensure that logging is enabled
 
 ## Profile Applicability
+
 - Level 1 - Cassandra
 - Level 1 - Cassandra on Linux
 
@@ -92,12 +93,15 @@ INFO
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 8.5 Collect Detailed Audit Logs
   - Configure detailed audit logging for enterprise assets containing sensitive data. Include event source, date, username, timestamp, source addresses, destination addresses, and other useful elements that could assist in a forensic investigation.
 
 **Controls Version v7:**
+
 - 6.3 Enable Detailed Logging
   - Enable system logging to include detailed information such as an event source, date, user, timestamp, source addresses, destination addresses, and other useful elements.
 
 ## Profile
+
 - Level 1 | Automated

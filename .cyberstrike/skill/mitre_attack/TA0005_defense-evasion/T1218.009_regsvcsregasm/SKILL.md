@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse Regsvcs and Regasm to proxy execution of code through a trusted Windows utility. Regsvcs and Regasm are Windows command-line utilities that are used to register .NET Component Object Model (COM) assemblies. Both are binaries that may be digitally signed by Microsoft. 
+Adversaries may abuse Regsvcs and Regasm to proxy execution of code through a trusted Windows utility. Regsvcs and Regasm are Windows command-line utilities that are used to register .NET Component Object Model (COM) assemblies. Both are binaries that may be digitally signed by Microsoft.
 
 Both utilities may be used to bypass application control through use of attributes within the binary to specify code that should be run before registration or unregistration: <code>[ComRegisterFunction]</code> or <code>[ComUnregisterFunction]</code> respectively. The code with the registration and unregistration attributes will be executed even if the process is run under insufficient privileges and fails to execute.
 
@@ -86,6 +86,7 @@ C:\Windows\Microsoft.NET\Framework\v4.0.30319\regasm.exe /U #{output_file}
 ```
 
 **Dependencies:**
+
 - The CSharp source file must exist on disk at specified location (#{source_file})
 
 ### Atomic Test 2: Regsvcs Uninstall Method Call Test
@@ -105,8 +106,8 @@ C:\Windows\Microsoft.NET\Framework\v4.0.30319\regsvcs.exe #{output_file}
 ```
 
 **Dependencies:**
-- The CSharp source file must exist on disk at specified location (#{source_file})
 
+- The CSharp source file must exist on disk at specified location (#{source_file})
 
 ### Manual Testing
 
@@ -121,29 +122,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Block execution of Regsvcs.exe and Regasm.exe if they are not required for a given system or network to prevent potential misuse by adversaries.
 
 ### M1042 Disable or Remove Feature or Program
-Regsvcs and Regasm may not be necessary within a given environment.
 
+Regsvcs and Regasm may not be necessary within a given environment.
 
 ## Detection
 
 ### Detecting .NET COM Registration Abuse via Regsvcs/Regasm
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Regsvcs/Regasm technique applicable | High | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Regsvcs/Regasm technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.3.6
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -58,7 +59,7 @@ ip saddr 127.0.0.0/8 counter packets 0 bytes 0 drop
 ```
 
 - IF - IPv6 is enabled on the system:
-Run the following command to verify network traffic from an IPv6 loopback interface is configured to drop:
+  Run the following command to verify network traffic from an IPv6 loopback interface is configured to drop:
 
 ```bash
 nft list ruleset | awk '/hook input/,/}/' | grep 'ip6 saddr'
@@ -86,7 +87,7 @@ nft add rule inet filter input ip saddr 127.0.0.0/8 counter drop
 ```
 
 - IF - IPv6 is enabled on the system:
-Run the following command to implement the IPv6 loopback rule:
+  Run the following command to implement the IPv6 loopback rule:
 
 ```bash
 nft add rule inet filter input ip6 saddr ::1 counter drop

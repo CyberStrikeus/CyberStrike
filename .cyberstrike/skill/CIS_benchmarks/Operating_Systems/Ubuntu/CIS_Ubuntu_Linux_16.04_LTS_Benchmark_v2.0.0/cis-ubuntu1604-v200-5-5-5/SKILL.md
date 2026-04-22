@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure default user shell timeout is 900 seconds or less
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -26,15 +27,15 @@ severity_boost: {}
 
 `TMOUT` is an environmental setting that determines the timeout of a shell in seconds.
 
-- `TMOUT=n` - Sets the shell timeout to *n* seconds. A setting of `TMOUT=0` disables timeout.
+- `TMOUT=n` - Sets the shell timeout to _n_ seconds. A setting of `TMOUT=0` disables timeout.
 - `readonly TMOUT` - Sets the TMOUT environmental variable as readonly, preventing unwanted modification during run-time.
 - `export TMOUT` - exports the TMOUT variable
 
 System Wide Shell Configuration Files:
 
-- `/etc/profile` - used to set system wide environmental variables on users shells. The variables are sometimes the same ones that are in the `.bash_profile`, however this file is used to set an initial PATH or PS1 for all shell users of the system. *Is only executed for interactive login shells, or shells executed with the --login parameter.*
+- `/etc/profile` - used to set system wide environmental variables on users shells. The variables are sometimes the same ones that are in the `.bash_profile`, however this file is used to set an initial PATH or PS1 for all shell users of the system. _Is only executed for interactive login shells, or shells executed with the --login parameter._
 - `/etc/profile.d` - `/etc/profile` will execute the scripts within `/etc/profile.d/*.sh`. It is recommended to place your configuration in a shell script within `/etc/profile.d` to set your own system wide environmental variables.
-- `/etc/bash.bashrc` - System wide version of `bash.bashrc`. `etc/bash.bashrc` also invokes `/etc/profile.d/*.sh` if non-login shell, but redirects output to `/dev/null` if non-interactive. *Is only executed for interactive shells or if `BASH_ENV` is set to `/etc/bash.bashrc`.*
+- `/etc/bash.bashrc` - System wide version of `bash.bashrc`. `etc/bash.bashrc` also invokes `/etc/profile.d/*.sh` if non-login shell, but redirects output to `/dev/null` if non-interactive. _Is only executed for interactive shells or if `BASH_ENV` is set to `/etc/bash.bashrc`._
 
 ## Rationale
 
@@ -108,9 +109,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 16.11 Lock Workstation Sessions After Inactivity - Automatically lock workstation sessions after a standard period of inactivity. |
+| Controls Version | Control                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 16.11 Lock Workstation Sessions After Inactivity - Automatically lock workstation sessions after a standard period of inactivity. |
 
 ## Profile
 

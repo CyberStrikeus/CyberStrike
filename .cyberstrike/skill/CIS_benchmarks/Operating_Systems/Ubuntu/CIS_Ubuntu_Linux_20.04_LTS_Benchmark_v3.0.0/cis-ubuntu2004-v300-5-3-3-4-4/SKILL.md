@@ -109,13 +109,13 @@ Example:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | * | * |
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials | | * | * |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest                 |      | \*   | \*   |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1003, T1003.008, T1110, T1110.002 | TA0006 | M1041 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1003, T1003.008, T1110, T1110.002 | TA0006  | M1041       |

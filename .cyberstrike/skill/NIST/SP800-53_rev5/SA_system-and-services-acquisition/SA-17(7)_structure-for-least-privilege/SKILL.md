@@ -69,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,17 +87,16 @@ In addition to its manifestations at the system interface, least privilege can b
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-17(7) Structure for Least Privilege not implemented | Medium | System and Services Acquisition |
-| SA-17(7) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                | Severity | Impact                                     |
+| ------------------------------------------------------ | -------- | ------------------------------------------ |
+| SA-17(7) Structure for Least Privilege not implemented | Medium   | System and Services Acquisition            |
+| SA-17(7) partially implemented                         | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

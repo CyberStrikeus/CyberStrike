@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure the Timeout Limits for Request Headers is Set to 40 or Less (Manual)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -42,7 +43,7 @@ Perform the following to implement the recommended state:
 1. Load the `mod_requesttimeout` module in the Apache configuration with the following configuration.
    - `LoadModule reqtimeout_module modules/mod_reqtimeout.so`
 
-3. Add a `RequestReadTimeout` directive similar to the one below with the maximum request header timeout value of 40 seconds or less.
+2. Add a `RequestReadTimeout` directive similar to the one below with the maximum request header timeout value of 40 seconds or less.
    - `RequestReadTimeout header=20-40,MinRate=500 body=20,MinRate=500`
 
 ## Default Value
@@ -60,12 +61,15 @@ header=20-40,MinRate=500
 ## CIS Controls
 
 **v8:**
+
 - 4.2 Establish and Maintain a Secure Configuration Process for Network Infrastructure
   - Establish and maintain a secure configuration process for network devices. Review and update documentation annually, or when significant enterprise changes occur that could impact this Safeguard.
 
 **v7:**
+
 - 5.1 Establish Secure Configurations
   - Maintain documented, standard security configuration standards for all authorized operating systems and software.
 
 ## Profile
+
 - Level 1

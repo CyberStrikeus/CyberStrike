@@ -63,7 +63,9 @@ Perform the following to implement the recommended state:
 ## CIS Controls
 
 **v8:**
+
 - 6.8 Define and Maintain Role-Based Access Control
 
 **v7:**
+
 - 14.6 Protect Information through Access Control Lists

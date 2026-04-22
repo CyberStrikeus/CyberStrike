@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS 7.2 — Enable DNSSEC Validation
 
 ## Profile Applicability
+
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 DNS Security Extensions or DNSSEC for short provides authentication of the name servers through public key cryptography. With DNSSEC, the name server signs its responses with its private key. This allows other name servers that have the public key of the name server to verify the integrity and authenticity of the response. DNSSEC also provides for signing of public keys so that delegated sub-domains may have their keys signed by a higher-level authority. This creates a chain of trust so that any name server that trusts the public key of the higher-level signing authority can trust the signed key. It is recommended that DNSSEC be enabled and be configured to validate domains that are signed. DNSSEC and validation are enabled via the options `dnssec-enable` and `dnssec-validation`, respectively.
 
 ## Rationale
+
 DNSSEC reliably authenticates DNS responses to prevent the DNS spoofing and cache poisoning attacks.
 
 ## Impact
+
 None noted.
 
 ## Audit Procedure
+
 Perform the following to verify compliance.
 
 - To verify that the name server will validate the trust for DNSSEC signed domains, perform the following dig command on the name server. The command queries the name www.isc.org, which has a valid trusted DNSSEC signature.
@@ -54,6 +59,7 @@ $  dig @127.0.0.1 www.dnssec-failed.org. A | egrep 'status:|flags:'
 The status value should be `SERVFAIL` with `ANSWER: 0`.
 
 ## Remediation
+
 Perform the following for remediation:
 
 - Check the BIND configuration files, and in the global options set the two options `dnssec-enable` and `dnssec-validation` to yes as shown below:
@@ -66,21 +72,26 @@ dnssec-validation yes
 - Restart the named server.
 
 ## Default Value
+
 DNSSEC and DNSSEC validation are enabled by default.
 
 ## References
+
 1. https://users.isc.org/~jreed/dnssec-guide/dnssec-guide.html#easy-start-guide-for-recursive-servers
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 9 - Limitation and Control of Network Ports, Protocols, and Services | Y | Y | Y |
+
+| Controls Version | Control                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 9 - Limitation and Control of Network Ports, Protocols, and Services | Y    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic         | Technique                       |
+| -------------- | ------------------------------- |
 | Initial Access | T1557 - Adversary-in-the-Middle |
-| Impact | T1565 - Data Manipulation |
+| Impact         | T1565 - Data Manipulation       |
 
 ## Profile
+
 - Level 1 - Caching Only Name Server

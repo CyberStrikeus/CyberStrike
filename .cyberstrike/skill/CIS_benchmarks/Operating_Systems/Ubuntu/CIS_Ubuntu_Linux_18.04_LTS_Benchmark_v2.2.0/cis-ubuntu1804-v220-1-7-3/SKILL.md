@@ -69,6 +69,6 @@ echo "Authorized use only. All activity may be monitored and reported." > /etc/i
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1018, T1018.000, T1082, T1082.000, T1592, T1592.004 | TA0007 | |
+| Techniques / Sub-techniques                          | Tactics | Mitigations |
+| ---------------------------------------------------- | ------- | ----------- |
+| T1018, T1018.000, T1082, T1082.000, T1592, T1592.004 | TA0007  |             |

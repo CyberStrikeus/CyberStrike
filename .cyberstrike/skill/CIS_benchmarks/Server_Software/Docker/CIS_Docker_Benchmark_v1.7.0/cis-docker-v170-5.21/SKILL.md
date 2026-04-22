@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.21
 
 ## Profile Applicability
+
 - **Level:** 1
 - **Type:** Manual
 - **Platform:** Docker - Linux
@@ -65,9 +66,11 @@ By default, all containers have the UTS namespace enabled and the host UTS names
 ## CIS Controls
 
 **v8:**
+
 - **13.4 Perform Traffic Filtering Between Network Segments**
   - Perform traffic filtering between network segments, where appropriate.
 
 **v7:**
+
 - **14.1 Segment the Network Based on Sensitivity**
   - Segment the network based on the label or classification level of the information stored on the servers, locate all sensitive information on separated Virtual Local Area Networks (VLANs).

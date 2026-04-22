@@ -68,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,17 +86,16 @@ The principle of reduced complexity states that the system design is as simple a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-17(5) Conceptually Simple Design not implemented | Medium | System and Services Acquisition |
-| SA-17(5) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                             | Severity | Impact                                     |
+| --------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-17(5) Conceptually Simple Design not implemented | Medium   | System and Services Acquisition            |
+| SA-17(5) partially implemented                      | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

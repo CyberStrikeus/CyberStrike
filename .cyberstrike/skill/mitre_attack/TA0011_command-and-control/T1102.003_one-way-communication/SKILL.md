@@ -83,29 +83,28 @@ Popular websites and social media acting as a mechanism for C2 may give a signif
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
+
 Web proxies can be used to enforce external network communication policy that prevents use of unauthorized external services.
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate activity at the network level.
 
 ## Detection
 
 ### Detect One-Way Web Service Command Channels
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| One-Way Communication technique applicable | Low | Command And Control |
+| Finding                                    | Severity | Impact              |
+| ------------------------------------------ | -------- | ------------------- |
+| One-Way Communication technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

@@ -51,7 +51,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may use NTFS file attributes to hide their malicious data in order to evade detection. Every New Technology File System (NTFS) formatted partition contains a Master File Table (MFT) that maintains a record for every file/directory on the partition. Within MFT entries are file attributes, such as Extended Attributes (EA) and Data [known as Alternate Data Streams (ADSs) when more than one Data attribute is present], that can be used to store arbitrary data (and even complete files). 
+Adversaries may use NTFS file attributes to hide their malicious data in order to evade detection. Every New Technology File System (NTFS) formatted partition contains a Master File Table (MFT) that maintains a record for every file/directory on the partition. Within MFT entries are file attributes, such as Extended Attributes (EA) and Data [known as Alternate Data Streams (ADSs) when more than one Data attribute is present], that can be used to store arbitrary data (and even complete files).
 
 Adversaries may store malicious data or binaries in file attribute metadata instead of directly in files. This may be done to evade some defenses, such as static indicator scanning tools and anti-virus.
 
@@ -138,6 +138,7 @@ set-content -path . -stream #{ads_filename} -value "test3"
 ```
 
 **Dependencies:**
+
 - The file must exist on disk at specified location (#{file_name})
 
 ### Atomic Test 5: Create Hidden Directory via $index_allocation
@@ -153,7 +154,6 @@ md #{folder_name}
 echo too many secrets > #{folder_name}\#{hidden_filename}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -167,26 +167,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
-Consider adjusting read and write permissions for NTFS EA, though this should be tested to ensure routine OS operations are not impeded.
 
+Consider adjusting read and write permissions for NTFS EA, though this should be tested to ensure routine OS operations are not impeded.
 
 ## Detection
 
 ### Detection Strategy for NTFS File Attribute Abuse (ADS/EAs)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| NTFS File Attributes technique applicable | Low | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| NTFS File Attributes technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

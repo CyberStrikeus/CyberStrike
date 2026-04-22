@@ -20,8 +20,7 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-311
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SC-4
 severity_boost: {}
@@ -67,10 +66,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -84,17 +83,16 @@ Implement this control per organizational risk assessment and system categorizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-4(1) Security Levels not implemented | High | System and Communications Protection |
-| SC-4(1) partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                 | Severity | Impact                                          |
+| --------------------------------------- | -------- | ----------------------------------------------- |
+| SC-4(1) Security Levels not implemented | High     | System and Communications Protection            |
+| SC-4(1) partially implemented           | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

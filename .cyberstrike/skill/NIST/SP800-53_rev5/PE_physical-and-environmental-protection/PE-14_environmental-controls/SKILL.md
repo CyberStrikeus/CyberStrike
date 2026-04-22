@@ -12,13 +12,11 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AT-3
   - CP-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AT-3: "Chain with AT-3 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -62,9 +60,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +77,16 @@ The provision of environmental controls applies primarily to organizational faci
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-14 Environmental Controls not implemented | Medium | Physical and Environmental Protection |
-| PE-14 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                      | Severity | Impact                                           |
+| -------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-14 Environmental Controls not implemented | Medium   | Physical and Environmental Protection            |
+| PE-14 partially implemented                  | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -70,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,17 +91,16 @@ Correspondence is an important part of the assurance gained through modeling. It
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-17(4) Informal Correspondence not implemented | Medium | System and Services Acquisition |
-| SA-17(4) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                          | Severity | Impact                                     |
+| ------------------------------------------------ | -------- | ------------------------------------------ |
+| SA-17(4) Informal Correspondence not implemented | Medium   | System and Services Acquisition            |
+| SA-17(4) partially implemented                   | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

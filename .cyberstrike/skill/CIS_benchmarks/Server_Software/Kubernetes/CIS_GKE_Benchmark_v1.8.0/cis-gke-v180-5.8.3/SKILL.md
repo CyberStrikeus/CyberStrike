@@ -86,8 +86,8 @@ On clusters running GKE 1.6 or 1.7, Kubernetes Service accounts have full permis
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | x |
-| v7 | 4 Controlled Use of Administrative Privileges | | | |
-| v7 | 16 Account Monitoring and Control | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | x    |
+| v7               | 4 Controlled Use of Administrative Privileges     |      |      |      |
+| v7               | 16 Account Monitoring and Control                 |      |      |      |

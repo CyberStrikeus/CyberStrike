@@ -72,29 +72,28 @@ Adversaries may abuse the `JamPlus` build utility to execute malicious scripts v
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Consider blocking or restricting JamPlus if not required.
 
 ### M1042 Disable or Remove Feature or Program
-JamPlus may not be necessary within a given environment and should be removed if not used.
 
+JamPlus may not be necessary within a given environment and should be removed if not used.
 
 ## Detection
 
 ### Behavior-chain detection strategy for T1127.003 Trusted Developer Utilities Proxy Execution: JamPlus (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| JamPlus technique applicable | Medium | Defense Evasion |
+| Finding                      | Severity | Impact          |
+| ---------------------------- | -------- | --------------- |
+| JamPlus technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

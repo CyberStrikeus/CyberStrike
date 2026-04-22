@@ -116,6 +116,7 @@ Example:
 ```
 
 Note:
+
 - The name used for the file must be used in the `pam-auth-update --enable` command
 - The `Name:` line should be easily recognizable and understood
 - The `Priority:` Line is important as it effects the order of the lines in the `/etc/pam.d/` files
@@ -127,13 +128,13 @@ None listed.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.2 Establish an Access Revoking Process | * | * | * |
-| v7 | 16.7 Establish Process for Revoking Access | | * | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 6.2 Establish an Access Revoking Process   | \*   | \*   | \*   |
+| v7               | 16.7 Establish Process for Revoking Access |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1110, T1110.001, T1110.003 | TA0006 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1110, T1110.001, T1110.003 | TA0006  | M1027       |

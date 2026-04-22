@@ -68,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,17 +85,16 @@ Information security services include the operation of security devices, such as
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-9(1) Risk Assessments and Organizational Approvals not implemented | Medium | System and Services Acquisition |
-| SA-9(1) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                               | Severity | Impact                                     |
+| --------------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-9(1) Risk Assessments and Organizational Approvals not implemented | Medium   | System and Services Acquisition            |
+| SA-9(1) partially implemented                                         | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

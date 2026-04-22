@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-4
   - SC-7
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +80,16 @@ Organizations determine the extent, frequency, and/or randomness of security che
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-3(2) Facility and Systems not implemented | Medium | Physical and Environmental Protection |
-| PE-3(2) partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                      | Severity | Impact                                           |
+| -------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-3(2) Facility and Systems not implemented | Medium   | Physical and Environmental Protection            |
+| PE-3(2) partially implemented                | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

@@ -36,10 +36,8 @@ tech_stack:
   - esxi
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -47,7 +45,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may attempt to get a listing of network connections to or from the compromised system they are currently accessing or from remote systems by querying for information over the network. 
+Adversaries may attempt to get a listing of network connections to or from the compromised system they are currently accessing or from remote systems by querying for information over the network.
 
 An adversary who gains access to a system that is part of a cloud-based environment may map out Virtual Private Clouds or Virtual Networks in order to determine what systems and services are connected. The actions performed are likely the same types of discovery techniques depending on the operating system, but the resulting information may include details about the networked cloud environment relevant to the adversary's goals. Cloud providers may have different ways in which their virtual networks operate. Similarly, adversaries who gain access to network devices may also perform similar discovery activities to gather information about connected systems and services.
 
@@ -143,8 +141,8 @@ who -a
 ```
 
 **Dependencies:**
-- Check if netstat command exists on the machine
 
+- Check if netstat command exists on the machine
 
 ### Manual Testing
 
@@ -164,19 +162,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of System Network Connections Discovery Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Network Connections Discovery technique applicable | Medium | Discovery |
+| Finding                                                   | Severity | Impact    |
+| --------------------------------------------------------- | -------- | --------- |
+| System Network Connections Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

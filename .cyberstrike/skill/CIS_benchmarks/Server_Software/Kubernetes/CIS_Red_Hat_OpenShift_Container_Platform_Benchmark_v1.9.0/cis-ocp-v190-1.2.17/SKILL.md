@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.9.0 - Control 1.2.17
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Disable profiling, if not needed.
 
 ## Rationale
+
 Profiling allows for the identification of specific performance bottlenecks. It generates a significant amount of program data that could potentially be exploited to uncover system and program details. If you are not experiencing any bottlenecks and do not need the profiler for troubleshooting purposes, it is recommended to turn it off to reduce the potential attack surface.
 
 ## Impact
+
 Profiling information would not be available.
 
 ## Audit Procedure
+
 Profiling is enabled by default in OpenShift. The API server operators expose Prometheus metrics via the metrics service. Profiling data is sent to `healthzPort`, the port of the localhost `healthz` endpoint. Changing this value may disrupt components that monitor the kubelet health. The default port value is 10248, and the `healthz` BindAddress is `127.0.0.1`.
 
 To ensure the collected data is not exploited, profiling endpoints are exposed at each master port and secured via RBAC (see cluster-debugger role). By default, the profiling endpoints are accessible only by users bound to `cluster-admin` or `cluster-debugger` role.
@@ -85,12 +90,15 @@ unset CLUSTER_ADMIN_TOKEN SA_TOKEN POD PORT
 ```
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, profiling is enabled and protected by RBAC.
 
 ## References
+
 1. https://github.com/openshift/kubernetes-kubelet/blob/master/config/v1beta1/types.go#L259-L277
 2. https://github.com/openshift/cluster-kube-apiserver-operator/blob/release-4.5/bindata/v4.1.0/kube-apiserver/pod.yaml#L71-L84
 3. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#kube-apiserver-operator_red-hat-operators
@@ -100,16 +108,17 @@ By default, profiling is enabled and protected by RBAC.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | * |
-| v7 | 14.6 Protect Information through Access Control Lists | * | * | * |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control     |      |      | \*   |
+| v7               | 14.6 Protect Information through Access Control Lists | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1548 | TA0001, TA0004 | M1018 |
+| Techniques / Sub-techniques | Tactics        | Mitigations |
+| --------------------------- | -------------- | ----------- |
+| T1078, T1548                | TA0001, TA0004 | M1018       |
 
 ## Profile
+
 **Level 1** (Manual)

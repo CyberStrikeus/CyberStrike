@@ -70,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -88,17 +88,16 @@ Validating the binding of the information reviewer identity to the information a
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-10(4) Validate Binding of Information Reviewer Identity not implemented | Medium | Audit and Accountability |
-| AU-10(4) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                                    | Severity | Impact                              |
+| -------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-10(4) Validate Binding of Information Reviewer Identity not implemented | Medium   | Audit and Accountability            |
+| AU-10(4) partially implemented                                             | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

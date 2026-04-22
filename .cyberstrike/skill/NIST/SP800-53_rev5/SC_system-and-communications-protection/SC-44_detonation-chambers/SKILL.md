@@ -29,8 +29,7 @@ chains_with:
   - SC-39
   - SI-3
   - SI-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-7: "Chain with SC-7 for comprehensive security coverage"
   SC-18: "Chain with SC-18 for comprehensive security coverage"
@@ -74,10 +73,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -91,17 +90,16 @@ Detonation chambers, also known as dynamic execution environments, allow organiz
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-44 Detonation Chambers not implemented | High | System and Communications Protection |
-| SC-44 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                   | Severity | Impact                                          |
+| ----------------------------------------- | -------- | ----------------------------------------------- |
+| SC-44 Detonation Chambers not implemented | High     | System and Communications Protection            |
+| SC-44 partially implemented               | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

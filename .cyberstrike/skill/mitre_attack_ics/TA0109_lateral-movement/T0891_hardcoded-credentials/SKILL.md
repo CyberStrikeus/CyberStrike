@@ -22,10 +22,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,11 +33,11 @@ severity_boost: {}
 
 Adversaries may leverage credentials that are hardcoded in software or firmware to gain an unauthorized interactive user session to an asset. Examples credentials that may be hardcoded in an asset include:
 
-* Username/Passwords
-* Cryptographic keys/Certificates
-* API tokens
+- Username/Passwords
+- Cryptographic keys/Certificates
+- API tokens
 
-Unlike Default Credentials, these credentials are built into the system in a way that they either cannot be changed by the asset owner, or may be infeasible to change because of the impact it would cause to the control system operation. These credentials may be reused across whole product lines or device models and are often not published or known to the owner and operators of the asset. 
+Unlike Default Credentials, these credentials are built into the system in a way that they either cannot be changed by the asset owner, or may be infeasible to change because of the impact it would cause to the control system operation. These credentials may be reused across whole product lines or device models and are often not published or known to the owner and operators of the asset.
 
 Adversaries may utilize these hardcoded credentials to move throughout the control system environment or provide reliable access for their tools to interact with industrial assets.
 
@@ -70,26 +68,24 @@ Review whether mitigations for T0891 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0801 Access Management
-Ensure embedded controls and network devices are protected through access management, as these devices often have unknown hardcoded accounts which could be used to gain unauthorized access.
 
+Ensure embedded controls and network devices are protected through access management, as these devices often have unknown hardcoded accounts which could be used to gain unauthorized access.
 
 ## Detection
 
 ### Detection of Hardcoded Credentials
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hardcoded Credentials technique applicable | High | Lateral Movement |
+| Finding                                    | Severity | Impact           |
+| ------------------------------------------ | -------- | ---------------- |
+| Hardcoded Credentials technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

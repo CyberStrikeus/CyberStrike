@@ -41,8 +41,7 @@ chains_with:
   - T1567.002
   - T1567.003
   - T1567.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1567.001: "Chain with T1567.001 for deeper attack path"
   T1567.002: "Chain with T1567.002 for deeper attack path"
@@ -87,29 +86,28 @@ Web service providers also commonly use SSL/TLS encryption, giving adversaries a
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
+
 Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
 ### M1057 Data Loss Prevention
-Data loss prevention can be detect and block sensitive data being uploaded to web services via web browsers.
 
+Data loss prevention can be detect and block sensitive data being uploaded to web services via web browsers.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration Over Web Service
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration Over Web Service technique applicable | Low | Exfiltration |
+| Finding                                            | Severity | Impact       |
+| -------------------------------------------------- | -------- | ------------ |
+| Exfiltration Over Web Service technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

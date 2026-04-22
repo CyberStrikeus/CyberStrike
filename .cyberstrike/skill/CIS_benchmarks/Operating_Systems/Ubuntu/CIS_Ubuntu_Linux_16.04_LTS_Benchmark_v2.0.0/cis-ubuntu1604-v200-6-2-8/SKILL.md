@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 6.2.8
 
 ## Profile
+
 - **Level:** 1 - Server
 - **Level:** 1 - Workstation
 - **Assessment Status:** Automated
@@ -27,7 +28,7 @@ The `.netrc` file contains data for logging into a remote host for file transfer
 
 While the system administrator can establish secure permissions for users' `.netrc` files, the users can easily override these.
 
-*Note: While the complete removal of `.netrc` files is recommended, if any are required on the system secure permissions must be applied.*
+_Note: While the complete removal of `.netrc` files is recommended, if any are required on the system secure permissions must be applied._
 
 ## Rationale
 
@@ -40,6 +41,7 @@ If a `.netrc` file is required, and follows local site policy, it should have pe
 ### Command Line
 
 Run the following script. This script will return:
+
 - `FAILED:` for any `.netrc` file with permissions less restrictive than `600`
 - `WARNING:` for any `.netrc` files that exist in interactive users' home directories.
 
@@ -99,6 +101,6 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v7 | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | | | |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v7               | 14.6 Protect Information through Access Control Lists<br/>Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. |      |      |      |

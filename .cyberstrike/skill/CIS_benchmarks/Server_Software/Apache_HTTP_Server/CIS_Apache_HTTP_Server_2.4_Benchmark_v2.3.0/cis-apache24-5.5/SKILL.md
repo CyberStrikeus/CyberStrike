@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.5 Ensure the Default CGI Content printenv Script Is Removed
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -50,4 +51,5 @@ Perform the following to implement the recommended state:
 The default source installation includes the `printenv` script. However, this script is not executable by default.
 
 ## Profile
+
 - Level 2 | Manual

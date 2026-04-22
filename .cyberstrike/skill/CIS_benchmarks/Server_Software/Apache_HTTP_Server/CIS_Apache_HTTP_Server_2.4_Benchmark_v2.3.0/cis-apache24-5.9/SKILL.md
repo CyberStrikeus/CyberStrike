@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.9 Ensure Old HTTP Protocol Versions Are Disallowed
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -63,10 +64,11 @@ No external references provided in the PDF for this control.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently. | | ● | ● |
-| v7 | 2.7 Utilize Application Whitelisting<br>Utilize application whitelisting technology on all assets to ensure that only authorized software executes and all unauthorized software is blocked from executing on assets. | | | ● |
+| Controls Version | Control                                                                                                                                                                                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.5 Allowlist Authorized Software<br>Use technical controls, such as application allowlisting, to ensure that only authorized software can execute or be accessed. Reassess bi-annually, or more frequently.          |      | ●    | ●    |
+| v7               | 2.7 Utilize Application Whitelisting<br>Utilize application whitelisting technology on all assets to ensure that only authorized software executes and all unauthorized software is blocked from executing on assets. |      |      | ●    |
 
 ## Profile
+
 - Level 1 | Automated

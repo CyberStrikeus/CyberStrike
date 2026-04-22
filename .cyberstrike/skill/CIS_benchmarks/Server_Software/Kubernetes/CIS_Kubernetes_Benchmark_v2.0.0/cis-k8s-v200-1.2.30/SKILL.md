@@ -60,7 +60,7 @@ By default, this parameter is set to true.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.10 Encrypt Sensitive Data in Transit | | * | * |
-| v7 | 14.4 Encrypt All Sensitive Information in Transit | | * | * |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.10 Encrypt Sensitive Data in Transit            |      | \*   | \*   |
+| v7               | 14.4 Encrypt All Sensitive Information in Transit |      | \*   | \*   |

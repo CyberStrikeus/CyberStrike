@@ -22,8 +22,7 @@ chains_with:
   - SA-4
   - SA-8
   - SC-7
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-2: "Chain with PL-2 for comprehensive security coverage"
   PL-8: "Chain with PL-8 for comprehensive security coverage"
@@ -68,9 +67,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ Developer security and privacy architecture and design are directed at external 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-17 Developer Security and Privacy Architecture and Design not implemented | Medium | System and Services Acquisition |
-| SA-17 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                                      | Severity | Impact                                     |
+| ---------------------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-17 Developer Security and Privacy Architecture and Design not implemented | Medium   | System and Services Acquisition            |
+| SA-17 partially implemented                                                  | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

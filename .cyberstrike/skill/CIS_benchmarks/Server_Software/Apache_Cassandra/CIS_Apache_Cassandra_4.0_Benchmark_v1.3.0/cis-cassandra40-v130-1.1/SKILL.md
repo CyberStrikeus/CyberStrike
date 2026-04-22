@@ -17,6 +17,7 @@ severity_boost: {}
 # 1.1 Ensure a separate user and group exist for Cassandra
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
@@ -64,10 +65,12 @@ Replacing `<USERID_NUMBER>` with a number not already used on the server
 ## CIS Controls
 
 **Controls Version v8:**
+
 - 3.3 Configure Data Access Control Lists
   - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.
 
 **Controls Version v7:**
+
 - 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts
   - Restrict administrator privileges to dedicated administrator accounts on enterprise assets. Conduct general computing activities, such as internet browsing, email, and productivity suite use, from the user's primary, non-privileged account.
 - 4.3 Ensure the Use of Dedicated Administrative Accounts
@@ -76,4 +79,5 @@ Replacing `<USERID_NUMBER>` with a number not already used on the server
   - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities.
 
 ## Profile
+
 - Level 1 | Manual

@@ -38,8 +38,7 @@ chains_with:
   - T1542.003
   - T1542.004
   - T1542.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1542.001: "Chain with T1542.001 for deeper attack path"
   T1542.002: "Chain with T1542.002 for deeper attack path"
@@ -85,38 +84,40 @@ Adversaries may overwrite data in boot drivers or firmware such as BIOS (Basic I
 ## Remediation Guide
 
 ### M1035 Limit Access to Resource Over Network
+
 Prevent access to file shares, remote access to systems, unnecessary services. Mechanisms to limit access may include use of network concentrators, RDP gateways, etc.
 
 ### M1047 Audit
+
 Perform audits or scans of systems, permissions, insecure software, insecure configurations, etc. to identify potential weaknesses.
 
 ### M1051 Update Software
+
 Patch the BIOS and EFI as necessary.
 
 ### M1026 Privileged Account Management
+
 Ensure proper permissions are in place to help prevent adversary access to privileged accounts necessary to perform these actions
 
 ### M1046 Boot Integrity
-Use Trusted Platform Module technology and a secure or trusted boot process to prevent system integrity from being compromised. Check the integrity of the existing BIOS or EFI to determine if it is vulnerable to modification.
 
+Use Trusted Platform Module technology and a secure or trusted boot process to prevent system integrity from being compromised. Check the integrity of the existing BIOS or EFI to determine if it is vulnerable to modification.
 
 ## Detection
 
 ### Detection Strategy for T1542 Pre-OS Boot
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Pre-OS Boot technique applicable | Low | Defense Evasion |
+| Finding                          | Severity | Impact          |
+| -------------------------------- | -------- | --------------- |
+| Pre-OS Boot technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

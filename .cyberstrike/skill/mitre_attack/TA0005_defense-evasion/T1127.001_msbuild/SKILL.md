@@ -74,6 +74,7 @@ Executes the code in a project file using msbuild.exe. The default C# project ex
 ```
 
 **Dependencies:**
+
 - Project file must exist on disk at specified location (#{filename})
 
 ### Atomic Test 2: MSBuild Bypass Using Inline Tasks (VB)
@@ -87,8 +88,8 @@ Executes the code in a project file using msbuild.exe. The default Visual Basic 
 ```
 
 **Dependencies:**
-- Project file must exist on disk at specified location (#{filename})
 
+- Project file must exist on disk at specified location (#{filename})
 
 ### Manual Testing
 
@@ -103,29 +104,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 MSBuild.exe may not be necessary within an environment and should be removed if not being used.
 
 ### M1038 Execution Prevention
-Use application control configured to block execution of <code>msbuild.exe</code> if it is not required for a given system or network to prevent potential misuse by adversaries. For example, in Windows 10 and Windows Server 2016 and above, Windows Defender Application Control (WDAC) policy rules may be applied to block the <code>msbuild.exe</code> application and to prevent abuse.
 
+Use application control configured to block execution of <code>msbuild.exe</code> if it is not required for a given system or network to prevent potential misuse by adversaries. For example, in Windows 10 and Windows Server 2016 and above, Windows Defender Application Control (WDAC) policy rules may be applied to block the <code>msbuild.exe</code> application and to prevent abuse.
 
 ## Detection
 
 ### Behavior-chain detection strategy for T1127.001 Trusted Developer Utilities Proxy Execution: MSBuild (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MSBuild technique applicable | Medium | Defense Evasion |
+| Finding                      | Severity | Impact          |
+| ---------------------------- | -------- | --------------- |
+| MSBuild technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

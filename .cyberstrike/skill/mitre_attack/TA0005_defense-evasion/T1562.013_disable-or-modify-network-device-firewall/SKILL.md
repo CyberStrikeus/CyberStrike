@@ -49,8 +49,8 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may disable network device-based firewall mechanisms entirely or add, delete, or modify particular rules in order to bypass controls limiting network usage. 
- 
+Adversaries may disable network device-based firewall mechanisms entirely or add, delete, or modify particular rules in order to bypass controls limiting network usage.
+
 Modifying or disabling a network firewall may enable adversary C2 communications, lateral movement, and/or data exfiltration that would otherwise not be allowed. For example, adversaries may add new network firewall rules to allow access to all internal network subnets without restrictions.
 
 Adversaries may gain access to the firewall management console via Valid Accounts or by exploiting a vulnerability. In some cases, threat actors may target firewalls that have been exposed to the internet Exploit Public-Facing Application.
@@ -83,32 +83,32 @@ Adversaries may gain access to the firewall management console via Valid Account
 ## Remediation Guide
 
 ### M1047 Audit
+
 Routinely check account role permissions to ensure only expected users and roles have permission to modify system firewalls.
 
 ### M1018 User Account Management
+
 Ensure proper user permissions are in place to prevent adversaries from disabling or modifying firewall settings.
 
 ### M1051 Update Software
-Ensure the network firewall is up to date with security patches.
 
+Ensure the network firewall is up to date with security patches.
 
 ## Detection
 
 ### Unauthorized Network Firewall Rule Modification (T1562.013)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Network Device Firewall technique applicable | High | Defense Evasion |
+| Finding                                                        | Severity | Impact          |
+| -------------------------------------------------------------- | -------- | --------------- |
+| Disable or Modify Network Device Firewall technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

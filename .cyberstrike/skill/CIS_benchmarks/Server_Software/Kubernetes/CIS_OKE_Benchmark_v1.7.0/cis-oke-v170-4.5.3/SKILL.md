@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 4.5.3
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Kubernetes provides a default namespace, where objects are placed if no namespace is specified for them. Placing objects in this namespace makes application of RBAC and other controls more difficult.
 
 ## Rationale
+
 Resources in a Kubernetes cluster should be segregated by namespace, to allow for security controls to be applied at that level and to make it easier to manage resources.
 
 ## Impact
+
 None
 
 ## Audit Procedure
@@ -49,23 +53,26 @@ kubectl get all -n default
 Ensure that namespaces are created to allow for appropriate segregation of Kubernetes resources and that all new resources are created in a specific namespace.
 
 ## Default Value
+
 Unless a namespace is specific on object creation, the `default` namespace will be used.
 
 ## References
+
 1. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.2 Establish and Maintain a Secure Network Architecture | | * | * |
-| v7 | 12.7 Deploy Network-Based Intrusion Prevention Systems | | | * |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.2 Establish and Maintain a Secure Network Architecture |      | \*   | \*   |
+| v7               | 12.7 Deploy Network-Based Intrusion Prevention Systems    |      |      | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1578 | TA0005 | M1018 |
+| --------------------------- | ------- | ----------- |
+| T1578                       | TA0005  | M1018       |
 
 ## Profile
+
 **Level 1** (Automated)

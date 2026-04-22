@@ -98,19 +98,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Indicator Removal from Tools - Post-AV Evasion Modification
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indicator Removal from Tools technique applicable | Low | Defense Evasion |
+| Finding                                           | Severity | Impact          |
+| ------------------------------------------------- | -------- | --------------- |
+| Indicator Removal from Tools technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

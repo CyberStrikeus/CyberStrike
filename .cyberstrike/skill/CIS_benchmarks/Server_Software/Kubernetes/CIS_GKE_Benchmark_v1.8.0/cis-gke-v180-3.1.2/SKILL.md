@@ -86,19 +86,19 @@ metadata:
   name: file-check
 spec:
   volumes:
-  - name: host-root
-    hostPath:
-      path: /
-      type: Directory
-  containers:
-  - name: nsenter
-    image: busybox
-    command: ["sleep", "3600"]
-    volumeMounts:
     - name: host-root
-      mountPath: /host
-    securityContext:
-      privileged: true
+      hostPath:
+        path: /
+        type: Directory
+  containers:
+    - name: nsenter
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+      securityContext:
+        privileged: true
 ```
 
 Save this to a file (e.g., file-check-pod.yaml) and create the pod:
@@ -139,7 +139,7 @@ See the GKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **3.3 Configure Data Access Control Lists** - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | X | X | X |
-| v7 | **5.2 Maintain Secure Images** - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. | | X | X |
+| Controls Version | Control                                                                                                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **3.3 Configure Data Access Control Lists** - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications.                                                 | X    | X    | X    |
+| v7               | **5.2 Maintain Secure Images** - Maintain secure images or templates for all systems in the enterprise based on the organization's approved configuration standards. Any new system deployment or existing system that becomes compromised should be imaged using one of those images or templates. |      | X    | X    |

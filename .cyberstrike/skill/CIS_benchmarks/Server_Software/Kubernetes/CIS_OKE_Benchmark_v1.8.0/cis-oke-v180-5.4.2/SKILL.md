@@ -4,7 +4,8 @@ description: "Ensure clusters are created with Private Endpoint Enabled and Publ
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, cluster-networking, private-endpoint, public-access, vcn, zero-trust]
+tags:
+  [cis, oke, kubernetes, oci, managed-services, cluster-networking, private-endpoint, public-access, vcn, zero-trust]
 cis_id: "5.4.2"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -89,7 +90,7 @@ By default, the Public Endpoint is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | x | x |
-| v7 | 7.4 Maintain and Enforce Network-Based URL Filters | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters |      | x    | x    |
+| v7               | 7.4 Maintain and Enforce Network-Based URL Filters |      | x    | x    |

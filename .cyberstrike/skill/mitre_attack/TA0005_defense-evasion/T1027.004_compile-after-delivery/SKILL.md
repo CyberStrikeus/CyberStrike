@@ -96,11 +96,12 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /out:#{output_file} "#{i
 ```
 
 **Dependencies:**
+
 - C# file must exist on disk at specified location (#{input_file})
 
 ### Atomic Test 2: Dynamic C# Compile
 
-When C# is compiled dynamically, a .cmdline file will be created as a part of the process. 
+When C# is compiled dynamically, a .cmdline file will be created as a part of the process.
 Certain processes are not typically observed compiling C# code, but can do so without touching disk. This can be used to unpack a payload for execution.
 The exe file that will be executed is named as T1027.004_DynamicCompile.exe is contained in the 'bin' folder of this atomic, and the source code to the file is in the 'src' folder.
 Upon execution, the exe will print 'T1027.004 Dynamic Compile'.
@@ -112,6 +113,7 @@ Invoke-Expression "#{input_file}"
 ```
 
 **Dependencies:**
+
 - exe file must exist on disk at specified location (#{input_file})
 
 ### Atomic Test 3: C compile
@@ -126,6 +128,7 @@ clang #{input_file} && ./a.out
 ```
 
 **Dependencies:**
+
 - the source file must exist on disk at specified location (#{input_file})
 
 ### Atomic Test 4: CC compile
@@ -140,6 +143,7 @@ clang++ #{input_file} && ./a.out
 ```
 
 **Dependencies:**
+
 - the source file must exist on disk at specified location (#{input_file})
 
 ### Atomic Test 5: Go compile
@@ -153,8 +157,8 @@ go run #{input_file}
 ```
 
 **Dependencies:**
-- the source file must exist on disk at specified location (#{input_file})
 
+- the source file must exist on disk at specified location (#{input_file})
 
 ### Manual Testing
 
@@ -174,19 +178,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Compile After Delivery - Source Code to Executable Transformation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Compile After Delivery technique applicable | High | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Compile After Delivery technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

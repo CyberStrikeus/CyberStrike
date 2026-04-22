@@ -68,14 +68,14 @@ $ rm -rf $CATALINA_HOME/webapps/host-manager \
 
 ## CIS Controls
 
-| CIS Control | Description |
-|-------------|-------------|
-| Version 8 Control 4.1 | Establish and Maintain a Secure Configuration Process |
-| Version 7 Control 18.11 | Only Use Up-to-Date and Trusted Application Add-ons |
+| CIS Control             | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| Version 8 Control 4.1   | Establish and Maintain a Secure Configuration Process |
+| Version 7 Control 18.11 | Only Use Up-to-Date and Trusted Application Add-ons   |
 
 ## Profile / Assessment Status
 
 | Profile | Assessment Status |
-|---------|------------------|
-| Level 1 | Not Applicable |
-| Level 2 | Scored |
+| ------- | ----------------- |
+| Level 1 | Not Applicable    |
+| Level 2 | Scored            |

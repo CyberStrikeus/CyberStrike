@@ -28,8 +28,7 @@ chains_with:
   - SC-7
   - SC-22
   - SI-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-4: "Chain with CP-4 for comprehensive security coverage"
@@ -73,10 +72,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -90,17 +89,16 @@ Failure in a known state addresses security concerns in accordance with the miss
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-24 Fail in Known State not implemented | High | System and Communications Protection |
-| SC-24 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                   | Severity | Impact                                          |
+| ----------------------------------------- | -------- | ----------------------------------------------- |
+| SC-24 Fail in Known State not implemented | High     | System and Communications Protection            |
+| SC-24 partially implemented               | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

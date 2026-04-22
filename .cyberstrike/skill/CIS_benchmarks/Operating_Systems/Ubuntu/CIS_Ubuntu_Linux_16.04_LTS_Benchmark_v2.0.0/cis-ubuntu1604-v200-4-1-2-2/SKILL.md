@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.2.2
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -69,6 +70,6 @@ The default value is `ROTATE`.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 6.4 Ensure adequate storage for logs - Ensure that all systems that store logs have adequate storage space for the logs generated. |
+| Controls Version | Control                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 6.4 Ensure adequate storage for logs - Ensure that all systems that store logs have adequate storage space for the logs generated. |

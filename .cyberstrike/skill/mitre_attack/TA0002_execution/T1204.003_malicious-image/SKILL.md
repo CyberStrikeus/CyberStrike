@@ -78,35 +78,36 @@ Adversaries may also name images a certain way to increase the chance of users m
 ## Remediation Guide
 
 ### M1045 Code Signing
+
 Utilize a trust model such as Docker Content Trust with digital signatures to ensure runtime verification of the integrity and publisher of specific image tags.
 
 ### M1031 Network Intrusion Prevention
+
 Network prevention intrusion systems and systems designed to scan and remove malicious downloads can be used to block activity.
 
 ### M1017 User Training
+
 Train users to be aware of the existence of malicious images and how to avoid deploying instances and containers from them.
 
 ### M1047 Audit
-Audit images deployed within the environment to ensure they do not contain any malicious components.
 
+Audit images deployed within the environment to ensure they do not contain any malicious components.
 
 ## Detection
 
 ### User Execution – Malicious Image (containers & IaaS) – pull/run → start → anomalous behavior (T1204.003)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Malicious Image technique applicable | High | Execution |
+| Finding                              | Severity | Impact    |
+| ------------------------------------ | -------- | --------- |
+| Malicious Image technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

@@ -42,7 +42,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries who have the KRBTGT account password hash may forge Kerberos ticket-granting tickets (TGT), also known as a golden ticket. Golden tickets enable adversaries to generate authentication material for any account in Active Directory. 
+Adversaries who have the KRBTGT account password hash may forge Kerberos ticket-granting tickets (TGT), also known as a golden ticket. Golden tickets enable adversaries to generate authentication material for any account in Active Directory.
 
 Using a golden ticket, adversaries are then able to request ticket granting service (TGS) tickets, which enable access to specific resources. Golden tickets require adversaries to interact with the Key Distribution Center (KDC) in order to obtain TGS.
 
@@ -100,7 +100,7 @@ If ($domain_sid -Match "DEFAULT") {
   echo.
   echo Requesting SYSVOL:
   dir \\#{domain}\SYSVOL
-  
+
   echo.
   echo Tickets after requesting SYSVOL:
   klist
@@ -117,7 +117,7 @@ echo "foo" | runas /netonly /user:fake "$env:TEMP\golden.bat" | Out-Null
 do {
   Start-Sleep 1 # wait a bit so the output file has time to be created
   Get-Content -Path "$env:TEMP\golden.txt" -Wait | ForEach-Object {
-    if ($_ -match 'End of Golden Ticket attack') { break } 
+    if ($_ -match 'End of Golden Ticket attack') { break }
   }
 } while ($false) # dummy loop so that 'break' can be used
 
@@ -130,6 +130,7 @@ Remove-Item $env:TEMP\golden.txt -ErrorAction Ignore
 ```
 
 **Dependencies:**
+
 - Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 
 ### Atomic Test 2: Crafting Active Directory golden tickets with Rubeus
@@ -160,7 +161,7 @@ $filename = (Get-ChildItem | ? {$_.Name.startswith("golden_")} | Sort-Object -De
   echo.
   echo Requesting SYSVOL:
   dir \\$(#{domaincontroller})\SYSVOL
-  
+
   echo.
   echo Tickets after requesting SYSVOL:
   klist
@@ -177,7 +178,7 @@ echo "foo" | runas /netonly /user:fake "$env:TEMP\golden.bat" | Out-Null
 do {
   Start-Sleep 1 # wait a bit so the output file has time to be created
   Get-Content -Path "$env:TEMP\golden.txt" -Wait | ForEach-Object {
-    if ($_ -match 'End of Golden Ticket attack') { break } 
+    if ($_ -match 'End of Golden Ticket attack') { break }
   }
 } while ($false) # dummy loop so that 'break' can be used
 
@@ -190,9 +191,9 @@ Remove-Item $env:TEMP\golden.txt -ErrorAction Ignore
 ```
 
 **Dependencies:**
+
 - Computer must be domain joined
 - Rubeus must exist
-
 
 ### Manual Testing
 
@@ -207,29 +208,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Limit domain admin account permissions to domain controllers and limited servers. Delegate other admin functions to separate accounts.
 
 ### M1015 Active Directory Configuration
-For containing the impact of a previously generated golden ticket, reset the built-in KRBTGT account password twice, which will invalidate any existing golden tickets that have been created with the KRBTGT hash and other Kerberos tickets derived from it. For each domain, change the KRBTGT account password once, force replication, and then change the password a second time. Consider rotating the KRBTGT account password every 180 days.
 
+For containing the impact of a previously generated golden ticket, reset the built-in KRBTGT account password twice, which will invalidate any existing golden tickets that have been created with the KRBTGT hash and other Kerberos tickets derived from it. For each domain, change the KRBTGT account password once, force replication, and then change the password a second time. Consider rotating the KRBTGT account password every 180 days.
 
 ## Detection
 
 ### Detect Forged Kerberos Golden Tickets (T1558.001)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Golden Ticket technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| Golden Ticket technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

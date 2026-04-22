@@ -4,7 +4,18 @@ description: "Oracle Cloud Security Penetration and Vulnerability Testing (Manua
 category: cis-oke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, oke, kubernetes, oci, managed-services, image-registry, image-scanning, penetration-testing, vulnerability-testing]
+tags:
+  [
+    cis,
+    oke,
+    kubernetes,
+    oci,
+    managed-services,
+    image-registry,
+    image-scanning,
+    penetration-testing,
+    vulnerability-testing,
+  ]
 cis_id: "5.1.1"
 cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, oci, oke]
@@ -50,9 +61,9 @@ Submit a Cloud Security Testing Notification via the Oracle Cloud Console.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets | | x | x |
-| v7 | 3 Continuous Vulnerability Management | | | |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools | | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning | | x | x |
+| Controls Version | Control                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets |      | x    | x    |
+| v7               | 3 Continuous Vulnerability Management                                             |      |      |      |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools                                    |      | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning                                  |      | x    | x    |

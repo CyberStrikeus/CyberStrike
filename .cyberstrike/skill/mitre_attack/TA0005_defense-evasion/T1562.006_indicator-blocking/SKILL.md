@@ -60,7 +60,7 @@ severity_boost:
 
 An adversary may attempt to block indicators or events typically captured by sensors from being gathered and analyzed. This could include maliciously redirecting or even disabling host-based sensors, such as Event Tracing for Windows (ETW), by tampering settings that control the collection and flow of event telemetry. These settings may be stored on the system in configuration files and/or in the Registry as well as being accessible via administrative utilities such as PowerShell or Windows Management Instrumentation.
 
-For example, adversaries may modify the `File` value in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Security</code> to hide their malicious actions in a new or different .evtx log file. This action does not require a system reboot and takes effect immediately. 
+For example, adversaries may modify the `File` value in <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Security</code> to hide their malicious actions in a new or different .evtx log file. This action does not require a system reboot and takes effect immediately.
 
 ETW interruption can be achieved multiple ways, however most directly by defining conditions using the PowerShell <code>Set-EtwTraceProvider</code> cmdlet or by interfacing directly with the Registry to make alterations.
 
@@ -101,7 +101,7 @@ sed -i '$ a #art_test_1562_006_1' /etc/audisp/#{audisp_config_file_name}
 if [ -f "/etc/#{auditd_config_file_name}" ];
 then sed -i '$ a #art_test_1562_006_1' /etc/#{auditd_config_file_name}
 else sed -i '$ a #art_test_1562_006_1' /etc/audit/#{auditd_config_file_name}
-fi 
+fi
 sed -i '$ a #art_test_1562_006_1' /etc/#{libaudit_config_file_name}
 ```
 
@@ -160,8 +160,8 @@ cmd /c "#{ps_exec_location}" -accepteula -i -s cmd.exe /c logman update trace "#
 ```
 
 **Dependencies:**
-- PSExec must be installed on the machine.
 
+- PSExec must be installed on the machine.
 
 ### Manual Testing
 
@@ -176,32 +176,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure event tracers/forwarders , firewall policies, and other associated mechanisms are secured with appropriate permissions and access controls.
 
 ### M1054 Software Configuration
+
 Consider automatically relaunching forwarding mechanisms at recurring intervals (ex: temporal, on-logon, etc.) as well as applying appropriate change management to firewall rules and other related system configurations.
 
 ### M1018 User Account Management
-Ensure event tracers/forwarders , firewall policies, and other associated mechanisms are secured with appropriate permissions and access controls and cannot be manipulated by user accounts.
 
+Ensure event tracers/forwarders , firewall policies, and other associated mechanisms are secured with appropriate permissions and access controls and cannot be manipulated by user accounts.
 
 ## Detection
 
 ### Detection Strategy for Impair Defenses Indicator Blocking
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indicator Blocking technique applicable | Low | Defense Evasion |
+| Finding                                 | Severity | Impact          |
+| --------------------------------------- | -------- | --------------- |
+| Indicator Blocking technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -29,10 +29,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -44,8 +42,8 @@ Adversaries may gain access and continuously communicate with victims by injecti
 
 Adversaries may inject content to victim systems in various ways, including:
 
-* From the middle, where the adversary is in-between legitimate online client-server communications (**Note:** this is similar but distinct from Adversary-in-the-Middle, which describes AiTM activity solely within an enterprise environment) 
-* From the side, where malicious content is injected and races to the client as a fake response to requests of a legitimate online server 
+- From the middle, where the adversary is in-between legitimate online client-server communications (**Note:** this is similar but distinct from Adversary-in-the-Middle, which describes AiTM activity solely within an enterprise environment)
+- From the side, where malicious content is injected and races to the client as a fake response to requests of a legitimate online server
 
 Content injection is often the result of compromised upstream communication channels, for example at the level of an internet service provider (ISP) as is the case with "lawful interception."
 
@@ -85,6 +83,7 @@ grep -q "Atomic T1659 Injection" /tmp/atomic_t1659_page.html || (head -20 /tmp/a
 ```
 
 **Dependencies:**
+
 - python3 must be installed
 - curl must be installed
 - pipx must be installed
@@ -107,11 +106,11 @@ if ($Content -notmatch "Atomic T1659 Injection") { exit 1 }
 ```
 
 **Dependencies:**
+
 - Python must be installed
 - curl must be installed
 - mitmproxy must be installed and in PATH
 - mitmdump must be running on port 8080
-
 
 ### Manual Testing
 
@@ -126,29 +125,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
+
 Consider blocking download/transfer and execution of potentially uncommon file types known to be used in adversary campaigns.
 
 ### M1041 Encrypt Sensitive Information
-Where possible, ensure that online traffic is appropriately encrypted through services such as trusted VPNs.
 
+Where possible, ensure that online traffic is appropriately encrypted through services such as trusted VPNs.
 
 ## Detection
 
 ### Detection Strategy for Content Injection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Content Injection technique applicable | High | Initial Access |
+| Finding                                | Severity | Impact         |
+| -------------------------------------- | -------- | -------------- |
+| Content Injection technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

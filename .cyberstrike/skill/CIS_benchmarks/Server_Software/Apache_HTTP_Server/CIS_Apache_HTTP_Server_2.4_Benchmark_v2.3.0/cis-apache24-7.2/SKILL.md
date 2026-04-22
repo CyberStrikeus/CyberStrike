@@ -85,7 +85,9 @@ SSL/TLS is not enabled by default.
 ## CIS Controls
 
 **v8:**
+
 - 3.10 Encrypt Sensitive Data in Transit
 
 **v7:**
+
 - 14.4 Encrypt All Sensitive Information in Transit

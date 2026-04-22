@@ -84,12 +84,13 @@ Privileges required: domain admin or domain controller account (by default), or 
 ```
 
 **Dependencies:**
+
 - Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 
 ### Atomic Test 2: Run DSInternals Get-ADReplAccount
 
 The following Atomic will run Get-ADReplAccount from DSInternals.
-Upon successful execution, domain and credentials will appear in stdout. 
+Upon successful execution, domain and credentials will appear in stdout.
 [Reference](https://www.crowdstrike.com/blog/observations-from-the-stellarparticle-campaign/) CrowdStrike StellarParticle.
 https://www.dsinternals.com/en/retrieving-active-directory-passwords-remotely/
 
@@ -100,8 +101,8 @@ Get-ADReplAccount -All -Server #{logonserver}
 ```
 
 **Dependencies:**
-- DSInternals must be installed
 
+- DSInternals must be installed
 
 ### Manual Testing
 
@@ -116,32 +117,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure that local administrator accounts have complex, unique passwords across all systems on the network.
 
 ### M1015 Active Directory Configuration
+
 Manage the access control list for "Replicating Directory Changes" and other permissions associated with domain controller replication.
 
 ### M1026 Privileged Account Management
-Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
+Do not put user or admin domain accounts in the local administrator groups across systems unless they are tightly controlled, as this is often equivalent to having a local administrator account with the same password on all systems. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ## Detection
 
 ### Detection of Unauthorized DCSync Operations via Replication API Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| DCSync technique applicable | High | Credential Access |
+| Finding                     | Severity | Impact            |
+| --------------------------- | -------- | ----------------- |
+| DCSync technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

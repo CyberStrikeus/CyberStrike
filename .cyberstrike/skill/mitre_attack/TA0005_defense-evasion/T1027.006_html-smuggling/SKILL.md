@@ -89,7 +89,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: HTML Smuggling Remote Payload
 
-The HTML file will download an ISO file from [T1553.005](https://github.com/redcanaryco/atomic-red-team/blob/d0dad62dbcae9c60c519368e82c196a3db577055/atomics/T1553.005/bin/FeelTheBurn.iso) without user interaction. 
+The HTML file will download an ISO file from [T1553.005](https://github.com/redcanaryco/atomic-red-team/blob/d0dad62dbcae9c60c519368e82c196a3db577055/atomics/T1553.005/bin/FeelTheBurn.iso) without user interaction.
 The HTML file is based off of the work from [Stan Hegt](https://outflank.nl/blog/2018/08/14/html-smuggling-explained/)
 
 **Supported Platforms:** windows
@@ -99,8 +99,8 @@ The HTML file is based off of the work from [Stan Hegt](https://outflank.nl/blog
 ```
 
 **Dependencies:**
-- T1027_006_remote.html must exist on disk at specified at PathToAtomicsFolder\T1027.006\bin\T1027_006_Remote.html
 
+- T1027_006_remote.html must exist on disk at specified at PathToAtomicsFolder\T1027.006\bin\T1027_006_Remote.html
 
 ### Manual Testing
 
@@ -115,6 +115,7 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1048 Application Isolation and Sandboxing
+
 Use Browser Extensions or Built-in Security Tools that:
 
 - Monitor JavaScript API calls such as `Blob`, `URL.createObjectURL,` and `msSaveOrOpenBlob`
@@ -134,24 +135,21 @@ Enable or enforce enterprise browser security controls, such as:
 
 Deploy browser sandboxing solutions that can isolate JavaScript execution environments and enforce behavioral policy restrictions
 
-
 ## Detection
 
 ### Detection Strategy for HTML Smuggling via JavaScript Blob + Dynamic File Drop
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| HTML Smuggling technique applicable | Medium | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| HTML Smuggling technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

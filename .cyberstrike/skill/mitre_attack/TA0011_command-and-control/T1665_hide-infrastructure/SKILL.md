@@ -33,10 +33,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-300
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -86,19 +84,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for Hide Infrastructure
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hide Infrastructure technique applicable | Medium | Command And Control |
+| Finding                                  | Severity | Impact              |
+| ---------------------------------------- | -------- | ------------------- |
+| Hide Infrastructure technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

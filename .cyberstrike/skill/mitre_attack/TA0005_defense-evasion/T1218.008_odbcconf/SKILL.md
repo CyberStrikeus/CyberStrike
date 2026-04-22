@@ -85,6 +85,7 @@ odbcconf.exe /S /A {REGSVR "#{dll_payload}"}
 ```
 
 **Dependencies:**
+
 - T1218-2.dll must exist on disk at specified location (#{dll_payload})
 
 ### Atomic Test 2: Odbcconf.exe - Load Response File
@@ -100,8 +101,8 @@ odbcconf.exe -f "#{rsp_file_name}"
 ```
 
 **Dependencies:**
-- T1218.008.rsp must exist on disk at specified location (#{rsp_file_path}#{rsp_file_name})
 
+- T1218.008.rsp must exist on disk at specified location (#{rsp_file_path}#{rsp_file_name})
 
 ### Manual Testing
 
@@ -116,29 +117,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Odbcconf.exe may not be necessary within a given environment.
 
 ### M1038 Execution Prevention
-Use application control configured to block execution of Odbcconf.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
+Use application control configured to block execution of Odbcconf.exe if it is not required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detecting Odbcconf Proxy Execution of Malicious DLLs
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Odbcconf technique applicable | Medium | Defense Evasion |
+| Finding                       | Severity | Impact          |
+| ----------------------------- | -------- | --------------- |
+| Odbcconf technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

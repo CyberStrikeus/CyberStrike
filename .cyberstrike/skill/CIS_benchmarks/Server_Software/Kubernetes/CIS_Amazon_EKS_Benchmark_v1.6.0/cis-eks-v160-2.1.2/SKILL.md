@@ -101,9 +101,9 @@ By default, Kubernetes does not enable detailed audit logging. Configuration is 
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.1 Establish and Maintain an Audit Log Management Process | X | X | X |
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
-| v7 | 6.3 Enable Detailed Logging | | X | X |
+| Controls Version | Control                                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.1 Establish and Maintain an Audit Log Management Process | X    | X    | X    |
+| v8               | 8.2 Collect Audit Logs                                     | X    | X    | X    |
+| v7               | 6.2 Activate audit logging                                 | X    | X    | X    |
+| v7               | 6.3 Enable Detailed Logging                                |      | X    | X    |

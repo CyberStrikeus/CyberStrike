@@ -70,6 +70,7 @@ Referrer-Policy Policy is not set by Default
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
@@ -77,6 +78,7 @@ Referrer-Policy Policy is not set by Default
   - Perform application layer filtering. Example implementations include a filtering proxy, application layer firewall, or gateway.
 
 **v7:**
+
 - 9.4 Apply Host-based Firewalls or Port Filtering
   - Apply host-based firewalls or port filtering tools on end systems, with a default-deny rule that drops all traffic except those services and ports that are explicitly allowed.
 

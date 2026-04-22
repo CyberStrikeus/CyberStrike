@@ -25,8 +25,7 @@ chains_with:
   - SC-6
   - SC-7
   - SC-40
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   IR-4: "Chain with IR-4 for comprehensive security coverage"
@@ -71,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ Denial-of-service events may occur due to a variety of internal and external cau
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-5 Denial-of-service Protection not implemented | High | System and Communications Protection |
-| SC-5 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                                           | Severity | Impact                                          |
+| ------------------------------------------------- | -------- | ----------------------------------------------- |
+| SC-5 Denial-of-service Protection not implemented | High     | System and Communications Protection            |
+| SC-5 partially implemented                        | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

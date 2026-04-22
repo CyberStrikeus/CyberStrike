@@ -27,10 +27,8 @@ tech_stack:
   - macos
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -95,8 +93,8 @@ fsutil fsinfo drives
 
 ### Atomic Test 4: Get Printer Device List via PowerShell Command
 
-This test uses PowerShell to list printers on a Windows system, demonstrating a discovery technique attackers might use to 
-gather details on connected devices. Using Get-Printer, they can view information on all available printers, identifying 
+This test uses PowerShell to list printers on a Windows system, demonstrating a discovery technique attackers might use to
+gather details on connected devices. Using Get-Printer, they can view information on all available printers, identifying
 potential devices for further targeting.
 
 **Supported Platforms:** windows
@@ -104,7 +102,6 @@ potential devices for further targeting.
 ```powershell
 Get-Printer
 ```
-
 
 ### Manual Testing
 
@@ -124,19 +121,17 @@ No specific mitigations documented for this technique.
 
 ### Peripheral Device Enumeration via System Utilities and API Calls
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Peripheral Device Discovery technique applicable | Medium | Discovery |
+| Finding                                          | Severity | Impact    |
+| ------------------------------------------------ | -------- | --------- |
+| Peripheral Device Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

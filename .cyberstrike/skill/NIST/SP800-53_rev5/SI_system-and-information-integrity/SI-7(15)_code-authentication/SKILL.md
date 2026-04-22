@@ -71,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -88,17 +88,16 @@ Cryptographic authentication includes verifying that software or firmware compon
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-7(15) Code Authentication not implemented | High | System and Information Integrity |
-| SI-7(15) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                      | Severity | Impact                                      |
+| -------------------------------------------- | -------- | ------------------------------------------- |
+| SI-7(15) Code Authentication not implemented | High     | System and Information Integrity            |
+| SI-7(15) partially implemented               | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

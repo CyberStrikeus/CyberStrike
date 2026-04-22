@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,29 +57,28 @@ Review whether mitigations for T0802 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0807 Network Allowlists
+
 Utilize network allowlists to restrict unnecessary connections to network devices (e.g., comm servers, serial to ethernet converters) and services, especially in cases when devices have limits on the number of simultaneous sessions they support.
 
 ### M0930 Network Segmentation
-Prevent unauthorized systems from accessing control servers or field devices containing industrial information, especially services used for common automation protocols (e.g., DNP3, OPC).
 
+Prevent unauthorized systems from accessing control servers or field devices containing industrial information, especially services used for common automation protocols (e.g., DNP3, OPC).
 
 ## Detection
 
 ### Detection of Automated Collection
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Automated Collection technique applicable | Low | Collection |
+| Finding                                   | Severity | Impact     |
+| ----------------------------------------- | -------- | ---------- |
+| Automated Collection technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

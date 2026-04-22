@@ -67,9 +67,9 @@ Uninstall `prelink` using the appropriate package manager or manual installation
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.14 Log Sensitive Data Access | | | * |
-| v7 | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data | | | * |
+| Controls Version | Control                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.14 Log Sensitive Data Access                                      |      |      | \*   |
+| v7               | 14.9 Enforce Detail Logging for Access or Changes to Sensitive Data |      |      | \*   |
 
 MITRE ATT&CK Mappings: T1055, T1055.009, T1065, T1065.001 | TA0002 | M1050

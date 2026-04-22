@@ -66,6 +66,7 @@ CUPS may be enabled by default on workstation installations. Disabling CUPS will
 ## References
 
 1. More detailed documentation on CUPS is available at the project homepage at http://www.cups.org.
+
 - CIS Controls: 9.1 Limit Open Ports, Protocols, and Services
 
 ## Profile

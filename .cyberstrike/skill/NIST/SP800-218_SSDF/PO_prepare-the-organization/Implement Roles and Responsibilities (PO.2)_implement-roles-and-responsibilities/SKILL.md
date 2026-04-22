@@ -14,12 +14,9 @@ tags:
   - practice
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,10 +58,10 @@ Verify development team understands and follows Implement Roles and Responsibili
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -74,15 +71,15 @@ Ensure that everyone inside and outside of the organization involved in the SDLC
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Implement Roles and Responsibilities (PO.2) Implement Roles and Responsibilities not implemented | Medium | Secure Development - Prepare the Organization |
+| Finding                                                                                          | Severity | Impact                                        |
+| ------------------------------------------------------------------------------------------------ | -------- | --------------------------------------------- |
+| Implement Roles and Responsibilities (PO.2) Implement Roles and Responsibilities not implemented | Medium   | Secure Development - Prepare the Organization |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

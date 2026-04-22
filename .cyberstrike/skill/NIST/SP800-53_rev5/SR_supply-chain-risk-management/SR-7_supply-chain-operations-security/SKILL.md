@@ -12,12 +12,10 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SC-38
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SC-38: "Chain with SC-38 for comprehensive security coverage"
 ---
@@ -59,9 +57,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -75,16 +73,16 @@ Supply chain OPSEC expands the scope of OPSEC to include suppliers and potential
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-7 Supply Chain Operations Security not implemented | Medium | Supply Chain Risk Management |
-| SR-7 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                               | Severity | Impact                                  |
+| ----------------------------------------------------- | -------- | --------------------------------------- |
+| SR-7 Supply Chain Operations Security not implemented | Medium   | Supply Chain Risk Management            |
+| SR-7 partially implemented                            | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

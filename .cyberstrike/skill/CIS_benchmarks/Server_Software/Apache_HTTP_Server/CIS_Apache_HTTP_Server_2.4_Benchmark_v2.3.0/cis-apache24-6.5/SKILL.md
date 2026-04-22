@@ -66,8 +66,10 @@ Not Applicable
 ## CIS Controls
 
 **v8:**
+
 - 7.4 Perform Automated Application Patch Management
 
 **v7:**
+
 - 3.4 Deploy Automated Operating System Patch Management Tools
 - 18.4 Only Use Up-to-date And Trusted Third-Party Components

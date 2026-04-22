@@ -90,7 +90,7 @@ oci ce cluster update-endpoint-config \
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters | | x | x |
-| v7 | 7.5 Subscribe to URL-Categorization service | | x | x |
+| Controls Version | Control                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters |      | x    | x    |
+| v7               | 7.5 Subscribe to URL-Categorization service        |      | x    | x    |

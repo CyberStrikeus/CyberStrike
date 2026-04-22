@@ -12,8 +12,7 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - MA-2
@@ -25,8 +24,7 @@ chains_with:
   - SA-2
   - SA-3
   - SA-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-2: "Chain with CA-2 for comprehensive security coverage"
   MA-2: "Chain with MA-2 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -89,16 +87,16 @@ Supply chain elements include organizations, entities, or tools employed for the
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-3 Supply Chain Controls and Processes not implemented | Medium | Supply Chain Risk Management |
-| SR-3 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                                  | Severity | Impact                                  |
+| -------------------------------------------------------- | -------- | --------------------------------------- |
+| SR-3 Supply Chain Controls and Processes not implemented | Medium   | Supply Chain Risk Management            |
+| SR-3 partially implemented                               | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

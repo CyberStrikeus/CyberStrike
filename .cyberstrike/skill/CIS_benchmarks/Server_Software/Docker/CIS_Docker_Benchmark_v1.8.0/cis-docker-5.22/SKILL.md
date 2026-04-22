@@ -59,7 +59,7 @@ When you run a container, it uses the default profile unless you override it wit
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.4 Implement and Manage a Firewall on Servers<br>Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent. | ● | ● | ● |
-| v7 | 9.5 Implement Application Firewalls<br>Place application firewalls in front of any critical servers to verify and validate the traffic going to the server. Any unauthorized traffic should be blocked and logged. | | | ● |
+| Controls Version | Control                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 4.4 Implement and Manage a Firewall on Servers<br>Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent. | ●    | ●    | ●    |
+| v7               | 9.5 Implement Application Firewalls<br>Place application firewalls in front of any critical servers to verify and validate the traffic going to the server. Any unauthorized traffic should be blocked and logged.             |      |      | ●    |

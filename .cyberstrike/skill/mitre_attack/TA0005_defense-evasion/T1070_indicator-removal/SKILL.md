@@ -50,8 +50,7 @@ chains_with:
   - T1070.008
   - T1070.009
   - T1070.010
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1070.001: "Chain with T1070.001 for deeper attack path"
   T1070.002: "Chain with T1070.002 for deeper attack path"
@@ -103,16 +102,16 @@ fsutil usn deletejournal /D C:
 
 Finds a file by user name (if Disk Quotas are enabled), queries allocated ranges for a file, sets a file's short name, sets a file's valid data length, sets zero data for a file, or creates a new file. Upon execution, no output
 will be displayed. More information about fsutil can be found at https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fsutil-file
+
 - https://tria.ge/230601-x8x6bsgb24/behavioral2
 
 **Supported Platforms:** windows
 
 ```powershell
-if (-not (Test-Path "#{file_to_manipulate}")) { New-Item "#{file_to_manipulate}" -Force } 
+if (-not (Test-Path "#{file_to_manipulate}")) { New-Item "#{file_to_manipulate}" -Force }
 echo "1234567890" > "#{file_to_manipulate}"
 fsutil  file setZeroData offset=0 length=#{file_data_length} "#{file_to_manipulate}"
 ```
-
 
 ### Manual Testing
 
@@ -127,32 +126,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 Obfuscate/encrypt event files locally and in transit to avoid giving feedback to an adversary.
 
 ### M1029 Remote Data Storage
+
 Automatically forward events to a log server or data repository to prevent conditions in which the adversary can locate and manipulate data on the local system. When possible, minimize time delay on event reporting to avoid prolonged storage on the local system.
 
 ### M1022 Restrict File and Directory Permissions
-Protect generated event files that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
+Protect generated event files that are stored locally with proper permissions and authentication and limit opportunities for adversaries to increase privileges by preventing Privilege Escalation opportunities.
 
 ## Detection
 
 ### Behavioral Detection of Indicator Removal Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Indicator Removal technique applicable | Low | Defense Evasion |
+| Finding                                | Severity | Impact          |
+| -------------------------------------- | -------- | --------------- |
+| Indicator Removal technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

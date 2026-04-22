@@ -37,8 +37,7 @@ chains_with:
   - T1557.002
   - T1557.003
   - T1557.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1557.001: "Chain with T1557.001 for deeper attack path"
   T1557.002: "Chain with T1557.002 for deeper attack path"
@@ -86,44 +85,48 @@ Adversaries may also leverage the AiTM position to attempt to monitor and/or mod
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 Use network appliances and host-based security software to block network traffic that is not necessary within the environment, such as legacy protocols that may be leveraged for AiTM conditions.
 
 ### M1041 Encrypt Sensitive Information
+
 Ensure that all wired and/or wireless traffic is encrypted appropriately. Use best practices for authentication protocols, such as Kerberos, and ensure web traffic that may contain credentials is protected by SSL/TLS.
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit access to network infrastructure and resources that can be used to reshape traffic or otherwise produce AiTM conditions.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable legacy network protocols that may be used to intercept network traffic if applicable, especially those that are not needed within an environment.
 
 ### M1017 User Training
+
 Train users to be suspicious about certificate errors. Adversaries may use their own certificates in an attempt to intercept HTTPS traffic. Certificate errors may arise when the application’s certificate does not match the one expected by the host.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion detection and prevention systems that can identify traffic patterns indicative of AiTM activity can be used to mitigate activity at the network level.
 
 ### M1030 Network Segmentation
-Network segmentation can be used to isolate infrastructure components that do not require broad network access. This may mitigate, or at least alleviate, the scope of AiTM activity.
 
+Network segmentation can be used to isolate infrastructure components that do not require broad network access. This may mitigate, or at least alleviate, the scope of AiTM activity.
 
 ## Detection
 
 ### Detect Adversary-in-the-Middle via Network and Configuration Anomalies
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Adversary-in-the-Middle technique applicable | High | Credential Access |
+| Finding                                      | Severity | Impact            |
+| -------------------------------------------- | -------- | ----------------- |
+| Adversary-in-the-Middle technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

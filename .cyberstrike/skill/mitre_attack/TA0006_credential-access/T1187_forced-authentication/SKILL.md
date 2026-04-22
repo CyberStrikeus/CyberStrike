@@ -21,10 +21,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-522
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -42,8 +40,8 @@ Adversaries may take advantage of this behavior to gain access to user account h
 
 There are several different ways this can occur. Some specifics from in-the-wild use include:
 
-* A spearphishing attachment containing a document with a resource that is automatically loaded when the document is opened (i.e. Template Injection). The document can include, for example, a request similar to <code>file[:]//[remote address]/Normal.dotm</code> to trigger the SMB request.
-* A modified .LNK or .SCF file with the icon filename pointing to an external reference such as <code>\\[remote address]\pic.png</code> that will force the system to load the resource when the icon is rendered to repeatedly gather credentials.
+- A spearphishing attachment containing a document with a resource that is automatically loaded when the document is opened (i.e. Template Injection). The document can include, for example, a request similar to <code>file[:]//[remote address]/Normal.dotm</code> to trigger the SMB request.
+- A modified .LNK or .SCF file with the icon filename pointing to an external reference such as <code>\\[remote address]\pic.png</code> that will force the system to load the resource when the icon is rendered to repeatedly gather credentials.
 
 Alternatively, by leveraging the <code>EfsRpcOpenFileRaw</code> function, an adversary can send SMB requests to a remote system's MS-EFSRPC interface and force the victim computer to initiate an authentication procedure and share its authentication details. The Encrypting File System Remote Protocol (EFSRPC) is a protocol used in Windows networks for maintenance and management operations on encrypted data that is stored remotely to be accessed over a network. Utilization of <code>EfsRpcOpenFileRaw</code> function in EFSRPC is used to open an encrypted object on the server for backup or restore. Adversaries can collect this data and abuse it as part of a NTLM relay attack to gain access to remote systems on the same internal network.
 
@@ -78,8 +76,9 @@ Write-Host "End of PetitPotam attack"
 ```
 
 **Dependencies:**
+
 - PetitPotam binary must exist on disk and at specified location (#{petitpotam_path}).
-And the computer must be domain joined (implicit authentication).
+  And the computer must be domain joined (implicit authentication).
 
 ### Atomic Test 2: WinPwn - PowerSharpPack - Retrieving NTLM Hashes without Touching LSASS
 
@@ -103,7 +102,6 @@ Ref: https://twitter.com/splinter_code/status/1421144623678988298
 rpcping -s #{server_ip} -e #{custom_port} /a connect /u NTLM 1>$Null
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -117,29 +115,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Use strong passwords to increase the difficulty of credential hashes from being cracked if they are obtained.
 
 ### M1037 Filter Network Traffic
-Block SMB traffic from exiting an enterprise network with egress filtering or by blocking TCP ports 139, 445 and UDP port 137. Filter or block WebDAV protocol traffic from exiting the network. If access to external resources over SMB and WebDAV is necessary, then traffic should be tightly limited with allowlisting.
 
+Block SMB traffic from exiting an enterprise network with egress filtering or by blocking TCP ports 139, 445 and UDP port 137. Filter or block WebDAV protocol traffic from exiting the network. If access to external resources over SMB and WebDAV is necessary, then traffic should be tightly limited with allowlisting.
 
 ## Detection
 
 ### Detect Forced SMB/WebDAV Authentication via lure files and outbound NTLM
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Forced Authentication technique applicable | High | Credential Access |
+| Finding                                    | Severity | Impact            |
+| ------------------------------------------ | -------- | ----------------- |
+| Forced Authentication technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

@@ -67,6 +67,7 @@ DHCP server is not enabled by default.
 ## References
 
 1. More detailed documentation on DHCP is available at http://www.isc.org/software/dhcp.
+
 - CIS Controls: 9.1 Limit Open Ports, Protocols, and Services
 
 ## Profile

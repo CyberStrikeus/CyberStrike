@@ -12,8 +12,7 @@ tags:
   - ca
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-2
   - AC-6
@@ -25,8 +24,7 @@ chains_with:
   - CA-5
   - CA-6
   - CM-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-6: "Chain with AC-6 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -98,16 +96,16 @@ Automation supports more frequent updates to hardware, software, and firmware in
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-7 Continuous Monitoring not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-7 partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                    | Severity | Impact                                               |
+| ------------------------------------------ | -------- | ---------------------------------------------------- |
+| CA-7 Continuous Monitoring not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-7 partially implemented                 | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

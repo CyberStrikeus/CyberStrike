@@ -48,14 +48,14 @@ severity_boost:
 
 Adversaries may leverage the SharePoint repository as a source to mine valuable information. SharePoint will often contain useful information for an adversary to learn about the structure and functionality of the internal network and systems. For example, the following is a list of example information that may hold potential value to an adversary and may also be found on SharePoint:
 
-* Policies, procedures, and standards
-* Physical / logical network diagrams
-* System architecture diagrams
-* Technical system documentation
-* Testing / development credentials (i.e., Unsecured Credentials)
-* Work / project schedules
-* Source code snippets
-* Links to network shares and other internal resources
+- Policies, procedures, and standards
+- Physical / logical network diagrams
+- System architecture diagrams
+- Technical system documentation
+- Testing / development credentials (i.e., Unsecured Credentials)
+- Work / project schedules
+- Source code snippets
+- Links to network shares and other internal resources
 
 ## Kill Chain Phase
 
@@ -86,32 +86,32 @@ Adversaries may leverage the SharePoint repository as a source to mine valuable 
 ## Remediation Guide
 
 ### M1047 Audit
+
 Consider periodic review of accounts and privileges for critical and sensitive SharePoint repositories.
 
 ### M1018 User Account Management
+
 Enforce the principle of least-privilege. Consider implementing access control mechanisms that include both authentication and authorization.
 
 ### M1017 User Training
-Develop and publish policies that define acceptable information to be stored in SharePoint repositories.
 
+Develop and publish policies that define acceptable information to be stored in SharePoint repositories.
 
 ## Detection
 
 ### Detecting Abnormal SharePoint Data Mining by Privileged or Rare Users
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Sharepoint technique applicable | High | Collection |
+| Finding                         | Severity | Impact     |
+| ------------------------------- | -------- | ---------- |
+| Sharepoint technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -33,8 +33,7 @@ cwe_ids:
 chains_with:
   - T1561.001
   - T1561.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1561.001: "Chain with T1561.001 for deeper attack path"
   T1561.002: "Chain with T1561.002 for deeper attack path"
@@ -80,26 +79,24 @@ On network devices, adversaries may wipe configuration files and other data from
 ## Remediation Guide
 
 ### M1053 Data Backup
-Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
+Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and destroy the backups to prevent recovery.
 
 ## Detection
 
 ### Detection Strategy for Disk Wipe via Direct Disk Access and Destructive Commands
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disk Wipe technique applicable | High | Impact |
+| Finding                        | Severity | Impact |
+| ------------------------------ | -------- | ------ |
+| Disk Wipe technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

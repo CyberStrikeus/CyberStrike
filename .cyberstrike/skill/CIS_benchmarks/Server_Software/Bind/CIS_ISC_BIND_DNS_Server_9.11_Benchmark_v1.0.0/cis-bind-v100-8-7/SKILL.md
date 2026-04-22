@@ -17,18 +17,23 @@ severity_boost: {}
 # CIS 8.7 — Ensure Signing Keys are Unique
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 2
 
 ## Description
+
 Each zone should have a unique Zone Signing Keys (ZSK) and a unique Key Signing Keys (KSK) that is different from all other keys.
 
 ## Rationale
+
 The ZSK key typically has a shorter expiration date then the KSK, and should be unique from the KSK as well as keys used for other zones. If a private key is compromised, the damage is limited to unique key that was disclosed, rather the compromising multiple zones.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 To verify each key is unique, and has unique zone usage, perform the following:
 
 - The sample command below will extract the public keys from the key files and count the number of occurrences of each key value
@@ -46,6 +51,7 @@ The count occurrences preceding each key should be one in the output.
 ```
 
 ## Remediation
+
 To remediate a duplicate key, perform the following:
 
 - Generate a new key to replace the duplicate key using dnssec-keygen and one of the recommended algorithms. An example command is shown below:
@@ -58,20 +64,25 @@ To remediate a duplicate key, perform the following:
 - Once the key is fully deleted from the active use, remove the file.
 
 ## Default Value
+
 Not specified.
 
 ## References
+
 None listed in benchmark.
 
 ## CIS Controls
+
 | Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v7 | N/A | N | N | N |
+| ---------------- | ------- | ---- | ---- | ---- |
+| v7               | N/A     | N    | N    | N    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic            | Technique                   |
+| ----------------- | --------------------------- |
 | Credential Access | T1552 Unsecured Credentials |
 
 ## Profile
+
 - Level 2 - Authoritative Name Server

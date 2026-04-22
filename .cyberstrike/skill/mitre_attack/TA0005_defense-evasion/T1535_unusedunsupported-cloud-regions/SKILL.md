@@ -21,10 +21,8 @@ tech_stack:
   - cloud
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -68,26 +66,24 @@ An example of adversary use of unused AWS regions is to mine cryptocurrency thro
 ## Remediation Guide
 
 ### M1054 Software Configuration
-Cloud service providers may allow customers to deactivate unused regions.
 
+Cloud service providers may allow customers to deactivate unused regions.
 
 ## Detection
 
 ### Detection of Adversary Use of Unused or Unsupported Cloud Regions (IaaS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Unused/Unsupported Cloud Regions technique applicable | High | Defense Evasion |
+| Finding                                               | Severity | Impact          |
+| ----------------------------------------------------- | -------- | --------------- |
+| Unused/Unsupported Cloud Regions technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

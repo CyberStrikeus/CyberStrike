@@ -71,13 +71,13 @@ N/A
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | X | X | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | X    | X    | X    |
+| v7               | 4.4 Use Unique Passwords |      | X    | X    |
 
 MITRE ATT&CK Mappings:
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.001, T1078.003 | TA0003 | M1027 |
+| --------------------------- | ------- | ----------- |
+| T1078, T1078.001, T1078.003 | TA0003  | M1027       |

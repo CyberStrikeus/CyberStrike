@@ -21,6 +21,7 @@ severity_boost: {}
 chrony is a daemon which implements the Network Time Protocol (NTP) and is designed to synchronize system clocks across a variety of systems and use a source that is highly accurate. More information on chrony can be found at http://chrony.tuxfamily.org/. chrony can be configured to be a client and/or a server.
 
 Notes:
+
 - If ntp or systemd-timesyncd are used, chrony should be removed and this section skipped
 - This recommendation only applies if chrony is in use on the system
 - Only one time synchronization method should be in use on the system
@@ -55,7 +56,7 @@ Run the following command and verify remote server is configured properly:
 grep -E "^(server|pool)" /etc/chrony/chrony.conf
 ```
 
-Run the following command and verify the first field for the chronyd process is _chrony:
+Run the following command and verify the first field for the chronyd process is \_chrony:
 
 ```bash
 ps -ef | grep chronyd

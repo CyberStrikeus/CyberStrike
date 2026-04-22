@@ -93,32 +93,32 @@ Lua scripts may be executed by adversaries for malicious purposes. Adversaries m
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Prevent users from installing Lua where not required.
 
 ### M1047 Audit
+
 Inventory systems for unauthorized Lua installations.
 
 ### M1038 Execution Prevention
-Denylist Lua interpreters where appropriate.
 
+Denylist Lua interpreters where appropriate.
 
 ## Detection
 
 ### Detection Strategy for Lua Scripting Abuse
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Lua technique applicable | Low | Execution |
+| Finding                  | Severity | Impact    |
+| ------------------------ | -------- | --------- |
+| Lua technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

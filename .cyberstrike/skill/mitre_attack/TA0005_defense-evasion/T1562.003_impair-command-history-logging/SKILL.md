@@ -61,11 +61,11 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may impair command history logging to hide commands they run on a compromised system. Various command interpreters keep track of the commands users type in their terminal so that users can retrace what they've done. 
+Adversaries may impair command history logging to hide commands they run on a compromised system. Various command interpreters keep track of the commands users type in their terminal so that users can retrace what they've done.
 
 On Linux and macOS, command history is tracked in a file pointed to by the environment variable <code>HISTFILE</code>. When a user logs off a system, this information is flushed to a file in the user's home directory called <code>~/.bash_history</code>. The <code>HISTCONTROL</code> environment variable keeps track of what should be saved by the <code>history</code> command and eventually into the <code>~/.bash_history</code> file when a user logs out. <code>HISTCONTROL</code> does not exist by default on macOS, but can be set by the user and will be respected. The `HISTFILE` environment variable is also used in some ESXi systems.
 
-Adversaries may clear the history environment variable (<code>unset HISTFILE</code>) or set the command history size to zero (<code>export HISTFILESIZE=0</code>) to prevent logging of commands. Additionally, <code>HISTCONTROL</code> can be configured to ignore commands that start with a space by simply setting it to "ignorespace". <code>HISTCONTROL</code> can also be set to ignore duplicate commands by setting it to "ignoredups". In some Linux systems, this is set by default to "ignoreboth" which covers both of the previous examples. This means that “ ls” will not be saved, but “ls” would be saved by history. Adversaries can abuse this to operate without leaving traces by simply prepending a space to all of their terminal commands. 
+Adversaries may clear the history environment variable (<code>unset HISTFILE</code>) or set the command history size to zero (<code>export HISTFILESIZE=0</code>) to prevent logging of commands. Additionally, <code>HISTCONTROL</code> can be configured to ignore commands that start with a space by simply setting it to "ignorespace". <code>HISTCONTROL</code> can also be set to ignore duplicate commands by setting it to "ignoredups". In some Linux systems, this is set by default to "ignoreboth" which covers both of the previous examples. This means that “ ls” will not be saved, but “ls” would be saved by history. Adversaries can abuse this to operate without leaving traces by simply prepending a space to all of their terminal commands.
 
 On Windows systems, the <code>PSReadLine</code> module tracks commands used in all PowerShell sessions and writes them to a file (<code>$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt</code> by default). Adversaries may change where these logs are saved using <code>Set-PSReadLineOption -HistorySavePath {File Path}</code>. This will cause <code>ConsoleHost_history.txt</code> to stop receiving logs. Additionally, it is possible to turn off logging to this file using the PowerShell command <code>Set-PSReadlineOption -HistorySaveStyle SaveNothing</code>.
 
@@ -116,8 +116,8 @@ export HISTSIZE=0
 
 ### Atomic Test 3: Mac HISTCONTROL
 
-The HISTCONTROL variable is set to ignore (not write to the history file) command that are a duplicate of something already in the history 
-and commands that start with a space. This atomic sets this variable in the current session and also writes it to the current user's ~/.bash_profile 
+The HISTCONTROL variable is set to ignore (not write to the history file) command that are a duplicate of something already in the history
+and commands that start with a space. This atomic sets this variable in the current session and also writes it to the current user's ~/.bash_profile
 so that it will apply to all future settings as well.
 https://www.linuxjournal.com/content/using-bash-history-more-efficiently-histcontrol
 
@@ -125,7 +125,7 @@ https://www.linuxjournal.com/content/using-bash-history-more-efficiently-histcon
 
 ### Atomic Test 4: Clear bash history
 
-An attacker may clear the bash history cache and the history file as their last act before logging off to remove the record of their command line activities. 
+An attacker may clear the bash history cache and the history file as their last act before logging off to remove the record of their command line activities.
 
 In this test we use the $HISTFILE variable throughout to 1. confirms the $HISTFILE variable is set 2. echo "" into it 3..5 confirm the file is empty 6 clear the history cache 7. confirm the history cache is empty. This is when the attacker would logoff.
 
@@ -136,15 +136,15 @@ cp $HISTFILE $HISTFILE.OLD
 if ((${#HISTFILE[@]})); then echo $HISTFILE; fi
 echo "" > $HISTFILE
 if [ $(wc -c <$HISTFILE) -gt 1 ]; then echo "$HISTFILE is larger than 1k"; fi
-ls -la $HISTFILE 
+ls -la $HISTFILE
 cat $HISTFILE
-history -c 
+history -c
 if [ $(history |wc -l) -eq 1 ]; then echo "History cache cleared"; fi
 ```
 
 ### Atomic Test 5: Setting the HISTCONTROL environment variable
 
-An attacker may exploit the space before a command (e.g. " ls") or the duplicate command suppression feature in Bash history to prevent their commands from being recorded in the history file or to obscure the order of commands used. 
+An attacker may exploit the space before a command (e.g. " ls") or the duplicate command suppression feature in Bash history to prevent their commands from being recorded in the history file or to obscure the order of commands used.
 
 In this test we 1. sets $HISTCONTROL to ignoreboth 2. clears the history cache 3. executes ls -la with a space in-front of it 4. confirms that ls -la is not in the history cache 5. sets $HISTCONTROL to erasedups 6. clears the history cache 7..9 executes ls -la $HISTFILE 3 times 10. confirms that their is only one command in history
 
@@ -153,17 +153,16 @@ In this test we 1. sets $HISTCONTROL to ignoreboth 2. clears the history cache 3
 ```bash
 TEST=$(echo $HISTCONTROL)
 if [ "$HISTCONTROL" != "ignoreboth" ]; then export HISTCONTROL="ignoreboth"; fi
-history -c 
+history -c
 ls -la $HISTFILE # " ls -la $HISTFILE"
 if [ $(history |wc -l) -eq 1 ]; then echo "ls -la is not in history cache"; fi
 if [ "$HISTCONTROL" != "erasedups" ]; then export HISTCONTROL="erasedups"; fi
-history -c 
+history -c
 ls -la $HISTFILE
 ls -la $HISTFILE
 ls -la $HISTFILE
 if [ $(history |wc -l) -eq 2 ]; then echo "Their is only one entry for ls -la $HISTFILE"; fi
 ```
-
 
 ### Manual Testing
 
@@ -178,29 +177,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1028 Operating System Configuration
+
 Make sure that the <code>HISTCONTROL</code> environment variable is set to “ignoredups” instead of “ignoreboth” or “ignorespace”.
 
 ### M1039 Environment Variable Permissions
-Prevent users from changing the <code>HISTCONTROL</code>, <code>HISTFILE</code>, and <code>HISTFILESIZE</code> environment variables.
 
+Prevent users from changing the <code>HISTCONTROL</code>, <code>HISTFILE</code>, and <code>HISTFILESIZE</code> environment variables.
 
 ## Detection
 
 ### Detection Strategy for Impair Defenses via Impair Command History Logging across OS platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Impair Command History Logging technique applicable | Low | Defense Evasion |
+| Finding                                             | Severity | Impact          |
+| --------------------------------------------------- | -------- | --------------- |
+| Impair Command History Logging technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

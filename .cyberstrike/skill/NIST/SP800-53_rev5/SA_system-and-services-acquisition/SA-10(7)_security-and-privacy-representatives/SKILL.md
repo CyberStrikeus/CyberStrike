@@ -15,8 +15,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-16
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SA-10
 severity_boost: {}
@@ -62,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -78,17 +77,16 @@ Information security and privacy representatives can include system security off
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-10(7) Security and Privacy Representatives not implemented | Medium | System and Services Acquisition |
-| SA-10(7) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                                       | Severity | Impact                                     |
+| ------------------------------------------------------------- | -------- | ------------------------------------------ |
+| SA-10(7) Security and Privacy Representatives not implemented | Medium   | System and Services Acquisition            |
+| SA-10(7) partially implemented                                | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

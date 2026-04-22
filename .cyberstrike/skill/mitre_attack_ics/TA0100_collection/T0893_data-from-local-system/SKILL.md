@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,35 +59,36 @@ Review whether mitigations for T0893 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0941 Encrypt Sensitive Information
+
 Information which is sensitive to the operation and architecture of the process environment may be encrypted to ensure confidentiality and restrict access to only those who need to know.
 
 ### M0803 Data Loss Prevention
+
 Data loss prevention can restrict access to sensitive data and detect sensitive data that is unencrypted.
 
 ### M0922 Restrict File and Directory Permissions
+
 Protect files stored locally with proper permissions to limit opportunities for adversaries to interact and collect information from the local system.
 
 ### M0917 User Training
-Develop and publish policies that define acceptable information to be stored on local systems.
 
+Develop and publish policies that define acceptable information to be stored on local systems.
 
 ## Detection
 
 ### Detection of Data from Local System
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Local System technique applicable | Low | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Data from Local System technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -31,9 +29,9 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may leverage external remote services as a point of initial access into your network. These services allow users to connect to internal network resources from external locations. Examples are VPNs, Citrix, and other access mechanisms. Remote service gateways often manage connections and credential authentication for these services. 
+Adversaries may leverage external remote services as a point of initial access into your network. These services allow users to connect to internal network resources from external locations. Examples are VPNs, Citrix, and other access mechanisms. Remote service gateways often manage connections and credential authentication for these services.
 
-External remote services allow administration of a control system from outside the system. Often, vendors and internal engineering groups have access to external remote services to control system networks via the corporate network. In some cases, this access is enabled directly from the internet. While remote access enables ease of maintenance when a control system is in a remote area, compromise of remote access solutions is a liability. The adversary may use these services to gain access to and execute attacks against a control system network. Access to valid accounts is often a requirement. 
+External remote services allow administration of a control system from outside the system. Often, vendors and internal engineering groups have access to external remote services to control system networks via the corporate network. In some cases, this access is enabled directly from the internet. While remote access enables ease of maintenance when a control system is in a remote area, compromise of remote access solutions is a liability. The adversary may use these services to gain access to and execute attacks against a control system network. Access to valid accounts is often a requirement.
 
 As they look for an entry point into the control system network, adversaries may begin searching for existing point-to-point VPN implementations at trusted third party networks or through remote support employee connections where split tunneling is enabled.
 
@@ -63,44 +61,48 @@ Review whether mitigations for T0822 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0930 Network Segmentation
+
 Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls. Consider a jump server or host into the DMZ for greater access control. Leverage this DMZ or corporate resources for vendor access.
 
 ### M0936 Account Use Policies
+
 Configure features related to account use like login attempt lockouts, specific login times, and password strength requirements as examples. Consider these features as they relate to assets which may impact safety and availability.
 
 ### M0935 Limit Access to Resource Over Network
+
 Limit access to remote services through centrally managed concentrators such as VPNs and other managed remote access systems.
 
 ### M0927 Password Policies
+
 Set and enforce secure password policies for accounts.
 
 ### M0918 User Account Management
+
 Consider utilizing jump boxes for external remote access. Additionally, dynamic account management may be used to easily remove accounts when not in use.
 
 ### M0942 Disable or Remove Feature or Program
+
 Consider removal of remote services which are not regularly in use, or only enabling them when required (e.g., vendor remote access). Ensure all external remote access point (e.g., jump boxes, VPN concentrator) are configured with least functionality, especially the removal of unnecessary services.
 
 ### M0932 Multi-factor Authentication
-Use strong multi-factor authentication for remote service accounts to mitigate an adversary's ability to leverage stolen credentials. Be aware of multi-factor authentication interception techniques for some implementations.
 
+Use strong multi-factor authentication for remote service accounts to mitigate an adversary's ability to leverage stolen credentials. Be aware of multi-factor authentication interception techniques for some implementations.
 
 ## Detection
 
 ### Detection of External Remote Services
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| External Remote Services technique applicable | High | Initial Access |
+| Finding                                       | Severity | Impact         |
+| --------------------------------------------- | -------- | -------------- |
+| External Remote Services technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

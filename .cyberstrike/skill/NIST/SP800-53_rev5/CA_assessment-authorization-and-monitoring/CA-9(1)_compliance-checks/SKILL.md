@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-6
 prerequisites:
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +78,16 @@ Compliance checks include verification of the relevant baseline configuration.
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CA-9(1) Compliance Checks not implemented | Medium | Assessment, Authorization, and Monitoring |
-| CA-9(1) partially implemented | Low | Incomplete Assessment, Authorization, and Monitoring |
+| Finding                                   | Severity | Impact                                               |
+| ----------------------------------------- | -------- | ---------------------------------------------------- |
+| CA-9(1) Compliance Checks not implemented | Medium   | Assessment, Authorization, and Monitoring            |
+| CA-9(1) partially implemented             | Low      | Incomplete Assessment, Authorization, and Monitoring |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

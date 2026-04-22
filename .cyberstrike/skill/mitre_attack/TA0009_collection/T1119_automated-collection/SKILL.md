@@ -36,10 +36,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -47,11 +45,11 @@ severity_boost: {}
 
 ## High-Level Description
 
-Once established within a system or network, an adversary may use automated techniques for collecting internal data. Methods for performing this technique could include use of a Command and Scripting Interpreter to search for and copy information fitting set criteria such as file type, location, or name at specific time intervals. 
+Once established within a system or network, an adversary may use automated techniques for collecting internal data. Methods for performing this technique could include use of a Command and Scripting Interpreter to search for and copy information fitting set criteria such as file type, location, or name at specific time intervals.
 
-In cloud-based environments, adversaries may also use cloud APIs, data pipelines, command line interfaces, or extract, transform, and load (ETL) services to automatically collect data. 
+In cloud-based environments, adversaries may also use cloud APIs, data pipelines, command line interfaces, or extract, transform, and load (ETL) services to automatically collect data.
 
-This functionality could also be built into remote access tools. 
+This functionality could also be built into remote access tools.
 
 This technique may incorporate use of other techniques such as File and Directory Discovery and Lateral Tool Transfer to identify and move files, as well as Cloud Service Dashboard and Cloud Storage Object Discovery to identify resources in cloud environments.
 
@@ -103,7 +101,7 @@ Get-ChildItem -Recurse -Include *.doc | % {Copy-Item $_.FullName -destination $e
 
 ### Atomic Test 3: Recon information for export with PowerShell
 
-collect information for exfiltration. Upon execution, check the users temp directory (%temp%) for files T1119_*.txt
+collect information for exfiltration. Upon execution, check the users temp directory (%temp%) for files T1119\_\*.txt
 to see what was collected.
 
 **Supported Platforms:** windows
@@ -116,7 +114,7 @@ Get-Process > $env:TEMP\T1119_3.txt
 
 ### Atomic Test 4: Recon information for export with Command Prompt
 
-collect information for exfiltration. Upon execution, check the users temp directory (%temp%) for files T1119_*.txt
+collect information for exfiltration. Upon execution, check the users temp directory (%temp%) for files T1119\_\*.txt
 to see what was collected.
 
 **Supported Platforms:** windows
@@ -127,7 +125,6 @@ doskey /history > %TEMP%\T1119_2.txt
 wmic process list > %TEMP%\T1119_3.txt
 tree C:\AtomicRedTeam\atomics > %TEMP%\T1119_4.txt
 ```
-
 
 ### Manual Testing
 
@@ -142,29 +139,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1029 Remote Data Storage
+
 Encryption and off-system storage of sensitive information may be one way to mitigate collection of files, but may not stop an adversary from acquiring the information if an intrusion persists over a long period of time and the adversary is able to discover and access the data through other means.
 
 ### M1041 Encrypt Sensitive Information
-Encryption and off-system storage of sensitive information may be one way to mitigate collection of files, but may not stop an adversary from acquiring the information if an intrusion persists over a long period of time and the adversary is able to discover and access the data through other means. Strong passwords should be used on certain encrypted documents that use them to prevent offline cracking through Brute Force techniques.
 
+Encryption and off-system storage of sensitive information may be one way to mitigate collection of files, but may not stop an adversary from acquiring the information if an intrusion persists over a long period of time and the adversary is able to discover and access the data through other means. Strong passwords should be used on certain encrypted documents that use them to prevent offline cracking through Brute Force techniques.
 
 ## Detection
 
 ### Automated File and API Collection Detection Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Automated Collection technique applicable | High | Collection |
+| Finding                                   | Severity | Impact     |
+| ----------------------------------------- | -------- | ---------- |
+| Automated Collection technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

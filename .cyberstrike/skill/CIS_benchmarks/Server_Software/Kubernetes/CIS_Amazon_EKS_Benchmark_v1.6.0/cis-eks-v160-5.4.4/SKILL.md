@@ -70,8 +70,8 @@ By default, Network Policy is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 12.6 Use of Secure Network Management and Communication Protocols | | X | X |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | X | X |
-| v7 | 9.4 Apply Host-based Firewalls or Port Filtering | X | X | X |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.6 Use of Secure Network Management and Communication Protocols  |      | X    | X    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | X    | X    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering                   | X    | X    | X    |

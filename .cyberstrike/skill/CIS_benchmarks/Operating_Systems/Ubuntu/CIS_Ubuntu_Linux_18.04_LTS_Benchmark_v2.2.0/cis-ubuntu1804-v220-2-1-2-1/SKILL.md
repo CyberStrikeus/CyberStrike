@@ -47,11 +47,13 @@ Verify that at least one `pool` line and/or at least three `server` lines are re
 Output examples:
 
 pool directive:
+
 ```
 pool time.nist.gov iburst maxsources 4 #The maxsources option is unique to the pool directive
 ```
 
 server directive:
+
 ```
 server time-a-g.nist.gov iburst
 server 132.163.97.3 iburst
@@ -71,11 +73,13 @@ Edit `/etc/chrony/chrony.conf` or a file ending in `.sources` in `/etc/chrony/so
 Examples:
 
 pool directive:
+
 ```
 pool time.nist.gov iburst maxsources 4 #The maxsources option is unique to the pool directive
 ```
 
 server directive:
+
 ```
 server time-a-g.nist.gov iburst
 server 132.163.97.3 iburst
@@ -89,6 +93,7 @@ Run one of the following commands to load the updated time sources into chronyd 
 ```
 
 OR if sources are in a .sources file:
+
 ```bash
 # chronyc reload sources
 ```
@@ -96,6 +101,7 @@ OR if sources are in a .sources file:
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove chrony from the system:
+
 ```bash
 # apt purge chrony
 ```

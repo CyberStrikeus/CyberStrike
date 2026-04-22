@@ -44,19 +44,19 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may create or modify systemd services to repeatedly execute malicious payloads as part of persistence. Systemd is a system and service manager commonly used for managing background daemon processes (also known as services) and other system resources. Systemd is the default initialization (init) system on many Linux distributions replacing legacy init systems, including SysVinit and Upstart, while remaining backwards compatible. 
+Adversaries may create or modify systemd services to repeatedly execute malicious payloads as part of persistence. Systemd is a system and service manager commonly used for managing background daemon processes (also known as services) and other system resources. Systemd is the default initialization (init) system on many Linux distributions replacing legacy init systems, including SysVinit and Upstart, while remaining backwards compatible.
 
-Systemd utilizes unit configuration files with the `.service` file extension to encode information about a service's process. By default, system level unit files are stored in the `/systemd/system` directory of the root owned directories (`/`). User level unit files are stored in the `/systemd/user` directories of the user owned directories (`$HOME`). 
+Systemd utilizes unit configuration files with the `.service` file extension to encode information about a service's process. By default, system level unit files are stored in the `/systemd/system` directory of the root owned directories (`/`). User level unit files are stored in the `/systemd/user` directories of the user owned directories (`$HOME`).
 
-Inside the `.service` unit files, the following directives are used to execute commands: 
+Inside the `.service` unit files, the following directives are used to execute commands:
 
-* `ExecStart`, `ExecStartPre`, and `ExecStartPost` directives execute when a service is started manually by `systemctl` or on system start if the service is set to automatically start.
-* `ExecReload` directive executes when a service restarts. 
-* `ExecStop`, `ExecStopPre`, and `ExecStopPost` directives execute when a service is stopped. 
+- `ExecStart`, `ExecStartPre`, and `ExecStartPost` directives execute when a service is started manually by `systemctl` or on system start if the service is set to automatically start.
+- `ExecReload` directive executes when a service restarts.
+- `ExecStop`, `ExecStopPre`, and `ExecStopPost` directives execute when a service is stopped.
 
-Adversaries have created new service files, altered the commands a `.service` file’s directive executes, and modified the user directive a `.service` file executes as, which could result in privilege escalation. Adversaries may also place symbolic links in these directories, enabling systemd to find these payloads regardless of where they reside on the filesystem. 
+Adversaries have created new service files, altered the commands a `.service` file’s directive executes, and modified the user directive a `.service` file executes as, which could result in privilege escalation. Adversaries may also place symbolic links in these directories, enabling systemd to find these payloads regardless of where they reside on the filesystem.
 
-The `.service` file’s User directive can be used to run service as a specific user, which could result in privilege escalation based on specific user/group permissions. 
+The `.service` file’s User directive can be used to run service as a specific user, which could result in privilege escalation based on specific user/group permissions.
 
 Systemd services can be created via systemd generators, which support the dynamic generation of unit files. Systemd generators are small executables that run during boot or configuration reloads to dynamically create or modify systemd unit files by converting non-native configurations into services, symlinks, or drop-ins (i.e., Boot or Logon Initialization Scripts).
 
@@ -130,18 +130,18 @@ echo 'load_rc_config ${name}' >> #{rc_service_path}/#{rc_service_file}
 echo 'command="/usr/bin/touch"' >> #{rc_service_path}/#{rc_service_file}
 echo 'start_cmd="art_test_start"' >> #{rc_service_path}/#{rc_service_file}
 echo '' >> #{rc_service_path}/#{rc_service_file}
-echo 'art_test_start()' >> #{rc_service_path}/#{rc_service_file}     
+echo 'art_test_start()' >> #{rc_service_path}/#{rc_service_file}
 echo '{' >> #{rc_service_path}/#{rc_service_file}
 echo '  ${command} /tmp/art-test.marker' >> #{rc_service_path}/#{rc_service_file}
 echo '}' >> #{rc_service_path}/#{rc_service_file}
-echo ' ' >> #{rc_service_path}/#{rc_service_file}     
+echo ' ' >> #{rc_service_path}/#{rc_service_file}
 echo 'run_rc_command "$1"' >> #{rc_service_path}/#{rc_service_file}
 chmod +x #{rc_service_path}/#{rc_service_file}
 service art-test enable
 service art-test start
 ```
 
-### Atomic Test 3: Create Systemd Service file,  Enable the service , Modify and Reload the service.
+### Atomic Test 3: Create Systemd Service file, Enable the service , Modify and Reload the service.
 
 This test creates a systemd service unit file and enables it to autostart on boot. Once service is created and enabled, it also modifies this same service file showcasing both Creation and Modification of system process.
 
@@ -169,8 +169,8 @@ systemctl restart T1543.002
 ```
 
 **Dependencies:**
-- System must be Ubuntu ,Kali OR CentOS.
 
+- System must be Ubuntu ,Kali OR CentOS.
 
 ### Manual Testing
 
@@ -185,35 +185,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit user access to system utilities such as `systemctl` to only users who have a legitimate need.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict read/write access to systemd unit files to only select privileged users who have a legitimate need to manage system services.
 
 ### M1026 Privileged Account Management
+
 The creation and modification of systemd service unit files is generally reserved for administrators such as the Linux root user and other users with superuser privileges.
 
 ### M1033 Limit Software Installation
-Restrict software installation to trusted repositories only and be cautious of orphaned software packages.
 
+Restrict software installation to trusted repositories only and be cautious of orphaned software packages.
 
 ## Detection
 
 ### Detection of Systemd Service Creation or Modification on Linux
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Systemd Service technique applicable | High | Persistence |
+| Finding                              | Severity | Impact      |
+| ------------------------------------ | -------- | ----------- |
+| Systemd Service technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

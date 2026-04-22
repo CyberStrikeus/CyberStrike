@@ -46,16 +46,16 @@ Where possible, remove `create` access to `pod` objects in the cluster.
 
 By default in a kubeadm cluster the following list of principals have `create` privileges on `pod` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin | system:masters |
+| CLUSTERROLEBINDING                                   | SUBJECT                            |
+| ---------------------------------------------------- | ---------------------------------- |
+| cluster-admin                                        | system:masters                     |
 | system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller |
-| system:controller:daemon-set-controller | daemon-set-controller |
-| system:controller:job-controller | job-controller |
-| system:controller:persistent-volume-binder | persistent-volume-binder |
-| system:controller:replicaset-controller | replicaset-controller |
-| system:controller:replication-controller | replication-controller |
-| system:controller:statefulset-controller | statefulset-controller |
+| system:controller:daemon-set-controller              | daemon-set-controller              |
+| system:controller:job-controller                     | job-controller                     |
+| system:controller:persistent-volume-binder           | persistent-volume-binder           |
+| system:controller:replicaset-controller              | replicaset-controller              |
+| system:controller:replication-controller             | replication-controller             |
+| system:controller:statefulset-controller             | statefulset-controller             |
 
 ## References
 
@@ -63,7 +63,7 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | X |
-| v7 | 14 Controlled Access Based on the Need to Know | | | |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | X    |
+| v7               | 14 Controlled Access Based on the Need to Know    |      |      |      |

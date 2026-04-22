@@ -47,9 +47,9 @@ Adversaries may abuse vSphere Installation Bundles (VIBs) to establish persisten
 
 VIBs can be broken down into three components:
 
-* VIB payload: a `.vgz` archive containing the directories and files to be created and executed on boot when the VIBs are loaded. 
-* Signature file: verifies the host acceptance level of a VIB, indicating what testing and validation has been done by VMware or its partners before publication of a VIB. By default, ESXi hosts require a minimum acceptance level of PartnerSupported for VIB installation, meaning the VIB is published by a trusted VMware partner. However, privileged users can change the default acceptance level using the `esxcli` command line interface. Additionally, VIBs are able to be installed regardless of acceptance level by using the <code> esxcli software vib install --force</code> command. 
-* XML descriptor file: a configuration file containing associated VIB metadata, such as the name of the VIB and its dependencies. 
+- VIB payload: a `.vgz` archive containing the directories and files to be created and executed on boot when the VIBs are loaded.
+- Signature file: verifies the host acceptance level of a VIB, indicating what testing and validation has been done by VMware or its partners before publication of a VIB. By default, ESXi hosts require a minimum acceptance level of PartnerSupported for VIB installation, meaning the VIB is published by a trusted VMware partner. However, privileged users can change the default acceptance level using the `esxcli` command line interface. Additionally, VIBs are able to be installed regardless of acceptance level by using the <code> esxcli software vib install --force</code> command.
+- XML descriptor file: a configuration file containing associated VIB metadata, such as the name of the VIB and its dependencies.
 
 Adversaries may leverage malicious VIB packages to maintain persistent access to ESXi hypervisors, allowing system changes to be executed upon each bootup of ESXi – such as using `esxcli` to enable firewall rules for backdoor traffic, creating listeners on hard coded ports, and executing backdoors. Adversaries may also masquerade their malicious VIB files as PartnerSupported by modifying the XML descriptor file.
 
@@ -81,32 +81,32 @@ Adversaries may leverage malicious VIB packages to maintain persistent access to
 ## Remediation Guide
 
 ### M1046 Boot Integrity
+
 Enabling secure boot allows ESXi to validate software and drivers during initial system boot.
 
 ### M1045 Code Signing
+
 Enabling the `execInstalledOnly` feature prevents unsigned binaries from being run on ESXi hosts.
 
 ### M1047 Audit
-Periodically audit ESXi hosts to ensure that only approved VIBs are installed. The command `esxcli software vib list` lists installed VIBs, while the command `esxcli software vib signature verify` verifies the signatures of installed VIBs.
 
+Periodically audit ESXi hosts to ensure that only approved VIBs are installed. The command `esxcli software vib list` lists installed VIBs, while the command `esxcli software vib signature verify` verifies the signatures of installed VIBs.
 
 ## Detection
 
 ### Detect Abuse of vSphere Installation Bundles (VIBs) for Persistent Access
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| vSphere Installation Bundles technique applicable | High | Persistence |
+| Finding                                           | Severity | Impact      |
+| ------------------------------------------------- | -------- | ----------- |
+| vSphere Installation Bundles technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

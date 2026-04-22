@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 5.5.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Cluster Administrators should leverage Oracle Groups and Cloud IAM to assign Kubernetes user roles to a collection of users, instead of to individual emails using only Cloud IAM.
 
 ## Rationale
+
 For most operations on Kubernetes clusters created and managed by Container Engine for Kubernetes, Oracle Cloud Infrastructure Identity and Access Management (IAM) provides access control. A user's permissions to access clusters comes from the groups to which they belong. The permissions for a group are defined by policies. Policies define what actions members of a group can perform, and in which compartments. Users can then access clusters and perform operations based on the policies set for the groups they are members of.
 
 IAM provides control over:
@@ -34,12 +37,15 @@ IAM provides control over:
 See [Policy Configuration for Cluster Creation and Deployment](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengpolicyconfig.htm)
 
 ## Impact
+
 Users must now be assigned to the IAM group created to use this namespace and deploy applications. If they are not they will not be able to access the namespace or deploy.
 
 ## Audit Procedure
+
 By default, users are not assigned any Kubernetes RBAC roles (or clusterroles) by default. So before attempting to create a new role (or clusterrole), you must be assigned an appropriately privileged role (or clusterrole). A number of such roles and clusterroles are always created by default, including the cluster-admin clusterrole (for a full list, see Default Roles and Role Bindings in the Kubernetes documentation). The cluster-admin clusterrole essentially confers super-user privileges. A user granted the cluster-admin clusterrole can perform any operation across all namespaces in a given cluster.
 
 ## Remediation
+
 Example: Granting the Kubernetes RBAC cluster-admin clusterrole
 
 Follow these steps to grant a user who is not a tenancy administrator the Kubernetes RBAC cluster-admin clusterrole on a cluster deployed on Oracle Cloud Infrastructure:
@@ -63,22 +69,25 @@ $ kubectl create clusterrolebinding jdoe_clst_adm --clusterrole=cluster-admin --
 ```
 
 ## Default Value
+
 By default, users are not assigned any Kubernetes RBAC roles or clusterroles.
 
 ## References
+
 1. https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengaboutaccesscontrol.htm
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) | | * | * |
-| v7 | 16.2 Configure Centralized Point of Authentication | | * | * |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.5 Centralize Network Authentication, Authorization, and Auditing (AAA) |      | \*   | \*   |
+| v7               | 16.2 Configure Centralized Point of Authentication                        |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
+| --------------------------- | ------- | ----------- |
 
 ## Profile
+
 **Level 1** (Manual)

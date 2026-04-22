@@ -102,7 +102,7 @@ If using executable arguments, edit the kubelet service file `/etc/systemd/syste
 
 If using the api configz endpoint consider searching for the status of `"streamingConnectionIdleTimeout":` by extracting the live configuration from the nodes running kubelet.
 
-**See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
+\*\*See detailed step-by-step configmap procedures in Reconfigure a Node's Kubelet in a Live Cluster, and then rerun the curl statement from audit process to check for kubelet configuration changes
 
 ```bash
 kubectl proxy --port=8001 &
@@ -134,7 +134,7 @@ See the GKE documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | **12.6 Use of Secure Network Management and Communication Protocols** - Use secure network management and communication protocols (e.g., 802.1X, Wi-Fi Protected Access 2 (WPA2) Enterprise or greater). | | | |
-| v7 | **9.2 Ensure Only Approved Ports, Protocols and Services Are Running** - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | | |
+| Controls Version | Control                                                                                                                                                                                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | **12.6 Use of Secure Network Management and Communication Protocols** - Use secure network management and communication protocols (e.g., 802.1X, Wi-Fi Protected Access 2 (WPA2) Enterprise or greater).          |      |      |      |
+| v7               | **9.2 Ensure Only Approved Ports, Protocols and Services Are Running** - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. |      |      |      |

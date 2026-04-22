@@ -122,7 +122,6 @@ if (Test-Path -Path $registryPath) {
 }
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -136,29 +135,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Regularly check component software on critical services that adversaries may target for persistence to verify the integrity of the systems and identify if unexpected changes have been made.
 
 ### M1024 Restrict Registry Permissions
-Consider using Group Policy to configure and block modifications to Terminal Services parameters in the Registry.
 
+Consider using Group Policy to configure and block modifications to Terminal Services parameters in the Registry.
 
 ## Detection
 
 ### Detection Strategy for T1505.005 – Terminal Services DLL Modification (Windows)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Terminal Services DLL technique applicable | Low | Persistence |
+| Finding                                    | Severity | Impact      |
+| ------------------------------------------ | -------- | ----------- |
+| Terminal Services DLL technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

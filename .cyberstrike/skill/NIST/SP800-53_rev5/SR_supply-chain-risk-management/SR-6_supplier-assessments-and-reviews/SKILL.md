@@ -12,13 +12,11 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SR-3
   - SR-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   SR-3: "Chain with SR-3 for comprehensive security coverage"
   SR-5: "Chain with SR-5 for comprehensive security coverage"
@@ -61,9 +59,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -77,16 +75,16 @@ An assessment and review of supplier risk includes security and supply chain ris
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-6 Supplier Assessments and Reviews not implemented | Medium | Supply Chain Risk Management |
-| SR-6 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                               | Severity | Impact                                  |
+| ----------------------------------------------------- | -------- | --------------------------------------- |
+| SR-6 Supplier Assessments and Reviews not implemented | Medium   | Supply Chain Risk Management            |
+| SR-6 partially implemented                            | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

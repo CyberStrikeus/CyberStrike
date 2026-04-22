@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Organizational policies regarding dynamic information flow control include allow
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-4(3) Dynamic Information Flow Control not implemented | High | Access Control |
-| AC-4(3) partially implemented | Medium | Incomplete Access Control |
+| Finding                                                  | Severity | Impact                    |
+| -------------------------------------------------------- | -------- | ------------------------- |
+| AC-4(3) Dynamic Information Flow Control not implemented | High     | Access Control            |
+| AC-4(3) partially implemented                            | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

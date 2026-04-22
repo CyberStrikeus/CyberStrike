@@ -84,29 +84,28 @@ Modify System Image may include implanted code to the operating system for netwo
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Restrict administrator accounts to as few individuals as possible, following least privilege principles. Prevent credential overlap across systems of administrator and privileged accounts, particularly between network and non-network platforms, such as servers or endpoints.
 
 ### M1032 Multi-factor Authentication
-Use multi-factor authentication for user and privileged accounts. Most embedded network devices support TACACS+ and/or RADIUS. Follow vendor prescribed best practices for hardening access control.
 
+Use multi-factor authentication for user and privileged accounts. Most embedded network devices support TACACS+ and/or RADIUS. Follow vendor prescribed best practices for hardening access control.
 
 ## Detection
 
 ### Detect Modification of Network Device Authentication via Patched System Images
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Device Authentication technique applicable | High | Credential Access |
+| Finding                                            | Severity | Impact            |
+| -------------------------------------------------- | -------- | ----------------- |
+| Network Device Authentication technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

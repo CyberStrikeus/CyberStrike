@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -76,10 +73,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -103,16 +100,16 @@ System security plans provide key characteristics of the system that is processi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Security Plan (03.15.02) System Security Plan not implemented | Medium | CUI Protection - Planning |
-| System Security Plan (03.15.02) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                              | Severity | Impact                    |
+| -------------------------------------------------------------------- | -------- | ------------------------- |
+| System Security Plan (03.15.02) System Security Plan not implemented | Medium   | CUI Protection - Planning |
+| System Security Plan (03.15.02) partially implemented (POA&M)        | Low      | CMMC certification risk   |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

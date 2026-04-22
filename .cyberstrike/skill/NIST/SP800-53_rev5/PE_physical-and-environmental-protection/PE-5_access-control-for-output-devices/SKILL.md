@@ -12,15 +12,13 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-2
   - PE-3
   - PE-4
   - PE-18
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PE-2: "Chain with PE-2 for comprehensive security coverage"
   PE-3: "Chain with PE-3 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Controlling physical access to output devices includes placing output devices in
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-5 Access Control for Output Devices not implemented | Medium | Physical and Environmental Protection |
-| PE-5 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                                | Severity | Impact                                           |
+| ------------------------------------------------------ | -------- | ------------------------------------------------ |
+| PE-5 Access Control for Output Devices not implemented | Medium   | Physical and Environmental Protection            |
+| PE-5 partially implemented                             | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

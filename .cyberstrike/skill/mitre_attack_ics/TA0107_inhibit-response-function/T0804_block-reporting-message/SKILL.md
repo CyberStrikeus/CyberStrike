@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -61,32 +59,32 @@ Review whether mitigations for T0804 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0814 Static Network Configuration
+
 Unauthorized connections can be prevented by statically defining the hosts and ports used for automation protocol connections.
 
 ### M0810 Out-of-Band Communications Channel
+
 Provide an alternative method for sending critical report messages to operators, this could include using radio/cell communication to obtain messages from field technicians that can locally obtain telemetry and status data.
 
 ### M0807 Network Allowlists
-Utilize network allowlists to restrict unnecessary connections to network devices (e.g., comm servers, serial to ethernet converters) and services, especially in cases when devices have limits on the number of simultaneous sessions they support.
 
+Utilize network allowlists to restrict unnecessary connections to network devices (e.g., comm servers, serial to ethernet converters) and services, especially in cases when devices have limits on the number of simultaneous sessions they support.
 
 ## Detection
 
 ### Detection of Block Reporting Message
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Block Reporting Message technique applicable | Low | Inhibit Response Function |
+| Finding                                      | Severity | Impact                    |
+| -------------------------------------------- | -------- | ------------------------- |
+| Block Reporting Message technique applicable | Low      | Inhibit Response Function |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

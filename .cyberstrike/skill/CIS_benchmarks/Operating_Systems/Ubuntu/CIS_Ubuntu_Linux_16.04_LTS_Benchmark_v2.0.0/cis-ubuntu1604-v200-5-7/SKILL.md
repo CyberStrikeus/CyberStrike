@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure access to the su command is restricted
 
 **Profile Applicability:**
+
 - Level 1 - Server
 - Level 1 - Workstation
 
@@ -66,7 +67,7 @@ There should be no users listed after the Group ID field.
 
 Create an empty group that will be specified for use of the `su` command. The group should be named according to site policy.
 
-*Example:*
+_Example:_
 
 ```bash
 groupadd sugroup
@@ -74,7 +75,7 @@ groupadd sugroup
 
 Add the following line to the `/etc/pam.d/su` file, specifying the empty group:
 
-*Example:*
+_Example:_
 
 ```
 auth required pam_wheel.so use_uid group=sugroup
@@ -86,9 +87,9 @@ None
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 5.1 Establish Secure Configurations - Maintain documented, standard security configuration standards for all authorized operating systems and software. |
+| Controls Version | Control                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 5.1 Establish Secure Configurations - Maintain documented, standard security configuration standards for all authorized operating systems and software. |
 
 ## Profile
 

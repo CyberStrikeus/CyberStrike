@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-287
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - IA-5
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Implement this control per organizational risk assessment and system categorizat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-5(3) In-person or Trusted External Party Registration not implemented | High | Identification and Authentication |
-| IA-5(3) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                                  | Severity | Impact                                       |
+| ------------------------------------------------------------------------ | -------- | -------------------------------------------- |
+| IA-5(3) In-person or Trusted External Party Registration not implemented | High     | Identification and Authentication            |
+| IA-5(3) partially implemented                                            | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

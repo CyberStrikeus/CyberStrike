@@ -36,8 +36,7 @@ cwe_ids:
 chains_with:
   - T1498.001
   - T1498.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1498.001: "Chain with T1498.001 for deeper attack path"
   T1498.002: "Chain with T1498.002 for deeper attack path"
@@ -87,30 +86,28 @@ For DoS attacks targeting the hosting system directly, see Endpoint Denial of Se
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
+
 When flood volumes exceed the capacity of the network connection being targeted, it is typically necessary to intercept the incoming traffic upstream to filter out the attack traffic from the legitimate traffic. Such defenses can be provided by the hosting Internet Service Provider (ISP) or by a 3rd party such as a Content Delivery Network (CDN) or providers specializing in DoS mitigations.
 
 Depending on flood volume, on-premises filtering may be possible by blocking source addresses sourcing the attack, blocking ports that are being targeted, or blocking protocols being used for transport.
 
 As immediate response may require rapid engagement of 3rd parties, analyze the risk associated to critical resources being affected by Network DoS attacks and create a disaster recovery plan/business continuity plan to respond to incidents.
 
-
 ## Detection
 
 ### Behavioral Detection of T1498 – Network Denial of Service Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Denial of Service technique applicable | Low | Impact |
+| Finding                                        | Severity | Impact |
+| ---------------------------------------------- | -------- | ------ |
+| Network Denial of Service technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

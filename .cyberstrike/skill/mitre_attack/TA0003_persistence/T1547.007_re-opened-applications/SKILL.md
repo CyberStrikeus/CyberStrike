@@ -102,7 +102,7 @@ sudo defaults write com.apple.loginwindow LoginHook #{script}
 
 ### Atomic Test 3: Append to existing loginwindow for Re-Opened Applications
 
-Appends an entry to launch Calculator hidden loginwindow.*.plist for next login.
+Appends an entry to launch Calculator hidden loginwindow.\*.plist for next login.
 Note that the change may not result in the added Calculator program launching on next user login.
 It may depend on which version of macOS you are running on.
 
@@ -120,8 +120,8 @@ echo overwriting...
 ```
 
 **Dependencies:**
-- compile C program
 
+- compile C program
 
 ### Manual Testing
 
@@ -136,29 +136,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 This feature can be disabled entirely with the following terminal command: <code>defaults write -g ApplePersistence -bool no</code>.
 
 ### M1017 User Training
-Holding the Shift key while logging in prevents apps from opening automatically.
 
+Holding the Shift key while logging in prevents apps from opening automatically.
 
 ## Detection
 
 ### Detect persistence via reopened application plist modification (macOS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Re-opened Applications technique applicable | Low | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Re-opened Applications technique applicable | Low      | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

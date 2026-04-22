@@ -45,6 +45,7 @@ Verify that `NTP=<space_separated_list_of_servers>` and/or `FallbackNTP=<space_s
 ## Expected Result
 
 Example Output:
+
 ```
 /etc/systemd/timesyncd.conf:NTP=time.nist.gov
 /etc/systemd/timesyncd.conf:FallbackNTP=time-a-g.nist.gov time-b-g.nist.gov time-c-g.nist.gov
@@ -57,6 +58,7 @@ Example Output:
 Edit `/etc/systemd/timesyncd.conf` and add the `NTP=` and/or `FallbackNTP=` lines to the `[Time]` section:
 
 Example:
+
 ```
 [Time]
 NTP=time.nist.gov # Uses the generic name for NIST's time servers
@@ -67,6 +69,7 @@ FallbackNTP=time-a-g.nist.gov time-b-g.nist.gov time-c-g.nist.gov # Space separa
 Note: Servers added to these line(s) should follow local site policy. NIST servers are for example.
 
 Run the following command to reload the systemd-timesyncd configuration:
+
 ```bash
 # systemctl try-reload-or-restart systemd-timesyncd
 ```
@@ -74,6 +77,7 @@ Run the following command to reload the systemd-timesyncd configuration:
 -OR-
 
 If another time synchronization service is in use on the system, run the following command to stop and mask systemd-timesyncd:
+
 ```bash
 # systemctl --now mask systemd-timesyncd
 ```

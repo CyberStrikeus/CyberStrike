@@ -62,7 +62,9 @@ The ModSecurity module is NOT loaded by default.
 ## CIS Controls
 
 **v8:**
+
 - 4.4 Implement and Manage a Firewall on Servers
 
 **v7:**
+
 - 18.10 Deploy Web Application Firewalls (WAFs)

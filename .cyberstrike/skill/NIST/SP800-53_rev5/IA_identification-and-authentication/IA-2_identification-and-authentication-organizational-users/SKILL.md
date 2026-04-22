@@ -29,8 +29,7 @@ chains_with:
   - AU-6
   - IA-4
   - IA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-3: "Chain with AC-3 for comprehensive security coverage"
@@ -78,10 +77,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -99,17 +98,16 @@ The use of encrypted virtual private networks for network connections between or
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-2 Identification and Authentication (Organizational Users) not implemented | High | Identification and Authentication |
-| IA-2 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                                       | Severity | Impact                                       |
+| ----------------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-2 Identification and Authentication (Organizational Users) not implemented | High     | Identification and Authentication            |
+| IA-2 partially implemented                                                    | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

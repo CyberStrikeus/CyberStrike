@@ -61,7 +61,7 @@ By default, `--terminated-pod-gc-threshold` is set to `12500`.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features |      | x    | x    |
+| v7               | 5.1 Establish Secure Configurations    | x    | x    | x    |

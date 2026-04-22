@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -75,32 +73,32 @@ In general, adversaries may manipulate, overwrite, or corrupt firmware in order 
 ## Remediation Guide
 
 ### M1051 Update Software
+
 Patch the BIOS and other firmware as necessary to prevent successful use of known vulnerabilities.
 
 ### M1026 Privileged Account Management
+
 Prevent adversary access to privileged accounts or access necessary to replace system firmware.
 
 ### M1046 Boot Integrity
-Check the integrity of the existing BIOS and device firmware to determine if it is vulnerable to modification.
 
+Check the integrity of the existing BIOS and device firmware to determine if it is vulnerable to modification.
 
 ## Detection
 
 ### Firmware Modification via Flash Tool or Corrupted Firmware Upload
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Firmware Corruption technique applicable | Low | Impact |
+| Finding                                  | Severity | Impact |
+| ---------------------------------------- | -------- | ------ |
+| Firmware Corruption technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

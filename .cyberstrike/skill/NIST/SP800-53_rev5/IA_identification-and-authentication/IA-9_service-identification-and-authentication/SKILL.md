@@ -24,8 +24,7 @@ chains_with:
   - IA-5
   - IA-13
   - SC-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   IA-3: "Chain with IA-3 for comprehensive security coverage"
   IA-4: "Chain with IA-4 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -86,17 +85,16 @@ Services that may require identification and authentication include web applicat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-9 Service Identification and Authentication not implemented | High | Identification and Authentication |
-| IA-9 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                        | Severity | Impact                                       |
+| -------------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-9 Service Identification and Authentication not implemented | High     | Identification and Authentication            |
+| IA-9 partially implemented                                     | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

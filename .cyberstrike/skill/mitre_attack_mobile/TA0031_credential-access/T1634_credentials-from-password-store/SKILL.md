@@ -23,8 +23,7 @@ cwe_ids:
   - CWE-522
 chains_with:
   - T1634.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1634.001: "Chain with T1634.001 for deeper attack path"
 ---
@@ -61,32 +60,32 @@ Review whether mitigations for T1634 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1001 Security Updates
+
 Apple regularly provides security updates for known OS vulnerabilities.
 
 ### M1002 Attestation
+
 Device attestation can often detect jailbroken devices.
 
 ### M1010 Deploy Compromised Device Detection Method
-Mobile security products can take appropriate action when jailbroken devices are detected, potentially limiting the adversary’s access to password stores.
 
+Mobile security products can take appropriate action when jailbroken devices are detected, potentially limiting the adversary’s access to password stores.
 
 ## Detection
 
 ### Detection of Credentials from Password Store
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Credentials from Password Store technique applicable | High | Credential Access |
+| Finding                                              | Severity | Impact            |
+| ---------------------------------------------------- | -------- | ----------------- |
+| Credentials from Password Store technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

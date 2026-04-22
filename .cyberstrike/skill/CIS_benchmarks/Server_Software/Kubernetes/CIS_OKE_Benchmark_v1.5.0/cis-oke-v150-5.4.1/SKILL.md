@@ -62,10 +62,10 @@ By default, Master Authorized Networks is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 9.3 Maintain and Enforce Network-Based URL Filters - Enforce and update network-based URL filters to limit an enterprise asset from connecting to potentially malicious or unapproved websites. Example implementations include category-based filtering, reputation-based filtering, or through the use of block lists. Enforce filters for all enterprise assets. | | x | x |
-| v7 | 7.5 Subscribe to URL-Categorization service - Subscribe to URL categorization services to ensure that they are up-to-date with the most recent website category definitions available. Uncategorized sites shall be blocked by default. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                                                                                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 9.3 Maintain and Enforce Network-Based URL Filters - Enforce and update network-based URL filters to limit an enterprise asset from connecting to potentially malicious or unapproved websites. Example implementations include category-based filtering, reputation-based filtering, or through the use of block lists. Enforce filters for all enterprise assets. |      | x    | x    |
+| v7               | 7.5 Subscribe to URL-Categorization service - Subscribe to URL categorization services to ensure that they are up-to-date with the most recent website category definitions available. Uncategorized sites shall be blocked by default.                                                                                                                             |      | x    | x    |
 
 ## Profile
 

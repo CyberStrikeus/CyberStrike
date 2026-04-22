@@ -10,16 +10,20 @@ severity_boost: {}
 # 6.3.4.1 Ensure audit log files mode is configured (Automated)
 
 ## Profile Applicability
+
 - Level 2 - Server
 - Level 2 - Workstation
 
 ## Description
+
 Audit log files contain information about the system and system activity.
 
 ## Rationale
+
 Access to audit records can reveal system and configuration data to attackers, potentially compromising its confidentiality.
 
 ## Audit
+
 Run the following script to verify audit log files are mode `0640` or more restrictive:
 
 ```bash
@@ -52,6 +56,7 @@ Run the following script to verify audit log files are mode `0640` or more restr
 ```
 
 ## Remediation
+
 Run the following command to remove more permissive mode than `0640` from audit log files:
 
 ```bash
@@ -59,13 +64,16 @@ Run the following command to remove more permissive mode than `0640` from audit 
 ```
 
 ## References
+
 1. NIST SP 800-53 Rev. 5: AU-3
 
 ## CIS Controls
+
 - v8: 3.3 Configure Data Access Control Lists
 - v7: 14.6 Protect Information through Access Control Lists
 
 ## MITRE ATT&CK Mappings
+
 - **Techniques**: T1070, T1070.002, T1083, T1083.000
 - **Tactics**: TA0007
 - **Mitigations**: M1022

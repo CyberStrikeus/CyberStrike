@@ -48,8 +48,7 @@ chains_with:
   - T1564.012
   - T1564.013
   - T1564.014
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1564.001: "Chain with T1564.001 for deeper attack path"
   T1564.002: "Chain with T1564.002 for deeper attack path"
@@ -87,9 +86,9 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Extract binary files via VBA
 
-This module extracts a binary (calc.exe) from inside of another binary. 
+This module extracts a binary (calc.exe) from inside of another binary.
 
-In the wild maldoc authors will use this technique to hide binaries inside of files stored 
+In the wild maldoc authors will use this technique to hide binaries inside of files stored
 within the office document itself. An example of this technique can be seen in sample
 
 f986040c7dd75b012e7dfd876acb33a158abf651033563ab068800f07f508226
@@ -110,6 +109,7 @@ Invoke-Maldoc -macroCode "$macro" -officeProduct "Word" -sub "Extract" -NoWrap
 ```
 
 **Dependencies:**
+
 - Microsoft Word must be installed
 
 ### Atomic Test 2: Create a Hidden User Called "$"
@@ -163,8 +163,8 @@ cmd /c "#{nircmd_location}" #{command_to_execute}
 ```
 
 **Dependencies:**
-- The Nircmd executable must exist at (#{nircmd_location})
 
+- The Nircmd executable must exist at (#{nircmd_location})
 
 ### Manual Testing
 
@@ -179,35 +179,36 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1033 Limit Software Installation
+
 Restrict the installation of software that may be abused to create hidden desktops, such as hVNC, to user groups that require it.
 
 ### M1013 Application Developer Guidance
+
 Application developers should consider limiting the requirements for custom or otherwise difficult to manage file/folder exclusions. Where possible, install applications to trusted system folder paths that are already protected by restricted file and directory permissions.
 
 ### M1047 Audit
+
 Periodically audit virtual machines for abnormalities.
 
 ### M1049 Antivirus/Antimalware
-Review and audit file/folder exclusions, and limit scope of exclusions to only what is required where possible.
 
+Review and audit file/folder exclusions, and limit scope of exclusions to only what is required where possible.
 
 ## Detection
 
 ### Detection Strategy for Hidden Artifacts Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hide Artifacts technique applicable | Low | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Hide Artifacts technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -67,6 +67,7 @@ $ rm -rf $CATALINA_HOME/webapps/host-manager \
 ## CIS Controls
 
 **v7:**
+
 - 2.6 Address unapproved software
   - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner
 

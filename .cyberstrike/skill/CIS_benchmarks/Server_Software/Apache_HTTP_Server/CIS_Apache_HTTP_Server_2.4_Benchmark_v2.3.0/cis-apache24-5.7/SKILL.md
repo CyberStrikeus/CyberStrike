@@ -17,6 +17,7 @@ severity_boost: {}
 # 5.7 Ensure HTTP Request Methods Are Restricted
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -129,9 +130,10 @@ LoadModule allowmethods_module modules/mod_allowmethods.so
 
 The `LimitExcept` implementation may not work well for proxy configurations or systems with many locations or directories.
 A global rewrite condition can be implemented either by explicitly forbidding REQUEST_METHODs or by rejecting everything but the allowed REQUEST_METHODs
+
 1. Reject specific REQUEST_METHODs
 
-RewriteEngine On RewriteCond %{REQUEST_METHOD} ^(PUT|DELETE|TRACE|OPTIONS|CONNECT)$ [NC] RewriteRule .* - [F]
+RewriteEngine On RewriteCond %{REQUEST_METHOD} ^(PUT|DELETE|TRACE|OPTIONS|CONNECT)$ [NC] RewriteRule .\* - [F]
 
 2. Reject everything but allowed REQUEST_METHODs
 
@@ -149,10 +151,11 @@ No Limits on HTTP methods.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 12.6 Use of Secure Network Management and Communication Protocols<br>Use secure network management and communication protocols (e.g., 802.1X, Wi-Fi Protected Access 2 (WPA2) Enterprise or greater). | | ● | ● |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. | | ● | ● |
+| Controls Version | Control                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 12.6 Use of Secure Network Management and Communication Protocols<br>Use secure network management and communication protocols (e.g., 802.1X, Wi-Fi Protected Access 2 (WPA2) Enterprise or greater).          |      | ●    | ●    |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running<br>Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system. |      | ●    | ●    |
 
 ## Profile
+
 - Level 2 | Manual

@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - AC-7
   - AC-19
@@ -26,8 +25,7 @@ chains_with:
   - PL-2
   - SC-12
   - SC-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-7: "Chain with AC-7 for comprehensive security coverage"
   AC-19: "Chain with AC-19 for comprehensive security coverage"
@@ -72,9 +70,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ System media includes digital and non-digital media. Digital media includes flas
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MP-5 Media Transport not implemented | Medium | Media Protection |
-| MP-5 partially implemented | Low | Incomplete Media Protection |
+| Finding                              | Severity | Impact                      |
+| ------------------------------------ | -------- | --------------------------- |
+| MP-5 Media Transport not implemented | Medium   | Media Protection            |
+| MP-5 partially implemented           | Low      | Incomplete Media Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

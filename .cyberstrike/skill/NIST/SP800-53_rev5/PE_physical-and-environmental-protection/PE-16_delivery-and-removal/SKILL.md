@@ -12,8 +12,7 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-3
   - CM-8
@@ -25,8 +24,7 @@ chains_with:
   - SR-3
   - SR-4
   - SR-6
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-3: "Chain with CM-3 for comprehensive security coverage"
   CM-8: "Chain with CM-8 for comprehensive security coverage"
@@ -71,9 +69,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -88,16 +86,16 @@ Enforcing authorizations for entry and exit of system components may require res
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-16 Delivery and Removal not implemented | Medium | Physical and Environmental Protection |
-| PE-16 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                    | Severity | Impact                                           |
+| ------------------------------------------ | -------- | ------------------------------------------------ |
+| PE-16 Delivery and Removal not implemented | Medium   | Physical and Environmental Protection            |
+| PE-16 partially implemented                | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

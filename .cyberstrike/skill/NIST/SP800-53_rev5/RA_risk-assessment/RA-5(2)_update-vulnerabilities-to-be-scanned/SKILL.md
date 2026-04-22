@@ -13,8 +13,7 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SI-5
 prerequisites:
@@ -63,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -79,16 +78,16 @@ Due to the complexity of modern software, systems, and other factors, new vulner
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| RA-5(2) Update Vulnerabilities to Be Scanned not implemented | Medium | Risk Assessment |
-| RA-5(2) partially implemented | Low | Incomplete Risk Assessment |
+| Finding                                                      | Severity | Impact                     |
+| ------------------------------------------------------------ | -------- | -------------------------- |
+| RA-5(2) Update Vulnerabilities to Be Scanned not implemented | Medium   | Risk Assessment            |
+| RA-5(2) partially implemented                                | Low      | Incomplete Risk Assessment |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

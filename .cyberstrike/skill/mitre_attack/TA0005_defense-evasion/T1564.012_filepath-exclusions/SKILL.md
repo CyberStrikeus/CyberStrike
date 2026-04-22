@@ -91,29 +91,28 @@ Adversaries may abuse these exclusions to hide their file-based artifacts. For e
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Review and audit file/folder exclusions, and limit scope of exclusions to only what is required where possible.
 
 ### M1013 Application Developer Guidance
-Application developers should consider limiting the requirements for custom or otherwise difficult to manage file/folder exclusions. Where possible, install applications to trusted system folder paths that are already protected by restricted file and directory permissions.
 
+Application developers should consider limiting the requirements for custom or otherwise difficult to manage file/folder exclusions. Where possible, install applications to trusted system folder paths that are already protected by restricted file and directory permissions.
 
 ## Detection
 
 ### Detection Strategy for File/Path Exclusions
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File/Path Exclusions technique applicable | Medium | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| File/Path Exclusions technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

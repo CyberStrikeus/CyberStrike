@@ -50,9 +50,9 @@ By default, Pod Security Admission is enabled but no policies are in place.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 13.4 Perform Traffic Filtering Between Network Segments | | X | X |
-| v8 | 13.10 Perform Application Layer Filtering | | | X |
-| v7 | 4.7 Limit Access to Script Tools | | X | X |
-| v7 | 9.4 Apply Host-based Firewalls or Port Filtering | X | X | X |
+| Controls Version | Control                                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 13.4 Perform Traffic Filtering Between Network Segments |      | X    | X    |
+| v8               | 13.10 Perform Application Layer Filtering               |      |      | X    |
+| v7               | 4.7 Limit Access to Script Tools                        |      | X    | X    |
+| v7               | 9.4 Apply Host-based Firewalls or Port Filtering        | X    | X    | X    |

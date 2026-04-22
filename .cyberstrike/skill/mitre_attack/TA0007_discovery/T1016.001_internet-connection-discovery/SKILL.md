@@ -121,7 +121,6 @@ Check internet connection using PowerShell's Test-NetConnection cmdlet and the T
 Test-NetConnection -CommonTCPPort SMB -ComputerName #{target}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -140,19 +139,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Internet Connection Discovery
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internet Connection Discovery technique applicable | Medium | Discovery |
+| Finding                                            | Severity | Impact    |
+| -------------------------------------------------- | -------- | --------- |
+| Internet Connection Discovery technique applicable | Medium   | Discovery |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

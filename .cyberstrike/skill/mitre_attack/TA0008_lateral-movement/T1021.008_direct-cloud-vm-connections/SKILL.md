@@ -47,7 +47,7 @@ severity_boost:
 
 Adversaries may leverage Valid Accounts to log directly into accessible cloud hosted compute infrastructure through cloud native methods. Many cloud providers offer interactive connections to virtual infrastructure that can be accessed through the Cloud API, such as Azure Serial Console, AWS EC2 Instance Connect, and AWS System Manager..
 
-Methods of authentication for these connections can include passwords, application access tokens, or SSH keys. These cloud native methods may, by default, allow for privileged access on the host with SYSTEM or root level access. 
+Methods of authentication for these connections can include passwords, application access tokens, or SSH keys. These cloud native methods may, by default, allow for privileged access on the host with SYSTEM or root level access.
 
 Adversaries may utilize these cloud native methods to directly access virtual infrastructure and pivot through an environment. These connections typically provide direct console access to the VM rather than the execution of scripts (i.e., Cloud Administration Command).
 
@@ -79,29 +79,28 @@ Adversaries may utilize these cloud native methods to directly access virtual in
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit which users are allowed to access compute infrastructure via cloud native methods.
 
 ### M1042 Disable or Remove Feature or Program
-If direct virtual machine connections are not required for administrative use, disable these connection types where feasible.
 
+If direct virtual machine connections are not required for administrative use, disable these connection types where feasible.
 
 ## Detection
 
 ### Detection of Direct VM Console Access via Cloud-Native Methods
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Direct Cloud VM Connections technique applicable | High | Lateral Movement |
+| Finding                                          | Severity | Impact           |
+| ------------------------------------------------ | -------- | ---------------- |
+| Direct Cloud VM Connections technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

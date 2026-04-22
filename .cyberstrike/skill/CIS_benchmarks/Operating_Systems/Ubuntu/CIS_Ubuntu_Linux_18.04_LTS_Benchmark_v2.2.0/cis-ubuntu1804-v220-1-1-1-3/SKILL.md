@@ -37,11 +37,13 @@ None noted.
 ### Command Line
 
 Run the following script to verify the jffs2 module is disabled. If the module is available in the running kernel:
+
 - An entry including `/bin/true` or `/bin/false` exists in a file within the `/etc/modprobe.d/` directory
 - The module is deny listed in a file within the `/etc/modprobe.d/` directory
 - The module is not loaded in the kernel
 
 If available in ANY installed kernel:
+
 - The module is deny listed in a file within the `/etc/modprobe.d/` directory
 
 ```bash
@@ -115,14 +117,17 @@ If available in ANY installed kernel:
 ### Command Line
 
 If the module is available in the running kernel:
+
 - Create a file with `install jffs2 /bin/false` in the `/etc/modprobe.d/` directory
 - Create a file with `blacklist jffs2` in the `/etc/modprobe.d/` directory
 - Unload jffs2 from the kernel
 
 If available in ANY installed kernel:
+
 - Create a file with `blacklist jffs2` in the `/etc/modprobe.d/` directory
 
 If the kernel module is not available on the system or pre-compiled into the kernel:
+
 - No remediation is necessary
 
 ```bash

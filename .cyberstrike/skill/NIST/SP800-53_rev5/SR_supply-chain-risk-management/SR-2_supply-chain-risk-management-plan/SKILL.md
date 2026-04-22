@@ -12,8 +12,7 @@ tags:
   - sr
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-2
   - CP-4
@@ -25,8 +24,7 @@ chains_with:
   - PM-9
   - PM-30
   - RA-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-2: "Chain with CA-2 for comprehensive security coverage"
   CP-4: "Chain with CP-4 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -93,16 +91,16 @@ Because supply chains can differ significantly across and within organizations, 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SR-2 Supply Chain Risk Management Plan not implemented | Medium | Supply Chain Risk Management |
-| SR-2 partially implemented | Low | Incomplete Supply Chain Risk Management |
+| Finding                                                | Severity | Impact                                  |
+| ------------------------------------------------------ | -------- | --------------------------------------- |
+| SR-2 Supply Chain Risk Management Plan not implemented | Medium   | Supply Chain Risk Management            |
+| SR-2 partially implemented                             | Low      | Incomplete Supply Chain Risk Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

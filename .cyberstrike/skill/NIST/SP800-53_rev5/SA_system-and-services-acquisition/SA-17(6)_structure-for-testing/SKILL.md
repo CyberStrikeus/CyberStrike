@@ -65,9 +65,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,17 +81,16 @@ Applying the security design principles in [SP 800-160-1](#e3cc0520-a366-4fc9-ab
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-17(6) Structure for Testing not implemented | Medium | System and Services Acquisition |
-| SA-17(6) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                        | Severity | Impact                                     |
+| ---------------------------------------------- | -------- | ------------------------------------------ |
+| SA-17(6) Structure for Testing not implemented | Medium   | System and Services Acquisition            |
+| SA-17(6) partially implemented                 | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

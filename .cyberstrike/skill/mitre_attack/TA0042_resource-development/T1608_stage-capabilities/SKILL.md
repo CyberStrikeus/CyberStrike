@@ -19,8 +19,7 @@ platforms:
 mitre_url: "https://attack.mitre.org/techniques/T1608"
 tech_stack:
   - pre
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - T1608.001
   - T1608.002
@@ -28,8 +27,7 @@ chains_with:
   - T1608.004
   - T1608.005
   - T1608.006
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1608.001: "Chain with T1608.001 for deeper attack path"
   T1608.002: "Chain with T1608.002 for deeper attack path"
@@ -44,10 +42,10 @@ Adversaries may upload, install, or otherwise set up capabilities that can be us
 
 Staging of capabilities can aid the adversary in a number of initial access and post-compromise behaviors, including (but not limited to):
 
-* Staging web resources necessary to conduct Drive-by Compromise when a user browses to a site.
-* Staging web resources for a link target to be used with spearphishing.
-* Uploading malware or tools to a location accessible to a victim network to enable Ingress Tool Transfer.
-* Installing a previously acquired SSL/TLS certificate to use to encrypt command and control traffic (ex: Asymmetric Cryptography with Web Protocols).
+- Staging web resources necessary to conduct Drive-by Compromise when a user browses to a site.
+- Staging web resources for a link target to be used with spearphishing.
+- Uploading malware or tools to a location accessible to a victim network to enable Ingress Tool Transfer.
+- Installing a previously acquired SSL/TLS certificate to use to encrypt command and control traffic (ex: Asymmetric Cryptography with Web Protocols).
 
 ## Kill Chain Phase
 
@@ -77,25 +75,24 @@ Staging of capabilities can aid the adversary in a number of initial access and 
 ## Remediation Guide
 
 ### M1056 Pre-compromise
-This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
+This technique cannot be easily mitigated with preventive controls since it is based on behaviors performed outside of the scope of enterprise defenses and controls.
 
 ## Detection
 
 ### Detection of Stage Capabilities
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Stage Capabilities technique applicable | High | Resource Development |
+| Finding                                 | Severity | Impact               |
+| --------------------------------------- | -------- | -------------------- |
+| Stage Capabilities technique applicable | High     | Resource Development |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

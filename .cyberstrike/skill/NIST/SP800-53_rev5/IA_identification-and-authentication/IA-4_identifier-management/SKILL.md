@@ -29,8 +29,7 @@ chains_with:
   - MA-4
   - PE-2
   - PE-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-5: "Chain with AC-5 for comprehensive security coverage"
   IA-2: "Chain with IA-2 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -96,17 +95,16 @@ Common device identifiers include Media Access Control (MAC) addresses, Internet
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-4 Identifier Management not implemented | High | Identification and Authentication |
-| IA-4 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                    | Severity | Impact                                       |
+| ------------------------------------------ | -------- | -------------------------------------------- |
+| IA-4 Identifier Management not implemented | High     | Identification and Authentication            |
+| IA-4 partially implemented                 | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

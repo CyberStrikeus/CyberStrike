@@ -29,8 +29,7 @@ chains_with:
   - RA-5
   - SA-8
   - SA-10
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-5: "Chain with CA-5 for comprehensive security coverage"
   CM-3: "Chain with CM-3 for comprehensive security coverage"
@@ -79,10 +78,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -103,17 +102,16 @@ When implementing remediation activities, organizations consider the order and t
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-2 Flaw Remediation not implemented | High | System and Information Integrity |
-| SI-2 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                               | Severity | Impact                                      |
+| ------------------------------------- | -------- | ------------------------------------------- |
+| SI-2 Flaw Remediation not implemented | High     | System and Information Integrity            |
+| SI-2 partially implemented            | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

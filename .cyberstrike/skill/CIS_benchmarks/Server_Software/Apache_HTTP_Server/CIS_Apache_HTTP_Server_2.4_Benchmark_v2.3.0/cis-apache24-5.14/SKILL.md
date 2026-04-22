@@ -52,6 +52,7 @@ Perform the following to implement the recommended state:
    - `LoadModule rewrite_module modules/mod_rewrite.so`
 
 2. Add the `RewriteEngine` directive to the configuration within the global server context with the value of `on` so that the rewrite engine is enabled.
+
    ```
    RewriteEngine On
    ```
@@ -74,10 +75,12 @@ Perform the following to implement the recommended state:
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
 **v7:**
+
 - 9.2 Ensure Only Approved Ports, Protocols and Services Are Running
   - Ensure that only network ports, protocols, and services listening on a system with validated business needs, are running on each system.
 

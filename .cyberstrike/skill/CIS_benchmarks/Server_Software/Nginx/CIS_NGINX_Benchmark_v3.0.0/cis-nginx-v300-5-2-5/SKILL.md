@@ -17,11 +17,13 @@ severity_boost: {}
 # CIS 5.2.5 — Ensure rate limits by IP address are set
 
 ## Profile Applicability
+
 - Level 2 - Webserver
 - Level 2 - Proxy
 - Level 2 - Loadbalancer
 
 ## Description
+
 NGINX's `ngx_http_limit_req_module` provides a mechanism to limit the rate of incoming requests from a single client IP address, based on the "leaky bucket" algorithm. This is configured in two steps:
 
 **1. `limit_req_zone`:** This directive, defined in the `http` block, creates a shared memory zone that defines the bucket's parameters, such as the average request rate.
@@ -31,12 +33,15 @@ NGINX's `ngx_http_limit_req_module` provides a mechanism to limit the rate of in
 When a client exceeds the defined rate, NGINX will reject **new** requests with a `503 Service Temporarily Unavailable` error.
 
 ## Rationale
+
 Rate limiting is the primary defense against application-level, high-frequency attacks. Its main purpose is to prevent brute-force password guessing on login endpoints, API abuse by automated scripts, and aggressive content scraping. Unlike connection limiting (`limit_conn`), which focuses on slow, simultaneous connections, rate limiting (`limit_req`) targets clients making an excessive number of requests in a short period.
 
 ## Impact
+
 Applying a global, aggressive rate limit is **extremely** dangerous and will almost certainly block legitimate users accessing your site from behind a shared NAT (e.g., corporate offices, datacenters, mobile networks). Rate limiting is a surgical tool that must be applied **only to specific, sensitive locations** (e.g., `/login`, `/api/v1/authenticate`) where abuse is likely. Incorrectly configured rate limits are a common source of user complaints and support tickets.
 
 ## Audit Procedure
+
 This is a manual check requiring context.
 
 **1. Run the following command to find rate-limiting rules:**
@@ -52,6 +57,7 @@ nginx -T 2>/dev/null | grep -E '^\s*(limit_req_zone|limit_req)'
 - Are the `rate` and `burst` values reasonable for the protected endpoint?
 
 ## Remediation
+
 First, define a shared memory zone in the `http` block. Then, apply a carefully tuned limit **only to the specific `location` blocks that require protection**.
 
 Understanding the "Leaky Bucket" Parameters:
@@ -93,24 +99,29 @@ http {
 ```
 
 ## Default Value
+
 By default, no rate limits are configured. NGINX will process requests from a single IP address as fast as the client can send them.
 
 ## References
+
 1. https://nginx.org/en/docs/http/ngx_http_limit_req_module.html
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 16.1 Establish and Maintain a Secure Application Development Process | N | Y | Y |
-| v7 | 18.1 Establish Secure Coding Practices | N | Y | Y |
+
+| Controls Version | Control                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.1 Establish and Maintain a Secure Application Development Process | N    | Y    | Y    |
+| v7               | 18.1 Establish Secure Coding Practices                               | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Impact | T1499 - Endpoint Denial of Service |
-| Credential Access | T1110 - Brute Force |
+
+| Tactic            | Technique                          |
+| ----------------- | ---------------------------------- |
+| Impact            | T1499 - Endpoint Denial of Service |
+| Credential Access | T1110 - Brute Force                |
 
 ## Profile
+
 - Level 2 - Webserver
 - Level 2 - Proxy
 - Level 2 - Loadbalancer

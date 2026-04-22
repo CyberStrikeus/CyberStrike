@@ -29,8 +29,7 @@ chains_with:
   - AU-9
   - AU-11
   - AU-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-8: "Chain with AC-8 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -93,17 +92,16 @@ Session audits can include monitoring keystrokes, tracking websites visited, and
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-14 Session Audit not implemented | Medium | Audit and Accountability |
-| AU-14 partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                             | Severity | Impact                              |
+| ----------------------------------- | -------- | ----------------------------------- |
+| AU-14 Session Audit not implemented | Medium   | Audit and Accountability            |
+| AU-14 partially implemented         | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

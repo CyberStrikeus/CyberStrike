@@ -66,10 +66,12 @@ $ rm -rf $CATALINA_HOME/webapps/host-manager \
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
   - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 2.6 Address unapproved software
   - Ensure that unauthorized software is either removed or the inventory is updated in a timely manner
 

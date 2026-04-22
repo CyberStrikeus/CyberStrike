@@ -24,8 +24,7 @@ chains_with:
   - AC-25
   - SC-12
   - SC-23
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-16: "Chain with AC-16 for comprehensive security coverage"
   AC-25: "Chain with AC-25 for comprehensive security coverage"
@@ -70,10 +69,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -88,17 +87,16 @@ Trusted paths are mechanisms by which users can communicate (using input devices
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-11 Trusted Path not implemented | High | System and Communications Protection |
-| SC-11 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                            | Severity | Impact                                          |
+| ---------------------------------- | -------- | ----------------------------------------------- |
+| SC-11 Trusted Path not implemented | High     | System and Communications Protection            |
+| SC-11 partially implemented        | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

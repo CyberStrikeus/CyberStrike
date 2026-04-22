@@ -107,13 +107,13 @@ Changes to `/etc/grub.d/10_linux` may be overwritten during updates to the `grub
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.2 Use Unique Passwords | X | X | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
+| Controls Version | Control                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------ | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords | X    | X    | X    |
+| v7               | 4.4 Use Unique Passwords |      | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1542, T1542.000 | TA0003 | M1046 |
+| --------------------------- | ------- | ----------- |
+| T1542, T1542.000            | TA0003  | M1046       |

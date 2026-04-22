@@ -4,7 +4,8 @@ description: "Enable Security Posture (Manual)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
+tags:
+  [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
 cis_id: "5.10.4"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -57,7 +58,7 @@ securityPostureConfig: mode: BASIC
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 2.4 Utilize Automated Software Inventory Tools | | x | x |
-| v7 | 5.5 Implement Automated Configuration Monitoring Systems | | x | x |
+| Controls Version | Control                                                  | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.4 Utilize Automated Software Inventory Tools           |      | x    | x    |
+| v7               | 5.5 Implement Automated Configuration Monitoring Systems |      | x    | x    |

@@ -23,8 +23,7 @@ chains_with:
   - AC-7
   - IA-11
   - PL-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-2: "Chain with AC-2 for comprehensive security coverage"
   AC-7: "Chain with AC-7 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
+| Tool            | Purpose                                | Usage                      |
+| --------------- | -------------------------------------- | -------------------------- |
 | cloud-audit-mcp | Check IAM policies and access controls | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test web application access controls | `browser_auth_test` |
+| hackbrowser-mcp | Test web application access controls   | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ Device locks are temporary actions taken to prevent logical access to organizati
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AC-11 Device Lock not implemented | High | Access Control |
-| AC-11 partially implemented | Medium | Incomplete Access Control |
+| Finding                           | Severity | Impact                    |
+| --------------------------------- | -------- | ------------------------- |
+| AC-11 Device Lock not implemented | High     | Access Control            |
+| AC-11 partially implemented       | Medium   | Incomplete Access Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

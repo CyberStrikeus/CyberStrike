@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -59,35 +57,36 @@ Review whether mitigations for T0881 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0918 User Account Management
+
 Limit privileges of user accounts and groups so that only authorized administrators can change service states and configurations.
 
 ### M0924 Restrict Registry Permissions
+
 Ensure proper registry permissions are in place to inhibit adversaries from disabling or interfering with critical services.
 
 ### M0922 Restrict File and Directory Permissions
+
 Ensure proper process and file permissions are in place to inhibit adversaries from disabling or interfering with critical services.
 
 ### M0930 Network Segmentation
-Segment operational network and systems to restrict access to critical system functions to predetermined management systems.
 
+Segment operational network and systems to restrict access to critical system functions to predetermined management systems.
 
 ## Detection
 
 ### Detection of Service Stop
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Service Stop technique applicable | High | Inhibit Response Function |
+| Finding                           | Severity | Impact                    |
+| --------------------------------- | -------- | ------------------------- |
+| Service Stop technique applicable | High     | Inhibit Response Function |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

@@ -13,8 +13,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CM-8
   - CP-2
@@ -25,8 +24,7 @@ chains_with:
   - SR-2
   - SR-3
   - SR-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CM-8: "Chain with CM-8 for comprehensive security coverage"
   CP-2: "Chain with CP-2 for comprehensive security coverage"
@@ -70,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -86,16 +84,16 @@ Organizations specify the system components that result in increased risk to org
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-6 Timely Maintenance not implemented | Medium | Maintenance |
-| MA-6 partially implemented | Low | Incomplete Maintenance |
+| Finding                                 | Severity | Impact                 |
+| --------------------------------------- | -------- | ---------------------- |
+| MA-6 Timely Maintenance not implemented | Medium   | Maintenance            |
+| MA-6 partially implemented              | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

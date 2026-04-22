@@ -86,6 +86,7 @@ auditctl -D
 ```
 
 **Dependencies:**
+
 - Check if auditd is installed.
 
 ### Atomic Test 2: Disable auditd using auditctl
@@ -100,8 +101,8 @@ auditctl -e 0
 ```
 
 **Dependencies:**
-- Check if auditd is installed.
 
+- Check if auditd is installed.
 
 ### Manual Testing
 
@@ -116,31 +117,30 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1047 Audit
+
 Routinely check account role permissions to ensure only expected users and roles have permission to modify logging settings.
 
 To ensure Audit rules can not be modified at runtime, add the `auditctl -e 2` as the last command in the audit.rules files. Once started, any attempt to change the configuration in this mode will be audited and denied. The configuration can only be changed by rebooting the machine.
 
 ### M1018 User Account Management
-An adversary must already have root level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
+An adversary must already have root level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
 ## Detection
 
 ### Detection Strategy for Disable or Modify Linux Audit System
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Disable or Modify Linux Audit System technique applicable | High | Defense Evasion |
+| Finding                                                   | Severity | Impact          |
+| --------------------------------------------------------- | -------- | --------------- |
+| Disable or Modify Linux Audit System technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

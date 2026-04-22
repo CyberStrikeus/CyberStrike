@@ -73,19 +73,19 @@ metadata:
   name: file-check
 spec:
   volumes:
-  - name: host-root
-    hostPath:
-      path: /
-      type: Directory
-  containers:
-  - name: nsenter
-    image: busybox
-    command: ["sleep", "3600"]
-    volumeMounts:
     - name: host-root
-      mountPath: /host
-    securityContext:
-      privileged: true
+      hostPath:
+        path: /
+        type: Directory
+  containers:
+    - name: nsenter
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+      securityContext:
+        privileged: true
 ```
 
 Save this to a file (e.g., file-check-pod.yaml) and create the pod:
@@ -126,7 +126,7 @@ See the AWS EKS documentation for the default value.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | X | X | X |
-| v7 | 5.2 Maintain Secure Images | | X | X |
+| Controls Version | Control                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists | X    | X    | X    |
+| v7               | 5.2 Maintain Secure Images              |      | X    | X    |

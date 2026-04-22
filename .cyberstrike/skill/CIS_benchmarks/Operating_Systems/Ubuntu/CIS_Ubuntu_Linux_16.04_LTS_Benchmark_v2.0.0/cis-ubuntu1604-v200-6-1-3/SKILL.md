@@ -66,9 +66,9 @@ Access: (0644/-rw-r--r--) Uid: ( 0/ root) Gid: ( 0/ root)
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 16.4 Encrypt or Hash all Authentication Credentials<br>Encrypt or hash with a salt all authentication credentials when stored. |
+| Controls Version | Control                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| v7               | 16.4 Encrypt or Hash all Authentication Credentials<br>Encrypt or hash with a salt all authentication credentials when stored. |
 
 ## Assessment Status
 

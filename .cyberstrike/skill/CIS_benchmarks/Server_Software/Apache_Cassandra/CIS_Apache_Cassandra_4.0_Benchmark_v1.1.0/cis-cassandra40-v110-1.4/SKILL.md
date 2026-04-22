@@ -17,20 +17,26 @@ severity_boost: {}
 # 1.4 Ensure latest version of Cassandra is installed
 
 ## Profile Applicability
+
 - Level 1 - Cassandra on Linux
 
 ## Description
+
 The Cassandra installation version, along with the patches, should be the most recent that is compatible with organization's operational needs. When obtaining and installing software packages (typically via apt-get or you can compile the source code), it's imperative that packages (or the source code, tarball) are sourced only from valid and authorized repositories.
 
 For Cassandra, a short list of valid repositories may include:
+
 - The official apache cassandra website: http://cassandra.apache.org/
 - DataStax Enterprise: https://www.datastax.com/
 
 ## Rationale
+
 Using the most recent version of Cassandra can help limit the possibilities for vulnerabilities in the software, the installation version applied during setup should be established according to the needs of the organization. Ensure you are using a release that is covered by a level of support which includes regular updates to address vulnerabilities.
 
 ## Audit
+
 To verify the version of Cassandra you have installed:
+
 ```bash
 cassandra -v
 
@@ -43,9 +49,11 @@ Maintained until 4.3.0 release (May-July 2024)
 If an old/unsupported version of Cassandra is installed this is a finding.
 
 ## Remediation
+
 Upgrade to the latest version of the Cassandra software:
 
 For each node in the cluster:
+
 1. Using the nodetool drain command to push all memtables data to SSTables.
 2. Stop Cassandra services.
 3. Backup the data set and all of your Cassandra configuration files.
@@ -60,17 +68,23 @@ For each node in the cluster:
 12. Using the nodetool command to check status of cluster.
 
 ## Default Value
+
 Varies by installation method.
 
 ## References
+
 1. http://cassandra.apache.org/doc/latest/getting_started/installing.html#prerequisite
 
 ## CIS Controls
+
 **v8:**
+
 - 16.5 Use Up-to-Date and Trusted Third-Party Software Components - Use up-to-date and trusted third-party software components. When possible, choose established and proven frameworks and libraries that provide adequate security. Acquire these components from trusted sources or evaluate the software for vulnerabilities before use.
 
 **v7:**
+
 - 18.4 Only Use Up-to-date And Trusted Third-Party Components - Only use up-to-date and trusted third-party components for the software developed by the organization.
 
 ## Profile
+
 - Level 1 | Automated

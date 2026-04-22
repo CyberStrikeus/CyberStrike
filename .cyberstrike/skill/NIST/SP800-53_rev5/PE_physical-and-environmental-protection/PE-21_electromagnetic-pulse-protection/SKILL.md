@@ -12,13 +12,11 @@ tags:
   - pe
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PE-18
   - PE-19
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PE-18: "Chain with PE-18 for comprehensive security coverage"
   PE-19: "Chain with PE-19 for comprehensive security coverage"
@@ -61,9 +59,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -77,16 +75,16 @@ An electromagnetic pulse (EMP) is a short burst of electromagnetic energy that i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-21 Electromagnetic Pulse Protection not implemented | Medium | Physical and Environmental Protection |
-| PE-21 partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                                | Severity | Impact                                           |
+| ------------------------------------------------------ | -------- | ------------------------------------------------ |
+| PE-21 Electromagnetic Pulse Protection not implemented | Medium   | Physical and Environmental Protection            |
+| PE-21 partially implemented                            | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

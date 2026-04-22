@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-94
 chains_with:
   - T1623.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1623.001: "Chain with T1623.001 for deeper attack path"
 ---
@@ -67,29 +66,28 @@ Review whether mitigations for T1623 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1010 Deploy Compromised Device Detection Method
+
 Mobile security products can typically detect jailbroken or rooted devices.
 
 ### M1002 Attestation
-Device attestation can often detect jailbroken or rooted devices.
 
+Device attestation can often detect jailbroken or rooted devices.
 
 ## Detection
 
 ### Detection of Command and Scripting Interpreter
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Command and Scripting Interpreter technique applicable | Low | Execution |
+| Finding                                                | Severity | Impact    |
+| ------------------------------------------------------ | -------- | --------- |
+| Command and Scripting Interpreter technique applicable | Low      | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

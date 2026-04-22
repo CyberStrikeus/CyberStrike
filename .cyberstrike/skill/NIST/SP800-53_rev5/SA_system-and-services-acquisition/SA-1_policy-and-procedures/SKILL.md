@@ -19,8 +19,7 @@ chains_with:
   - PS-8
   - SA-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-9: "Chain with PM-9 for comprehensive security coverage"
   PS-8: "Chain with PS-8 for comprehensive security coverage"
@@ -65,9 +64,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ System and services acquisition policy and procedures address the controls in th
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-1 Policy and Procedures not implemented | Medium | System and Services Acquisition |
-| SA-1 partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                    | Severity | Impact                                     |
+| ------------------------------------------ | -------- | ------------------------------------------ |
+| SA-1 Policy and Procedures not implemented | Medium   | System and Services Acquisition            |
+| SA-1 partially implemented                 | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

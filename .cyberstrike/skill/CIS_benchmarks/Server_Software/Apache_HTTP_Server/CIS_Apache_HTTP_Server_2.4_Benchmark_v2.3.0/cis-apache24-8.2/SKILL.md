@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure ServerSignature Is Not Enabled (Automated)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -52,12 +53,15 @@ The default value is `Off` for `ServerSignature`.
 ## CIS Controls
 
 **v8:**
+
 - 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software
   - Uninstall or disable unnecessary services on enterprise assets and software, such as an unused file sharing service, web application module, or service function.
 
 **v7:**
+
 - 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization
   - Remove sensitive data or systems not regularly accessed by the organization from the network. These systems shall only be used as stand alone systems (disconnected from the network) by the business unit needing to occasionally use the system or completely virtualized and powered off until needed.
 
 ## Profile
+
 - Level 1

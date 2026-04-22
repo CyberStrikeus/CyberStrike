@@ -1,6 +1,6 @@
 ---
 name: cis-ubuntu1804-v220-5-2-4-4
-description: 
+description:
 version: "2.2.0"
 category: cis-logging
 tags: [cis, ubuntu, linux, ubuntu-18.04, auditing, auditd]

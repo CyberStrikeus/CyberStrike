@@ -75,6 +75,7 @@ takeown.exe /f #{file_folder_to_own} /r
 ```
 
 **Dependencies:**
+
 - Test requrires a file to take ownership of to be located at (#{file_folder_to_own})
 
 ### Atomic Test 2: cacls - Grant permission to specified user or group recursively
@@ -90,6 +91,7 @@ icacls.exe #{file_or_folder} /grant #{user_or_group}:F
 ```
 
 **Dependencies:**
+
 - Test requrires a file to modify to be located at (#{file_or_folder})
 
 ### Atomic Test 3: attrib - Remove read-only attribute
@@ -104,6 +106,7 @@ attrib.exe -r #{file_or_folder}\*.* /s
 ```
 
 **Dependencies:**
+
 - Test requrires a file to modify to be located at (#{file_or_folder})
 
 ### Atomic Test 4: attrib - hide file
@@ -136,8 +139,8 @@ icacls "#{path}" /grant Everyone:F /T /C /Q
 ```
 
 **Dependencies:**
-- Backup of original folder permissions should exist (for use in cleanup commands)
 
+- Backup of original folder permissions should exist (for use in cleanup commands)
 
 ### Manual Testing
 
@@ -152,29 +155,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Ensure critical system files as well as those known to be abused by adversaries have restrictive permissions and are owned by an appropriately privileged account, especially if access is not required by users nor will inhibit system functionality.
 
 ### M1022 Restrict File and Directory Permissions
-Applying more restrictive permissions to files and directories could prevent adversaries from modifying the access control lists.
 
+Applying more restrictive permissions to files and directories could prevent adversaries from modifying the access control lists.
 
 ## Detection
 
 ### Windows DACL Manipulation Behavioral Chain Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Windows File and Directory Permissions Modification technique applicable | High | Defense Evasion |
+| Finding                                                                  | Severity | Impact          |
+| ------------------------------------------------------------------------ | -------- | --------------- |
+| Windows File and Directory Permissions Modification technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

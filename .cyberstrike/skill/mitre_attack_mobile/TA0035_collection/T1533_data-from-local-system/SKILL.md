@@ -24,10 +24,8 @@ tech_stack:
   - ios
 cwe_ids:
   - CWE-200
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -35,9 +33,7 @@ severity_boost: {}
 
 ## High-Level Description
 
-Adversaries may search local system sources, such as file systems or local databases, to find files of interest and sensitive data prior to exfiltration. 
-
- 
+Adversaries may search local system sources, such as file systems or local databases, to find files of interest and sensitive data prior to exfiltration.
 
 Access to local system data, which includes information stored by the operating system, often requires escalated privileges. Examples of local system data include authentication tokens, the device keyboard cache, Wi-Fi passwords, and photos. On Android, adversaries may also attempt to access files from external storage which may require additional storage-related permissions.
 
@@ -72,19 +68,17 @@ No specific mitigations documented for this technique.
 
 ### Detection of Data from Local System
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Data from Local System technique applicable | High | Collection |
+| Finding                                     | Severity | Impact     |
+| ------------------------------------------- | -------- | ---------- |
+| Data from Local System technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

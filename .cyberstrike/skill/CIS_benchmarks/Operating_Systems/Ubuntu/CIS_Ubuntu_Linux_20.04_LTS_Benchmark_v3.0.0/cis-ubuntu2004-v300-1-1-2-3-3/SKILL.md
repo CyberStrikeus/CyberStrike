@@ -33,8 +33,8 @@ Since the `/home` filesystem is only intended for user file storage, set this op
 ### Command Line
 
 - IF - a separate partition exists for `/home`, verify that the `nosuid` option is set.
-Run the following command to verify that the `nosuid` mount option is set.
-Example:
+  Run the following command to verify that the `nosuid` mount option is set.
+  Example:
 
 ```bash
 # findmnt -kn /home | grep -v nosuid
@@ -51,8 +51,8 @@ Nothing should be returned
 ### Command Line
 
 - IF - a separate partition exists for `/home`.
-Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/home` partition.
-Example:
+  Edit the `/etc/fstab` file and add `nosuid` to the fourth field (mounting options) for the `/home` partition.
+  Example:
 
 ```
 <device> /home   <fstype>   defaults,rw,nosuid,nodev,relatime   0 0

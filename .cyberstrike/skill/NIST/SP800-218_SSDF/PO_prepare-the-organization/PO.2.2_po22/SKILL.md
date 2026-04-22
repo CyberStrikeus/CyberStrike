@@ -14,10 +14,8 @@ tags:
   - task
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - Implement Roles and Responsibilities (PO.2)
 severity_boost: {}
@@ -63,10 +61,10 @@ Verify development team understands and follows PO.2.2 PO.2.2 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -76,15 +74,15 @@ Provide role-based training for all personnel with responsibilities that contrib
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PO.2.2 PO.2.2 not implemented | Medium | Secure Development - Prepare the Organization |
+| Finding                       | Severity | Impact                                        |
+| ----------------------------- | -------- | --------------------------------------------- |
+| PO.2.2 PO.2.2 not implemented | Medium   | Secure Development - Prepare the Organization |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

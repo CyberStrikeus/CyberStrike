@@ -63,7 +63,7 @@ By default, `--encryption-provider-config` is not set.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 3.11 Encrypt Sensitive Data at Rest | | * | * |
-| v7 | 14.8 Encrypt Sensitive Information at Rest | | | * |
+| Controls Version | Control                                    | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------ | ---- | ---- | ---- |
+| v8               | 3.11 Encrypt Sensitive Data at Rest        |      | \*   | \*   |
+| v7               | 14.8 Encrypt Sensitive Information at Rest |      |      | \*   |

@@ -13,10 +13,8 @@ tags:
   - enhancement
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
+cwe_ids: []
+chains_with: []
 prerequisites:
   - PE-11
 severity_boost: {}
@@ -63,9 +61,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -82,16 +80,16 @@ The provision of a long-term, self-contained power supply can be satisfied by us
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PE-11(2) Alternate Power Supply — Self-contained not implemented | Medium | Physical and Environmental Protection |
-| PE-11(2) partially implemented | Low | Incomplete Physical and Environmental Protection |
+| Finding                                                          | Severity | Impact                                           |
+| ---------------------------------------------------------------- | -------- | ------------------------------------------------ |
+| PE-11(2) Alternate Power Supply — Self-contained not implemented | Medium   | Physical and Environmental Protection            |
+| PE-11(2) partially implemented                                   | Low      | Incomplete Physical and Environmental Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

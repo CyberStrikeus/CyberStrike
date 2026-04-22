@@ -99,7 +99,7 @@ If ($domain_sid -Match "DEFAULT") {
   echo.
   echo executing:schtasks /query /S #{target}.#{domain}
   schtasks /query /S #{target}.#{domain}
-  
+
   echo.
   echo Tickets after requesting schtasks:
   klist
@@ -116,7 +116,7 @@ echo "foo" | runas /netonly /user:fake "$env:TEMP\silver.bat" | Out-Null
 do {
   Start-Sleep 1 # wait a bit so the output file has time to be created
   Get-Content -Path "$env:TEMP\silver.txt" -Wait | ForEach-Object {
-    if ($_ -match 'End of Silver Ticket attack') { break } 
+    if ($_ -match 'End of Silver Ticket attack') { break }
   }
 } while ($false) # dummy loop so that 'break' can be used
 
@@ -129,8 +129,8 @@ Remove-Item $env:TEMP\silver.txt -ErrorAction Ignore
 ```
 
 **Dependencies:**
-- Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 
+- Mimikatz executor must exist on disk and at specified location (#{mimikatz_path})
 
 ### Manual Testing
 
@@ -145,32 +145,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure strong password length (ideally 25+ characters) and complexity for service accounts and that these passwords periodically expire. Also consider using Group Managed Service Accounts or another third party product such as password vaulting.
 
 ### M1026 Privileged Account Management
+
 Limit service accounts to minimal required privileges, including membership in privileged groups such as Domain Administrators.
 
 ### M1041 Encrypt Sensitive Information
-Enable AES Kerberos encryption (or another stronger encryption algorithm), rather than RC4, where possible.
 
+Enable AES Kerberos encryption (or another stronger encryption algorithm), rather than RC4, where possible.
 
 ## Detection
 
 ### Detect Forged Kerberos Silver Tickets (T1558.002)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Silver Ticket technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| Silver Ticket technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

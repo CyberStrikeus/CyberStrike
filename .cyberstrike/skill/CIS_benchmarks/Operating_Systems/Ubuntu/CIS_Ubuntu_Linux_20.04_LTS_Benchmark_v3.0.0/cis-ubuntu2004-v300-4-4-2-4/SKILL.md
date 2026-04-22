@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 20.04 LTS Benchmark v3.0.0 - Control 4.4.2.4
 
 ## Profile
+
 - **Level:** Level 1 - Server, Level 1 - Workstation
 - **Assessment Status:** Automated
 
@@ -25,6 +26,7 @@ severity_boost: {}
 Any ports that have been opened on non-loopback addresses need firewall rules to govern traffic.
 
 Notes:
+
 - Changing firewall settings while connected over network can result in being locked out of the system
 - Remediation will only affect the active system firewall, be sure to configure the default policy in your firewall management to apply on boot as well
 - The remediation command opens up the port to traffic from all sources. Consult iptables documentation and set any restrictions in compliance with site policy

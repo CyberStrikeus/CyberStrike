@@ -33,10 +33,8 @@ tech_stack:
   - office
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -84,19 +82,17 @@ No specific mitigations documented for this technique.
 
 ### Internal Spearphishing via Trusted Accounts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internal Spearphishing technique applicable | High | Lateral Movement |
+| Finding                                     | Severity | Impact           |
+| ------------------------------------------- | -------- | ---------------- |
+| Internal Spearphishing technique applicable | High     | Lateral Movement |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

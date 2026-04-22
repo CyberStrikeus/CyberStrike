@@ -17,33 +17,45 @@ severity_boost: {}
 # 13.5 Verify No UID 0 Accounts Exist Other Than root (Scored)
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
+
 Any account with UID 0 has superuser privileges on the system.
 
 ## Rationale
+
 This access must be limited to only the default `root` account and only from the system console. Administrative access must be through an unprivileged account using an approved mechanism as noted in Item 9.4 Restrict root Login to System Console.
 
 ## Audit Procedure
+
 ### Using Command Line
+
 Run the following command and verify that only the word "root" is returned:
+
 ```bash
 /bin/cat /etc/passwd | /usr/bin/awk -F: '($3 == 0) { print $1 }' root
 ```
 
 ## Expected Result
+
 Only `root` should be returned. Any other accounts with UID 0 represent a security risk.
 
 ## Remediation
+
 ### Using Command Line
+
 Delete any other entries that are displayed besides `root`.
 
 ## Default Value
+
 Only the `root` account has UID 0 by default.
 
 ## References
+
 - CIS Ubuntu 12.04 LTS Server Benchmark v1.1.0
 
 ## Profile
+
 Level 1 - Scored

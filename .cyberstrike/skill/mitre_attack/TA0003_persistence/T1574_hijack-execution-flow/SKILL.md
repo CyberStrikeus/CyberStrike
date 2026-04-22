@@ -44,8 +44,7 @@ chains_with:
   - T1574.012
   - T1574.013
   - T1574.014
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1574.001: "Chain with T1574.001 for deeper attack path"
   T1574.004: "Chain with T1574.004 for deeper attack path"
@@ -92,12 +91,15 @@ There are many ways an adversary may hijack the flow of execution, including by 
 ## Remediation Guide
 
 ### M1052 User Account Control
+
 Turn off UAC's privilege elevation for standard users <code>[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System]</code> to automatically deny elevation requests, add: <code>"ConsentPromptBehaviorUser"=dword:00000000</code>. Consider enabling installer detection for all users by adding: <code>"EnableInstallerDetection"=dword:00000001</code>. This will prompt for a password for installation and also log the attempt. To disable installer detection, instead add: <code>"EnableInstallerDetection"=dword:00000000</code>. This may prevent potential elevation of privileges through exploitation during the process of UAC detecting the installer, but will allow the installation process to continue without being logged.
 
 ### M1040 Behavior Prevention on Endpoint
+
 Some endpoint security solutions can be configured to block some types of behaviors related to process injection/memory tampering based on common sequences of indicators (ex: execution of specific API functions).
 
 ### M1044 Restrict Library Loading
+
 Disallow loading of remote DLLs. This is included by default in Windows Server 2012+ and is available by patch for XP+ and Server 2003+.
 
 Enable Safe DLL Search Mode to force search for system DLLs in directories with greater restrictions (e.g. <code>%SYSTEMROOT%</code>)to be used before local directory DLLs (e.g. a user's home directory)
@@ -105,6 +107,7 @@ Enable Safe DLL Search Mode to force search for system DLLs in directories with 
 The Safe DLL Search Mode can be enabled via Group Policy at Computer Configuration > [Policies] > Administrative Templates > MSS (Legacy): MSS: (SafeDllSearchMode) Enable Safe DLL search mode. The associated Windows Registry key for this is located at <code>HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\SafeDLLSearchMode</code>
 
 ### M1047 Audit
+
 Use auditing tools capable of detecting hijacking opportunities on systems within an enterprise and correct them. Toolkits like the PowerSploit framework contain PowerUp modules that can be used to explore systems for hijacking weaknesses.
 
 Use the program sxstrace.exe that is included with Windows along with manual inspection to check manifest files for side-loading vulnerabilities in software.
@@ -114,43 +117,46 @@ Find and eliminate path interception weaknesses in program configuration files, 
 Clean up old Windows Registry keys when software is uninstalled to avoid keys with no associated legitimate binaries. Periodically search for and correct or report path interception weaknesses on systems that may have been introduced using custom or available tools that report software using insecure path configurations.
 
 ### M1013 Application Developer Guidance
+
 When possible, include hash values in manifest files to help prevent side-loading of malicious libraries.
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and groups so that only authorized administrators can interact with service changes and service binary target path locations. Deny execution from user directories such as file download directories and temp directories where able.
 
 Ensure that proper permissions and directory access control are set to deny users the ability to write files to the top-level directory <code>C:</code> and system directories, such as <code>C:\Windows\</code>, to reduce places where malicious files could be placed for execution.
 
 ### M1051 Update Software
+
 Update software regularly to include patches that fix DLL side-loading vulnerabilities.
 
 ### M1038 Execution Prevention
+
 Adversaries may use new payloads to execute this technique. Identify and block potentially malicious software executed through hijacking by using application control solutions also capable of blocking libraries loaded by legitimate software.
 
 ### M1022 Restrict File and Directory Permissions
+
 Install software in write-protected locations. Set directory access controls to prevent file writes to the search paths for applications, both in the folders where applications are run from and the standard library folders.
 
 ### M1024 Restrict Registry Permissions
-Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
+Ensure proper permissions are set for Registry hives to prevent users from modifying keys for system components that may lead to privilege escalation.
 
 ## Detection
 
 ### Detection Strategy for Hijack Execution Flow across OS platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Hijack Execution Flow technique applicable | High | Persistence |
+| Finding                                    | Severity | Impact      |
+| ------------------------------------------ | -------- | ----------- |
+| Hijack Execution Flow technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

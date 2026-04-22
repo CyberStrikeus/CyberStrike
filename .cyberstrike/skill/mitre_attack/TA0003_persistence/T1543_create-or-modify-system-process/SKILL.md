@@ -38,8 +38,7 @@ chains_with:
   - T1543.003
   - T1543.004
   - T1543.005
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1543.001: "Chain with T1543.001 for deeper attack path"
   T1543.002: "Chain with T1543.002 for deeper attack path"
@@ -50,9 +49,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may create or modify system-level processes to repeatedly execute malicious payloads as part of persistence. When operating systems boot up, they can start processes that perform background system functions. On Windows and Linux, these system processes are referred to as services. On macOS, launchd processes known as Launch Daemon and Launch Agent are run to finish system initialization and load user specific parameters. 
+Adversaries may create or modify system-level processes to repeatedly execute malicious payloads as part of persistence. When operating systems boot up, they can start processes that perform background system functions. On Windows and Linux, these system processes are referred to as services. On macOS, launchd processes known as Launch Daemon and Launch Agent are run to finish system initialization and load user specific parameters.
 
-Adversaries may install new services, daemons, or agents that can be configured to execute at startup or a repeatable interval in order to establish persistence. Similarly, adversaries may modify existing services, daemons, or agents to achieve the same effect. 
+Adversaries may install new services, daemons, or agents that can be configured to execute at startup or a repeatable interval in order to establish persistence. Similarly, adversaries may modify existing services, daemons, or agents to achieve the same effect.
 
 Services, daemons, or agents may be created with administrator privileges but executed under root/SYSTEM privileges. Adversaries may leverage this functionality to create or modify system processes in order to escalate privileges.
 
@@ -87,50 +86,56 @@ Services, daemons, or agents may be created with administrator privileges but ex
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 Limit privileges of user accounts and groups so that only authorized administrators can interact with system-level process changes and service configurations.
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10, enable Attack Surface Reduction (ASR) rules to prevent an application from writing a signed vulnerable driver to the system. On Windows 10 and 11, enable Microsoft Vulnerable Driver Blocklist to assist in hardening against third party-developed drivers.
 
 ### M1033 Limit Software Installation
+
 Restrict software installation to trusted repositories only and be cautious of orphaned software packages.
 
 ### M1026 Privileged Account Management
+
 Manage the creation, modification, use, and permissions associated to privileged accounts, including SYSTEM and root.
 
 ### M1028 Operating System Configuration
+
 Ensure that Driver Signature Enforcement is enabled to restrict unsigned drivers from being installed.
 
 ### M1047 Audit
+
 Use auditing tools capable of detecting privilege and service abuse opportunities on systems within an enterprise and correct them.
 
 ### M1054 Software Configuration
+
 Where possible, consider enforcing the use of container services in rootless mode to limit the possibility of privilege escalation or malicious effects on the host running the container.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict read/write access to system-level process files to only select privileged users who have a legitimate need to manage system services.
 
 ### M1045 Code Signing
-Enforce registration and execution of only legitimately signed service drivers where possible.
 
+Enforce registration and execution of only legitimately signed service drivers where possible.
 
 ## Detection
 
 ### Detection of System Process Creation or Modification Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Create or Modify System Process technique applicable | High | Persistence |
+| Finding                                              | Severity | Impact      |
+| ---------------------------------------------------- | -------- | ----------- |
+| Create or Modify System Process technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

@@ -90,8 +90,8 @@ xcopy /I /Y "#{web_shells}" #{web_shell_path}
 ```
 
 **Dependencies:**
-- Web shell must exist on disk at specified location (#{web_shells})
 
+- Web shell must exist on disk at specified location (#{web_shells})
 
 ### Manual Testing
 
@@ -106,29 +106,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling functions from web technologies such as PHP’s `evaI()` that may be abused for web shells.
 
 ### M1018 User Account Management
-Enforce the principle of least privilege by limiting privileges of user accounts so only authorized accounts can modify the web directory.
 
+Enforce the principle of least privilege by limiting privileges of user accounts so only authorized accounts can modify the web directory.
 
 ## Detection
 
 ### Web Shell Detection via Server Behavior and File Execution Chains
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Web Shell technique applicable | High | Persistence |
+| Finding                        | Severity | Impact      |
+| ------------------------------ | -------- | ----------- |
+| Web Shell technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

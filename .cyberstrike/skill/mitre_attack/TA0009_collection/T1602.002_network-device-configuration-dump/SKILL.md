@@ -70,41 +70,44 @@ Adversaries can use common management tools and protocols, such as Simple Networ
 ## Remediation Guide
 
 ### M1041 Encrypt Sensitive Information
+
 Configure SNMPv3 to use the highest level of security (authPriv) available.
 
 ### M1030 Network Segmentation
+
 Segregate SNMP traffic on a separate management network.
 
 ### M1031 Network Intrusion Prevention
+
 Configure intrusion prevention devices to detect SNMP queries and commands from unauthorized sources. Create signatures to detect Smart Install (SMI) usage from sources other than trusted director.
 
 ### M1054 Software Configuration
+
 Allowlist MIB objects and implement SNMP views. Disable Smart Install (SMI) if not used.
 
 ### M1037 Filter Network Traffic
+
 Apply extended ACLs to block unauthorized protocols outside the trusted network.
 
 ### M1051 Update Software
-Keep system images and software updated and migrate to SNMPv3.
 
+Keep system images and software updated and migrate to SNMPv3.
 
 ## Detection
 
 ### Detection Strategy for Network Device Configuration Dump via Config Repositories
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Network Device Configuration Dump technique applicable | High | Collection |
+| Finding                                                | Severity | Impact     |
+| ------------------------------------------------------ | -------- | ---------- |
+| Network Device Configuration Dump technique applicable | High     | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

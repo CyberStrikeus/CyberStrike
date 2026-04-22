@@ -21,10 +21,8 @@ tech_stack:
   - android
 cwe_ids:
   - CWE-400
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -62,26 +60,24 @@ Review whether mitigations for T1582 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1011 User Guidance
-Users should be encouraged to be very careful with what applications they grant SMS access to. Further, users should not change their default SMS handler to applications they do not recognize.
 
+Users should be encouraged to be very careful with what applications they grant SMS access to. Further, users should not change their default SMS handler to applications they do not recognize.
 
 ## Detection
 
 ### Detection of SMS Control
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SMS Control technique applicable | Low | Impact |
+| Finding                          | Severity | Impact |
+| -------------------------------- | -------- | ------ |
+| SMS Control technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

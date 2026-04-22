@@ -87,19 +87,17 @@ No specific mitigations documented for this technique.
 
 ### Detect User Activity Based Sandbox Evasion via Input & Artifact Probing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| User Activity Based Checks technique applicable | Medium | Defense Evasion |
+| Finding                                         | Severity | Impact          |
+| ----------------------------------------------- | -------- | --------------- |
+| User Activity Based Checks technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

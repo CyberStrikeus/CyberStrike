@@ -26,6 +26,7 @@ severity_boost: {}
 Journald `systemd-journal-remote` supports the ability to receive messages from remote hosts, thus acting as a log server. Clients should not receive data from other hosts.
 
 Note:
+
 - The same package, `systemd-journal-remote`, is used for both sending logs to remote hosts and receiving incoming logs.
 - With regards to receiving logs, there are two services; `systemd-journal-remote.socket` and `systemd-journal-remote.service`.
 
@@ -78,13 +79,13 @@ Not enabled or active by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | | |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | | |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      |      |      |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running              |      |      |      |
 
 ### MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|------------------------------|---------|-------------|
-| T1070, T1070.002, T1562, T1562.006 | TA0040 | M1029 |
+| Techniques / Sub-techniques        | Tactics | Mitigations |
+| ---------------------------------- | ------- | ----------- |
+| T1070, T1070.002, T1562, T1562.006 | TA0040  | M1029       |

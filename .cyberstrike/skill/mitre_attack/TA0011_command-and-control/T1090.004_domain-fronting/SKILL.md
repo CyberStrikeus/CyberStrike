@@ -84,26 +84,24 @@ For example, if domain-x and domain-y are customers of the same CDN, it is possi
 ## Remediation Guide
 
 ### M1020 SSL/TLS Inspection
-If it is possible to inspect HTTPS traffic, the captures can be analyzed for connections that appear to be domain fronting.
 
+If it is possible to inspect HTTPS traffic, the captures can be analyzed for connections that appear to be domain fronting.
 
 ## Detection
 
 ### Domain Fronting Behavior via Mismatched TLS SNI and HTTP Host Headers
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Domain Fronting technique applicable | Medium | Command And Control |
+| Finding                              | Severity | Impact              |
+| ------------------------------------ | -------- | ------------------- |
+| Domain Fronting technique applicable | Medium   | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

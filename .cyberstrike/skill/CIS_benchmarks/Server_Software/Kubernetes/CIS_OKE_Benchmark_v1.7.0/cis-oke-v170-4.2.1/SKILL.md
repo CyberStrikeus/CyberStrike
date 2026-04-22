@@ -17,12 +17,15 @@ severity_boost: {}
 # CIS OKE Benchmark v1.7.0 - Control 4.2.1
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not generally permit containers to be run with the `securityContext.privileged` flag set to `true`.
 
 ## Rationale
+
 Privileged containers have access to all Linux Kernel capabilities and devices. A container running with full privileges can do almost everything that the host can do. This flag exists to allow special use-cases, like manipulating the network stack and accessing devices.
 
 There should be at least one admission control policy defined which does not permit privileged containers.
@@ -30,9 +33,11 @@ There should be at least one admission control policy defined which does not per
 If you need to run privileged containers, this should be defined in a separate policy and you should carefully check to ensure that only limited service accounts and users are given permission to use that policy.
 
 ## Impact
+
 Pods defined with `spec.containers[].securityContext.privileged: true`, `spec.initContainers[].securityContext.privileged: true` and `spec.ephemeralContainers[].securityContext.privileged: true` will not be permitted.
 
 ## Audit Procedure
+
 List the policies in use for each namespace in the cluster, ensure that each policy disallows the admission of privileged containers.
 
 Since manually searching through each pod's configuration might be tedious, especially in environments with many pods, you can use a more automated approach with grep or other command-line tools.
@@ -54,6 +59,7 @@ When creating a Pod Security Policy, ["kube-system"] namespaces are excluded by 
 This command uses jq, a command-line JSON processor, to parse the JSON output from kubectl get pods and filter out pods where any container has the securityContext.privileged flag set to true. Please note that you might need to adjust the command depending on your specific requirements and the structure of your pod specifications.
 
 ## Remediation
+
 Add policies to each namespace in the cluster which has user workloads to restrict the admission of privileged containers.
 
 To enable PSA for a namespace in your cluster, set the pod-security.kubernetes.io/enforce label with the policy value you want to enforce.
@@ -69,23 +75,26 @@ kubectl label --overwrite ns --all pod-security.kubernetes.io/warn=baseline
 ```
 
 ## Default Value
+
 By default, there are no restrictions on the creation of privileged containers.
 
 ## References
+
 1. https://kubernetes.io/docs/concepts/security/pod-security-admission/
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | \*   | \*   | \*   |
+| v7               | 5.1 Establish Secure Configurations                                       | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1611 | TA0004 | M1038, M1048 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1611                       | TA0004  | M1038, M1048 |
 
 ## Profile
+
 **Level 1** (Automated)

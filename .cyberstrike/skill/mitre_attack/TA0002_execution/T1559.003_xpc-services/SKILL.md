@@ -72,26 +72,24 @@ Adversaries can abuse XPC services to execute malicious content. Requests for ma
 ## Remediation Guide
 
 ### M1013 Application Developer Guidance
-Enable the Hardened Runtime capability when developing applications. Do not include the <code>com.apple.security.get-task-allow</code> entitlement with the value set to any variation of true.
 
+Enable the Hardened Runtime capability when developing applications. Do not include the <code>com.apple.security.get-task-allow</code> entitlement with the value set to any variation of true.
 
 ## Detection
 
 ### Detect Abuse of XPC Services (T1559.003)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| XPC Services technique applicable | High | Execution |
+| Finding                           | Severity | Impact    |
+| --------------------------------- | -------- | --------- |
+| XPC Services technique applicable | High     | Execution |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                                  |
+| ------ | -------------------------------------- |
 | CWE-94 | Improper Control of Generation of Code |
-
 
 ## References
 

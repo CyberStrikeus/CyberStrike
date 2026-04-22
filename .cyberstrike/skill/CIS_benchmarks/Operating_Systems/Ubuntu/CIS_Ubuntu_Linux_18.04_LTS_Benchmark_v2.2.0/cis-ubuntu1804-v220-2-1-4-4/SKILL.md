@@ -38,12 +38,14 @@ Time synchronization is important to support time sensitive security mechanisms 
 IF ntp is in use on the system, run the following commands:
 
 Run the following command to verify that the ntp service is enabled:
+
 ```bash
 # systemctl is-enabled ntp.service
 enabled
 ```
 
 Run the following command to verify that the ntp service is active:
+
 ```bash
 # systemctl is-active ntp.service
 active
@@ -61,11 +63,13 @@ active
 IF ntp is in use on the system, run the following commands:
 
 Run the following command to unmask ntp.service:
+
 ```bash
 # systemctl unmask ntp.service
 ```
 
 Run the following command to enable and start ntp.service:
+
 ```bash
 # systemctl --now enable ntp.service
 ```
@@ -73,6 +77,7 @@ Run the following command to enable and start ntp.service:
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove ntp:
+
 ```bash
 # apt purge ntp
 ```

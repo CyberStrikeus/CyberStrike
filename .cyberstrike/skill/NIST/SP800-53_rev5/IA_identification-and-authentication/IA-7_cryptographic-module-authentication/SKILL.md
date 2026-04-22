@@ -24,8 +24,7 @@ chains_with:
   - SA-4
   - SC-12
   - SC-13
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   IA-5: "Chain with IA-5 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -86,17 +85,16 @@ Authentication mechanisms may be required within a cryptographic module to authe
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-7 Cryptographic Module Authentication not implemented | High | Identification and Authentication |
-| IA-7 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                  | Severity | Impact                                       |
+| -------------------------------------------------------- | -------- | -------------------------------------------- |
+| IA-7 Cryptographic Module Authentication not implemented | High     | Identification and Authentication            |
+| IA-7 partially implemented                               | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

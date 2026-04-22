@@ -67,10 +67,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check logging configuration | `cloud_audit_logging` |
-| AWS CLI | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
+| Tool            | Purpose                      | Usage                            |
+| --------------- | ---------------------------- | -------------------------------- |
+| cloud-audit-mcp | Check logging configuration  | `cloud_audit_logging`            |
+| AWS CLI         | Review CloudTrail/CloudWatch | `aws cloudtrail describe-trails` |
 
 ## Remediation Guide
 
@@ -84,17 +84,16 @@ Limiting personally identifiable information in audit records when such informat
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| AU-3(3) Limit Personally Identifiable Information Elements not implemented | Medium | Audit and Accountability |
-| AU-3(3) partially implemented | Low | Incomplete Audit and Accountability |
+| Finding                                                                    | Severity | Impact                              |
+| -------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| AU-3(3) Limit Personally Identifiable Information Elements not implemented | Medium   | Audit and Accountability            |
+| AU-3(3) partially implemented                                              | Low      | Incomplete Audit and Accountability |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                |
+| ------- | -------------------- |
 | CWE-778 | Insufficient Logging |
-
 
 ## References
 

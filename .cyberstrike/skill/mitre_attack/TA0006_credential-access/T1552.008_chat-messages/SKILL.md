@@ -81,29 +81,28 @@ Rather than accessing the stored chat logs (i.e., Credentials In Files), adversa
 ## Remediation Guide
 
 ### M1047 Audit
+
 Preemptively search through communication services to find shared unsecured credentials. Searching for common patterns like "<code>password is </code>", “<code>password=</code>” and take actions to reduce exposure when found.
 
 ### M1017 User Training
-Ensure that developers and system administrators are aware of the risk associated with sharing unsecured passwords across communication services.
 
+Ensure that developers and system administrators are aware of the risk associated with sharing unsecured passwords across communication services.
 
 ## Detection
 
 ### Detect Unsecured Credentials Shared in Chat Messages
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Chat Messages technique applicable | High | Credential Access |
+| Finding                            | Severity | Impact            |
+| ---------------------------------- | -------- | ----------------- |
+| Chat Messages technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

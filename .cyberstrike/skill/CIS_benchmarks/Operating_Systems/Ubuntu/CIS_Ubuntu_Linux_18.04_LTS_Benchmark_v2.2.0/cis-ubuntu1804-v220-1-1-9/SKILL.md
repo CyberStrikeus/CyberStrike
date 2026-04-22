@@ -53,6 +53,7 @@ If autofs is installed, verify the service is masked:
 ## Expected Result
 
 If autofs is not installed, dpkg-query should return:
+
 ```
 dpkg-query: no packages found matching autofs
 ```

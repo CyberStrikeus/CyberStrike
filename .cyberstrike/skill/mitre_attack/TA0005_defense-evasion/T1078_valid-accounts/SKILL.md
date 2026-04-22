@@ -59,8 +59,7 @@ chains_with:
   - T1078.002
   - T1078.003
   - T1078.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1078.001: "Chain with T1078.001 for deeper attack path"
   T1078.002: "Chain with T1078.002 for deeper attack path"
@@ -110,49 +109,54 @@ The overlap of permissions for local, domain, and cloud accounts across a networ
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Applications and appliances that utilize default username and password should be changed immediately after the installation, and before deployment to a production environment. When possible, applications that use SSH keys should be updated periodically and properly secured.
 
 Policies should minimize (if not eliminate) reuse of passwords between different user accounts, especially employees using the same credentials for personal accounts that may not be defended by enterprise security resources.
 
 ### M1018 User Account Management
+
 Regularly audit user accounts for activity and deactivate or remove any that are no longer needed.
 
 ### M1026 Privileged Account Management
+
 Audit domain and local accounts as well as their permission levels routinely to look for situations that could allow an adversary to gain wide access by obtaining credentials of a privileged account. These audits should also include if default accounts have been enabled, or if new local accounts are created that have not been authorized. Follow best practices for design and administration of an enterprise network to limit privileged account use across administrative tiers.
 
 ### M1032 Multi-factor Authentication
+
 Implement multi-factor authentication (MFA) across all account types, including default, local, domain, and cloud accounts, to prevent unauthorized access, even if credentials are compromised. MFA provides a critical layer of security by requiring multiple forms of verification beyond just a password. This measure significantly reduces the risk of adversaries abusing valid accounts to gain initial access, escalate privileges, maintain persistence, or evade defenses within your network.
 
 ### M1013 Application Developer Guidance
+
 Ensure that applications do not store sensitive data or credentials insecurely. (e.g. plaintext credentials in code, published credentials in repositories, or credentials in public cloud storage).
 
 ### M1017 User Training
+
 Applications may send push notifications to verify a login as a form of multi-factor authentication (MFA). Train users to only accept valid push notifications and to report suspicious push notifications.
 
 ### M1015 Active Directory Configuration
+
 Disable legacy authentication, which does not support MFA, and require the use of modern authentication protocols instead.
 
 ### M1036 Account Use Policies
-Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges.
 
+Use conditional access policies to block logins from non-compliant devices or from outside defined organization IP ranges.
 
 ## Detection
 
 ### Detection of Valid Account Abuse Across Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Valid Accounts technique applicable | High | Defense Evasion |
+| Finding                             | Severity | Impact          |
+| ----------------------------------- | -------- | --------------- |
+| Valid Accounts technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

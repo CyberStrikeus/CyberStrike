@@ -66,8 +66,8 @@ By default, `--use-service-account-credentials` is set to false.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.2 Use Unique Passwords | X | X | X |
-| v8 | 6.8 Define and Maintain Role-Based Access Control | | | X |
-| v7 | 4.4 Use Unique Passwords | | X | X |
+| Controls Version | Control                                           | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords                          | X    | X    | X    |
+| v8               | 6.8 Define and Maintain Role-Based Access Control |      |      | X    |
+| v7               | 4.4 Use Unique Passwords                          |      | X    | X    |

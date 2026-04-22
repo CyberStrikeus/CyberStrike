@@ -23,8 +23,7 @@ chains_with:
   - PM-24
   - PT-2
   - SI-4
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PM-22: "Chain with PM-22 for comprehensive security coverage"
   PM-24: "Chain with PM-24 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -87,17 +86,16 @@ Personally identifiable information quality operations include the steps that or
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-18 Personally Identifiable Information Quality Operations not implemented | High | System and Information Integrity |
-| SI-18 partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                                                      | Severity | Impact                                      |
+| ---------------------------------------------------------------------------- | -------- | ------------------------------------------- |
+| SI-18 Personally Identifiable Information Quality Operations not implemented | High     | System and Information Integrity            |
+| SI-18 partially implemented                                                  | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

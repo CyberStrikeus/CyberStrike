@@ -47,7 +47,7 @@ severity_boost:
 
 Adversaries may gather credentials from the proc filesystem or `/proc`. The proc filesystem is a pseudo-filesystem used as an interface to kernel data structures for Linux based systems managing virtual memory. For each process, the `/proc/<PID>/maps` file shows how memory is mapped within the process’s virtual address space. And `/proc/<PID>/mem`, exposed for debugging purposes, provides access to the process’s virtual address space.
 
-When executing with root privileges, adversaries can search these memory locations for all processes on a system that contain patterns indicative of credentials. Adversaries may use regex patterns, such as <code>grep -E "^[0-9a-f-]* r" /proc/"$pid"/maps | cut -d' ' -f 1</code>, to look for fixed strings in memory structures or cached hashes. When running without privileged access, processes can still view their own virtual memory locations. Some services or programs may save credentials in clear text inside the process’s memory.
+When executing with root privileges, adversaries can search these memory locations for all processes on a system that contain patterns indicative of credentials. Adversaries may use regex patterns, such as <code>grep -E "^[0-9a-f-]\* r" /proc/"$pid"/maps | cut -d' ' -f 1</code>, to look for fixed strings in memory structures or cached hashes. When running without privileged access, processes can still view their own virtual memory locations. Some services or programs may save credentials in clear text inside the process’s memory.
 
 If running as or with the permissions of a web browser, a process can search the `/maps` & `/mem` locations for common website credential patterns (that can also be used to find adjacent memory within the same structure) in which hashes or cleartext credentials may be located.
 
@@ -90,6 +90,7 @@ grep -i "PASS" "#{output_file}"
 ```
 
 **Dependencies:**
+
 - Script to launch target process must exist
 
 ### Atomic Test 2: Dump individual process memory with sh on FreeBSD (Local)
@@ -112,6 +113,7 @@ strings "#{output_file}" | grep -i PASS
 ```
 
 **Dependencies:**
+
 - Script to launch target process must exist
 
 ### Atomic Test 3: Dump individual process memory with Python (Local)
@@ -132,14 +134,15 @@ grep -i "PASS" "#{output_file}"
 ```
 
 **Dependencies:**
+
 - Script to launch target process must exist
 - Requires Python
 
 ### Atomic Test 4: Capture Passwords with MimiPenguin
 
-MimiPenguin is a tool inspired by MimiKatz that targets Linux systems affected by CVE-2018-20781 (Ubuntu-based distros and certain versions of GNOME Keyring). 
-Upon successful execution on an affected system, MimiPenguin will retrieve passwords from memory and output them to a specified file. 
-See https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-20781. 
+MimiPenguin is a tool inspired by MimiKatz that targets Linux systems affected by CVE-2018-20781 (Ubuntu-based distros and certain versions of GNOME Keyring).
+Upon successful execution on an affected system, MimiPenguin will retrieve passwords from memory and output them to a specified file.
+See https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-20781.
 See https://www.tecmint.com/mimipenguin-hack-login-passwords-of-linux-users/#:~:text=Mimipenguin%20is%20a%20free%20and,tested%20on%20various%20Linux%20distributions.
 
 **Supported Platforms:** linux
@@ -151,11 +154,11 @@ cat #{output_file}
 ```
 
 **Dependencies:**
+
 - MimiPenguin script must exist on disk at specified location (#{MimiPenguin_Location})
 - Strings must be installed
 - Python2 must be installed
 - Libc-bin must be installed
-
 
 ### Manual Testing
 
@@ -170,29 +173,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1027 Password Policies
+
 Ensure that root accounts have complex, unique passwords across all systems on the network.
 
 ### M1026 Privileged Account Management
-Follow best practices in restricting access to privileged accounts to avoid hostile programs from accessing sensitive information.
 
+Follow best practices in restricting access to privileged accounts to avoid hostile programs from accessing sensitive information.
 
 ## Detection
 
 ### Detecting OS Credential Dumping via /proc Filesystem Access on Linux
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Proc Filesystem technique applicable | High | Credential Access |
+| Finding                              | Severity | Impact            |
+| ------------------------------------ | -------- | ----------------- |
+| Proc Filesystem technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

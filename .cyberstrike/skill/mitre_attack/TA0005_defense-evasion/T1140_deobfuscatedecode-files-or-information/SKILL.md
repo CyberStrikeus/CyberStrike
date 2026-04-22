@@ -30,10 +30,8 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-693
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -108,6 +106,7 @@ echo $ENCODED > #{encoded_file} && python3 -c "import base64;dec=base64.b64decod
 ```
 
 **Dependencies:**
+
 - Python must be present
 
 ### Atomic Test 4: Base64 decoding with Perl
@@ -124,6 +123,7 @@ echo $ENCODED > #{encoded_file} && perl -le 'use MIME::Base64;open($f,"<","#{enc
 ```
 
 **Dependencies:**
+
 - Perl must be present
 
 ### Atomic Test 5: Base64 decoding with shell utilities
@@ -144,7 +144,6 @@ echo $ENCODED > #{encoded_file} && cat < #{encoded_file} | base64 -d
 bash -c "{echo,\"$(echo $ENCODED)\"}|{base64,-d}"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -163,19 +162,17 @@ No specific mitigations documented for this technique.
 
 ### Detect Adversary Deobfuscation or Decoding of Files and Payloads
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Deobfuscate/Decode Files or Information technique applicable | Medium | Defense Evasion |
+| Finding                                                      | Severity | Impact          |
+| ------------------------------------------------------------ | -------- | --------------- |
+| Deobfuscate/Decode Files or Information technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -17,19 +17,24 @@ severity_boost: {}
 # CIS 9.2 — Configure a Logging File Channel
 
 ## Profile Applicability
+
 - Authoritative Name Server Level 1
 - Caching Only Name Server Level 1
 
 ## Description
+
 To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
 
 ## Rationale
+
 Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks.
 
 ## Impact
+
 Not specified.
 
 ## Audit Procedure
+
 Perform the following:
 
 - Search the logging options of the configuration file for configured log files
@@ -55,6 +60,7 @@ zone transfer 'cisecurity.org/AXFR/IN' denied
 ```
 
 ## Remediation
+
 In `named.conf`, configure a channel for a local security log file with the categories `config`, `dnssec`, `network`, `security`, `updates`, `xfer-in` and `xfer-out`. The local log file will be within the `chroot` directory.
 
 ```
@@ -91,23 +97,28 @@ logging {
 ```
 
 ## Default Value
+
 There is no security log by default.
 
 ## References
+
 None listed in benchmark.
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 6.2 Ensure Audit Log Settings Support Appropriate Log Entry Formatting | Y | Y | Y |
-| v7 | 6.2 Activate audit logging | Y | Y | Y |
-| v7 | 6.3 Enable Detailed Logging | N | Y | Y |
+
+| Controls Version | Control                                                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 6.2 Ensure Audit Log Settings Support Appropriate Log Entry Formatting | Y    | Y    | Y    |
+| v7               | 6.2 Activate audit logging                                             | Y    | Y    | Y    |
+| v7               | 6.3 Enable Detailed Logging                                            | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic          | Technique                               |
+| --------------- | --------------------------------------- |
 | Defense Evasion | T1562.002 Disable Windows Event Logging |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

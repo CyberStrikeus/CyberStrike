@@ -57,7 +57,7 @@ severity_boost:
 
 Adversaries may use stolen application access tokens to bypass the typical authentication process and access restricted accounts, information, or services on remote systems. These tokens are typically stolen from users or services and used in lieu of login credentials.
 
-Application access tokens are used to make authorized API requests on behalf of a user or service and are commonly used to access resources in cloud, container-based applications, and software-as-a-service (SaaS). 
+Application access tokens are used to make authorized API requests on behalf of a user or service and are commonly used to access resources in cloud, container-based applications, and software-as-a-service (SaaS).
 
 OAuth is one commonly implemented framework that issues tokens to users for access to systems. These frameworks are used collaboratively to verify the user and determine what actions the user is allowed to perform. Once identity is established, the token allows actions to be authorized, without passing the actual credentials of the user. Therefore, compromise of the token can grant the adversary access to resources of other sites through a malicious application.
 
@@ -98,38 +98,40 @@ Direct API access through a token negates the effectiveness of a second authenti
 ## Remediation Guide
 
 ### M1036 Account Use Policies
+
 Where possible, consider restricting the use of access tokens outside of expected contexts. For example, in AWS environments, consider using data perimeters to prevent credential use outside of an expected network.
 
 ### M1047 Audit
+
 Administrators should audit all cloud and container accounts to ensure that they are necessary and that the permissions granted to them are appropriate. Where possible, the ability to request temporary account tokens on behalf of another accounts should be disabled. Additionally, administrators can leverage audit tools to monitor actions that can be conducted as a result of OAuth 2.0 access. For instance, audit reports enable admins to identify privilege escalation actions such as role creations or policy modifications, which could be actions performed after initial access.
 
 ### M1021 Restrict Web-Based Content
+
 Update corporate policies to restrict what types of third-party applications may be added to any online service or tool that is linked to the company's information, accounts or network (e.g., Google, Microsoft, Dropbox, Basecamp, GitHub). However, rather than providing high-level guidance on this, be extremely specific—include a list of per-approved applications and deny all others not on the list. Administrators may also block end-user consent through administrative portals, such as the Azure Portal, disabling users from authorizing third-party apps through OAuth and forcing administrative consent.
 
 ### M1013 Application Developer Guidance
+
 Consider implementing token binding strategies, such as Azure AD token protection or OAuth Proof of Possession, that cryptographically bind a token to a secret. This may prevent the token from being used without knowledge of the secret or possession of the device the token is tied to.
 
 ### M1041 Encrypt Sensitive Information
-File encryption should be enforced across email communications containing sensitive information that may be obtained through access to email services.
 
+File encryption should be enforced across email communications containing sensitive information that may be obtained through access to email services.
 
 ## Detection
 
 ### Behavioral Detection Strategy for Use Alternate Authentication Material: Application Access Token (T1550.001)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Application Access Token technique applicable | High | Defense Evasion |
+| Finding                                       | Severity | Impact          |
+| --------------------------------------------- | -------- | --------------- |
+| Application Access Token technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

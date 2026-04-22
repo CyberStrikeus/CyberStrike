@@ -55,12 +55,12 @@ Not configured by default.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets - Perform automated vulnerability scans of externally-exposed enterprise assets using a SCAP-compliant vulnerability scanning tool. Perform scans on a monthly, or more frequent, basis. | | x | x |
-| v7 | 3 Continuous Vulnerability Management - Continuous Vulnerability Management | | | |
-| v7 | 3.1 Run Automated Vulnerability Scanning Tools - Utilize an up-to-date SCAP-compliant vulnerability scanning tool to automatically scan all systems on the network on a weekly or more frequent basis to identify all potential vulnerabilities on the organization's systems. | | x | x |
-| v7 | 3.2 Perform Authenticated Vulnerability Scanning - Perform authenticated vulnerability scanning with agents running locally on each system or with remote scanners that are configured with elevated rights on the system being tested. | | x | x |
+| Controls Version | Control                                                                                                                                                                                                                                                                        | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 7.6 Perform Automated Vulnerability Scans of Externally-Exposed Enterprise Assets - Perform automated vulnerability scans of externally-exposed enterprise assets using a SCAP-compliant vulnerability scanning tool. Perform scans on a monthly, or more frequent, basis.     |      | x    | x    |
+| v7               | 3 Continuous Vulnerability Management - Continuous Vulnerability Management                                                                                                                                                                                                    |      |      |      |
+| v7               | 3.1 Run Automated Vulnerability Scanning Tools - Utilize an up-to-date SCAP-compliant vulnerability scanning tool to automatically scan all systems on the network on a weekly or more frequent basis to identify all potential vulnerabilities on the organization's systems. |      | x    | x    |
+| v7               | 3.2 Perform Authenticated Vulnerability Scanning - Perform authenticated vulnerability scanning with agents running locally on each system or with remote scanners that are configured with elevated rights on the system being tested.                                        |      | x    | x    |
 
 ## Profile
 

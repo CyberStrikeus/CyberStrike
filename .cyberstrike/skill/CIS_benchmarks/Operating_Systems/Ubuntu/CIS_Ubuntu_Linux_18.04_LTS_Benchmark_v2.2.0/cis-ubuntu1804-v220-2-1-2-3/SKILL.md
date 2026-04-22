@@ -38,12 +38,14 @@ Time synchronization is important to support time sensitive security mechanisms 
 IF chrony is in use on the system, run the following commands:
 
 Run the following command to verify that the chrony service is enabled:
+
 ```bash
 # systemctl is-enabled chrony.service
 enabled
 ```
 
 Run the following command to verify that the chrony service is active:
+
 ```bash
 # systemctl is-active chrony.service
 active
@@ -61,11 +63,13 @@ active
 IF chrony is in use on the system, run the following commands:
 
 Run the following command to unmask chrony.service:
+
 ```bash
 # systemctl unmask chrony.service
 ```
 
 Run the following command to enable and start chrony.service:
+
 ```bash
 # systemctl --now enable chrony.service
 ```
@@ -73,6 +77,7 @@ Run the following command to enable and start chrony.service:
 OR
 
 If another time synchronization service is in use on the system, run the following command to remove chrony:
+
 ```bash
 # apt purge chrony
 ```

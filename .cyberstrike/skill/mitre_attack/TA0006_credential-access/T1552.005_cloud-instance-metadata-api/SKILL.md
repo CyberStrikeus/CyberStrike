@@ -81,32 +81,32 @@ The de facto standard across cloud service providers is to host the Instance Met
 ## Remediation Guide
 
 ### M1035 Limit Access to Resource Over Network
+
 Limit access to the Instance Metadata API using a host-based firewall such as iptables.
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable unnecessary metadata services and restrict or disable insecure versions of metadata services that are in use to prevent adversary access.
 
 ### M1037 Filter Network Traffic
-Limit access to the Instance Metadata API. A properly configured Web Application Firewall (WAF) may help prevent external adversaries from exploiting Server-side Request Forgery (SSRF) attacks that allow access to the Cloud Instance Metadata API.
 
+Limit access to the Instance Metadata API. A properly configured Web Application Firewall (WAF) may help prevent external adversaries from exploiting Server-side Request Forgery (SSRF) attacks that allow access to the Cloud Instance Metadata API.
 
 ## Detection
 
 ### Detect Access to Cloud Instance Metadata API (IaaS)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Cloud Instance Metadata API technique applicable | High | Credential Access |
+| Finding                                          | Severity | Impact            |
+| ------------------------------------------------ | -------- | ----------------- |
+| Cloud Instance Metadata API technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

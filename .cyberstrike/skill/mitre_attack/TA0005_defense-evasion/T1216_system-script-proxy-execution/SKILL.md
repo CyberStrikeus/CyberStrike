@@ -24,8 +24,7 @@ cwe_ids:
 chains_with:
   - T1216.001
   - T1216.002
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1216.001: "Chain with T1216.001 for deeper attack path"
   T1216.002: "Chain with T1216.002 for deeper attack path"
@@ -78,7 +77,6 @@ set comspec=#{command_to_execute}
 cscript %windir%\System32\manage-bde.wsf
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -92,26 +90,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Certain signed scripts that can be used to execute other programs may not be necessary within a given environment. Use application control configured to block execution of these scripts if they are not required for a given system or network to prevent potential misuse by adversaries.
 
+Certain signed scripts that can be used to execute other programs may not be necessary within a given environment. Use application control configured to block execution of these scripts if they are not required for a given system or network to prevent potential misuse by adversaries.
 
 ## Detection
 
 ### Detection of Script-Based Proxy Execution via Signed Microsoft Utilities
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| System Script Proxy Execution technique applicable | Medium | Defense Evasion |
+| Finding                                            | Severity | Impact          |
+| -------------------------------------------------- | -------- | --------------- |
+| System Script Proxy Execution technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

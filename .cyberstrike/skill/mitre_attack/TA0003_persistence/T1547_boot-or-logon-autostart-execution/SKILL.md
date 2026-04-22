@@ -47,8 +47,7 @@ chains_with:
   - T1547.013
   - T1547.014
   - T1547.015
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1547.001: "Chain with T1547.001 for deeper attack path"
   T1547.002: "Chain with T1547.002 for deeper attack path"
@@ -106,7 +105,7 @@ pnputil.exe -i -a #{driver_path}
 
 ### Atomic Test 3: Leverage Virtual Channels to execute custom DLL during successful RDP session
 
-Virtual Channels can be leveraged to alter RDP behavior using dedicated Addins.The mechanism is implemented using DLLs which can be executed during RDP session automatically. 
+Virtual Channels can be leveraged to alter RDP behavior using dedicated Addins.The mechanism is implemented using DLLs which can be executed during RDP session automatically.
 The DLLs are loaded in the host system only after successful connection is established with the remote system.
 Once the test is run, amsi.dll will be loaded on the host system during successful RDP session.
 Blog :https://learn.microsoft.com/en-us/windows/win32/termserv/terminal-services-virtual-channels?redirectedfrom=MSDN
@@ -117,7 +116,6 @@ Blog :https://learn.microsoft.com/en-us/windows/win32/termserv/terminal-services
 ```cmd
 reg add "HKEY_CURRENT_USER\Software\Microsoft\Terminal Server Client\Default\Addins\#{Subkey_Added}" /v Name /t REG_SZ /d "#{dll_inf}" /f
 ```
-
 
 ### Manual Testing
 
@@ -137,19 +135,17 @@ No specific mitigations documented for this technique.
 
 ### Boot or Logon Autostart Execution Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Boot or Logon Autostart Execution technique applicable | High | Persistence |
+| Finding                                                | Severity | Impact      |
+| ------------------------------------------------------ | -------- | ----------- |
+| Boot or Logon Autostart Execution technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

@@ -140,6 +140,6 @@ If a different GUI login service is in use and required on the system, consult y
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1078, T1078.001, T1078.002, T1078.003, T1087, T1087.001, T1087.002 | TA0007 | M1028 |
+| Techniques / Sub-techniques                                         | Tactics | Mitigations |
+| ------------------------------------------------------------------- | ------- | ----------- |
+| T1078, T1078.001, T1078.002, T1078.003, T1087, T1087.001, T1087.002 | TA0007  | M1028       |

@@ -93,37 +93,37 @@ Adversaries may also execute malicious content by planting malicious JavaScript 
 ## Remediation Guide
 
 ### M1050 Exploit Protection
-Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block methods of using trusted binaries to bypass application control. 
+
+Microsoft's Enhanced Mitigation Experience Toolkit (EMET) Attack Surface Reduction (ASR) feature can be used to block methods of using trusted binaries to bypass application control.
 Ensure that Electron is updated to the latest version and critical vulnerabilities (such as nodeIntegration bypasses) are patched and cannot be exploited.
 
 ### M1042 Disable or Remove Feature or Program
+
 Remove or deny access to unnecessary and potentially vulnerable software and features to prevent abuse by adversaries. Many native binaries may not be necessary within a given environment: for example, consider disabling the Node.js integration in all renderers that display remote content to protect users by limiting adversaries’ power to plant malicious JavaScript within Electron applications.
 
 ### M1038 Execution Prevention
+
 Where possible, enforce binary and application integrity with digital signature verification to prevent untrusted code from executing. For example, do not use `shell.openExternal` with untrusted content.
 
 Where possible, set `nodeIntegration` to false, which disables access to the Node.js function. By disabling access to the Node.js function, this may limit the ability to execute malicious commands by injecting JavaScript code.
 
 Do not disable `webSecurity`, which may allow for users of the application to invoke malicious content from online sources.
 
-
 ## Detection
 
 ### Detecting Electron Application Abuse for Proxy Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Electron Applications technique applicable | Low | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Electron Applications technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

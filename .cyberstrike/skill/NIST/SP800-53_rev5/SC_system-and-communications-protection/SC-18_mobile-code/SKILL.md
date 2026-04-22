@@ -25,8 +25,7 @@ chains_with:
   - CM-2
   - CM-6
   - SI-3
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AU-2: "Chain with AU-2 for comprehensive security coverage"
   AU-12: "Chain with AU-12 for comprehensive security coverage"
@@ -71,10 +70,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption` |
-| nmap | Network scanning | `nmap -sV --script ssl-enum-ciphers` |
+| Tool            | Purpose                               | Usage                                |
+| --------------- | ------------------------------------- | ------------------------------------ |
+| cloud-audit-mcp | Check encryption and network controls | `cloud_audit_encryption`             |
+| nmap            | Network scanning                      | `nmap -sV --script ssl-enum-ciphers` |
 
 ## Remediation Guide
 
@@ -89,17 +88,16 @@ Mobile code includes any program, application, or content that can be transmitte
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SC-18 Mobile Code not implemented | High | System and Communications Protection |
-| SC-18 partially implemented | Medium | Incomplete System and Communications Protection |
+| Finding                           | Severity | Impact                                          |
+| --------------------------------- | -------- | ----------------------------------------------- |
+| SC-18 Mobile Code not implemented | High     | System and Communications Protection            |
+| SC-18 partially implemented       | Medium   | Incomplete System and Communications Protection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

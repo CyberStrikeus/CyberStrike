@@ -26,8 +26,7 @@ cwe_ids:
   - CWE-522
 chains_with:
   - T1635.001
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1635.001: "Chain with T1635.001 for deeper attack path"
 ---
@@ -36,7 +35,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries can steal user application access tokens as a means of acquiring credentials to access remote systems and resources. This can occur through social engineering or URI hijacking and typically requires user action to grant access, such as through a system “Open With” dialogue. 
+Adversaries can steal user application access tokens as a means of acquiring credentials to access remote systems and resources. This can occur through social engineering or URI hijacking and typically requires user action to grant access, such as through a system “Open With” dialogue.
 
 Application access tokens are used to make authorized API requests on behalf of a user and are commonly used as a way to access resources in cloud-based applications and software-as-a-service (SaaS). OAuth is one commonly implemented framework used to issue tokens to users for access to systems. An application desiring access to cloud-based services or protected APIs can gain entry through OAuth 2.0 using a variety of authorization protocols. An example of a commonly-used sequence is Microsoft's Authorization Code Grant flow. An OAuth access token enables a third-party application to interact with resources containing user data in the ways requested without requiring user credentials.
 
@@ -67,32 +66,32 @@ Review whether mitigations for T1635 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M1006 Use Recent OS Version
+
 iOS 11 introduced a first-come-first-served principle for URIs, allowing only the prior installed app to be launched via the URI. Android 6 introduced App Links.
 
 ### M1011 User Guidance
+
 Users should be instructed to not open links in applications they don’t recognize.
 
 ### M1013 Application Developer Guidance
-Developers should use Android App Links and iOS Universal Links to provide a secure binding between URIs and applications, preventing malicious applications from intercepting redirections. Additionally, for OAuth use cases, PKCE should be used to prevent use of stolen authorization codes.
 
+Developers should use Android App Links and iOS Universal Links to provide a secure binding between URIs and applications, preventing malicious applications from intercepting redirections. Additionally, for OAuth use cases, PKCE should be used to prevent use of stolen authorization codes.
 
 ## Detection
 
 ### Detection of Steal Application Access Token
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steal Application Access Token technique applicable | High | Credential Access |
+| Finding                                             | Severity | Impact            |
+| --------------------------------------------------- | -------- | ----------------- |
+| Steal Application Access Token technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 

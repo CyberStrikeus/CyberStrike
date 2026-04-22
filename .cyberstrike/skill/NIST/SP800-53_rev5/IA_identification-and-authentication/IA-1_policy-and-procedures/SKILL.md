@@ -23,8 +23,7 @@ chains_with:
   - PM-9
   - PS-8
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-1: "Chain with AC-1 for comprehensive security coverage"
   PM-9: "Chain with PM-9 for comprehensive security coverage"
@@ -69,10 +68,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -92,17 +91,16 @@ Identification and authentication policy and procedures address the controls in 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-1 Policy and Procedures not implemented | High | Identification and Authentication |
-| IA-1 partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                    | Severity | Impact                                       |
+| ------------------------------------------ | -------- | -------------------------------------------- |
+| IA-1 Policy and Procedures not implemented | High     | Identification and Authentication            |
+| IA-1 partially implemented                 | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

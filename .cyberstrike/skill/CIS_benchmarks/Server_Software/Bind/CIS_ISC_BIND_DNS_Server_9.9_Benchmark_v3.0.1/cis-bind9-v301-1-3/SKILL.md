@@ -17,16 +17,20 @@ severity_boost: {}
 # CIS 1.3 — Dedicated Name Server Role
 
 ## Profile Applicability
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server
 
 ## Description
+
 A name server may be an authoritative name server for one or more domains for which it is configured to provide information. An authoritative-only name server only answers queries on the domains for which it is configured, and will reject queries for other domains. A caching name server will answer queries any domain. The caching name server gets answers by sending recursive DNS queries to other name servers and then storing the answer in its cache to provide a quicker response to the next query for that name. A caching-only name server is not authoritative for any domain. The BIND DNS names server should be configured to be either a caching-only or an authoritative-only name server, but not both.
 
 ## Rationale
+
 DNS name servers are a foundational part of your network architecture and the security of other network services depend on their integrity. It is important to separate the roles of caching and authoritative name servers to minimize functionality and reduce risk for each server. Each name server role faces different threats in addition to direct attacks on the server. For example, the caching name server faces unique threats of malicious replies with bogus answers or over-sized answers intended to deny service. The authoritative name server is a critical part of the infrastructure should not be exposed to these additional attacks.
 
 ## Impact
+
 Not Applicable
 
 ## Audit Procedure
@@ -81,22 +85,27 @@ allow-rescursion { local; };
 **Caching-Only Name Server:** For the caching-only name server remove the non-local zone statements from the configuration file and restart the server.
 
 ## Default Value
+
 Not Applicable
 
 ## References
+
 Not Applicable
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v6 | 9 - Limitation and Control of Network Ports, Protocols, and Services | N | Y | Y |
+
+| Controls Version | Control                                                              | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------- | ---- | ---- | ---- |
+| v6               | 9 - Limitation and Control of Network Ports, Protocols, and Services | N    | Y    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
-| Discovery | T1046 - Network Service Scanning |
+
+| Tactic         | Technique                                 |
+| -------------- | ----------------------------------------- |
+| Discovery      | T1046 - Network Service Scanning          |
 | Initial Access | T1190 - Exploit Public-Facing Application |
 
 ## Profile
+
 - Level 1 - Authoritative Name Server
 - Level 1 - Caching Only Name Server

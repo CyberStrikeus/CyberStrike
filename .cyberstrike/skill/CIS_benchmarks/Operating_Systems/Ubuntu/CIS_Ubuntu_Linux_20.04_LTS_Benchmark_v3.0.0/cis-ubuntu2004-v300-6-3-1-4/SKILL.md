@@ -75,10 +75,10 @@ If `audit_backlog_limit` is not set, the system defaults to `audit_backlog_limit
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.2 Collect Audit Logs | X | X | X |
-| v7 | 6.2 Activate audit logging | X | X | X |
-| v7 | 6.3 Enable Detailed Logging | | X | X |
+| Controls Version | Control                     | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------- | ---- | ---- | ---- |
+| v8               | 8.2 Collect Audit Logs      | X    | X    | X    |
+| v7               | 6.2 Activate audit logging  | X    | X    | X    |
+| v7               | 6.3 Enable Detailed Logging |      | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.001 / TA0005 / M1028

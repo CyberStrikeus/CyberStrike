@@ -80,7 +80,6 @@ echo "#{script_command}" > #{script_path}
 REG.exe ADD HKCU\Environment /v UserInitMprLogonScript /t REG_SZ /d "#{script_path}" /f
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -94,30 +93,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1024 Restrict Registry Permissions
-Ensure proper permissions are set for Registry hives to prevent users from modifying keys for logon scripts that may lead to persistence.
 
+Ensure proper permissions are set for Registry hives to prevent users from modifying keys for logon scripts that may lead to persistence.
 
 ## Detection
 
 ### Detect Logon Script Modifications and Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Logon Script (Windows) technique applicable | High | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Logon Script (Windows) technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 
 - [Hexacorn Logon Scripts](http://www.hexacorn.com/blog/2014/11/14/beyond-good-ol-run-key-part-18/)
-- [TechNet Logon Scripts](https://technet.microsoft.com/en-us/library/cc758918(v=ws.10).aspx)
+- [TechNet Logon Scripts](<https://technet.microsoft.com/en-us/library/cc758918(v=ws.10).aspx>)
 - [Atomic Red Team - T1037.001](https://github.com/redcanaryco/atomic-red-team/tree/master/atomics/T1037.001)
 - [MITRE ATT&CK - T1037.001](https://attack.mitre.org/techniques/T1037/001)

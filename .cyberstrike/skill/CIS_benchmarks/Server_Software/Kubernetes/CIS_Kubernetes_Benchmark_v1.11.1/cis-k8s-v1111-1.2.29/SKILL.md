@@ -67,6 +67,7 @@ By default the Kubernetes API server supports a wide range of TLS ciphers.
 ## Additional Information
 
 Insecure values:
+
 - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
 - TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
 - TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
@@ -87,7 +88,7 @@ Insecure values:
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software | | x | x |
-| v7 | 5.1 Establish Secure Configurations | x | x | x |
+| Controls Version | Control                                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.8 Uninstall or Disable Unnecessary Services on Enterprise Assets and Software |      | x    | x    |
+| v7               | 5.1 Establish Secure Configurations                                             | x    | x    | x    |

@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 1.3.5
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Do not bind the Controller Manager service to non-loopback insecure addresses.
 
 ## Rationale
+
 The Controller Manager API service which runs on port 10257/TCP by default is used for health and metrics information and is available without authentication or encryption. As such it should only be bound to a localhost interface, to minimize the cluster's attack surface.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -54,12 +58,15 @@ unset POD
 ```
 
 ## Remediation
+
 None.
 
 ## Default Value
+
 By default, the `--bind-address` argument is not present, the `secure-port` argument is set to `10257` and the `port` argument is set to `0`.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/4.5/operators/operator-reference.html#cluster-openshift-controller-manager-operator_red-hat-operators
 2. https://docs.openshift.com/container-platform/4.5/operators/operator-reference.html#kube-controller-manager-operator_red-hat-operators
 3. https://github.com/openshift/cluster-kube-controller-manager-operator
@@ -67,16 +74,17 @@ By default, the `--bind-address` argument is not present, the `secure-port` argu
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 12.6 Use of Secure Network Management and Communication Protocols | | * | * |
-| v7 | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running | | * | * |
+| Controls Version | Control                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------ | ---- | ---- | ---- |
+| v8               | 12.6 Use of Secure Network Management and Communication Protocols  |      | \*   | \*   |
+| v7               | 9.2 Ensure Only Approved Ports, Protocols and Services Are Running |      | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|-----------------------------|---------|-------------|
-| T1106 | TA0002 | M1035 |
+| --------------------------- | ------- | ----------- |
+| T1106                       | TA0002  | M1035       |
 
 ## Profile
+
 **Level 1** (Manual)

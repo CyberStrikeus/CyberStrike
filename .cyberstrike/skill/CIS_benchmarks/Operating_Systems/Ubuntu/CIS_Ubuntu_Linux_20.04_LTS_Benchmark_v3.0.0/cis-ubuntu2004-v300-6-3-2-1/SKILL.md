@@ -66,9 +66,9 @@ Additional Information: The `max_log_file` parameter is measured in megabytes. O
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 8.3 Ensure Adequate Audit Log Storage | X | X | X |
-| v7 | 6.4 Ensure adequate storage for logs | | X | X |
+| Controls Version | Control                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------- | ---- | ---- | ---- |
+| v8               | 8.3 Ensure Adequate Audit Log Storage | X    | X    | X    |
+| v7               | 6.4 Ensure adequate storage for logs  |      | X    | X    |
 
 MITRE ATT&CK Mappings: T1562, T1562.006 / TA0040 / M1053

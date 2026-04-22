@@ -19,8 +19,7 @@ tech_stack:
   - windows
 cwe_ids:
   - CWE-20
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - SI-8
 severity_boost: {}
@@ -66,10 +65,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring` |
-| AWS CLI | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
+| Tool            | Purpose                    | Usage                          |
+| --------------- | -------------------------- | ------------------------------ |
+| cloud-audit-mcp | Check integrity monitoring | `cloud_audit_monitoring`       |
+| AWS CLI         | Review GuardDuty/Inspector | `aws guardduty list-detectors` |
 
 ## Remediation Guide
 
@@ -83,17 +82,16 @@ Using automated mechanisms to update spam protection mechanisms helps to ensure 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SI-8(2) Automatic Updates not implemented | High | System and Information Integrity |
-| SI-8(2) partially implemented | Medium | Incomplete System and Information Integrity |
+| Finding                                   | Severity | Impact                                      |
+| ----------------------------------------- | -------- | ------------------------------------------- |
+| SI-8(2) Automatic Updates not implemented | High     | System and Information Integrity            |
+| SI-8(2) partially implemented             | Medium   | Incomplete System and Information Integrity |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

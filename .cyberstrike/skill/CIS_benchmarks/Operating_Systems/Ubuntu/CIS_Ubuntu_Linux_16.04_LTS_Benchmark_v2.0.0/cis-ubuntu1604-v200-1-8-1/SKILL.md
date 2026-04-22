@@ -68,9 +68,9 @@ None.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 2.6 Address unapproved software |
+| Controls Version | Control                         |
+| ---------------- | ------------------------------- |
+| v7               | 2.6 Address unapproved software |
 
 ## Assessment Status
 

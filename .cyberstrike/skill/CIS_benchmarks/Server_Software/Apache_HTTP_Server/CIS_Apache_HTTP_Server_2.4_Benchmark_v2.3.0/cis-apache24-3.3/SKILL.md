@@ -17,6 +17,7 @@ severity_boost: {}
 # 3.3 Ensure the Apache User Account Is Locked
 
 ## Profile Applicability
+
 - Level 1
 
 ## Description
@@ -59,10 +60,11 @@ The default user is `daemon` and the account is typically locked.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.3 Disable Dormant Accounts<br>Delete or disable any dormant accounts after a period of 45 days of inactivity, where supported. | ● | ● | ● |
-| v7 | 16.8 Disable Any Unassociated Accounts<br>Disable any account that cannot be associated with a business process or business owner. | ● | ● | ● |
+| Controls Version | Control                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.3 Disable Dormant Accounts<br>Delete or disable any dormant accounts after a period of 45 days of inactivity, where supported.   | ●    | ●    | ●    |
+| v7               | 16.8 Disable Any Unassociated Accounts<br>Disable any account that cannot be associated with a business process or business owner. | ●    | ●    | ●    |
 
 ## Profile
+
 - Level 1

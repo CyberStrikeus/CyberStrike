@@ -91,7 +91,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Register Portable Virtualbox
 
-ransomware payloads via virtual machines (VM). 
+ransomware payloads via virtual machines (VM).
 [Maze ransomware](https://threatpost.com/maze-ransomware-ragnar-locker-virtual-machine/159350/)
 
 **Supported Platforms:** windows
@@ -105,6 +105,7 @@ sc start VBoxDRV
 ```
 
 **Dependencies:**
+
 - MSI file must exist on disk at specified location (#{msi_file_path})
 - CAB file must exist on disk at specified location (#{cab_file_path})
 - Old version of Virtualbox must be installed
@@ -126,6 +127,7 @@ https://attack.mitre.org/techniques/T1564/006/
 ```
 
 **Dependencies:**
+
 - VirtualBox must exist on disk at specified locations (#{virtualbox_exe})
 - VBoxManage must exist on disk at specified locations (#{vboxmanage_exe})
 
@@ -148,9 +150,9 @@ Start-VM $VM
 ```
 
 **Dependencies:**
-- Hyper-V must be enabled on the system
-Checks whether Hyper-V is enabled. If not, enables Hyper-V and forces a required restart
 
+- Hyper-V must be enabled on the system
+  Checks whether Hyper-V is enabled. If not, enables Hyper-V and forces a required restart
 
 ### Manual Testing
 
@@ -165,32 +167,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Disable native virtualization technologies such as Hyper-V if not necessary within a given environment. Consider also disabling Windows Sandbox if it is not needed to test or debug applications.
 
 ### M1047 Audit
+
 Periodically audit virtual machines for abnormalities. On ESXi servers, periodically compare the output of `vim-cmd vmsvc/getallvms`, which lists all VMs in vCenter, and `escxli vm process list | grep Display`, which lists all VMs hosted on ESXi.
 
 ### M1038 Execution Prevention
-Use application control to mitigate installation and use of unapproved virtualization software.
 
+Use application control to mitigate installation and use of unapproved virtualization software.
 
 ## Detection
 
 ### Detection Strategy for Hidden Virtual Instance Execution
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Run Virtual Instance technique applicable | Low | Defense Evasion |
+| Finding                                   | Severity | Impact          |
+| ----------------------------------------- | -------- | --------------- |
+| Run Virtual Instance technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

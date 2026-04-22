@@ -15,8 +15,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SC-12
   - SC-13
@@ -69,9 +68,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -85,16 +84,16 @@ The selection of cryptographic mechanisms is based on the need to protect the co
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-9(8) Cryptographic Protection not implemented | Medium | Contingency Planning |
-| CP-9(8) partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                          | Severity | Impact                          |
+| ------------------------------------------------ | -------- | ------------------------------- |
+| CP-9(8) Cryptographic Protection not implemented | Medium   | Contingency Planning            |
+| CP-9(8) partially implemented                    | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

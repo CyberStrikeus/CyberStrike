@@ -17,17 +17,21 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 2.14
 
 ## Profile Applicability
+
 - **Level:** 1 - Docker - Linux
 
 ## Description
+
 By default you should restrict containers from acquiring additional privileges via suid or sgid.
 
 ## Rationale
+
 A process can set the `no_new_priv` bit in the kernel and this persists across forks, clones and execve. The `no_new_priv` bit ensures that the process and its child processes do not gain any additional privileges via suid or sgid bits. This reduces the security risks associated with many dangerous operations because there is a much reduced ability to subvert privileged binaries.
 
 Setting this at the daemon level ensures that by default all new containers are restricted from acquiring new privileges.
 
 ## Impact
+
 `no_new_priv` prevents LSMs such as SELinux from escalating the privileges of individual containers.
 
 ## Audit Procedure
@@ -53,18 +57,21 @@ dockerd --no-new-privileges
 ```
 
 ## Default Value
+
 By default, containers are not restricted from acquiring new privileges.
 
 ## References
+
 1. https://docs.docker.com/engine/reference/commandline/dockerd/
 2. https://github.com/moby/moby/pull/20727
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 6.1 Establish an Access Granting Process<br/>Establish and follow a process, preferably automated, for granting access to enterprise assets upon new hire, rights grant, or role change of a user. | ● | ● | ● |
-| v7 | 4 Controlled Use of Administrative Privileges<br/>Controlled Use of Administrative Privileges | | | |
+| Controls Version | Control                                                                                                                                                                                            | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 6.1 Establish an Access Granting Process<br/>Establish and follow a process, preferably automated, for granting access to enterprise assets upon new hire, rights grant, or role change of a user. | ●    | ●    | ●    |
+| v7               | 4 Controlled Use of Administrative Privileges<br/>Controlled Use of Administrative Privileges                                                                                                      |      |      |      |
 
 ## Profile
+
 **Level 1 - Docker - Linux** (Manual)

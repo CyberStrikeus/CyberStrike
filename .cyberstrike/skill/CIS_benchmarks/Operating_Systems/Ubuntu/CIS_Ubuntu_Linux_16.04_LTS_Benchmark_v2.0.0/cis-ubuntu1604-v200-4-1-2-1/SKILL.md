@@ -17,6 +17,7 @@ severity_boost: {}
 # CIS Ubuntu Linux 16.04 LTS Benchmark v2.0.0 - Control 4.1.2.1
 
 ## Profile
+
 - **Level:** 2 - Server
 - **Level:** 2 - Workstation
 - **Assessment Status:** Automated
@@ -26,6 +27,7 @@ severity_boost: {}
 Configure the maximum size of the audit log file. Once the log reaches the maximum size, it will be rotated and a new log file will be started.
 
 **Notes:**
+
 - The `max_log_file` parameter is measured in megabytes
 - Other methods of log rotation may be appropriate based on site policy. One example is time-based rotation strategies which don't have native support in auditd configurations
 - Manual audit of custom configurations should be evaluated for effectiveness and completeness
@@ -76,6 +78,6 @@ The default max_log_file is 8 MB.
 
 ## CIS Controls
 
-| Controls Version | Control |
-|-----------------|---------|
-| v7 | 6.4 Ensure adequate storage for logs - Ensure that all systems that store logs have adequate storage space for the logs generated. |
+| Controls Version | Control                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| v7               | 6.4 Ensure adequate storage for logs - Ensure that all systems that store logs have adequate storage space for the logs generated. |

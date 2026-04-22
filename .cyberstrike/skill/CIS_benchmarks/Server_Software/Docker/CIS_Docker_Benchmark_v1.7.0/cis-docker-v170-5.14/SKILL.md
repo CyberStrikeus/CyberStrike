@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.14
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 By default, Docker containers can make connections to the outside world, but the outside world cannot connect to containers and each outgoing connection will appear to originate from one of the host machine's own IP addresses. You should only allow container services to be contacted through a specific external interface on the host machine.
 
 ## Rationale
+
 If you have multiple network interfaces on your host machine, the container can accept connections on exposed ports on any network interface. This might not be desirable and may not be secured. In many cases a specific, desired interface is exposed externally and services such as intrusion detection, intrusion prevention, firewall, load balancing, etc. are all run by intention there to screen incoming public traffic. You should therefore not accept incoming connections on any random interface, but only the one designated for this type of traffic.
 
 ## Impact
+
 None.
 
 ## Audit Procedure
@@ -57,18 +61,23 @@ docker run --detach --publish 10.2.3.4:49153:80 nginx
 In the example above, the container port `80` is bound to the host port on `49153` and would accept incoming connection only from the `10.2.3.4` external interface.
 
 ## Default Value
+
 By default, Docker exposes the container ports on `0.0.0.0`, the wildcard IP address that will match any possible incoming network interface on the host machine.
 
 ## References
+
 1. https://docs.docker.com/network/
 
 ## CIS Controls
 
 **v8:**
+
 - 4.4 Implement and Manage a Firewall on Servers - Implement and manage a firewall on servers, where supported. Example implementations include a virtual firewall, operating system firewall, or a third-party firewall agent.
 
 **v7:**
+
 - 11 Secure Configuration for Network Devices, such as Firewalls, Routers and Switches - Secure Configuration for Network Devices, such as Firewalls, Routers and Switches
 
 ## Assessment Status
+
 Manual

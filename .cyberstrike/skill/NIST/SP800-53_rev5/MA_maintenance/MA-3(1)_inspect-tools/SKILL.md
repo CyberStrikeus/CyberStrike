@@ -14,8 +14,7 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - SI-7
 prerequisites:
@@ -64,9 +63,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +79,16 @@ Maintenance tools can be directly brought into a facility by maintenance personn
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-3(1) Inspect Tools not implemented | Medium | Maintenance |
-| MA-3(1) partially implemented | Low | Incomplete Maintenance |
+| Finding                               | Severity | Impact                 |
+| ------------------------------------- | -------- | ---------------------- |
+| MA-3(1) Inspect Tools not implemented | Medium   | Maintenance            |
+| MA-3(1) partially implemented         | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

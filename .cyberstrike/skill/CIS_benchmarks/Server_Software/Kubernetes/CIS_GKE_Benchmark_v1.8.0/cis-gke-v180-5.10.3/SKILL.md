@@ -4,7 +4,8 @@ description: "Consider GKE Sandbox for running untrusted workloads (Automated)"
 category: cis-gke
 version: "1.8.0"
 author: cyberstrike-official
-tags: [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
+tags:
+  [cis, gke, kubernetes, gcp, other-cluster-config, web-ui, dashboard, alpha-clusters, gke-sandbox, security-posture]
 cis_id: "5.10.3"
 cis_benchmark: "CIS Google Kubernetes Engine (GKE) Benchmark v1.8.0"
 tech_stack: [kubernetes, gcp, gke]
@@ -72,7 +73,7 @@ The output of the above command will return the following if the Node pool is ru
 
 ```json
 {
-  "sandboxType":"gvisor"
+  "sandboxType": "gvisor"
 }
 ```
 
@@ -87,9 +88,9 @@ Using Google Cloud Console:
 1. Go to Kubernetes Engine by visiting: https://console.cloud.google.com/kubernetes/.
 2. Select a cluster and click `ADD NODE POOL`.
 3. Configure the Node pool with following settings:
-    - For the node version, select `v1.12.6-gke.8` or higher.
-    - For the node image, select `Container-Optimized OS with Containerd (cos_containerd) (default)`.
-    - Under `Security`, select `Enable sandbox with gVisor`.
+   - For the node version, select `v1.12.6-gke.8` or higher.
+   - For the node image, select `Container-Optimized OS with Containerd (cos_containerd) (default)`.
+   - Under `Security`, select `Enable sandbox with gVisor`.
 4. Configure other Node pool settings as required.
 5. Click `SAVE`.
 
@@ -120,7 +121,7 @@ It is optional but recommended that you enable Stackdriver Logging and Stackdriv
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 16.8 Separate Production and Non-Production Systems | | x | x |
-| v7 | 18.9 Separate Production and Non-Production Systems | | x | x |
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 16.8 Separate Production and Non-Production Systems |      | x    | x    |
+| v7               | 18.9 Separate Production and Non-Production Systems |      | x    | x    |

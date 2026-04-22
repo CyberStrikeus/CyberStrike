@@ -71,10 +71,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check authentication settings | `cloud_audit_iam_policies` |
-| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test` |
+| Tool            | Purpose                        | Usage                      |
+| --------------- | ------------------------------ | -------------------------- |
+| cloud-audit-mcp | Check authentication settings  | `cloud_audit_iam_policies` |
+| hackbrowser-mcp | Test authentication mechanisms | `browser_auth_test`        |
 
 ## Remediation Guide
 
@@ -88,17 +88,16 @@ A local connection is a connection with a device that communicates without the u
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| IA-3(1) Cryptographic Bidirectional Authentication not implemented | High | Identification and Authentication |
-| IA-3(1) partially implemented | Medium | Incomplete Identification and Authentication |
+| Finding                                                            | Severity | Impact                                       |
+| ------------------------------------------------------------------ | -------- | -------------------------------------------- |
+| IA-3(1) Cryptographic Bidirectional Authentication not implemented | High     | Identification and Authentication            |
+| IA-3(1) partially implemented                                      | Medium   | Incomplete Identification and Authentication |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-287 | Improper Authentication |
-
 
 ## References
 

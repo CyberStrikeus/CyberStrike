@@ -21,10 +21,8 @@ tech_stack:
   - network
 cwe_ids:
   - CWE-311
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -73,10 +71,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -92,17 +90,16 @@ Managed interfaces include gateways, routers, firewalls, network-based malicious
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Boundary Protection (03.13.01) Boundary Protection not implemented | High | CUI Protection - System and Communications Protection |
-| Boundary Protection (03.13.01) partially implemented (POA&M) | Medium | CMMC certification risk |
+| Finding                                                            | Severity | Impact                                                |
+| ------------------------------------------------------------------ | -------- | ----------------------------------------------------- |
+| Boundary Protection (03.13.01) Boundary Protection not implemented | High     | CUI Protection - System and Communications Protection |
+| Boundary Protection (03.13.01) partially implemented (POA&M)       | Medium   | CMMC certification risk                               |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-311 | Missing Encryption of Sensitive Data |
-
 
 ## References
 

@@ -41,8 +41,7 @@ chains_with:
   - T1496.002
   - T1496.003
   - T1496.004
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1496.001: "Chain with T1496.001 for deeper attack path"
   T1496.002: "Chain with T1496.002 for deeper attack path"
@@ -53,14 +52,14 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may leverage the resources of co-opted systems to complete resource-intensive tasks, which may impact system and/or hosted service availability. 
+Adversaries may leverage the resources of co-opted systems to complete resource-intensive tasks, which may impact system and/or hosted service availability.
 
 Resource hijacking may take a number of different forms. For example, adversaries may:
 
-* Leverage compute resources in order to mine cryptocurrency
-* Sell network bandwidth to proxy networks
-* Generate SMS traffic for profit
-* Abuse cloud-based messaging services to send large quantities of spam messages
+- Leverage compute resources in order to mine cryptocurrency
+- Sell network bandwidth to proxy networks
+- Generate SMS traffic for profit
+- Abuse cloud-based messaging services to send large quantities of spam messages
 
 In some cases, adversaries may leverage multiple types of Resource Hijacking at once.
 
@@ -108,7 +107,6 @@ $end = (Get-Date).AddSeconds(#{duration_seconds})
 Get-Job | Wait-Job | Remove-Job
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -127,19 +125,17 @@ No specific mitigations documented for this technique.
 
 ### Resource Hijacking Detection Strategy
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Resource Hijacking technique applicable | High | Impact |
+| Finding                                 | Severity | Impact |
+| --------------------------------------- | -------- | ------ |
+| Resource Hijacking technique applicable | High     | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

@@ -62,7 +62,7 @@ Adversaries may modify the SSH <code>authorized_keys</code> file to maintain per
 
 Adversaries may modify SSH <code>authorized_keys</code> files directly with scripts or shell commands to add their own adversary-supplied public keys. In cloud environments, adversaries may be able to modify the SSH authorized_keys file of a particular virtual machine via the command line interface or rest API. For example, by using the Google Cloud CLI’s “add-metadata” command an adversary may add SSH keys to a user account. Similarly, in Azure, an adversary may update the authorized_keys file of a virtual machine via a PATCH request to the API. This ensures that an adversary possessing the corresponding private key may log in as an existing user via SSH. It may also lead to privilege escalation where the virtual machine or instance has distinct permissions from the requesting user.
 
-Where authorized_keys files are modified via cloud APIs or command line interfaces, an adversary may achieve privilege escalation on the target virtual machine if they add a key to a higher-privileged user. 
+Where authorized_keys files are modified via cloud APIs or command line interfaces, an adversary may achieve privilege escalation on the target virtual machine if they add a key to a higher-privileged user.
 
 SSH keys can also be added to accounts on network devices, such as with the `ip ssh pubkey-chain` Network Device CLI command.
 
@@ -90,7 +90,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Modify SSH Authorized Keys
 
-Modify contents of <user-home>/.ssh/authorized_keys to maintain persistence on victim host. 
+Modify contents of <user-home>/.ssh/authorized_keys to maintain persistence on victim host.
 If the user is able to save the same contents in the authorized_keys file, it shows user can modify the file.
 
 **Supported Platforms:** linux, macos
@@ -98,7 +98,6 @@ If the user is able to save the same contents in the authorized_keys file, it sh
 ```bash
 if [ -f ~/.ssh/authorized_keys ]; then ssh_authorized_keys=$(cat ~/.ssh/authorized_keys); echo "$ssh_authorized_keys" > ~/.ssh/authorized_keys; fi;
 ```
-
 
 ### Manual Testing
 
@@ -113,32 +112,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 In cloud environments, ensure that only users who explicitly require the permissions to update instance metadata or configurations can do so.
 
 ### M1022 Restrict File and Directory Permissions
+
 Restrict access to the <code>authorized_keys</code> file.
 
 ### M1042 Disable or Remove Feature or Program
-Disable SSH if it is not necessary on a host or restrict SSH access for specific users/groups using <code>/etc/ssh/sshd_config</code>. Setting the `PermitRootLogin` directive to `no` will prevent the root user from logging in via SSH.
 
+Disable SSH if it is not necessary on a host or restrict SSH access for specific users/groups using <code>/etc/ssh/sshd_config</code>. Setting the `PermitRootLogin` directive to `no` will prevent the root user from logging in via SSH.
 
 ## Detection
 
 ### Detection Strategy for SSH Key Injection in Authorized Keys
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SSH Authorized Keys technique applicable | High | Persistence |
+| Finding                                  | Severity | Impact      |
+| ---------------------------------------- | -------- | ----------- |
+| SSH Authorized Keys technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

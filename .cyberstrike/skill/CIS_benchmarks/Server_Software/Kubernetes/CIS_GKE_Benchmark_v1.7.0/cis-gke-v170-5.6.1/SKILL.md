@@ -109,7 +109,7 @@ By default, Intranode Visibility is disabled.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 8.5 Collect Detailed Audit Logs | | x | x |
-| v7 | 6.3 Enable Detailed Logging | | x | x |
+| Controls Version | Control                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------- | ---- | ---- | ---- |
+| v8               | 8.5 Collect Detailed Audit Logs |      | x    | x    |
+| v7               | 6.3 Enable Detailed Logging     |      | x    | x    |

@@ -71,16 +71,16 @@ By default, there are no restrictions on contained process ability to escalate p
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X | X | X |
-| v7 | 5.1 Establish Secure Configurations | X | X | X |
+| Controls Version | Control                                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | ------------------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | X    | X    | X    |
+| v7               | 5.1 Establish Secure Configurations                                       | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
-| Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1611 | TA0004 | M1038, M1048 |
+| Techniques / Sub-techniques | Tactics | Mitigations  |
+| --------------------------- | ------- | ------------ |
+| T1611                       | TA0004  | M1038, M1048 |
 
 ---
 

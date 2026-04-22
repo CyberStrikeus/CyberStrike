@@ -17,20 +17,24 @@ severity_boost: {}
 # CIS 2.1.1 — Ensure only required dynamic modules are loaded
 
 ## Profile Applicability
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer
 
 ## Description
+
 NGINX functionality is provided by modules. These modules are either compiled statically into the NGINX binary or loaded dynamically at runtime via the `load_module` directive.
 
 - **Static Modules:** These are fixed at compile time. When using official pre-built packages (e.g., from nginx.org or OS vendors), a standard set of modules is included and cannot be removed without recompiling NGINX.
 - **Dynamic Modules:** These are separate `.so` files that can be loaded on demand. To reduce the attack surface and complexity, only strictly required **dynamic modules** should be loaded. Additionally, administrators should be aware of the active **static modules** to avoid configuring unused features unintentionally.
 
 ## Rationale
+
 Minimizing the loaded code reduces the potential attack surface. While static modules in pre-built packages cannot be removed, ensuring that no unnecessary **dynamic modules** are loaded prevents the execution of unneeded code. Furthermore, understanding which **static modules** are present helps administrators avoid enabling risky features (like `autoindex` or `stub_status`) in the configuration if they are not needed.
 
 ## Impact
+
 Removing a required dynamic module or misinterpreting the availability of a static module can cause the NGINX service to fail on restart or break specific application features.
 
 ## Audit Procedure
@@ -71,23 +75,28 @@ Open the main configuration file (`/etc/nginx/nginx.conf`) or the relevant inclu
 Since static modules cannot be removed from pre-built packages, ensure their directives are not used in your configuration. If a specific static module poses a critical risk to your environment, you must switch to a custom build or a different package flavor that excludes it.
 
 ## Default Value
+
 Official pre-built packages (like `nginx-stable` or `nginx-mainline`) are "feature-rich" builds containing most standard modules statically. This is a trade-off for ease of maintenance. Security hardening for these packages relies on configuration discipline (not enabling unused modules) rather than binary minimization.
 
 ## References
+
 1. https://nginx.org/en/docs/
 
 ## CIS Controls
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 2.6 Allowlist Authorized Libraries | N | Y | Y |
-| v7 | 2.8 Implement Application Whitelisting of Libraries | N | N | Y |
+
+| Controls Version | Control                                             | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 2.6 Allowlist Authorized Libraries                  | N    | Y    | Y    |
+| v7               | 2.8 Implement Application Whitelisting of Libraries | N    | N    | Y    |
 
 ## MITRE ATT&CK Mappings
-| Tactic | Technique |
-|--------|-----------|
+
+| Tactic    | Technique                                 |
+| --------- | ----------------------------------------- |
 | Execution | T1059 - Command and Scripting Interpreter |
 
 ## Profile
+
 - Level 1 - Webserver
 - Level 1 - Proxy
 - Level 1 - Loadbalancer

@@ -13,14 +13,12 @@ tags:
 tech_stack:
   - linux
   - windows
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - MA-2
   - MA-4
   - MA-5
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   MA-2: "Chain with MA-2 for comprehensive security coverage"
   MA-4: "Chain with MA-4 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -80,16 +78,16 @@ Field maintenance is the type of maintenance conducted on a system or system com
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| MA-7 Field Maintenance not implemented | Medium | Maintenance |
-| MA-7 partially implemented | Low | Incomplete Maintenance |
+| Finding                                | Severity | Impact                 |
+| -------------------------------------- | -------- | ---------------------- |
+| MA-7 Field Maintenance not implemented | Medium   | Maintenance            |
+| MA-7 partially implemented             | Low      | Incomplete Maintenance |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

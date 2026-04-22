@@ -91,6 +91,7 @@ rm -f #{file_to_delete}
 ```
 
 **Dependencies:**
+
 - The file must exist in order to be deleted
 
 ### Atomic Test 2: Delete an entire folder - FreeBSD/Linux/macOS
@@ -104,6 +105,7 @@ rm -rf #{folder_to_delete}
 ```
 
 **Dependencies:**
+
 - The folder must exist in order to be deleted
 
 ### Atomic Test 3: Overwrite and delete a file with shred
@@ -117,6 +119,7 @@ shred -u #{file_to_shred}
 ```
 
 **Dependencies:**
+
 - Check if file already exists
 
 ### Atomic Test 4: Delete a single file - Windows cmd
@@ -131,6 +134,7 @@ del /f #{file_to_delete}
 ```
 
 **Dependencies:**
+
 - The file to delete must exist on disk at specified location (#{file_to_delete})
 
 ### Atomic Test 5: Delete an entire folder - Windows cmd
@@ -145,8 +149,8 @@ rmdir /s /q #{folder_to_delete}
 ```
 
 **Dependencies:**
-- The file to delete must exist on disk at specified location (#{folder_to_delete})
 
+- The file to delete must exist on disk at specified location (#{folder_to_delete})
 
 ### Manual Testing
 
@@ -166,19 +170,17 @@ No specific mitigations documented for this technique.
 
 ### Behavioral Detection of Malicious File Deletion
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| File Deletion technique applicable | Low | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| File Deletion technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

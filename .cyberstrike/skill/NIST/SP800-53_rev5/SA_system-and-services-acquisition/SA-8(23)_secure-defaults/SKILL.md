@@ -71,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,17 +91,16 @@ The security engineering approach to this principle states that security mechani
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| SA-8(23) Secure Defaults not implemented | Medium | System and Services Acquisition |
-| SA-8(23) partially implemented | Low | Incomplete System and Services Acquisition |
+| Finding                                  | Severity | Impact                                     |
+| ---------------------------------------- | -------- | ------------------------------------------ |
+| SA-8(23) Secure Defaults not implemented | Medium   | System and Services Acquisition            |
+| SA-8(23) partially implemented           | Low      | Incomplete System and Services Acquisition |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

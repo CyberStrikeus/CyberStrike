@@ -98,29 +98,28 @@ Tools such as <code>Invoke-Obfuscation</code> and <code>Invoke-DOSfucation</code
 ## Remediation Guide
 
 ### M1040 Behavior Prevention on Endpoint
+
 On Windows 10+, enable Attack Surface Reduction (ASR) rules to block execution of potentially obfuscated scripts.
 
 ### M1049 Antivirus/Antimalware
-Consider utilizing the Antimalware Scan Interface (AMSI) on Windows 10+ to analyze commands after being processed/interpreted.
 
+Consider utilizing the Antimalware Scan Interface (AMSI) on Windows 10+ to analyze commands after being processed/interpreted.
 
 ## Detection
 
 ### Detection Strategy for Command Obfuscation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Command Obfuscation technique applicable | High | Defense Evasion |
+| Finding                                  | Severity | Impact          |
+| ---------------------------------------- | -------- | --------------- |
+| Command Obfuscation technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

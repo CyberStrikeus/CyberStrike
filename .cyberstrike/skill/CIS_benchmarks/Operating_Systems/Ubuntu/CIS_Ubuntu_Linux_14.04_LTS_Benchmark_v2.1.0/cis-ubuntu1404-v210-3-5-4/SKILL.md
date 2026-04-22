@@ -54,6 +54,7 @@ lsmod | grep tipc
 ```
 install /bin/true
 ```
+
 And no output from `lsmod | grep tipc`.
 
 ## Remediation

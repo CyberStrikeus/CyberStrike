@@ -14,12 +14,9 @@ tags:
   - cmmc
 tech_stack:
   - any
-cwe_ids:
-  []
-chains_with:
-  []
-prerequisites:
-  []
+cwe_ids: []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -69,10 +66,10 @@ Verify this requirement passes CMMC Level 2 assessment methodology per SP 800-17
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools |
-| Manual Review | SSP and POA&M review | Documentation analysis |
+| Tool            | Purpose                      | Usage                  |
+| --------------- | ---------------------------- | ---------------------- |
+| cloud-audit-mcp | Assess cloud CUI environment | `cloud_audit_*` tools  |
+| Manual Review   | SSP and POA&M review         | Documentation analysis |
 
 ## Remediation Guide
 
@@ -89,16 +86,16 @@ Organizations determine the content and frequency of security training based on 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Role-Based Training (03.02.02) Role-Based Training not implemented | Medium | CUI Protection - Awareness and Training |
-| Role-Based Training (03.02.02) partially implemented (POA&M) | Low | CMMC certification risk |
+| Finding                                                            | Severity | Impact                                  |
+| ------------------------------------------------------------------ | -------- | --------------------------------------- |
+| Role-Based Training (03.02.02) Role-Based Training not implemented | Medium   | CUI Protection - Awareness and Training |
+| Role-Based Training (03.02.02) partially implemented (POA&M)       | Low      | CMMC certification risk                 |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

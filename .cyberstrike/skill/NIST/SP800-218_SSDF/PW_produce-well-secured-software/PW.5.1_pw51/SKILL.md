@@ -16,8 +16,7 @@ tech_stack:
   - any
 cwe_ids:
   - CWE-20
-chains_with:
-  []
+chains_with: []
 prerequisites:
   - Create Source Code by Adhering to Secure Coding Practices (PW.5)
 severity_boost: {}
@@ -63,10 +62,10 @@ Verify development team understands and follows PW.5.1 PW.5.1 practice.
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -76,16 +75,15 @@ Follow all secure coding practices that are appropriate to the development langu
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PW.5.1 PW.5.1 not implemented | Medium | Secure Development - Produce Well-Secured Software |
+| Finding                       | Severity | Impact                                             |
+| ----------------------------- | -------- | -------------------------------------------------- |
+| PW.5.1 PW.5.1 not implemented | Medium   | Secure Development - Produce Well-Secured Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

@@ -12,8 +12,7 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PL-2
   - PM-18
@@ -21,8 +20,7 @@ chains_with:
   - RA-9
   - SI-12
   - SR-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-2: "Chain with PL-2 for comprehensive security coverage"
   PM-18: "Chain with PM-18 for comprehensive security coverage"
@@ -75,9 +73,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -105,16 +103,16 @@ Events that may precipitate an update to the information security program plan i
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-1 Information Security Program Plan not implemented | Medium | Program Management |
-| PM-1 partially implemented | Low | Incomplete Program Management |
+| Finding                                                | Severity | Impact                        |
+| ------------------------------------------------------ | -------- | ----------------------------- |
+| PM-1 Information Security Program Plan not implemented | Medium   | Program Management            |
+| PM-1 partially implemented                             | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

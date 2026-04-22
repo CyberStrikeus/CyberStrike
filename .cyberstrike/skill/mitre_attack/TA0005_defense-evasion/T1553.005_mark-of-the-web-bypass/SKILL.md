@@ -77,12 +77,13 @@ Mount-DiskImage -ImagePath "#{path_of_iso}"
 ```
 
 **Dependencies:**
+
 - T1553.005.iso must exist on disk at specified location (#{path_of_iso})
 
 ### Atomic Test 2: Mount an ISO image and run executable from the ISO
 
-Mounts an ISO image downloaded from internet to evade Mark-of-the-Web and run hello.exe executable from the ISO. 
-Upon successful execution, powershell will download the .iso from the Atomic Red Team repo, mount the image, and run the executable from the ISO image that will open command prompt echoing "Hello, World!". 
+Mounts an ISO image downloaded from internet to evade Mark-of-the-Web and run hello.exe executable from the ISO.
+Upon successful execution, powershell will download the .iso from the Atomic Red Team repo, mount the image, and run the executable from the ISO image that will open command prompt echoing "Hello, World!".
 ISO provided by:https://twitter.com/mattifestation/status/1398323532988399620 Reference:https://www.microsoft.com/security/blog/2021/05/27/new-sophisticated-email-based-attack-from-nobelium/,
 
 **Supported Platforms:** windows
@@ -96,6 +97,7 @@ invoke-item "$($driveLetter):\hello.exe"
 ```
 
 **Dependencies:**
+
 - FeelTheBurn.iso must exist on disk at specified location (#{path_of_iso})
 
 ### Atomic Test 3: Remove the Zone.Identifier alternate data stream
@@ -110,6 +112,7 @@ Unblock-File -Path #{file_path}
 ```
 
 **Dependencies:**
+
 - A test file with the Zone.Identifier attribute must be present.
 
 ### Atomic Test 4: Execute LNK file from ISO
@@ -127,8 +130,8 @@ $instance.Document.Application.ShellExecute($driveLetter+":\document.lnk","",$dr
 ```
 
 **Dependencies:**
-- AllTheThings.iso must exist on disk at specified location (#{path_of_iso})
 
+- AllTheThings.iso must exist on disk at specified location (#{path_of_iso})
 
 ### Manual Testing
 
@@ -143,29 +146,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling auto-mounting of disk image files (i.e., .iso, .img, .vhd, and .vhdx). This can be achieved by modifying the Registry values related to the Windows Explorer file associations in order to disable the automatic Explorer "Mount and Burn" dialog for these file extensions. Note: this will not deactivate the mount functionality itself.
 
 ### M1038 Execution Prevention
-Consider blocking container file types at web and/or email gateways. Consider unregistering container file extensions in Windows File Explorer.
 
+Consider blocking container file types at web and/or email gateways. Consider unregistering container file extensions in Windows File Explorer.
 
 ## Detection
 
 ### Detect Mark-of-the-Web (MOTW) Bypass via Container and Disk Image Files
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Mark-of-the-Web Bypass technique applicable | Low | Defense Evasion |
+| Finding                                     | Severity | Impact          |
+| ------------------------------------------- | -------- | --------------- |
+| Mark-of-the-Web Bypass technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

@@ -34,8 +34,7 @@ chains_with:
   - T1114.001
   - T1114.002
   - T1114.003
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   T1114.001: "Chain with T1114.001 for deeper attack path"
   T1114.002: "Chain with T1114.002 for deeper attack path"
@@ -78,37 +77,38 @@ Adversaries may target user email to collect sensitive information. Emails may c
 ## Remediation Guide
 
 ### M1032 Multi-factor Authentication
+
 Use of multi-factor authentication for public-facing webmail servers is a recommended best practice to minimize the usefulness of usernames and passwords to adversaries.
 
 ### M1060 Out-of-Band Communications Channel
+
 Use secure out-of-band authentication methods to verify the authenticity of critical actions initiated via email, such as password resets, financial transactions, or access requests. For highly sensitive information, utilize out-of-band communication channels instead of relying solely on email to prevent adversaries from collecting data through compromised email accounts.
 
 ### M1041 Encrypt Sensitive Information
+
 Use of encryption provides an added layer of security to sensitive information sent over email. Encryption using public key cryptography requires the adversary to obtain the private certificate along with an encryption key to decrypt messages.
 
 ### M1047 Audit
+
 Enterprise email solutions have monitoring mechanisms that may include the ability to audit auto-forwarding rules on a regular basis.
 
 In an Exchange environment, Administrators can use Get-InboxRule to discover and remove potentially malicious auto-forwarding rules.
-
 
 ## Detection
 
 ### Email Collection via Local Email Access and Auto-Forwarding Behavior
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Email Collection technique applicable | Low | Collection |
+| Finding                               | Severity | Impact     |
+| ------------------------------------- | -------- | ---------- |
+| Email Collection technique applicable | Low      | Collection |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

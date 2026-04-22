@@ -56,7 +56,6 @@ severity_boost:
 ## High-Level Description
 
 An adversary may add additional roles or permissions to an adversary-controlled cloud account to maintain persistent access to a tenant. For example, adversaries may update IAM policies in cloud-based environments or add a new global administrator in Office 365 environments. With sufficient permissions, a compromised account can gain almost unlimited access to data and settings (including the ability to reset the passwords of other admins).
- 
 
 This account modification may immediately follow Create Account or other malicious account activity. Adversaries may also modify existing Valid Accounts that they have compromised. This could lead to privilege escalation, particularly if the roles added allow for lateral movement to additional accounts.
 
@@ -95,32 +94,32 @@ In some cases, adversaries may add roles to adversary-controlled accounts outsid
 ## Remediation Guide
 
 ### M1026 Privileged Account Management
+
 Ensure that all accounts use the least privileges they require. In Azure AD environments, consider using Privileged Identity Management (PIM) to define roles that require two or more approvals before assignment to users.
 
 ### M1032 Multi-factor Authentication
+
 Use multi-factor authentication for user and privileged accounts.
 
 ### M1018 User Account Management
-Ensure that low-privileged user accounts do not have permissions to add permissions to accounts or update IAM policies.
 
+Ensure that low-privileged user accounts do not have permissions to add permissions to accounts or update IAM policies.
 
 ## Detection
 
 ### Detection Strategy for Role Addition to Cloud Accounts
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Additional Cloud Roles technique applicable | High | Persistence |
+| Finding                                     | Severity | Impact      |
+| ------------------------------------------- | -------- | ----------- |
+| Additional Cloud Roles technique applicable | High     | Persistence |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-276 | Incorrect Default Permissions |
-
 
 ## References
 

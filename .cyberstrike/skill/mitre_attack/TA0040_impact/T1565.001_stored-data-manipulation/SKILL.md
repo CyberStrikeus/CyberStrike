@@ -80,32 +80,32 @@ Stored data could include a variety of file formats, such as Office files, datab
 ## Remediation Guide
 
 ### M1022 Restrict File and Directory Permissions
+
 Ensure least privilege principles are applied to important information resources to reduce exposure to data manipulation risk.
 
 ### M1029 Remote Data Storage
+
 Consider implementing IT disaster recovery plans that contain procedures for taking regular data backups that can be used to restore organizational data. Ensure backups are stored off system and is protected from common methods adversaries may use to gain access and manipulate backups.
 
 ### M1041 Encrypt Sensitive Information
-Consider encrypting important information to reduce an adversary’s ability to perform tailored data modifications.
 
+Consider encrypting important information to reduce an adversary’s ability to perform tailored data modifications.
 
 ## Detection
 
 ### Detection Strategy for Stored Data Manipulation across OS Platforms.
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Stored Data Manipulation technique applicable | Low | Impact |
+| Finding                                       | Severity | Impact |
+| --------------------------------------------- | -------- | ------ |
+| Stored Data Manipulation technique applicable | Low      | Impact |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-400 | Uncontrolled Resource Consumption |
-
 
 ## References
 

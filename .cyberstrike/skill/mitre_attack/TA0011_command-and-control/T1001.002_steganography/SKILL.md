@@ -74,15 +74,15 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Steganographic Tarball Embedding
 
-This atomic test, named "Steganographic Tarball Embedding", simulates the technique of data obfuscation via steganography by embedding a tar archive file (tarball) 
+This atomic test, named "Steganographic Tarball Embedding", simulates the technique of data obfuscation via steganography by embedding a tar archive file (tarball)
 within an image.
 
-The test begins by ensuring the availability of the image file and the tarball file containing data . It then generates random passwords and saves them to a 
-file. Subsequently, the tarball file is created, containing the passwords file. The test executor command reads the contents of the image 
-file and the tarball file as byte arrays and appends them together to form a new image file. This process effectively embeds the tarball 
+The test begins by ensuring the availability of the image file and the tarball file containing data . It then generates random passwords and saves them to a
+file. Subsequently, the tarball file is created, containing the passwords file. The test executor command reads the contents of the image
+file and the tarball file as byte arrays and appends them together to form a new image file. This process effectively embeds the tarball
 file within the image, utilizing steganography techniques for data obfuscation.
 
-This atomic test simulates the technique of data obfuscation via steganography, enabling attackers to clandestinely transfer files across systems undetected. 
+This atomic test simulates the technique of data obfuscation via steganography, enabling attackers to clandestinely transfer files across systems undetected.
 By embedding the tarball file within the image, adversaries can obscure their activities, facilitating covert communication and data exfiltration.
 
 **Supported Platforms:** windows
@@ -93,18 +93,19 @@ Get-Content "#{image_file}", "#{tar_file}" -Encoding byte -ReadCount 0 | Set-Con
 ```
 
 **Dependencies:**
+
 - Image file must exist
 - File to hide within tarz file must exist
 - Tarz file to embed in image must exist
 
 ### Atomic Test 2: Embedded Script in Image Execution via Extract-Invoke-PSImage
 
-This atomic test demonstrates the technique of data obfuscation via steganography, where a PowerShell script is concealed within an image file. 
-The PowerShell script is embedded using steganography techniques, making it undetectable by traditional security measures. The script is hidden 
+This atomic test demonstrates the technique of data obfuscation via steganography, where a PowerShell script is concealed within an image file.
+The PowerShell script is embedded using steganography techniques, making it undetectable by traditional security measures. The script is hidden
 within the pixels of the image, enabling attackers to covertly transfer and execute malicious code across systems.
 
-The test begins by ensuring the availability of the malicious image file and the Extract-Invoke-PSImage script. The test proceeds to extract the hidden 
-PowerShell script (decoded.ps1) from the image file using the Extract-Invoke-PSImage tool. The extracted script is then decoded from base64 encoding and saved as a 
+The test begins by ensuring the availability of the malicious image file and the Extract-Invoke-PSImage script. The test proceeds to extract the hidden
+PowerShell script (decoded.ps1) from the image file using the Extract-Invoke-PSImage tool. The extracted script is then decoded from base64 encoding and saved as a
 separate PowerShell (textExtraction.ps1). Consequently, the textExtraction.ps1 script is executed.
 
 In the case of this atomic test, the malicious image file which is downloaded has the powershell command Start-Process notepad embedded within in base64. This
@@ -123,7 +124,7 @@ $base64Strings = [regex]::Matches($scriptContent, $base64Pattern) | ForEach-Obje
 $base64Strings | Set-Content "$HOME\decoded.ps1"
 $decodedContent = Get-Content "$HOME\decoded.ps1" -Raw
 $decodedText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($decodedContent))
-$textPattern = '^.+'  
+$textPattern = '^.+'
 $textMatches = [regex]::Matches($decodedText, $textPattern) | ForEach-Object { $_.Value }
 $scriptPath = "$HOME\textExtraction.ps1"
 $textMatches -join '' | Set-Content -Path $scriptPath
@@ -131,6 +132,7 @@ $textMatches -join '' | Set-Content -Path $scriptPath
 ```
 
 **Dependencies:**
+
 - Image file must exist
 - Extract-Invoke-PSImage must exist
 
@@ -143,7 +145,6 @@ This atomic test demonstrates the execution of an embedded script in an image fi
 ```bash
 cat "#{script}" | base64 | xxd -p | sed 's/../& /g' | xargs -n1 | xxd -r -p | cat "#{image}" - > "#{evil_image}"; strings "#{evil_image}" | tail -n 1 | base64 -d | sh
 ```
-
 
 ### Manual Testing
 
@@ -158,26 +159,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1031 Network Intrusion Prevention
-Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
+Network intrusion detection and prevention systems that use network signatures to identify traffic for specific adversary malware can be used to mitigate some obfuscation activity at the network level.
 
 ## Detection
 
 ### Detecting Steganographic Command and Control via File + Network Correlation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steganography technique applicable | Low | Command And Control |
+| Finding                            | Severity | Impact              |
+| ---------------------------------- | -------- | ------------------- |
+| Steganography technique applicable | Low      | Command And Control |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                              |
+| ------- | ---------------------------------- |
 | CWE-300 | Channel Accessible by Non-Endpoint |
-
 
 ## References
 

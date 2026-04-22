@@ -61,7 +61,7 @@ severity_boost:
 
 In addition to clearing system logs, an adversary may clear the command history of a compromised account to conceal the actions undertaken during an intrusion. Various command interpreters keep track of the commands users type in their terminal so that users can retrace what they've done.
 
-On Linux and macOS, these command histories can be accessed in a few different ways. While logged in, this command history is tracked in a file pointed to by the environment variable <code>HISTFILE</code>. When a user logs off a system, this information is flushed to a file in the user's home directory called <code>~/.bash_history</code>. The benefit of this is that it allows users to go back to commands they've used before in different sessions. Adversaries may delete their commands from these logs by manually clearing the history (<code>history -c</code>) or deleting the bash history file <code>rm ~/.bash_history</code>. 
+On Linux and macOS, these command histories can be accessed in a few different ways. While logged in, this command history is tracked in a file pointed to by the environment variable <code>HISTFILE</code>. When a user logs off a system, this information is flushed to a file in the user's home directory called <code>~/.bash_history</code>. The benefit of this is that it allows users to go back to commands they've used before in different sessions. Adversaries may delete their commands from these logs by manually clearing the history (<code>history -c</code>) or deleting the bash history file <code>rm ~/.bash_history</code>.
 
 Adversaries may also leverage a Network Device CLI on network devices to clear command history data (<code>clear logging</code> and/or <code>clear history</code>). On ESXi servers, command history may be manually removed from the `/var/log/shell.log` file.
 
@@ -142,7 +142,6 @@ Clears bash history via truncate
 truncate -s0 #{history_path}
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -156,32 +155,32 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1029 Remote Data Storage
+
 Forward logging of historical data to remote data store and centralized logging solution to preserve historical command line log data.
 
 ### M1022 Restrict File and Directory Permissions
+
 Preventing users from deleting or writing to certain files can stop adversaries from maliciously altering their <code>~/.bash_history</code> or <code>ConsoleHost_history.txt</code> files.
 
 ### M1039 Environment Variable Permissions
-Making the environment variables associated with command history read only may ensure that the history is preserved.
 
+Making the environment variables associated with command history read only may ensure that the history is preserved.
 
 ## Detection
 
 ### Behavioral Detection of Command History Clearing
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Clear Command History technique applicable | Low | Defense Evasion |
+| Finding                                    | Severity | Impact          |
+| ------------------------------------------ | -------- | --------------- |
+| Clear Command History technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

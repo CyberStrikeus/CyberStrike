@@ -112,6 +112,7 @@ Stop-Process -Name "cmd" -force -erroraction silentlycontinue
 ```
 
 **Dependencies:**
+
 - NSudoLG.exe must exist in the specified path #{nsudo_path}
 
 ### Atomic Test 4: Bad Potato
@@ -131,13 +132,14 @@ Stop-Process -Name "BadPotato" -force -erroraction silentlycontinue
 ```
 
 **Dependencies:**
+
 - BadPotato.exe must exist in the temp directory
 
 ### Atomic Test 5: Juicy Potato
 
-This Atomic utilizes Juicy Potato to obtain privilege escalation. 
+This Atomic utilizes Juicy Potato to obtain privilege escalation.
 Upon successful execution of this test, a vulnerable CLSID will be used to execute a process with system permissions.
-This tactic has been previously observed in SnapMC Ransomware, amongst numerous other campaigns. 
+This tactic has been previously observed in SnapMC Ransomware, amongst numerous other campaigns.
 [Reference](https://blog.fox-it.com/2021/10/11/snapmc-skips-ransomware-steals-data/)
 
 **Supported Platforms:** windows
@@ -148,8 +150,8 @@ cmd /c '#{potato_path}' -l '#{listening_port}' -t * -p '#{target_exe}' -c '#{tar
 ```
 
 **Dependencies:**
-- JuicyPotato.exe must exist on disk
 
+- JuicyPotato.exe must exist on disk
 
 ### Manual Testing
 
@@ -164,31 +166,30 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1018 User Account Management
+
 An adversary must already have administrator level access on the local system to make full use of this technique; be sure to restrict users and accounts to the least privileges they require.
 
 ### M1026 Privileged Account Management
+
 Limit permissions so that users and user groups cannot create tokens. This setting should be defined for the local system account only. GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Create a token object. Also define who can create a process level token to only the local and network service through GPO: Computer Configuration > [Policies] > Windows Settings > Security Settings > Local Policies > User Rights Assignment: Replace a process level token.
 
 Administrators should log in as a standard user but run their tools with administrator privileges using the built-in access token manipulation command <code>runas</code>.
-
 
 ## Detection
 
 ### Behavior-chain detection for T1134.001 Access Token Manipulation: Token Impersonation/Theft on Windows
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Token Impersonation/Theft technique applicable | High | Defense Evasion |
+| Finding                                        | Severity | Impact          |
+| ---------------------------------------------- | -------- | --------------- |
+| Token Impersonation/Theft technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

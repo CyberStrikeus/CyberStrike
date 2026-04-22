@@ -89,26 +89,24 @@ The observation of the signal packets to trigger the communication can be conduc
 ## Remediation Guide
 
 ### M1037 Filter Network Traffic
-Mitigation of some variants of this technique could be achieved through the use of stateful firewalls, depending upon how it is implemented.
 
+Mitigation of some variants of this technique could be achieved through the use of stateful firewalls, depending upon how it is implemented.
 
 ## Detection
 
 ### Port-knock → rule/daemon change → first successful connect (T1205.001)
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Port Knocking technique applicable | Low | Defense Evasion |
+| Finding                            | Severity | Impact          |
+| ---------------------------------- | -------- | --------------- |
+| Port Knocking technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

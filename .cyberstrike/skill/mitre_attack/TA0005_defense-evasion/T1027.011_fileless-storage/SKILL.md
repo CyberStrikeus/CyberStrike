@@ -1,6 +1,6 @@
 ---
 name: "T1027.011_fileless-storage"
-description: "Adversaries may store data in \"fileless\" formats to conceal malicious activity from defenses."
+description: 'Adversaries may store data in "fileless" formats to conceal malicious activity from defenses.'
 category: "configuration"
 version: "18.1"
 author: "cyberstrike-official"
@@ -61,7 +61,7 @@ Adversaries may store data in "fileless" formats to conceal malicious activity f
 
 Similar to fileless in-memory behaviors such as Reflective Code Loading and Process Injection, fileless data storage may remain undetected by anti-virus and other endpoint security tools that can only access specific file formats from disk storage. Leveraging fileless storage may also allow adversaries to bypass the protections offered by read-only file systems in Linux.
 
-Adversaries may use fileless storage to conceal various types of stored data, including payloads/shellcode (potentially being used as part of Persistence) and collected data not yet exfiltrated from the victim (e.g., Local Data Staging). Adversaries also often encrypt, encode, splice, or otherwise obfuscate this fileless data when stored. 
+Adversaries may use fileless storage to conceal various types of stored data, including payloads/shellcode (potentially being used as part of Persistence) and collected data not yet exfiltrated from the victim (e.g., Local Data Staging). Adversaries also often encrypt, encode, splice, or otherwise obfuscate this fileless data when stored.
 
 Some forms of fileless storage activity may indirectly create artifacts in the file system, but in central and otherwise difficult to inspect formats such as the WMI (e.g., `%SystemRoot%\System32\Wbem\Repository`) or Registry (e.g., `%SystemRoot%\System32\Config`) physical files.
 
@@ -94,26 +94,24 @@ Some forms of fileless storage activity may indirectly create artifacts in the f
 ## Remediation Guide
 
 ### M1047 Audit
-Consider periodic review of common fileless storage locations (such as the Registry or WMI repository) to potentially identify abnormal and malicious data.
 
+Consider periodic review of common fileless storage locations (such as the Registry or WMI repository) to potentially identify abnormal and malicious data.
 
 ## Detection
 
 ### Detection Strategy for Fileless Storage via Registry, WMI, and Shared Memory
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Fileless Storage technique applicable | High | Defense Evasion |
+| Finding                               | Severity | Impact          |
+| ------------------------------------- | -------- | --------------- |
+| Fileless Storage technique applicable | High     | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

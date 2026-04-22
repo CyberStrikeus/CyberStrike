@@ -4,7 +4,8 @@ description: "Ensure that the --service-account-extend-token-expiration paramete
 category: cis-k8s
 version: "1.11.0"
 author: cyberstrike-official
-tags: [cis, kubernetes, control-plane, api-server, service-account-extend-token-expiration, token-security, authentication]
+tags:
+  [cis, kubernetes, control-plane, api-server, service-account-extend-token-expiration, token-security, authentication]
 cis_id: "1.2.30"
 cis_benchmark: "CIS Kubernetes Benchmark v1.11.0"
 tech_stack: [kubernetes]
@@ -60,7 +61,7 @@ By default, this parameter is set to true.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 10.5 Enable Anti-Exploitation Features | | * | * |
-| v7 | 5.1 Establish Secure Configurations | * | * | * |
+| Controls Version | Control                                | IG 1 | IG 2 | IG 3 |
+| ---------------- | -------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.5 Enable Anti-Exploitation Features |      | \*   | \*   |
+| v7               | 5.1 Establish Secure Configurations    | \*   | \*   | \*   |

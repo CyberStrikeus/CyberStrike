@@ -49,15 +49,15 @@ Where possible, remove `get`, `list` and `watch` access to `secret` objects in t
 
 By default, the following list of principals have `get` privileges on `secret` objects:
 
-| CLUSTERROLEBINDING | SUBJECT |
-|---|---|
-| cluster-admin | system:masters |
+| CLUSTERROLEBINDING                                   | SUBJECT                            |
+| ---------------------------------------------------- | ---------------------------------- |
+| cluster-admin                                        | system:masters                     |
 | system:controller:clusterrole-aggregation-controller | clusterrole-aggregation-controller |
-| system:controller:expand-controller | expand-controller |
-| system:controller:generic-garbage-collector | generic-garbage-collector |
-| system:controller:namespace-controller | namespace-controller |
-| system:controller:persistent-volume-binder | persistent-volume-binder |
-| system:kube-controller-manager | system:kube-controller-manager |
+| system:controller:expand-controller                  | expand-controller                  |
+| system:controller:generic-garbage-collector          | generic-garbage-collector          |
+| system:controller:namespace-controller               | namespace-controller               |
+| system:controller:persistent-volume-binder           | persistent-volume-binder           |
+| system:kube-controller-manager                       | system:kube-controller-manager     |
 
 ## References
 
@@ -65,7 +65,7 @@ None specified.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 4.1 Establish and Maintain a Secure Configuration Process | x | x | x |
-| v7 | 5.2 Maintain Secure Images | | x | x |
+| Controls Version | Control                                                   | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 4.1 Establish and Maintain a Secure Configuration Process | x    | x    | x    |
+| v7               | 5.2 Maintain Secure Images                                |      | x    | x    |

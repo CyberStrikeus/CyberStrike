@@ -225,13 +225,13 @@ apt purge gdm3
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|---|---|---|---|---|
-| v8 | 10.3 Disable Autorun and Autoplay for Removable Media | X | X | X |
-| v7 | 8.5 Configure Devices Not To Auto-run Content | X | X | X |
+| Controls Version | Control                                               | IG 1 | IG 2 | IG 3 |
+| ---------------- | ----------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 10.3 Disable Autorun and Autoplay for Removable Media | X    | X    | X    |
+| v7               | 8.5 Configure Devices Not To Auto-run Content         | X    | X    | X    |
 
 ## MITRE ATT&CK Mappings
 
 | Techniques / Sub-techniques | Tactics | Mitigations |
-|---|---|---|
-| T1091, T1091.000 | TA0008 | M1042 |
+| --------------------------- | ------- | ----------- |
+| T1091, T1091.000            | TA0008  | M1042       |

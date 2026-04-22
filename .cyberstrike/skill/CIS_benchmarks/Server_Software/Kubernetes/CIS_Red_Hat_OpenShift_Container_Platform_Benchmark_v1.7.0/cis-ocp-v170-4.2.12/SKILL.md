@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Red Hat OpenShift Container Platform Benchmark v1.7.0 - Control 4.2.12
 
 ## Profile Applicability
+
 - **Level:** 1
 
 ## Description
+
 Ensure that the Kubelet is configured to only use strong cryptographic ciphers.
 
 ## Rationale
+
 TLS ciphers have had a number of known vulnerabilities and weaknesses, which can reduce the protection provided by them. By default Kubernetes supports a number of TLS ciphersuites including some that have security concerns, weakening the protection provided.
 
 ## Impact
+
 Kubelet clients that cannot support modern cryptographic ciphers will not be able to make connections to the Kubelet API.
 
 ## Audit Procedure
@@ -89,25 +93,29 @@ Verify that the cipher suites are appropriate. Verify that the `tlsSecurityProfi
 Note: The HAProxy Ingress controller image does not support TLS 1.3 and because the `Modern` profile requires TLS 1.3, it is not supported. The Ingress Operator converts the `Modern` profile to `Intermediate`. The Ingress Operator also converts the TLS 1.0 of an `Old` or `Custom` profile to 1.1, and TLS 1.3 of a `Custom` profile to 1.2.
 
 ## Remediation
+
 Follow the directions above and in the OpenShift documentation to configure the `tlsSecurityProfile`. [Configuring Ingress](https://docs.openshift.com/container-platform/4.5/networking/ingress-operator.html#nw-ingress-controller-configuration-parameters_configuring-ingress). Please reference the OpenShift TLS security profile [documentation](https://docs.openshift.com/container-platform/latest/security/tls-security-profiles.html) for more detail on each profile.
 
 ## Default Value
+
 By default the Kubernetes API server supports a wide range of TLS ciphers.
 
 ## References
+
 1. https://docs.openshift.com/container-platform/4.5/networking/ingress-operator.html#nw-ingress-controller-configuration-parameters_configuring-ingress
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|-----------------|---------|------|------|------|
-| v8 | 5.2 Use Unique Passwords | * | * | * |
-| v7 | 1.8 Utilize Client Certificates to Authenticate Hardware Assets | | | * |
-| v7 | 2.6 Address unapproved software | * | * | * |
+| Controls Version | Control                                                         | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------------------------------- | ---- | ---- | ---- |
+| v8               | 5.2 Use Unique Passwords                                        | \*   | \*   | \*   |
+| v7               | 1.8 Utilize Client Certificates to Authenticate Hardware Assets |      |      | \*   |
+| v7               | 2.6 Address unapproved software                                 | \*   | \*   | \*   |
 
 ## MITRE ATT&CK Mappings
 
 None specified.
 
 ## Profile
+
 **Level 1** (Manual)

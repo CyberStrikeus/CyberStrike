@@ -52,7 +52,7 @@ grep -Psi -- '^\h*MaxSessions\h+\"?([1[1-9]|[2-9][0-9]|[1-9][0-9][0-9]+)\b' /etc
 Nothing should be returned.
 
 - IF - `Match` set statements are used in your environment, specify the connection parameters to use for the `-T` extended test mode and run the audit to verify the setting is not incorrectly configured in a match block.
-Example additional audit needed for a match block for the user *sshuser*:
+  Example additional audit needed for a match block for the user _sshuser_:
 
 ```bash
 # sshd -T -C user=sshuser | grep maxsessions

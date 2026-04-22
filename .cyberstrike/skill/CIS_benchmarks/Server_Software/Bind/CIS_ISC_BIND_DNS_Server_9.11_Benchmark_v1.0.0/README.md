@@ -13,19 +13,19 @@ This directory contains **50 SKILL.md files** for the CIS ISC BIND DNS Server 9.
 
 ## Control Breakdown by Section
 
-| Section | Title | Controls |
-|---------|-------|----------|
-| 1 | Planning and Architecture | 5 |
-| 2 | Restricting Permissions and Ownership | 9 |
-| 3 | Restricting Queries | 4 |
-| 4 | Transaction Signatures -- TSIG | 5 |
-| 5 | Authenticate Zone Transfers and Updates | 3 |
-| 6 | Information Leakage | 2 |
-| 7 | Secure Network Communications | 4 |
-| 8 | DNSSEC Digital Signatures for Authoritative Zones | 8 |
-| 9 | Operations - Logging, Monitoring and Maintenance | 6 |
-| 10 | Enable SELinux to Restrict BIND Processes | 4 |
-| **Total** | | **50** |
+| Section   | Title                                             | Controls |
+| --------- | ------------------------------------------------- | -------- |
+| 1         | Planning and Architecture                         | 5        |
+| 2         | Restricting Permissions and Ownership             | 9        |
+| 3         | Restricting Queries                               | 4        |
+| 4         | Transaction Signatures -- TSIG                    | 5        |
+| 5         | Authenticate Zone Transfers and Updates           | 3        |
+| 6         | Information Leakage                               | 2        |
+| 7         | Secure Network Communications                     | 4        |
+| 8         | DNSSEC Digital Signatures for Authoritative Zones | 8        |
+| 9         | Operations - Logging, Monitoring and Maintenance  | 6        |
+| 10        | Enable SELinux to Restrict BIND Processes         | 4        |
+| **Total** |                                                   | **50**   |
 
 ## Archive Status
 
@@ -73,6 +73,7 @@ Example: `cis-bind-v100-1-1/SKILL.md` for control 1.1, `cis-bind-v100-10-4/SKILL
 ## Source Document
 
 **CIS ISC BIND DNS Server 9.11 Benchmark v1.0.0**
+
 - Platform: ISC BIND 9.11 on Linux
 - Original PDF: `CIS_ISC_BIND_DNS_Server_9.11_Benchmark_v1.0.0_ARCHIVE.pdf`
 

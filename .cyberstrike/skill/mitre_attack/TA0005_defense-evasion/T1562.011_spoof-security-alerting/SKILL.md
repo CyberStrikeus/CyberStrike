@@ -91,26 +91,24 @@ For example, adversaries may show a fake Windows Security GUI and tray icon with
 ## Remediation Guide
 
 ### M1038 Execution Prevention
-Use application controls to mitigate installation and use of payloads that may be utilized to spoof security alerting.
 
+Use application controls to mitigate installation and use of payloads that may be utilized to spoof security alerting.
 
 ## Detection
 
 ### Detection for Spoofing Security Alerting across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spoof Security Alerting technique applicable | Low | Defense Evasion |
+| Finding                                      | Severity | Impact          |
+| -------------------------------------------- | -------- | --------------- |
+| Spoof Security Alerting technique applicable | Low      | Defense Evasion |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                        |
+| ------- | ---------------------------- |
 | CWE-693 | Protection Mechanism Failure |
-
 
 ## References
 

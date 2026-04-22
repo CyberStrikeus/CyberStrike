@@ -100,8 +100,8 @@ Invoke-MalDoc -macroCode $macrocode -officeProduct "#{ms_product}"
 ```
 
 **Dependencies:**
-- Microsoft #{ms_product} must be installed
 
+- Microsoft #{ms_product} must be installed
 
 ### Manual Testing
 
@@ -116,44 +116,48 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1049 Antivirus/Antimalware
+
 Anti-virus can also automatically quarantine suspicious files.
 
 ### M1018 User Account Management
+
 Apply user account management principles to limit permissions for accounts interacting with email attachments, ensuring that only necessary accounts have the ability to open or execute files. Restricting account privileges reduces the potential impact of malicious attachments by preventing unauthorized execution or spread of malware within the environment.
 
 ### M1047 Audit
+
 Enable auditing and monitoring for email attachments and file transfers to detect and investigate suspicious activity. Regularly review logs for anomalies related to attachments containing potentially malicious content, as well as any attempts to execute or interact with these files. This practice helps identify spearphishing attempts before they can lead to further compromise.
 
 ### M1031 Network Intrusion Prevention
+
 Network intrusion prevention systems and systems designed to scan and remove malicious email attachments can be used to block activity.
 
 ### M1054 Software Configuration
+
 Use anti-spoofing and email authentication mechanisms to filter messages based on validity checks of the sender domain (using SPF) and integrity of messages (using DKIM). Enabling these mechanisms within an organization (through policies such as DMARC) may enable recipients (intra-org and cross domain) to perform similar message filtering and validation.
 
 ### M1017 User Training
+
 Users can be trained to identify social engineering techniques and spearphishing emails.
 
 ### M1021 Restrict Web-Based Content
-Block unknown or unused attachments by default that should not be transmitted over email as a best practice to prevent some vectors, such as .scr, .exe, .pif, .cpl, etc. Some email scanning devices can open and analyze compressed and encrypted formats, such as zip and rar that may be used to conceal malicious attachments.
 
+Block unknown or unused attachments by default that should not be transmitted over email as a best practice to prevent some vectors, such as .scr, .exe, .pif, .cpl, etc. Some email scanning devices can open and analyze compressed and encrypted formats, such as zip and rar that may be used to conceal malicious attachments.
 
 ## Detection
 
 ### Detection Strategy for Spearphishing Attachment across OS Platforms
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Spearphishing Attachment technique applicable | High | Initial Access |
+| Finding                                       | Severity | Impact         |
+| --------------------------------------------- | -------- | -------------- |
+| Spearphishing Attachment technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

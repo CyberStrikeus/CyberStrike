@@ -106,19 +106,17 @@ No specific mitigations documented for this technique.
 
 ### Detection Strategy for T1546.016 - Event Triggered Execution via Installer Packages
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Installer Packages technique applicable | High | Privilege Escalation |
+| Finding                                 | Severity | Impact               |
+| --------------------------------------- | -------- | -------------------- |
+| Installer Packages technique applicable | High     | Privilege Escalation |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                         |
+| ------- | ----------------------------- |
 | CWE-269 | Improper Privilege Management |
-
 
 ## References
 

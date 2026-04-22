@@ -17,15 +17,19 @@ severity_boost: {}
 # CIS Docker Benchmark v1.7.0 - Control 5.12
 
 ## Profile Applicability
+
 - Level 1 - Docker - Linux
 
 ## Description
+
 By default, all containers on a Docker host share resources equally. By using the resource management capabilities of the Docker host you can control the host CPU resources that a container may consume.
 
 ## Rationale
+
 By default, CPU time is divided between containers equally. If you wish to control available CPU resources amongst container instances, you can use the CPU sharing feature. CPU sharing allows you to prioritize one container over others and prevents lower priority containers from absorbing CPU resources which may be required by other processes. This ensures that high priority containers are able to claim the CPU runtime they require.
 
 ## Impact
+
 If you do not correctly assign CPU thresholds, the container process may run out of resources and become unresponsive. If CPU resources on the host are not constrainted, CPU shares do not place any restrictions on individual resources.
 
 ## Audit Procedure
@@ -57,9 +61,11 @@ If you set one container's CPU shares to `512` it will receive half of the CPU t
 You can also view the current CPU shares in the file `/sys/fs/cgroup/cpu/docker/<CONTAINER_ID>/cpu.shares`.
 
 ## Default Value
+
 By default, all containers on a Docker host share their resources equally. No CPU shares are enforced.
 
 ## References
+
 1. https://docs.docker.com/config/containers/resource_constraints/#cpu
 2. https://docs.docker.com/engine/reference/commandline/run/#options
 3. https://docs.docker.com/engine/admin/runmetrics/
@@ -67,10 +73,13 @@ By default, all containers on a Docker host share their resources equally. No CP
 ## CIS Controls
 
 **v8:**
+
 - 3.12 Segment Data Processing and Storage Based on Sensitivity - Segment data processing and storage based on the sensitivity of the data. Do not process sensitive data on enterprise assets intended for lower sensitivity data.
 
 **v7:**
+
 - 18 Application Software Security - Application Software Security
 
 ## Assessment Status
+
 Manual

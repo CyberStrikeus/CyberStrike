@@ -18,10 +18,8 @@ tech_stack:
   - docker
 cwe_ids:
   - CWE-284
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -63,10 +61,10 @@ Verify development team understands and follows Protect All Forms of Code from U
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| github-security-mcp | Check repository security settings | `github_security_*` tools |
-| Manual Review | SDLC process review | Documentation and interviews |
+| Tool                | Purpose                            | Usage                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| github-security-mcp | Check repository security settings | `github_security_*` tools    |
+| Manual Review       | SDLC process review                | Documentation and interviews |
 
 ## Remediation Guide
 
@@ -76,16 +74,15 @@ Help prevent unauthorized changes to code, both inadvertent and intentional, whi
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Protect All Forms of Code from Unauthorized Access and Tampering (PS.1) Protect All Forms of Code from Unauthorized Access and Tampering not implemented | Medium | Secure Development - Protect Software |
+| Finding                                                                                                                                                  | Severity | Impact                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| Protect All Forms of Code from Unauthorized Access and Tampering (PS.1) Protect All Forms of Code from Unauthorized Access and Tampering not implemented | Medium   | Secure Development - Protect Software |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                   |
+| ------- | ----------------------- |
 | CWE-284 | Improper Access Control |
-
 
 ## References
 

@@ -20,10 +20,8 @@ tech_stack:
   - ics
 cwe_ids:
   - CWE-20
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -33,9 +31,9 @@ severity_boost: {}
 
 Adversaries may gain access into industrial environments through systems exposed directly to the internet for remote access rather than through External Remote Services. Internet Accessible Devices are exposed to the internet unintentionally or intentionally without adequate protections. This may allow for adversaries to move directly into the control system network. Access onto these devices is accomplished without the use of exploits, these would be represented within the Exploit Public-Facing Application technique.
 
-Adversaries may leverage built in functions for remote access which may not be protected or utilize minimal legacy protections that may be targeted. These services may be discoverable through the use of online scanning tools. 
+Adversaries may leverage built in functions for remote access which may not be protected or utilize minimal legacy protections that may be targeted. These services may be discoverable through the use of online scanning tools.
 
-In the case of the Bowman dam incident, adversaries leveraged access to the dam control network through a cellular modem. Access to the device was protected by password authentication, although the application was vulnerable to brute forcing. 
+In the case of the Bowman dam incident, adversaries leveraged access to the dam control network through a cellular modem. Access to the device was protected by password authentication, although the application was vulnerable to brute forcing.
 
 In Trend Micros manufacturing deception operations adversaries were detected leveraging direct internet access to an ICS environment through the exposure of operational protocols such as Siemens S7, Omron FINS, and EtherNet/IP, in addition to misconfigured VNC access.
 
@@ -65,26 +63,24 @@ Review whether mitigations for T0883 are in place. If defenses are absent or mis
 ## Remediation Guide
 
 ### M0930 Network Segmentation
-Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls. Steps should be taken to periodically inventory internet accessible devices to determine if it differs from the expected.
 
+Deny direct remote access to internal systems through the use of network proxies, gateways, and firewalls. Steps should be taken to periodically inventory internet accessible devices to determine if it differs from the expected.
 
 ## Detection
 
 ### Detection of Internet Accessible Device
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Internet Accessible Device technique applicable | High | Initial Access |
+| Finding                                         | Severity | Impact         |
+| ----------------------------------------------- | -------- | -------------- |
+| Internet Accessible Device technique applicable | High     | Initial Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title                     |
+| ------ | ------------------------- |
 | CWE-20 | Improper Input Validation |
-
 
 ## References
 

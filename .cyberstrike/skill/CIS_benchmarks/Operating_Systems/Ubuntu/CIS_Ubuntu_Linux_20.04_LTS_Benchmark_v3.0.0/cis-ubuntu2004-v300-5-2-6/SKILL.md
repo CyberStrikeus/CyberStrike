@@ -60,7 +60,7 @@ Authentication timestamp timeout: 15.0 minutes
 ### Command Line
 
 - IF - the currently configured timeout is a negative number (disabled), greater than `15` minutes, or doesn't follow local site polity:
-Run the `visudo` command and edit or add the following line:
+  Run the `visudo` command and edit or add the following line:
 
 ```
 Defaults        timestamp_timeout=<N>

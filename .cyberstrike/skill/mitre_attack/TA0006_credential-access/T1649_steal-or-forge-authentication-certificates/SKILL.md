@@ -30,10 +30,8 @@ tech_stack:
   - identity
 cwe_ids:
   - CWE-522
-chains_with:
-  []
-prerequisites:
-  []
+chains_with: []
+prerequisites: []
 severity_boost: {}
 ---
 
@@ -86,7 +84,6 @@ foreach ($cert in (gci Cert:\CurrentUser\My)) { Export-Certificate -Cert $cert -
 [io.compression.zipfile]::CreateFromDirectory($exfilpath, $archive)
 ```
 
-
 ### Manual Testing
 
 If Atomic Red Team tests are not applicable, manually verify the technique by:
@@ -100,43 +97,44 @@ If Atomic Red Team tests are not applicable, manually verify the technique by:
 ## Remediation Guide
 
 ### M1015 Active Directory Configuration
+
 Ensure certificate authorities (CA) are properly secured, including treating CA servers (and other resources hosting CA certificates) as tier 0 assets. Harden abusable CA settings and attributes.
 
 For example, consider disabling the usage of AD CS certificate SANs within relevant authentication protocol settings to enforce strict user mappings and prevent certificates from authenticating as other identifies. Also consider enforcing CA Certificate Manager approval for the templates that include SAN as an issuance requirement.
 
 ### M1042 Disable or Remove Feature or Program
+
 Consider disabling old/dangerous authentication protocols (e.g. NTLM), as well as unnecessary certificate features, such as potentially vulnerable AD CS web and other enrollment server roles.
 
 ### M1041 Encrypt Sensitive Information
+
 Ensure certificates as well as associated private keys are appropriately secured. Consider utilizing additional hardware credential protections such as trusted platform modules (TPM) or hardware security modules (HSM). Enforce HTTPS and enable Extended Protection for
 Authentication.
 
 ### M1047 Audit
-Check and remediate unneeded existing authentication certificates as well as common abusable misconfigurations of CA settings and permissions, such as AD CS certificate enrollment permissions and published overly permissive certificate templates (which define available settings for created certificates). For example, available AD CS certificate templates can be checked via the Certificate Authority MMC snap-in (`certsrv.msc`). `certutil.exe` can also be used to examine various information within an AD CS CA database.
 
+Check and remediate unneeded existing authentication certificates as well as common abusable misconfigurations of CA settings and permissions, such as AD CS certificate enrollment permissions and published overly permissive certificate templates (which define available settings for created certificates). For example, available AD CS certificate templates can be checked via the Certificate Authority MMC snap-in (`certsrv.msc`). `certutil.exe` can also be used to examine various information within an AD CS CA database.
 
 ## Detection
 
 ### Detection Strategy for Steal or Forge Authentication Certificates
 
-
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| Steal or Forge Authentication Certificates technique applicable | High | Credential Access |
+| Finding                                                         | Severity | Impact            |
+| --------------------------------------------------------------- | -------- | ----------------- |
+| Steal or Forge Authentication Certificates technique applicable | High     | Credential Access |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID  | Title                                |
+| ------- | ------------------------------------ |
 | CWE-522 | Insufficiently Protected Credentials |
-
 
 ## References
 
 - [GitHub GhostPack Certificates](https://github.com/GhostPack/SharpDPAPI#certificates)
-- [Microsoft AD CS Overview](https://docs.microsoft.com/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831740(v=ws.11))
+- [Microsoft AD CS Overview](<https://docs.microsoft.com/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831740(v=ws.11)>)
 - [Medium Certified Pre Owned](https://posts.specterops.io/certified-pre-owned-d95910965cd2)
 - [SpecterOps Certified Pre Owned](https://web.archive.org/web/20220818094600/https://specterops.io/assets/resources/Certified_Pre-Owned.pdf)
 - [O365 Blog Azure AD Device IDs](https://o365blog.com/post/deviceidentity/)

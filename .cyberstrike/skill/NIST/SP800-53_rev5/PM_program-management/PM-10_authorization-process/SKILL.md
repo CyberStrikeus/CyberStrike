@@ -12,14 +12,12 @@ tags:
   - pm
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CA-6
   - CA-7
   - PL-2
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CA-6: "Chain with CA-6 for comprehensive security coverage"
   CA-7: "Chain with CA-7 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -82,16 +80,16 @@ Authorization processes for organizational systems and environments of operation
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PM-10 Authorization Process not implemented | Medium | Program Management |
-| PM-10 partially implemented | Low | Incomplete Program Management |
+| Finding                                     | Severity | Impact                        |
+| ------------------------------------------- | -------- | ----------------------------- |
+| PM-10 Authorization Process not implemented | Medium   | Program Management            |
+| PM-10 partially implemented                 | Low      | Incomplete Program Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

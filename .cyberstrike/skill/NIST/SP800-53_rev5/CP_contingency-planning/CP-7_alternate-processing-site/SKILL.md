@@ -14,8 +14,7 @@ tech_stack:
   - aws
   - azure
   - gcp
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - CP-2
   - CP-6
@@ -27,8 +26,7 @@ chains_with:
   - PE-11
   - PE-12
   - PE-17
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   CP-2: "Chain with CP-2 for comprehensive security coverage"
   CP-6: "Chain with CP-6 for comprehensive security coverage"
@@ -73,9 +71,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -91,16 +89,16 @@ Alternate processing sites are geographically distinct from primary processing s
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CP-7 Alternate Processing Site not implemented | Medium | Contingency Planning |
-| CP-7 partially implemented | Low | Incomplete Contingency Planning |
+| Finding                                        | Severity | Impact                          |
+| ---------------------------------------------- | -------- | ------------------------------- |
+| CP-7 Alternate Processing Site not implemented | Medium   | Contingency Planning            |
+| CP-7 partially implemented                     | Low      | Incomplete Contingency Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

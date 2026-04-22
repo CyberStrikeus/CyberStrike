@@ -12,14 +12,12 @@ tags:
   - pl
 tech_stack:
   - any
-cwe_ids:
-  []
+cwe_ids: []
 chains_with:
   - PL-2
   - SA-2
   - SI-12
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   PL-2: "Chain with PL-2 for comprehensive security coverage"
   SA-2: "Chain with SA-2 for comprehensive security coverage"
@@ -64,9 +62,9 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| Manual Review | Documentation and interview-based | N/A |
+| Tool          | Purpose                           | Usage |
+| ------------- | --------------------------------- | ----- |
+| Manual Review | Documentation and interview-based | N/A   |
 
 ## Remediation Guide
 
@@ -81,16 +79,16 @@ The CONOPS may be included in the security or privacy plans for the system or in
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| PL-7 Concept of Operations not implemented | Medium | Planning |
-| PL-7 partially implemented | Low | Incomplete Planning |
+| Finding                                    | Severity | Impact              |
+| ------------------------------------------ | -------- | ------------------- |
+| PL-7 Concept of Operations not implemented | Medium   | Planning            |
+| PL-7 partially implemented                 | Low      | Incomplete Planning |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
-| N/A | No direct CWE mapping |
+| CWE ID | Title                 |
+| ------ | --------------------- |
+| N/A    | No direct CWE mapping |
 
 ## References
 

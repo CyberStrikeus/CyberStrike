@@ -29,8 +29,7 @@ chains_with:
   - SA-4
   - SA-5
   - SA-8
-prerequisites:
-  []
+prerequisites: []
 severity_boost:
   AC-3: "Chain with AC-3 for comprehensive security coverage"
   AC-4: "Chain with AC-4 for comprehensive security coverage"
@@ -75,10 +74,10 @@ Verify the control is actively functioning, not just documented. Check logs, con
 
 ## Tools
 
-| Tool | Purpose | Usage |
-| ---- | ------- | ----- |
-| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config` |
-| AWS CLI | Review Config rules | `aws configservice describe-config-rules` |
+| Tool            | Purpose                       | Usage                                     |
+| --------------- | ----------------------------- | ----------------------------------------- |
+| cloud-audit-mcp | Check configuration baselines | `cloud_audit_config`                      |
+| AWS CLI         | Review Config rules           | `aws configservice describe-config-rules` |
 
 ## Remediation Guide
 
@@ -93,17 +92,16 @@ Systems provide a wide variety of functions and services. Some of the functions 
 
 ## Risk Assessment
 
-| Finding | Severity | Impact |
-| ------- | -------- | ------ |
-| CM-7 Least Functionality not implemented | Medium | Configuration Management |
-| CM-7 partially implemented | Low | Incomplete Configuration Management |
+| Finding                                  | Severity | Impact                              |
+| ---------------------------------------- | -------- | ----------------------------------- |
+| CM-7 Least Functionality not implemented | Medium   | Configuration Management            |
+| CM-7 partially implemented               | Low      | Incomplete Configuration Management |
 
 ## CWE Categories
 
-| CWE ID | Title |
-| ------ | ----- |
+| CWE ID | Title         |
+| ------ | ------------- |
 | CWE-16 | Configuration |
-
 
 ## References
 

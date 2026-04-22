@@ -17,6 +17,7 @@ severity_boost: {}
 # Ensure All Default Apache Content Is Removed (Manual)
 
 ## Profile Applicability
+
 - Level 2
 
 ## Description
@@ -41,7 +42,7 @@ Perform either of the following to implement the recommended state:
    - `# Fancy directory listings`
    - `#Include conf/extra/httpd-autoindex.conf`
 
-4. Alternatively, the icon `alias` directive and the directory access control configuration can be commented out as shown if present:
+2. Alternatively, the icon `alias` directive and the directory access control configuration can be commented out as shown if present:
    - `# We include the /icons/ alias for FancyIndexed directory listings. If`
    - `# you do not use FancyIndexing, you may comment this out.`
    - `#`
@@ -60,12 +61,15 @@ The default source build does not enable access to the Apache icons.
 ## CIS Controls
 
 **v8:**
+
 - 9.4 Restrict Unnecessary or Unauthorized Browser and Email Client Extensions
   - Restrict, either through uninstalling or disabling, any unauthorized or unnecessary browser or email client plugins, extensions, and add-on applications.
 
 **v7:**
+
 - 13.2 Remove Sensitive Data or Systems Not Regularly Accessed by Organization
   - Remove sensitive data or systems not regularly accessed by the organization from the network. These systems shall only be used as stand alone systems (disconnected from the network) by the business unit needing to occasionally use the system or completely virtualized and powered off until needed.
 
 ## Profile
+
 - Level 2

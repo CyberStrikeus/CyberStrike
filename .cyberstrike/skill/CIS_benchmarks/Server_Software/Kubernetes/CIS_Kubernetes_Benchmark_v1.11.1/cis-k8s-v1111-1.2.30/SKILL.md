@@ -60,7 +60,7 @@ By default, this parameter is set to true.
 
 ## CIS Controls
 
-| Controls Version | Control | IG 1 | IG 2 | IG 3 |
-|------------------|---------|------|------|------|
-| v8 | 3.3 Configure Data Access Control Lists | x | x | x |
-| v7 | 16 Account Monitoring and Control | | | |
+| Controls Version | Control                                 | IG 1 | IG 2 | IG 3 |
+| ---------------- | --------------------------------------- | ---- | ---- | ---- |
+| v8               | 3.3 Configure Data Access Control Lists | x    | x    | x    |
+| v7               | 16 Account Monitoring and Control       |      |      |      |
