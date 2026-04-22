@@ -1,0 +1,62 @@
+---
+name: cis-gke-autopilot-v100-4.1.6
+description: "Avoid use of system:masters group (Automated)"
+category: cis-gke-autopilot
+version: "1.0.0"
+author: cyberstrike-official
+tags: [cis, gke-autopilot, kubernetes, gcp, rbac, service-accounts, system-masters, cluster-roles]
+cis_id: "4.1.6"
+cis_benchmark: "CIS Google Kubernetes Engine (GKE) Autopilot Benchmark v1.0.0"
+tech_stack: [kubernetes, gcp, gke]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 4.1.6 Avoid use of system:masters group (Automated)
+
+## Profile Applicability
+
+- Level 1
+
+## Description
+
+The special group `system:masters` should not be used to grant permissions to any user or service account, except where strictly necessary (e.g. bootstrapping access prior to RBAC being fully available).
+
+## Rationale
+
+The `system:masters` group has unrestricted access to the Kubernetes API hard-coded into the API server source code. An authenticated user who is a member of this group cannot have their access reduced, even if all bindings and cluster role bindings which mention it, are removed.
+
+When combined with client certificate authentication, use of this group can allow for irrevocable cluster-admin level credentials to exist for a cluster.
+
+GKE includes the `CertificateSubjectRestriction` admission controller which rejects requests for the `system:masters` group.
+
+`CertificateSubjectRestriction` "This admission controller observes creation of `CertificateSigningRequest` resources that have a spec.signerName of kubernetes.io/kube-apiserver-client. It rejects any request that specifies a 'group' (or 'organization attribute') of system:masters." https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#certificatesubjectrestriction
+
+## Impact
+
+Once the RBAC system is operational in a cluster `system:masters` should not be specifically required, as ordinary bindings from principals to the `cluster-admin` cluster role can be made where unrestricted access is required.
+
+## Audit
+
+Review a list of all credentials which have access to the cluster and ensure that the group `system:masters` is not used.
+
+## Remediation
+
+Remove the `system:masters` group from all users in the cluster.
+
+## Default Value
+
+By default some clusters will create a "break glass" client certificate which is a member of this group. Access to this client certificate should be carefully controlled and it should not be used for general cluster operations.
+
+## References
+
+1. https://github.com/kubernetes/kubernetes/blob/master/pkg/registry/rbac/escalation_check.go#L38
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts | * | * | * |
+| v7 | 4 Controlled Use of Administrative Privileges | | | |

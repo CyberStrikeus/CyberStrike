@@ -1,0 +1,79 @@
+---
+name: cis-ocp-v160-1.2.4
+description: "Use https for kubelet connections (Manual)"
+category: cis-openshift
+version: "1.6.0"
+author: cyberstrike-official
+tags: [cis, openshift, kubernetes, redhat, control-plane, api-server, kubelet-https]
+cis_id: "1.2.4"
+cis_benchmark: "CIS Red Hat OpenShift Container Platform Benchmark v1.6.0"
+tech_stack: [kubernetes, openshift, redhat]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# CIS Red Hat OpenShift Container Platform Benchmark v1.6.0 - Control 1.2.4
+
+## Profile Applicability
+- **Level:** 1
+
+## Description
+Use https for kubelet connections.
+
+## Rationale
+Connections from `apiserver` to `kubelets` could potentially carry sensitive data such as secrets and keys. It is thus important to use in-transit encryption for any communication between the `apiserver` and `kubelets`.
+
+## Impact
+You require TLS to be configured on `apiserver` as well as `kubelets`.
+
+## Audit Procedure
+OpenShift does not use the `--kubelet-https` argument. OpenShift utilizes X.509 certificates for authentication of the control-plane components. OpenShift configures the API server to use an internal certificate authority (CA) to validate the user certificate sent during TLS negotiation. If the validation of the certificate is successful, the request is authenticated and user information is derived from the certificate subject fields.
+
+To verify the kubelet client certificates are present, run the following command:
+
+```bash
+oc get configmap config -n openshift-kube-apiserver -ojson | jq -r '.data["config.yaml"]' | jq '.apiServerArguments["kubelet-client-certificate"]'
+
+oc get configmap config -n openshift-kube-apiserver -ojson | jq -r '.data["config.yaml"]' | jq '.apiServerArguments["kubelet-client-key"]'
+
+oc -n openshift-apiserver describe secret serving-cert
+
+# Run the following command and the output should return true or no output at all
+oc get configmap config -n openshift-kube-apiserver -ojson | jq -r '.data["config.yaml"]' | jq '.apiServerArguments["kubelet-https"]'
+```
+
+Verify that the kubelet client-certificate and kubelet client-key files are present.
+client-certificate: `/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt`
+client-key: `/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.key`
+Verify that the serving-cert for the `openshift-apiserver` is type kubernetes.io/tls and that returned Data includes `tls.crt` and `tls.key`.
+
+## Remediation
+No remediation is required. OpenShift platform components use X.509 certificates for authentication. OpenShift manages the CAs and certificates for platform components. This is not configurable.
+
+## Default Value
+By default, kubelet connections are encrypted.
+
+## References
+1. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#kube-apiserver-operator_red-hat-operators
+2. https://docs.openshift.com/container-platform/latest/operators/operator-reference.html#openshift-apiserver-operator_red-hat-operators
+3. https://github.com/openshift/cluster-kube-apiserver-operator/blob/release-4.13/bindata/assets/config/defaultconfig.yaml#L124-L127
+4. https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+5. https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-authentication-authorization/
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|------------------|---------|------|------|------|
+| v8 | 3.10 Encrypt Sensitive Data in Transit | | x | x |
+| v7 | 14.4 Encrypt All Sensitive Information in Transit | | x | x |
+
+## MITRE ATT&CK Mappings
+
+| Techniques / Sub-techniques | Tactics | Mitigations |
+|-----------------------------|---------|-------------|
+| T1048, T1189 | TA0001, TA0010 | M1041 |
+
+## Profile
+**Level 1** (Manual)

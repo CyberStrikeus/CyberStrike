@@ -1,0 +1,59 @@
+---
+name: cis-oke-v170-4.1.3
+description: "Minimize wildcard use in Roles and ClusterRoles (Automated)"
+category: cis-oke
+version: "1.7.0"
+author: cyberstrike-official
+tags: [cis, oke, kubernetes, oci, policies, rbac, service-accounts]
+cis_id: "4.1.3"
+cis_benchmark: "CIS Oracle Cloud Infrastructure Container Engine for Kubernetes (OKE) Benchmark v1.7.0"
+tech_stack: [kubernetes, oci, oke]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# CIS OKE Benchmark v1.7.0 - Control 4.1.3
+
+## Profile Applicability
+- **Level:** 1
+
+## Description
+Kubernetes Roles and ClusterRoles provide access to resources based on sets of objects and actions that can be taken on those objects. It is possible to set either of these to be the wildcard "*" which matches all items.
+
+Use of wildcards is not optimal from a security perspective as it may allow for inadvertent access to be granted when new resources are added to the Kubernetes API either as CRDs or in later versions of the product.
+
+## Rationale
+The principle of least privilege recommends that users are provided only the access required for their role and nothing more. The use of wildcard rights grants is likely to provide excessive rights to the Kubernetes API.
+
+## Audit Procedure
+Retrieve the roles defined across each namespaces in the cluster and review for wildcards:
+
+```bash
+kubectl get roles --all-namespaces -o yaml
+```
+
+Retrieve the cluster roles defined in the cluster and review for wildcards:
+
+```bash
+kubectl get clusterroles -o yaml
+```
+
+## Remediation
+Where possible replace any use of wildcards in clusterroles and roles with specific objects or actions.
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|-----------------|---------|------|------|------|
+| v8 | 6.8 Define and Maintain Role-Based Access Control | | | * |
+
+## MITRE ATT&CK Mappings
+
+| Techniques / Sub-techniques | Tactics | Mitigations |
+|-----------------------------|---------|-------------|
+| T1078, T1078.002 | TA0001, TA0004 | M1026 |
+
+## Profile
+**Level 1** (Automated)

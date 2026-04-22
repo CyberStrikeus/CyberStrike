@@ -1,0 +1,67 @@
+---
+name: cis-k8s-v1110-1.1.7
+description: "Ensure that the etcd pod specification file permissions are set to 600 or more restrictive (Automated)"
+category: cis-k8s
+version: "1.11.0"
+author: cyberstrike-official
+tags: [cis, kubernetes, control-plane, config-files, file-permissions, etcd]
+cis_id: "1.1.7"
+cis_benchmark: "CIS Kubernetes Benchmark v1.11.0"
+tech_stack: [kubernetes]
+cwe_ids: []
+chains_with: []
+prerequisites: []
+severity_boost: {}
+---
+
+# 1.1.7 Ensure that the etcd pod specification file permissions are set to 600 or more restrictive (Automated)
+
+## Profile Applicability
+
+- Level 1 - Master Node
+
+## Description
+
+Ensure that the `/etc/kubernetes/manifests/etcd.yaml` file has permissions of `600` or more restrictive.
+
+## Rationale
+
+The etcd pod specification file `/etc/kubernetes/manifests/etcd.yaml` controls various parameters that set the behavior of the `etcd` service in the master node. etcd is a highly-available key-value store which Kubernetes uses for persistent storage of all of its REST API object. You should restrict its file permissions to maintain the integrity of the file. The file should be writable by only the administrators on the system.
+
+## Impact
+
+None
+
+## Audit
+
+Run the below command (based on the file location on your system) on the Control Plane node. For example,
+
+```bash
+stat -c %a /etc/kubernetes/manifests/etcd.yaml
+```
+
+Verify that the permissions are `600` or more restrictive.
+
+## Remediation
+
+Run the below command (based on the file location on your system) on the Control Plane node. For example,
+
+```bash
+chmod 600 /etc/kubernetes/manifests/etcd.yaml
+```
+
+## Default Value
+
+By default, `/etc/kubernetes/manifests/etcd.yaml` file has permissions of `640`.
+
+## References
+
+1. [https://coreos.com/etcd](https://coreos.com/etcd)
+2. [https://kubernetes.io/docs/admin/etcd/](https://kubernetes.io/docs/admin/etcd/)
+
+## CIS Controls
+
+| Controls Version | Control | IG 1 | IG 2 | IG 3 |
+|:---:|---|:---:|:---:|:---:|
+| v8 | **3.3 Configure Data Access Control Lists** - Configure data access control lists based on a user's need to know. Apply data access control lists, also known as access permissions, to local and remote file systems, databases, and applications. | * | * | * |
+| v7 | **14.6 Protect Information through Access Control Lists** - Protect all information stored on systems with file system, network share, claims, application, or database specific access control lists. These controls will enforce the principle that only authorized individuals should have access to the information based on their need to access the information as a part of their responsibilities. | * | * | * |
