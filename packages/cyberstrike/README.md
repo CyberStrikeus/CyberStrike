@@ -6,7 +6,7 @@
 
 <p align="center">
   Automated penetration testing from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
-  and turn it into an autonomous red team agent with 13+ specialized agents and 120+ OWASP test cases.
+  and turn it into an autonomous red team agent with 7,300+ security skills across MITRE ATT&CK, CIS, OWASP, and NIST.
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 ```
 
-That's it. CyberStrike launches a TUI in your terminal, asks for your LLM provider and API key on first run, and you're ready to go. Tell it what to test — it handles reconnaissance, vulnerability discovery, exploitation, and reporting autonomously.
+That's it. CyberStrike launches a TUI in your terminal, asks for your LLM provider and API key on first run, and you're ready to go. Tell it what to test — it loads relevant skills from 7,300+ MITRE ATT&CK, CIS, OWASP, and NIST test procedures, then handles reconnaissance, vulnerability discovery, exploitation, and reporting autonomously.
 
 > **Already have a Claude Code or OpenAI subscription?** CyberStrike's intelligence layer sits on top of your existing AI subscription. No separate API costs — your current plan powers an entire pentest toolkit.
 
@@ -82,15 +82,51 @@ CyberStrike isn't just a wrapper around an LLM. It's an intelligence layer that 
 
 ---
 
+### Skills System — 7,300+ Actionable Security Tests
+
+CyberStrike doesn't just give agents generic security knowledge — it loads domain-specific skills on-demand with zero context pollution.
+
+**What's a skill?** A skill is a structured test procedure that includes:
+- Target methodology (OWASP WSTG, MITRE ATT&CK, CIS Benchmark, NIST)
+- Copy-paste ready test commands
+- Tool references and dependencies
+- Remediation guidance
+- CWE mappings and severity ratings
+
+**Coverage:**
+
+| Framework              | Skills | What It Includes                                                                     |
+| ---------------------- | ------ | ------------------------------------------------------------------------------------ |
+| **MITRE ATT&CK**       | 691    | Enterprise tactics + 2,000+ Atomic Red Team tests (Kerberoasting, LSASS dump, etc.) |
+| **CIS Benchmarks**     | 1,500+ | Cloud (AWS/Azure/GCP), Containers (Docker/K8s), OS (Ubuntu), Server (Apache/Nginx)  |
+| **OWASP WSTG**         | 125    | Web app security testing (XSS, SQLi, AuthN, AuthZ, Session, API)                    |
+| **NIST**               | 200+   | Security controls and compliance frameworks                                          |
+
+**Lazy Loading** — Skills load only when needed. An agent testing for Kerberoasting pulls T1558.003 skill (7 Atomic tests) into context, runs the tests, then discards it. Next test = new skill. Zero bloat.
+
+**Search & Discovery** — Built-in skill search with relevance scoring. Query by keyword, tech stack, CWE ID, or category. 7,633 skills indexed in-memory.
+
+```bash
+# Example: Agent loads T1558.003 Kerberoasting skill
+Skill: T1558.003 - Kerberoasting
+Tests: 7 Atomic Red Team test scenarios
+Tools: Invoke-Kerberoast.ps1, Rubeus, setspn
+Platforms: Windows
+```
+
+Read more: [MITRE ATT&CK Integration](https://github.com/CyberStrikeus/CyberStrike/blob/main/.cyberstrike/skill/mitre_attack/), [CIS Benchmarks](https://github.com/CyberStrikeus/CyberStrike/tree/main/.cyberstrike/skill/CIS_benchmarks)
+
+---
+
 ### What Makes It Different
 
 <table>
 <tr>
 <td width="50%">
 
-**Specialized Security Agents, Not Generic Chat**
+**7,300+ Security Skills, Not Generic Prompts**
 
-CyberStrike ships with 13+ agents purpose-built for security domains. Each agent carries domain-specific methodology, tool knowledge, and testing patterns. The web-application agent follows OWASP WSTG. The cloud-security agent knows CIS benchmarks. The mobile agent uses Frida and follows MASTG/MASVS. They don't guess — they follow proven offensive security frameworks.
+CyberStrike agents don't improvise — they follow proven methodologies with lazy-loaded skills. Testing for Kerberoasting? Load T1558.003 (7 Atomic Red Team tests). Auditing Docker? Load CIS Docker v1.8.0 (118 controls). Agents pull exactly what they need, execute structured test procedures with copy-paste commands, then discard. Zero context pollution. Real pentest frameworks: MITRE ATT&CK, CIS Benchmarks, OWASP WSTG, NIST.
 
 </td>
 <td width="50%">
@@ -270,9 +306,9 @@ Read the [Contributing Guide](https://github.com/CyberStrikeus/CyberStrike/blob/
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project                                                                | Domain                                  | Tools                                 |
-| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
-| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| Project                                                                | Domain                                  | Tools                                       |
+| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **7,300+ skills (MITRE, CIS, OWASP, NIST)** |
 | [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
