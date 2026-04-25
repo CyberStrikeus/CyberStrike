@@ -2,7 +2,7 @@ import { chromium, type Page, type BrowserContext } from "playwright"
 import { Log } from "cyberstrike/util/log"
 import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent } from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
-import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged } from "./ingest.ts"
+import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged, initAuth } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
@@ -271,9 +271,11 @@ function setupRequestInterceptor(
     const url = request.url()
     if (shouldSkipUrl(url)) return
 
+    let scheme: "http" | "https"
     try {
       const urlObj = new URL(url)
       if (!urlObj.hostname.includes(targetHost) && !targetHost.includes(urlObj.hostname)) return
+      scheme = urlObj.protocol === "https:" ? "https" : "http"
     } catch {
       return
     }
@@ -313,7 +315,7 @@ function setupRequestInterceptor(
       }
     } catch {}
 
-    onCapture({ raw, response, uiContext, triggerElement, elementRoles: null, pageUrl: null, pageVisitedBy: null, timestamp: Date.now() })
+    onCapture({ raw, scheme, response, uiContext, triggerElement, elementRoles: null, pageUrl: null, pageVisitedBy: null, timestamp: Date.now() })
 
     // Track for action feedback — "METHOD /path [status]"
     const status = response?.status ?? 0
@@ -1162,13 +1164,25 @@ function trackResult(
 
 /** Close overlay via Escape, fall back to backdrop click */
 async function closeOverlay(page: Page): Promise<void> {
+  const urlBefore = page.url()
   await page.keyboard.press("Escape").catch(() => {})
   await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
   if (await isViewportCenterBlocked(page)) {
     log.debug("Escape failed, clicking backdrop")
-    const dims = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
-    await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
-    await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+    const dims = await page
+      .evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
+      .catch(() => null)
+    if (dims) {
+      await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
+      await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+    }
+  }
+  // Escape or backdrop click can trigger SPA navigation (e.g. router-bound
+  // backdrop). Mirror executor.stabilize() so the caller's next evaluate
+  // doesn't race a destroyed context.
+  if (page.url() !== urlBefore) {
+    await page.waitForLoadState("domcontentloaded", { timeout: 3000 }).catch(() => {})
+    await page.waitForTimeout(200)
   }
 }
 
@@ -1640,6 +1654,8 @@ async function runMultiCredential(
 // ============================================================
 
 export async function run(config: AgentConfig): Promise<void> {
+  initAuth(config.cyberstrike.username, config.cyberstrike.password)
+
   // Multi-credential mode: separate code path, same BFS engine
   if (config.multiCredentials && config.multiCredentials.length >= 2) {
     return runMultiCredential(config, config.multiCredentials)

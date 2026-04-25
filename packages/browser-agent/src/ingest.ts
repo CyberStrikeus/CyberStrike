@@ -3,7 +3,13 @@ import type { IngestPayload, CapturedRequest, PageDiffContext, AccessContext } f
 
 const log = Log.create({ service: "browser-agent:ingest" })
 
-const AUTH_HEADER = "Basic Y3liZXJzdHJpa2U6dGVzdDEyMw=="
+let authHeader = ""
+
+export function initAuth(username?: string, password?: string): void {
+  if (!password) { authHeader = ""; return }
+  authHeader = btoa(`${username ?? "cyberstrike"}:${password}`)
+  authHeader = `Basic ${authHeader}`
+}
 
 // ============================================================
 // Create a session upfront so all requests share one session ID
@@ -22,7 +28,7 @@ export async function initSession(
   try {
     const res = await fetch(`${serverUrl}/session/ingest`, {
       method: "POST",
-      headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
 
@@ -55,7 +61,7 @@ export function buildIngestPayload(
   credentialId: string | undefined,
   accessContext?: AccessContext,
 ): IngestPayload {
-  const payload: IngestPayload = { text: captured.raw }
+  const payload: IngestPayload = { text: captured.raw, scheme: captured.scheme }
   if (sessionID) payload.sessionID = sessionID
   if (credentialId) payload.credential_id = credentialId
   if (captured.response) payload.response = captured.response
@@ -90,7 +96,7 @@ export async function sendIngest(
   try {
     const res = await fetch(`${serverUrl}/session/ingest`, {
       method: "POST",
-      headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body,
     })
 
@@ -172,7 +178,7 @@ export async function registerCredential(
   try {
     const res = await fetch(`${serverUrl}/session/${sessionID}/web/credentials`, {
       method: "POST",
-      headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify({ label, headers: {} }),
     })
     if (!res.ok) {
@@ -198,7 +204,7 @@ export async function syncCredentialHeaders(
   try {
     const res = await fetch(`${serverUrl}/session/${sessionID}/web/credentials/${credentialID}`, {
       method: "PATCH",
-      headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body: JSON.stringify({ headers }),
     })
     if (!res.ok) {
@@ -240,7 +246,7 @@ export async function sendPageDiff(
   try {
     const res = await fetch(`${serverUrl}/session/ingest`, {
       method: "POST",
-      headers: { Authorization: AUTH_HEADER, "Content-Type": "application/json" },
+      headers: { Authorization: authHeader, "Content-Type": "application/json" },
       body,
     })
 
