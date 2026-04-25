@@ -8,12 +8,14 @@ import { SessionPrompt } from "../../session/prompt"
 import { SessionCompaction } from "../../session/compaction"
 import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
+import { SessionQueueStatus } from "@/session/queue-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
+import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
 import { WebObject } from "../../session/web/web-object"
@@ -28,8 +30,6 @@ import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
 const log = Log.create({ service: "server" })
-
-const ingestQueue = new Map<string, Promise<void>>()
 
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
@@ -272,18 +272,6 @@ async function runNormalize(
   }
 }
 
-function ingestEnqueue(sessionID: string, task: () => Promise<unknown>) {
-  const prev = ingestQueue.get(sessionID) ?? Promise.resolve()
-  const next = prev.then(task).then(
-    () => {},
-    (err) => log.error("ingest prompt failed", { sessionID, error: err }),
-  )
-  ingestQueue.set(sessionID, next)
-  next.then(() => {
-    if (ingestQueue.get(sessionID) === next) ingestQueue.delete(sessionID)
-  })
-}
-
 export const SessionRoutes = lazy(() =>
   new Hono()
     .get(
@@ -351,6 +339,29 @@ export const SessionRoutes = lazy(() =>
       }),
       async (c) => {
         const result = SessionStatus.list()
+        return c.json(result)
+      },
+    )
+    .get(
+      "/queue/status",
+      describeRoute({
+        summary: "Get ingest queue status",
+        description: "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
+        operationId: "session.queueStatus",
+        responses: {
+          200: {
+            description: "Queue status map keyed by sessionID",
+            content: {
+              "application/json": {
+                schema: resolver(z.record(z.string(), SessionQueueStatus.Info)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      async (c) => {
+        const result = SessionQueueStatus.list()
         return c.json(result)
       },
     )
@@ -959,7 +970,7 @@ export const SessionRoutes = lazy(() =>
           } else {
             const agentName = body.agent ?? "proxy-agent"
             const source = `${normalized.method} ${normalized.normalizedPath}`
-            ingestEnqueue(sessionID, async () => {
+            IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)
               try {
@@ -992,7 +1003,7 @@ export const SessionRoutes = lazy(() =>
             log.info("prompt preview:\n" + promptText)
           } else {
             const agentName = body.agent ?? "proxy-agent"
-            ingestEnqueue(sessionID, async () => {
+            IngestQueue.enqueue(sessionID, async () => {
               const before = IngestSummary.snapshot(sessionID)
               await SessionPrompt.prompt({
                 sessionID,
@@ -1187,6 +1198,64 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         SessionPrompt.cancel(c.req.valid("param").sessionID)
+        return c.json(true)
+      },
+    )
+    .post(
+      "/:sessionID/queue/pause",
+      describeRoute({
+        summary: "Pause ingest queue",
+        description: "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
+        operationId: "session.queuePause",
+        responses: {
+          200: {
+            description: "Paused",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        IngestQueue.pause(c.req.valid("param").sessionID)
+        return c.json(true)
+      },
+    )
+    .post(
+      "/:sessionID/queue/resume",
+      describeRoute({
+        summary: "Resume ingest queue",
+        description: "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
+        operationId: "session.queueResume",
+        responses: {
+          200: {
+            description: "Resumed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        IngestQueue.resume(c.req.valid("param").sessionID)
         return c.json(true)
       },
     )
