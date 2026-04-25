@@ -55,7 +55,7 @@ export function buildIngestPayload(
   credentialId: string | undefined,
   accessContext?: AccessContext,
 ): IngestPayload {
-  const payload: IngestPayload = { text: captured.raw }
+  const payload: IngestPayload = { text: captured.raw, scheme: captured.scheme }
   if (sessionID) payload.sessionID = sessionID
   if (credentialId) payload.credential_id = credentialId
   if (captured.response) payload.response = captured.response
