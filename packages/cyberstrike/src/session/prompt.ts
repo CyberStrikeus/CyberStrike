@@ -689,7 +689,12 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...MessageV2.toModelMessages(MessageV2.filterExcluded(sessionMessages, lastUser.id), model),
+          ...MessageV2.toModelMessages(
+            lastUser.excludeHistory
+              ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
+              : MessageV2.filterExcluded(sessionMessages, lastUser.id),
+            model,
+          ),
           ...(isLastStep
             ? [
                 {
