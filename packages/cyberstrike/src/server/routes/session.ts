@@ -12,6 +12,7 @@ import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
+import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
@@ -216,6 +217,59 @@ function buildPromptWithCredentialContext(
   }
 
   return lines.join("\n")
+}
+
+// Heuristic for ingest payloads that don't carry an explicit scheme. Browser-
+// agent supplies it; the legacy Firefox extension does not. We look at the
+// request line (absolute-URI form), then fall back to the host port hint, then
+// "https" as the safest default — most modern targets are HTTPS and treating
+// http traffic as https only inflates the dedup space, never causes data loss.
+function inferScheme(rawText: string): "http" | "https" {
+  const firstLine = rawText.split(/\r?\n/, 1)[0] ?? ""
+  if (/^[A-Z]+\s+https:\/\//.test(firstLine)) return "https"
+  if (/^[A-Z]+\s+http:\/\//.test(firstLine)) return "http"
+  // Look for a Host header with explicit port 80 (suggests http).
+  const hostMatch = rawText.match(/^[Hh]ost:\s*[^\r\n]*?:80\b/m)
+  if (hostMatch) return "http"
+  return "https"
+}
+
+// Bridge between the ingest payload and Normalize.run. Returns null when the
+// raw text isn't a parseable HTTP request (the route then falls through to
+// the chat-style ingest path that handles plain text).
+async function runNormalize(
+  body: {
+    text: string
+    scheme?: "http" | "https"
+    model?: { providerID: string; modelID: string }
+  },
+  sessionID: string,
+  dryRun: boolean,
+): Promise<Normalize.RunResult | null> {
+  const scheme = body.scheme ?? inferScheme(body.text)
+  const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
+
+  // Dry-run uses a no-op classifier so Tier 3 never reaches the LLM. Tier 1
+  // still resolves the common cases; ambiguous segments fall back to literal.
+  const client = dryRun
+    ? { async classify() { return { decisions: [], model: "dry-run" } } }
+    : undefined
+
+  try {
+    return await Normalize.run({
+      sessionID,
+      raw: body.text,
+      scheme,
+      providerID: model.providerID,
+      modelID: model.modelID,
+      client,
+    })
+  } catch (err) {
+    // Malformed request line (e.g. plain chat text) — let the caller fall
+    // through to the non-HTTP ingest branch.
+    log.debug("normalize parse failed", { error: (err as Error).message })
+    return null
+  }
 }
 
 function ingestEnqueue(sessionID: string, task: () => Promise<unknown>) {
@@ -812,6 +866,7 @@ export const SessionRoutes = lazy(() =>
           ui_context: z.record(z.string(), z.unknown()).optional().meta({ description: "UI form context at request time" }),
           page_url: z.string().optional().meta({ description: "Page being explored when request was captured" }),
           page_visited_by: z.array(z.string()).optional().meta({ description: "Roles that can visit this page" }),
+          scheme: z.enum(["http", "https"]).optional().meta({ description: "URL scheme of the captured request; inferred from Host header / port when omitted" }),
         }),
       ),
       async (c) => {
@@ -842,28 +897,21 @@ export const SessionRoutes = lazy(() =>
           log.info("credential registered", { sessionID, credentialID, label: body.credential.label })
         }
 
-        const parsed = Request.parseRawRequest(body.text)
         const ingestDryRun = process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true"
+        const normalized = await runNormalize(body, sessionID, ingestDryRun)
 
-        if (parsed) {
-          // In dry-run mode, skip LLM normalization — use raw path
-          const normalizedPath = ingestDryRun
-            ? parsed.path
-            : await (async () => {
-                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-                return Request.normalize({ path: parsed.path, providerID: model.providerID, modelID: model.modelID })
-              })()
-
+        if (normalized) {
           const isDuplicate = Request.exists({
             sessionID,
-            method: parsed.method,
-            normalizedPath,
-            bodyHash: Request.hash(parsed.body),
-            queryHash: Request.hashQueryKeys(parsed.query),
+            method: normalized.method,
+            normalizedPath: normalized.normalizedPath,
+            origin: normalized.origin,
+            bodyHash: normalized.bodyHash,
+            queryHash: normalized.queryKeyHash,
           })
 
           if (isDuplicate) {
-            log.info("duplicate request skipped", { sessionID, method: parsed.method, path: normalizedPath })
+            log.info("duplicate request skipped", { sessionID, method: normalized.method, path: normalized.normalizedPath })
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
@@ -872,18 +920,26 @@ export const SessionRoutes = lazy(() =>
 
           const req = Request.add({
             sessionID,
-            method: parsed.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS",
-            normalizedPath,
+            method: normalized.method,
+            normalizedPath: normalized.normalizedPath,
             credentialID,
             rawRequest: truncatedRawRequest,
-            bodyHash: Request.hash(parsed.body),
-            queryHash: Request.hashQueryKeys(parsed.query),
+            bodyHash: normalized.bodyHash,
+            queryHash: normalized.queryKeyHash,
             response: body.response,
             triggerElement: body.trigger_element,
             elementRoles: body.element_roles,
             uiContext: body.ui_context as Record<string, unknown> | undefined,
             pageUrl: body.page_url,
             pageVisitedBy: body.page_visited_by,
+            scheme: normalized.scheme,
+            host: normalized.host,
+            port: normalized.port,
+            origin: normalized.origin,
+            site: normalized.site,
+            canonicalPath: normalized.canonicalPath,
+            templateID: normalized.templateId,
+            normSource: normalized.normSource,
           })
 
           // Build prompt with credential context, response, and access context
@@ -897,12 +953,12 @@ export const SessionRoutes = lazy(() =>
 
           if (ingestDryRun) {
             // Log the prompt that would be sent to LLM — skip actual LLM call
-            log.info("ingest dry-run", { sessionID, method: parsed.method, path: normalizedPath, requestId: req.id })
+            log.info("ingest dry-run", { sessionID, method: normalized.method, path: normalized.normalizedPath, requestId: req.id })
             log.info("prompt preview:\n" + promptText)
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
             const agentName = body.agent ?? "proxy-agent"
-            const source = `${parsed.method} ${normalizedPath}`
+            const source = `${normalized.method} ${normalized.normalizedPath}`
             ingestEnqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)

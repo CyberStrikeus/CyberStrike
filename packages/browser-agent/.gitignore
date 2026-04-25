@@ -20,6 +20,7 @@ dummy-api/logs/
 
 # Architecture & planning docs (personal working notes)
 ARCHITECTURE.md
+CYBERSTRIKE_PIPELINE.md
 PLAN.md
 test-case-bugs.md
 claude.txt

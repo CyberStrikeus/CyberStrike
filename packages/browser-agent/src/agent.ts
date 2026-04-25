@@ -271,9 +271,11 @@ function setupRequestInterceptor(
     const url = request.url()
     if (shouldSkipUrl(url)) return
 
+    let scheme: "http" | "https"
     try {
       const urlObj = new URL(url)
       if (!urlObj.hostname.includes(targetHost) && !targetHost.includes(urlObj.hostname)) return
+      scheme = urlObj.protocol === "https:" ? "https" : "http"
     } catch {
       return
     }
@@ -313,7 +315,7 @@ function setupRequestInterceptor(
       }
     } catch {}
 
-    onCapture({ raw, response, uiContext, triggerElement, elementRoles: null, pageUrl: null, pageVisitedBy: null, timestamp: Date.now() })
+    onCapture({ raw, scheme, response, uiContext, triggerElement, elementRoles: null, pageUrl: null, pageVisitedBy: null, timestamp: Date.now() })
 
     // Track for action feedback — "METHOD /path [status]"
     const status = response?.status ?? 0

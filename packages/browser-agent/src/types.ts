@@ -186,6 +186,10 @@ export interface UIContext {
 export interface CapturedRequest {
   // Raw HTTP request string (same format as Firefox ext sends)
   raw: string
+  // URL scheme captured at request time. Forwarded to CyberStrike so the
+  // server-side normalizer can build a stable origin identity without having
+  // to guess (request-target on the wire is path-only).
+  scheme: "http" | "https"
   response: {
     status: number
     headers: Record<string, string>
@@ -209,6 +213,10 @@ export interface IngestPayload {
   text: string
   sessionID?: string
   credential_id?: string
+  // URL scheme of the captured request. Optional for backward compat with
+  // older browser-agent / Firefox extension builds; CyberStrike falls back
+  // to a Host-header heuristic when absent.
+  scheme?: "http" | "https"
   response?: {
     status: number
     headers: Record<string, string>
