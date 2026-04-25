@@ -431,6 +431,36 @@ export function Session() {
       },
     },
     {
+      title: "Pause ingest queue",
+      value: "session.queue.pause",
+      category: "Session",
+      enabled: !sync.data.session_queue_status?.[route.sessionID]?.paused,
+      slash: {
+        name: "qpause",
+      },
+      onSelect: async (dialog) => {
+        await sdk.client.session
+          .queuePause({ sessionID: route.sessionID })
+          .catch(() => toast.show({ message: "Failed to pause ingest queue", variant: "error" }))
+        dialog.clear()
+      },
+    },
+    {
+      title: "Resume ingest queue",
+      value: "session.queue.resume",
+      category: "Session",
+      enabled: !!sync.data.session_queue_status?.[route.sessionID]?.paused,
+      slash: {
+        name: "qresume",
+      },
+      onSelect: async (dialog) => {
+        await sdk.client.session
+          .queueResume({ sessionID: route.sessionID })
+          .catch(() => toast.show({ message: "Failed to resume ingest queue", variant: "error" }))
+        dialog.clear()
+      },
+    },
+    {
       title: "View vulnerabilities",
       value: "session.vulnerabilities",
       category: "Session",

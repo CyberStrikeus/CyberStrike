@@ -26,6 +26,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const functions = createMemo(() => sync.data.web_function[props.sessionID] ?? [])
   const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
+  const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -119,6 +120,18 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               <text fg={theme.textMuted}>{context()?.tokens ?? 0} tokens</text>
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
               <text fg={theme.textMuted}>{cost()} spent</text>
+            </box>
+            <box>
+              <text fg={theme.text}>
+                <b>Ingest Queue</b>
+              </text>
+              <text fg={queueStatus()?.paused ? theme.warning : theme.success}>
+                {queueStatus()?.paused ? "⏸ Paused" : "● Running"}
+              </text>
+              <Show when={(queueStatus()?.pending ?? 0) > 0}>
+                <text fg={theme.textMuted}>{queueStatus()!.pending} pending</text>
+              </Show>
+              <text fg={theme.textMuted}>{queueStatus()?.paused ? "/qresume" : "/qpause"}</text>
             </box>
             <Show when={mcpEntries().length > 0}>
               <box>

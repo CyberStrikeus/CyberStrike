@@ -14,6 +14,7 @@ import type {
   McpResource,
   FormatterStatus,
   SessionStatus,
+  SessionQueueStatus,
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
@@ -50,6 +51,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session: Session[]
       session_status: {
         [sessionID: string]: SessionStatus
+      }
+      session_queue_status: {
+        [sessionID: string]: SessionQueueStatus
       }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
@@ -147,6 +151,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider_default: {},
       session: [],
       session_status: {},
+      session_queue_status: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -287,6 +292,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
         case "session.status": {
           setStore("session_status", event.properties.sessionID, event.properties.status)
+          break
+        }
+
+        case "session.queue.status": {
+          setStore("session_queue_status", event.properties.sessionID, event.properties.status)
           break
         }
 
@@ -506,6 +516,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
             sdk.client.session.status().then((x) => {
               setStore("session_status", reconcile(x.data!))
+            }),
+            sdk.client.session.queueStatus().then((x) => {
+              setStore("session_queue_status", reconcile(x.data ?? {}))
             }),
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),
