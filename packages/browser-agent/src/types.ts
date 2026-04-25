@@ -257,6 +257,8 @@ export interface AgentConfig {
     serverUrl: string       // default: http://127.0.0.1:4096
     sessionID?: string
     credentialId?: string
+    username?: string       // --cyberstrike-username (default: "cyberstrike")
+    password?: string       // --cyberstrike-password or CYBERSTRIKE_SERVER_PASSWORD env var
   }
   auth: {
     // Path to a saved session file (cookies JSON)
