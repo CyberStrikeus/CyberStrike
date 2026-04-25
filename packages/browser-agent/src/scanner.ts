@@ -378,8 +378,25 @@ export async function collectElements(page: Page): Promise<RawElement[]> {
 
 /**
  * Check if viewport center is blocked by an overlay/backdrop/modal.
+ *
+ * Returns `false` if the page's JS execution context has been destroyed by an
+ * in-flight navigation — a new document will not be serving the same overlay.
+ * Other evaluate errors (CSP blocks, in-page exceptions) still propagate so
+ * genuine bugs stay visible.
  */
 export async function isViewportCenterBlocked(page: Page): Promise<boolean> {
+  try {
+    return await evalIsViewportCenterBlocked(page)
+  } catch (err: unknown) {
+    const msg = String((err as Error)?.message ?? err)
+    if (msg.includes("Execution context was destroyed") || msg.includes("Target closed")) {
+      return false
+    }
+    throw err
+  }
+}
+
+function evalIsViewportCenterBlocked(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const cx = window.innerWidth / 2
     const cy = window.innerHeight / 2

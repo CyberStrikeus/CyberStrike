@@ -1162,13 +1162,25 @@ function trackResult(
 
 /** Close overlay via Escape, fall back to backdrop click */
 async function closeOverlay(page: Page): Promise<void> {
+  const urlBefore = page.url()
   await page.keyboard.press("Escape").catch(() => {})
   await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
   if (await isViewportCenterBlocked(page)) {
     log.debug("Escape failed, clicking backdrop")
-    const dims = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
-    await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
-    await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+    const dims = await page
+      .evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
+      .catch(() => null)
+    if (dims) {
+      await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
+      await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
+    }
+  }
+  // Escape or backdrop click can trigger SPA navigation (e.g. router-bound
+  // backdrop). Mirror executor.stabilize() so the caller's next evaluate
+  // doesn't race a destroyed context.
+  if (page.url() !== urlBefore) {
+    await page.waitForLoadState("domcontentloaded", { timeout: 3000 }).catch(() => {})
+    await page.waitForTimeout(200)
   }
 }
 
