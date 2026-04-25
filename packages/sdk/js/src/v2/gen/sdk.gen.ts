@@ -141,6 +141,12 @@ import type {
   SessionPromptAsyncResponses,
   SessionPromptErrors,
   SessionPromptResponses,
+  SessionQueuePauseErrors,
+  SessionQueuePauseResponses,
+  SessionQueueResumeErrors,
+  SessionQueueResumeResponses,
+  SessionQueueStatusErrors,
+  SessionQueueStatusResponses,
   SessionRequestErrors,
   SessionRequestResponses,
   SessionRevertErrors,
@@ -1088,6 +1094,25 @@ export class Session extends HeyApiClient {
   }
 
   /**
+   * Get ingest queue status
+   *
+   * Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.
+   */
+  public queueStatus<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<SessionQueueStatusResponses, SessionQueueStatusErrors, ThrowOnError>({
+      url: "/session/queue/status",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Delete session
    *
    * Delete a session and permanently remove all associated data, including messages and history.
@@ -1643,6 +1668,14 @@ export class Session extends HeyApiClient {
          */
         body: string
       }
+      trigger_element?: string
+      element_roles?: Array<string>
+      ui_context?: {
+        [key: string]: unknown
+      }
+      page_url?: string
+      page_visited_by?: Array<string>
+      scheme?: "http" | "https"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1659,6 +1692,12 @@ export class Session extends HeyApiClient {
             { in: "body", key: "credential_id" },
             { in: "body", key: "credential" },
             { in: "body", key: "response" },
+            { in: "body", key: "trigger_element" },
+            { in: "body", key: "element_roles" },
+            { in: "body", key: "ui_context" },
+            { in: "body", key: "page_url" },
+            { in: "body", key: "page_visited_by" },
+            { in: "body", key: "scheme" },
           ],
         },
       ],
@@ -1778,6 +1817,66 @@ export class Session extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<SessionAbortResponses, SessionAbortErrors, ThrowOnError>({
       url: "/session/{sessionID}/abort",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Pause ingest queue
+   *
+   * Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.
+   */
+  public queuePause<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionQueuePauseResponses, SessionQueuePauseErrors, ThrowOnError>({
+      url: "/session/{sessionID}/queue/pause",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Resume ingest queue
+   *
+   * Resume the ingest queue for a session. Tasks queued while paused start processing in original order.
+   */
+  public queueResume<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionQueueResumeResponses, SessionQueueResumeErrors, ThrowOnError>({
+      url: "/session/{sessionID}/queue/resume",
       ...options,
       ...params,
     })
@@ -1970,6 +2069,7 @@ export class Session extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      excludeHistory?: boolean
       parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
@@ -1989,6 +2089,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "excludeHistory" },
             { in: "body", key: "parts" },
           ],
         },
@@ -2060,6 +2161,7 @@ export class Session extends HeyApiClient {
       format?: OutputFormat
       system?: string
       variant?: string
+      excludeHistory?: boolean
       parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
@@ -2079,6 +2181,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "format" },
             { in: "body", key: "system" },
             { in: "body", key: "variant" },
+            { in: "body", key: "excludeHistory" },
             { in: "body", key: "parts" },
           ],
         },
