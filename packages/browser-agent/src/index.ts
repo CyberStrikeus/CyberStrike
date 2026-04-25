@@ -34,6 +34,8 @@ Options:
   --headless               Run browser in headless mode
   --steps <n>              Max navigation steps (default: 50)
   --cyberstrike <url>      CyberStrike server URL (default: http://127.0.0.1:4096)
+  --cyberstrike-username <u> CyberStrike server username (default: "cyberstrike")
+  --cyberstrike-password <p> CyberStrike server password (fallback: CYBERSTRIKE_SERVER_PASSWORD env var)
   --session-id <id>        Attach to existing CyberStrike session
   --credential-id <id>     Credential ID to tag requests with
   --authenticated          Manual login mode: user logs in via browser, clicks button to start
@@ -94,6 +96,8 @@ const config: AgentConfig = {
     serverUrl: getArg("--cyberstrike") ?? "http://127.0.0.1:4096",
     sessionID: getArg("--session-id"),
     credentialId: getArg("--credential-id"),
+    username: getArg("--cyberstrike-username"),
+    password: getArg("--cyberstrike-password") ?? process.env.CYBERSTRIKE_SERVER_PASSWORD,
   },
   auth: {
     sessionFile: getArg("--session"),

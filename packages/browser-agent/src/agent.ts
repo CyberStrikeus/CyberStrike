@@ -2,7 +2,7 @@ import { chromium, type Page, type BrowserContext } from "playwright"
 import { Log } from "cyberstrike/util/log"
 import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent } from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
-import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged } from "./ingest.ts"
+import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged, initAuth } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
@@ -1654,6 +1654,8 @@ async function runMultiCredential(
 // ============================================================
 
 export async function run(config: AgentConfig): Promise<void> {
+  initAuth(config.cyberstrike.username, config.cyberstrike.password)
+
   // Multi-credential mode: separate code path, same BFS engine
   if (config.multiCredentials && config.multiCredentials.length >= 2) {
     return runMultiCredential(config, config.multiCredentials)
