@@ -113,7 +113,7 @@ export interface AccessContextInput {
   uiContext?: Record<string, unknown>
 }
 
-// Renders the `## Access Context` block when browser-agent enrichment is
+// Renders the `## Access Context` block when hackbrowser enrichment is
 // present. Returns an empty array for requests from sources without UI
 // enrichment (e.g., Firefox extension manual browsing). Shared by the ingest
 // prompt builder (below) and the subagent-dispatch prompt builder in task.ts,
@@ -871,7 +871,7 @@ export const SessionRoutes = lazy(() =>
             })
             .optional()
             .meta({ description: "HTTP response data" }),
-          // Browser-agent enrichment fields (optional — not sent by Firefox extension)
+          // Hackbrowser enrichment fields (optional — not sent by Firefox extension)
           trigger_element: z.string().optional().meta({ description: "UI element that triggered this request (role:label)" }),
           element_roles: z.array(z.string()).optional().meta({ description: "Roles that can see the trigger element" }),
           ui_context: z.record(z.string(), z.unknown()).optional().meta({ description: "UI form context at request time" }),

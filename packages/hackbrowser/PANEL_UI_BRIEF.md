@@ -1,13 +1,13 @@
 # CyberStrike Browser Agent — Panel UI Brief
 
-> Browser-agent (Playwright + LLM pentest crawler) tarayıcı pencerelerinde
+> Hackbrowser (Playwright + LLM pentest crawler) tarayıcı pencerelerinde
 > hedef sayfanın **üstüne** live telemetry gösteren bir panel enjekte eder.
 > Panel bir pentesteri etkilemelidir ("oha, vaow"): canlı akan HTTP capture'lar,
 > agent'ın o an ne yaptığı, mutation'lar, multi-credential context, intelligence
 > tetiklemeleri. Dark-terminal estetiği + neon accent beklenir.
 >
 > Bu brief UI agent'ına (ayrı ekip / model) tek başına self-contained rehberdir.
-> Browser-agent tarafındaki kod dokunuşları da ayrı bir bölümde listelendi.
+> Hackbrowser tarafındaki kod dokunuşları da ayrı bir bölümde listelendi.
 
 ---
 
@@ -126,7 +126,7 @@ Panel host div'i **Shadow DOM** kullanır. Target sayfanın CSS'i ile çakışma
 
 ### 3.2 Injection — her page'e otomatik
 
-Browser-agent `context.addInitScript(injectFn)` ile her yeni page'de panel mount edilmesini sağlar. UI agent **injection fonksiyonu ve panel HTML'ini** tek bir `inject.ts` dosyasında hazırlar:
+Hackbrowser `context.addInitScript(injectFn)` ile her yeni page'de panel mount edilmesini sağlar. UI agent **injection fonksiyonu ve panel HTML'ini** tek bir `inject.ts` dosyasında hazırlar:
 
 ```ts
 // src/panel/inject.ts (new file, ~80-150 lines)
@@ -147,7 +147,7 @@ export const PANEL_INIT_SCRIPT = `
 `
 ```
 
-Browser-agent tarafında tek satır:
+Hackbrowser tarafında tek satır:
 ```ts
 await context.addInitScript(PANEL_INIT_SCRIPT)
 ```
@@ -252,7 +252,7 @@ Panel'in hedef sayfayı bloklamaması kritik.
 
 ## 6. Scanner filter — kritik
 
-Browser-agent `scanner.ts` DOM'u tarayıp element listesi üretir. Panel host div scanner'a girerse:
+Hackbrowser `scanner.ts` DOM'u tarayıp element listesi üretir. Panel host div scanner'a girerse:
 - LLM panel elementlerini görür (tokens israf)
 - LLM panel butonlarını plan etmeye kalkabilir (plan gürültüsü)
 - Dedup key'ler karışır
@@ -367,11 +367,11 @@ UI agent tüm panel kodunu bu dosyaya string olarak koyacak (inline). IIFE patte
 
 UI agent'tan beklenen:
 
-1. **`src/panel/inject.ts`** — bu dosya browser-agent repo'suna girecek, `PANEL_INIT_SCRIPT` string export eder
+1. **`src/panel/inject.ts`** — bu dosya hackbrowser repo'suna girecek, `PANEL_INIT_SCRIPT` string export eder
 2. **Visual demo video veya GIF** — 15-30 saniye, crawl sırasında panelin nasıl göründüğü (pitch value)
 3. **İsteğe bağlı opt-out flag**: `--no-panel` CLI flag ile panel injection atlanabilir (gizli test'ler için)
 
-### Teslim sonrası browser-agent ekibi yapar:
+### Teslim sonrası hackbrowser ekibi yapar:
 - `agent.ts` event emission noktalarını ekler
 - `scanner.ts` / `capture.ts` filter'larını ekler
 - End-to-end canlı test

@@ -76,22 +76,6 @@
         "vite-plugin-solid": "catalog:",
       },
     },
-    "packages/browser-agent": {
-      "name": "@cyberstrike-io/browser-agent",
-      "version": "0.1.0",
-      "dependencies": {
-        "@ai-sdk/anthropic": "2.0.0",
-        "@ai-sdk/openai": "2.0.2",
-        "ai": "catalog:",
-        "cyberstrike": "workspace:*",
-        "playwright": "1.58.2",
-        "psl": "1.15.0",
-      },
-      "devDependencies": {
-        "@types/node": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
     "packages/console/app": {
       "name": "@cyberstrike-io/console-app",
       "version": "1.1.9",
@@ -351,6 +335,22 @@
       "devDependencies": {
         "@cloudflare/workers-types": "catalog:",
         "@tsconfig/node22": "22.0.2",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/hackbrowser": {
+      "name": "@cyberstrike-io/hackbrowser",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "2.0.0",
+        "@ai-sdk/openai": "2.0.2",
+        "ai": "catalog:",
+        "cyberstrike": "workspace:*",
+        "playwright": "1.58.2",
+        "psl": "1.15.0",
+      },
+      "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
       },
@@ -794,8 +794,6 @@
 
     "@cyberstrike-io/app": ["@cyberstrike-io/app@workspace:packages/app"],
 
-    "@cyberstrike-io/browser-agent": ["@cyberstrike-io/browser-agent@workspace:packages/browser-agent"],
-
     "@cyberstrike-io/console-app": ["@cyberstrike-io/console-app@workspace:packages/console/app"],
 
     "@cyberstrike-io/console-core": ["@cyberstrike-io/console-core@workspace:packages/console/core"],
@@ -809,6 +807,8 @@
     "@cyberstrike-io/enterprise": ["@cyberstrike-io/enterprise@workspace:packages/enterprise"],
 
     "@cyberstrike-io/function": ["@cyberstrike-io/function@workspace:packages/function"],
+
+    "@cyberstrike-io/hackbrowser": ["@cyberstrike-io/hackbrowser@workspace:packages/hackbrowser"],
 
     "@cyberstrike-io/plugin": ["@cyberstrike-io/plugin@workspace:packages/plugin"],
 

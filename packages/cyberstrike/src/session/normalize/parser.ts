@@ -11,7 +11,7 @@ const DEFAULT_PORT_FOR: Record<"http" | "https", number> = { http: 80, https: 44
 
 export interface ParseInput {
   raw: string                             // full raw HTTP request text
-  scheme: "http" | "https"                // ingest caller-supplied; browser-agent knows this
+  scheme: "http" | "https"                // ingest caller-supplied; hackbrowser knows this
 }
 
 export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {

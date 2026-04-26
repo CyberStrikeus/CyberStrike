@@ -1,7 +1,7 @@
 import { Log } from "cyberstrike/util/log"
 import type { IngestPayload, CapturedRequest, PageDiffContext, AccessContext } from "./types.ts"
 
-const log = Log.create({ service: "browser-agent:ingest" })
+const log = Log.create({ service: "hackbrowser:ingest" })
 
 let authHeader = ""
 
@@ -21,7 +21,7 @@ export async function initSession(
   credentialId: string | undefined,
 ): Promise<string | null> {
   const payload: IngestPayload = {
-    text: `[browser-agent] Session started for ${targetUrl}`,
+    text: `[hackbrowser] Session started for ${targetUrl}`,
     ...(credentialId ? { credential_id: credentialId } : {}),
   }
 

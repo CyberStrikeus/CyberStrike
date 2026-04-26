@@ -214,7 +214,7 @@ export interface IngestPayload {
   sessionID?: string
   credential_id?: string
   // URL scheme of the captured request. Optional for backward compat with
-  // older browser-agent / Firefox extension builds; CyberStrike falls back
+  // older hackbrowser / Firefox extension builds; CyberStrike falls back
   // to a Host-header heuristic when absent.
   scheme?: "http" | "https"
   response?: {
