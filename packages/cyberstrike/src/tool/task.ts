@@ -176,7 +176,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             lines.push("UNAUTHENTICATED (no credential associated with this request)")
           }
 
-          // Access Context — present only when source is browser-agent with
+          // Access Context — present only when source is hackbrowser with
           // UI crawling enrichment. Firefox extension data has all these
           // fields null, so renderAccessContextLines returns [].
           lines.push(...renderAccessContextLines({

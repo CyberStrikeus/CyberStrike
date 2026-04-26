@@ -9,7 +9,7 @@ import { fileURLToPath } from "url"
 import type { PagePlan, PageTask, PageStateKind, RevisitTrigger } from "./types.ts"
 import type { PlannerSnapshot } from "./state.ts"
 
-const log = Log.create({ service: "browser-agent:navigator" })
+const log = Log.create({ service: "hackbrowser:navigator" })
 
 // ============================================================
 // Prompt loading

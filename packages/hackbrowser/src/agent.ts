@@ -14,7 +14,7 @@ import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./s
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
-const log = Log.create({ service: "browser-agent:agent" })
+const log = Log.create({ service: "hackbrowser:agent" })
 
 // ============================================================
 // Constants

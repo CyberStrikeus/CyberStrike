@@ -3,7 +3,7 @@ import { Log } from "cyberstrike/util/log"
 import type { RawElement } from "./types.ts"
 import { normalizeUrl } from "./state.ts"
 
-const log = Log.create({ service: "browser-agent:scanner" })
+const log = Log.create({ service: "hackbrowser:scanner" })
 
 // ============================================================
 // Constants
