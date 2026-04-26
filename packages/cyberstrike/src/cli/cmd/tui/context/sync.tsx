@@ -77,6 +77,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         [sessionID: string]: Array<{
           id: string
           method: string
+          host?: string
+          port?: number
           normalized_path: string
           status: string
         }>

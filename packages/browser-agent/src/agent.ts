@@ -10,6 +10,7 @@ import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerpr
 import { execute } from "./executor.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
+import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./scope.ts"
 import type { LanguageModel } from "ai"
 import type { RawElement } from "./types.ts"
 
@@ -79,7 +80,6 @@ function flushReDiscovery(globalState: ReturnType<typeof createGlobalState>): vo
  */
 function processAuthPhase(
   globalState: ReturnType<typeof createGlobalState>,
-  targetHost: string,
 ): void {
   const deferred = globalState.deferredAuthPages
 
@@ -149,6 +149,27 @@ function processAuthPhase(
     })
     globalState.deferredAuthPages = []
   }
+}
+
+// ============================================================
+// Scope resolution (ARCHITECTURE.md §1.2 — Network Scope)
+//
+// Explicit --scope replaces auto-derivation entirely; otherwise
+// derive a single "*.{eTLD+1}" wildcard from the target URL.
+// ============================================================
+
+function resolveScopePatterns(config: AgentConfig): string[] {
+  if (config.scope && config.scope.length > 0) return config.scope
+  return [deriveScope(config.targetUrl)]
+}
+
+function logScope(targetUrl: string, patterns: readonly string[], userProvided: boolean): void {
+  const normalized = patterns.map(normalizeScope).filter(Boolean)
+  log.info("network scope", {
+    target: targetUrl,
+    scope: normalized,
+    source: userProvided ? "explicit (--scope)" : "auto-derived",
+  })
 }
 
 // ============================================================
@@ -259,7 +280,7 @@ interface LocalCrawlContext {
 
 function setupRequestInterceptor(
   page: Page,
-  targetHost: string,
+  inScope: ScopeMatcher,
   onCapture: (req: CapturedRequest) => void,
   credentialId: string = SINGLE_CRED,
 ): Interceptor {
@@ -274,7 +295,7 @@ function setupRequestInterceptor(
     let scheme: "http" | "https"
     try {
       const urlObj = new URL(url)
-      if (!urlObj.hostname.includes(targetHost) && !targetHost.includes(urlObj.hostname)) return
+      if (!inScope(urlObj.hostname)) return
       scheme = urlObj.protocol === "https:" ? "https" : "http"
     } catch {
       return
@@ -359,10 +380,9 @@ function setupRequestInterceptor(
 // Host checking
 // ============================================================
 
-function isOnHost(url: string, targetHost: string): boolean {
+function isInScope(url: string, inScope: ScopeMatcher): boolean {
   try {
-    const h = new URL(url).hostname
-    return h.includes(targetHost) || targetHost.includes(h)
+    return inScope(new URL(url).hostname)
   } catch {
     return false
   }
@@ -382,10 +402,10 @@ const MAX_PER_PATH_PATTERN = 5
 function enqueueUrl(
   url: string,
   globalState: ReturnType<typeof createGlobalState>,
-  targetHost: string,
+  inScope: ScopeMatcher,
 ): boolean {
   const normalized = normalizeUrl(url)
-  if (!isOnHost(url, targetHost)) return false
+  if (!isInScope(url, inScope)) return false
   if (globalState.visitedPages.has(normalized)) return false
   // Skip URLs that are external redirectors (e.g. /redirect?to=https://external.com)
   try {
@@ -456,7 +476,7 @@ async function explorePageWithAI(
   interceptor: Interceptor,
   model: LanguageModel,
   globalState: ReturnType<typeof createGlobalState>,
-  targetHost: string,
+  inScope: ScopeMatcher,
   credentialId: string,
   maxPages: number,
 ): Promise<string[]> {
@@ -543,9 +563,9 @@ async function explorePageWithAI(
     })
 
     if (task.type === "form") {
-      await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
+      await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
     } else {
-      await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
+      await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
     }
 
     // Unified post-action discovery: find new elements after any action (form submit or click)
@@ -677,9 +697,9 @@ async function explorePageWithAI(
       })
 
       if (task.type === "form") {
-        await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
+        await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
       } else {
-        await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, targetHost)
+        await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
       }
 
       // Post-action discovery (same as main loop)
@@ -731,7 +751,7 @@ async function explorePageWithAI(
 
   // 6. Collect same-host links from DOM (BFS supplement)
   try {
-    const domLinks = await collectDOMLinks(page, pageUrl, targetHost)
+    const domLinks = await collectDOMLinks(page, pageUrl, inScope)
     for (const url of domLinks) {
       if (!linksToEnqueue.includes(url)) linksToEnqueue.push(url)
     }
@@ -760,7 +780,7 @@ async function executeFormTask(
   credentialId: string,
   linksToEnqueue: string[],
   pageUrl: string,
-  targetHost: string,
+  inScope: ScopeMatcher,
 ): Promise<void> {
   for (const field of task.fields) {
     let el = resolveElement(elements, field.role, field.label)
@@ -837,7 +857,7 @@ async function executeFormTask(
 
   if (result.navigated) {
     const cur = page.url()
-    if (cur !== pageUrl && isOnHost(cur, targetHost)) linksToEnqueue.push(cur)
+    if (cur !== pageUrl && isInScope(cur, inScope)) linksToEnqueue.push(cur)
     log.debug("reloading after form submit", { pageUrl })
     await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
     await page.waitForTimeout(POST_GOTO_WAIT)
@@ -859,7 +879,7 @@ async function executeClickTask(
   credentialId: string,
   linksToEnqueue: string[],
   pageUrl: string,
-  targetHost: string,
+  inScope: ScopeMatcher,
 ): Promise<void> {
   const el = resolveElement(elements, task.role, task.label)
   if (!el) {
@@ -897,7 +917,7 @@ async function executeClickTask(
 
   if (result.navigated) {
     const cur = page.url()
-    if (cur !== pageUrl && isOnHost(cur, targetHost)) linksToEnqueue.push(cur)
+    if (cur !== pageUrl && isInScope(cur, inScope)) linksToEnqueue.push(cur)
     await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
     await page.waitForTimeout(POST_GOTO_WAIT)
     await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
@@ -1215,16 +1235,16 @@ async function dismissCookieBanner(page: Page): Promise<void> {
   }
 }
 
-function resolveUrl(href: string, baseUrl: string, targetHost: string): string | null {
+function resolveUrl(href: string, baseUrl: string, inScope: ScopeMatcher): string | null {
   try {
     const resolved = new URL(href, baseUrl).href
-    if (isOnHost(resolved, targetHost)) return normalizeUrl(resolved)
+    if (isInScope(resolved, inScope)) return normalizeUrl(resolved)
   } catch {}
   return null
 }
 
 /** Collect <a href> links from DOM as BFS supplement. */
-async function collectDOMLinks(page: Page, pageUrl: string, targetHost: string): Promise<string[]> {
+async function collectDOMLinks(page: Page, pageUrl: string, inScope: ScopeMatcher): Promise<string[]> {
   const hrefs: string[] = await page.$$eval("a[href]", (els) =>
     els.map((el) => (el as HTMLAnchorElement).href).filter(Boolean),
   )
@@ -1235,7 +1255,7 @@ async function collectDOMLinks(page: Page, pageUrl: string, targetHost: string):
   for (const href of hrefs) {
     try {
       const u = new URL(href)
-      if (!u.hostname.includes(targetHost) && !targetHost.includes(u.hostname)) continue
+      if (!inScope(u.hostname)) continue
       const normalized = u.origin + u.pathname + u.search + u.hash
       if (!seen.has(normalized)) {
         seen.add(normalized)
@@ -1291,7 +1311,7 @@ function enqueueWithContext(
   contextId: string,
   queue: QueueEntry[],
   visitedPages: Set<string>,
-  targetHost: string,
+  inScope: ScopeMatcher,
   pathPatternCounts: Map<string, number>,
 ): boolean {
   const normalized = normalizeUrl(url)
@@ -1299,7 +1319,7 @@ function enqueueWithContext(
   // Skip external URLs
   try {
     const u = new URL(normalized)
-    if (!u.hostname.includes(targetHost) && !targetHost.includes(u.hostname)) return false
+    if (!inScope(u.hostname)) return false
   } catch { return false }
 
   // Skip already visited
@@ -1345,12 +1365,15 @@ async function runMultiCredential(
   credentials: CredentialConfig[],
 ): Promise<void> {
   const targetUrl = config.targetUrl
-  const targetHost = new URL(targetUrl).hostname
+  const scopePatterns = resolveScopePatterns(config)
+  const inScope = makeMatcher(scopePatterns)
   const serverUrl = config.cyberstrike.serverUrl ?? "http://127.0.0.1:4096"
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
   const panelOn = config.panel ?? true
   setPanelEnabled(panelOn)
+
+  logScope(targetUrl, scopePatterns, !!config.scope)
 
   log.info(`starting multi-credential crawl${dryRun ? " (DRY-RUN)" : ""}`, {
     target: targetUrl,
@@ -1429,7 +1452,7 @@ async function runMultiCredential(
     captureQueues.set(cred.id, captureQueue)
     lastAuthHeaders.set(cred.id, {})
 
-    const interceptor = setupRequestInterceptor(page, targetHost, (req) => {
+    const interceptor = setupRequestInterceptor(page, inScope, (req) => {
       captureQueue.push(req)
       // Sync auth headers on every capture (same as Firefox extension)
       if (!dryRun) {
@@ -1594,18 +1617,18 @@ async function runMultiCredential(
     for (const ctx of visitableContexts) {
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const discovered = await explorePageWithAI(
-        ctx.page, entry.url, ctx.interceptor, model, globalState, targetHost, ctx.id, maxPages,
+        ctx.page, entry.url, ctx.interceptor, model, globalState, inScope, ctx.id, maxPages,
       )
       for (const url of discovered) {
-        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
+        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
       }
     }
 
     // Collect DOM links from each context — enqueue with context tag
     for (const ctx of visitableContexts) {
-      const domLinks = await collectDOMLinks(ctx.page, entry.url, targetHost)
+      const domLinks = await collectDOMLinks(ctx.page, entry.url, inScope)
       for (const url of domLinks) {
-        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, targetHost, pathPatternCounts)
+        enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
       }
     }
 
@@ -1663,13 +1686,16 @@ export async function run(config: AgentConfig): Promise<void> {
 
   // Single-credential mode: existing flow, unchanged
   const targetUrl = config.targetUrl
-  const targetHost = new URL(targetUrl).hostname
+  const scopePatterns = resolveScopePatterns(config)
+  const inScope = makeMatcher(scopePatterns)
   const serverUrl = config.cyberstrike.serverUrl ?? "http://127.0.0.1:4096"
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
   const credentialId = config.cyberstrike.credentialId
   const panelOn = config.panel ?? true
   setPanelEnabled(panelOn)
+
+  logScope(targetUrl, scopePatterns, !!config.scope)
 
   log.info(`starting browser agent v2${dryRun ? " (DRY-RUN)" : ""}`, {
     target: targetUrl,
@@ -1714,7 +1740,7 @@ export async function run(config: AgentConfig): Promise<void> {
 
   // Wire up capture pipeline
   const captureQueue: CapturedRequest[] = []
-  const interceptor = setupRequestInterceptor(page, targetHost, (req) => captureQueue.push(req), SINGLE_CRED)
+  const interceptor = setupRequestInterceptor(page, inScope, (req) => captureQueue.push(req), SINGLE_CRED)
 
   const handleCapture: CaptureFn = dryRun
     ? createDryRunHandler()
@@ -1802,7 +1828,7 @@ export async function run(config: AgentConfig): Promise<void> {
       await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
     }
 
-    if (!isOnHost(page.url(), targetHost)) {
+    if (!isInScope(page.url(), inScope)) {
       log.info("off-host redirect, skipping", { url: page.url() })
       await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
       continue
@@ -1847,9 +1873,9 @@ export async function run(config: AgentConfig): Promise<void> {
       if (newFingerprint === oldFingerprint) {
         log.info("page unchanged after auth, skipping exploration", { url: currentUrl })
         // Still collect DOM links — navbar may have new links after login
-        const domLinks = await collectDOMLinks(page, currentUrl, targetHost)
+        const domLinks = await collectDOMLinks(page, currentUrl, inScope)
         for (const url of domLinks) {
-          enqueueUrl(url, globalState, targetHost)
+          enqueueUrl(url, globalState, inScope)
         }
         intel.pageFingerprints.set(currentUrl, newFingerprint)
         await page.waitForTimeout(300)
@@ -1860,13 +1886,13 @@ export async function run(config: AgentConfig): Promise<void> {
 
     // Explore the page with AI
     const discovered = await explorePageWithAI(
-      page, currentUrl, interceptor, model, globalState, targetHost, SINGLE_CRED, maxPages,
+      page, currentUrl, interceptor, model, globalState, inScope, SINGLE_CRED, maxPages,
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
     let newEnqueued = 0
     for (const url of discovered) {
-      if (enqueueUrl(url, globalState, targetHost)) newEnqueued++
+      if (enqueueUrl(url, globalState, inScope)) newEnqueued++
     }
     if (discovered.length > 0) {
       log.debug("discovered links", { found: discovered.length, enqueued: newEnqueued, queueSize: globalState.pageQueue.length })
@@ -1880,7 +1906,7 @@ export async function run(config: AgentConfig): Promise<void> {
     // Phase transition: when queue is empty, process deferred auth pages
     if (globalState.pageQueue.length === 0 && globalState.deferredAuthPages.length > 0) {
       log.debug("queue empty, processing auth phase", { phase: globalState.authPhase, deferred: globalState.deferredAuthPages.map(d => d.type) })
-      processAuthPhase(globalState, targetHost)
+      processAuthPhase(globalState)
     }
   }
 
