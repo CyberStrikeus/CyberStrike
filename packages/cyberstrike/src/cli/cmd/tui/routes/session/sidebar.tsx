@@ -11,6 +11,7 @@ import { useKeybind } from "../../context/keybind"
 import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
+import { formatEndpointHost } from "@tui/util/format"
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -20,6 +21,19 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
   const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
+  // Group endpoints by host for sidebar — narrow column can't fit
+  // method+host+path on one line, so we render the host once per group
+  // and let each row use the full width for its path.
+  const requestsByHost = createMemo(() => {
+    const groups = new Map<string, ReturnType<typeof requests>>()
+    for (const r of requests()) {
+      const key = formatEndpointHost(r.host, r.port) || "(unknown host)"
+      const existing = groups.get(key)
+      if (existing) existing.push(r)
+      else groups.set(key, [r])
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
+  })
   const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
   const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
@@ -331,28 +345,37 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   </text>
                 </box>
                 <Show when={requests().length <= 2 || expanded.requests}>
-                  <For each={requests()}>
-                    {(r) => (
-                      <box flexDirection="row" gap={1}>
-                        <text
-                          flexShrink={0}
-                          style={{
-                            fg:
-                              {
-                                queued: theme.textMuted,
-                                processing: theme.warning,
-                                processed: theme.success,
-                              }[r.status] ?? theme.text,
-                          }}
-                        >
-                          •
+                  <For each={requestsByHost()}>
+                    {([host, rows]) => (
+                      <box>
+                        <text fg={theme.textMuted} wrapMode="none">
+                          {host} ({rows.length})
                         </text>
-                        <text fg={theme.accent} flexShrink={0}>
-                          {r.method}
-                        </text>
-                        <text fg={theme.text} wrapMode="none">
-                          {r.normalized_path}
-                        </text>
+                        <For each={rows}>
+                          {(r) => (
+                            <box flexDirection="row" gap={1} paddingLeft={1}>
+                              <text
+                                flexShrink={0}
+                                style={{
+                                  fg:
+                                    {
+                                      queued: theme.textMuted,
+                                      processing: theme.warning,
+                                      processed: theme.success,
+                                    }[r.status] ?? theme.text,
+                                }}
+                              >
+                                •
+                              </text>
+                              <text fg={theme.accent} flexShrink={0}>
+                                {r.method}
+                              </text>
+                              <text fg={theme.text} wrapMode="none">
+                                {r.normalized_path}
+                              </text>
+                            </box>
+                          )}
+                        </For>
                       </box>
                     )}
                   </For>

@@ -273,6 +273,11 @@ export interface AgentConfig {
   // Out-of-scope labels (Aşama 13) — planner never plans tasks with these labels (semantic match).
   // Example: ["Delete Account", "Cancel Subscription"]
   outOfScope?: string[]
+  // Network scope: hostnames whose requests get forwarded to CyberStrike.
+  // Each entry is a bare host ("api.test.com") or wildcard ("*.test.com").
+  // When omitted, scope is derived from targetUrl's eTLD+1 wildcard.
+  // Distinct from outOfScope (which is a planner-side semantic filter).
+  scope?: string[]
   // Max navigation steps before stopping
   maxSteps?: number
   // Show browser window

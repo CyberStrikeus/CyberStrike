@@ -45,6 +45,12 @@ Options:
                            Write the button text you see in the UI.
                            Examples: --exclude "Delete Account"
                                      --exclude "Cancel Subscription"
+  --scope <pattern>        Network scope — only requests to matching hosts are
+                           forwarded to CyberStrike. Repeat for multiple hosts.
+                           Accepts bare host ("api.test.com") or wildcard
+                           ("*.test.com"). When omitted, scope is auto-derived
+                           from targetUrl as "*.{eTLD+1}". Providing --scope
+                           replaces auto-derivation entirely.
   --dry-run                Crawl without sending to CyberStrike; print captures to console
   --no-panel               Disable the live telemetry panel injected into the browser
   --debug                  Enable verbose debug logging
@@ -59,6 +65,8 @@ Examples:
   bun start https://app.example.com --dry-run --debug
   bun start https://app.example.com --credential admin --credential user
   bun start https://app.example.com --exclude "Delete Account" --exclude "Unsubscribe"
+  bun start https://app.example.com --scope "*.example.com"
+  bun start https://app.example.com --scope app.example.com --scope api.example.com
 `)
   process.exit(0)
 }
@@ -87,8 +95,22 @@ function parseOutOfScope(): string[] | undefined {
   return labels.length > 0 ? labels : undefined
 }
 
+// Parse --scope flags — network scope hostnames, repeatable.
+// Bare host or "*.host" wildcard. Empty result → undefined → agent
+// auto-derives from targetUrl. See ARCHITECTURE.md §1.2 Network Scope.
+function parseScope(): string[] | undefined {
+  const patterns: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--scope" && args[i + 1] && !args[i + 1]!.startsWith("--")) {
+      patterns.push(args[i + 1]!)
+    }
+  }
+  return patterns.length > 0 ? patterns : undefined
+}
+
 const multiCredentials = parseCredentials()
 const outOfScope = parseOutOfScope()
+const scope = parseScope()
 
 const config: AgentConfig = {
   targetUrl: args[0]!,
@@ -109,6 +131,7 @@ const config: AgentConfig = {
   },
   multiCredentials,
   outOfScope,
+  scope,
   maxSteps: getArg("--steps") ? parseInt(getArg("--steps")!) : 50,
   headless: hasFlag("--headless"),
   dryRun: hasFlag("--dry-run"),
