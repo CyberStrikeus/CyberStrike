@@ -27,7 +27,6 @@ Delegate to specialized agents when their expertise is needed:
 
 ### MCP Security Tools
 You have access to MCP servers for extended capabilities. Use `tool_search` to discover available tools:
-- Browser security testing (hackbrowser-mcp)
 - Cloud audit across AWS/Azure/GCP (cloud-audit-mcp)
 - GitHub security analysis (github-security-mcp)
 - CVE/vulnerability intelligence — NVD, EPSS, KEV, GHSA, OSV (cve-mcp)
