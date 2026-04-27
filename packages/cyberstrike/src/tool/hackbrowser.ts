@@ -12,9 +12,11 @@ import { launchHackbrowser } from "./hackbrowser-launcher"
 
 const DESCRIPTION = `Crawl a web application autonomously and capture HTTP requests with UI context.
 
-Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, click buttons, and stream every HTTP request into the current session for later vulnerability analysis. After it completes, the proxy-analyzer (existing ingest pipeline) will analyze captures automatically.
+Use this when you have a target URL but no captured requests yet — hackbrowser will navigate the app, fill forms, click buttons, and stream every HTTP request into the current session for later vulnerability analysis. After captures arrive, the proxy-analyzer ingest pipeline analyzes them automatically.
 
-Defaults to headless mode. Multi-credential mode (--credential) requires manual login and is not supported through the tool — use the standalone CLI for that.`
+This tool runs ASYNCHRONOUSLY: it returns immediately after starting the background crawl. Captures stream into the session over the next 30s–2min. Do NOT call this tool again to "wait" for results — use web_get_session_context to inspect captured endpoints when you actually need them. The hackbrowser status (running / completed / failed) appears in the TUI sidebar.
+
+Defaults to headless mode. Multi-credential mode requires manual login and is not supported through the tool — use the standalone CLI for that.`
 
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,
@@ -51,7 +53,12 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       metadata: { scope: args.scope, exclude: args.exclude },
     })
 
-    const result = await launchHackbrowser({
+    // Fire and forget — launchHackbrowser returns immediately after sync
+    // prep (Provider resolve, Server URL, log sink). The actual runCrawl
+    // runs in a background IIFE so the chat session prompt loop unblocks
+    // and ingest queue tasks (proxy-analyzer dispatches) can run in
+    // parallel (INTEGRATION.md §10.9 / §13.6).
+    const kickOff = await launchHackbrowser({
       url: args.url,
       sessionID: ctx.sessionID,
       scope: args.scope,
@@ -61,23 +68,25 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       signal: ctx.abort,
     })
 
-    const errorSuffix = result.errors.length > 0 ? ` (${result.errors.length} error${result.errors.length === 1 ? "" : "s"})` : ""
+    // Output is intentionally a "started" notice, NOT a result summary.
+    // Spell-out is for weak LLMs — see feedback_weak_llm_baseline:
+    // explicit "do NOT poll" + "use web_get_session_context when you
+    // need them" prevents looped re-invocation.
     const output = [
-      `Captured ${result.capturedEndpoints} endpoint${result.capturedEndpoints === 1 ? "" : "s"} across ${result.pagesExplored} page${result.pagesExplored === 1 ? "" : "s"}${errorSuffix}.`,
-      ...(result.errors.length > 0 ? ["", "Errors:", ...result.errors.map((e) => `  - ${e}`)] : []),
-      "",
-      "Use web_get_session_context to inspect what was discovered.",
+      `Hackbrowser crawl started for ${args.url}.`,
+      `Captures stream into this session as the crawl progresses (typically 30s–2min).`,
+      ``,
+      `Do NOT call this tool again to wait for results — it is already running.`,
+      `Use web_get_session_context to inspect captured endpoints when you need them.`,
+      `Live progress (running / completed / failed) appears in the TUI sidebar.`,
     ].join("\n")
 
     return {
       title: `hackbrowser ${args.url}`,
       output,
       metadata: {
-        sessionID: result.sessionID,
-        capturedEndpoints: result.capturedEndpoints,
-        pagesExplored: result.pagesExplored,
-        totalSteps: result.totalSteps,
-        errors: result.errors,
+        sessionID: kickOff.sessionID,
+        started: kickOff.started,
       },
     }
   },
