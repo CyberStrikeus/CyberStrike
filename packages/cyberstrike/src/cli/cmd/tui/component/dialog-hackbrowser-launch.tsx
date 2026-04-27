@@ -120,14 +120,12 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       setStore("headless", !store.headless)
       evt.preventDefault()
     }
-    if (
-      evt.name === "return" &&
-      store.active !== "target" &&
-      store.active !== "credentials" &&
-      store.active !== "scope" &&
-      store.active !== "exclude" &&
-      store.active !== "steps"
-    ) {
+    if (evt.name === "return") {
+      // Submit from any field. Mirrors the dialog-export-options pattern —
+      // a global return handler is the primary submit path; the textarea
+      // onSubmit acts as redundant insurance (Promise resolves once).
+      // All form fields are single-line so we don't need newlines anywhere.
+      refreshCredentialsPresent()
       const input = collect()
       if (input) props.onConfirm?.(input)
       evt.preventDefault()
@@ -300,7 +298,8 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       <text fg={theme.textMuted} paddingBottom={1}>
         <span style={{ fg: theme.text }}>tab</span> to switch fields,{" "}
         <span style={{ fg: theme.text }}>space</span> to toggle headless,{" "}
-        <span style={{ fg: theme.text }}>return</span> to launch
+        <span style={{ fg: theme.text }}>return</span> to launch (works from any field),{" "}
+        <span style={{ fg: theme.text }}>esc</span> to cancel
       </text>
     </box>
   )
