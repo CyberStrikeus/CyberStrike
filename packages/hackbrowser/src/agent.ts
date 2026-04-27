@@ -1964,7 +1964,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   await browser.close()
 
   return {
-    sessionID: dryRun ? "" : sessionID,
+    sessionID: dryRun ? "" : sessionID!,
     capturedEndpoints: globalState.capturedEndpoints.size,
     pagesExplored,
     totalSteps: globalState.totalSteps,
