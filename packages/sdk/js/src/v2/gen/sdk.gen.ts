@@ -128,6 +128,8 @@ import type {
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
+  SessionHackbrowserLaunchErrors,
+  SessionHackbrowserLaunchResponses,
   SessionHackbrowserStatusErrors,
   SessionHackbrowserStatusResponses,
   SessionHackbrowserStopErrors,
@@ -1113,6 +1115,59 @@ export class Session extends HeyApiClient {
       url: "/session/queue/status",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Launch a hackbrowser crawl
+   *
+   * Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — the agent's invocation goes through the same launcher — but this route exposes options the tool surface intentionally hides (notably `authenticated` for manual-login mode). Returns a KickOffResult; captures stream into the session asynchronously.
+   */
+  public hackbrowserLaunch<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      url?: string
+      scope?: Array<string>
+      exclude?: Array<string>
+      credentialID?: string
+      steps?: number
+      headless?: boolean
+      authenticated?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "url" },
+            { in: "body", key: "scope" },
+            { in: "body", key: "exclude" },
+            { in: "body", key: "credentialID" },
+            { in: "body", key: "steps" },
+            { in: "body", key: "headless" },
+            { in: "body", key: "authenticated" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionHackbrowserLaunchResponses,
+      SessionHackbrowserLaunchErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/hackbrowser/launch",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
