@@ -3369,13 +3369,11 @@ export type SessionQueueStatusResponse = SessionQueueStatusResponses[keyof Sessi
 
 export type SessionHackbrowserLaunchData = {
   body?: {
-    url: string
+    target: string
+    credentials?: Array<string>
     scope?: Array<string>
     exclude?: Array<string>
-    credentialID?: string
-    steps?: number
     headless?: boolean
-    authenticated?: boolean
   }
   path: {
     sessionID: string

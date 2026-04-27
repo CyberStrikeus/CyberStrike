@@ -474,10 +474,10 @@ export function Session() {
         try {
           const result = await sdk.client.session.hackbrowserLaunch({
             sessionID: route.sessionID,
-            url: input.url,
-            credentialID: input.credentialID,
-            steps: input.steps,
-            authenticated: input.authenticated,
+            target: input.target,
+            credentials: input.credentials,
+            scope: input.scope,
+            exclude: input.exclude,
             headless: input.headless,
           })
           toast.show({

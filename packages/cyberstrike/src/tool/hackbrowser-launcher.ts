@@ -36,21 +36,25 @@ const log = Log.create({ service: "hackbrowser-launcher" })
 const activeRuns = new Map<string, AbortController>()
 
 export interface LauncherOptions {
-  url: string
+  // Crawl URL. Named `target` here (and in all cyberstrike-facing surfaces:
+  // tool, slash form, CLI subcommand) for clarity; mapped to the library's
+  // `CrawlOptions.url` inside prepareCrawl.
+  target: string
   sessionID: string
   scope?: string[]
   exclude?: string[]
-  credentialID?: string
-  steps?: number
+  // Credential IDs to crawl as. Length determines crawl mode:
+  //   undefined / [] → anonymous (no login, no tagging)
+  //   [id]           → manual login + tag captures with this credential ID
+  //   [id1, id2, …]  → multi-credential mode: per-credential manual login,
+  //                    captures tagged per identity (role-based access tests)
+  // ANY non-empty value forces headless: false because every credentialed
+  // crawl uses manual login (auto-login is intentionally not exposed).
+  // Library limit (INTEGRATION.md §10.10): manual-login wait does not
+  // honor the abort signal yet, so Esc / /hackbrowser-stop cannot cancel
+  // during the login wait phase.
+  credentials?: string[]
   headless?: boolean
-  // Manual-login mode (Faz D / Seviye 1). When true, hackbrowser opens the
-  // browser headfull, injects a "START SCAN" button, and waits for the user
-  // to log in manually before the crawl starts. NOT exposed to the LLM tool
-  // surface — this is for slash and CLI entry points only (interactive use).
-  // Library limit: see INTEGRATION.md §10.10 — manual-login wait does not
-  // honor the abort signal yet, so Esc / /hackbrowser-stop can't cancel
-  // during the login phase.
-  authenticated?: boolean
   // Soft signal — listener registered but runtime cancellation
   // (browser.close on abort) still not wired through agent.ts.
   // INTEGRATION.md §10.6.
@@ -119,27 +123,34 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     HackbrowserStatus.handle(opts.sessionID, event)
   }
 
-  // Manual-login mode requires headfull — fail fast with a clear message
-  // (defense-in-depth: api.ts validation catches it too, but pre-flighting
-  // here gives a tool/slash-friendly error before the slot is claimed).
-  if (opts.authenticated && opts.headless !== false) {
+  // Translate the cyberstrike-facing `credentials` array into the library's
+  // dual auth surface (CrawlOptions.authenticated + credentialID for the
+  // single-cred case, multiCredentials for the multi-cred case). Length
+  // semantics from LauncherOptions are honored here — anything ≥1 forces
+  // manual login, which requires headfull.
+  const ids = opts.credentials ?? []
+  if (ids.length >= 1 && opts.headless !== false) {
     throw new Error(
-      `Manual-login mode (authenticated: true) requires headless=false so the user can log in interactively. ` +
-        `Got headless=${opts.headless ?? "default(true)"}.`,
+      `Crawling with credentials requires headless=false so the user can log in manually. ` +
+        `Got ${ids.length} credential ID${ids.length === 1 ? "" : "s"} with headless=${opts.headless ?? "default(true)"}.`,
     )
   }
+  const credentialDispatch =
+    ids.length >= 2
+      ? { multiCredentials: ids.map((id) => ({ id })) }
+      : ids.length === 1
+        ? { authenticated: true, credentialID: ids[0] }
+        : {}
 
   const crawlOpts: CrawlOptions = {
-    url: opts.url,
+    url: opts.target,
     sessionID: opts.sessionID,
-    credentialID: opts.credentialID,
+    ...credentialDispatch,
     scope: opts.scope,
     exclude: opts.exclude,
-    steps: opts.steps,
-    authenticated: opts.authenticated,
-    // Tool default: headless. Manual login flows (multi-credential,
-    // --authenticated) need headfull and are blocked at api.ts validation.
-    // INTEGRATION.md §10.3.
+    // Anonymous: respect the caller's headless choice (default true).
+    // With credentials, the validation above already rejected anything
+    // other than headless=false, so it's safe to pass through here.
     headless: opts.headless ?? true,
     // Panel is browser-side telemetry; tool runs are headless so the user
     // never sees it. INTEGRATION.md §10.4 — TUI bridge is via eventSink
@@ -321,7 +332,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   HackbrowserStatus.set(opts.sessionID, {
     sessionID: opts.sessionID,
     phase: "starting",
-    targetUrl: opts.url,
+    targetUrl: opts.target,
     pagesExplored: 0,
     capturedEndpoints: 0,
     errors: [],
@@ -346,12 +357,12 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // loop returns on tool completion, freeing the session for ingest queue
   // tasks to dispatch their own SessionPrompt.prompt() calls in parallel
   // (Faz B.0 / INTEGRATION.md §10.9).
-  void backgroundRun(opts.sessionID, prepared, opts.url)
+  void backgroundRun(opts.sessionID, prepared, opts.target)
 
   return {
     sessionID: opts.sessionID,
     started: true,
-    message: `Hackbrowser crawl started for ${opts.url}. Captures will arrive in this session as the crawl progresses. Use /hackbrowser-stop to cancel before completion.`,
+    message: `Hackbrowser crawl started for ${opts.target}. Captures will arrive in this session as the crawl progresses. Use /hackbrowser-stop to cancel before completion.`,
   }
 }
 

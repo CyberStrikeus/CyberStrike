@@ -371,7 +371,7 @@ export const SessionRoutes = lazy(() =>
       describeRoute({
         summary: "Launch a hackbrowser crawl",
         description:
-          "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — the agent's invocation goes through the same launcher — but this route exposes options the tool surface intentionally hides (notably `authenticated` for manual-login mode). Returns a KickOffResult; captures stream into the session asynchronously.",
+          "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — agent invocation, slash, and CLI all share this surface. Returns a KickOffResult; captures stream into the session asynchronously.",
         operationId: "session.hackbrowserLaunch",
         responses: {
           200: {
@@ -400,13 +400,11 @@ export const SessionRoutes = lazy(() =>
       validator(
         "json",
         z.object({
-          url: z.string().url(),
+          target: z.string().url(),
+          credentials: z.array(z.string()).optional(),
           scope: z.array(z.string()).optional(),
           exclude: z.array(z.string()).optional(),
-          credentialID: z.string().optional(),
-          steps: z.number().int().min(1).max(200).optional(),
           headless: z.boolean().optional(),
-          authenticated: z.boolean().optional(),
         }),
       ),
       async (c) => {
@@ -415,13 +413,11 @@ export const SessionRoutes = lazy(() =>
         const body = c.req.valid("json")
         const result = await launchHackbrowser({
           sessionID,
-          url: body.url,
+          target: body.target,
+          credentials: body.credentials,
           scope: body.scope,
           exclude: body.exclude,
-          credentialID: body.credentialID,
-          steps: body.steps,
           headless: body.headless,
-          authenticated: body.authenticated,
         })
         return c.json(result)
       },
