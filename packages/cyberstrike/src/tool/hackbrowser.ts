@@ -41,6 +41,10 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       .max(200)
       .optional()
       .describe("Maximum number of pages to crawl. Defaults to 50."),
+    headless: z
+      .boolean()
+      .optional()
+      .describe("Open the browser with a visible window when false (useful for visual debug). Defaults to true (headless). The TUI sidebar still shows live progress in either mode."),
   }),
   async execute(args, ctx) {
     // Permission gate — opening a browser + outbound network is high-risk;
@@ -65,6 +69,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       exclude: args.exclude,
       credentialID: args.credentialID,
       steps: args.steps,
+      headless: args.headless,
       signal: ctx.abort,
     })
 
