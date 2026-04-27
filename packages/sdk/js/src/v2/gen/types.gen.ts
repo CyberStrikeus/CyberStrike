@@ -775,6 +775,28 @@ export type EventSessionQueueStatus = {
   }
 }
 
+export type HackbrowserPhase = "starting" | "crawling" | "completed" | "failed"
+
+export type HackbrowserStatus = {
+  sessionID: string
+  phase: HackbrowserPhase
+  targetUrl: string
+  pagesExplored: number
+  capturedEndpoints: number
+  currentPage?: string
+  errors: Array<string>
+  startedAt: number
+  finishedAt?: number
+}
+
+export type EventSessionHackbrowserStatus = {
+  type: "session.hackbrowser.status"
+  properties: {
+    sessionID: string
+    status: HackbrowserStatus
+  }
+}
+
 export type Todo = {
   /**
    * Brief description of the task
@@ -1213,6 +1235,7 @@ export type Event =
   | EventRequestUpdated
   | EventWebCredentialUpdated
   | EventSessionQueueStatus
+  | EventSessionHackbrowserStatus
   | EventTodoUpdated
   | EventVulnerabilityUpdated
   | EventEndpointTemplateUpdated
@@ -3343,6 +3366,69 @@ export type SessionQueueStatusResponses = {
 }
 
 export type SessionQueueStatusResponse = SessionQueueStatusResponses[keyof SessionQueueStatusResponses]
+
+export type SessionHackbrowserStopData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/hackbrowser/stop"
+}
+
+export type SessionHackbrowserStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionHackbrowserStopError = SessionHackbrowserStopErrors[keyof SessionHackbrowserStopErrors]
+
+export type SessionHackbrowserStopResponses = {
+  /**
+   * true when a run was cancelled, false when no active run
+   */
+  200: boolean
+}
+
+export type SessionHackbrowserStopResponse = SessionHackbrowserStopResponses[keyof SessionHackbrowserStopResponses]
+
+export type SessionHackbrowserStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/session/hackbrowser/status"
+}
+
+export type SessionHackbrowserStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SessionHackbrowserStatusError = SessionHackbrowserStatusErrors[keyof SessionHackbrowserStatusErrors]
+
+export type SessionHackbrowserStatusResponses = {
+  /**
+   * Hackbrowser status map keyed by sessionID
+   */
+  200: {
+    [key: string]: HackbrowserStatus
+  }
+}
+
+export type SessionHackbrowserStatusResponse =
+  SessionHackbrowserStatusResponses[keyof SessionHackbrowserStatusResponses]
 
 export type SessionDeleteData = {
   body?: never

@@ -475,13 +475,8 @@ export function Session() {
         name: "hackbrowser-stop",
       },
       onSelect: async (dialog) => {
-        // The SDK regenerator picks up POST /:sessionID/hackbrowser/stop
-        // automatically during the next build, exposing it as
-        // sdk.client.session.hackbrowserStop. We type-cast through `any`
-        // so this commit compiles before the regenerator runs — once the
-        // SDK rebuilds, the cast becomes redundant but harmless.
         try {
-          const stopped = await (sdk.client.session as any).hackbrowserStop({
+          const stopped = await sdk.client.session.hackbrowserStop({
             sessionID: route.sessionID,
           })
           toast.show({
