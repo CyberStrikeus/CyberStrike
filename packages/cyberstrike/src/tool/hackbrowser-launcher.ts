@@ -15,10 +15,13 @@
 // Karar 2 (DI) korunur: hackbrowser stays decoupled, cyberstrike injects deps
 // via opts.model, opts.logSink. eventSink (Faz B.1+) joins this list later.
 
-import { runCrawl, type CrawlOptions, type LogRecord } from "@cyberstrike-io/hackbrowser/api"
+import { runCrawl, type CrawlOptions, type LogRecord, type CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import { Provider } from "../provider/provider"
 import { Server } from "../server/server"
 import { Log } from "../util/log"
+import { Identifier } from "../id/id"
+import { Session } from "../session"
+import { HackbrowserStatus } from "../session/hackbrowser-status"
 
 const log = Log.create({ service: "hackbrowser-launcher" })
 
@@ -52,13 +55,27 @@ export interface KickOffResult {
   message: string
 }
 
+/** Output of prepareCrawl. modelInfo is preserved separately so the
+ * background runner can attribute synthetic session messages
+ * (failure path) to the same provider/model that the crawl ran with. */
+interface PreparedCrawl {
+  crawlOpts: CrawlOptions
+  modelInfo: { providerID: string; modelID: string }
+}
+
 /**
  * Resolve external dependencies and build hackbrowser CrawlOptions.
- * Pure sync prep — anything that can fail synchronously (Provider error,
- * server URL discovery, validation) lives here so launchHackbrowser can
- * surface the error to the tool caller before the slot is claimed.
+ * Sync prep — anything that can fail synchronously (Provider error,
+ * server URL discovery) lives here so launchHackbrowser can surface
+ * the error to the tool caller before the slot is claimed.
+ *
+ * api.ts:validate() and api.ts:preflightCheck() (chromium check) run
+ * INSIDE runCrawl, not here. Their errors land in backgroundRun's
+ * catch and become a "failed" status + synthetic failure message,
+ * which is fine — those failures need a session-level audit trail
+ * anyway (e.g. "you didn't install chromium").
  */
-async function prepareCrawl(opts: LauncherOptions): Promise<CrawlOptions> {
+async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
   // 1. Resolve LLM via cyberstrike Provider — the inverted dependency that
   //    hackbrowser used to do directly (Karar 2 / INTEGRATION.md §5).
   const modelInfo = await Provider.defaultModel()
@@ -82,7 +99,14 @@ async function prepareCrawl(opts: LauncherOptions): Promise<CrawlOptions> {
     csLog[level](rec.message, rec.extra)
   }
 
-  return {
+  // 4. Forward CSEvents into HackbrowserStatus so the TUI sidebar updates
+  //    live as the crawl progresses. Sink throws are swallowed by csEmit
+  //    so a Status bug can't crash the agent (INTEGRATION.md §13.5).
+  const eventSink = (event: CSEvent) => {
+    HackbrowserStatus.handle(opts.sessionID, event)
+  }
+
+  const crawlOpts: CrawlOptions = {
     url: opts.url,
     sessionID: opts.sessionID,
     credentialID: opts.credentialID,
@@ -94,38 +118,138 @@ async function prepareCrawl(opts: LauncherOptions): Promise<CrawlOptions> {
     // INTEGRATION.md §10.3.
     headless: opts.headless ?? true,
     // Panel is browser-side telemetry; tool runs are headless so the user
-    // never sees it. INTEGRATION.md §10.4 — TUI bridge separate (Faz B.2+).
+    // never sees it. INTEGRATION.md §10.4 — TUI bridge is via eventSink
+    // above, not the browser-side panel.
     panel: false,
     cyberstrikeUrl,
     model,
     logSink,
+    eventSink,
   }
+
+  return { crawlOpts, modelInfo }
+}
+
+/**
+ * Write a synthetic user-message into the session so the LLM can see a
+ * failure on the next prompt. Asymmetric reporting per Karar 2 in §13.1:
+ * failures are surfaced this way; successes stay sidebar-only to avoid
+ * tempting the LLM into polling loops.
+ *
+ * Same pattern as IngestSummary.write — see session/ingest-summary.ts.
+ */
+async function writeFailureMessage(
+  sessionID: string,
+  errorMessage: string,
+  modelInfo: { providerID: string; modelID: string },
+): Promise<void> {
+  const messageID = Identifier.ascending("message")
+  await Session.updateMessage({
+    id: messageID,
+    role: "user",
+    sessionID,
+    time: { created: Date.now() },
+    agent: "hackbrowser",
+    model: modelInfo,
+  })
+  await Session.updatePart({
+    id: Identifier.ascending("part"),
+    messageID,
+    sessionID,
+    type: "text",
+    text: `Hackbrowser crawl failed: ${errorMessage}`,
+    time: { start: Date.now(), end: Date.now() },
+    metadata: { kind: "hackbrowser-error" },
+  })
 }
 
 /**
  * Background fire-and-forget runner. Owns the full crawl lifecycle:
- * runs hackbrowser, logs the result, releases the activeRuns slot.
+ * runs hackbrowser, transitions HackbrowserStatus, releases the
+ * activeRuns slot, surfaces failures via a synthetic session message.
  *
- * Faz B.2 plumbs HackbrowserStatus.set() into completed/failed branches
- * and emits synthetic session messages on failure (asymmetric — success
- * stays sidebar-only to avoid LLM polling loops, Karar 2 in §13.1).
+ * Two error classes the catch handles:
+ *   - Validation/preflight throws from api.ts (e.g. chromium not
+ *     installed) — runCrawl re-throws these before any crawl runs.
+ *   - Runtime exceptions while crawling — runCrawl normally catches
+ *     these into CrawlResult.errors, so the catch block here is rare;
+ *     it only hits truly fatal cases (Promise rejection escape).
+ *
+ * In practice runCrawl ALWAYS resolves (validation errors throw;
+ * runtime errors are aggregated into result.errors). The check on
+ * result.errors below covers the second class. The catch covers the
+ * first.
  */
-async function backgroundRun(sessionID: string, crawlOpts: CrawlOptions): Promise<void> {
+async function backgroundRun(
+  sessionID: string,
+  prepared: PreparedCrawl,
+  targetUrl: string,
+): Promise<void> {
   try {
-    const result = await runCrawl(crawlOpts)
+    const result = await runCrawl(prepared.crawlOpts)
+
+    if (result.errors.length > 0) {
+      // Validation/preflight failure — runCrawl bottled it into errors[]
+      // (the standalone-CLI contract from Faz A.3), but for the tool path
+      // we want the same surface as a thrown exception.
+      const message = result.errors.join("; ")
+      log.error("hackbrowser run finished with errors", { sessionID, message })
+      const prev = HackbrowserStatus.get(sessionID)
+      HackbrowserStatus.set(sessionID, {
+        sessionID,
+        phase: "failed",
+        targetUrl,
+        pagesExplored: result.pagesExplored,
+        capturedEndpoints: result.capturedEndpoints,
+        currentPage: prev?.currentPage,
+        errors: result.errors,
+        startedAt: prev?.startedAt ?? Date.now(),
+        finishedAt: Date.now(),
+      })
+      await writeFailureMessage(sessionID, message, prepared.modelInfo).catch((err) =>
+        log.error("failed to write hackbrowser-error message", { sessionID, err: String(err) }),
+      )
+      return
+    }
+
     log.info("hackbrowser crawl complete", {
       sessionID,
       capturedEndpoints: result.capturedEndpoints,
       pagesExplored: result.pagesExplored,
       totalSteps: result.totalSteps,
-      errors: result.errors.length,
     })
-    // TODO Faz B.2: HackbrowserStatus.set(sessionID, { phase: "completed", ...result })
+    const prev = HackbrowserStatus.get(sessionID)
+    HackbrowserStatus.set(sessionID, {
+      sessionID,
+      phase: "completed",
+      targetUrl,
+      pagesExplored: result.pagesExplored,
+      capturedEndpoints: result.capturedEndpoints,
+      currentPage: prev?.currentPage,
+      errors: [],
+      startedAt: prev?.startedAt ?? Date.now(),
+      finishedAt: Date.now(),
+    })
+    // Karar 2 in §13.1: success stays sidebar-only. No synthetic message
+    // here — LLM doesn't get nudged into "let me check the result" loops.
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    log.error("background hackbrowser run failed", { sessionID, error: message })
-    // TODO Faz B.2: HackbrowserStatus.set(sessionID, { phase: "failed", errors: [message] })
-    // TODO Faz B.2: Bus.publish synthetic message (kind="hackbrowser-error")
+    log.error("background hackbrowser run threw", { sessionID, error: message })
+    const prev = HackbrowserStatus.get(sessionID)
+    HackbrowserStatus.set(sessionID, {
+      sessionID,
+      phase: "failed",
+      targetUrl,
+      pagesExplored: prev?.pagesExplored ?? 0,
+      capturedEndpoints: prev?.capturedEndpoints ?? 0,
+      currentPage: prev?.currentPage,
+      errors: [message],
+      startedAt: prev?.startedAt ?? Date.now(),
+      finishedAt: Date.now(),
+    })
+    await writeFailureMessage(sessionID, message, prepared.modelInfo).catch((err2) =>
+      log.error("failed to write hackbrowser-error message", { sessionID, err: String(err2) }),
+    )
   } finally {
     activeRuns.delete(sessionID)
   }
@@ -151,16 +275,28 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
     throw new Error(`hackbrowser already running for session ${opts.sessionID}`)
   }
 
-  // Sync prep first — fail fast on validation/preflight before claiming
-  // the slot. If prepareCrawl throws, activeRuns stays untouched.
-  // Note: api.ts:validate() and api.ts:preflightCheck() actually run
-  // inside runCrawl(), so chromium-missing surfaces only in backgroundRun
-  // (logged + sidebar-failed). prepareCrawl here only catches Provider /
-  // server URL issues. Decision: acceptable — validation already covered
-  // by api.ts; tool authors get explicit errors at the chromium layer too.
-  const crawlOpts = await prepareCrawl(opts)
+  // Sync prep first — fail fast on Provider / server URL issues before
+  // claiming the slot. If prepareCrawl throws, activeRuns stays untouched
+  // and HackbrowserStatus is never set, so the sidebar shows nothing.
+  // Validation/preflight (chromium binary, multi-cred-headless mismatch)
+  // run inside runCrawl and surface as failed-status + synthetic message
+  // via backgroundRun's error path.
+  const prepared = await prepareCrawl(opts)
 
   activeRuns.add(opts.sessionID)
+
+  // Initial sidebar entry — phase="starting" so users see the run
+  // appear instantly. CSEvents from the crawler will transition this
+  // to "crawling" via HackbrowserStatus.handle as page-changes arrive.
+  HackbrowserStatus.set(opts.sessionID, {
+    sessionID: opts.sessionID,
+    phase: "starting",
+    targetUrl: opts.url,
+    pagesExplored: 0,
+    capturedEndpoints: 0,
+    errors: [],
+    startedAt: Date.now(),
+  })
 
   // Soft abort listener — registered after slot is claimed. The listener
   // closure captures opts.sessionID; it survives tool.execute returning
@@ -179,7 +315,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // loop returns on tool completion, freeing the session for ingest queue
   // tasks to dispatch their own SessionPrompt.prompt() calls in parallel
   // (Faz B.0 / INTEGRATION.md §10.9).
-  void backgroundRun(opts.sessionID, crawlOpts)
+  void backgroundRun(opts.sessionID, prepared, opts.url)
 
   return {
     sessionID: opts.sessionID,

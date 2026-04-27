@@ -9,6 +9,7 @@ import { SessionCompaction } from "../../session/compaction"
 import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
 import { SessionQueueStatus } from "@/session/queue-status"
+import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
@@ -362,6 +363,29 @@ export const SessionRoutes = lazy(() =>
       }),
       async (c) => {
         const result = SessionQueueStatus.list()
+        return c.json(result)
+      },
+    )
+    .get(
+      "/hackbrowser/status",
+      describeRoute({
+        summary: "Get hackbrowser status",
+        description: "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
+        operationId: "session.hackbrowserStatus",
+        responses: {
+          200: {
+            description: "Hackbrowser status map keyed by sessionID",
+            content: {
+              "application/json": {
+                schema: resolver(z.record(z.string(), HackbrowserStatus.Info)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      async (c) => {
+        const result = HackbrowserStatus.list()
         return c.json(result)
       },
     )
