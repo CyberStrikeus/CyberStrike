@@ -286,6 +286,10 @@ export interface AgentConfig {
   dryRun?: boolean
   // Inject the live telemetry panel into every page (PANEL_UI_BRIEF.md). Default: true.
   panel?: boolean
+  // Pre-resolved LanguageModel — when provided, navigator skips env resolution.
+  // Used by cyberstrike launcher (Provider → opts.model → AgentConfig.model).
+  // Standalone CLI leaves this undefined; navigator falls back to env vars.
+  model?: import("ai").LanguageModel
 }
 
 /** Single credential definition for multi-credential crawl */
@@ -361,5 +365,25 @@ export type CSEvent =
 export interface QueueEntry {
   url: string
   contexts: string[]  // ["admin", "user"] or ["default"] for single-credential
+}
+
+// ============================================================
+// Library API result type (INTEGRATION.md §4.1)
+// ============================================================
+
+/**
+ * Result returned by `run()` / `runMultiCredential()` / `runCrawl()`.
+ *
+ * Errors are aggregated here rather than thrown — caller (CLI shell or
+ * cyberstrike launcher) decides exit code / user surface based on the
+ * `errors` array. Only truly fatal cases (resolveModel fails, initSession
+ * fails) propagate as exceptions; everything else is collected.
+ */
+export interface CrawlResult {
+  sessionID: string
+  capturedEndpoints: number
+  pagesExplored: number
+  totalSteps: number
+  errors: string[]
 }
 
