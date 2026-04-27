@@ -19,7 +19,8 @@ import type { LanguageModel } from "ai"
 
 import { run } from "./agent.ts"
 import { Log, type LogSink, type LogRecord, type LogLevel } from "./log.ts"
-import type { AgentConfig, CredentialConfig, CrawlResult } from "./types.ts"
+import { setEventSink, clearEventSink } from "./panel/emit.ts"
+import type { AgentConfig, CredentialConfig, CrawlResult, CSEvent } from "./types.ts"
 
 // ============================================================
 // Public types
@@ -46,6 +47,14 @@ export interface CrawlOptions {
 
   // Log level (DEBUG | INFO | WARN | ERROR). Default: INFO
   logLevel?: LogLevel
+
+  // Event sink — when set, every CSEvent emitted by the crawler (page-change,
+  // capture, crawl-done, intelligence, etc.) is also forwarded to this
+  // callback synchronously. Cyberstrike launcher routes these into
+  // HackbrowserStatus to drive the live TUI sidebar (Faz B.1+ /
+  // INTEGRATION.md §13.2). Independent of `panel: boolean` — sink fires
+  // even in headless mode where no browser-side panel exists.
+  eventSink?: (event: CSEvent) => void
 
   // Network scope (ARCHITECTURE.md §1.4)
   scope?: string[]
@@ -77,7 +86,7 @@ export interface CrawlOptions {
 
 // Re-export so callers don't need to import from log.ts and types.ts separately
 export type { LogRecord, LogSink, LogLevel } from "./log.ts"
-export type { CrawlResult } from "./types.ts"
+export type { CrawlResult, CSEvent } from "./types.ts"
 
 // ============================================================
 // Internal helpers
@@ -170,10 +179,14 @@ export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
   validate(opts)
   preflightCheck()
 
-  // Logger setup — install caller's sink if provided, restore stderr default
-  // afterwards so subsequent calls in the same process don't leak.
+  // Logger and event sink setup — install caller's sinks if provided,
+  // restore defaults in finally so subsequent calls in the same process
+  // don't leak module-level state. Both sinks share the same lifecycle
+  // contract: registered before run(), cleared after run() regardless
+  // of success/failure.
   if (opts.logLevel) Log.init({ level: opts.logLevel })
   if (opts.logSink) Log.setSink(opts.logSink)
+  if (opts.eventSink) setEventSink(opts.eventSink)
 
   const config = toAgentConfig(opts)
 
@@ -183,6 +196,7 @@ export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
       multiCred: !!opts.multiCredentials?.length,
       headless: opts.headless,
       dryRun: opts.dryRun,
+      eventSink: !!opts.eventSink,
     })
     const result = await run(config)
     log.info("runCrawl done", {
@@ -203,6 +217,7 @@ export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
     }
   } finally {
     if (opts.logSink) Log.resetSink()
+    if (opts.eventSink) clearEventSink()
   }
 }
 
