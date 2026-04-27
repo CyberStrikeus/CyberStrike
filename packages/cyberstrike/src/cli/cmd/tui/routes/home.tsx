@@ -74,7 +74,9 @@ export function Home() {
         const input = await DialogHackbrowserLaunch.show(dialog)
         if (!input) return
         try {
-          const created = await sdk.client.session.create({}).then((x) => x.data)
+          const created = await sdk.client.session
+            .create({ title: `hackbrowser - ${input.target}` })
+            .then((x) => x.data)
           if (!created) {
             toast.show({ message: "Failed to create session for hackbrowser crawl", variant: "error" })
             return
