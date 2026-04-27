@@ -1,6 +1,6 @@
 import { chromium, type Page, type BrowserContext } from "playwright"
-import { Log } from "cyberstrike/util/log"
-import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent } from "./types.ts"
+import { Log } from "./log.ts"
+import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent, CrawlResult } from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
 import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged, initAuth } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
@@ -1363,7 +1363,7 @@ function enqueueWithContext(
 async function runMultiCredential(
   config: AgentConfig,
   credentials: CredentialConfig[],
-): Promise<void> {
+): Promise<CrawlResult> {
   const targetUrl = config.targetUrl
   const scopePatterns = resolveScopePatterns(config)
   const inScope = makeMatcher(scopePatterns)
@@ -1385,11 +1385,10 @@ async function runMultiCredential(
   // Resolve AI model
   let model: LanguageModel
   try {
-    model = await resolveModel()
+    model = await resolveModel(config.model)
     log.info("AI navigation enabled")
   } catch (err) {
-    log.error("AI model required", { err: String(err) })
-    process.exit(1)
+    throw new Error(`AI model required: ${String(err)}`)
   }
 
   const browser = await chromium.launch({ headless: config.headless ?? false })
@@ -1399,8 +1398,8 @@ async function runMultiCredential(
   if (!dryRun) {
     const created = await initSession(serverUrl, targetUrl, undefined)
     if (!created) {
-      log.error("failed to create session")
-      process.exit(1)
+      await browser.close().catch(() => {})
+      throw new Error(`failed to create CyberStrike session at ${serverUrl}`)
     }
     sessionId = created
   }
@@ -1670,13 +1669,21 @@ async function runMultiCredential(
   await contexts[0]?.page.waitForTimeout(600).catch(() => {})
 
   await browser.close()
+
+  return {
+    sessionID: dryRun ? "" : sessionId,
+    capturedEndpoints: globalState.capturedEndpoints.size,
+    pagesExplored,
+    totalSteps: globalState.totalSteps,
+    errors: [],
+  }
 }
 
 // ============================================================
 // Main entry point
 // ============================================================
 
-export async function run(config: AgentConfig): Promise<void> {
+export async function run(config: AgentConfig): Promise<CrawlResult> {
   initAuth(config.cyberstrike.username, config.cyberstrike.password)
 
   // Multi-credential mode: separate code path, same BFS engine
@@ -1707,11 +1714,10 @@ export async function run(config: AgentConfig): Promise<void> {
   // Resolve AI model
   let model: LanguageModel | null = null
   try {
-    model = await resolveModel()
+    model = await resolveModel(config.model)
     log.info("AI navigation enabled")
   } catch (err) {
-    log.error("AI model required for v2 architecture", { err: String(err) })
-    process.exit(1)
+    throw new Error(`AI model required for v2 architecture: ${String(err)}`)
   }
 
   // Create CyberStrike session
@@ -1719,8 +1725,7 @@ export async function run(config: AgentConfig): Promise<void> {
   if (!dryRun && !sessionID) {
     const created = await initSession(serverUrl, targetUrl, credentialId)
     if (!created) {
-      log.error("failed to create session — is CyberStrike running?")
-      process.exit(1)
+      throw new Error(`failed to create CyberStrike session at ${serverUrl} — is CyberStrike running?`)
     }
     sessionID = created
   }
@@ -1941,4 +1946,12 @@ export async function run(config: AgentConfig): Promise<void> {
   await page.waitForTimeout(600).catch(() => {})
 
   await browser.close()
+
+  return {
+    sessionID: dryRun ? "" : sessionID,
+    capturedEndpoints: globalState.capturedEndpoints.size,
+    pagesExplored,
+    totalSteps: globalState.totalSteps,
+    errors: [],
+  }
 }
