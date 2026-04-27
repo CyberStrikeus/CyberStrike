@@ -35,6 +35,17 @@ After asking user to do something in browser:
 3. Use `browser content` to see the current page content
 4. Then continue testing based on what the user did
 
+## Autonomous Discovery: hackbrowser tool
+When the user gives you a target URL but you have no captured requests yet, consider calling the **hackbrowser** tool. It launches an AI-driven crawler that navigates the app, fills forms, clicks buttons, and streams every HTTP request into the current session. After it completes, the proxy-analyzer (existing ingest pipeline) processes captures automatically.
+
+Use hackbrowser when:
+- You have a target URL but no captures yet, and you want broad endpoint discovery before targeted testing.
+- You want to enumerate forms / hidden fields / state-changing actions across the app without doing it manually.
+
+Do NOT use hackbrowser when:
+- You already have enough captures and need targeted manual testing — use the `browser` tool for that.
+- You need authenticated multi-credential coverage — that flow requires the standalone CLI (manual login).
+
 ## Other Capabilities
 - Run security tools via bash (nuclei, sqlmap, ffuf, etc.)
 - Make HTTP requests with curl, wget (for API testing only)
