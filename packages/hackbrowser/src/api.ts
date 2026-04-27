@@ -79,9 +79,12 @@ export interface CrawlOptions {
   panel?: boolean
   dryRun?: boolean
 
-  // Note: AbortSignal support intentionally NOT in this interface yet.
-  // It will be added in Faz A.4 alongside the cyberstrike launcher, which
-  // wires `ctx.abort` → `browser.close()`. Standalone CLI uses Ctrl+C.
+  // Cancellation — when fired, the agent finishes the current step and
+  // gracefully exits the BFS loop. The browser closes via the existing
+  // finally block. LLM calls in progress are NOT cancelled at the SDK
+  // layer (next iteration check is the granularity). Faz B.5 /
+  // INTEGRATION.md §13.7.
+  signal?: AbortSignal
 }
 
 // Re-export so callers don't need to import from log.ts and types.ts separately
@@ -159,6 +162,7 @@ function toAgentConfig(opts: CrawlOptions): AgentConfig {
     dryRun: opts.dryRun,
     panel: opts.panel,
     model: opts.model,
+    signal: opts.signal,
   }
 }
 

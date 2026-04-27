@@ -461,6 +461,42 @@ export function Session() {
       },
     },
     {
+      title: "Stop hackbrowser crawl",
+      value: "session.hackbrowser.stop",
+      category: "Session",
+      // Visible only while a hackbrowser run is active for this session
+      // (phase==="starting" or "crawling"). Completed/failed states hide
+      // the command — there's nothing to stop.
+      enabled: (() => {
+        const phase = sync.data.session_hackbrowser_status?.[route.sessionID]?.phase
+        return phase === "starting" || phase === "crawling"
+      })(),
+      slash: {
+        name: "hackbrowser-stop",
+      },
+      onSelect: async (dialog) => {
+        // The SDK regenerator picks up POST /:sessionID/hackbrowser/stop
+        // automatically during the next build, exposing it as
+        // sdk.client.session.hackbrowserStop. We type-cast through `any`
+        // so this commit compiles before the regenerator runs — once the
+        // SDK rebuilds, the cast becomes redundant but harmless.
+        try {
+          const stopped = await (sdk.client.session as any).hackbrowserStop({
+            sessionID: route.sessionID,
+          })
+          toast.show({
+            message: stopped?.data
+              ? "Hackbrowser cancellation requested — finishing current page"
+              : "No active hackbrowser run",
+            variant: stopped?.data ? "info" : "warning",
+          })
+        } catch {
+          toast.show({ message: "Failed to stop hackbrowser crawl", variant: "error" })
+        }
+        dialog.clear()
+      },
+    },
+    {
       title: "View vulnerabilities",
       value: "session.vulnerabilities",
       category: "Session",
