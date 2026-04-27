@@ -1131,6 +1131,7 @@ export class Session extends HeyApiClient {
       credentials?: Array<string>
       scope?: Array<string>
       exclude?: Array<string>
+      steps?: number
       headless?: boolean
     },
     options?: Options<never, ThrowOnError>,
@@ -1146,6 +1147,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "credentials" },
             { in: "body", key: "scope" },
             { in: "body", key: "exclude" },
+            { in: "body", key: "steps" },
             { in: "body", key: "headless" },
           ],
         },

@@ -23,12 +23,13 @@ export interface HackbrowserLaunchInput {
   credentials?: string[]
   scope?: string[]
   exclude?: string[]
+  steps?: number
   headless: boolean
 }
 
-type Field = "target" | "credentials" | "scope" | "exclude" | "headless"
+type Field = "target" | "credentials" | "scope" | "exclude" | "steps" | "headless"
 
-const FIELD_ORDER: Field[] = ["target", "credentials", "scope", "exclude", "headless"]
+const FIELD_ORDER: Field[] = ["target", "credentials", "scope", "exclude", "steps", "headless"]
 
 function splitCSV(s: string | undefined): string[] | undefined {
   if (!s) return undefined
@@ -51,6 +52,7 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
   let credsArea: TextareaRenderable
   let scopeArea: TextareaRenderable
   let excludeArea: TextareaRenderable
+  let stepsArea: TextareaRenderable
 
   const [store, setStore] = createStore({
     headless: true,
@@ -72,11 +74,20 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
     const credentials = splitCSV(credsArea?.plainText)
     const scope = splitCSV(scopeArea?.plainText)
     const exclude = splitCSV(excludeArea?.plainText)
+    // Steps: optional positive int 1-200; reject malformed input by failing
+    // the collect (caller treats null as "form not yet submittable").
+    const stepsRaw = stepsArea?.plainText?.trim()
+    let steps: number | undefined = undefined
+    if (stepsRaw) {
+      const n = parseInt(stepsRaw, 10)
+      if (!Number.isFinite(n) || n < 1 || n > 200) return null
+      steps = n
+    }
     // Credentials always require manual login (browser opens, user logs in).
     // Force headless off here so the launcher's pre-flight validation accepts
     // the call; otherwise respect the user's checkbox.
     const headless = credentials && credentials.length >= 1 ? false : store.headless
-    return { target, credentials, scope, exclude, headless }
+    return { target, credentials, scope, exclude, steps, headless }
   }
 
   const focusActive = () => {
@@ -84,11 +95,13 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
     else if (store.active === "credentials") credsArea?.focus()
     else if (store.active === "scope") scopeArea?.focus()
     else if (store.active === "exclude") excludeArea?.focus()
+    else if (store.active === "steps") stepsArea?.focus()
     else {
       targetArea?.blur()
       credsArea?.blur()
       scopeArea?.blur()
       excludeArea?.blur()
+      stepsArea?.blur()
     }
   }
 
@@ -112,7 +125,8 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       store.active !== "target" &&
       store.active !== "credentials" &&
       store.active !== "scope" &&
-      store.active !== "exclude"
+      store.active !== "exclude" &&
+      store.active !== "steps"
     ) {
       const input = collect()
       if (input) props.onConfirm?.(input)
@@ -215,6 +229,24 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
           keyBindings={[{ name: "return", action: "submit" }]}
           ref={(val: TextareaRenderable) => (excludeArea = val)}
           placeholder="Delete Account, Cancel Subscription"
+          textColor={theme.text}
+          focusedTextColor={theme.text}
+          cursorColor={theme.text}
+        />
+      </box>
+
+      <box gap={1}>
+        <box>
+          <text fg={store.active === "steps" ? theme.primary : theme.text}>
+            Max pages (optional, 1-200, default 50):
+          </text>
+        </box>
+        <textarea
+          onSubmit={submitFromTextarea}
+          height={3}
+          keyBindings={[{ name: "return", action: "submit" }]}
+          ref={(val: TextareaRenderable) => (stepsArea = val)}
+          placeholder="50"
           textColor={theme.text}
           focusedTextColor={theme.text}
           cursorColor={theme.text}
