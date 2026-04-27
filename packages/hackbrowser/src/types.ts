@@ -290,6 +290,10 @@ export interface AgentConfig {
   // Used by cyberstrike launcher (Provider → opts.model → AgentConfig.model).
   // Standalone CLI leaves this undefined; navigator falls back to env vars.
   model?: import("ai").LanguageModel
+  // Cancellation signal — agent BFS loop checks signal.aborted at each
+  // iteration boundary; browser closes via existing finally block.
+  // Wired by api.ts from CrawlOptions.signal (Faz B.5).
+  signal?: AbortSignal
 }
 
 /** Single credential definition for multi-credential crawl */

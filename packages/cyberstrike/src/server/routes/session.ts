@@ -366,6 +366,36 @@ export const SessionRoutes = lazy(() =>
         return c.json(result)
       },
     )
+    .post(
+      "/:sessionID/hackbrowser/stop",
+      describeRoute({
+        summary: "Stop the active hackbrowser run for a session",
+        description: "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
+        operationId: "session.hackbrowserStop",
+        responses: {
+          200: {
+            description: "true when a run was cancelled, false when no active run",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        const { stopHackbrowser } = await import("@/tool/hackbrowser-launcher")
+        const stopped = stopHackbrowser(c.req.valid("param").sessionID)
+        return c.json(stopped)
+      },
+    )
     .get(
       "/hackbrowser/status",
       describeRoute({

@@ -28,7 +28,12 @@ const log = Log.create({ service: "hackbrowser-launcher" })
 // Karar 5: re-entrance is an error, not a queue. One hackbrowser run per
 // session; concurrent invocations get a clear error rather than silent
 // serialization (INTEGRATION.md §2 Karar 5).
-const activeRuns = new Set<string>()
+//
+// Faz B.5: activeRuns now holds a per-session AbortController so the
+// `/hackbrowser-stop` slash command can cancel an in-flight crawl. The
+// controller's signal is wired into runCrawl(opts.signal), which the
+// agent's BFS loop checks at each iteration boundary.
+const activeRuns = new Map<string, AbortController>()
 
 export interface LauncherOptions {
   url: string
@@ -283,7 +288,13 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // via backgroundRun's error path.
   const prepared = await prepareCrawl(opts)
 
-  activeRuns.add(opts.sessionID)
+  // Faz B.5: per-session AbortController. /hackbrowser-stop fires this
+  // controller; agent.ts BFS loop sees aborted=true and breaks out
+  // gracefully. ctx.abort (chat-Esc) is also bridged into this controller
+  // so both code paths converge on a single cancellation signal.
+  const controller = new AbortController()
+  prepared.crawlOpts.signal = controller.signal
+  activeRuns.set(opts.sessionID, controller)
 
   // Initial sidebar entry — phase="starting" so users see the run
   // appear instantly. CSEvents from the crawler will transition this
@@ -298,16 +309,17 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
     startedAt: Date.now(),
   })
 
-  // Soft abort listener — registered after slot is claimed. The listener
-  // closure captures opts.sessionID; it survives tool.execute returning
-  // because AbortSignal holds its own listener registry. Runtime
-  // cancellation (browser.close on abort) is still not wired (§10.6).
+  // Bridge the chat track's ctx.abort (Esc) into the same controller so
+  // pressing Esc on the *currently running* chat turn also stops the
+  // crawl. Note this only fires while the chat track holds the prompt
+  // loop — once tool.execute returns, ctx.abort no longer triggers from
+  // user Esc on a new turn. The reliable cancellation path is the slash
+  // command `/hackbrowser-stop` → stopHackbrowser() which fires this
+  // controller directly (§13.7).
   if (opts.signal) {
     opts.signal.addEventListener("abort", () => {
-      log.warn(
-        "abort signal received during background hackbrowser run — runtime cancellation not yet wired",
-        { sessionID: opts.sessionID },
-      )
+      log.info("ctx.abort received — forwarding to crawl controller", { sessionID: opts.sessionID })
+      controller.abort()
     })
   }
 
@@ -320,6 +332,30 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   return {
     sessionID: opts.sessionID,
     started: true,
-    message: `Hackbrowser crawl started for ${opts.url}. Captures will arrive in this session as the crawl progresses.`,
+    message: `Hackbrowser crawl started for ${opts.url}. Captures will arrive in this session as the crawl progresses. Use /hackbrowser-stop to cancel before completion.`,
   }
+}
+
+/**
+ * Cancel an in-flight hackbrowser run. Returns true if a run was active
+ * (and therefore aborted), false if no run was found for this session.
+ *
+ * The agent's BFS loop checks signal.aborted at each iteration boundary,
+ * so cancellation is graceful (not instant): the current page's LLM call
+ * and pending tasks complete first, then the loop exits, browser closes
+ * via the existing finally, and HackbrowserStatus transitions to
+ * completed (with whatever was captured so far) — NOT failed, because
+ * cancellation is a normal lifecycle exit, not an error.
+ */
+export function stopHackbrowser(sessionID: string): boolean {
+  const controller = activeRuns.get(sessionID)
+  if (!controller) return false
+  log.info("stopHackbrowser: aborting run", { sessionID })
+  controller.abort()
+  return true
+}
+
+/** Whether a hackbrowser run is active for the given session. */
+export function isHackbrowserRunning(sessionID: string): boolean {
+  return activeRuns.has(sessionID)
 }

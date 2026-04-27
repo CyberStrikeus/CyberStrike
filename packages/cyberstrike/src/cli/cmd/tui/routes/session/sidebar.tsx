@@ -207,6 +207,14 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     })()}
                   </text>
                 </Show>
+                <Show
+                  when={
+                    hackbrowserStatus()!.phase === "starting" ||
+                    hackbrowserStatus()!.phase === "crawling"
+                  }
+                >
+                  <text fg={theme.textMuted}>/hackbrowser-stop</text>
+                </Show>
               </box>
             </Show>
             <Show when={mcpEntries().length > 0}>

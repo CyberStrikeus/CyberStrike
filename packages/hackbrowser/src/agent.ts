@@ -1502,6 +1502,14 @@ async function runMultiCredential(
 
   // BFS Loop — single loop, N contexts
   while (pageQueue.length > 0 && pagesExplored < maxPages) {
+    // Cancellation check at iteration boundary (Faz B.5). Multi-cred path
+    // gets the same granularity as single-cred run() — all contexts share
+    // the same signal so a single abort halts every in-flight context.
+    if (config.signal?.aborted) {
+      log.info("multi-credential crawl cancelled by signal", { pagesExplored, queued: pageQueue.length })
+      break
+    }
+
     const entry = pageQueue.shift()!
     pagesExplored++
 
@@ -1814,6 +1822,14 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   let pagesExplored = 0
 
   while (globalState.pageQueue.length > 0 && pagesExplored < maxPages) {
+    // Cancellation check at iteration boundary (Faz B.5). Granularity is
+    // per-page — current LLM call / page exploration completes before
+    // we exit. Browser closes via the existing finally below.
+    if (config.signal?.aborted) {
+      log.info("crawl cancelled by signal", { pagesExplored, queued: globalState.pageQueue.length })
+      break
+    }
+
     const nextUrl = globalState.pageQueue.shift()!
     pagesExplored++
 
