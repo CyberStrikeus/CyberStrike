@@ -128,6 +128,10 @@ import type {
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
+  SessionHackbrowserStatusErrors,
+  SessionHackbrowserStatusResponses,
+  SessionHackbrowserStopErrors,
+  SessionHackbrowserStopResponses,
   SessionIngestErrors,
   SessionIngestResponses,
   SessionInitErrors,
@@ -1107,6 +1111,63 @@ export class Session extends HeyApiClient {
     const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
     return (options?.client ?? this.client).get<SessionQueueStatusResponses, SessionQueueStatusErrors, ThrowOnError>({
       url: "/session/queue/status",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Stop the active hackbrowser run for a session
+   *
+   * Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.
+   */
+  public hackbrowserStop<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionHackbrowserStopResponses,
+      SessionHackbrowserStopErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/hackbrowser/stop",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get hackbrowser status
+   *
+   * Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.
+   */
+  public hackbrowserStatus<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<
+      SessionHackbrowserStatusResponses,
+      SessionHackbrowserStatusErrors,
+      ThrowOnError
+    >({
+      url: "/session/hackbrowser/status",
       ...options,
       ...params,
     })
