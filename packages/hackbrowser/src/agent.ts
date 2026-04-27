@@ -1756,9 +1756,30 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     await loadSession(context, config.auth.sessionFile)
   }
 
-  // Wire up capture pipeline
+  // Wire up capture pipeline with header sync. Mirrors the per-credential
+  // pattern in runMultiCredential (agent.ts:1459-1471): each captured request
+  // contributes its auth headers to a delta tracker; when the delta changes,
+  // PATCH the credential record on cyberstrike. Without this, manual-login
+  // sessions in single-cred mode end up with an empty credential record on
+  // the cyberstrike side — captures get tagged with the credentialID but
+  // the cookies/tokens captured during login never make it back to the DB.
   const captureQueue: CapturedRequest[] = []
-  const interceptor = setupRequestInterceptor(page, inScope, (req) => captureQueue.push(req), SINGLE_CRED)
+  let lastAuthHeaders: Record<string, string> = {}
+  const interceptor = setupRequestInterceptor(
+    page,
+    inScope,
+    (req) => {
+      captureQueue.push(req)
+      if (!dryRun && credentialId) {
+        const authHeaders = extractAuthHeaders(req.raw)
+        if (Object.keys(authHeaders).length > 0 && headersChanged(lastAuthHeaders, authHeaders)) {
+          lastAuthHeaders = authHeaders
+          void syncCredentialHeaders(serverUrl, sessionID!, credentialId, authHeaders)
+        }
+      }
+    },
+    SINGLE_CRED,
+  )
 
   const handleCapture: CaptureFn = dryRun
     ? createDryRunHandler()
