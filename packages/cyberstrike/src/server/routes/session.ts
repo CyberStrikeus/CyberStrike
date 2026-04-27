@@ -367,6 +367,66 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .post(
+      "/:sessionID/hackbrowser/launch",
+      describeRoute({
+        summary: "Launch a hackbrowser crawl",
+        description:
+          "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — the agent's invocation goes through the same launcher — but this route exposes options the tool surface intentionally hides (notably `authenticated` for manual-login mode). Returns a KickOffResult; captures stream into the session asynchronously.",
+        operationId: "session.hackbrowserLaunch",
+        responses: {
+          200: {
+            description: "Crawl successfully kicked off; returns sessionID + started flag + status message",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    sessionID: z.string(),
+                    started: z.boolean(),
+                    message: z.string(),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          url: z.string().url(),
+          scope: z.array(z.string()).optional(),
+          exclude: z.array(z.string()).optional(),
+          credentialID: z.string().optional(),
+          steps: z.number().int().min(1).max(200).optional(),
+          headless: z.boolean().optional(),
+          authenticated: z.boolean().optional(),
+        }),
+      ),
+      async (c) => {
+        const { launchHackbrowser } = await import("@/tool/hackbrowser-launcher")
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        const result = await launchHackbrowser({
+          sessionID,
+          url: body.url,
+          scope: body.scope,
+          exclude: body.exclude,
+          credentialID: body.credentialID,
+          steps: body.steps,
+          headless: body.headless,
+          authenticated: body.authenticated,
+        })
+        return c.json(result)
+      },
+    )
+    .post(
       "/:sessionID/hackbrowser/stop",
       describeRoute({
         summary: "Stop the active hackbrowser run for a session",

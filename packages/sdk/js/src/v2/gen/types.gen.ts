@@ -3367,6 +3367,52 @@ export type SessionQueueStatusResponses = {
 
 export type SessionQueueStatusResponse = SessionQueueStatusResponses[keyof SessionQueueStatusResponses]
 
+export type SessionHackbrowserLaunchData = {
+  body?: {
+    url: string
+    scope?: Array<string>
+    exclude?: Array<string>
+    credentialID?: string
+    steps?: number
+    headless?: boolean
+    authenticated?: boolean
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/hackbrowser/launch"
+}
+
+export type SessionHackbrowserLaunchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionHackbrowserLaunchError = SessionHackbrowserLaunchErrors[keyof SessionHackbrowserLaunchErrors]
+
+export type SessionHackbrowserLaunchResponses = {
+  /**
+   * Crawl successfully kicked off; returns sessionID + started flag + status message
+   */
+  200: {
+    sessionID: string
+    started: boolean
+    message: string
+  }
+}
+
+export type SessionHackbrowserLaunchResponse =
+  SessionHackbrowserLaunchResponses[keyof SessionHackbrowserLaunchResponses]
+
 export type SessionHackbrowserStopData = {
   body?: never
   path: {
