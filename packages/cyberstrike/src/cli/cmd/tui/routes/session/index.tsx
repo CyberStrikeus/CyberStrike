@@ -59,6 +59,7 @@ import { DialogConfirm } from "@tui/ui/dialog-confirm"
 import { DialogTimeline } from "./dialog-timeline"
 import { DialogForkFromTimeline } from "./dialog-fork-from-timeline"
 import { DialogSessionRename } from "../../component/dialog-session-rename"
+import { DialogHackbrowserLaunch } from "../../component/dialog-hackbrowser-launch"
 import { DialogVulnerability } from "../../component/dialog-vulnerability"
 import { DialogWebContext } from "../../component/dialog-web-context"
 import { Sidebar } from "./sidebar"
@@ -458,6 +459,35 @@ export function Session() {
           .queueResume({ sessionID: route.sessionID })
           .catch(() => toast.show({ message: "Failed to resume ingest queue", variant: "error" }))
         dialog.clear()
+      },
+    },
+    {
+      title: "Launch hackbrowser crawl",
+      value: "session.hackbrowser.launch",
+      category: "Session",
+      slash: {
+        name: "hackbrowser",
+      },
+      onSelect: async (dialog) => {
+        const input = await DialogHackbrowserLaunch.show(dialog)
+        if (!input) return
+        try {
+          const result = await sdk.client.session.hackbrowserLaunch({
+            sessionID: route.sessionID,
+            url: input.url,
+            credentialID: input.credentialID,
+            steps: input.steps,
+            authenticated: input.authenticated,
+            headless: input.headless,
+          })
+          toast.show({
+            message: result?.data?.message ?? "Hackbrowser crawl started",
+            variant: "info",
+          })
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Failed to launch hackbrowser crawl"
+          toast.show({ message: msg, variant: "error" })
+        }
       },
     },
     {
