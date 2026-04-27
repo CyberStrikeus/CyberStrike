@@ -1,4 +1,4 @@
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import type { IngestPayload, CapturedRequest, PageDiffContext, AccessContext } from "./types.ts"
 
 const log = Log.create({ service: "hackbrowser:ingest" })
