@@ -1393,9 +1393,14 @@ async function runMultiCredential(
 
   const browser = await chromium.launch({ headless: config.headless ?? false })
 
-  // Single CyberStrike session for ALL credentials
-  let sessionId = ""
-  if (!dryRun) {
+  // Single CyberStrike session for ALL credentials. Honor a host-provided
+  // sessionID (cyberstrike injects this when /hackbrowser slash or the
+  // hackbrowser tool runs inside an existing session) — only fall back to
+  // initSession when none was passed (standalone CLI). This mirrors run()
+  // line 1732 and prevents the multi-cred path from silently creating a
+  // second session that captures arrive in but the user can't see.
+  let sessionId = config.cyberstrike.sessionID ?? ""
+  if (!dryRun && !sessionId) {
     const created = await initSession(serverUrl, targetUrl, undefined)
     if (!created) {
       await browser.close().catch(() => {})
