@@ -40,7 +40,14 @@ export interface LauncherOptions {
   sessionID: string
   scope?: string[]
   exclude?: string[]
-  credentialID?: string
+  // Uniform credential surface (Faz C). Length determines crawl mode:
+  //   undefined / [] → unauthenticated
+  //   [id]           → single-credential (tag captures with this ID, no login automation)
+  //   [id1, id2, …]  → multi-credential (sequential per-credential manual login;
+  //                    requires headless: false)
+  // The launcher dispatches to the library's dual surface (CrawlOptions.credentialID
+  // vs CrawlOptions.multiCredentials) inside prepareCrawl.
+  credentialIDs?: string[]
   steps?: number
   headless?: boolean
   // Soft signal — listener registered but runtime cancellation
@@ -111,16 +118,33 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     HackbrowserStatus.handle(opts.sessionID, event)
   }
 
+  // 5. Dispatch the uniform `credentialIDs` to the library's dual surface.
+  //    Library accepts either a single `credentialID` (tag-only) or a
+  //    `multiCredentials` array (sequential per-cred login). Tool surface
+  //    keeps the LLM-facing API uniform; this adapter resolves the impedance.
+  const ids = opts.credentialIDs ?? []
+  if (ids.length >= 2 && opts.headless !== false) {
+    throw new Error(
+      `Multi-credential crawl requires headless=false (manual login per credential). ` +
+        `Got ${ids.length} credential IDs with headless=${opts.headless ?? "default(true)"}.`,
+    )
+  }
+  const credentialDispatch =
+    ids.length >= 2
+      ? { multiCredentials: ids.map((id) => ({ id })) }
+      : ids.length === 1
+        ? { credentialID: ids[0] }
+        : {}
+
   const crawlOpts: CrawlOptions = {
     url: opts.url,
     sessionID: opts.sessionID,
-    credentialID: opts.credentialID,
+    ...credentialDispatch,
     scope: opts.scope,
     exclude: opts.exclude,
     steps: opts.steps,
-    // Tool default: headless. Manual login flows (multi-credential,
-    // --authenticated) need headfull and are blocked at api.ts validation.
-    // INTEGRATION.md §10.3.
+    // Tool default: headless. Multi-cred mode forces headless=false above
+    // (rejected pre-flight); single/no-cred respect the caller's choice.
     headless: opts.headless ?? true,
     // Panel is browser-side telemetry; tool runs are headless so the user
     // never sees it. INTEGRATION.md §10.4 — TUI bridge is via eventSink

@@ -44,7 +44,9 @@ Use hackbrowser when:
 
 Do NOT use hackbrowser when:
 - You already have enough captures and need targeted manual testing — use the `browser` tool for that.
-- You need authenticated multi-credential coverage — that flow requires the standalone CLI (manual login).
+
+Multi-credential coverage:
+Pass `credentialIDs` as an array of 2+ credential IDs together with `headless: false`. The browser opens once per credential for the user's manual login, then crawls under that identity. Use this only when you need to compare access across distinct identities (e.g. role-based access tests). For a single identity or unauthenticated crawl, omit `credentialIDs` or pass a single ID; the default `headless: true` is fine.
 
 ## Other Capabilities
 - Run security tools via bash (nuclei, sqlmap, ffuf, etc.)

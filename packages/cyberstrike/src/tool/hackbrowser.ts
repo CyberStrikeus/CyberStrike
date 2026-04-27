@@ -16,7 +16,7 @@ Use this when you have a target URL but no captured requests yet — hackbrowser
 
 This tool runs ASYNCHRONOUSLY: it returns immediately after starting the background crawl. Captures stream into the session over the next 30s–2min. Do NOT call this tool again to "wait" for results — use web_get_session_context to inspect captured endpoints when you actually need them. The hackbrowser status (running / completed / failed) appears in the TUI sidebar.
 
-Defaults to headless mode. Multi-credential mode requires manual login and is not supported through the tool — use the standalone CLI for that.`
+Defaults to headless mode. Multi-credential coverage (2+ credential IDs) is supported but requires headless=false because each credential needs an interactive manual login — pass headless: false alongside credentialIDs of length 2 or more.`
 
 export const HackbrowserTool = Tool.define("hackbrowser", {
   description: DESCRIPTION,
@@ -30,10 +30,16 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       .array(z.string())
       .optional()
       .describe('Optional UI labels the planner must skip (e.g. "Delete Account", "Cancel Subscription"). Semantic match.'),
-    credentialID: z
-      .string()
+    credentialIDs: z
+      .array(z.string())
       .optional()
-      .describe("Credential ID to tag captures with (when the session has a registered credential)."),
+      .describe(
+        "Credential IDs to use for the crawl. Omit or empty: unauthenticated crawl. " +
+          "One ID: captures are tagged with this credential (no login automation). " +
+          "Two or more IDs: multi-credential mode — the browser opens once per credential " +
+          "for an interactive manual login, then crawls. Requires headless: false. " +
+          "Use multi-credential only when comparing access across distinct identities (e.g. role-based access tests).",
+      ),
     steps: z
       .number()
       .int()
@@ -67,7 +73,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       sessionID: ctx.sessionID,
       scope: args.scope,
       exclude: args.exclude,
-      credentialID: args.credentialID,
+      credentialIDs: args.credentialIDs,
       steps: args.steps,
       headless: args.headless,
       signal: ctx.abort,
