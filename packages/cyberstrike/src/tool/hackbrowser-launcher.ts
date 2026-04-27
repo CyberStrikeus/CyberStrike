@@ -43,6 +43,14 @@ export interface LauncherOptions {
   credentialID?: string
   steps?: number
   headless?: boolean
+  // Manual-login mode (Faz D / Seviye 1). When true, hackbrowser opens the
+  // browser headfull, injects a "START SCAN" button, and waits for the user
+  // to log in manually before the crawl starts. NOT exposed to the LLM tool
+  // surface — this is for slash and CLI entry points only (interactive use).
+  // Library limit: see INTEGRATION.md §10.10 — manual-login wait does not
+  // honor the abort signal yet, so Esc / /hackbrowser-stop can't cancel
+  // during the login phase.
+  authenticated?: boolean
   // Soft signal — listener registered but runtime cancellation
   // (browser.close on abort) still not wired through agent.ts.
   // INTEGRATION.md §10.6.
@@ -111,6 +119,16 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     HackbrowserStatus.handle(opts.sessionID, event)
   }
 
+  // Manual-login mode requires headfull — fail fast with a clear message
+  // (defense-in-depth: api.ts validation catches it too, but pre-flighting
+  // here gives a tool/slash-friendly error before the slot is claimed).
+  if (opts.authenticated && opts.headless !== false) {
+    throw new Error(
+      `Manual-login mode (authenticated: true) requires headless=false so the user can log in interactively. ` +
+        `Got headless=${opts.headless ?? "default(true)"}.`,
+    )
+  }
+
   const crawlOpts: CrawlOptions = {
     url: opts.url,
     sessionID: opts.sessionID,
@@ -118,6 +136,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     scope: opts.scope,
     exclude: opts.exclude,
     steps: opts.steps,
+    authenticated: opts.authenticated,
     // Tool default: headless. Manual login flows (multi-credential,
     // --authenticated) need headfull and are blocked at api.ts validation.
     // INTEGRATION.md §10.3.
