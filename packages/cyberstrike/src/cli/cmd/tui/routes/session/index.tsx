@@ -478,6 +478,7 @@ export function Session() {
             credentials: input.credentials,
             scope: input.scope,
             exclude: input.exclude,
+            steps: input.steps,
             headless: input.headless,
           })
           toast.show({

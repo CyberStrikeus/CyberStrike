@@ -3373,6 +3373,7 @@ export type SessionHackbrowserLaunchData = {
     credentials?: Array<string>
     scope?: Array<string>
     exclude?: Array<string>
+    steps?: number
     headless?: boolean
   }
   path: {

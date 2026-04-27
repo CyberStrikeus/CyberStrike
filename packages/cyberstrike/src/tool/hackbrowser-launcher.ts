@@ -54,6 +54,7 @@ export interface LauncherOptions {
   // honor the abort signal yet, so Esc / /hackbrowser-stop cannot cancel
   // during the login wait phase.
   credentials?: string[]
+  steps?: number
   headless?: boolean
   // Soft signal — listener registered but runtime cancellation
   // (browser.close on abort) still not wired through agent.ts.
@@ -148,6 +149,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     ...credentialDispatch,
     scope: opts.scope,
     exclude: opts.exclude,
+    steps: opts.steps,
     // Anonymous: respect the caller's headless choice (default true).
     // With credentials, the validation above already rejected anything
     // other than headless=false, so it's safe to pass through here.

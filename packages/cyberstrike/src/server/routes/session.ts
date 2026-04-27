@@ -404,6 +404,7 @@ export const SessionRoutes = lazy(() =>
           credentials: z.array(z.string()).optional(),
           scope: z.array(z.string()).optional(),
           exclude: z.array(z.string()).optional(),
+          steps: z.number().int().min(1).max(200).optional(),
           headless: z.boolean().optional(),
         }),
       ),
@@ -417,6 +418,7 @@ export const SessionRoutes = lazy(() =>
           credentials: body.credentials,
           scope: body.scope,
           exclude: body.exclude,
+          steps: body.steps,
           headless: body.headless,
         })
         return c.json(result)
