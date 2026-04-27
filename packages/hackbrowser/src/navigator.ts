@@ -1,6 +1,5 @@
 import { generateText, type LanguageModel } from "ai"
-import { Provider } from "cyberstrike/provider/provider"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
 import { readFileSync } from "fs"
@@ -31,18 +30,26 @@ function loadPlannerPrompt(): string {
 
 let cachedModel: LanguageModel | null = null
 
-export async function resolveModel(): Promise<LanguageModel> {
-  if (cachedModel) return cachedModel
-
-  try {
-    const modelInfo = await Provider.defaultModel()
-    const modelDetails = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
-    cachedModel = await Provider.getLanguage(modelDetails)
-    log.info("model resolved via CyberStrike provider", { model: modelInfo.modelID })
+/**
+ * Resolve a LanguageModel.
+ *
+ * Hackbrowser is intentionally decoupled from cyberstrike's Provider system
+ * (Karar 2 — Dependency Inversion, INTEGRATION.md §5). Resolution order:
+ *   1. `override` parameter — used by cyberstrike launcher which resolves
+ *      via Provider and passes the result through `runCrawl({ model })`.
+ *   2. ANTHROPIC_API_KEY env var
+ *   3. OPENAI_API_KEY env var
+ *
+ * Standalone (`bun src/index.ts`) only sees env vars — `cyberstrike auth
+ * login` providers are not available here (Karar 3, INTEGRATION.md §10.2).
+ */
+export async function resolveModel(override?: LanguageModel): Promise<LanguageModel> {
+  if (override) {
+    cachedModel = override
+    log.info("model resolved via opts.model (cyberstrike injection)")
     return cachedModel
-  } catch {
-    // Fallback to env vars for standalone / dry-run mode
   }
+  if (cachedModel) return cachedModel
 
   if (process.env.ANTHROPIC_API_KEY) {
     const model = process.env.BROWSER_AGENT_MODEL ?? "claude-sonnet-4-6"
@@ -59,7 +66,8 @@ export async function resolveModel(): Promise<LanguageModel> {
   }
 
   throw new Error(
-    "No AI provider available. Run inside CyberStrike, or set ANTHROPIC_API_KEY / OPENAI_API_KEY.",
+    "No AI provider available. Set ANTHROPIC_API_KEY or OPENAI_API_KEY, " +
+      "or invoke runCrawl({ model }) with a pre-resolved model.",
   )
 }
 

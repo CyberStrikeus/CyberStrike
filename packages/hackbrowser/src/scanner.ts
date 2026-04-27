@@ -1,5 +1,5 @@
 import type { Page } from "playwright"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import type { RawElement } from "./types.ts"
 import { normalizeUrl } from "./state.ts"
 

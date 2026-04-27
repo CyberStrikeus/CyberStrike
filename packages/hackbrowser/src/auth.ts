@@ -1,5 +1,5 @@
 import type { Page, BrowserContext } from "playwright"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import fs from "fs"
 import readline from "readline"
 
