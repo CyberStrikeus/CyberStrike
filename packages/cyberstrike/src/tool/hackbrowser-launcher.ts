@@ -154,10 +154,11 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
     // With credentials, the validation above already rejected anything
     // other than headless=false, so it's safe to pass through here.
     headless: opts.headless ?? true,
-    // Panel is browser-side telemetry; tool runs are headless so the user
-    // never sees it. INTEGRATION.md §10.4 — TUI bridge is via eventSink
-    // above, not the browser-side panel.
-    panel: false,
+    // Browser-side telemetry HUD: enabled whenever the browser is visible
+    // (headless=false). When the browser is hidden the panel can't be
+    // seen anyway — disable it. The TUI sidebar bridge via eventSink
+    // (above) is independent of this and works in both modes.
+    panel: opts.headless === false,
     cyberstrikeUrl,
     model,
     logSink,
