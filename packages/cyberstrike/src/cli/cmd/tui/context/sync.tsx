@@ -55,6 +55,23 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_queue_status: {
         [sessionID: string]: SessionQueueStatus
       }
+      // Hackbrowser tool status — populated by SSE event "session.hackbrowser.status".
+      // Inline type until SDK regenerator picks up the new BusEvent — keeping it
+      // local lets B.3 ship without a build-step bump. Migrate to imported
+      // HackbrowserStatus type once @cyberstrike-io/sdk regenerates.
+      session_hackbrowser_status: {
+        [sessionID: string]: {
+          sessionID: string
+          phase: "starting" | "crawling" | "completed" | "failed"
+          targetUrl: string
+          pagesExplored: number
+          capturedEndpoints: number
+          currentPage?: string
+          errors: string[]
+          startedAt: number
+          finishedAt?: number
+        }
+      }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
@@ -154,6 +171,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session: [],
       session_status: {},
       session_queue_status: {},
+      session_hackbrowser_status: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -299,6 +317,15 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
         case "session.queue.status": {
           setStore("session_queue_status", event.properties.sessionID, event.properties.status)
+          break
+        }
+
+        case "session.hackbrowser.status": {
+          setStore(
+            "session_hackbrowser_status",
+            event.properties.sessionID,
+            event.properties.status as never,
+          )
           break
         }
 

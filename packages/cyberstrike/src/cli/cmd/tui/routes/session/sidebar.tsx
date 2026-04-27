@@ -41,6 +41,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
+  const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -147,6 +148,67 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               </Show>
               <text fg={theme.textMuted}>{queueStatus()?.paused ? "/qresume" : "/qpause"}</text>
             </box>
+            <Show when={hackbrowserStatus()}>
+              <box>
+                <text fg={theme.text}>
+                  <b>Hackbrowser</b>
+                </text>
+                <Switch>
+                  <Match when={hackbrowserStatus()!.phase === "starting"}>
+                    <text fg={theme.warning}>◌ Starting</text>
+                  </Match>
+                  <Match when={hackbrowserStatus()!.phase === "crawling"}>
+                    <text fg={theme.success}>● Crawling</text>
+                  </Match>
+                  <Match when={hackbrowserStatus()!.phase === "completed"}>
+                    <text fg={theme.success}>✓ Completed</text>
+                  </Match>
+                  <Match when={hackbrowserStatus()!.phase === "failed"}>
+                    <text fg={theme.error}>✗ Failed</text>
+                  </Match>
+                </Switch>
+                <text fg={theme.textMuted} wrapMode="word">
+                  {(() => {
+                    const url = hackbrowserStatus()!.targetUrl
+                    return url.length > 40 ? url.slice(0, 37) + "..." : url
+                  })()}
+                </text>
+                <Show when={hackbrowserStatus()!.phase === "crawling" || hackbrowserStatus()!.phase === "starting"}>
+                  <text fg={theme.textMuted}>
+                    {hackbrowserStatus()!.pagesExplored} page
+                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
+                    {" · "}
+                    {hackbrowserStatus()!.capturedEndpoints} endpoint
+                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
+                  </text>
+                </Show>
+                <Show when={hackbrowserStatus()!.phase === "completed"}>
+                  <text fg={theme.textMuted}>
+                    {hackbrowserStatus()!.pagesExplored} page
+                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
+                    {" · "}
+                    {hackbrowserStatus()!.capturedEndpoints} endpoint
+                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
+                  </text>
+                </Show>
+                <Show when={hackbrowserStatus()!.phase === "crawling" && hackbrowserStatus()!.currentPage}>
+                  <text fg={theme.textMuted} wrapMode="word">
+                    {(() => {
+                      const cur = hackbrowserStatus()!.currentPage!
+                      return cur.length > 40 ? cur.slice(0, 37) + "..." : cur
+                    })()}
+                  </text>
+                </Show>
+                <Show when={hackbrowserStatus()!.phase === "failed" && hackbrowserStatus()!.errors.length > 0}>
+                  <text fg={theme.textMuted} wrapMode="word">
+                    {(() => {
+                      const err = hackbrowserStatus()!.errors[0] ?? ""
+                      return err.length > 60 ? err.slice(0, 57) + "..." : err
+                    })()}
+                  </text>
+                </Show>
+              </box>
+            </Show>
             <Show when={mcpEntries().length > 0}>
               <box>
                 <box
