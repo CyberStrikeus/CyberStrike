@@ -44,7 +44,12 @@ Use hackbrowser when:
 
 Do NOT use hackbrowser when:
 - You already have enough captures and need targeted manual testing — use the `browser` tool for that.
-- You need authenticated multi-credential coverage — that flow requires the standalone CLI (manual login).
+
+Tool parameters:
+- `target` (required): URL to crawl.
+- `credentials` (optional, array of credential IDs): omit for anonymous crawl. One ID = single manual login + crawl, captures tagged with that credential. Multiple IDs = repeats the manual-login + crawl cycle once per credential (role-based access tests). Auto-login (filling username/password) is intentionally not supported — every credentialed crawl opens the browser visibly and waits for the user to log in. ONLY pass `credentials` when a human is present to complete each login interactively. An autonomous call with credentials will hang at the login step.
+- `scope`, `exclude` (optional): hostname patterns and UI labels to refine the crawl.
+- `headless` (optional): defaults to true; forced to false when credentials are provided.
 
 ## Other Capabilities
 - Run security tools via bash (nuclei, sqlmap, ffuf, etc.)

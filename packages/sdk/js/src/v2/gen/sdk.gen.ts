@@ -1121,19 +1121,17 @@ export class Session extends HeyApiClient {
   /**
    * Launch a hackbrowser crawl
    *
-   * Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — the agent's invocation goes through the same launcher — but this route exposes options the tool surface intentionally hides (notably `authenticated` for manual-login mode). Returns a KickOffResult; captures stream into the session asynchronously.
+   * Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — agent invocation, slash, and CLI all share this surface. Returns a KickOffResult; captures stream into the session asynchronously.
    */
   public hackbrowserLaunch<ThrowOnError extends boolean = false>(
     parameters: {
       sessionID: string
       directory?: string
-      url?: string
+      target?: string
+      credentials?: Array<string>
       scope?: Array<string>
       exclude?: Array<string>
-      credentialID?: string
-      steps?: number
       headless?: boolean
-      authenticated?: boolean
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1144,13 +1142,11 @@ export class Session extends HeyApiClient {
           args: [
             { in: "path", key: "sessionID" },
             { in: "query", key: "directory" },
-            { in: "body", key: "url" },
+            { in: "body", key: "target" },
+            { in: "body", key: "credentials" },
             { in: "body", key: "scope" },
             { in: "body", key: "exclude" },
-            { in: "body", key: "credentialID" },
-            { in: "body", key: "steps" },
             { in: "body", key: "headless" },
-            { in: "body", key: "authenticated" },
           ],
         },
       ],

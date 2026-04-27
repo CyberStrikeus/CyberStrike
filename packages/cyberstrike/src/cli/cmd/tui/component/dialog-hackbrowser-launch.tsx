@@ -1,10 +1,15 @@
 // Hackbrowser launch dialog — multi-field form for the /hackbrowser slash
-// command (Faz D). Mirrors LauncherOptions surface that the LLM tool
-// intentionally hides (notably `authenticated` for manual-login mode).
+// command. Surface mirrors the LLM tool and the CLI subcommand: target,
+// credentials, scope, exclude, headless. Same fields, same semantics across
+// all three entry points.
 //
 // Modeled after dialog-export-options.tsx: tab cycles fields, space toggles
-// checkboxes, return submits. Submission resolves the Promise from
-// DialogHackbrowserLaunch.show — the slash handler does the SDK call.
+// the headless checkbox, return submits. Submission resolves the Promise
+// from DialogHackbrowserLaunch.show — the slash handler does the SDK call.
+//
+// Multi-value fields (credentials, scope, exclude) accept comma-separated
+// input; the form parses on submit. Trim/empty filtering is centralized in
+// `splitCSV`.
 
 import { TextareaRenderable, TextAttributes } from "@opentui/core"
 import { useTheme } from "../context/theme"
@@ -14,16 +19,25 @@ import { onMount, Show } from "solid-js"
 import { useKeyboard } from "@opentui/solid"
 
 export interface HackbrowserLaunchInput {
-  url: string
-  credentialID?: string
-  steps?: number
-  authenticated: boolean
+  target: string
+  credentials?: string[]
+  scope?: string[]
+  exclude?: string[]
   headless: boolean
 }
 
-type Field = "url" | "credentialID" | "steps" | "authenticated" | "headless"
+type Field = "target" | "credentials" | "scope" | "exclude" | "headless"
 
-const FIELD_ORDER: Field[] = ["url", "credentialID", "steps", "authenticated", "headless"]
+const FIELD_ORDER: Field[] = ["target", "credentials", "scope", "exclude", "headless"]
+
+function splitCSV(s: string | undefined): string[] | undefined {
+  if (!s) return undefined
+  const parts = s
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+  return parts.length > 0 ? parts : undefined
+}
 
 export interface DialogHackbrowserLaunchProps {
   onConfirm?: (input: HackbrowserLaunchInput) => void
@@ -33,71 +47,73 @@ export interface DialogHackbrowserLaunchProps {
 export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
   const dialog = useDialog()
   const { theme } = useTheme()
-  let urlArea: TextareaRenderable
-  let credArea: TextareaRenderable
-  let stepsArea: TextareaRenderable
+  let targetArea: TextareaRenderable
+  let credsArea: TextareaRenderable
+  let scopeArea: TextareaRenderable
+  let excludeArea: TextareaRenderable
 
   const [store, setStore] = createStore({
-    authenticated: false,
     headless: true,
-    active: "url" as Field,
+    // Recomputed on tab navigation away from the credentials field. Drives
+    // the headless checkbox label + auto-disabling, so the form reflects the
+    // launcher's "credentials present → headless: false" rule before submit.
+    credentialsPresent: false,
+    active: "target" as Field,
   })
 
-  // Build the current input snapshot from the textareas + store. Used both at
-  // submit time and to keep validation logic in one place.
+  const refreshCredentialsPresent = () => {
+    const ids = splitCSV(credsArea?.plainText)
+    setStore("credentialsPresent", !!ids && ids.length >= 1)
+  }
+
   const collect = (): HackbrowserLaunchInput | null => {
-    const url = urlArea?.plainText?.trim() ?? ""
-    if (!url) return null
-    const credentialID = credArea?.plainText?.trim() || undefined
-    const stepsRaw = stepsArea?.plainText?.trim()
-    const steps = stepsRaw ? parseInt(stepsRaw, 10) : undefined
-    if (steps !== undefined && (!Number.isFinite(steps) || steps < 1 || steps > 200)) return null
-    return {
-      url,
-      credentialID,
-      steps,
-      authenticated: store.authenticated,
-      // Manual-login mode requires headfull; force headless=false when
-      // authenticated is set so the launcher's pre-flight doesn't reject.
-      headless: store.authenticated ? false : store.headless,
-    }
+    const target = targetArea?.plainText?.trim() ?? ""
+    if (!target) return null
+    const credentials = splitCSV(credsArea?.plainText)
+    const scope = splitCSV(scopeArea?.plainText)
+    const exclude = splitCSV(excludeArea?.plainText)
+    // Credentials always require manual login (browser opens, user logs in).
+    // Force headless off here so the launcher's pre-flight validation accepts
+    // the call; otherwise respect the user's checkbox.
+    const headless = credentials && credentials.length >= 1 ? false : store.headless
+    return { target, credentials, scope, exclude, headless }
   }
 
   const focusActive = () => {
-    if (store.active === "url") urlArea?.focus()
-    else if (store.active === "credentialID") credArea?.focus()
-    else if (store.active === "steps") stepsArea?.focus()
+    if (store.active === "target") targetArea?.focus()
+    else if (store.active === "credentials") credsArea?.focus()
+    else if (store.active === "scope") scopeArea?.focus()
+    else if (store.active === "exclude") excludeArea?.focus()
     else {
-      urlArea?.blur()
-      credArea?.blur()
-      stepsArea?.blur()
+      targetArea?.blur()
+      credsArea?.blur()
+      scopeArea?.blur()
+      excludeArea?.blur()
     }
   }
 
   useKeyboard((evt) => {
     if (evt.name === "tab") {
+      // Refresh credentialsPresent so the headless checkbox label updates
+      // immediately when the user tabs away from the credentials field.
+      refreshCredentialsPresent()
       const idx = FIELD_ORDER.indexOf(store.active)
       const next = FIELD_ORDER[(idx + 1) % FIELD_ORDER.length]
       setStore("active", next)
       setTimeout(focusActive, 0)
       evt.preventDefault()
     }
-    if (evt.name === "space") {
-      if (store.active === "authenticated") {
-        const nextAuth = !store.authenticated
-        setStore("authenticated", nextAuth)
-        // When auth turns on, force headless off; flipping auth back off
-        // restores the user's prior headless choice (default true).
-        if (nextAuth) setStore("headless", false)
-        else setStore("headless", true)
-        evt.preventDefault()
-      }
-      if (store.active === "headless" && !store.authenticated) {
-        setStore("headless", !store.headless)
-        evt.preventDefault()
-      }
+    if (evt.name === "space" && store.active === "headless" && !store.credentialsPresent) {
+      setStore("headless", !store.headless)
+      evt.preventDefault()
     }
-    if (evt.name === "return" && store.active !== "url" && store.active !== "credentialID" && store.active !== "steps") {
+    if (
+      evt.name === "return" &&
+      store.active !== "target" &&
+      store.active !== "credentials" &&
+      store.active !== "scope" &&
+      store.active !== "exclude"
+    ) {
       const input = collect()
       if (input) props.onConfirm?.(input)
       evt.preventDefault()
@@ -111,33 +127,15 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
   onMount(() => {
     dialog.setSize("medium")
     setTimeout(() => {
-      if (urlArea && !urlArea.isDestroyed) urlArea.focus()
+      if (targetArea && !targetArea.isDestroyed) targetArea.focus()
     }, 1)
   })
 
   const submitFromTextarea = () => {
+    refreshCredentialsPresent()
     const input = collect()
     if (input) props.onConfirm?.(input)
   }
-
-  const checkbox = (label: string, field: "authenticated" | "headless", checked: boolean, disabled = false) => (
-    <box
-      flexDirection="row"
-      gap={2}
-      paddingLeft={1}
-      backgroundColor={store.active === field ? theme.backgroundElement : undefined}
-      onMouseUp={() => {
-        if (disabled) return
-        setStore("active", field)
-        focusActive()
-      }}
-    >
-      <text fg={disabled ? theme.textMuted : store.active === field ? theme.primary : theme.textMuted}>
-        {checked ? "[x]" : "[ ]"}
-      </text>
-      <text fg={disabled ? theme.textMuted : store.active === field ? theme.primary : theme.text}>{label}</text>
-    </box>
-  )
 
   return (
     <box paddingLeft={2} paddingRight={2} gap={1}>
@@ -152,13 +150,13 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 
       <box gap={1}>
         <box>
-          <text fg={store.active === "url" ? theme.primary : theme.text}>Target URL: *</text>
+          <text fg={store.active === "target" ? theme.primary : theme.text}>Target URL: *</text>
         </box>
         <textarea
           onSubmit={submitFromTextarea}
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (urlArea = val)}
+          ref={(val: TextareaRenderable) => (targetArea = val)}
           placeholder="https://target.example.com"
           textColor={theme.text}
           focusedTextColor={theme.text}
@@ -168,16 +166,37 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 
       <box gap={1}>
         <box>
-          <text fg={store.active === "credentialID" ? theme.primary : theme.text}>
-            Credential ID (optional, for capture tagging):
+          <text fg={store.active === "credentials" ? theme.primary : theme.text}>
+            Credentials (optional, comma-separated IDs):
           </text>
         </box>
         <textarea
           onSubmit={submitFromTextarea}
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (credArea = val)}
-          placeholder="cred_..."
+          ref={(val: TextareaRenderable) => (credsArea = val)}
+          placeholder="cred_admin, cred_user"
+          textColor={theme.text}
+          focusedTextColor={theme.text}
+          cursorColor={theme.text}
+        />
+        <text fg={theme.textMuted} paddingLeft={1}>
+          Anonymous crawl when empty. Each ID = one manual browser login. Multiple IDs run sequentially per identity.
+        </text>
+      </box>
+
+      <box gap={1}>
+        <box>
+          <text fg={store.active === "scope" ? theme.primary : theme.text}>
+            Scope (optional, comma-separated host patterns):
+          </text>
+        </box>
+        <textarea
+          onSubmit={submitFromTextarea}
+          height={3}
+          keyBindings={[{ name: "return", action: "submit" }]}
+          ref={(val: TextareaRenderable) => (scopeArea = val)}
+          placeholder="*.localhost, api.example.com"
           textColor={theme.text}
           focusedTextColor={theme.text}
           cursorColor={theme.text}
@@ -186,14 +205,16 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 
       <box gap={1}>
         <box>
-          <text fg={store.active === "steps" ? theme.primary : theme.text}>Max pages (optional, 1-200, default 50):</text>
+          <text fg={store.active === "exclude" ? theme.primary : theme.text}>
+            Exclude (optional, comma-separated UI labels):
+          </text>
         </box>
         <textarea
           onSubmit={submitFromTextarea}
           height={3}
           keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (stepsArea = val)}
-          placeholder="50"
+          ref={(val: TextareaRenderable) => (excludeArea = val)}
+          placeholder="Delete Account, Cancel Subscription"
           textColor={theme.text}
           focusedTextColor={theme.text}
           cursorColor={theme.text}
@@ -201,26 +222,53 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
       </box>
 
       <box flexDirection="column">
-        {checkbox("Wait for manual login (authenticated mode)", "authenticated", store.authenticated)}
-        {checkbox(
-          store.authenticated ? "Headless (forced off in manual-login mode)" : "Headless",
-          "headless",
-          store.authenticated ? false : store.headless,
-          store.authenticated,
-        )}
+        <box
+          flexDirection="row"
+          gap={2}
+          paddingLeft={1}
+          backgroundColor={store.active === "headless" ? theme.backgroundElement : undefined}
+          onMouseUp={() => {
+            if (store.credentialsPresent) return
+            setStore("active", "headless")
+            focusActive()
+          }}
+        >
+          <text
+            fg={
+              store.credentialsPresent
+                ? theme.textMuted
+                : store.active === "headless"
+                  ? theme.primary
+                  : theme.textMuted
+            }
+          >
+            {(store.credentialsPresent ? false : store.headless) ? "[x]" : "[ ]"}
+          </text>
+          <text
+            fg={
+              store.credentialsPresent
+                ? theme.textMuted
+                : store.active === "headless"
+                  ? theme.primary
+                  : theme.text
+            }
+          >
+            {store.credentialsPresent ? "Headless (forced off — credentials need manual login)" : "Headless"}
+          </text>
+        </box>
       </box>
 
-      <Show when={store.authenticated}>
+      <Show when={store.credentialsPresent}>
         <text fg={theme.warning ?? theme.textMuted} paddingLeft={1}>
-          ⚠ Manual-login mode: Esc and /hackbrowser-stop cannot cancel during the login wait.
+          ⚠ Manual login: Esc and /hackbrowser-stop cannot cancel during the login wait.
           Close the browser window manually to abort. (INTEGRATION.md §10.10)
         </text>
       </Show>
 
       <text fg={theme.textMuted} paddingBottom={1}>
         <span style={{ fg: theme.text }}>tab</span> to switch fields,{" "}
-        <span style={{ fg: theme.text }}>space</span> to toggle,{" "}
-        <span style={{ fg: theme.text }}>return</span> to launch (in URL/cred/steps fields too)
+        <span style={{ fg: theme.text }}>space</span> to toggle headless,{" "}
+        <span style={{ fg: theme.text }}>return</span> to launch
       </text>
     </box>
   )
