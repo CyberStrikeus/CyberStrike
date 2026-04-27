@@ -2,11 +2,16 @@ import { generateText, type LanguageModel } from "ai"
 import { Log } from "./log.ts"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
-import { readFileSync } from "fs"
-import { join, dirname } from "path"
-import { fileURLToPath } from "url"
 import type { PagePlan, PageTask, PageStateKind, RevisitTrigger } from "./types.ts"
 import type { PlannerSnapshot } from "./state.ts"
+
+// Bundle the planner prompt as text at import time. Previously this used
+// readFileSync(import.meta.url + "prompt/planner.txt"), which works fine
+// under `bun src/index.ts` (interpreted) but **fails** inside a Bun
+// `--compile` single binary: the file is not in BunFS and runtime
+// resolution returns ENOENT. Text import lets Bun embed the file content
+// into the bundle, identical behavior across both modes.
+import plannerPromptText from "./prompt/planner.txt" with { type: "text" }
 
 const log = Log.create({ service: "hackbrowser:navigator" })
 
@@ -14,14 +19,8 @@ const log = Log.create({ service: "hackbrowser:navigator" })
 // Prompt loading
 // ============================================================
 
-const PROMPT_DIR = join(dirname(fileURLToPath(import.meta.url)), "prompt")
-
-let cachedPlannerPrompt: string | null = null
-
 function loadPlannerPrompt(): string {
-  if (cachedPlannerPrompt) return cachedPlannerPrompt
-  cachedPlannerPrompt = readFileSync(join(PROMPT_DIR, "planner.txt"), "utf-8")
-  return cachedPlannerPrompt
+  return plannerPromptText
 }
 
 // ============================================================
