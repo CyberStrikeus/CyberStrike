@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: fd555cb01c7c52ce857040f7c2ee1655e61a1339cc319c515f9fd354a820d2d6
-signature: nAh3cpaIHfAh5EI2Bnpfq43nDPTZ/o5WNtSSVQ3FeulztkPiypx5f2vy4NkEKxNKdMwBmecLxSxAk8khszYPBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-14
@@ -490,9 +487,6 @@ document.addEventListener("DOMContentLoaded", function () {
 - [MDN - Link types: noopener](https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/noopener)
 - [Mathias Bynens - Reverse Tabnabbing](https://mathiasbynens.github.io/rel-noopener/)
 
-sha256: 9256c0147e2ebc69fdd3c397d67cc2f062e81bb44933f209a7dcee74fb06a3c6
-signature: DywhkmUKBuyS5DTwCTa9QT9nfjBFFUyj1Q2oPKHQlIOaOSDGVrrvNao3VHpjvp2JEUaZAQG13TLg9XsqNU8sBA==
-signed_by: cyberstrike-official
 
 ---
 

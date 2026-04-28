@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 273bfb5603799316503e127e4441fc9a5a3352967809e8511066e305cd493d36
-signature: jM4yMd+38wqVT8SmrMgG5o6lfm3/779KZU3yC0hzXdW7UbTGR7nMnkTFsTLEkxgs+wliyBoYYc6Sc0dIHWnjBg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-05.7
@@ -381,9 +378,6 @@ cq.select(root).where(cb.equal(root.get("name"), name));
 | **CWE-89**  | SQL Injection                               |
 | **CWE-943** | Improper Neutralization in Data Query Logic |
 
-sha256: 8715848076407ee2506593441296ca68885980bfa22af6fed26c1adf9be68c0f
-signature: JkXfD4d0LuNWDDbQ7wTyF6+ZimlphrjgAEt87U+HNOQsUnB94FwnlDxXvBGVBHkiQPi9Im6n7BJHsJfsJdn7AA==
-signed_by: cyberstrike-official
 
 ---
 

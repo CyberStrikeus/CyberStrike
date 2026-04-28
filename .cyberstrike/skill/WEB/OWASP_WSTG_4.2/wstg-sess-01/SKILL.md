@@ -11,9 +11,6 @@ cwe_ids: [CWE-539]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 0bf4e3ff740d319bf652b58d874438016a01efd402ca56446dcf50eb6f3d7bb2
-signature: uCKthDXrXPkaFsL7zt3TjKRjCFXcvU2nwi0fTWXEH84edhEV3eJR1XzFt541iKg4rbG+K7lL9edYrpE2QDS/AQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-01
@@ -632,9 +629,6 @@ class SessionValidator:
 - [OWASP WSTG - Session Management Testing](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/)
 - [RFC 6265 - HTTP State Management](https://tools.ietf.org/html/rfc6265)
 
-sha256: 19398feeed24ab27a59372a2023935015254afa1b66b289eb3ea35b85c4b8a76
-signature: NZFEfEBMH7c4wDuNz+REqtOXJpfsTBTguhpMDw9bbS3cx7v/Y00JV0YqFjmA65S9U6qYeA9cyK2GCNQMYfXDCQ==
-signed_by: cyberstrike-official
 
 ---
 

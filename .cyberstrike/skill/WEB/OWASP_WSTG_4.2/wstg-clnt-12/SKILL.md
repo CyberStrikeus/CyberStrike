@@ -11,9 +11,6 @@ cwe_ids: [CWE-79]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: a8b1eb93546c7fb29cd8cb3a0b47ba40d5f94aa76f105c769fa1d5ff309a4038
-signature: vfQ/I/EPCklnpFv5NINL98+AU1oCSpG6JESAW5n8UfK8ud/auS7gYXhmUm5oWsvpqmrt3CFp9ojmCcleqGfyAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-12
@@ -517,9 +514,6 @@ function secureLogout() {
 - [MDN - Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API)
 - [MDN - IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 
-sha256: 9e50aac778c03e7e456a2458048780892ba1dfa25aa7dedb1df5654fae041fd6
-signature: fVvRhMy/MWCC0U7RRuBIBfR32j1atdL4b6c8rU3nVqkCCjRlbBnQyQrmM23cpNfdBJK84a9cT0chDFVLBJNqDA==
-signed_by: cyberstrike-official
 
 ---
 

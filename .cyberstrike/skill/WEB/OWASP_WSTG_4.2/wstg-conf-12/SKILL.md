@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 4c6e020d66b79707940327cc51656be6c5cec6e019e91f87be670c21be6e11db
-signature: H6pTJsa1p/K6TafV9iPbdLFoGrPEfMf7839Tq3dncpmoFENwedsZl1i4qc/EhWG9+DnEx/P+Axnt/z6WQ0MbDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-12
@@ -397,9 +394,6 @@ Content-Security-Policy-Report-Only: default-src 'self'; report-uri /csp-report
 - [MDN CSP Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 - [OWASP CSP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html)
 
-sha256: b2d3f3a2fe25a5ee028653ee45e639f604709b30db98280914949303c7307b84
-signature: 6sz2I9uZNNc71Jg8uIsp4EW3oRM1EBLZtuTwAQR/DDb4gSoqV9TgJ5FgqGa3h3nBpxUnAvyKoh/1ueXjCspwDA==
-signed_by: cyberstrike-official
 
 ---
 

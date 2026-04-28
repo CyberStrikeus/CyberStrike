@@ -11,9 +11,6 @@ cwe_ids: [CWE-548]
 chains_with: [wstg-inpv-05, wstg-inpv-09, wstg-info-06]
 prerequisites: [wstg-info-01]
 severity_boost: {}
-sha256: 1ad35b73fc619458603bd7c7583a50781414bb768be4fac761cffe63688fb226
-signature: t0NmmZDuZVp0IG3GJLuE8CgY+3N8EJlAgU3z6cXl0h34sDm3Kt1od/wn21QFTuB2yStjUW4HZO3a5HE4szNWAg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-05
@@ -372,9 +369,6 @@ location /admin {
 - [OWASP WSTG - Enumerate Admin Interfaces](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/05-Enumerate_Infrastructure_and_Application_Admin_Interfaces)
 - [SecLists Admin Paths](https://github.com/danielmiessler/SecLists)
 
-sha256: 4d580d3353a8d5788bca91ff452950cb99d0cbd7661f6236c9a2f33f33eddefb
-signature: KqRjtvE5Ev6hVtxq9G8Q30SbYkAzZu4pap35TUwYYEW1R0ixActRVD2v2Uz+my5WY5iax6G29/BtDkF2iYcACQ==
-signed_by: cyberstrike-official
 
 ---
 

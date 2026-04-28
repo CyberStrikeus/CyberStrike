@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: fca8f01ada988025885901969c7dd272c355bdac219c0127a193229d9666c712
-signature: nb8sfDC8bWBAxYClBOC0Og401Nn1ZLXXXpUwugSzYKno/JJNfBGMQgzDact+0y48aNKsdwor3foxYGrkPTPxBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-06
@@ -614,9 +611,6 @@ class WorkflowTracker:
 - [OWASP Business Logic Security](https://owasp.org/www-community/vulnerabilities/Business_logic_vulnerability)
 - [State Machine Security Patterns](https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html)
 
-sha256: 58161926bdfa7c835cacd5c7d152a00108eeb7ebac9b11903d6f79c52d132421
-signature: rRoAIAoV4g4gQfAvuj2EpIrkT13Yw0r5gL8IdMRp1orp9g6Ojff2KQc/I9NXNDxDUTefu7b6PP+rhzi7WBGUDA==
-signed_by: cyberstrike-official
 
 ---
 

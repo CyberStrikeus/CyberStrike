@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 1e0171ec659c52a19793e8b9c84a0a4d2c1083f18664d59f225472a6ef3e5899
-signature: zRzIvuCjk9cQcFVOfJ9JWqd7boxRIFAN1E7ZMSTFvtSDwqIa8gZfdC2xSQ630yCgI3YRl5KWJV0CkhIauoKzBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-07
@@ -393,9 +390,6 @@ Findings discovered during mapping (race conditions, logic flaws) have separate 
 - [OWASP ZAP](https://www.zaproxy.org/)
 - [Burp Suite](https://portswigger.net/burp)
 
-sha256: 8efde05474c7c2634fb167b2107ddc4332a617fce3fa782f075e8e97c882f156
-signature: M15SqdcdEfRdLY8oFaA+2WmVZVFgFBG7XSihe/WEcOoUJu7vqqRw+wyYeDICeuGFUjzTNNbuNCONGo7kVA4KAw==
-signed_by: cyberstrike-official
 
 ---
 

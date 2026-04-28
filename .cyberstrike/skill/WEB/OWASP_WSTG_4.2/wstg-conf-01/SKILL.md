@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b476973ea88c36f8be486243f7e24481006e7c2ff5bc6d244a9253e697448271
-signature: /rg203RVfBCe8XV9OX+gN/cg0ZxfGSjXDU4oU/HpK7T3cjnaTgKk9BMCeuXgmSsi2T4dET2VH5xwiK5lTHJ7Dg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-01
@@ -330,9 +327,6 @@ Variable based on findings. Common scenarios:
 - [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks)
 - [NIST Checklist Program](https://nvd.nist.gov/ncp/repository)
 
-sha256: 0cd6fd9d10da14ad8cd8bb030969f94549277d74ad86f4004fb66bc9cc6f375d
-signature: tRrNKbgcqf3ATj9Fpf+lYo/6vN+kgn2u8u7fbUkV94tqx/aEYEDJXYMT8hXlKh5paTwr9s/lfScEkkuz3iwxAw==
-signed_by: cyberstrike-official
 
 ---
 

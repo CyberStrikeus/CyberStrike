@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3a53e5891dc451e5454e79d651accef372d4f74b81ca7e73a3b7ec2155184700
-signature: 9XdYWDQL/ZNLsIOoc8pB8aKBC3Ji8Os19w31wXRqdIxaQsbrjSXFSj/jN08rHqMzpeE+bzHpTdwiZDhujhJFBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-05.6
@@ -448,9 +445,6 @@ def sanitize_input(data):
 - [MongoDB Security](https://docs.mongodb.com/manual/security/)
 - [PayloadsAllTheThings - NoSQL](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/NoSQL%20Injection)
 
-sha256: 6618bc5711907596ead2a2a3faac3646c14145d6796fd8fe34d481653ae4eac3
-signature: yah1PKBTe62jRW8azTP1N+wQ6Kv8bosXI+V27mJFSVor4VM5yb3QevEfon2nEpw4c45zMkUDsNEppODvKEyLDg==
-signed_by: cyberstrike-official
 
 ---
 

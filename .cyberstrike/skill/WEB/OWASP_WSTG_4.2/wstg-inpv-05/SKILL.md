@@ -13,9 +13,6 @@ prerequisites: [wstg-info-01, wstg-info-06]
 severity_boost:
   wstg-authz-02: "SQLi + IDOR = Account Takeover (Critical)"
   wstg-conf-05: "SQLi + Directory Listing = Full DB Dump (Critical)"
-sha256: ee2399439e87b0b55c85698cff69ffd5b4e51bc58c6f0779dfd4a2c242eeda03
-signature: oTlouVaQ6cB6jlQL/EHE+cTAyp5c8p6WK/Wz/g9AIhkkmXaZTMAZzTk6rlnGm+fSZsnY5vtHx0nND8LpvBesBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-05
@@ -570,9 +567,6 @@ $result = $stmt->fetchAll();
 - [SQLMap Documentation](https://github.com/sqlmapproject/sqlmap/wiki)
 - [PayloadsAllTheThings - SQLi](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/SQL%20Injection)
 
-sha256: 9ed66b832e3fcaf41494f4b14c8195baaf4c4f6a52e37ce04a6d7fbc2aba847c
-signature: k3u2C5t5k09dxwSNnotvrVfMCS8CYbE7AKZD6+rwlqV9Ms8Wf+zj1mkcRL8sHhTmC3HNKyiQ4LZr9lCHqh5LCg==
-signed_by: cyberstrike-official
 
 ---
 

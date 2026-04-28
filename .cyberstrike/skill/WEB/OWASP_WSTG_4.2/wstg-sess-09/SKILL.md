@@ -11,9 +11,6 @@ cwe_ids: [CWE-384]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: ae4e4ed1ef9e8720f48e868f25e0b9b8182ed3258a3771d04f6b3192f325eefa
-signature: w0mbfilsQC5r9KmdC7wrSttBM3Mf4+7qXHsRHa7Z4iJgBbpQNDCJD5Nuom3Wdr4zbMN91MbDQ/de+b7pgwwTCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-09
@@ -231,9 +228,6 @@ def change_password():
 | **CWE-384** | Session Fixation        |
 | **CWE-287** | Improper Authentication |
 
-sha256: 63ab7c604202fe3f2d1339410b4a07b431923f100dc95e5530c7cbf0ea4bf71c
-signature: Mtm+yKn0VZPjgJVhcjX1vW9R6/DPby7rVNrWQLXYERIWiba+nso0BYURXNCoKd5zbrVsv3rTGSK9b7vV58AgBA==
-signed_by: cyberstrike-official
 
 ---
 

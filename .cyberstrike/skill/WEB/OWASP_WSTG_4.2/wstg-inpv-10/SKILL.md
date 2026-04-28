@@ -11,9 +11,6 @@ cwe_ids: [CWE-601]
 chains_with: [wstg-inpv-02, wstg-sess-05]
 prerequisites: [wstg-info-01]
 severity_boost: {}
-sha256: 031586d2c4b36053ca0638f3b0321f08be948642cc3be60a5b665e0b330d673f
-signature: bHS79y4RpSodQRUGZgFgqNzbMRn/chlLiKON2DbHXExsarTcK5D/nD21Q4546+PTFUnieSel8aZdH1OSL0ZbAQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-10
@@ -398,9 +395,6 @@ $headers .= "Reply-To: " . sanitize_email_header($email) . "\r\n";
 | **CWE-93** | Improper Neutralization of CRLF Sequences                   |
 | **CWE-88** | Improper Neutralization of Argument Delimiters in a Command |
 
-sha256: 4317939de3b32f71a344fff4d56c7bad62302a584a99af31a641f6756af08771
-signature: orVlPvHv9yMSli+cghDBIgvo5DPEh+We3Gc7MgUpfd9Y/Hw6g/1TjryAmH2tu3+oiM4N7feuW4EIW76lbxPfBA==
-signed_by: cyberstrike-official
 
 ---
 

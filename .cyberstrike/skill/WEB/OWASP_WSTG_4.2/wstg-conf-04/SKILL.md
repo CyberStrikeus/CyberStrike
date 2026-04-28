@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 4d9c2f7eccf545348056021128663ffb4ce563061e64eb36dc4348e7037f3ed0
-signature: lIOHNUw3zPL8Cln8EL5BszmRsB5GcJbgtczNiAYZg0wgCJ4YiNqFeJYDA8XGJm900H9iGp4tQlJZ+5jFP8NXDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-04
@@ -393,9 +390,6 @@ location ~* \.(bak|backup|old|orig|save|swp|tmp|sql|tar|gz|zip|rar)$ {
 - [OWASP WSTG - Review Old Backup and Unreferenced Files](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_Old_Backup_and_Unreferenced_Files_for_Sensitive_Information)
 - [SecLists Backup Filenames](https://github.com/danielmiessler/SecLists)
 
-sha256: 18c354b8bf143f5d844d9e6dd2bda7db82203c5ae86fadd64d8b0af428d0bcb3
-signature: 5YOEROzU4XT2ikNuSnXfkP1kQwYhNhnEdB7+r/96bImbI6AhrS4kzhdYllsrN+YP64hVKQ7kinUNG4kDL0eMBg==
-signed_by: cyberstrike-official
 
 ---
 

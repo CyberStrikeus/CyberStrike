@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 66cc2aa24c906eaa30ff0cae773c7df1f82a48206ddb0b05a97e53177ac24fb3
-signature: z1MB1AXKCVWZEjS8Tm7JYEkU7fQ/j1leI4TREwp7rQ22vFeEDefQFoHJmGdbEO1VESCLZvuFt+hfcSOq7XTkDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-05
@@ -650,9 +647,6 @@ class TieredLimiter:
 - [OWASP API Security - Rate Limiting](https://owasp.org/API-Security/)
 - [Rate Limiting Best Practices](https://cloud.google.com/architecture/rate-limiting-strategies-techniques)
 
-sha256: 4e290ea298cf92490f9b8e083d5ebfef530873ff6ab7f057a905c4be24e568eb
-signature: h11+5IzNnWv8+j/5xsjnfTd8vGkbDtvyNe4XXd5CD31whmslBs2bDLtF9xih7ugOKJQZ5BaMQh2oIKbJGIn/Dg==
-signed_by: cyberstrike-official
 
 ---
 

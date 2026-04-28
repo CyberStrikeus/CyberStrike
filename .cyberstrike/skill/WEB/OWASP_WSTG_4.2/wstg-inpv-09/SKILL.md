@@ -12,9 +12,6 @@ chains_with: [wstg-inpv-05, wstg-conf-05]
 prerequisites: [wstg-info-01, wstg-info-06]
 severity_boost:
   wstg-inpv-05: "Command Injection + SQLi = Full System Compromise (Critical)"
-sha256: ede40c8930a915c0b1a368ec3dc3b29e1e5772156fcddd50edb17c2ecd9eddbb
-signature: V8WlolwXQioYNkI/fzmJhqkaZcjfHSRHCo3HAz6eJTC+ar3uhVb84gqkc8HoCfcw+BQgJREsXE3oaA2uEeeSAQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-09
@@ -374,9 +371,6 @@ $xpath = "//user[username='$username']";
 | ----------- | -------------------------------------------------------- |
 | **CWE-643** | Improper Neutralization of Data within XPath Expressions |
 
-sha256: 10a218105e9a860dfe5687261e54e8e53a39a99f5347ca2c576a0db5a3ca0e42
-signature: YfIXH7OiTn3PlD+WvKXPLRhpoeapjLE3/+bsLXWMEojralo0MeyC/H/6sp0EBVtzE3Rqvs0Yjuuw5eFozfB4Dg==
-signed_by: cyberstrike-official
 
 ---
 

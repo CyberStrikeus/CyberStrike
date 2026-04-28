@@ -11,9 +11,6 @@ cwe_ids: [CWE-287]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 167aa0a24360ebb3b93f1ff9bc508ebb647279d294b4fd8b5f9fc76760dc757e
-signature: OyVIQHH+cDrK28Ez3yx07B3YH+9AsJQqQ886YyGXqMl370vQnk8WBtiar/whteDRE2Z3v5lw4a/gpfXMJlHhCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-07
@@ -623,9 +620,6 @@ document.getElementById("password").addEventListener("input", (e) => {
 - [NIST Password Guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html)
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 
-sha256: a45b1c9bc3ef4b9a3de56e882f4d3db454cc19d5e97849e752173c7beba425b7
-signature: XpgfojS+Wp3wGH8qq5AshuBQctZiXg01oglB7v+ntXKhVEZezss+eV0RrXeGP4GZbDogVO4jnQB+eyzaTOrnCA==
-signed_by: cyberstrike-official
 
 ---
 
