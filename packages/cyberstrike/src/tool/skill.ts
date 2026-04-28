@@ -9,6 +9,7 @@ import { KillChain } from "../skill/killchain"
 import { PermissionNext } from "../permission/next"
 import { Ripgrep } from "../file/ripgrep"
 import { iife } from "@/util/iife"
+import { Agent } from "../agent/agent"
 
 export const SkillTool = Tool.define("skill", async (ctx) => {
   // Lazy load skills only when tool is executed
@@ -56,10 +57,10 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     async execute(params: z.infer<typeof parameters>, ctx) {
       // Load and filter skills only when tool is actually executed
       const skills = await Skill.all()
-      const agent = ctx?.agent
-      const accessibleSkills = agent?.permission
+      const agentInfo = await Agent.get(ctx.agent)
+      const accessibleSkills = agentInfo?.permission
         ? skills.filter((skill) => {
-            const rule = PermissionNext.evaluate("skill", skill.name, agent.permission)
+            const rule = PermissionNext.evaluate("skill", skill.name, agentInfo.permission)
             return rule.action !== "deny"
           })
         : skills
