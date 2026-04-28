@@ -310,14 +310,8 @@ DialogHackbrowserLaunch.show = (dialog: DialogContext) => {
     dialog.replace(
       () => (
         <DialogHackbrowserLaunch
-          onConfirm={(input) => {
-            dialog.clear()
-            resolve(input)
-          }}
-          onCancel={() => {
-            dialog.clear()
-            resolve(null)
-          }}
+          onConfirm={(input) => resolve(input)}
+          onCancel={() => resolve(null)}
         />
       ),
       () => resolve(null),
