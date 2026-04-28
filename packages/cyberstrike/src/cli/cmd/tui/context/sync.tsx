@@ -14,6 +14,7 @@ import type {
   McpResource,
   FormatterStatus,
   SessionStatus,
+  SessionQueueStatus,
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
@@ -51,6 +52,26 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_status: {
         [sessionID: string]: SessionStatus
       }
+      session_queue_status: {
+        [sessionID: string]: SessionQueueStatus
+      }
+      // Hackbrowser tool status — populated by SSE event "session.hackbrowser.status".
+      // Inline type until SDK regenerator picks up the new BusEvent — keeping it
+      // local lets B.3 ship without a build-step bump. Migrate to imported
+      // HackbrowserStatus type once @cyberstrike-io/sdk regenerates.
+      session_hackbrowser_status: {
+        [sessionID: string]: {
+          sessionID: string
+          phase: "starting" | "crawling" | "completed" | "failed"
+          targetUrl: string
+          pagesExplored: number
+          capturedEndpoints: number
+          currentPage?: string
+          errors: string[]
+          startedAt: number
+          finishedAt?: number
+        }
+      }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
@@ -73,6 +94,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         [sessionID: string]: Array<{
           id: string
           method: string
+          host?: string
+          port?: number
           normalized_path: string
           status: string
         }>
@@ -147,6 +170,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider_default: {},
       session: [],
       session_status: {},
+      session_queue_status: {},
+      session_hackbrowser_status: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -287,6 +312,20 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
         case "session.status": {
           setStore("session_status", event.properties.sessionID, event.properties.status)
+          break
+        }
+
+        case "session.queue.status": {
+          setStore("session_queue_status", event.properties.sessionID, event.properties.status)
+          break
+        }
+
+        case "session.hackbrowser.status": {
+          setStore(
+            "session_hackbrowser_status",
+            event.properties.sessionID,
+            event.properties.status as never,
+          )
           break
         }
 
@@ -506,6 +545,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
             sdk.client.session.status().then((x) => {
               setStore("session_status", reconcile(x.data!))
+            }),
+            sdk.client.session.queueStatus().then((x) => {
+              setStore("session_queue_status", reconcile(x.data ?? {}))
             }),
             sdk.client.provider.auth().then((x) => setStore("provider_auth", reconcile(x.data ?? {}))),
             sdk.client.vcs.get().then((x) => setStore("vcs", reconcile(x.data))),

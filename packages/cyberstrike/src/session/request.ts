@@ -1,19 +1,15 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
-import { Database, eq, and } from "../storage/db"
+import { Database, eq, and, isNull } from "../storage/db"
 import { RequestTable } from "./session.sql"
 import { Identifier } from "../id/id"
-import { Agent } from "../agent/agent"
-import { Provider } from "../provider/provider"
-import { LLM } from "./llm"
-import { Log } from "../util/log"
 import { createHash } from "crypto"
 import { processResponse, type ResponseInput } from "./response-processor"
 
-const log = Log.create({ service: "request" })
 const Status = z.enum(["queued", "processing", "processed"])
 const Method = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
+const NormSource = z.enum(["tier1", "tier2", "tier3", "failed"])
 
 export namespace Request {
   export const Info = z
@@ -27,6 +23,21 @@ export namespace Request {
       body_hash: z.string().optional(),
       query_hash: z.string().optional(),
       status: Status,
+      // Hackbrowser enrichment (optional — not sent by Firefox extension)
+      trigger_element: z.string().optional(),
+      element_roles: z.array(z.string()).optional(),
+      ui_context: z.record(z.string(), z.unknown()).optional(),
+      page_url: z.string().optional(),
+      page_visited_by: z.array(z.string()).optional(),
+      // normalize-proto enrichment (optional — legacy rows pre-date this).
+      scheme: z.enum(["http", "https"]).optional(),
+      host: z.string().optional(),
+      port: z.number().optional(),
+      origin: z.string().optional(),
+      site: z.string().optional(),
+      canonical_path: z.string().optional(),
+      template_id: z.string().optional(),
+      norm_source: NormSource.optional(),
       // Response fields
       response_status: z.number().optional(),
       response_headers: z.record(z.string(), z.string()).optional(),
@@ -60,6 +71,21 @@ export namespace Request {
     bodyHash?: string
     queryHash?: string
     response?: ResponseInput
+    // Hackbrowser enrichment (optional — not sent by Firefox extension)
+    triggerElement?: string
+    elementRoles?: string[]
+    uiContext?: Record<string, unknown>
+    pageUrl?: string
+    pageVisitedBy?: string[]
+    // normalize-proto enrichment (optional — supplied by Normalize.run when called from ingest)
+    scheme?: "http" | "https"
+    host?: string
+    port?: number
+    origin?: string
+    site?: string
+    canonicalPath?: string
+    templateID?: string
+    normSource?: z.infer<typeof NormSource>
   }) {
     const id = Identifier.ascending("request")
     const now = Date.now()
@@ -79,6 +105,19 @@ export namespace Request {
           body_hash: input.bodyHash ?? null,
           query_hash: input.queryHash ?? null,
           status: "queued",
+          trigger_element: input.triggerElement ?? null,
+          element_roles: input.elementRoles ?? null,
+          ui_context: input.uiContext ?? null,
+          page_url: input.pageUrl ?? null,
+          page_visited_by: input.pageVisitedBy ?? null,
+          scheme: input.scheme ?? null,
+          host: input.host ?? null,
+          port: input.port ?? null,
+          origin: input.origin ?? null,
+          site: input.site ?? null,
+          canonical_path: input.canonicalPath ?? null,
+          template_id: input.templateID ?? null,
+          norm_source: input.normSource ?? null,
           response_status: processed?.status ?? null,
           response_headers: processed?.headers ?? null,
           response_content_type: processed?.contentType ?? null,
@@ -101,6 +140,19 @@ export namespace Request {
       body_hash: input.bodyHash,
       query_hash: input.queryHash,
       status: "queued" as const,
+      trigger_element: input.triggerElement,
+      element_roles: input.elementRoles,
+      ui_context: input.uiContext,
+      page_url: input.pageUrl,
+      page_visited_by: input.pageVisitedBy,
+      scheme: input.scheme,
+      host: input.host,
+      port: input.port,
+      origin: input.origin,
+      site: input.site,
+      canonical_path: input.canonicalPath,
+      template_id: input.templateID,
+      norm_source: input.normSource,
       response_status: processed?.status,
       response_headers: processed?.headers,
       response_content_type: processed?.contentType,
@@ -124,6 +176,19 @@ export namespace Request {
       body_hash: row.body_hash ?? undefined,
       query_hash: row.query_hash ?? undefined,
       status: row.status as Info["status"],
+      trigger_element: row.trigger_element ?? undefined,
+      element_roles: (row.element_roles as string[]) ?? undefined,
+      ui_context: (row.ui_context as Record<string, unknown>) ?? undefined,
+      page_url: row.page_url ?? undefined,
+      page_visited_by: (row.page_visited_by as string[]) ?? undefined,
+      scheme: (row.scheme as "http" | "https" | null) ?? undefined,
+      host: row.host ?? undefined,
+      port: row.port ?? undefined,
+      origin: row.origin ?? undefined,
+      site: row.site ?? undefined,
+      canonical_path: row.canonical_path ?? undefined,
+      template_id: row.template_id ?? undefined,
+      norm_source: (row.norm_source as Info["norm_source"]) ?? undefined,
       response_status: row.response_status ?? undefined,
       response_headers: (row.response_headers as Record<string, string>) ?? undefined,
       response_content_type: row.response_content_type ?? undefined,
@@ -133,45 +198,74 @@ export namespace Request {
     }))
   }
 
+  /**
+   * Two-stage dedup at the TEMPLATE level. Same endpoint shape (normalized
+   * template) hit twice — even with different concrete paths like
+   * `/users/1` vs `/users/2` — must collapse to one row so proxy-agent only
+   * analyzes the template once. The credential who hit it first wins on
+   * `request.credential_id`; subsequent hits with different credentials are
+   * still recorded by `WebCredential` and matched against the function via
+   * cross-cred replay tools.
+   *
+   * Body/query hashes still discriminate, so PUTs with different bodies
+   * (mass-assignment evidence) stay distinct.
+   *
+   * Stage 1: new identity — (sessionID, method, origin, normalized_path)
+   * Stage 2: legacy rows pre-date `origin` — fall back to (normalized_path)
+   * limited to rows with origin IS NULL so we don't spuriously match new ones.
+   */
   export function exists(input: {
     sessionID: string
     method: string
     normalizedPath: string
+    origin?: string
     bodyHash?: string
     queryHash?: string
   }): boolean {
-    const rows = Database.use((db) =>
+    const matches = (rows: { body_hash: string | null; query_hash: string | null }[]) =>
+      rows.some(
+        (r) =>
+          (input.bodyHash ? r.body_hash === input.bodyHash : r.body_hash == null) &&
+          (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
+      )
+
+    // Stage 1: new identity — origin scopes the template (api vs admin
+    // subdomain stay separate; the template alone would collide them).
+    const origin = input.origin
+    if (origin) {
+      const newKeyRows = Database.use((db) =>
+        db
+          .select({ body_hash: RequestTable.body_hash, query_hash: RequestTable.query_hash })
+          .from(RequestTable)
+          .where(
+            and(
+              eq(RequestTable.session_id, input.sessionID),
+              eq(RequestTable.method, input.method),
+              eq(RequestTable.origin, origin),
+              eq(RequestTable.normalized_path, input.normalizedPath),
+            ),
+          )
+          .all(),
+      )
+      if (matches(newKeyRows)) return true
+    }
+
+    // Stage 2: legacy fallback. Only matches rows that pre-date origin.
+    const legacyRows = Database.use((db) =>
       db
-        .select({ id: RequestTable.id })
+        .select({ body_hash: RequestTable.body_hash, query_hash: RequestTable.query_hash })
         .from(RequestTable)
         .where(
           and(
             eq(RequestTable.session_id, input.sessionID),
             eq(RequestTable.method, input.method),
             eq(RequestTable.normalized_path, input.normalizedPath),
+            isNull(RequestTable.origin),
           ),
         )
         .all(),
     )
-    if (rows.length === 0) return false
-    const full = Database.use((db) =>
-      db
-        .select()
-        .from(RequestTable)
-        .where(
-          and(
-            eq(RequestTable.session_id, input.sessionID),
-            eq(RequestTable.method, input.method),
-            eq(RequestTable.normalized_path, input.normalizedPath),
-          ),
-        )
-        .all(),
-    )
-    return full.some(
-      (r) =>
-        (input.bodyHash ? r.body_hash === input.bodyHash : r.body_hash == null) &&
-        (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
-    )
+    return matches(legacyRows)
   }
 
   export function updateStatus(input: { id: string; status: z.infer<typeof Status> }) {
@@ -202,78 +296,9 @@ export namespace Request {
     return createHash("sha256").update(keys.join(",")).digest("hex").slice(0, 16)
   }
 
-  export async function normalize(input: { path: string; providerID: string; modelID: string }): Promise<string> {
-    const agent = await Agent.get("normalize-request")
-    if (!agent) return input.path
-
-    const model = await (async () => {
-      if (agent.model) return Provider.getModel(agent.model.providerID, agent.model.modelID)
-      const small = await Provider.getSmallModel(input.providerID)
-      if (small) return small
-      return Provider.getModel(input.providerID, input.modelID)
-    })()
-
-    const result = await LLM.stream({
-      agent,
-      user: {
-        id: "normalize",
-        sessionID: "normalize",
-        role: "user",
-        time: { created: Date.now() },
-        agent: "normalize-request",
-        model: { providerID: model.providerID, modelID: model.id },
-      },
-      system: [],
-      small: true,
-      tools: {},
-      model,
-      abort: new AbortController().signal,
-      sessionID: "normalize",
-      retries: 2,
-      messages: [
-        {
-          role: "user",
-          content: `Normalize this URL path:\n${input.path}`,
-        },
-      ],
-    })
-
-    const text = await result.text.catch((err) => {
-      log.error("failed to normalize request path", { error: err })
-      return null
-    })
-
-    if (!text) return input.path
-
-    const cleaned = text
-      .replace(/<think>[\s\S]*?<\/think>\s*/g, "")
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.length > 0 && line.startsWith("/"))
-
-    return cleaned ?? input.path
-  }
-
-  export function parseRawRequest(rawText: string): {
-    method: string
-    path: string
-    query?: string
-    body?: string
-  } | null {
-    const lines = rawText.split("\n")
-    const firstLine = lines[0]?.trim()
-    if (!firstLine) return null
-
-    const match = firstLine.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(\S+)/)
-    if (!match) return null
-
-    const method = match[1]
-    const fullPath = match[2]
-    const [path, query] = fullPath.split("?")
-
-    const bodyStart = rawText.indexOf("\r\n\r\n")
-    const body = bodyStart !== -1 ? rawText.slice(bodyStart + 4).trim() : undefined
-
-    return { method, path, query, body: body || undefined }
-  }
+  // The legacy LLM-only `Request.normalize()` and `Request.parseRawRequest()`
+  // were removed in PR-5. Path normalization now flows through
+  // `session/normalize/index.ts → Normalize.run()`, which handles parsing,
+  // tier-1 regex fast-path, tier-2 cache lookup, and tier-3 LLM fallback in
+  // one place. The ingest route invokes it directly.
 }
