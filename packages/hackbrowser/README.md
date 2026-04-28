@@ -22,7 +22,7 @@ The key addition over the Firefox extension: every captured request is enriched 
 ## Setup
 
 ```bash
-cd browser-agent
+cd hackbrowser
 bun install
 npx playwright install chromium
 ```

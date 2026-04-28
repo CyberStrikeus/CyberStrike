@@ -253,7 +253,7 @@ export async function snapshotPageUI(
     }
 
     return results
-  }, triggerHandle) as UIField[]
+  }, triggerHandle as ElementHandle<Element> | null) as UIField[]
 
   // Release the handle after evaluate — avoid leaks if caller keeps page alive
   if (triggerHandle) {

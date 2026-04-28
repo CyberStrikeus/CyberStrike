@@ -130,7 +130,7 @@ export const RequestTable = sqliteTable(
     body_hash: text(),
     query_hash: text(),
     status: text().notNull(),
-    // Browser-agent enrichment fields (nullable — not sent by Firefox extension)
+    // Hackbrowser enrichment fields (nullable — not sent by Firefox extension)
     trigger_element: text(),
     element_roles: text({ mode: "json" }).$type<string[]>(),
     ui_context: text({ mode: "json" }).$type<Record<string, unknown>>(),

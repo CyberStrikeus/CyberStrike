@@ -807,6 +807,13 @@ export namespace MessageV2 {
     })
   }
 
+  export function filterToOnly(messages: WithParts[], keepUserID: string): WithParts[] {
+    return messages.filter((msg) => {
+      if (msg.info.role === "user") return msg.info.id === keepUserID
+      return msg.info.parentID === keepUserID
+    })
+  }
+
   export async function filterCompacted(stream: AsyncIterable<MessageV2.WithParts>) {
     const result = [] as MessageV2.WithParts[]
     const completed = new Set<string>()

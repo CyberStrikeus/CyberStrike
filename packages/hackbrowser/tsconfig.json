@@ -4,6 +4,7 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     // Mirror cyberstrike's tsconfig settings — required because we import cyberstrike source directly
+    "types": [],
     "noUncheckedIndexedAccess": false,
     "paths": {
       "@/*": ["../cyberstrike/src/*"],

@@ -214,7 +214,7 @@ export interface IngestPayload {
   sessionID?: string
   credential_id?: string
   // URL scheme of the captured request. Optional for backward compat with
-  // older browser-agent / Firefox extension builds; CyberStrike falls back
+  // older hackbrowser / Firefox extension builds; CyberStrike falls back
   // to a Host-header heuristic when absent.
   scheme?: "http" | "https"
   response?: {
@@ -273,6 +273,11 @@ export interface AgentConfig {
   // Out-of-scope labels (Aşama 13) — planner never plans tasks with these labels (semantic match).
   // Example: ["Delete Account", "Cancel Subscription"]
   outOfScope?: string[]
+  // Network scope: hostnames whose requests get forwarded to CyberStrike.
+  // Each entry is a bare host ("api.test.com") or wildcard ("*.test.com").
+  // When omitted, scope is derived from targetUrl's eTLD+1 wildcard.
+  // Distinct from outOfScope (which is a planner-side semantic filter).
+  scope?: string[]
   // Max navigation steps before stopping
   maxSteps?: number
   // Show browser window
@@ -281,6 +286,14 @@ export interface AgentConfig {
   dryRun?: boolean
   // Inject the live telemetry panel into every page (PANEL_UI_BRIEF.md). Default: true.
   panel?: boolean
+  // Pre-resolved LanguageModel — when provided, navigator skips env resolution.
+  // Used by cyberstrike launcher (Provider → opts.model → AgentConfig.model).
+  // Standalone CLI leaves this undefined; navigator falls back to env vars.
+  model?: import("ai").LanguageModel
+  // Cancellation signal — agent BFS loop checks signal.aborted at each
+  // iteration boundary; browser closes via existing finally block.
+  // Wired by api.ts from CrawlOptions.signal (Faz B.5).
+  signal?: AbortSignal
 }
 
 /** Single credential definition for multi-credential crawl */
@@ -356,5 +369,25 @@ export type CSEvent =
 export interface QueueEntry {
   url: string
   contexts: string[]  // ["admin", "user"] or ["default"] for single-credential
+}
+
+// ============================================================
+// Library API result type (INTEGRATION.md §4.1)
+// ============================================================
+
+/**
+ * Result returned by `run()` / `runMultiCredential()` / `runCrawl()`.
+ *
+ * Errors are aggregated here rather than thrown — caller (CLI shell or
+ * cyberstrike launcher) decides exit code / user surface based on the
+ * `errors` array. Only truly fatal cases (resolveModel fails, initSession
+ * fails) propagate as exceptions; everything else is collected.
+ */
+export interface CrawlResult {
+  sessionID: string
+  capturedEndpoints: number
+  pagesExplored: number
+  totalSteps: number
+  errors: string[]
 }
 

@@ -38,6 +38,7 @@ import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
+import { HackbrowserTool } from "./hackbrowser"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -146,6 +147,9 @@ export namespace ToolRegistry {
       WebGetSessionContextTool,
       WebGetRequestDetailTool,
       WebUpdateCredentialClaimsTool,
+      // Hackbrowser — autonomous crawler that produces captures the
+      // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
+      HackbrowserTool,
       ...custom,
     ]
   }

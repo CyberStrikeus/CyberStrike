@@ -1,9 +1,9 @@
 import type { Page, BrowserContext } from "playwright"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import fs from "fs"
 import readline from "readline"
 
-const log = Log.create({ service: "browser-agent:auth" })
+const log = Log.create({ service: "hackbrowser:auth" })
 
 // ============================================================
 // Session management
