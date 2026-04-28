@@ -1,36 +1,9 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-*.tsbuildinfo
-
-# Logs
-dummy-api/logs/
-*.log
-
-# Environment
-.env
-.env.local
-
-# Editor
-.DS_Store
-.vscode/
-.idea/
-
-# Architecture & planning docs (personal working notes)
+# Internal architecture/planning docs — not part of the published package
 ARCHITECTURE.md
+ARCHITECT-GAP.md
+INTEGRATION.md
 CYBERSTRIKE_PIPELINE.md
 PLAN.md
-test-case-bugs.md
-CYBERSTRIKE_PIPELINE.md
-claude.txt
-INTEGRATION.md
-ARCHITECT-GAP.md
 PROGRESS.md
-
-# Test cases and dummy api (local development)
-test-cases
-dumy-api
-dummy-api
-
+test-case-bugs.md
+test-cases/
