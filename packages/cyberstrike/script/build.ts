@@ -168,11 +168,17 @@ for (const item of targets) {
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
     sourcemap: "external",
-    // Hackbrowser bundles Playwright; Bun build must skip these optional
-    // backends (BiDi protocol, Electron) — chromium-over-CDP doesn't load
-    // them at runtime. Without this list, compile fails with
-    // "Could not resolve: chromium-bidi/..." (INTEGRATION.md §10.1).
-    external: ["chromium-bidi", "electron"],
+    // Playwright and its core must be external so Bun does not bake the
+    // build-machine's absolute node_modules path into the binary
+    // (playwright-core resolves its own package.json via __dirname at
+    // build time → CI path embedded → crashes on user machines).
+    // playwright is added as a dependency in publish.ts so npm installs
+    // it alongside cyberstrike; the compiled binary resolves it from the
+    // parent node_modules at runtime via standard CJS walk-up.
+    // chromium-bidi / electron: optional Playwright backends not used by
+    // CDP path — excluded to avoid "Could not resolve" build errors
+    // (INTEGRATION.md §10.1).
+    external: ["playwright", "playwright-core", "chromium-bidi", "electron"],
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

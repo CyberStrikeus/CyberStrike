@@ -71,6 +71,9 @@ await Bun.file(`./${distDir}/package.json`).write(
         type: "git",
         url: "https://github.com/CyberStrikeus/CyberStrike.git",
       },
+      dependencies: {
+        playwright: "1.58.2",
+      },
       optionalDependencies: binaries,
     },
     null,
