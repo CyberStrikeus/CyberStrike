@@ -1265,36 +1265,6 @@ export namespace Provider {
     }
   }
 
-  /**
-   * Extract serializable model access info for the hackbrowser subprocess.
-   * The worker uses this to reconstruct a LanguageModel without importing
-   * cyberstrike's Provider system.
-   */
-  export async function getModelDescriptor(model: Model): Promise<{
-    npm: string
-    apiKey?: string
-    baseURL?: string
-    modelApiId: string
-    headers?: Record<string, string>
-  }> {
-    const s = await state()
-    const provider = s.providers[model.providerID]
-    const options = { ...provider.options }
-    if (!options["baseURL"]) options["baseURL"] = model.api.url
-    if (options["apiKey"] === undefined && provider.key) options["apiKey"] = provider.key
-    const mergedHeaders: Record<string, string> | undefined =
-      model.headers || options["headers"]
-        ? { ...(options["headers"] as Record<string, string> | undefined), ...model.headers }
-        : undefined
-    return {
-      npm: model.api.npm,
-      apiKey: options["apiKey"] as string | undefined,
-      baseURL: options["baseURL"] as string | undefined,
-      modelApiId: model.api.id,
-      headers: mergedHeaders,
-    }
-  }
-
   export async function closest(providerID: string, query: string[]) {
     const s = await state()
     const provider = s.providers[providerID]

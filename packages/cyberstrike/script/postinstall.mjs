@@ -5,7 +5,6 @@ import path from "path"
 import os from "os"
 import { fileURLToPath } from "url"
 import { createRequire } from "module"
-import { execSync } from "child_process"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -150,65 +149,6 @@ function installSkills() {
   console.log(`Skills installed to ${skillDest}`)
 }
 
-/**
- * Install hackbrowser worker JS to Global.Path.bin equivalent
- * (~/.local/share/cyberstrike/bin/hackbrowser-worker.js).
- *
- * The worker is the subprocess that runs playwright/hackbrowser so that
- * the main cyberstrike binary has zero playwright references at startup
- * (subprocess.md). The main binary locates the worker at this path.
- *
- * Playwright JS package is also installed to
- * ~/.local/share/cyberstrike/node_modules/ so the worker can resolve it
- * at runtime without relying on the npm global node_modules layout.
- * The actual chromium binary requires a separate one-time step:
- *   npx playwright install chromium
- */
-function installHackbrowserWorker() {
-  const workerSrc = path.join(__dirname, "hackbrowser-worker.js")
-  if (!fs.existsSync(workerSrc)) {
-    console.warn("Warning: hackbrowser-worker.js not found in package — hackbrowser subcommand will not work")
-    return
-  }
-
-  const dataDir = path.join(xdgDataDir(), "cyberstrike")
-  const binDir = path.join(dataDir, "bin")
-  const workerDest = path.join(binDir, "hackbrowser-worker.js")
-
-  fs.mkdirSync(binDir, { recursive: true })
-  fs.copyFileSync(workerSrc, workerDest)
-  console.log(`hackbrowser worker installed to ${workerDest}`)
-
-  // Install playwright JS package next to the worker so Node/Bun upward
-  // traversal from binDir finds it at dataDir/node_modules/playwright/.
-  // The playwright package itself is small (~5 MB); chromium is separate.
-  const nodeModulesDir = path.join(dataDir, "node_modules")
-  const playwrightDir = path.join(nodeModulesDir, "playwright")
-  if (!fs.existsSync(playwrightDir)) {
-    console.log("Installing playwright npm package for hackbrowser worker...")
-    try {
-      execSync(`npm install --prefix "${dataDir}" playwright@1.58.2 --no-fund --no-audit --loglevel=error`, {
-        stdio: "inherit",
-        timeout: 120000,
-      })
-      console.log("playwright installed to", nodeModulesDir)
-    } catch (err) {
-      console.warn(
-        "Warning: Failed to install playwright automatically:",
-        err.message,
-        "\nTo install manually: npm install --prefix ~/.local/share/cyberstrike playwright@1.58.2",
-      )
-    }
-  } else {
-    console.log("playwright already installed at", playwrightDir)
-  }
-
-  console.log(
-    "\nTo use hackbrowser, install the Chromium browser (one-time setup):",
-    "\n  npx playwright install chromium",
-  )
-}
-
 async function main() {
   try {
     if (os.platform() === "win32") {
@@ -217,7 +157,6 @@ async function main() {
       console.log("Windows detected: binary setup not needed (using packaged .exe)")
       installWebUI()
       installSkills()
-      installHackbrowserWorker()
       return
     }
 
@@ -229,7 +168,6 @@ async function main() {
 
     installWebUI()
     installSkills()
-    installHackbrowserWorker()
   } catch (error) {
     console.error("Failed to setup cyberstrike binary:", error.message)
     process.exit(1)

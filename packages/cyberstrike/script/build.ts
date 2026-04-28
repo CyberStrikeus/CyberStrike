@@ -168,14 +168,17 @@ for (const item of targets) {
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
     sourcemap: "external",
-    // Main binary has ZERO playwright references (subprocess.md): hackbrowser
-    // runs in a separate worker process (hackbrowser-worker.js). No playwright
-    // external list needed here — if playwright somehow slips in, the build
-    // will fail loudly at compile time rather than silently at user startup.
-    // chromium-bidi / electron: optional Playwright backends not used by CDP
-    // path. Kept to prevent "Could not resolve" errors if any transitive dep
-    // still references them (INTEGRATION.md §10.1).
-    external: ["chromium-bidi", "electron"],
+    // Playwright and its core must be external so Bun does not bake the
+    // build-machine's absolute node_modules path into the binary
+    // (playwright-core resolves its own package.json via __dirname at
+    // build time → CI path embedded → crashes on user machines).
+    // playwright is added as a dependency in publish.ts so npm installs
+    // it alongside cyberstrike; the compiled binary resolves it from the
+    // parent node_modules at runtime via standard CJS walk-up.
+    // chromium-bidi / electron: optional Playwright backends not used by
+    // CDP path — excluded to avoid "Could not resolve" build errors
+    // (INTEGRATION.md §10.1).
+    external: ["playwright", "playwright-core", "chromium-bidi", "electron"],
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,
@@ -213,33 +216,6 @@ for (const item of targets) {
   )
   binaries[name] = Script.version
 }
-
-// ============================================================
-// Worker JS build — hackbrowser subprocess (subprocess.md)
-// ============================================================
-//
-// Built as a plain JS bundle (NOT a Bun compile) so it can be run with
-// bun or node and resolve playwright at runtime from node_modules next
-// to the worker file. playwright/playwright-core are external so they
-// are not baked in here either — they live in
-// ~/.local/share/cyberstrike/node_modules/ and are installed by postinstall.
-// chromium-bidi / electron: excluded for the same reason as in the main build.
-
-await $`mkdir -p dist/hackbrowser-worker`
-const workerBuildResult = await Bun.build({
-  entrypoints: ["./src/hackbrowser-subprocess/hackbrowser-worker.ts"],
-  outdir: "./dist/hackbrowser-worker",
-  target: "node",
-  external: ["playwright", "playwright-core", "chromium-bidi", "electron"],
-  minify: false,
-  sourcemap: "none",
-})
-if (!workerBuildResult.success) {
-  console.error("hackbrowser-worker build failed:")
-  for (const log of workerBuildResult.logs) console.error(log)
-  process.exit(1)
-}
-console.log("hackbrowser-worker.js built")
 
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
