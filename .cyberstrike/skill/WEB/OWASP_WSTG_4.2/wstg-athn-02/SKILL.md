@@ -11,9 +11,6 @@ cwe_ids: [CWE-640]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 9220089a488bec31c663fc2b2edee9c304ef60948f4e9748117d4fb2aaff4308
-signature: VU5hMLTPI08A/XbS8n/hTWkSTiFEr3gplxHCo6f3ErYxoykWLJSLh2Bf2z3uEipMacwDuL2iU3K6SRfRrWLiDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-02
@@ -566,9 +563,6 @@ def login():
 - [CIRT.net Default Passwords](https://cirt.net/passwords)
 - [SecLists Default Credentials](https://github.com/danielmiessler/SecLists/tree/master/Passwords/Default-Credentials)
 
-sha256: 2c049c9de339c37db13f3b6480f6c4004d609d7731253b27f1fb49e7a7acb2ad
-signature: pioWjRtSbZUnHBKKDtifs67FSSzSxjNen2mNAboud9NX2HMm8WdOShXsa6z8H1n8c6nJYGBqhlWZ1P4o0r4yCA==
-signed_by: cyberstrike-official
 
 ---
 

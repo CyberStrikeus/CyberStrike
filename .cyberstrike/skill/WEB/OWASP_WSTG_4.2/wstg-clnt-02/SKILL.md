@@ -11,9 +11,6 @@ cwe_ids: [CWE-79]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: c38c2e84d4bf38fdcddfd38c340e452658a2d458cc2ac3bae91cba06f6e44c4a
-signature: PT6eCBWxrUFIX3RDeQupC2k22otnfJvp1qizVg9WqjD9ZrjrV/hvLKH9DCwXBlcNFDqsNKvV4URhYOjrd+O+Bw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-02
@@ -132,9 +129,6 @@ if (allowedFunctions[functionName]) {
 | ---------- | ------------------------------------------------------------------- |
 | **CWE-95** | Improper Neutralization of Directives in Dynamically Evaluated Code |
 
-sha256: 3b36acef1c1a6b880e018ae92c06ccbda9403bdc0f82d633567ace5e0b3f8417
-signature: ADL18j8oBvWMmWtFEph9D9RFumRsfcIUzSM/G6LMUYv+rgGosRsBvMnDSeVZgMSzv0j0VKiXAmoTXauKSWN5BA==
-signed_by: cyberstrike-official
 
 ---
 

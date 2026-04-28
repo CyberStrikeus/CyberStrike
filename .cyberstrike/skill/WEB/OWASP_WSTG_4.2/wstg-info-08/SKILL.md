@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 80d26d7f90f05f29ef3b0f5ffc1985f49da67b30c8f6da55745c95052da41638
-signature: S7deI3QOWcBhBxNqSwIbtq3Uv8OPihCGLzJXUDGv3tzo0uTqxgKxJ0p5DzJ5PHv2F9xcCWAoY2kW4fmlNXmKBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-08
@@ -527,9 +524,6 @@ DEBUG = False
 - [Wappalyzer](https://www.wappalyzer.com/)
 - [BuiltWith](https://builtwith.com/)
 
-sha256: 287e3097348370ea5c5c3d2d61531f727be628567e7714b7c5449ab84097e13f
-signature: GWuRK9+WzqoTf/6URt+mUfnE8qHpFGyCdKzn1CQzv3iMbYrGmWL8x126E4nvHjwvXMmjcm0P9ykInvz52z1nBg==
-signed_by: cyberstrike-official
 
 ---
 

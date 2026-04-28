@@ -11,9 +11,6 @@ cwe_ids: [CWE-89]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b60f5ce734219061954b0b153fca35e16f0891845c9e9e1d8e03a8ed8b939c11
-signature: Jm6O7GtqQQ22bcxko8lDUrfM2cUYspub9SZJ1VbCFlWKSNzDJ9EypjkVkPUxGH9z0J7dv6d4Sdoy7bufQRL2BQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-03
@@ -413,9 +410,6 @@ location /admin {
 - [OWASP HTTP Verb Tampering](https://owasp.org/www-project-web-security-testing-guide/)
 - [RFC 7231 - HTTP Methods](https://tools.ietf.org/html/rfc7231)
 
-sha256: 8ff4d72756d5a5b9dc960ad74e20a3be5bfdb9a06c5f4331dde9db426851b574
-signature: WGG33OnQAt9xE3HXdDcLKCXtzQyA3Ubp4i6XXipU8dMS5l5VWuSVLtQIZjteeYTxiauxvKi8Nmdi6nCSh3XUCw==
-signed_by: cyberstrike-official
 
 ---
 

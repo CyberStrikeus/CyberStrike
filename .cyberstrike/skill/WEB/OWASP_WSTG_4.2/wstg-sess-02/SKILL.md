@@ -11,9 +11,6 @@ cwe_ids: [CWE-384]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b7c67f771381032da15e56c7e92601f363e7c435cd5317b6c9153b189a32933e
-signature: Ms0E1qwQW5fyKHr19pRort39YSaaNAeATFPZ3eQ3ex5HAUrMUpH79fqXg66Th09xT0B/F8fxJ8KYKwEUFAzDCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-02
@@ -550,9 +547,6 @@ location / {
 - [RFC 6265 - HTTP State Management](https://tools.ietf.org/html/rfc6265)
 - [Cookie Prefixes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#Cookie_prefixes)
 
-sha256: 788101ada7d864d3f038079525288700f5d5cf64ec058d8cecb9ae1a219719fa
-signature: sCf9+JvW0TYGy8GmdelOL/fHWBj9jyVzFqWJKySfWUb8uxQSmF+VMpSK8ESRavvUSD7IsL7xF4/k76HsBEtECg==
-signed_by: cyberstrike-official
 
 ---
 

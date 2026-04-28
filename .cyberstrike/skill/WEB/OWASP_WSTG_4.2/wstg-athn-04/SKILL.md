@@ -11,9 +11,6 @@ cwe_ids: [CWE-307]
 chains_with: [wstg-athn-05, wstg-athn-02]
 prerequisites: [wstg-idnt-01]
 severity_boost: {}
-sha256: 10e3783f68b981c2a52df2b67c45996b6b926e58c0e18fb9b8aad341287dc054
-signature: zsE4l08gBZXtouiYoGgmwFGGTCsd4hhC4Lpuhxi+FnUnslTelOjHR1z+AomSne1ydd2mhTFDrKbYj8ZHCpvbCA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-04
@@ -604,9 +601,6 @@ def check_authorization():
 - [OWASP Testing for SQL Injection](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05-Testing_for_SQL_Injection)
 - [JWT Security Best Practices](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/)
 
-sha256: a83aebb18a437addda90c660d546bf5d956c78bf97c3cdde60830dc55d1ae72d
-signature: 6mH83LUNhn9oOtS8daxUSF4GBdMHOPNQpFoEVqrRhi5ARXPHZViAOERbuZhwtXHtW3RABgw9uuyhBjsFnwb4Cw==
-signed_by: cyberstrike-official
 
 ---
 

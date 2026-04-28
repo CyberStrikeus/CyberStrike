@@ -13,9 +13,6 @@ prerequisites: [wstg-info-01]
 severity_boost:
   wstg-sess-05: "XSS + CSRF = Session Hijack (Critical)"
   wstg-athn-05: "XSS + Auth Bypass = Account Takeover (Critical)"
-sha256: 077114f72e1763ab0424e061d27e591b842394defee9e19e4a4abe500ab3f051
-signature: w56L5Bi5KTpLbt43vR+PcJVoxBeFXPZ5QTK9lv2BvxEsSaTSODGVC4qG2hAubKe8lVaqHvOcY7+7mCylhfZwBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-02
@@ -470,9 +467,6 @@ element.innerHTML = clean
 - [PortSwigger Stored XSS](https://portswigger.net/web-security/cross-site-scripting/stored)
 - [XSS Hunter](https://xsshunter.com/)
 
-sha256: afb97be9af6b2bbda4117c0dc38d38a2a4acf16e84a1cffcee4903da64f898db
-signature: eTXPUyOrGw+upwAFUbTd743Z9d2hR7lLDcjcw5ebIJDUESmqQIIxwCBVyUM+nj3c0N5bACWnVGkOXgyxKmtPBg==
-signed_by: cyberstrike-official
 
 ---
 

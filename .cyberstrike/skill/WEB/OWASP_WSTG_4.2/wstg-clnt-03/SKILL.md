@@ -11,9 +11,6 @@ cwe_ids: [CWE-94]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: a6247cd3932589b280aa00b2b160e133756cf3642369a0ba3a1705fb92187f28
-signature: vL3NtlwWIvhONxZlRsrfCRCpr33bqgixZuEOEOiM9w/j/XfL+So/B4FlQ0FctvBK1AVBsUqea+EJx4kIZFfIAA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-03
@@ -161,9 +158,6 @@ element.textContent = userInput // Safe
 | ---------- | --------------------------------------------------- |
 | **CWE-80** | Improper Neutralization of Script-Related HTML Tags |
 
-sha256: 46be4dfcb4d5e216e1ed2d1198086a6ef7b552c0811b9fa7ebab8d269a717040
-signature: s1dAO260fyw1dUHI7dc0R8OU9E/T7Evwo5GjHGLHbFIKx9Rs1UsJLdfLbTWg6A4NNhtzWeFXkz++l1/1Z5PfAg==
-signed_by: cyberstrike-official
 
 ---
 

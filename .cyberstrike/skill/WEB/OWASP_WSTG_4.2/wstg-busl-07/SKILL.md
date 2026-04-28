@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 6a8c3e274631071a64a21fd3b96b762d841405516a479daa176d7b43817c94fe
-signature: NHM73Uregz03hgOl9EvyQn2zuduKMZg/LpmzaTq3hBuuda1sG8MnGOpWaOrClpFk7qP39DE1YqF88mv/J93PDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-07
@@ -666,9 +663,6 @@ class BehaviorAnalyzer:
 - [OWASP Blocking Brute Force](https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks)
 - [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html)
 
-sha256: 13125b58998fcde9a469cae2d7861c24612223f975b068a5eade94d5d7985dc2
-signature: /ngg0KdJskT+bLmh1EsLr6hX+bFQO+eriXtRCvYFVtKXRCNe5d94oHgnyULxEug+BB3M3XlDwTHWHRc9eC+hCQ==
-signed_by: cyberstrike-official
 
 ---
 

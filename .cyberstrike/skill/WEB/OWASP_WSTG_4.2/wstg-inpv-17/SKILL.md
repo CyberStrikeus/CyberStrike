@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: e9a44c8eea563b2a6fd878363362f8ea6e054ffe3ae6855e5cbed99543accfe7
-signature: fjw/vafeqRGxLv12o0bZE/hcDjhFTws81jNcl2bZJgr71D9ibVqTXKDajXB4JVbF9KNIh3c7TTN8Z+Se2ZSOBg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-17
@@ -366,9 +363,6 @@ server {
 | ---------- | ------------------------- |
 | **CWE-20** | Improper Input Validation |
 
-sha256: 7cf4aeb741c83a0ec918a94b7369719362857f4b8bf82393cab162c4a2492382
-signature: 1CHbhCHbl3wfbSifULVVycKFsRQA9wXCsaqQo86XkfRB90bAiMMZ36SvR4lCAxNeet6hVKFL5HvKa2rel+lFCg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: [CWE-209]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: ccfda2f38a6fb8b68f22567a6d0e6282e6e40848f8dde5d9e96241e412e19d87
-signature: pnKdoeAEokEj5OKS2sn1qWTyvbJngbU1qRRTFlD370hJNJZzYE+xsv4+TC9Q+X7zJXGGNUbso7dUu1+FlYY7Cg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-errh-01
@@ -430,9 +427,6 @@ location = /404.html {
 - [OWASP Error Handling](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/08-Testing_for_Error_Handling/01-Testing_For_Improper_Error_Handling)
 - [OWASP Error Handling Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html)
 
-sha256: 0f870a5ed9f2259a509887bbfb3df426ad23cd5ba98b9eb77c7f8799c9a3151e
-signature: b3UKNI6i0plCxKcemP0VooAREjwYjvifDKHAvD2/VOe+xGwep2P/+ME94XBhmaELKx6POwxBE2/5ekSMuCz6BQ==
-signed_by: cyberstrike-official
 
 ---
 

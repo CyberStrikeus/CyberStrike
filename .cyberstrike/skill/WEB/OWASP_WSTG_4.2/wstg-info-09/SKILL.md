@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 368413fe7b12d117ae5660b291aba194f710e644fcee0976efd6ed7c246cfbc7
-signature: L6tumiQy8QBmTU7VcMsfcMDxMEZ7Z71JYwrYdhOg/eMubv3chXUV/Eq0544v96sNP0FXulmm6AOWdJqVbAm7BQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-09
@@ -85,9 +82,6 @@ When fingerprinting custom applications, document:
 5. **Technology Stack**: Underlying frameworks and libraries
 6. **Known CVEs**: Research based on identified versions
 
-sha256: 70cf8b5c6c5887c89024653255a06d614a26e120367946e433691e48e2779a49
-signature: AHTd6eskqk9Qz7BTHNP6LHPIoiaO2/rzzV417L/qrJt5Jb9unSXduKQlaBFts7UDVG4aBUHANuoiG7g2UxatCQ==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 37f69cbb0195f23c4cac91080163ab58188d65edaccdaad9b24ebb1757c6adce
-signature: yIMuSuGHNCUxTKORvvHw4oNNh2JDh238mjQ/v1qrlneOcrjlS8WWbf7QgiD/S2Fbeb0wMvZm5TTlqFV14EGjBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-15
@@ -376,9 +373,6 @@ HttpProtocolOptions Strict
 | **CWE-444** | Inconsistent Interpretation of HTTP Requests |
 | **CWE-113** | Improper Neutralization of CRLF Sequences    |
 
-sha256: b44774c366bab764e59526fd2199bf5b1cd04cb1ee62bd8a6896fa89d04b0553
-signature: 5SjgcwlubU0nynOxMbgSubk7zLYRPtobs8h8mEPfkZneOoDXmBo5OjAe7fLbR9zphvZAKunTLGx+pjZ4AnfyBA==
-signed_by: cyberstrike-official
 
 ---
 

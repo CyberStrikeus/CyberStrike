@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 9d0ea5100ab388659d61f605766fd58168189b55aa1378713307e0661e9db4c1
-signature: zdQP9yHR1yxmqJHDCta4l0KvioFkjzBBUizTTekUPGUgTCpwqch9sT7gp8NSCCBKsdCERSVUUZiGg4+DqUdBAg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-13
@@ -349,9 +346,6 @@ print(f"{user_input}")
 | ----------- | ------------------------------------------ |
 | **CWE-134** | Use of Externally-Controlled Format String |
 
-sha256: 53fd26e9ce258c52ca40c05e81b2b99be9bdfbfd8bc024e04de319a0cfe43447
-signature: mp9Bjql7gAJ3TJztSAZXMpdH3PYe+pNKeFGtoJwBu/zTRNAn3m/pJXy8Tix1u5lA8k4gHUMpRkGQbmypi9daDQ==
-signed_by: cyberstrike-official
 
 ---
 

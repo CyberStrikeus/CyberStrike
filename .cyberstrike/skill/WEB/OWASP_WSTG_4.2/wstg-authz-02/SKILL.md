@@ -13,9 +13,6 @@ prerequisites: [wstg-athn-01]
 severity_boost:
   wstg-inpv-05: "IDOR + SQLi = Mass Data Breach (Critical)"
   wstg-authz-03: "IDOR + Privilege Escalation = Admin Access (Critical)"
-sha256: cc00ec0f97544ebfffb86e3bb34523ed748da290a15dc8800bf85097d8b0e23d
-signature: uXpqcjGyjB3iwNVKYuKngkzVCbTJuFsa4XXBSrqCvRAGbtLBe2f6R9EJhp+Lt6G855Xwzxm2K2umvavoP3vnCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-02
@@ -658,9 +655,6 @@ can_access = policy.evaluate(
 - [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
 - [Autorize Burp Extension](https://github.com/Quitten/Autorize)
 
-sha256: 19c2f77d3a6cfb31744efa997bde6408afa65a36d2cbf7ae9abb4a7b4daf9059
-signature: PP/7jr5+RRvrjV4bpQ5ZwsIxYa1w3Q3O2LnGsD3rRHL+0ttgSkgqdkd+oaph7fUz0VhPyWdb3DzI7l8hWZ5PCA==
-signed_by: cyberstrike-official
 
 ---
 
