@@ -57,7 +57,7 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       // Load and filter skills only when tool is actually executed
       const skills = await Skill.all()
       const agent = ctx?.agent
-      const accessibleSkills = agent
+      const accessibleSkills = agent?.permission
         ? skills.filter((skill) => {
             const rule = PermissionNext.evaluate("skill", skill.name, agent.permission)
             return rule.action !== "deny"
