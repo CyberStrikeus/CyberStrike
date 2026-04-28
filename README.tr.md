@@ -137,12 +137,12 @@ Ayrica hedefli zafiyet siniflari icin trafigi yakalayip manipule eden **8 uzmanl
 
 CyberStrike, yeteneklerini genisleten uzmanlasmis MCP sunucularina baglanir:
 
-| Sunucu                                                                 | Arac | Ne Ekler                                                                         |
-| ---------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38   | Bulut guvenlik denetimleri — AWS, Azure, GCP genelinde 60+ kontrol               |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39   | GitHub guvenlik durusu — repo, org, actions, secrets, tedarik zinciri            |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23   | CVE istihbarati — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                      |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37   | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS             |
+| Sunucu                                                                 | Arac | Ne Ekler                                                              |
+| ---------------------------------------------------------------------- | ---- | --------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38   | Bulut guvenlik denetimleri — AWS, Azure, GCP genelinde 60+ kontrol    |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39   | GitHub guvenlik durusu — repo, org, actions, secrets, tedarik zinciri |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23   | CVE istihbarati — NVD, EPSS, CISA KEV, GitHub Advisory, OSV           |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37   | OSINT kesfi — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS  |
 
 Hepsi acik kaynak. Hepsi `npx` ile kurulabilir. CyberStrike'a baglayin veya herhangi bir MCP istemcisiyle bagimsiz kullanin.
 

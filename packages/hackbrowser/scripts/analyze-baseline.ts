@@ -25,9 +25,15 @@ interface Payload {
   trigger_element?: string
 }
 
-interface Record { seq: number; sessionID: string; payload: Payload }
+interface Record {
+  seq: number
+  sessionID: string
+  payload: Payload
+}
 
-const files = readdirSync(BASELINE_DIR).filter(f => f.endsWith(".json")).sort()
+const files = readdirSync(BASELINE_DIR)
+  .filter((f) => f.endsWith(".json"))
+  .sort()
 
 function firstLine(text: string | undefined): string {
   if (!text) return "<empty>"
@@ -39,9 +45,9 @@ function analyze(file: string, records: Record[]) {
   console.log(`FILE: ${file}`)
   console.log(`${"=".repeat(90)}`)
 
-  const payloads = records.map(r => r.payload)
-  const httpPayloads = payloads.filter(p => p.text?.includes("HTTP/1.1"))
-  const withUI = httpPayloads.filter(p => p.ui_context)
+  const payloads = records.map((r) => r.payload)
+  const httpPayloads = payloads.filter((p) => p.text?.includes("HTTP/1.1"))
+  const withUI = httpPayloads.filter((p) => p.ui_context)
 
   // Endpoint counts
   const endpoints = new Map<string, number>()
@@ -77,13 +83,13 @@ function analyze(file: string, records: Record[]) {
   // BUG-15: radio field names with duplicates
   for (const p of withUI) {
     const fields = p.ui_context?.fields ?? []
-    const radios = fields.filter(f => f.type === "radio")
+    const radios = fields.filter((f) => f.type === "radio")
     const byName = new Map<string, number>()
     for (const r of radios) byName.set(r.name, (byName.get(r.name) ?? 0) + 1)
     const dups = [...byName.entries()].filter(([_, v]) => v > 1)
     if (dups.length > 0) {
       const ep = firstLine(p.text)
-      console.log(`[BUG-15 signal] ${ep}  radios: ${dups.map(([n,c]) => `${n}×${c}`).join(", ")}`)
+      console.log(`[BUG-15 signal] ${ep}  radios: ${dups.map(([n, c]) => `${n}×${c}`).join(", ")}`)
     }
   }
 
@@ -91,12 +97,12 @@ function analyze(file: string, records: Record[]) {
   let totalHidden = 0
   for (const p of withUI) {
     const fields = p.ui_context?.fields ?? []
-    totalHidden += fields.filter(f => f.isHidden).length
+    totalHidden += fields.filter((f) => f.isHidden).length
   }
   if (totalHidden > 0) console.log(`[BUG-17 signal] total isHidden fields across all payloads: ${totalHidden}`)
 
   // BUG-19: ui_context on DELETE requests (should be empty ideally)
-  const deletes = withUI.filter(p => p.text?.startsWith("DELETE"))
+  const deletes = withUI.filter((p) => p.text?.startsWith("DELETE"))
   for (const p of deletes) {
     const fc = p.ui_context?.fields?.length ?? 0
     if (fc > 0) console.log(`[BUG-19 signal] ${firstLine(p.text)}  has ${fc} ui_context fields`)
@@ -105,7 +111,7 @@ function analyze(file: string, records: Record[]) {
   // BUG-30: nameless fields
   for (const p of withUI) {
     const fields = p.ui_context?.fields ?? []
-    const nameless = fields.filter(f => !f.name).length
+    const nameless = fields.filter((f) => !f.name).length
     if (nameless > 0) {
       const ep = firstLine(p.text)
       console.log(`[BUG-30 signal] ${ep}  nameless fields: ${nameless}`)
@@ -115,16 +121,16 @@ function analyze(file: string, records: Record[]) {
   // BUG-6: display-only fields (could be listbox options)
   for (const p of withUI) {
     const fields = p.ui_context?.fields ?? []
-    const display = fields.filter(f => f.isDisplayOnly)
+    const display = fields.filter((f) => f.isDisplayOnly)
     if (display.length > 0) {
       const ep = firstLine(p.text)
-      const values = display.map(f => `"${f.value.slice(0, 20)}"`).join(",")
+      const values = display.map((f) => `"${f.value.slice(0, 20)}"`).join(",")
       console.log(`[BUG-6 signal] ${ep}  display-only fields (${display.length}): ${values}`)
     }
   }
 
   // Field count distribution
-  const fieldCounts = withUI.map(p => p.ui_context?.fields?.length ?? 0)
+  const fieldCounts = withUI.map((p) => p.ui_context?.fields?.length ?? 0)
   if (fieldCounts.length > 0) {
     const max = Math.max(...fieldCounts)
     const avg = (fieldCounts.reduce((a, b) => a + b, 0) / fieldCounts.length).toFixed(1)

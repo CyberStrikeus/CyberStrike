@@ -147,14 +147,16 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
     }
     if (ui.formName) lines.push(`Form: ${ui.formName}`)
     if (ui.fields?.length) {
-      const fieldsSummary = ui.fields.map(f => {
-        const flags: string[] = []
-        if (f.validation?.required) flags.push("required")
-        if (f.isReadOnly) flags.push("readonly")
-        if (f.isDisabled) flags.push("disabled")
-        if (f.isHidden) flags.push("hidden")
-        return `${f.name}(${f.type}${flags.length ? "," + flags.join(",") : ""})`
-      }).join(", ")
+      const fieldsSummary = ui.fields
+        .map((f) => {
+          const flags: string[] = []
+          if (f.validation?.required) flags.push("required")
+          if (f.isReadOnly) flags.push("readonly")
+          if (f.isDisabled) flags.push("disabled")
+          if (f.isHidden) flags.push("hidden")
+          return `${f.name}(${f.type}${flags.length ? "," + flags.join(",") : ""})`
+        })
+        .join(", ")
       lines.push(`Fields: ${fieldsSummary}`)
     }
     if (ui.hiddenParams?.length) {
@@ -253,7 +255,11 @@ async function runNormalize(
   // Dry-run uses a no-op classifier so Tier 3 never reaches the LLM. Tier 1
   // still resolves the common cases; ambiguous segments fall back to literal.
   const client = dryRun
-    ? { async classify() { return { decisions: [], model: "dry-run" } } }
+    ? {
+        async classify() {
+          return { decisions: [], model: "dry-run" }
+        },
+      }
     : undefined
 
   try {
@@ -347,7 +353,8 @@ export const SessionRoutes = lazy(() =>
       "/queue/status",
       describeRoute({
         summary: "Get ingest queue status",
-        description: "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
+        description:
+          "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
         operationId: "session.queueStatus",
         responses: {
           200: {
@@ -428,7 +435,8 @@ export const SessionRoutes = lazy(() =>
       "/:sessionID/hackbrowser/stop",
       describeRoute({
         summary: "Stop the active hackbrowser run for a session",
-        description: "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
+        description:
+          "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
         operationId: "session.hackbrowserStop",
         responses: {
           200: {
@@ -458,7 +466,8 @@ export const SessionRoutes = lazy(() =>
       "/hackbrowser/status",
       describeRoute({
         summary: "Get hackbrowser status",
-        description: "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
+        description:
+          "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
         operationId: "session.hackbrowserStatus",
         responses: {
           200: {
@@ -984,12 +993,21 @@ export const SessionRoutes = lazy(() =>
             .optional()
             .meta({ description: "HTTP response data" }),
           // Hackbrowser enrichment fields (optional — not sent by Firefox extension)
-          trigger_element: z.string().optional().meta({ description: "UI element that triggered this request (role:label)" }),
+          trigger_element: z
+            .string()
+            .optional()
+            .meta({ description: "UI element that triggered this request (role:label)" }),
           element_roles: z.array(z.string()).optional().meta({ description: "Roles that can see the trigger element" }),
-          ui_context: z.record(z.string(), z.unknown()).optional().meta({ description: "UI form context at request time" }),
+          ui_context: z
+            .record(z.string(), z.unknown())
+            .optional()
+            .meta({ description: "UI form context at request time" }),
           page_url: z.string().optional().meta({ description: "Page being explored when request was captured" }),
           page_visited_by: z.array(z.string()).optional().meta({ description: "Roles that can visit this page" }),
-          scheme: z.enum(["http", "https"]).optional().meta({ description: "URL scheme of the captured request; inferred from Host header / port when omitted" }),
+          scheme: z
+            .enum(["http", "https"])
+            .optional()
+            .meta({ description: "URL scheme of the captured request; inferred from Host header / port when omitted" }),
         }),
       ),
       async (c) => {
@@ -1034,7 +1052,11 @@ export const SessionRoutes = lazy(() =>
           })
 
           if (isDuplicate) {
-            log.info("duplicate request skipped", { sessionID, method: normalized.method, path: normalized.normalizedPath })
+            log.info("duplicate request skipped", {
+              sessionID,
+              method: normalized.method,
+              path: normalized.normalizedPath,
+            })
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
@@ -1066,17 +1088,27 @@ export const SessionRoutes = lazy(() =>
           })
 
           // Build prompt with credential context, response, and access context
-          const promptText = buildPromptWithCredentialContext(truncatedRawRequest, credentialID, req.processed_response, {
-            triggerElement: body.trigger_element,
-            elementRoles: body.element_roles,
-            pageUrl: body.page_url,
-            pageVisitedBy: body.page_visited_by,
-            uiContext: body.ui_context as Record<string, unknown> | undefined,
-          })
+          const promptText = buildPromptWithCredentialContext(
+            truncatedRawRequest,
+            credentialID,
+            req.processed_response,
+            {
+              triggerElement: body.trigger_element,
+              elementRoles: body.element_roles,
+              pageUrl: body.page_url,
+              pageVisitedBy: body.page_visited_by,
+              uiContext: body.ui_context as Record<string, unknown> | undefined,
+            },
+          )
 
           if (ingestDryRun) {
             // Log the prompt that would be sent to LLM — skip actual LLM call
-            log.info("ingest dry-run", { sessionID, method: normalized.method, path: normalized.normalizedPath, requestId: req.id })
+            log.info("ingest dry-run", {
+              sessionID,
+              method: normalized.method,
+              path: normalized.normalizedPath,
+              requestId: req.id,
+            })
             log.info("prompt preview:\n" + promptText)
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
@@ -1317,7 +1349,8 @@ export const SessionRoutes = lazy(() =>
       "/:sessionID/queue/pause",
       describeRoute({
         summary: "Pause ingest queue",
-        description: "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
+        description:
+          "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
         operationId: "session.queuePause",
         responses: {
           200: {
@@ -1346,7 +1379,8 @@ export const SessionRoutes = lazy(() =>
       "/:sessionID/queue/resume",
       describeRoute({
         summary: "Resume ingest queue",
-        description: "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
+        description:
+          "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
         operationId: "session.queueResume",
         responses: {
           200: {
