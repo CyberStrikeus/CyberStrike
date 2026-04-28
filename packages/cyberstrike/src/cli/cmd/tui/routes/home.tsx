@@ -72,6 +72,7 @@ export function Home() {
       },
       onSelect: async (dialog) => {
         const input = await DialogHackbrowserLaunch.show(dialog)
+        dialog.clear()
         if (!input) return
         try {
           const created = await sdk.client.session

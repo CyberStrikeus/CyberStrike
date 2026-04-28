@@ -470,6 +470,7 @@ export function Session() {
       },
       onSelect: async (dialog) => {
         const input = await DialogHackbrowserLaunch.show(dialog)
+        dialog.clear()
         if (!input) return
         try {
           const result = await sdk.client.session.hackbrowserLaunch({
