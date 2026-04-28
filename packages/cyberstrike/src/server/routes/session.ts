@@ -8,15 +8,10 @@ import { SessionPrompt } from "../../session/prompt"
 import { SessionCompaction } from "../../session/compaction"
 import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
-import { SessionQueueStatus } from "@/session/queue-status"
-import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
-import { Normalize } from "../../session/normalize"
-import { IngestSummary } from "../../session/ingest-summary"
-import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
 import { WebObject } from "../../session/web/web-object"
@@ -31,6 +26,8 @@ import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
 const log = Log.create({ service: "server" })
+
+const ingestQueue = new Map<string, Promise<void>>()
 
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
@@ -106,71 +103,10 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export interface AccessContextInput {
-  triggerElement?: string
-  elementRoles?: string[]
-  pageUrl?: string
-  pageVisitedBy?: string[]
-  uiContext?: Record<string, unknown>
-}
-
-// Renders the `## Access Context` block when hackbrowser enrichment is
-// present. Returns an empty array for requests from sources without UI
-// enrichment (e.g., Firefox extension manual browsing). Shared by the ingest
-// prompt builder (below) and the subagent-dispatch prompt builder in task.ts,
-// so the orchestrator and subagents see the same structured signals.
-export function renderAccessContextLines(accessContext: AccessContextInput): string[] {
-  const ac = accessContext
-  const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext
-  if (!hasData) return []
-  const lines: string[] = ["", "## Access Context"]
-  if (ac.pageUrl) {
-    const visitedBy = ac.pageVisitedBy?.length ? ` (visited by: ${ac.pageVisitedBy.join(", ")})` : ""
-    lines.push(`Page: ${ac.pageUrl}${visitedBy}`)
-  }
-  if (ac.triggerElement) {
-    const visibleTo = ac.elementRoles?.length ? ` (visible to: ${ac.elementRoles.join(", ")})` : ""
-    lines.push(`Trigger: ${ac.triggerElement}${visibleTo}`)
-  }
-  if (ac.uiContext) {
-    const ui = ac.uiContext as {
-      formName?: string
-      fields?: Array<{
-        name: string
-        type: string
-        isReadOnly?: boolean
-        isDisabled?: boolean
-        isHidden?: boolean
-        validation?: { required?: boolean }
-      }>
-      hiddenParams?: string[]
-    }
-    if (ui.formName) lines.push(`Form: ${ui.formName}`)
-    if (ui.fields?.length) {
-      const fieldsSummary = ui.fields
-        .map((f) => {
-          const flags: string[] = []
-          if (f.validation?.required) flags.push("required")
-          if (f.isReadOnly) flags.push("readonly")
-          if (f.isDisabled) flags.push("disabled")
-          if (f.isHidden) flags.push("hidden")
-          return `${f.name}(${f.type}${flags.length ? "," + flags.join(",") : ""})`
-        })
-        .join(", ")
-      lines.push(`Fields: ${fieldsSummary}`)
-    }
-    if (ui.hiddenParams?.length) {
-      lines.push(`Hidden Params: ${ui.hiddenParams.join(", ")}`)
-    }
-  }
-  return lines
-}
-
 function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
   processedResponse?: string,
-  accessContext?: AccessContextInput,
 ): string {
   const lines: string[] = []
 
@@ -191,6 +127,7 @@ function buildPromptWithCredentialContext(
       if (Object.keys(cred.headers).length > 0) {
         lines.push("- headers:")
         for (const [key, value] of Object.entries(cred.headers)) {
+          // Truncate long values for display
           const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
           lines.push(`  - ${key}: ${displayValue}`)
         }
@@ -201,16 +138,13 @@ function buildPromptWithCredentialContext(
     }
   }
 
-  if (accessContext) {
-    lines.push(...renderAccessContextLines(accessContext))
-  }
-
   lines.push("")
   lines.push("## Raw HTTP Request")
   lines.push("```")
   lines.push(rawRequest)
   lines.push("```")
 
+  // Add response if available
   if (processedResponse) {
     lines.push("")
     lines.push("## Response")
@@ -222,61 +156,16 @@ function buildPromptWithCredentialContext(
   return lines.join("\n")
 }
 
-// Heuristic for ingest payloads that don't carry an explicit scheme. Browser-
-// agent supplies it; the legacy Firefox extension does not. We look at the
-// request line (absolute-URI form), then fall back to the host port hint, then
-// "https" as the safest default — most modern targets are HTTPS and treating
-// http traffic as https only inflates the dedup space, never causes data loss.
-function inferScheme(rawText: string): "http" | "https" {
-  const firstLine = rawText.split(/\r?\n/, 1)[0] ?? ""
-  if (/^[A-Z]+\s+https:\/\//.test(firstLine)) return "https"
-  if (/^[A-Z]+\s+http:\/\//.test(firstLine)) return "http"
-  // Look for a Host header with explicit port 80 (suggests http).
-  const hostMatch = rawText.match(/^[Hh]ost:\s*[^\r\n]*?:80\b/m)
-  if (hostMatch) return "http"
-  return "https"
-}
-
-// Bridge between the ingest payload and Normalize.run. Returns null when the
-// raw text isn't a parseable HTTP request (the route then falls through to
-// the chat-style ingest path that handles plain text).
-async function runNormalize(
-  body: {
-    text: string
-    scheme?: "http" | "https"
-    model?: { providerID: string; modelID: string }
-  },
-  sessionID: string,
-  dryRun: boolean,
-): Promise<Normalize.RunResult | null> {
-  const scheme = body.scheme ?? inferScheme(body.text)
-  const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-
-  // Dry-run uses a no-op classifier so Tier 3 never reaches the LLM. Tier 1
-  // still resolves the common cases; ambiguous segments fall back to literal.
-  const client = dryRun
-    ? {
-        async classify() {
-          return { decisions: [], model: "dry-run" }
-        },
-      }
-    : undefined
-
-  try {
-    return await Normalize.run({
-      sessionID,
-      raw: body.text,
-      scheme,
-      providerID: model.providerID,
-      modelID: model.modelID,
-      client,
-    })
-  } catch (err) {
-    // Malformed request line (e.g. plain chat text) — let the caller fall
-    // through to the non-HTTP ingest branch.
-    log.debug("normalize parse failed", { error: (err as Error).message })
-    return null
-  }
+function ingestEnqueue(sessionID: string, task: () => Promise<unknown>) {
+  const prev = ingestQueue.get(sessionID) ?? Promise.resolve()
+  const next = prev.then(task).then(
+    () => {},
+    (err) => log.error("ingest prompt failed", { sessionID, error: err }),
+  )
+  ingestQueue.set(sessionID, next)
+  next.then(() => {
+    if (ingestQueue.get(sessionID) === next) ingestQueue.delete(sessionID)
+  })
 }
 
 export const SessionRoutes = lazy(() =>
@@ -346,143 +235,6 @@ export const SessionRoutes = lazy(() =>
       }),
       async (c) => {
         const result = SessionStatus.list()
-        return c.json(result)
-      },
-    )
-    .get(
-      "/queue/status",
-      describeRoute({
-        summary: "Get ingest queue status",
-        description:
-          "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
-        operationId: "session.queueStatus",
-        responses: {
-          200: {
-            description: "Queue status map keyed by sessionID",
-            content: {
-              "application/json": {
-                schema: resolver(z.record(z.string(), SessionQueueStatus.Info)),
-              },
-            },
-          },
-          ...errors(400),
-        },
-      }),
-      async (c) => {
-        const result = SessionQueueStatus.list()
-        return c.json(result)
-      },
-    )
-    .post(
-      "/:sessionID/hackbrowser/launch",
-      describeRoute({
-        summary: "Launch a hackbrowser crawl",
-        description:
-          "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — agent invocation, slash, and CLI all share this surface. Returns a KickOffResult; captures stream into the session asynchronously.",
-        operationId: "session.hackbrowserLaunch",
-        responses: {
-          200: {
-            description: "Crawl successfully kicked off; returns sessionID + started flag + status message",
-            content: {
-              "application/json": {
-                schema: resolver(
-                  z.object({
-                    sessionID: z.string(),
-                    started: z.boolean(),
-                    message: z.string(),
-                  }),
-                ),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string(),
-        }),
-      ),
-      validator(
-        "json",
-        z.object({
-          target: z.string().url(),
-          credentials: z.array(z.string()).optional(),
-          scope: z.array(z.string()).optional(),
-          exclude: z.array(z.string()).optional(),
-          steps: z.number().int().min(1).max(200).optional(),
-          headless: z.boolean().optional(),
-        }),
-      ),
-      async (c) => {
-        const { launchHackbrowser } = await import("@/tool/hackbrowser-launcher")
-        const sessionID = c.req.valid("param").sessionID
-        const body = c.req.valid("json")
-        const result = await launchHackbrowser({
-          sessionID,
-          target: body.target,
-          credentials: body.credentials,
-          scope: body.scope,
-          exclude: body.exclude,
-          steps: body.steps,
-          headless: body.headless,
-        })
-        return c.json(result)
-      },
-    )
-    .post(
-      "/:sessionID/hackbrowser/stop",
-      describeRoute({
-        summary: "Stop the active hackbrowser run for a session",
-        description:
-          "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
-        operationId: "session.hackbrowserStop",
-        responses: {
-          200: {
-            description: "true when a run was cancelled, false when no active run",
-            content: {
-              "application/json": {
-                schema: resolver(z.boolean()),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string(),
-        }),
-      ),
-      async (c) => {
-        const { stopHackbrowser } = await import("@/tool/hackbrowser-launcher")
-        const stopped = stopHackbrowser(c.req.valid("param").sessionID)
-        return c.json(stopped)
-      },
-    )
-    .get(
-      "/hackbrowser/status",
-      describeRoute({
-        summary: "Get hackbrowser status",
-        description:
-          "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
-        operationId: "session.hackbrowserStatus",
-        responses: {
-          200: {
-            description: "Hackbrowser status map keyed by sessionID",
-            content: {
-              "application/json": {
-                schema: resolver(z.record(z.string(), HackbrowserStatus.Info)),
-              },
-            },
-          },
-          ...errors(400),
-        },
-      }),
-      async (c) => {
-        const result = HackbrowserStatus.list()
         return c.json(result)
       },
     )
@@ -992,22 +744,6 @@ export const SessionRoutes = lazy(() =>
             })
             .optional()
             .meta({ description: "HTTP response data" }),
-          // Hackbrowser enrichment fields (optional — not sent by Firefox extension)
-          trigger_element: z
-            .string()
-            .optional()
-            .meta({ description: "UI element that triggered this request (role:label)" }),
-          element_roles: z.array(z.string()).optional().meta({ description: "Roles that can see the trigger element" }),
-          ui_context: z
-            .record(z.string(), z.unknown())
-            .optional()
-            .meta({ description: "UI form context at request time" }),
-          page_url: z.string().optional().meta({ description: "Page being explored when request was captured" }),
-          page_visited_by: z.array(z.string()).optional().meta({ description: "Roles that can visit this page" }),
-          scheme: z
-            .enum(["http", "https"])
-            .optional()
-            .meta({ description: "URL scheme of the captured request; inferred from Host header / port when omitted" }),
         }),
       ),
       async (c) => {
@@ -1038,25 +774,25 @@ export const SessionRoutes = lazy(() =>
           log.info("credential registered", { sessionID, credentialID, label: body.credential.label })
         }
 
-        const ingestDryRun = process.env.CYBERSTRIKE_INGEST_DRY_RUN === "true"
-        const normalized = await runNormalize(body, sessionID, ingestDryRun)
+        const parsed = Request.parseRawRequest(body.text)
+        if (parsed) {
+          const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
+          const normalizedPath = await Request.normalize({
+            path: parsed.path,
+            providerID: model.providerID,
+            modelID: model.modelID,
+          })
 
-        if (normalized) {
           const isDuplicate = Request.exists({
             sessionID,
-            method: normalized.method,
-            normalizedPath: normalized.normalizedPath,
-            origin: normalized.origin,
-            bodyHash: normalized.bodyHash,
-            queryHash: normalized.queryKeyHash,
+            method: parsed.method,
+            normalizedPath,
+            bodyHash: Request.hash(parsed.body),
+            queryHash: Request.hashQueryKeys(parsed.query),
           })
 
           if (isDuplicate) {
-            log.info("duplicate request skipped", {
-              sessionID,
-              method: normalized.method,
-              path: normalized.normalizedPath,
-            })
+            log.info("duplicate request skipped", { sessionID, method: parsed.method, path: normalizedPath })
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
@@ -1065,108 +801,42 @@ export const SessionRoutes = lazy(() =>
 
           const req = Request.add({
             sessionID,
-            method: normalized.method,
-            normalizedPath: normalized.normalizedPath,
+            method: parsed.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS",
+            normalizedPath,
             credentialID,
             rawRequest: truncatedRawRequest,
-            bodyHash: normalized.bodyHash,
-            queryHash: normalized.queryKeyHash,
+            bodyHash: Request.hash(parsed.body),
+            queryHash: Request.hashQueryKeys(parsed.query),
             response: body.response,
-            triggerElement: body.trigger_element,
-            elementRoles: body.element_roles,
-            uiContext: body.ui_context as Record<string, unknown> | undefined,
-            pageUrl: body.page_url,
-            pageVisitedBy: body.page_visited_by,
-            scheme: normalized.scheme,
-            host: normalized.host,
-            port: normalized.port,
-            origin: normalized.origin,
-            site: normalized.site,
-            canonicalPath: normalized.canonicalPath,
-            templateID: normalized.templateId,
-            normSource: normalized.normSource,
           })
 
-          // Build prompt with credential context, response, and access context
-          const promptText = buildPromptWithCredentialContext(
-            truncatedRawRequest,
-            credentialID,
-            req.processed_response,
-            {
-              triggerElement: body.trigger_element,
-              elementRoles: body.element_roles,
-              pageUrl: body.page_url,
-              pageVisitedBy: body.page_visited_by,
-              uiContext: body.ui_context as Record<string, unknown> | undefined,
-            },
-          )
+          // Build prompt with credential context and response
+          const promptText = buildPromptWithCredentialContext(truncatedRawRequest, credentialID, req.processed_response)
 
-          if (ingestDryRun) {
-            // Log the prompt that would be sent to LLM — skip actual LLM call
-            log.info("ingest dry-run", {
-              sessionID,
-              method: normalized.method,
-              path: normalized.normalizedPath,
-              requestId: req.id,
-            })
-            log.info("prompt preview:\n" + promptText)
-            Request.updateStatus({ id: req.id, status: "processed" })
-          } else {
-            const agentName = body.agent ?? "proxy-agent"
-            const source = `${normalized.method} ${normalized.normalizedPath}`
-            IngestQueue.enqueue(sessionID, async () => {
-              Request.updateStatus({ id: req.id, status: "processing" })
-              const before = IngestSummary.snapshot(sessionID)
-              try {
-                await SessionPrompt.prompt({
-                  sessionID,
-                  agent: agentName,
-                  model: body.model,
-                  excludeHistory: true,
-                  parts: [{ type: "text", text: promptText }],
-                })
-                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-                await IngestSummary.write({
-                  sessionID,
-                  agent: agentName,
-                  model,
-                  source,
-                  before,
-                  after: IngestSummary.snapshot(sessionID),
-                })
-              } finally {
-                Request.updateStatus({ id: req.id, status: "processed" })
-              }
-            })
-          }
+          ingestEnqueue(sessionID, async () => {
+            Request.updateStatus({ id: req.id, status: "processing" })
+            try {
+              await SessionPrompt.prompt({
+                sessionID,
+                agent: body.agent ?? "proxy-agent",
+                model: body.model,
+                parts: [{ type: "text", text: promptText }],
+              })
+            } finally {
+              Request.updateStatus({ id: req.id, status: "processed" })
+            }
+          })
         } else {
           // Non-HTTP request (plain text message)
           const promptText = buildPromptWithCredentialContext(body.text, credentialID)
-          if (ingestDryRun) {
-            log.info("ingest dry-run (text)", { sessionID })
-            log.info("prompt preview:\n" + promptText)
-          } else {
-            const agentName = body.agent ?? "proxy-agent"
-            IngestQueue.enqueue(sessionID, async () => {
-              const before = IngestSummary.snapshot(sessionID)
-              await SessionPrompt.prompt({
-                sessionID,
-                agent: agentName,
-                model: body.model,
-                excludeHistory: true,
-                parts: [{ type: "text", text: promptText }],
-              })
-              const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-              await IngestSummary.write({
-                sessionID,
-                agent: agentName,
-                model,
-                source: "text ingest",
-                before,
-                after: IngestSummary.snapshot(sessionID),
-              })
-            })
-          }
+          ingestEnqueue(sessionID, () =>
+            SessionPrompt.prompt({
+              sessionID,
+              agent: body.agent ?? "proxy-agent",
+              model: body.model,
+              parts: [{ type: "text", text: promptText }],
+            }),
+          )
         }
         c.status(202)
         return c.json({ sessionID })
@@ -1342,66 +1012,6 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         SessionPrompt.cancel(c.req.valid("param").sessionID)
-        return c.json(true)
-      },
-    )
-    .post(
-      "/:sessionID/queue/pause",
-      describeRoute({
-        summary: "Pause ingest queue",
-        description:
-          "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
-        operationId: "session.queuePause",
-        responses: {
-          200: {
-            description: "Paused",
-            content: {
-              "application/json": {
-                schema: resolver(z.boolean()),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string(),
-        }),
-      ),
-      async (c) => {
-        IngestQueue.pause(c.req.valid("param").sessionID)
-        return c.json(true)
-      },
-    )
-    .post(
-      "/:sessionID/queue/resume",
-      describeRoute({
-        summary: "Resume ingest queue",
-        description:
-          "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
-        operationId: "session.queueResume",
-        responses: {
-          200: {
-            description: "Resumed",
-            content: {
-              "application/json": {
-                schema: resolver(z.boolean()),
-              },
-            },
-          },
-          ...errors(400, 404),
-        },
-      }),
-      validator(
-        "param",
-        z.object({
-          sessionID: z.string(),
-        }),
-      ),
-      async (c) => {
-        IngestQueue.resume(c.req.valid("param").sessionID)
         return c.json(true)
       },
     )

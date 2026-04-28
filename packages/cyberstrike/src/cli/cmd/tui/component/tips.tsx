@@ -58,9 +58,9 @@ const TIPS = [
   "Agents can {highlight}create custom tools at runtime{/highlight} with define_tool for adaptive testing",
   "Use {highlight}scope enforcement{/highlight} to restrict HTTP requests to authorized targets only",
   "CyberStrike supports {highlight}HAR replay{/highlight} — replay captured traffic with modifications",
-  "Use {highlight}hackbrowser{/highlight} for web pentesting",
 
   // MCP integrations
+  "Connect {highlight}hackbrowser-mcp{/highlight} for 39 browser-based security testing tools",
   "Use {highlight}cloud-audit-mcp{/highlight} for AWS, Azure, and GCP security audits (60+ checks)",
   "Add {highlight}github-security-mcp{/highlight} for repo security posture analysis (45 checks)",
   "Use {highlight}cve-mcp{/highlight} for real-time CVE intelligence from NVD, EPSS, CISA KEV, and OSV",

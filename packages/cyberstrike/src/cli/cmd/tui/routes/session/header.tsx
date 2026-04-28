@@ -34,7 +34,6 @@ export function Header() {
   const sync = useSync()
   const session = createMemo(() => sync.session.get(route.sessionID)!)
   const messages = createMemo(() => sync.data.message[route.sessionID] ?? [])
-  const queueStatus = createMemo(() => sync.data.session_queue_status?.[route.sessionID])
 
   const cost = createMemo(() => {
     const total = pipe(
@@ -126,14 +125,7 @@ export function Header() {
           <Match when={true}>
             <box flexDirection={narrow() ? "column" : "row"} justifyContent="space-between" gap={1}>
               <Title session={session} />
-              <box flexDirection="row" gap={2} flexShrink={0}>
-                <Show when={queueStatus()?.paused}>
-                  <text fg={theme.textMuted} wrapMode="none" flexShrink={0}>
-                    ⏸ Queue paused — {queueStatus()!.pending} pending
-                  </text>
-                </Show>
-                <ContextInfo context={context} cost={cost} />
-              </box>
+              <ContextInfo context={context} cost={cost} />
             </box>
           </Match>
         </Switch>

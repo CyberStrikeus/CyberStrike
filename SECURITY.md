@@ -22,7 +22,7 @@ Bolt connections are authenticated with Ed25519 key pairs. All tool execution ha
 
 ### MCP Servers
 
-CyberStrike connects to external MCP servers (cloud-audit-mcp, etc.) that you explicitly configure. These servers run with whatever permissions you grant them. Review MCP server code before adding it to your configuration.
+CyberStrike connects to external MCP servers (hackbrowser-mcp, cloud-audit-mcp, etc.) that you explicitly configure. These servers run with whatever permissions you grant them. Review MCP server code before adding it to your configuration.
 
 ### Out of Scope
 

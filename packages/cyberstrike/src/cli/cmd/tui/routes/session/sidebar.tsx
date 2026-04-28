@@ -11,7 +11,6 @@ import { useKeybind } from "../../context/keybind"
 import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
-import { formatEndpointHost } from "@tui/util/format"
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -21,27 +20,12 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
   const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
-  // Group endpoints by host for sidebar — narrow column can't fit
-  // method+host+path on one line, so we render the host once per group
-  // and let each row use the full width for its path.
-  const requestsByHost = createMemo(() => {
-    const groups = new Map<string, ReturnType<typeof requests>>()
-    for (const r of requests()) {
-      const key = formatEndpointHost(r.host, r.port) || "(unknown host)"
-      const existing = groups.get(key)
-      if (existing) existing.push(r)
-      else groups.set(key, [r])
-    }
-    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
-  })
   const credentials = createMemo(() => sync.data.web_credential[props.sessionID] ?? [])
   const roles = createMemo(() => sync.data.web_role[props.sessionID] ?? [])
   const objects = createMemo(() => sync.data.web_object[props.sessionID] ?? [])
   const functions = createMemo(() => sync.data.web_function[props.sessionID] ?? [])
   const retests = createMemo(() => sync.data.web_retest[props.sessionID] ?? [])
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
-  const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
-  const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -136,82 +120,6 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
               <text fg={theme.textMuted}>{cost()} spent</text>
             </box>
-            <box>
-              <text fg={theme.text}>
-                <b>Ingest Queue</b>
-              </text>
-              <text fg={queueStatus()?.paused ? theme.warning : theme.success}>
-                {queueStatus()?.paused ? "⏸ Paused" : "● Running"}
-              </text>
-              <Show when={(queueStatus()?.pending ?? 0) > 0}>
-                <text fg={theme.textMuted}>{queueStatus()!.pending} pending</text>
-              </Show>
-              <text fg={theme.textMuted}>{queueStatus()?.paused ? "/qresume" : "/qpause"}</text>
-            </box>
-            <Show when={hackbrowserStatus()}>
-              <box>
-                <text fg={theme.text}>
-                  <b>Hackbrowser</b>
-                </text>
-                <Switch>
-                  <Match when={hackbrowserStatus()!.phase === "starting"}>
-                    <text fg={theme.warning}>◌ Starting</text>
-                  </Match>
-                  <Match when={hackbrowserStatus()!.phase === "crawling"}>
-                    <text fg={theme.success}>● Crawling</text>
-                  </Match>
-                  <Match when={hackbrowserStatus()!.phase === "completed"}>
-                    <text fg={theme.success}>✓ Completed</text>
-                  </Match>
-                  <Match when={hackbrowserStatus()!.phase === "failed"}>
-                    <text fg={theme.error}>✗ Failed</text>
-                  </Match>
-                </Switch>
-                <text fg={theme.textMuted} wrapMode="word">
-                  {(() => {
-                    const url = hackbrowserStatus()!.targetUrl
-                    return url.length > 40 ? url.slice(0, 37) + "..." : url
-                  })()}
-                </text>
-                <Show when={hackbrowserStatus()!.phase === "crawling" || hackbrowserStatus()!.phase === "starting"}>
-                  <text fg={theme.textMuted}>
-                    {hackbrowserStatus()!.pagesExplored} page
-                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
-                    {" · "}
-                    {hackbrowserStatus()!.capturedEndpoints} endpoint
-                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
-                  </text>
-                </Show>
-                <Show when={hackbrowserStatus()!.phase === "completed"}>
-                  <text fg={theme.textMuted}>
-                    {hackbrowserStatus()!.pagesExplored} page
-                    {hackbrowserStatus()!.pagesExplored === 1 ? "" : "s"}
-                    {" · "}
-                    {hackbrowserStatus()!.capturedEndpoints} endpoint
-                    {hackbrowserStatus()!.capturedEndpoints === 1 ? "" : "s"}
-                  </text>
-                </Show>
-                <Show when={hackbrowserStatus()!.phase === "crawling" && hackbrowserStatus()!.currentPage}>
-                  <text fg={theme.textMuted} wrapMode="word">
-                    {(() => {
-                      const cur = hackbrowserStatus()!.currentPage!
-                      return cur.length > 40 ? cur.slice(0, 37) + "..." : cur
-                    })()}
-                  </text>
-                </Show>
-                <Show when={hackbrowserStatus()!.phase === "failed" && hackbrowserStatus()!.errors.length > 0}>
-                  <text fg={theme.textMuted} wrapMode="word">
-                    {(() => {
-                      const err = hackbrowserStatus()!.errors[0] ?? ""
-                      return err.length > 60 ? err.slice(0, 57) + "..." : err
-                    })()}
-                  </text>
-                </Show>
-                <Show when={hackbrowserStatus()!.phase === "starting" || hackbrowserStatus()!.phase === "crawling"}>
-                  <text fg={theme.textMuted}>/hackbrowser-stop</text>
-                </Show>
-              </box>
-            </Show>
             <Show when={mcpEntries().length > 0}>
               <box>
                 <box
@@ -410,37 +318,28 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   </text>
                 </box>
                 <Show when={requests().length <= 2 || expanded.requests}>
-                  <For each={requestsByHost()}>
-                    {([host, rows]) => (
-                      <box>
-                        <text fg={theme.textMuted} wrapMode="none">
-                          {host} ({rows.length})
+                  <For each={requests()}>
+                    {(r) => (
+                      <box flexDirection="row" gap={1}>
+                        <text
+                          flexShrink={0}
+                          style={{
+                            fg:
+                              {
+                                queued: theme.textMuted,
+                                processing: theme.warning,
+                                processed: theme.success,
+                              }[r.status] ?? theme.text,
+                          }}
+                        >
+                          •
                         </text>
-                        <For each={rows}>
-                          {(r) => (
-                            <box flexDirection="row" gap={1} paddingLeft={1}>
-                              <text
-                                flexShrink={0}
-                                style={{
-                                  fg:
-                                    {
-                                      queued: theme.textMuted,
-                                      processing: theme.warning,
-                                      processed: theme.success,
-                                    }[r.status] ?? theme.text,
-                                }}
-                              >
-                                •
-                              </text>
-                              <text fg={theme.accent} flexShrink={0}>
-                                {r.method}
-                              </text>
-                              <text fg={theme.text} wrapMode="none">
-                                {r.normalized_path}
-                              </text>
-                            </box>
-                          )}
-                        </For>
+                        <text fg={theme.accent} flexShrink={0}>
+                          {r.method}
+                        </text>
+                        <text fg={theme.text} wrapMode="none">
+                          {r.normalized_path}
+                        </text>
                       </box>
                     )}
                   </For>

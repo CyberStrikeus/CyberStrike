@@ -139,6 +139,7 @@ CyberStrike는 전문 MCP 서버에 연결하여 기능을 확장합니다:
 
 | 서버                                                                   | 도구 수 | 확장 기능                                                           |
 | ---------------------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39      | 브라우저 기반 보안 테스트 — XSS, CSRF, DOM 조작, 쿠키 탈취          |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38      | 클라우드 보안 감사 — AWS, Azure, GCP 전반 60+ 검사                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39      | GitHub 보안 태세 — 저장소, 조직, Actions, 시크릿, 공급망            |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23      | CVE 인텔리전스 — NVD, EPSS, CISA KEV, GitHub Advisory, OSV          |
@@ -249,6 +250,7 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

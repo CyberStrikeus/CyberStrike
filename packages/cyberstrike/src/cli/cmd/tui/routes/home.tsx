@@ -6,16 +6,14 @@ import { Logo } from "../component/logo"
 import { Tips } from "../component/tips"
 import { Locale } from "@/util/locale"
 import { useSync } from "../context/sync"
-import { Toast, useToast } from "../ui/toast"
+import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
 import { useDirectory } from "../context/directory"
-import { useRoute, useRouteData } from "@tui/context/route"
+import { useRouteData } from "@tui/context/route"
 import { usePromptRef } from "../context/prompt"
 import { Installation } from "@/installation"
 import { useKV } from "../context/kv"
 import { useCommandDialog } from "../component/dialog-command"
-import { useSDK } from "../context/sdk"
-import { DialogHackbrowserLaunch } from "../component/dialog-hackbrowser-launch"
 
 // TODO: what is the best way to do this?
 let once = false
@@ -44,10 +42,6 @@ export function Home() {
     return !tipsHidden()
   })
 
-  const sdk = useSDK()
-  const toast = useToast()
-  const homeRoute = useRoute()
-
   command.register(() => [
     {
       title: tipsHidden() ? "Show tips" : "Hide tips",
@@ -57,49 +51,6 @@ export function Home() {
       onSelect: (dialog) => {
         kv.set("tips_hidden", !tipsHidden())
         dialog.clear()
-      },
-    },
-    {
-      // Available before any session exists — opens the launch dialog,
-      // creates a fresh session on submit, kicks off the crawl, then
-      // navigates the TUI to the new session so the sidebar + ingest
-      // queue + Esc/stop slashes are all live.
-      title: "Launch hackbrowser crawl",
-      value: "session.hackbrowser.launch",
-      category: "Session",
-      slash: {
-        name: "hackbrowser",
-      },
-      onSelect: async (dialog) => {
-        const input = await DialogHackbrowserLaunch.show(dialog)
-        dialog.clear()
-        if (!input) return
-        try {
-          const created = await sdk.client.session
-            .create({ title: `hackbrowser - ${input.target}` })
-            .then((x) => x.data)
-          if (!created) {
-            toast.show({ message: "Failed to create session for hackbrowser crawl", variant: "error" })
-            return
-          }
-          const result = await sdk.client.session.hackbrowserLaunch({
-            sessionID: created.id,
-            target: input.target,
-            credentials: input.credentials,
-            scope: input.scope,
-            exclude: input.exclude,
-            steps: input.steps,
-            headless: input.headless,
-          })
-          toast.show({
-            message: result?.data?.message ?? "Hackbrowser crawl started",
-            variant: "info",
-          })
-          homeRoute.navigate({ type: "session", sessionID: created.id })
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Failed to launch hackbrowser crawl"
-          toast.show({ message: msg, variant: "error" })
-        }
       },
     },
   ])
