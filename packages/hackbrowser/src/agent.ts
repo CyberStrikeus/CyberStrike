@@ -1711,7 +1711,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   const serverUrl = config.cyberstrike.serverUrl ?? "http://127.0.0.1:4096"
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
-  const credentialId = config.cyberstrike.credentialId
+  let credentialId = config.cyberstrike.credentialId
   const panelOn = config.panel ?? true
   setPanelEnabled(panelOn)
 
@@ -1781,7 +1781,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     SINGLE_CRED,
   )
 
-  const handleCapture: CaptureFn = dryRun
+  let handleCapture: CaptureFn = dryRun
     ? createDryRunHandler()
     : createIngestHandler(serverUrl, sessionID!, credentialId)
 
@@ -1809,6 +1809,19 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   const isAuthenticated = config.auth.authenticated || !!config.auth.credentials
   if (config.auth.authenticated) {
     await waitForManualLogin(page)
+    // Resolve label → UUID. credentialId from the launcher is a user-supplied
+    // label ("admin", "user"). The server only accepts PATCH /web/credentials/{uuid},
+    // so syncCredentialHeaders (F.2) would 404 silently on every capture without
+    // this step. registerCredential POSTs the label, gets back a real DB UUID,
+    // and we update both the closure binding (interceptor) and handleCapture so
+    // all subsequent ingest and sync calls use the correct identifier.
+    if (!dryRun && credentialId) {
+      const registeredId = await registerCredential(serverUrl, sessionID!, credentialId)
+      if (registeredId) {
+        credentialId = registeredId
+        handleCapture = createIngestHandler(serverUrl, sessionID!, credentialId)
+      }
+    }
   } else if (config.auth.credentials) {
     await autoLogin(page, config.auth.credentials)
   } else {
