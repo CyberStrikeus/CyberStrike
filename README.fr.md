@@ -139,7 +139,6 @@ CyberStrike se connecte a des serveurs MCP specialises qui etendent ses capacite
 
 | Serveur                                                                | Outils | Ce qu'il ajoute                                                                         |
 | ---------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39     | Tests de securite bases sur le navigateur — XSS, CSRF, manipulation DOM, vol de cookies |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38     | Audits de securite cloud — 60+ verifications sur AWS, Azure, GCP                        |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39     | Posture de securite GitHub — repo, org, actions, secrets, chaine d'approvisionnement    |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23     | Renseignements CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                          |
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

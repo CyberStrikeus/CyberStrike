@@ -139,7 +139,6 @@ npm i -g @cyberstrike-io/cyberstrike@latest && cyberstrike
 
 | الخادم                                                                 | الأدوات | ماذا يضيف                                                                     |
 | ---------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39      | اختبار أمني عبر المتصفح — XSS، CSRF، التلاعب بـ DOM، سرقة الكوكيز             |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38      | تدقيق أمان السحابة — أكثر من 60 فحصاً عبر AWS، Azure، GCP                     |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39      | الوضع الأمني لـ GitHub — المستودع، المنظمة، الإجراءات، الأسرار، سلسلة التوريد |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23      | استخبارات CVE — NVD، EPSS، CISA KEV، GitHub Advisory، OSV                     |
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

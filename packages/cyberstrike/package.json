@@ -91,6 +91,7 @@
     "@ai-sdk/vercel": "1.0.33",
     "@ai-sdk/xai": "2.0.51",
     "@clack/prompts": "1.0.0-alpha.1",
+    "@cyberstrike-io/hackbrowser": "workspace:*",
     "@cyberstrike-io/plugin": "workspace:*",
     "@cyberstrike-io/script": "workspace:*",
     "@cyberstrike-io/sdk": "workspace:*",
