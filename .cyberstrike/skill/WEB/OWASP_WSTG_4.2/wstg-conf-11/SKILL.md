@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: bdc3b83f580e2115c0069b1372d67f92eca84437b17b8000a5fba72abc6093db
-signature: dSPXCSiMMSqzkdW9PVRrGJ1Hgb5pO81eQoC2JCboJW3GiryG9p0Sa3lpzmkI3wt4lJLPVnvk5+nOfF5ERFSBBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-11
@@ -419,9 +416,6 @@ gsutil uniformbucketlevelaccess set on gs://bucket-name
 - [AWS S3 Security Best Practices](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html)
 - [Grayhat Warfare - Open S3 Buckets](https://buckets.grayhatwarfare.com/)
 
-sha256: e9b5c17e9c7ab9cdd4baf55e063dc02eb1dbf890e854d23f7bc3abf8ee5544bc
-signature: 6M3DL+lhyr+gqxSfOBowiUXI/jKCPoIYo42U6qS5bZVGQZJ5ClNqNisRkAHVOGvYwgjzZA5PCxoQmiqh4rT9DQ==
-signed_by: cyberstrike-official
 
 ---
 

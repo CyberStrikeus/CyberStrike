@@ -11,9 +11,6 @@ cwe_ids: [CWE-613]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 7b8eba4ae71cdcdf0497fbac9b6fd8f321dcaf00d3be36574d73699fb477bdeb
-signature: Gw3eMY0Exhpfy8hguDh3buEwhFMN+/usshkEjv8f3ySZWUdMNskG5bBYY2/hxsVqB4HpNOTyDyPAu2Mf93RgBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-06
@@ -215,9 +212,6 @@ def logout():
 | ----------- | ------------------------------- |
 | **CWE-613** | Insufficient Session Expiration |
 
-sha256: b79ace15255e6c6a4dbf9c6040e2f144c4a5707377e703239d489606c74a86bb
-signature: kVZaTlwn7ZRXxZv4BwEpB7qEuLLeJqmtOXkQy38ra4DKgceAS6kAPWOfkA+b3bh1fHVtc8iaGYcZCxTkcUOqDw==
-signed_by: cyberstrike-official
 
 ---
 

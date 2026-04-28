@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: e8e45e90ef2fcf623bc98e4dfd351f244bede001d4319ec6d042eb1e02639897
-signature: OVkH9mGUckFdkcbVoYAPZDukWpl0QfSviRSJfROg1eSPSh9qwei8iMs86t3+TznQvYq0Tq2xlckSdlp1Mcw6Bg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-05
@@ -646,9 +643,6 @@ module.exports = {
 - [KeyHacks](https://github.com/streaak/keyhacks)
 - [OWASP Source Code Analysis Tools](https://owasp.org/www-community/Source_Code_Analysis_Tools)
 
-sha256: 3100dca52b4065babf393195914946028d472e6d79d64e1047212e6bb95ee028
-signature: ddMoy3FsxoiZcfqmj1MMWlzPZCplN1fIkDNCyP7Nh7ddMUBLZrd+TUQVTVRJ7jfAyM/gGixzbdAJJe7JHiLPBg==
-signed_by: cyberstrike-official
 
 ---
 

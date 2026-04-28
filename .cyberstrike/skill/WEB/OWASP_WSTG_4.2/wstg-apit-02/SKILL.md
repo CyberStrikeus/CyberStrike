@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 6b746ddc83cd43bd714e47aec29662768b3c5b417dd16bf206fc297a43864f47
-signature: NRBaz8UBJbNsMYV/YmyHg95gv6v+eWstGujofZLNb16okn1I2yqfBQXl+/IIsEu+rDj04ZG2cPlT7L84Bwm5BA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-apit-02
@@ -190,9 +187,6 @@ def get_user(user_id):
 | ----------- | ------------------------------------------------ |
 | **CWE-639** | Authorization Bypass Through User-Controlled Key |
 
-sha256: 85b1f34398bc46c141a16d575e73fa5751fed1292dfd01d152e9e77a86b0091c
-signature: tRmtoRIdpKrdd2rRzxrDqXh4C3r1yQvl56K0ELd2a0rIAmnqpsXyHRM0Eg1J5vviNpZiqMDQ2qKv2Govq9+WBQ==
-signed_by: cyberstrike-official
 
 ---
 

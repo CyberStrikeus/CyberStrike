@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: c7d107ce8e755ccadedc8c858d2eff8b475c41b97bd208f89b9d1302f7cd2c74
-signature: MnxtEkDDds08P6RTfcVmcer5MO7lLUjg0PMVGixyZecoqe3WusVplkpTsqFM2R0s4ONYxd9toqI+mzjGzmWGDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-apit-01
@@ -235,9 +232,6 @@ recon.generate_report()
 | **Kiterunner** | API endpoint discovery |
 | **Postman**    | API documentation      |
 
-sha256: 5b39d63bef5bb4a60966269ab3629b12e6eaf1603691748ca478afbec684fc6b
-signature: NuDXQcXPkj2H2QOo7Oy6gZMpjyoUVbuVDIU6rYZSn1roOixlHd2YW8Xg3yQp31T39o/NpTAhmu/lOcbbGgztDg==
-signed_by: cyberstrike-official
 
 ---
 

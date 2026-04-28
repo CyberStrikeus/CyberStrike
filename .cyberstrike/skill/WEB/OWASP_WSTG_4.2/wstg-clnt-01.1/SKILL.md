@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 517a0bc395f84a76e7146465458daca77dd51b0f5ed30b7dc935caeedcd48084
-signature: j5u70j+JnWr23xN+xmWgVf3Yj1sc+qz9WFR3UW8e3cWKgN4R5WtPPA/Yc8qjeJyjsmmuXJ4XvXt+Ia8e2ltfBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-01.1
@@ -89,9 +86,6 @@ if (typeof console !== "undefined") {
 | ------------------- | ---- | -------- |
 | No self-XSS warning | 3.5  | Low      |
 
-sha256: 2b88f7ecbef302ee6c97767f34994aac624d0832ea3b18cb83071f2c9180abe1
-signature: GHnbrM+UxEmWiI4/R1dvrKa6/FyN53T4jos1U4FSknmmR0kzfYwUdrmBxqaOCjvdNjifMEofHrarB32i8WdPAw==
-signed_by: cyberstrike-official
 
 ---
 

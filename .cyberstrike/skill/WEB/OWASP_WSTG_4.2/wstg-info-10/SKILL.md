@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 6962e7279462fa21df6d2282641721bc578774d94224733dfe51b4dc88bd2008
-signature: /AdwUHISlLDvfV1EU8rTl96d79ipvya654B3llFgMzAgpPG5tiEkQ7pIAEDSx3T4mmnOl3bIDz542odecr4zBg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-10
@@ -539,9 +536,6 @@ This is a **reconnaissance activity**, not a direct vulnerability.
 - [WhatWeb](https://github.com/urbanadventurer/WhatWeb)
 - [Shodan](https://www.shodan.io/)
 
-sha256: 833e547481f243390b57bf3d92f924ed9fbfd420b927623cb32c2c8eebf1b472
-signature: Jcf6buBETvumrgROExwuiA5lXSkcNyTTxAuwOSIhb1QvNyiEhTKLYohx0vq6TFMxJOs8LG+IszZcyBDu41bABA==
-signed_by: cyberstrike-official
 
 ---
 

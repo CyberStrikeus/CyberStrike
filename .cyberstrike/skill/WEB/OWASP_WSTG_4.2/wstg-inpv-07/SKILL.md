@@ -11,9 +11,6 @@ cwe_ids: [CWE-91]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: a3800e1f0f47e8fc042a9888b1988180464c38a49e335a2a8a92e676b19acbc7
-signature: mQLJEXUyJI9RUsIU9cxRSYpGk07KGl+yt5UJrjxDRKutV+1Vq+c/yUerxoH+IToqNnkAlvf6eS5xWYUBkx83BQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-07
@@ -447,9 +444,6 @@ $dom->loadXML($xml, LIBXML_NOENT | LIBXML_DTDLOAD);
 | **CWE-611** | Improper Restriction of XML External Entity Reference |
 | **CWE-91**  | XML Injection                                         |
 
-sha256: b8c0a23148deaef682d4d9d2c4bf41b80607b4633ba5ba59b59a369a8f7a7e0a
-signature: tOtzS1BWLM/TJb/LQYJnyDw8uy6podICJtZ1LNc8EIVVtBeTSAQUdI9Ph5DqcB4/oiBEVc4y2L19MTaKSFEMBA==
-signed_by: cyberstrike-official
 
 ---
 

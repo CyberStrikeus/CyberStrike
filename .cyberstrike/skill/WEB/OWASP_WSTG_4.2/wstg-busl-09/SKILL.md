@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 1fcad116b3700cefe2a853bae95504c8a756033235d8b49a4b84a75736d80f8d
-signature: 7+gq82buG/l+EC7GSK6JihjYxU8O9V2hFqEY80anf2L4nmPn1H/XAtfORcELTPYVNwb3mm56ZI83LFBTJsCwBQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-09
@@ -625,9 +622,6 @@ def add_security_headers(response):
 - [EICAR Test File](https://www.eicar.org/download-anti-malware-testfile/)
 - [OWASP XXE Prevention](https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html)
 
-sha256: 55e058ec1915742af566077403160490dfd64f1c12f56111e68e668d0c4fecf8
-signature: EKNnGyEHbEv9ORmV9uiRNlFNmIdVqaZCM9KCfCdkVuFJLOSNa3c3Y69nTz6W7mkJD0UpjA8A/CIK3UKmBeMWAw==
-signed_by: cyberstrike-official
 
 ---
 

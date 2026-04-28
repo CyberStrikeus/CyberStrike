@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 5a99da870d97679e4fcb29a09dd4c18e0abc1bc60fef765b88607bd909e265dc
-signature: OuDR+iysdWGmfXGRyk7evFM99wADLDvHrrd3wKoaMsvxd7tUEdCo4xhljl9HXIJWBgZ8FXzFqNTYGqkOpEKeAA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-idnt-05
@@ -657,9 +654,6 @@ class User:
 - [Unicode Security Considerations](https://unicode.org/reports/tr36/)
 - [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
 
-sha256: 69c9ee23a6aec1ba894e6feeac728777606cf3b88fa39fe515ae306ead7e455c
-signature: 2vHJDpZgijdKvLQmmSeGV6kRUdnWOp+dk5nzxx8DwTwTeQ/8yc4DbV2GDRiBhX1QyrBYRzrgMvADhLrIObc4BQ==
-signed_by: cyberstrike-official
 
 ---
 

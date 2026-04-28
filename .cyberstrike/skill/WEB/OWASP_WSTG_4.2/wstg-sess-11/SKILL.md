@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 95272209c8236c3c07ae20c6f85f4cd50c09d97b7745ebc7c96e9196e1096d48
-signature: /gHB/PIzD97mbjgDXsBrPUvqWkMQtLSFyhPit+agJR9tJek+XpiZ43toZ6aOY3FLKIVZ9aW8GPKdT0dtoq6aCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-11
@@ -293,9 +290,6 @@ def change_password():
 | **CWE-613** | Insufficient Session Expiration |
 | **CWE-384** | Session Fixation                |
 
-sha256: 62987277c5c8737322507508ececf613bbace9f81f06b7c649ee62a0dee3789e
-signature: cNVR8tPt6np7k8crosMLIjBcaS7fSfWI1Dt5b2iPm6a0ECy5wYfTEyz7cuNj4JuBhLfXd9tH9mt3rs/tm+GFBA==
-signed_by: cyberstrike-official
 
 ---
 

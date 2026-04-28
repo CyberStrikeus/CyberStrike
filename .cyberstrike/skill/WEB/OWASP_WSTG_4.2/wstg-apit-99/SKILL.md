@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 25aa529370230c3018db4dd48cd44b7c8f0ba49577c1c2622799d8ecdfeb91e0
-signature: DaX7ETbjWCsjKkFtou6JlU9CvHdyvCM3FdzfCHYhoykOtF0SHDNfANzudEB2+vCGKyZ6+pAJL3KSKn/71CY+DQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-apit-99
@@ -311,9 +308,6 @@ schema.execute(query, validation_rules=[depth_limit_validator(5)])
 | Authorization bypass  | 7.5  | High     |
 | SQL injection         | 9.8  | Critical |
 
-sha256: 4d5c4222de15e8989a70b2c182cd4e05e4a20555b2aa93d30d46c0344d474ec5
-signature: rhjIn3LHncxmSxQqmx7jZzQlJ1nZ3b1IFa3bbomGQs6HMresDYR+94rsIlupXpZRZYA481Rs8KkPjNK1FqWfBg==
-signed_by: cyberstrike-official
 
 ---
 

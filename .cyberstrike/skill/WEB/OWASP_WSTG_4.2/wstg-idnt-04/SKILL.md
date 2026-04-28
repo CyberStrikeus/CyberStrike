@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 0a2e36641175a9be5727c3adf05a954694f2a0ac1a8fd3eeee583d3f837b1bcf
-signature: JsrZj9HPD1p7Ll+54A8PXTtqaqlOMxNjfjL8Le7g39GmISbfVmpw2MHhPxPP+C7n/39rZXO1s8++v6p3xI3ZDQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-idnt-04
@@ -510,9 +507,6 @@ def check_lockout(username):
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [PortSwigger - Username Enumeration](https://portswigger.net/web-security/authentication/password-based/lab-username-enumeration-via-different-responses)
 
-sha256: 40ddd5710418a14771155e31f7cddd49d15aeb74f51eb81cb27fe735236877b5
-signature: l380JEWnm9i0/vW2NSybHi+n2Tcdpdi9U2Tz/4VtO0LHWIJyGt6eEclyZ+bnoMLsd4oAgsdjLul5pLivh44dAQ==
-signed_by: cyberstrike-official
 
 ---
 

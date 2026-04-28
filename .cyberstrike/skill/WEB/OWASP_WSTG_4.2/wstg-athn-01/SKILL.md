@@ -11,9 +11,6 @@ cwe_ids: [CWE-522]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: d951fd147a888a7a9adaf859ef12a7beb02a36e0d6cbef663ec94a70801f9dee
-signature: QcOffusU8CwW/mP86avPuaMBkhBw9YA/qOgs9umoQwnPsBlkXLZOIyJlnPAmOecR5sbt4IKwqozEmm+ufD4/Cg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-01
@@ -412,9 +409,6 @@ def enforce_https():
 - [OWASP TLS Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html)
 - [Mozilla SSL Configuration Generator](https://ssl-config.mozilla.org/)
 
-sha256: 26e534a6784d714b302771e0d92d1b1024380e6f3e4c5b5509d56859ad15a83a
-signature: KCqLEn1gQ25ro4IW8whTQLDukvc6c2w1iAxbVj6bMDPKUQOuT1dyyHy3sSh8vI4uAZbWm848UDd0B+hA898xBg==
-signed_by: cyberstrike-official
 
 ---
 

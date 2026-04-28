@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b54440e49e8386eac3e9781ca700a6dc84452983f9c1930f3cccca5f91ee773d
-signature: hEO1Hc68eY8WNg3fDsL9oEPYYir6Ta/jbV39h+mYnIiklU+FXGetgUETht7kZLjrTQhxGUqawXZQ6m6gzW2rDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-03
@@ -456,9 +453,6 @@ find /var/www/html -name "*.swp" -delete
 - [OWASP WSTG - Test File Extensions Handling](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/03-Test_File_Extensions_Handling_for_Sensitive_Information)
 - [Git Dumper](https://github.com/arthaud/git-dumper)
 
-sha256: 0771669cd507b21573b225769cf58acf153b7efbabec8bb0948e4581ef27602c
-signature: pXEEZIt7KnqXZ2/VQXaWCcN/29pKFmACoCoN7N9dr1ymdTi3S0+z81XReYmUKlI5h0wNss5QGBupqv5UjQeDDQ==
-signed_by: cyberstrike-official
 
 ---
 

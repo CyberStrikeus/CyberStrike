@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 5ef76e2369f25641062545dd2821fdcacad619931b9778e6157aeb1d32f05134
-signature: 6Bn9NjW3dUULRO2RzFWvAyY3AFpdG+qSEpI6R3c7ZPMdCohbvr6YQDLXQBFLGc3arOJVjxs9b9Vwg7K9sKMHAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-05.1
@@ -631,9 +628,6 @@ class ConsentManager:
 - [OAuth 2.0 Security Best Practices](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
 - [OAuth 2.0 for Native Apps](https://tools.ietf.org/html/rfc8252)
 
-sha256: 2a3727475941d12048207e6e9bb019e8a89c357dc0cf8536097aeb74f400e020
-signature: z6Jk7WReaS3L1V88a5PpEFq6scFgxv9CzT0ruPz4iBIPmLMte2cTYByWr+2s8VZEadPNlbCAWwGs0jK3rbjRCw==
-signed_by: cyberstrike-official
 
 ---
 

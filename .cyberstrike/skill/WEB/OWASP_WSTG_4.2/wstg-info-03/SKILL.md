@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: e387287af1065810c99144ae732ca3ed0766741db87efc7c6b28b31de293fe09
-signature: CkCcOlKkhFkTnl3zf/5i571Yby03MTY5AYvWt6Q3Ktwaq0SHXrvGO/6zNaJYcKu+TRmIMMAfFLUKgReq6JUjAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-03
@@ -560,9 +557,6 @@ Expires: 2025-12-31T23:59:59.000Z
 - [Parsero](https://github.com/behindthefirewalls/Parsero)
 - [Gobuster](https://github.com/OJ/gobuster)
 
-sha256: cc975a82cd9e26def443cc394945019324bea01ed344e1f512a5d8127bedebbe
-signature: 7V8O55KY0fetuaHvtL4DC4NNgUTZmOB/PPXJ97Ga3SSUWrWKnAFvL33ZpRLAQsCeJQJIUmjH8YPOaIEgBXqPAA==
-signed_by: cyberstrike-official
 
 ---
 

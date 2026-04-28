@@ -11,9 +11,6 @@ cwe_ids: [CWE-922]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 995c36d60feaa854d9075a318bbbcd684a472cca98a2e12dd02385c2371227e5
-signature: Fu/1PGr+ZtTgcqovpbhkKGriQ8TNsO7MYZVIhKkuXwFAz1AT/F/tcuEJ2IaqqGq1kj6SUPk9IWjaWHJlLkvsDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-09
@@ -220,9 +217,6 @@ add_header Content-Security-Policy "frame-ancestors 'self'" always;
 | ------------ | ------------------------------------------ |
 | **CWE-1021** | Improper Restriction of Rendered UI Layers |
 
-sha256: b768d13ee5dc5b3ed01ea08fda44578a628d1a30e185e4e168564518fda7d119
-signature: ElX/iB97Gmnl6uuneTXQyJ4TPU4QQqZMb7xJm3KWqw71U4Q4N4lc0dsjlqZukQgetEkbOOV1rrBBp1YQSTSRBw==
-signed_by: cyberstrike-official
 
 ---
 
