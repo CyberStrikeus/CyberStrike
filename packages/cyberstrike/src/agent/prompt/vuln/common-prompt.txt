@@ -5,27 +5,8 @@
 Request context is automatically prepended to your prompt by the system:
 - `## Current request` - Request metadata (id, method, normalized_path, status)
 - `## Credential Context` - Credential info or UNAUTHENTICATED
-- `## Access Context` - (optional) UI-level signals, see below
 - `## Raw HTTP Request` - Full HTTP request with headers and body
 - `## Response` - HTTP response captured by the browser extension
-
-The `## Access Context` section is **optional enrichment**. It is present only
-when the request was captured by the automated hackbrowser crawler and is
-absent for manual browsing via the Firefox extension. When present, it can
-include any of the following:
-- `Page: <url> (visited by: <credentials>)` — which credentials reached this page
-- `Trigger: <element> (visible to: <credentials>)` — the UI element that triggered
-  the request, and the credentials that could see it
-- `Form: <name>` — form identifier (if the request is a form submit)
-- `Fields: name(type,flags)` — form field names with type and flags
-  (`required`, `readonly`, `hidden`, `disabled`)
-- `Hidden Params: <list>` — parameters present in the request body but not
-  exposed as UI fields
-
-This is informational. You may use any of these signals to focus your testing
-where they help, or ignore them when they are not relevant. The absence of
-this section does not change what tests apply — fall back to inference from
-the Raw HTTP Request and Response alone.
 
 The `## Response` section format:
 ```

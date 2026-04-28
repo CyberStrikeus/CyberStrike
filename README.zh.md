@@ -139,6 +139,7 @@ CyberStrike 连接专业 MCP 服务器以扩展其能力：
 
 | 服务器                                                                 | 工具数 | 扩展能力                                                            |
 | ---------------------------------------------------------------------- | ------ | ------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39     | 基于浏览器的安全测试 — XSS、CSRF、DOM 操纵、Cookie 窃取             |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38     | 云安全审计 — 覆盖 AWS、Azure、GCP 的 60+ 项检查                     |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39     | GitHub 安全态势 — 仓库、组织、Actions、密钥、供应链                 |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23     | CVE 情报 — NVD、EPSS、CISA KEV、GitHub Advisory、OSV                |
@@ -249,6 +250,7 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

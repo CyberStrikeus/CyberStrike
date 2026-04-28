@@ -20,7 +20,6 @@ import { GithubCommand } from "./cli/cmd/github"
 import { ExportCommand } from "./cli/cmd/export"
 import { ImportCommand } from "./cli/cmd/import"
 import { AttachCommand } from "./cli/cmd/tui/attach"
-import { HackbrowserCommand } from "./cli/cmd/hackbrowser"
 import { TuiThreadCommand } from "./cli/cmd/tui/thread"
 import { AcpCommand } from "./cli/cmd/acp"
 import { EOL } from "os"
@@ -125,7 +124,6 @@ const cli = yargs(hideBin(process.argv))
   .command(McpCommand)
   .command(TuiThreadCommand)
   .command(AttachCommand)
-  .command(HackbrowserCommand)
   .command(RunCommand)
   .command(GenerateCommand)
   .command(DebugCommand)

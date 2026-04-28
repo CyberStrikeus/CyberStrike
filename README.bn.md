@@ -137,12 +137,13 @@ CyberStrike নিরাপত্তা ডোমেনের জন্য ব�
 
 CyberStrike বিশেষায়িত MCP সার্ভারের সাথে সংযুক্ত হয় যা এর সক্ষমতা বাড়ায়:
 
-| সার্ভার                                                                | টুল | কী যোগ করে                                                           |
-| ---------------------------------------------------------------------- | --- | -------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | ৩৮  | ক্লাউড নিরাপত্তা অডিট — AWS, Azure, GCP জুড়ে ৬০+ চেক                |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | ৩৯  | GitHub নিরাপত্তা অবস্থান — repo, org, actions, secrets, supply chain |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | ২৩  | CVE গোয়েন্দা তথ্য — NVD, EPSS, CISA KEV, GitHub Advisory, OSV       |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | ৩৭  | OSINT রিকন — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS  |
+| সার্ভার                                                                | টুল | কী যোগ করে                                                                  |
+| ---------------------------------------------------------------------- | --- | --------------------------------------------------------------------------- |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | ৩৯  | ব্রাউজার-ভিত্তিক নিরাপত্তা পরীক্ষা — XSS, CSRF, DOM ম্যানিপুলেশন, কুকি চুরি |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | ৩৮  | ক্লাউড নিরাপত্তা অডিট — AWS, Azure, GCP জুড়ে ৬০+ চেক                       |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | ৩৯  | GitHub নিরাপত্তা অবস্থান — repo, org, actions, secrets, supply chain        |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | ২৩  | CVE গোয়েন্দা তথ্য — NVD, EPSS, CISA KEV, GitHub Advisory, OSV              |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | ৩৭  | OSINT রিকন — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS         |
 
 সবকিছু ওপেন সোর্স। সবকিছু `npx` দিয়ে ইনস্টলযোগ্য। CyberStrike-এ প্লাগ করুন অথবা যেকোনো MCP ক্লায়েন্টের সাথে স্বতন্ত্রভাবে ব্যবহার করুন।
 
@@ -249,6 +250,7 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
+| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

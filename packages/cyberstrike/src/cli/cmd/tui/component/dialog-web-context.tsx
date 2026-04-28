@@ -4,7 +4,6 @@ import { useSync } from "@tui/context/sync"
 import { useTheme } from "../context/theme"
 import { useDialog } from "@tui/ui/dialog"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { formatEndpointHost } from "@tui/util/format"
 
 type SectionID = "endpoints" | "roles" | "credentials" | "objects" | "functions"
 
@@ -252,9 +251,7 @@ export function DialogWebContext(props: { sessionID: string }) {
   )
 }
 
-function EndpointRow(props: {
-  item: { method: string; host?: string; port?: number; normalized_path: string; status: string }
-}) {
+function EndpointRow(props: { item: { method: string; normalized_path: string; status: string } }) {
   const { theme } = useTheme()
   const color =
     {
@@ -275,9 +272,6 @@ function EndpointRow(props: {
       </text>
       <text fg={theme.accent} flexShrink={0}>
         {props.item.method}
-      </text>
-      <text fg={theme.textMuted} flexShrink={0}>
-        {formatEndpointHost(props.item.host, props.item.port)}
       </text>
       <text fg={theme.text} wrapMode="none">
         {props.item.normalized_path}

@@ -168,11 +168,6 @@ for (const item of targets) {
     tsconfig: "./tsconfig.json",
     plugins: [solidPlugin],
     sourcemap: "external",
-    // Hackbrowser bundles Playwright; Bun build must skip these optional
-    // backends (BiDi protocol, Electron) — chromium-over-CDP doesn't load
-    // them at runtime. Without this list, compile fails with
-    // "Could not resolve: chromium-bidi/..." (INTEGRATION.md §10.1).
-    external: ["chromium-bidi", "electron"],
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

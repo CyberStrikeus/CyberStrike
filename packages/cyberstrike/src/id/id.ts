@@ -19,7 +19,6 @@ export namespace Identifier {
     web_object_value: "wov",
     web_function: "wfn",
     web_retest: "wrt",
-    endpoint_template: "ept",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {
