@@ -45,12 +45,15 @@ function failingClient(error = "mock failure"): Tier3Client {
 
 describe("pipeline.assemble — Tier 1 decisions are authoritative", () => {
   test("uses Tier 1 dynamic placeholders, ignores LLM for those slots", () => {
-    const p = parseRawRequest({ raw: rawHttp("GET", "/team/1/user/123/comments/my-first-post", "x.t"), scheme: "https" })
+    const p = parseRawRequest({
+      raw: rawHttp("GET", "/team/1/user/123/comments/my-first-post", "x.t"),
+      scheme: "https",
+    })
     const t1 = runTier1(p.pathSegments)
     // Malicious: LLM tries to override Tier 1 static "team" → slug; must be ignored
     const decisions: LLMSegmentDecision[] = [
-      { segment_index: 1, classification: "slug" },          // SHOULD BE IGNORED (tier1 said static)
-      { segment_index: 6, classification: "slug" },          // legitimate ambiguous decision
+      { segment_index: 1, classification: "slug" }, // SHOULD BE IGNORED (tier1 said static)
+      { segment_index: 6, classification: "slug" }, // legitimate ambiguous decision
     ]
     expect(assemble(p, t1, decisions)).toBe("/team/{id}/user/{id}/comments/{slug}")
   })
@@ -62,7 +65,10 @@ describe("pipeline.assemble — Tier 1 decisions are authoritative", () => {
   })
 
   test("ignores out-of-range LLM segment_index", () => {
-    const p = parseRawRequest({ raw: rawHttp("GET", "/team/1/user/123/comments/my-first-post", "x.t"), scheme: "https" })
+    const p = parseRawRequest({
+      raw: rawHttp("GET", "/team/1/user/123/comments/my-first-post", "x.t"),
+      scheme: "https",
+    })
     const t1 = runTier1(p.pathSegments)
     const decisions: LLMSegmentDecision[] = [{ segment_index: 99, classification: "slug" }]
     expect(assemble(p, t1, decisions)).toBe("/team/{id}/user/{id}/comments/my-first-post")
@@ -71,7 +77,7 @@ describe("pipeline.assemble — Tier 1 decisions are authoritative", () => {
   test("static decision keeps the literal segment unchanged", () => {
     const p = parseRawRequest({ raw: rawHttp("GET", "/posts/draft/save", "x.t"), scheme: "https" })
     const t1 = runTier1(p.pathSegments)
-    expect(t1.resolved).toBe(true)  // posts/draft/save are all static via tier1
+    expect(t1.resolved).toBe(true) // posts/draft/save are all static via tier1
     expect(assemble(p, t1, [])).toBe("/posts/draft/save")
   })
 
@@ -169,9 +175,9 @@ describe("pipeline.orchestrate — tier-by-tier resolution", () => {
       client: failingClient(),
     })
     expect(r.normSource).toBe("failed")
-    expect(r.normalizedPath).toBe("/blog/why-rust-is-fast/comments")  // tier1 best-effort
+    expect(r.normalizedPath).toBe("/blog/why-rust-is-fast/comments") // tier1 best-effort
     expect(r.templateId).toBeUndefined()
-    expect(store.size()).toBe(0)  // critical: no polluted template
+    expect(store.size()).toBe(0) // critical: no polluted template
   })
 
   test("multi-origin separation: same path, different origins → different templates", async () => {
@@ -214,8 +220,8 @@ describe("pipeline.orchestrate — tier-by-tier resolution", () => {
       store,
       client,
     })
-    expect(r.normSource).toBe("tier1")  // tier1 always resolves /users/{id}
-    expect(store.size()).toBe(2)        // one template per session
+    expect(r.normSource).toBe("tier1") // tier1 always resolves /users/{id}
+    expect(store.size()).toBe(2) // one template per session
   })
 
   test("hit count amortization: 100 distinct numeric IDs share one template", async () => {
@@ -242,8 +248,8 @@ describe("pipeline.orchestrate — tier-by-tier resolution", () => {
       async classify() {
         return {
           decisions: [
-            { segment_index: 1, classification: "slug" },   // tier1 said static — IGNORED
-            { segment_index: 6, classification: "slug" },   // legitimate ambiguous → applied
+            { segment_index: 1, classification: "slug" }, // tier1 said static — IGNORED
+            { segment_index: 6, classification: "slug" }, // legitimate ambiguous → applied
           ],
           model: "mock",
         }

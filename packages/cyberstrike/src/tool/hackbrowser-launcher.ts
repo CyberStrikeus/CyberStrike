@@ -218,11 +218,7 @@ async function writeFailureMessage(
  * result.errors below covers the second class. The catch covers the
  * first.
  */
-async function backgroundRun(
-  sessionID: string,
-  prepared: PreparedCrawl,
-  targetUrl: string,
-): Promise<void> {
+async function backgroundRun(sessionID: string, prepared: PreparedCrawl, targetUrl: string): Promise<void> {
   try {
     const result = await runCrawl(prepared.crawlOpts)
 

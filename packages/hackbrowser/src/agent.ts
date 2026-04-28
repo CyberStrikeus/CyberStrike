@@ -1,12 +1,50 @@
 import { chromium, type Page, type BrowserContext } from "playwright"
 import { Log } from "./log.ts"
-import type { AgentConfig, CapturedRequest, UIContext, PageTask, FormTask, ClickTask, ActionResult, QueueEntry, PageDiffContext, CredentialConfig, CSEvent, CrawlResult } from "./types.ts"
+import type {
+  AgentConfig,
+  CapturedRequest,
+  UIContext,
+  PageTask,
+  FormTask,
+  ClickTask,
+  ActionResult,
+  QueueEntry,
+  PageDiffContext,
+  CredentialConfig,
+  CSEvent,
+  CrawlResult,
+} from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
-import { sendIngest, initSession, sendPageDiff, registerCredential, syncCredentialHeaders, extractAuthHeaders, headersChanged, initAuth } from "./ingest.ts"
+import {
+  sendIngest,
+  initSession,
+  sendPageDiff,
+  registerCredential,
+  syncCredentialHeaders,
+  extractAuthHeaders,
+  headersChanged,
+  initAuth,
+} from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
-import { createGlobalState, buildPlannerSnapshot, normalizeUrl, generateFingerprint, generateFullFingerprint, computeElementAvailability, availabilityToRecord, classifyAuthUrl, INPUT_ROLES, markPageEmpty, drainEmptyStateQueue, drainOnMutation, hasSuccessfulMutation, getIntelligence, SINGLE_CRED } from "./state.ts"
+import {
+  createGlobalState,
+  buildPlannerSnapshot,
+  normalizeUrl,
+  generateFingerprint,
+  generateFullFingerprint,
+  computeElementAvailability,
+  availabilityToRecord,
+  classifyAuthUrl,
+  INPUT_ROLES,
+  markPageEmpty,
+  drainEmptyStateQueue,
+  drainOnMutation,
+  hasSuccessfulMutation,
+  getIntelligence,
+  SINGLE_CRED,
+} from "./state.ts"
 import { execute } from "./executor.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
@@ -20,8 +58,8 @@ const log = Log.create({ service: "hackbrowser:agent" })
 // Constants
 // ============================================================
 
-const MAX_STEPS_PER_PAGE = 30     // Max tasks executed per page (loop guard)
-const MAX_TASK_QUEUE_SIZE = 30    // TaskQueue growth cap
+const MAX_STEPS_PER_PAGE = 30 // Max tasks executed per page (loop guard)
+const MAX_TASK_QUEUE_SIZE = 30 // TaskQueue growth cap
 const MAX_UNPLANNED_ITERATIONS = 2 // Max additional LLM calls for unexplored elements
 const OVERLAY_ESCAPE_WAIT = 400
 const SPA_RENDER_RETRY_WAIT = 600
@@ -61,7 +99,10 @@ function flushReDiscovery(globalState: ReturnType<typeof createGlobalState>): vo
       globalState.pageQueue.push(url)
     }
   }
-  log.info("post-login re-discovery flushed", { pagesToRevisit: pagesToRevisit.length, queueSize: globalState.pageQueue.length })
+  log.info("post-login re-discovery flushed", {
+    pagesToRevisit: pagesToRevisit.length,
+    queueSize: globalState.pageQueue.length,
+  })
 }
 
 // ============================================================
@@ -78,9 +119,7 @@ function flushReDiscovery(globalState: ReturnType<typeof createGlobalState>): vo
  *  3. Login explored → triggerReDiscovery (re-queue all visited pages)
  *  4. Authenticated BFS complete → queue logout page (if found)
  */
-function processAuthPhase(
-  globalState: ReturnType<typeof createGlobalState>,
-): void {
+function processAuthPhase(globalState: ReturnType<typeof createGlobalState>): void {
   const deferred = globalState.deferredAuthPages
 
   if (globalState.authPhase === "anonymous") {
@@ -178,11 +217,7 @@ function logScope(targetUrl: string, patterns: readonly string[], userProvided: 
 
 type CaptureFn = (captured: CapturedRequest) => Promise<void>
 
-function createIngestHandler(
-  serverUrl: string,
-  sessionID: string,
-  credentialId: string | undefined,
-): CaptureFn {
+function createIngestHandler(serverUrl: string, sessionID: string, credentialId: string | undefined): CaptureFn {
   return (captured) => sendIngest(captured, serverUrl, sessionID, credentialId).then(() => {})
 }
 
@@ -197,7 +232,9 @@ function createDryRunHandler(): CaptureFn {
     const roles = captured.elementRoles
     const page = captured.pageUrl
     const visitedBy = captured.pageVisitedBy
-    log.info(`→ ${requestLine}  [${status}]${uiFields > 0 ? `  ui_fields:${uiFields}` : ""}${trigger ? `  trigger:${trigger}` : ""}${roles ? `  roles:[${roles.join(",")}]` : ""}${page ? `  page:${page}` : ""}${visitedBy ? `  visited_by:[${visitedBy.join(",")}]` : ""}`)
+    log.info(
+      `→ ${requestLine}  [${status}]${uiFields > 0 ? `  ui_fields:${uiFields}` : ""}${trigger ? `  trigger:${trigger}` : ""}${roles ? `  roles:[${roles.join(",")}]` : ""}${page ? `  page:${page}` : ""}${visitedBy ? `  visited_by:[${visitedBy.join(",")}]` : ""}`,
+    )
 
     if (captured.uiContext) {
       for (const f of captured.uiContext.fields) {
@@ -206,8 +243,12 @@ function createDryRunHandler(): CaptureFn {
           f.isHidden ? "hidden" : "",
           f.isDisabled ? "disabled" : "",
           f.isDisplayOnly ? "display-only" : "",
-        ].filter(Boolean).join(",")
-        log.debug(`field: ${f.name || f.label || "(unnamed)"}  type:${f.type}  value:${JSON.stringify(f.value)}${flags ? `  [${flags}]` : ""}`)
+        ]
+          .filter(Boolean)
+          .join(",")
+        log.debug(
+          `field: ${f.name || f.label || "(unnamed)"}  type:${f.type}  value:${JSON.stringify(f.value)}${flags ? `  [${flags}]` : ""}`,
+        )
       }
       if (hiddenParams.length > 0) {
         log.debug(`hidden params (not in UI): ${hiddenParams.join(", ")}`)
@@ -221,9 +262,26 @@ function createDryRunHandler(): CaptureFn {
 // ============================================================
 
 const SKIP_EXTENSIONS = [
-  ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
-  ".css", ".js", ".mjs", ".woff", ".woff2", ".ttf", ".eot",
-  ".map", ".mp4", ".mp3", ".pdf", ".zip", ".gz",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".svg",
+  ".ico",
+  ".webp",
+  ".css",
+  ".js",
+  ".mjs",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".map",
+  ".mp4",
+  ".mp3",
+  ".pdf",
+  ".zip",
+  ".gz",
 ]
 
 function shouldSkipUrl(url: string): boolean {
@@ -336,7 +394,17 @@ function setupRequestInterceptor(
       }
     } catch {}
 
-    onCapture({ raw, scheme, response, uiContext, triggerElement, elementRoles: null, pageUrl: null, pageVisitedBy: null, timestamp: Date.now() })
+    onCapture({
+      raw,
+      scheme,
+      response,
+      uiContext,
+      triggerElement,
+      elementRoles: null,
+      pageUrl: null,
+      pageVisitedBy: null,
+      timestamp: Date.now(),
+    })
 
     // Track for action feedback — "METHOD /path [status]"
     const status = response?.status ?? 0
@@ -399,11 +467,7 @@ function isInScope(url: string, inScope: ScopeMatcher): boolean {
  */
 const MAX_PER_PATH_PATTERN = 5
 
-function enqueueUrl(
-  url: string,
-  globalState: ReturnType<typeof createGlobalState>,
-  inScope: ScopeMatcher,
-): boolean {
+function enqueueUrl(url: string, globalState: ReturnType<typeof createGlobalState>, inScope: ScopeMatcher): boolean {
   const normalized = normalizeUrl(url)
   if (!isInScope(url, inScope)) return false
   if (globalState.visitedPages.has(normalized)) return false
@@ -432,9 +496,7 @@ function enqueueUrl(
   if (globalState.authPhase === "anonymous") {
     const authType = classifyAuthUrl(normalized)
     if (authType) {
-      const alreadyDeferred = globalState.deferredAuthPages.some(
-        (d) => d.url === normalized,
-      )
+      const alreadyDeferred = globalState.deferredAuthPages.some((d) => d.url === normalized)
       if (!alreadyDeferred) {
         globalState.deferredAuthPages.push({ url: normalized, type: authType })
         log.debug("deferred auth URL", { url: normalized, type: authType })
@@ -516,7 +578,7 @@ async function explorePageWithAI(
     type: "plan-received",
     tasks: plan.tasks.length,
     pageState: plan.pageState ?? "unknown",
-    summary: plan.tasks.slice(0, 10).map(t => ({
+    summary: plan.tasks.slice(0, 10).map((t) => ({
       kind: t.type,
       label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
     })),
@@ -529,7 +591,7 @@ async function explorePageWithAI(
   // 3. TaskQueue — system drives execution, no LLM per step
   const taskQueue: PageTask[] = [...plan.tasks]
   // Track all seen element semantic keys to detect new elements after clicks
-  const seenKeys = new Set(elements.map(e => `${e.role}::${e.label}`))
+  const seenKeys = new Set(elements.map((e) => `${e.role}::${e.label}`))
   let steps = 0
 
   while (taskQueue.length > 0 && steps < MAX_STEPS_PER_PAGE) {
@@ -537,18 +599,14 @@ async function explorePageWithAI(
     const task = taskQueue.shift()!
 
     // Re-collect before each task (DOM may have changed from previous action)
-    elements = filterVisitedLinks(
-      await collectElements(page),
-      pageUrl,
-      globalState.visitedPages,
-    )
+    elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
 
     // If the task target is blocked by an overlay (e.g. sidenav opened by a prior click),
     // close the overlay first so the element becomes reachable again.
     {
       const lookupRole = task.type === "form" ? (task.fields[0]?.role ?? task.submit.role) : task.role
       const lookupLabel = task.type === "form" ? (task.fields[0]?.label ?? task.submit.label) : task.label
-      if (!resolveElement(elements, lookupRole, lookupLabel) && await isViewportCenterBlocked(page)) {
+      if (!resolveElement(elements, lookupRole, lookupLabel) && (await isViewportCenterBlocked(page))) {
         log.debug("task target blocked by overlay, closing overlay first", { role: lookupRole, label: lookupLabel })
         await closeOverlay(page)
         elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
@@ -558,14 +616,37 @@ async function explorePageWithAI(
     log.info("executing task", {
       step: `${steps}/${MAX_STEPS_PER_PAGE}`,
       type: task.type,
-      label: task.type === "form" ? `form(${task.fields.length} fields → ${task.submit.label.slice(0, 30)})` : task.label,
+      label:
+        task.type === "form" ? `form(${task.fields.length} fields → ${task.submit.label.slice(0, 30)})` : task.label,
       remaining: taskQueue.length,
     })
 
     if (task.type === "form") {
-      await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
+      await executeFormTask(
+        task,
+        page,
+        elements,
+        interceptor,
+        semanticActionsDone,
+        globalState,
+        credentialId,
+        linksToEnqueue,
+        pageUrl,
+        inScope,
+      )
     } else {
-      await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
+      await executeClickTask(
+        task,
+        page,
+        elements,
+        interceptor,
+        semanticActionsDone,
+        globalState,
+        credentialId,
+        linksToEnqueue,
+        pageUrl,
+        inScope,
+      )
     }
 
     // Unified post-action discovery: find new elements after any action (form submit or click)
@@ -589,10 +670,21 @@ async function explorePageWithAI(
     // System only detects change; LLM decides what to do (Architecture 2.1)
     if (hasNewElements || hasStaleTargets) {
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-      const snapshot = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
-      void csEmit(page, { type: "llm-thinking", reason: "replan", elements: freshElements.length, credential: credentialId })
+      const snapshot = buildPlannerSnapshot(
+        pageUrl,
+        freshElements,
+        globalState,
+        credentialId,
+        await isViewportCenterBlocked(page),
+      )
+      void csEmit(page, {
+        type: "llm-thinking",
+        reason: "replan",
+        elements: freshElements.length,
+        credential: credentialId,
+      })
       const newPlan = await planPage(snapshot, model)
-      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
+      applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after state change", {
           reason: hasStaleTargets ? (hasNewElements ? "new+stale" : "stale") : "new",
@@ -602,13 +694,13 @@ async function explorePageWithAI(
           type: "plan-received",
           tasks: newPlan.tasks.length,
           pageState: newPlan.pageState ?? "unknown",
-          summary: newPlan.tasks.slice(0, 10).map(t => ({
+          summary: newPlan.tasks.slice(0, 10).map((t) => ({
             kind: t.type,
             label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
           })),
           credential: credentialId,
         })
-        reconcileQueue(taskQueue, newPlan.tasks)  // supersede stale intent matches
+        reconcileQueue(taskQueue, newPlan.tasks) // supersede stale intent matches
       }
       // Drop any remaining tasks whose targets are still unresolvable
       const dropped = pruneStaleTasks(taskQueue, freshElements)
@@ -625,10 +717,10 @@ async function explorePageWithAI(
     }
 
     // If queue empty but overlay still open, close it and discover post-overlay elements
-    if (taskQueue.length === 0 && await isViewportCenterBlocked(page)) {
+    if (taskQueue.length === 0 && (await isViewportCenterBlocked(page))) {
       log.debug("queue empty, overlay open — closing overlay")
       await closeOverlay(page)
-      if (!await isViewportCenterBlocked(page)) {
+      if (!(await isViewportCenterBlocked(page))) {
         elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         for (const el of elements) {
           const k = `${el.role}::${el.label}`
@@ -649,13 +741,22 @@ async function explorePageWithAI(
     const unexplored = findUnexploredElements(currentElements, semanticActionsDone, seenKeys)
     if (unexplored.length === 0) break
 
-    log.info("unexplored elements found", { count: unexplored.length, iteration: iteration + 1, labels: unexplored.slice(0, 5) })
+    log.info("unexplored elements found", {
+      count: unexplored.length,
+      iteration: iteration + 1,
+      labels: unexplored.slice(0, 5),
+    })
 
     const vcBlocked = await isViewportCenterBlocked(page)
     const snap = buildPlannerSnapshot(pageUrl, currentElements, globalState, credentialId, vcBlocked)
-    void csEmit(page, { type: "llm-thinking", reason: "unexplored", elements: currentElements.length, credential: credentialId })
+    void csEmit(page, {
+      type: "llm-thinking",
+      reason: "unexplored",
+      elements: currentElements.length,
+      credential: credentialId,
+    })
     const additionalPlan = await planUnexploredElements(snap, unexplored, model)
-    applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
+    applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId, page) // Aşama 13
 
     if (additionalPlan.tasks.length === 0) break
 
@@ -664,7 +765,7 @@ async function explorePageWithAI(
       type: "plan-received",
       tasks: additionalPlan.tasks.length,
       pageState: additionalPlan.pageState ?? "unknown",
-      summary: additionalPlan.tasks.slice(0, 10).map(t => ({
+      summary: additionalPlan.tasks.slice(0, 10).map((t) => ({
         kind: t.type,
         label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
       })),
@@ -683,7 +784,7 @@ async function explorePageWithAI(
       {
         const lookupRole = task.type === "form" ? (task.fields[0]?.role ?? task.submit.role) : task.role
         const lookupLabel = task.type === "form" ? (task.fields[0]?.label ?? task.submit.label) : task.label
-        if (!resolveElement(elements, lookupRole, lookupLabel) && await isViewportCenterBlocked(page)) {
+        if (!resolveElement(elements, lookupRole, lookupLabel) && (await isViewportCenterBlocked(page))) {
           await closeOverlay(page)
           elements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         }
@@ -692,14 +793,37 @@ async function explorePageWithAI(
       log.info("executing additional task", {
         step: `${steps}/${MAX_STEPS_PER_PAGE}`,
         type: task.type,
-        label: task.type === "form" ? `form(${task.fields.length} fields → ${task.submit.label.slice(0, 30)})` : task.label,
+        label:
+          task.type === "form" ? `form(${task.fields.length} fields → ${task.submit.label.slice(0, 30)})` : task.label,
         remaining: additionalQueue.length,
       })
 
       if (task.type === "form") {
-        await executeFormTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
+        await executeFormTask(
+          task,
+          page,
+          elements,
+          interceptor,
+          semanticActionsDone,
+          globalState,
+          credentialId,
+          linksToEnqueue,
+          pageUrl,
+          inScope,
+        )
       } else {
-        await executeClickTask(task, page, elements, interceptor, semanticActionsDone, globalState, credentialId, linksToEnqueue, pageUrl, inScope)
+        await executeClickTask(
+          task,
+          page,
+          elements,
+          interceptor,
+          semanticActionsDone,
+          globalState,
+          credentialId,
+          linksToEnqueue,
+          pageUrl,
+          inScope,
+        )
       }
 
       // Post-action discovery (same as main loop)
@@ -712,16 +836,27 @@ async function explorePageWithAI(
       const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
       if (hasNewElements || hasStaleTargets) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
-        const freshSnap = buildPlannerSnapshot(pageUrl, freshElements, globalState, credentialId, await isViewportCenterBlocked(page))
-        void csEmit(page, { type: "llm-thinking", reason: "replan", elements: freshElements.length, credential: credentialId })
+        const freshSnap = buildPlannerSnapshot(
+          pageUrl,
+          freshElements,
+          globalState,
+          credentialId,
+          await isViewportCenterBlocked(page),
+        )
+        void csEmit(page, {
+          type: "llm-thinking",
+          reason: "replan",
+          elements: freshElements.length,
+          credential: credentialId,
+        })
         const newPlan = await planPage(freshSnap, model)
-        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page)  // Aşama 13
+        applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
         if (newPlan.tasks.length > 0) {
           void csEmit(page, {
             type: "plan-received",
             tasks: newPlan.tasks.length,
             pageState: newPlan.pageState ?? "unknown",
-            summary: newPlan.tasks.slice(0, 10).map(t => ({
+            summary: newPlan.tasks.slice(0, 10).map((t) => ({
               kind: t.type,
               label: t.type === "form" ? `${t.fields.length} fields → ${t.submit.label}` : t.label,
             })),
@@ -834,7 +969,7 @@ async function executeFormTask(
   // Submit dedup includes the form's field values — conditional form tasks
   // that share the same submit button but set different branch values
   // (e.g. accountType=Personal vs Business) must each fire their own submit.
-  const fieldsHash = JSON.stringify(task.fields.map(f => [f.label, f.value]))
+  const fieldsHash = JSON.stringify(task.fields.map((f) => [f.label, f.value]))
   const submitKey = `${submitEl.selector}::click::${fieldsHash}`
   if (semanticActionsDone.has(submitKey)) return
 
@@ -909,7 +1044,7 @@ async function executeClickTask(
 
   // Option click → mark parent combobox as done (Architecture 6.6)
   if (el.role === "option") {
-    const parentCombobox = elements.find(e => e.role === "combobox")
+    const parentCombobox = elements.find((e) => e.role === "combobox")
     if (parentCombobox) {
       semanticActionsDone.add(`${parentCombobox.selector}::click::`)
     }
@@ -955,10 +1090,7 @@ function collectOptionTasks(elements: RawElement[], seenKeys: Set<string>): Page
  * Only detects change — does NOT decide what to do (that's LLM's job via re-plan).
  * Registers seen keys to avoid redundant re-plans on subsequent actions.
  */
-function discoverNewElements(
-  elements: RawElement[],
-  seenKeys: Set<string>,
-): boolean {
+function discoverNewElements(elements: RawElement[], seenKeys: Set<string>): boolean {
   let found = false
   for (const el of elements) {
     const k = `${el.role}::${el.label}`
@@ -984,7 +1116,7 @@ function findUnexploredElements(
   seenKeys: Set<string>,
 ): string[] {
   const unexplored: string[] = []
-  const rolesSeen = new Set<string>()  // for duplicate role filter
+  const rolesSeen = new Set<string>() // for duplicate role filter
 
   for (const el of elements) {
     if (!el.label || !el.selector) continue
@@ -997,7 +1129,7 @@ function findUnexploredElements(
 
     // Duplicate role filter: extract base action name (e.g. "Edit" from "Edit Alice Johnson")
     // Same base role+action means same endpoint pattern — only need one
-    const baseLabel = el.label.split(" ").slice(0, 1).join(" ")  // first word
+    const baseLabel = el.label.split(" ").slice(0, 1).join(" ") // first word
     const roleKey = `${el.role}::${baseLabel}`
     if (rolesSeen.has(roleKey)) continue
     rolesSeen.add(roleKey)
@@ -1017,8 +1149,10 @@ function fieldAction(role: string): "fill" | "select" | "click" {
 
 /** Find an element by role+label. Falls back to prefix match for enriched labels. */
 function resolveElement(elements: RawElement[], role: string, label: string): RawElement | undefined {
-  return elements.find(e => e.role === role && e.label === label)
-    ?? elements.find(e => e.role === role && e.label.startsWith(label))
+  return (
+    elements.find((e) => e.role === role && e.label === label) ??
+    elements.find((e) => e.role === role && e.label.startsWith(label))
+  )
 }
 
 /**
@@ -1040,7 +1174,7 @@ export function isTaskResolvable(task: PageTask, elements: RawElement[]): boolea
  * additions — this detects removals that affect the queue.
  */
 export function queueHasStaleTargets(queue: PageTask[], elements: RawElement[]): boolean {
-  return queue.some(t => !isTaskResolvable(t, elements))
+  return queue.some((t) => !isTaskResolvable(t, elements))
 }
 
 /**
@@ -1189,9 +1323,7 @@ async function closeOverlay(page: Page): Promise<void> {
   await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
   if (await isViewportCenterBlocked(page)) {
     log.debug("Escape failed, clicking backdrop")
-    const dims = await page
-      .evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
-      .catch(() => null)
+    const dims = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight })).catch(() => null)
     if (dims) {
       await page.mouse.click(dims.w / 2, dims.h / 2).catch(() => {})
       await page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
@@ -1320,7 +1452,9 @@ function enqueueWithContext(
   try {
     const u = new URL(normalized)
     if (!inScope(u.hostname)) return false
-  } catch { return false }
+  } catch {
+    return false
+  }
 
   // Skip already visited
   if (visitedPages.has(normalized)) return false
@@ -1343,7 +1477,7 @@ function enqueueWithContext(
   }
 
   // Check if already in queue — merge context
-  const existing = queue.find(e => normalizeUrl(e.url) === normalized)
+  const existing = queue.find((e) => normalizeUrl(e.url) === normalized)
   if (existing) {
     if (!existing.contexts.includes(contextId)) {
       existing.contexts.push(contextId)
@@ -1360,10 +1494,7 @@ function enqueueWithContext(
  * Strategy: single BFS loop, CrawlContext[] for N contexts.
  * Navigate in parallel, explore sequentially per context.
  */
-async function runMultiCredential(
-  config: AgentConfig,
-  credentials: CredentialConfig[],
-): Promise<CrawlResult> {
+async function runMultiCredential(config: AgentConfig, credentials: CredentialConfig[]): Promise<CrawlResult> {
   const targetUrl = config.targetUrl
   const scopePatterns = resolveScopePatterns(config)
   const inScope = makeMatcher(scopePatterns)
@@ -1377,7 +1508,7 @@ async function runMultiCredential(
 
   log.info(`starting multi-credential crawl${dryRun ? " (DRY-RUN)" : ""}`, {
     target: targetUrl,
-    credentials: credentials.map(c => c.id),
+    credentials: credentials.map((c) => c.id),
     maxPages,
     panel: panelOn,
   })
@@ -1431,7 +1562,7 @@ async function runMultiCredential(
     void csEmit(page, {
       type: "init",
       target: targetUrl,
-      credentials: credentials.map(c => c.id),
+      credentials: credentials.map((c) => c.id),
       maxPages,
       startedAt: Date.now(),
     })
@@ -1456,20 +1587,25 @@ async function runMultiCredential(
     captureQueues.set(cred.id, captureQueue)
     lastAuthHeaders.set(cred.id, {})
 
-    const interceptor = setupRequestInterceptor(page, inScope, (req) => {
-      captureQueue.push(req)
-      // Sync auth headers on every capture (same as Firefox extension)
-      if (!dryRun) {
-        const authHeaders = extractAuthHeaders(req.raw)
-        if (Object.keys(authHeaders).length > 0) {
-          const last = lastAuthHeaders.get(cred.id)!
-          if (headersChanged(last, authHeaders)) {
-            lastAuthHeaders.set(cred.id, authHeaders)
-            syncCredentialHeaders(serverUrl, sessionId, credentialId, authHeaders)
+    const interceptor = setupRequestInterceptor(
+      page,
+      inScope,
+      (req) => {
+        captureQueue.push(req)
+        // Sync auth headers on every capture (same as Firefox extension)
+        if (!dryRun) {
+          const authHeaders = extractAuthHeaders(req.raw)
+          if (Object.keys(authHeaders).length > 0) {
+            const last = lastAuthHeaders.get(cred.id)!
+            if (headersChanged(last, authHeaders)) {
+              lastAuthHeaders.set(cred.id, authHeaders)
+              syncCredentialHeaders(serverUrl, sessionId, credentialId, authHeaders)
+            }
           }
         }
-      }
-    }, cred.id)
+      },
+      cred.id,
+    )
 
     contexts.push({
       id: cred.id,
@@ -1479,15 +1615,20 @@ async function runMultiCredential(
       sessionId,
     })
 
-    log.info("credential context ready", { credential: cred.id, credentialId, sessionId: dryRun ? "dry-run" : sessionId })
+    log.info("credential context ready", {
+      credential: cred.id,
+      credentialId,
+      sessionId: dryRun ? "dry-run" : sessionId,
+    })
   }
 
   // Build per-context capture handlers (used by page-end drain and final drain)
   const captureHandlers = new Map<string, CaptureFn>()
   for (const ctx of contexts) {
-    captureHandlers.set(ctx.id, dryRun
-      ? createDryRunHandler()
-      : createIngestHandler(serverUrl, ctx.sessionId, ctx.credentialId))
+    captureHandlers.set(
+      ctx.id,
+      dryRun ? createDryRunHandler() : createIngestHandler(serverUrl, ctx.sessionId, ctx.credentialId),
+    )
   }
 
   // Initialize BFS queue — use each context's actual URL after login (may have redirected from targetUrl)
@@ -1526,7 +1667,7 @@ async function runMultiCredential(
     })
 
     // Determine active contexts (only those that should visit this URL)
-    const activeContexts = contexts.filter(c => entry.contexts.includes(c.id))
+    const activeContexts = contexts.filter((c) => entry.contexts.includes(c.id))
 
     // Parallel navigate
     const navigateResults = await Promise.all(
@@ -1540,7 +1681,7 @@ async function runMultiCredential(
           log.warn("navigation failed", { credential: ctx.id, url: entry.url, err: String(err) })
           return { ctx, success: false, redirected: false }
         }
-      })
+      }),
     )
 
     // Filter: skip contexts that failed or got access-denied redirect
@@ -1602,7 +1743,7 @@ async function runMultiCredential(
 
     // Check if all fingerprints are the same
     const fingerprints = [...fingerprintsByContext.values()]
-    const allSameFingerprint = fingerprints.length > 0 && fingerprints.every(fp => fp === fingerprints[0])
+    const allSameFingerprint = fingerprints.length > 0 && fingerprints.every((fp) => fp === fingerprints[0])
 
     // Page-diff is intermediate data — element_roles + page_visited_by on each request
     // is the summarized form. Raw page-diff is NOT sent to CyberStrike (Decision 1).
@@ -1611,7 +1752,7 @@ async function runMultiCredential(
         url: entry.url,
         fingerprintMatch: allSameFingerprint,
         elementCount: availability.size,
-        visitedBy: visitableContexts.map(c => c.id),
+        visitedBy: visitableContexts.map((c) => c.id),
       })
     }
 
@@ -1619,7 +1760,7 @@ async function runMultiCredential(
     if (allSameFingerprint && visitableContexts.length > 1) {
       // All contexts see the same page — 1 LLM call, execute on all
       log.info("same fingerprint across contexts", {
-        contexts: visitableContexts.map(c => c.id),
+        contexts: visitableContexts.map((c) => c.id),
       })
     }
 
@@ -1629,7 +1770,14 @@ async function runMultiCredential(
     for (const ctx of visitableContexts) {
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const discovered = await explorePageWithAI(
-        ctx.page, entry.url, ctx.interceptor, model, globalState, inScope, ctx.id, maxPages,
+        ctx.page,
+        entry.url,
+        ctx.interceptor,
+        model,
+        globalState,
+        inScope,
+        ctx.id,
+        maxPages,
       )
       for (const url of discovered) {
         enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
@@ -1646,7 +1794,7 @@ async function runMultiCredential(
 
     // Page-end drain: send all captures with page-level enrichment
     // availability Map is correct for this page — all contexts have finished exploration
-    const visitedBy = visitableContexts.map(c => c.id)
+    const visitedBy = visitableContexts.map((c) => c.id)
     await drainPageCaptures(captureQueues, captureHandlers, availability, entry.url, visitedBy)
 
     await visitableContexts[0]?.page.waitForTimeout(300)
@@ -1660,14 +1808,14 @@ async function runMultiCredential(
 
   log.info("multi-credential crawl done", {
     pagesExplored,
-    credentials: contexts.map(c => c.id),
+    credentials: contexts.map((c) => c.id),
     totalSteps: globalState.totalSteps,
     capturedEndpoints: globalState.capturedEndpoints.size,
   })
 
   // Panel done event — one per context so each tab shows its own summary.
-  const mutationCount = [...globalState.capturedEndpoints].filter(e => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
-  const credentialIds = contexts.map(c => c.id)
+  const mutationCount = [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length
+  const credentialIds = contexts.map((c) => c.id)
   for (const ctx of contexts) {
     void csEmit(ctx.page, {
       type: "crawl-done",
@@ -1900,9 +2048,15 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     log.debug("state", {
       phase: globalState.authPhase,
       queueSize: globalState.pageQueue.length,
-      queue: globalState.pageQueue.slice(0, 5).map(u => { try { return new URL(u).pathname + new URL(u).hash } catch { return u } }),
+      queue: globalState.pageQueue.slice(0, 5).map((u) => {
+        try {
+          return new URL(u).pathname + new URL(u).hash
+        } catch {
+          return u
+        }
+      }),
       visited: globalState.visitedPages.size,
-      deferred: globalState.deferredAuthPages.map(d => `${d.type}:${d.url.split('/').pop()}`),
+      deferred: globalState.deferredAuthPages.map((d) => `${d.type}:${d.url.split("/").pop()}`),
       endpoints: globalState.capturedEndpoints.size,
       steps: globalState.totalSteps,
     })
@@ -1929,7 +2083,12 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     if (oldFingerprint !== undefined) {
       const currentElements = await collectElements(page)
       const newFingerprint = generateFingerprint(currentElements)
-      log.debug("fingerprint compare", { url: currentUrl, match: newFingerprint === oldFingerprint, oldFp: oldFingerprint.slice(0, 80), newFp: newFingerprint.slice(0, 80) })
+      log.debug("fingerprint compare", {
+        url: currentUrl,
+        match: newFingerprint === oldFingerprint,
+        oldFp: oldFingerprint.slice(0, 80),
+        newFp: newFingerprint.slice(0, 80),
+      })
       if (newFingerprint === oldFingerprint) {
         log.info("page unchanged after auth, skipping exploration", { url: currentUrl })
         // Still collect DOM links — navbar may have new links after login
@@ -1946,7 +2105,14 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
     // Explore the page with AI
     const discovered = await explorePageWithAI(
-      page, currentUrl, interceptor, model, globalState, inScope, SINGLE_CRED, maxPages,
+      page,
+      currentUrl,
+      interceptor,
+      model,
+      globalState,
+      inScope,
+      SINGLE_CRED,
+      maxPages,
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
@@ -1955,7 +2121,11 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       if (enqueueUrl(url, globalState, inScope)) newEnqueued++
     }
     if (discovered.length > 0) {
-      log.debug("discovered links", { found: discovered.length, enqueued: newEnqueued, queueSize: globalState.pageQueue.length })
+      log.debug("discovered links", {
+        found: discovered.length,
+        enqueued: newEnqueued,
+        queueSize: globalState.pageQueue.length,
+      })
     }
 
     // Flush re-discovery AFTER new discoveries are enqueued — new pages come first, re-visits last
@@ -1965,7 +2135,10 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
     // Phase transition: when queue is empty, process deferred auth pages
     if (globalState.pageQueue.length === 0 && globalState.deferredAuthPages.length > 0) {
-      log.debug("queue empty, processing auth phase", { phase: globalState.authPhase, deferred: globalState.deferredAuthPages.map(d => d.type) })
+      log.debug("queue empty, processing auth phase", {
+        phase: globalState.authPhase,
+        deferred: globalState.deferredAuthPages.map((d) => d.type),
+      })
       processAuthPhase(globalState)
     }
   }
@@ -1993,7 +2166,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     summary: {
       pagesExplored,
       capturedEndpoints: globalState.capturedEndpoints.size,
-      mutations: [...globalState.capturedEndpoints].filter(e => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
+      mutations: [...globalState.capturedEndpoints].filter((e) => /^(POST|PUT|PATCH|DELETE)\s/.test(e)).length,
       credentials: [SINGLE_CRED],
     },
   })

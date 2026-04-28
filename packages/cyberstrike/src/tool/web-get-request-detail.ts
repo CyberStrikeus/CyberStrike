@@ -15,7 +15,10 @@ export const WebGetRequestDetailTool = Tool.define("web_get_request_detail", {
   description,
   parameters: z.object({
     request_id: z.string().describe("The ID of the request to retrieve"),
-    include_ui_context: z.boolean().default(false).describe("Include UI form context (fields, hidden params) if available"),
+    include_ui_context: z
+      .boolean()
+      .default(false)
+      .describe("Include UI form context (fields, hidden params) if available"),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)

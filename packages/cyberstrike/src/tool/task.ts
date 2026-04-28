@@ -179,13 +179,15 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           // Access Context — present only when source is hackbrowser with
           // UI crawling enrichment. Firefox extension data has all these
           // fields null, so renderAccessContextLines returns [].
-          lines.push(...renderAccessContextLines({
-            triggerElement: current.trigger_element,
-            elementRoles: current.element_roles,
-            pageUrl: current.page_url,
-            pageVisitedBy: current.page_visited_by,
-            uiContext: current.ui_context,
-          }))
+          lines.push(
+            ...renderAccessContextLines({
+              triggerElement: current.trigger_element,
+              elementRoles: current.element_roles,
+              pageUrl: current.page_url,
+              pageVisitedBy: current.page_visited_by,
+              uiContext: current.ui_context,
+            }),
+          )
 
           if (current.raw_request) {
             lines.push("", "## Raw HTTP Request", "```", current.raw_request, "```")

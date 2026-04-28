@@ -321,11 +321,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         }
 
         case "session.hackbrowser.status": {
-          setStore(
-            "session_hackbrowser_status",
-            event.properties.sessionID,
-            event.properties.status as never,
-          )
+          setStore("session_hackbrowser_status", event.properties.sessionID, event.properties.status as never)
           break
         }
 

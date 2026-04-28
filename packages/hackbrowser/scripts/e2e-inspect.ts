@@ -76,14 +76,15 @@ function section(title: string): void {
 }
 
 function fmtTime(ms: number): string {
-  return new Date(ms).toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z")
+  return new Date(ms)
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d+Z$/, "Z")
 }
 
 // ---- Session ----
 const session = db
-  .query<SessionRow, [string]>(
-    `SELECT id, title, directory, time_created, time_updated FROM session WHERE id = ?`,
-  )
+  .query<SessionRow, [string]>(`SELECT id, title, directory, time_created, time_updated FROM session WHERE id = ?`)
   .get(sessionID)
 
 if (!session) {
@@ -102,9 +103,10 @@ console.log(`  updated  : ${fmtTime(session.time_updated)}`)
 // ---- Credentials ----
 type CredRow = { id: string; label: string; headers: string; role_id: string | null }
 const creds = db
-  .query<CredRow, [string]>(
-    `SELECT id, label, headers, role_id FROM web_credential WHERE session_id = ? ORDER BY time_created ASC`,
-  )
+  .query<
+    CredRow,
+    [string]
+  >(`SELECT id, label, headers, role_id FROM web_credential WHERE session_id = ? ORDER BY time_created ASC`)
   .all(sessionID)
 
 section(`Credentials (${creds.length})`)
@@ -112,14 +114,15 @@ for (const c of creds) {
   const headerKeys = Object.keys(JSON.parse(c.headers ?? "{}"))
   console.log(`  [${c.id}] label="${c.label}" role_id=${c.role_id ?? "-"} headers=[${headerKeys.join(", ")}]`)
 }
-const credLabel = new Map(creds.map(c => [c.id, c.label]))
+const credLabel = new Map(creds.map((c) => [c.id, c.label]))
 
 // ---- Roles ----
 type RoleRow = { id: string; name: string; level: number | null; discovered_from: string | null }
 const roles = db
-  .query<RoleRow, [string]>(
-    `SELECT id, name, level, discovered_from FROM web_role WHERE session_id = ? ORDER BY time_created ASC`,
-  )
+  .query<
+    RoleRow,
+    [string]
+  >(`SELECT id, name, level, discovered_from FROM web_role WHERE session_id = ? ORDER BY time_created ASC`)
   .all(sessionID)
 
 section(`Roles discovered (${roles.length})`)
@@ -201,13 +204,13 @@ const objects = db
      FROM web_object WHERE session_id = ? ORDER BY time_created ASC`,
   )
   .all(sessionID)
-const objNameByID = new Map(objects.map(o => [o.id, o.name]))
+const objNameByID = new Map(objects.map((o) => [o.id, o.name]))
 
 section(`Web Functions interpreted (${functions.length})`)
 for (const f of functions) {
   const objIDs = f.objects ? (JSON.parse(f.objects) as string[]) : []
-  const objs = objIDs.map(id => objNameByID.get(id) ?? id).join(",")
-  const role = f.role_id ? (roles.find(r => r.id === f.role_id)?.name ?? f.role_id) : "-"
+  const objs = objIDs.map((id) => objNameByID.get(id) ?? id).join(",")
+  const role = f.role_id ? (roles.find((r) => r.id === f.role_id)?.name ?? f.role_id) : "-"
   console.log(
     `  [${f.action_type.padEnd(6)}] ${f.name.padEnd(28)} ${f.method} ${f.normalized_path}` +
       `  role=${role}  objects=[${objs}]`,
@@ -235,7 +238,7 @@ const values = db
 if (values.length > 0) {
   section(`Object values (sample, max 30)`)
   for (const v of values) {
-    const objName = objects.find(o => o.id === v.object_id)?.name ?? v.object_id
+    const objName = objects.find((o) => o.id === v.object_id)?.name ?? v.object_id
     const who = v.credential_id ? (credLabel.get(v.credential_id) ?? v.credential_id) : "-"
     console.log(`  ${objName}.${v.field_name} = "${v.value}"  via=${who}`)
   }
@@ -278,8 +281,10 @@ console.log(`  credentials      : ${creds.length}`)
 console.log(`  roles            : ${roles.length}`)
 console.log(`  web_functions    : ${functions.length}`)
 console.log(`  web_objects      : ${objects.length}`)
-console.log(`  vulnerabilities  : ${vulns.length}  (${["critical", "high", "medium", "low", "info"]
-    .map(s => `${s}=${vulns.filter(v => v.severity === s).length}`)
-    .join(" ")})`)
+console.log(
+  `  vulnerabilities  : ${vulns.length}  (${["critical", "high", "medium", "low", "info"]
+    .map((s) => `${s}=${vulns.filter((v) => v.severity === s).length}`)
+    .join(" ")})`,
+)
 
 db.close()

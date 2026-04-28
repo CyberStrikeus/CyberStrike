@@ -4,18 +4,18 @@
 
 /** Raw element collected from DOM by Scanner. LLM sees id/role/label/value but NOT selector. */
 export interface RawElement {
-  id: string           // "E1", "E2", ... (system-generated)
-  tag: string          // "button", "input", "a", "select", "textarea", ...
-  role: string         // ARIA role or implicit role
-  label: string        // aria-label || label[for] || innerText || placeholder || name
-  value: string        // input value, select value, aria-valuenow (slider)
-  enabled: boolean     // !disabled
-  href: string         // only for links
-  type: string         // input type (text, email, password, range, checkbox, ...)
-  placeholder: string  // input placeholder
-  options: string      // comma-separated option values for <select> elements
-  constraints: string  // HTML5 validation meta: "min:0 max:1000 step:10", "maxlength:160", ...
-  selector: string     // Playwright selector — LLM never sees this
+  id: string // "E1", "E2", ... (system-generated)
+  tag: string // "button", "input", "a", "select", "textarea", ...
+  role: string // ARIA role or implicit role
+  label: string // aria-label || label[for] || innerText || placeholder || name
+  value: string // input value, select value, aria-valuenow (slider)
+  enabled: boolean // !disabled
+  href: string // only for links
+  type: string // input type (text, email, password, range, checkbox, ...)
+  placeholder: string // input placeholder
+  options: string // comma-separated option values for <select> elements
+  constraints: string // HTML5 validation meta: "min:0 max:1000 step:10", "maxlength:160", ...
+  selector: string // Playwright selector — LLM never sees this
 }
 
 /** Deferred auth page — discovered during anonymous phase, processed later */
@@ -44,14 +44,14 @@ export interface IntelligenceState {
 export interface GlobalState {
   // Shared across credentials
   visitedPages: Set<string>
-  capturedEndpoints: Set<string>  // "METHOD /path" format
+  capturedEndpoints: Set<string> // "METHOD /path" format
   authPhase: "anonymous" | "registered" | "authenticated"
   totalSteps: number
   pageQueue: string[]
   deferredAuthPages: DeferredAuthPage[]
   pendingReDiscovery: boolean
-  pathPatternCounts: Map<string, number>  // template key → enqueued count (path pattern limiting)
-  outOfScope: readonly string[]          // labels the planner must never plan (config snapshot)
+  pathPatternCounts: Map<string, number> // template key → enqueued count (path pattern limiting)
+  outOfScope: readonly string[] // labels the planner must never plan (config snapshot)
   // Credential-scoped intelligence (Aşama 13) — keyed by credential id or SINGLE_CRED
   intelligenceByCredential: Map<string, IntelligenceState>
 }
@@ -73,7 +73,7 @@ export interface ActionRecord {
   action: string
   value?: string
   success: boolean
-  httpSideEffects?: string[]  // ["POST /api/Users [201]"]
+  httpSideEffects?: string[] // ["POST /api/Users [201]"]
 }
 
 /** Result of the last executed action — fed back to LLM */
@@ -82,15 +82,15 @@ export interface ActionResult {
   error?: string
   navigated?: boolean
   newUrl?: string
-  httpRequests?: string[]  // ["POST /api/Users [201]"]
+  httpRequests?: string[] // ["POST /api/Users [201]"]
   domChanged?: boolean
 }
 
 /** LLM response format — legacy, kept for reference */
 export interface LLMDecision {
-  elementId?: string    // undefined only for "done"
+  elementId?: string // undefined only for "done"
   action: "fill" | "click" | "select" | "navigate" | "done"
-  value?: string        // for fill/select
+  value?: string // for fill/select
   reason: string
 }
 
@@ -100,9 +100,9 @@ export interface LLMDecision {
 
 /** A single form field to fill — role+label identifies the element, value is what to write */
 export interface FormFieldPlan {
-  role: string    // "textbox" | "combobox" | "checkbox" | "radio" | "slider"
-  label: string   // semantic key — system resolves to current element
-  value: string   // fill/select value (computed by LLM, e.g. CAPTCHA answer)
+  role: string // "textbox" | "combobox" | "checkbox" | "radio" | "slider"
+  label: string // semantic key — system resolves to current element
+  value: string // fill/select value (computed by LLM, e.g. CAPTCHA answer)
 }
 
 /** Fill a form completely and submit it */
@@ -153,15 +153,15 @@ export interface PagePlan {
 // ============================================================
 
 export interface UIField {
-  name: string          // input name / id / aria-label
-  label: string         // visible label text
-  value: string         // current value (checked radio's value, selected option, input value)
-  type: string          // text, hidden, select, checkbox, radio, textarea, display
-  options?: string      // radio/select/listbox — "A, B, C" or "A, B, C, ..." (first 3 + ellipsis)
+  name: string // input name / id / aria-label
+  label: string // visible label text
+  value: string // current value (checked radio's value, selected option, input value)
+  type: string // text, hidden, select, checkbox, radio, textarea, display
+  options?: string // radio/select/listbox — "A, B, C" or "A, B, C, ..." (first 3 + ellipsis)
   isReadOnly: boolean
   isDisabled: boolean
-  isHidden: boolean     // type=hidden or any ancestor display:none/visibility:hidden/opacity:0
-  hiddenReason?: "type=hidden" | "display:none" | "visibility:hidden" | "opacity:0"  // why isHidden is true
+  isHidden: boolean // type=hidden or any ancestor display:none/visibility:hidden/opacity:0
+  hiddenReason?: "type=hidden" | "display:none" | "visibility:hidden" | "opacity:0" // why isHidden is true
   isDisplayOnly: boolean // span/div/p showing a value (not an input)
   validation: {
     min?: string
@@ -238,27 +238,27 @@ export interface IngestPayload {
 
 /** Access context for multi-credential crawling — sent with HTTP captures */
 export interface AccessContext {
-  fingerprint_match: boolean  // all contexts see the same page structure?
+  fingerprint_match: boolean // all contexts see the same page structure?
 }
 
 /** Page-diff payload — sent once per page, element-level availability for CyberStrike */
 export interface PageDiffContext {
   type: "page_diff"
   page_url: string
-  discovered_by: string[]    // which contexts found the link to this page
-  visited_by: string[]       // which contexts actually visited this page
+  discovered_by: string[] // which contexts found the link to this page
+  visited_by: string[] // which contexts actually visited this page
   fingerprint_match: boolean
-  elements: Record<string, string[]>  // "button:Delete User" → ["admin"]
+  elements: Record<string, string[]> // "button:Delete User" → ["admin"]
 }
 
 export interface AgentConfig {
   targetUrl: string
   cyberstrike: {
-    serverUrl: string       // default: http://127.0.0.1:4096
+    serverUrl: string // default: http://127.0.0.1:4096
     sessionID?: string
     credentialId?: string
-    username?: string       // --cyberstrike-username (default: "cyberstrike")
-    password?: string       // --cyberstrike-password or CYBERSTRIKE_SERVER_PASSWORD env var
+    username?: string // --cyberstrike-username (default: "cyberstrike")
+    password?: string // --cyberstrike-password or CYBERSTRIKE_SERVER_PASSWORD env var
   }
   auth: {
     // Path to a saved session file (cookies JSON)
@@ -298,7 +298,7 @@ export interface AgentConfig {
 
 /** Single credential definition for multi-credential crawl */
 export interface CredentialConfig {
-  id: string  // "admin", "user", "manager", etc.
+  id: string // "admin", "user", "manager", etc.
 }
 
 // ============================================================
@@ -323,7 +323,7 @@ export type CSEvent =
       type: "action-start"
       kind: "click" | "fill" | "select" | "submit"
       targetLabel: string
-      targetSelector?: string   // best-effort — panel uses for Target Paint overlay
+      targetSelector?: string // best-effort — panel uses for Target Paint overlay
       value?: string
       credential: string
     }
@@ -368,7 +368,7 @@ export type CSEvent =
 /** BFS queue entry — tracks which contexts should visit this URL */
 export interface QueueEntry {
   url: string
-  contexts: string[]  // ["admin", "user"] or ["default"] for single-credential
+  contexts: string[] // ["admin", "user"] or ["default"] for single-credential
 }
 
 // ============================================================
@@ -390,4 +390,3 @@ export interface CrawlResult {
   totalSteps: number
   errors: string[]
 }
-

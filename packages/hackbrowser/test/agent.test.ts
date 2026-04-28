@@ -1,12 +1,27 @@
 import { test, expect } from "bun:test"
-import { intentSignature, reconcileQueue, isTaskResolvable, queueHasStaleTargets, pruneStaleTasks } from "../src/agent.ts"
+import {
+  intentSignature,
+  reconcileQueue,
+  isTaskResolvable,
+  queueHasStaleTargets,
+  pruneStaleTasks,
+} from "../src/agent.ts"
 import type { PageTask, RawElement } from "../src/types.ts"
 
 // Minimal RawElement fixture factory
 function el(role: string, label: string): RawElement {
   return {
-    id: "E1", tag: role, role, label, value: "", enabled: true,
-    href: "", type: "", placeholder: "", options: "", selector: "",
+    id: "E1",
+    tag: role,
+    role,
+    label,
+    value: "",
+    enabled: true,
+    href: "",
+    type: "",
+    placeholder: "",
+    options: "",
+    selector: "",
   }
 }
 
@@ -54,9 +69,7 @@ test("reconcileQueue: fresh form task supersedes stale same-intent form", () => 
     { type: "form", fields: [], submit: { role: "button", label: "Add User" } },
     { type: "click", role: "button", label: "Export CSV" },
   ]
-  const fresh: PageTask[] = [
-    { type: "form", fields: [], submit: { role: "button", label: "Add User (2)" } },
-  ]
+  const fresh: PageTask[] = [{ type: "form", fields: [], submit: { role: "button", label: "Add User (2)" } }]
   reconcileQueue(queue, fresh)
   // The stale "Add User" form dropped; Export CSV preserved
   expect(queue.length).toBe(2)
@@ -71,9 +84,7 @@ test("reconcileQueue: unrelated tasks in queue are preserved", () => {
     { type: "click", role: "button", label: "Refresh" },
     { type: "click", role: "button", label: "Export" },
   ]
-  const fresh: PageTask[] = [
-    { type: "click", role: "button", label: "Confirm" },
-  ]
+  const fresh: PageTask[] = [{ type: "click", role: "button", label: "Confirm" }]
   reconcileQueue(queue, fresh)
   expect(queue.length).toBe(3)
   expect((queue[0] as any).label).toBe("Confirm")
@@ -82,9 +93,7 @@ test("reconcileQueue: unrelated tasks in queue are preserved", () => {
 })
 
 test("reconcileQueue: empty fresh tasks → no-op", () => {
-  const queue: PageTask[] = [
-    { type: "click", role: "button", label: "Refresh" },
-  ]
+  const queue: PageTask[] = [{ type: "click", role: "button", label: "Refresh" }]
   reconcileQueue(queue, [])
   expect(queue.length).toBe(1)
   expect((queue[0] as any).label).toBe("Refresh")
@@ -96,9 +105,7 @@ test("reconcileQueue: multi-form page keeps distinct form intents", () => {
     { type: "form", fields: [], submit: { role: "button", label: "Log in" } },
     { type: "form", fields: [], submit: { role: "button", label: "Search" } },
   ]
-  const fresh: PageTask[] = [
-    { type: "form", fields: [], submit: { role: "button", label: "Log in" } },
-  ]
+  const fresh: PageTask[] = [{ type: "form", fields: [], submit: { role: "button", label: "Log in" } }]
   reconcileQueue(queue, fresh)
   // Only login superseded; Search preserved (different intent)
   expect(queue.length).toBe(2)
@@ -111,9 +118,7 @@ test("reconcileQueue: click with suffix supersedes base-label click", () => {
     { type: "click", role: "button", label: "Publish" },
     { type: "click", role: "button", label: "Archive" },
   ]
-  const fresh: PageTask[] = [
-    { type: "click", role: "button", label: "Publish (2)" },
-  ]
+  const fresh: PageTask[] = [{ type: "click", role: "button", label: "Publish (2)" }]
   reconcileQueue(queue, fresh)
   expect(queue.length).toBe(2)
   expect((queue[0] as any).label).toBe("Publish (2)")
@@ -133,7 +138,8 @@ test("isTaskResolvable: click task resolvable when element present", () => {
 
 test("isTaskResolvable: form task resolvable via submit button", () => {
   const task: PageTask = {
-    type: "form", fields: [],
+    type: "form",
+    fields: [],
     submit: { role: "button", label: "Create User" },
   }
   expect(isTaskResolvable(task, [el("button", "Create User")])).toBe(true)
@@ -173,9 +179,7 @@ test("pruneStaleTasks: removes tasks whose targets are gone, keeps others", () =
 })
 
 test("pruneStaleTasks: no-op when queue is fully resolvable", () => {
-  const queue: PageTask[] = [
-    { type: "click", role: "button", label: "Refresh" },
-  ]
+  const queue: PageTask[] = [{ type: "click", role: "button", label: "Refresh" }]
   const elements = [el("button", "Refresh")]
   expect(pruneStaleTasks(queue, elements)).toBe(0)
   expect(queue.length).toBe(1)
