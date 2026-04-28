@@ -372,7 +372,8 @@ export namespace Skill {
 
     // Downloaded skills from URLs
     for (const url of config.skills?.urls ?? []) {
-      const list = await Discovery.pull(url)
+      const list = await Discovery.pull(url).catch(() => [])
+      if (!list) continue
       for (const dir of list) {
         dirs.add(dir)
       }
