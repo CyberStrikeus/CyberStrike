@@ -139,7 +139,6 @@ CyberStrike は専門の MCP サーバーに接続して機能を拡張します
 
 | サーバー                                                               | ツール数 | 追加機能                                                                            |
 | ---------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39       | ブラウザベースのセキュリティテスト — XSS、CSRF、DOM 操作、Cookie 窃取               |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38       | クラウドセキュリティ監査 — AWS、Azure、GCP 全体で 60以上のチェック                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39       | GitHub セキュリティ態勢 — リポジトリ、組織、Actions、シークレット、サプライチェーン |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23       | CVE インテリジェンス — NVD、EPSS、CISA KEV、GitHub Advisory、OSV                    |
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

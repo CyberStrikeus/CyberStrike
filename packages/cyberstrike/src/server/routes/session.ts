@@ -8,12 +8,15 @@ import { SessionPrompt } from "../../session/prompt"
 import { SessionCompaction } from "../../session/compaction"
 import { SessionRevert } from "../../session/revert"
 import { SessionStatus } from "@/session/status"
+import { SessionQueueStatus } from "@/session/queue-status"
+import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
+import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
 import { WebObject } from "../../session/web/web-object"
@@ -28,8 +31,6 @@ import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 
 const log = Log.create({ service: "server" })
-
-const ingestQueue = new Map<string, Promise<void>>()
 
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
@@ -113,7 +114,7 @@ export interface AccessContextInput {
   uiContext?: Record<string, unknown>
 }
 
-// Renders the `## Access Context` block when browser-agent enrichment is
+// Renders the `## Access Context` block when hackbrowser enrichment is
 // present. Returns an empty array for requests from sources without UI
 // enrichment (e.g., Firefox extension manual browsing). Shared by the ingest
 // prompt builder (below) and the subagent-dispatch prompt builder in task.ts,
@@ -272,18 +273,6 @@ async function runNormalize(
   }
 }
 
-function ingestEnqueue(sessionID: string, task: () => Promise<unknown>) {
-  const prev = ingestQueue.get(sessionID) ?? Promise.resolve()
-  const next = prev.then(task).then(
-    () => {},
-    (err) => log.error("ingest prompt failed", { sessionID, error: err }),
-  )
-  ingestQueue.set(sessionID, next)
-  next.then(() => {
-    if (ingestQueue.get(sessionID) === next) ingestQueue.delete(sessionID)
-  })
-}
-
 export const SessionRoutes = lazy(() =>
   new Hono()
     .get(
@@ -351,6 +340,140 @@ export const SessionRoutes = lazy(() =>
       }),
       async (c) => {
         const result = SessionStatus.list()
+        return c.json(result)
+      },
+    )
+    .get(
+      "/queue/status",
+      describeRoute({
+        summary: "Get ingest queue status",
+        description: "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
+        operationId: "session.queueStatus",
+        responses: {
+          200: {
+            description: "Queue status map keyed by sessionID",
+            content: {
+              "application/json": {
+                schema: resolver(z.record(z.string(), SessionQueueStatus.Info)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      async (c) => {
+        const result = SessionQueueStatus.list()
+        return c.json(result)
+      },
+    )
+    .post(
+      "/:sessionID/hackbrowser/launch",
+      describeRoute({
+        summary: "Launch a hackbrowser crawl",
+        description:
+          "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — agent invocation, slash, and CLI all share this surface. Returns a KickOffResult; captures stream into the session asynchronously.",
+        operationId: "session.hackbrowserLaunch",
+        responses: {
+          200: {
+            description: "Crawl successfully kicked off; returns sessionID + started flag + status message",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    sessionID: z.string(),
+                    started: z.boolean(),
+                    message: z.string(),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          target: z.string().url(),
+          credentials: z.array(z.string()).optional(),
+          scope: z.array(z.string()).optional(),
+          exclude: z.array(z.string()).optional(),
+          steps: z.number().int().min(1).max(200).optional(),
+          headless: z.boolean().optional(),
+        }),
+      ),
+      async (c) => {
+        const { launchHackbrowser } = await import("@/tool/hackbrowser-launcher")
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        const result = await launchHackbrowser({
+          sessionID,
+          target: body.target,
+          credentials: body.credentials,
+          scope: body.scope,
+          exclude: body.exclude,
+          steps: body.steps,
+          headless: body.headless,
+        })
+        return c.json(result)
+      },
+    )
+    .post(
+      "/:sessionID/hackbrowser/stop",
+      describeRoute({
+        summary: "Stop the active hackbrowser run for a session",
+        description: "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
+        operationId: "session.hackbrowserStop",
+        responses: {
+          200: {
+            description: "true when a run was cancelled, false when no active run",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        const { stopHackbrowser } = await import("@/tool/hackbrowser-launcher")
+        const stopped = stopHackbrowser(c.req.valid("param").sessionID)
+        return c.json(stopped)
+      },
+    )
+    .get(
+      "/hackbrowser/status",
+      describeRoute({
+        summary: "Get hackbrowser status",
+        description: "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
+        operationId: "session.hackbrowserStatus",
+        responses: {
+          200: {
+            description: "Hackbrowser status map keyed by sessionID",
+            content: {
+              "application/json": {
+                schema: resolver(z.record(z.string(), HackbrowserStatus.Info)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      async (c) => {
+        const result = HackbrowserStatus.list()
         return c.json(result)
       },
     )
@@ -860,7 +983,7 @@ export const SessionRoutes = lazy(() =>
             })
             .optional()
             .meta({ description: "HTTP response data" }),
-          // Browser-agent enrichment fields (optional — not sent by Firefox extension)
+          // Hackbrowser enrichment fields (optional — not sent by Firefox extension)
           trigger_element: z.string().optional().meta({ description: "UI element that triggered this request (role:label)" }),
           element_roles: z.array(z.string()).optional().meta({ description: "Roles that can see the trigger element" }),
           ui_context: z.record(z.string(), z.unknown()).optional().meta({ description: "UI form context at request time" }),
@@ -959,7 +1082,7 @@ export const SessionRoutes = lazy(() =>
           } else {
             const agentName = body.agent ?? "proxy-agent"
             const source = `${normalized.method} ${normalized.normalizedPath}`
-            ingestEnqueue(sessionID, async () => {
+            IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)
               try {
@@ -992,7 +1115,7 @@ export const SessionRoutes = lazy(() =>
             log.info("prompt preview:\n" + promptText)
           } else {
             const agentName = body.agent ?? "proxy-agent"
-            ingestEnqueue(sessionID, async () => {
+            IngestQueue.enqueue(sessionID, async () => {
               const before = IngestSummary.snapshot(sessionID)
               await SessionPrompt.prompt({
                 sessionID,
@@ -1187,6 +1310,64 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         SessionPrompt.cancel(c.req.valid("param").sessionID)
+        return c.json(true)
+      },
+    )
+    .post(
+      "/:sessionID/queue/pause",
+      describeRoute({
+        summary: "Pause ingest queue",
+        description: "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
+        operationId: "session.queuePause",
+        responses: {
+          200: {
+            description: "Paused",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        IngestQueue.pause(c.req.valid("param").sessionID)
+        return c.json(true)
+      },
+    )
+    .post(
+      "/:sessionID/queue/resume",
+      describeRoute({
+        summary: "Resume ingest queue",
+        description: "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
+        operationId: "session.queueResume",
+        responses: {
+          200: {
+            description: "Resumed",
+            content: {
+              "application/json": {
+                schema: resolver(z.boolean()),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+        }),
+      ),
+      async (c) => {
+        IngestQueue.resume(c.req.valid("param").sessionID)
         return c.json(true)
       },
     )

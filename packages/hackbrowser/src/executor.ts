@@ -1,9 +1,9 @@
 import type { Page } from "playwright"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import type { RawElement, ActionResult, UIContext } from "./types.ts"
 import { snapshotPageUI } from "./capture.ts"
 
-const log = Log.create({ service: "browser-agent:executor" })
+const log = Log.create({ service: "hackbrowser:executor" })
 
 // ============================================================
 // Constants

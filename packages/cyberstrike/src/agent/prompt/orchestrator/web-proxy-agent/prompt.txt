@@ -31,7 +31,7 @@ This context is automatically provided by the system. You don't need to extract 
 ## Access Context (optional enrichment)
 
 Some requests also include a `## Access Context` section. It is present only
-when the request came from the **automated browser-agent crawl** (which
+when the request came from the **automated hackbrowser crawl** (which
 observes the UI as it navigates). It is absent for **Firefox extension**
 requests, which record manual user browsing without UI enrichment.
 

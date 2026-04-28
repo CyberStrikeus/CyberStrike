@@ -10,7 +10,7 @@ Request context is automatically prepended to your prompt by the system:
 - `## Response` - HTTP response captured by the browser extension
 
 The `## Access Context` section is **optional enrichment**. It is present only
-when the request was captured by the automated browser-agent crawler and is
+when the request was captured by the automated hackbrowser crawler and is
 absent for manual browsing via the Firefox extension. When present, it can
 include any of the following:
 - `Page: <url> (visited by: <credentials>)` — which credentials reached this page

@@ -1,9 +1,9 @@
 import type { Page } from "playwright"
-import { Log } from "cyberstrike/util/log"
+import { Log } from "./log.ts"
 import type { RawElement } from "./types.ts"
 import { normalizeUrl } from "./state.ts"
 
-const log = Log.create({ service: "browser-agent:scanner" })
+const log = Log.create({ service: "hackbrowser:scanner" })
 
 // ============================================================
 // Constants

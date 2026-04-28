@@ -23,7 +23,7 @@ export namespace Request {
       body_hash: z.string().optional(),
       query_hash: z.string().optional(),
       status: Status,
-      // Browser-agent enrichment (optional — not sent by Firefox extension)
+      // Hackbrowser enrichment (optional — not sent by Firefox extension)
       trigger_element: z.string().optional(),
       element_roles: z.array(z.string()).optional(),
       ui_context: z.record(z.string(), z.unknown()).optional(),
@@ -71,7 +71,7 @@ export namespace Request {
     bodyHash?: string
     queryHash?: string
     response?: ResponseInput
-    // Browser-agent enrichment (optional — not sent by Firefox extension)
+    // Hackbrowser enrichment (optional — not sent by Firefox extension)
     triggerElement?: string
     elementRoles?: string[]
     uiContext?: Record<string, unknown>
