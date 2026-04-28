@@ -3,9 +3,6 @@ name: wstg-auth-session
 description: WSTG identity, authentication, authorization, and session management testing
 tags: [auth, session, idor, csrf, jwt, wstg]
 version: "1.0"
-sha256: 52334e0da9dd27e3dd3a2458d15d1dd3639dab437c064d4ba55fdfbdfcd5573c
-signature: cJNsT7SWkFbMsNex/4UyBfoYUVjiKleXtdV4nRQgZLHXm46Lp023xzpkLKKpVKk/3375ZUuzvJg44k9hBLZ1Dg==
-signed_by: cyberstrike-official
 ---
 
 # Auth & Session Testing (WSTG-IDNT + ATHN + AUTHZ + SESS)

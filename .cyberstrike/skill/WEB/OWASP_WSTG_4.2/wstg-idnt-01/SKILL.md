@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 73d91181ae694d1154df7bf819e7e3892e342f56c01bf11408ec1e9db24d9a7e
-signature: Q/8/FG0z7jR8NKwqJ3hfEKgdPFcBLuWCuTpc7eIHKFstmk8mb8hiCwr4a0E0VqnvI0gRhbQJfe0zYhiopIHaBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-idnt-01
@@ -337,9 +334,6 @@ app.get("/admin/users", authenticate, checkRole(["admin"]), adminController.getU
 - [OWASP Authorization Testing](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/)
 - [Burp Suite Autorize](https://github.com/PortSwigger/autorize)
 
-sha256: cde4f7dac030e2a98b463dbaae12d4ecc6a6c91a683ec04ba054730de7ed4bca
-signature: rybypy2rA/oAvONSF2fMpF9o7L/9ARHESuCHhllqK5NCuREExw2egBY2Y4k6oz/7K0WQ9lA52h6IQMZ8BEMeDg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 4f43b64c753941a02b8a96fb2f44fffb703580811399d5189b3be5c8f56ac117
-signature: kqgvhutFBk2CCB3rGDw5fMuCwic/SKDxstql6yLd13M1VbSutmkKyUr/6P4UqHp6IDRgOLMw05RN4GvwBYAMDQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-apit-00
@@ -291,9 +288,6 @@ checker.generate_report()
 - [OWASP API Security Project](https://owasp.org/www-project-api-security/)
 - [OWASP API Security Top 10](https://owasp.org/API-Security/)
 
-sha256: 768a448379b0c063f426709baf29af46fa2625a88efc4903656dd85475177ee2
-signature: 0qBtqJ6I41/YA8XF+pwUkg8yTgBgWdNspvadHDximF+TKdRp5OOU9WZKL3ojDphNqBOdM3qw8TOehF6B5ftwAQ==
-signed_by: cyberstrike-official
 
 ---
 

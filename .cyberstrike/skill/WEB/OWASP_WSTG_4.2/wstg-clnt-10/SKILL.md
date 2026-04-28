@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: a8fece499c32570df8b329c14f51f5a2fc51e351bba6a03123067a17ebf296e9
-signature: zi7kqY0MzXludjqYorDddOB6gXirAyzGXYLcO0gH3ZEAXr38/gs9QHy5SOXMsQIglojTiIHnfw3v8imDUvizAQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-10
@@ -217,9 +214,6 @@ async def websocket_handler(ws):
 | ------------ | --------------------------------------- |
 | **CWE-1385** | Missing Origin Validation in WebSockets |
 
-sha256: 87d2e7f7f61b00e878c4f725336cbc2dded880e08d734817da911680b2a906ca
-signature: 4B7Z6pzi4vqhW4hfwYlgccBeuyjjl+FZkpr8NAoMLfvLzagr4L86tIYK73MwabYVhTvYemwuSAvsLF4UoP64BQ==
-signed_by: cyberstrike-official
 
 ---
 

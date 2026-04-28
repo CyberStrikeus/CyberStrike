@@ -11,9 +11,6 @@ cwe_ids: [CWE-613]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 56de8f955d0f0e079a5be1cc9035bdcda10f08ea7c60c36debd6e48b543a7065
-signature: eyvDl46WZRrHPumR0xs0K6F0y/MFKU/JCbCCas6dWR4aKhjETnvPu+AFIvzZd4xq6a259s/vVvUd+QgeytZxDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-03
@@ -414,9 +411,6 @@ public String login(HttpServletRequest request, @RequestParam String username,
 - [OWASP Session Fixation](https://owasp.org/www-community/attacks/Session_fixation)
 - [OWASP WSTG - Session Fixation](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/03-Testing_for_Session_Fixation)
 
-sha256: 50bf9ba2befc0960d2fcb6fbdef6edb92ba934b1a54c0e36aa89ff0cc03c0582
-signature: WgS9tHmM/hkYDBU21n9L14AVjiBWSxBcrp5HCHRMs/7VBdSOk3k8F2nEXm0RpbcMnhHt1SeGT16mjRgxddGjCQ==
-signed_by: cyberstrike-official
 
 ---
 

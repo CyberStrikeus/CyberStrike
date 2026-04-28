@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: faa8ab41cf52f6002a2e35f2b66b387f50f4b09bf14bb26c932ae10767dff7ac
-signature: l3Cu7V8iCOf48UnCVuuuIfcqlAYYuoVxl6wV7YZS7vPK8MhuP0oenvHf64oWbPhMxqoNAxUQ955j6i2lxHDkBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-05.5
@@ -236,9 +233,6 @@ Set rs = cmd.Execute()
 | ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
-sha256: 9cabd889c9532dff23b9c5a19f82a32a27b4591cc3ad02e9111f69eb7406b1ec
-signature: uMXqKXuNCRVD0VlftOAL3HqaR8kcFW1t2EITHw21rUtZQvZkYaDLmm3j9rESYy12q38lo4njTE3OEAUYGV7tBQ==
-signed_by: cyberstrike-official
 
 ---
 

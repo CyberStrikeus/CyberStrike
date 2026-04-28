@@ -11,9 +11,6 @@ cwe_ids: [CWE-639]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 95fef305e021b35c811797c860559eb078fed2686bd5d0e21d280ebdfa9c6969
-signature: 698vX3EEniQcPItgu2DzUfnLQYEcZx7eKE7YbGiRE+7tgbVa1NnCPTvaEaTjnmNdBufndsU/Jsi+gxkGNp26Ag==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-04
@@ -699,9 +696,6 @@ class Document(db.Model):
 - [OWASP IDOR Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html)
 - [PortSwigger IDOR](https://portswigger.net/web-security/access-control/idor)
 
-sha256: 68f2e733533bb47fac884640757f35f8db93393ad3c51acb5b8be5066f40da78
-signature: wOSrHeXqw+zAjxRUpurAZzoWNq8yMWjcQNLhlDYIlFMJkO/r6rA7NYlAWwJha5YKScoAJPUdKTpRKYpUGhlBDA==
-signed_by: cyberstrike-official
 
 ---
 

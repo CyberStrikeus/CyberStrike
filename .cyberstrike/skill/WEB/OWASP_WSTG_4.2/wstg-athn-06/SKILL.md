@@ -11,9 +11,6 @@ cwe_ids: [CWE-613]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 8231cbdde950559c7049ebd4c196819ac1a9b2b4e28daf1f883943f6db8daf87
-signature: jttl9TEbSJgB5KEjxFvVqwuEQjGWlZDaQuAQkOZmHYu+PNokyshQfpGPpA5CXF0xOynLAhET0zTqmGQi16UYCg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-06
@@ -528,9 +525,6 @@ def logout():
 - [MDN Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)
 - [OWASP Secure Headers](https://owasp.org/www-project-secure-headers/)
 
-sha256: 7674261a5a15ef9f1fd9dc70bed5123dec1bbfe6124434df2ae00311100212e5
-signature: oM30zN5U/oAh0l54YRtSqGfvAu8tI7Lo8PiNI/tMO6IvtW01nAN9O/W6V5EyOIfkoHwaO63uOtlOPoo/5TpBBA==
-signed_by: cyberstrike-official
 
 ---
 

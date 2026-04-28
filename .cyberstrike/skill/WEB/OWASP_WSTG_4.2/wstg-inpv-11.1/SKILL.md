@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: ea39592f13a31440d1cccb5807807f77c43e0318ba3ae3f5279176702fc99f02
-signature: J5+1CY00ntHXXNGj1mKq8Ibv3Jo8N13sWbaSrDAZk6YVumzDjLUmG1gC2DPW+ItoFcQha1wEeS2Z/1Ka5zb4Bg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-11.1
@@ -448,9 +445,6 @@ def safe_include(filename):
 | ---------- | ------------------------------------------------ |
 | **CWE-98** | Improper Control of Filename for Include/Require |
 
-sha256: 0c78b08bd1031743d7b847e7579f8588e3f75ee20ba61cf0f3e6ba55ebf0a97c
-signature: GWHnfED6ljxbmvjr3LzKITWdEsPpquHCIroeKIaQtYfFjApnlAOGIVvUz/mMApsspp2GY6raV+0A9q7uC14jCQ==
-signed_by: cyberstrike-official
 
 ---
 

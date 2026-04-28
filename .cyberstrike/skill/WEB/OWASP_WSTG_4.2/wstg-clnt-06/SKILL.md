@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 92292a3a42b64099890068668a0bb7d983d0fda03b2c36a843e085f23d6c8d6b
-signature: 8vZlnrwtcMexWdnAetHWM5MZI+OaNqORX178xKvsABGangjZAwNPOUT8WQ5lsLLuKZ/9fWfYi4YabrN3ydkMAg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-06
@@ -152,9 +149,6 @@ function loadScript(url) {
 | External script loading     | 8.6  | High     |
 | JSONP callback manipulation | 6.1  | Medium   |
 
-sha256: 3bd18be3e3dca410757c4a247814976f2469d2fb528d5f219efa68508d87db5c
-signature: cFV2e901aGxFZSxXlZ6toqsoEOK1hVn6tCWzj3Q/ur41UQG6NoafhQ4CwlUPfI+Go8+6joA2zWBEthtijA3tCg==
-signed_by: cyberstrike-official
 
 ---
 

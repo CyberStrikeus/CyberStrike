@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: dae2f3d04e93ff245052ec3ae0ae084f276d5b1e1b85af8f31df1b92b9acfbcc
-signature: EpuA2BmQrbOYXWZM2P5ugDkoQ7Y3zM7xoETkcenK16/npKNcBn+Sja2eeeIwbr11Jedoi3h7ykZVVe2Au8wTAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-04
@@ -701,9 +698,6 @@ def process_payment_idempotent(idempotency_key, payment_data):
 - [PortSwigger - Race Conditions](https://portswigger.net/web-security/race-conditions)
 - [Turbo Intruder](https://portswigger.net/research/turbo-intruder-embracing-the-billion-request-attack)
 
-sha256: dde787187aac991b12d9713f255386adee860ee0cec93e55c202a12b949b3327
-signature: BlW6ej/nbuBgnrchL3VK22nQi7ic94q4jM6zhXCSiF62Qd8Q5cPfaNfFcx9dd2d3a/SJYer+OsFyZ3xtPNdlDQ==
-signed_by: cyberstrike-official
 
 ---
 

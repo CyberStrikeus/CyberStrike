@@ -11,9 +11,6 @@ cwe_ids: [CWE-94]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 06960d45731f8379b41307147c58561d96951ee0ecfad5aaae185a00231754c2
-signature: JacS6PrLHZI1Cn24//JXLt1FRlqH3GmF57AsZWq5qAWQjx6WyqNTHz4f3hnyhtGdOzBmJn4djoQKaWwCvm0VCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-04
@@ -456,9 +453,6 @@ app.get("/api/action", (req, res) => {
 - [HPP Research Paper](https://www.madlab.it/slides/BHEU2011/whitepaper-bhEU2011.pdf)
 - [Web Parameter Tampering](https://owasp.org/www-community/attacks/Web_Parameter_Tampering)
 
-sha256: 370006291e255ba156f8c1a9dff661e15f8412a9e4527b95b00fafb474e37285
-signature: RqeUlQRPRLEJLUNVb4Zty3tcZOlIrNmftaOVMt7gOGFGVLZWzOlgp8WMq3KXNykOewn9fUipHMz1NbOPs+u/Dg==
-signed_by: cyberstrike-official
 
 ---
 

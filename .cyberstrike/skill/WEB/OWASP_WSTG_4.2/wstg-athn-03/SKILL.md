@@ -11,9 +11,6 @@ cwe_ids: [CWE-304]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3b27532dc86e637c368fa58000f7b38696ed0b732d281405182458fcf6a2f2e2
-signature: EKUVYNin45vE6t37pY0NONZ5o4FV29cZGw4rOE4+zqnibecPU25C5/E7HnT/yEGxrM9yLhVUtyoAKlB1gvUKAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-03
@@ -619,9 +616,6 @@ class SmartLockout:
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [NIST Digital Identity Guidelines](https://pages.nist.gov/800-63-3/)
 
-sha256: 37eb49c2b53823ccc694d04bb78e1ac8e21ca8339922248b3742faf8bd1d85a7
-signature: iqSf1Ii2VYQFQtC3OQQON5Z6THkzOF90sF1fo06tt0kp9Q96zbxCX981UQ+gByRObR+J0EH4YVlykN5UAU4rCw==
-signed_by: cyberstrike-official
 
 ---
 

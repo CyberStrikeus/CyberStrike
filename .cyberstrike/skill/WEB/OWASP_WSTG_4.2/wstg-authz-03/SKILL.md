@@ -11,9 +11,6 @@ cwe_ids: [CWE-269]
 chains_with: [wstg-authz-02, wstg-athn-05]
 prerequisites: [wstg-athn-01, wstg-idnt-01]
 severity_boost: {}
-sha256: bb97bbba933ec9f29d9e2ffdaac5be414fdeec7b855fd94934f57cbb4429d5e6
-signature: zi45nMRiI8w7kaTaMgnrEsSYZwL/o5aOEGLMqszF7j2XI+OcWaiWYI4EOyODINREOWyyGb97ecwXonYa9wn/Aw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-03
@@ -686,9 +683,6 @@ class SecureJWT:
 - [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
 - [JWT Security Best Practices](https://datatracker.ietf.org/doc/html/rfc8725)
 
-sha256: a3589f045c257536a2e90ceea426c5b1c1bd391b5445bf1ea7de3a4f7d231ff4
-signature: kuEL070bQwg1NVSZ3BXHEyLZSjQEhYeUKC57lNvu+Vi1HPoUMSipI6dJprQvrKJ5kHSA0J8Oi9rpe/Uew5gxAQ==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 55eaad5c83511279403822e362475634cfdc4960503191ac245f9e55ee6b6456
-signature: QTSNLgsdH9LBrZcWAmVKDIp+vEDQ4fDNEWrOds9XUF5EMAsbG46JrWRVWi//tINNWR6A/5ZSsfZqY6i9Kxg/CA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-07
@@ -320,9 +317,6 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 - [RFC 6797 - HSTS](https://tools.ietf.org/html/rfc6797)
 - [HSTS Preload List](https://hstspreload.org/)
 
-sha256: 2475e20bd344a72c40eb415125e59d9956e1c78c69d60204de136ad3413b3f22
-signature: GnC+JhxZcYbwjzu6he/1vFvlMHIVGgBcfMdT1869x086PdrJZP27sVRvFS/lQUgAtrSaTVsQ26ZIY4oNDp+zDQ==
-signed_by: cyberstrike-official
 
 ---
 

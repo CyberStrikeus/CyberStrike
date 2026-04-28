@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3dcfd065b38bb8be9a90965eb4ebcb02f21ac7a35679100a59109cf364baa647
-signature: FbzMn/MG8q4MUdwaqi22N4C7wu00aXhZknVmAq0LpH+1cOZnIP0LVul84YGrIAhd4tAjn5xkUdzFriodGPe4Bg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-05.2
@@ -734,9 +731,6 @@ def oauth_callback():
 - [PKCE RFC 7636](https://tools.ietf.org/html/rfc7636)
 - [OAuth Security Best Practices](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
 
-sha256: 0b09b97cdb042d02c224dfc0a1085fbfa77238563e6e1f72c765323012f2f75a
-signature: 17Xb+wv7+Hm61jAWmVkptrwImyB7fIKsHs6r84b/xfTsu7p2JX+cjmdtb0Y4YS1BjkGWaZGW+I4jwojua2TXBA==
-signed_by: cyberstrike-official
 
 ---
 

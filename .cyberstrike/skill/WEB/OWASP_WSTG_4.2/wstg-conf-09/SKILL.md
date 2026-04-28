@@ -11,9 +11,6 @@ cwe_ids: [CWE-434]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 372d1810272f5c4a36bb666be9725c743ce089c421084e9df010c73a5ab0c817
-signature: Gti8G358DqZkmH15HCB5slaQOrSkZU8tYCdL9n0cacxumNOyIyi1x/pPxm9OFmp3VN9n2dZ8y0/t1rpMYOfCCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-09
@@ -334,9 +331,6 @@ chown root:adm /var/log/apache2/*
 - [OWASP WSTG - Test File Permission](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/09-Test_File_Permission)
 - [Linux File Permissions](https://wiki.archlinux.org/title/File_permissions_and_attributes)
 
-sha256: 717d372f4a4371dc43b1106418ddf799124a830325eb03ea0bae420375d6ae8b
-signature: HxUt63imht612y1j8VWOW6gfzBAgTv+fB/bxHCUose2kkSsBuUP/h34AwX93EihbVm2Dc1qfIfNVpUyLedFiDw==
-signed_by: cyberstrike-official
 
 ---
 

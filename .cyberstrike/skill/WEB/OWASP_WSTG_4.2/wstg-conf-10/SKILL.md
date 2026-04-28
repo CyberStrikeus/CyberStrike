@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3f2d16f87e8db91076e011cd00a1dc01af3d38c68e3b730509de9894e4816b83
-signature: OEN+3970U42/AfYf10x4VXACOdNdFH+5H7jDa/pSmzISGSNmbWIS7/dCrGcla24GUpcaEdThW5yrV0zrLlh7CQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-10
@@ -374,9 +371,6 @@ nuclei -l subdomains.txt -t http/takeovers/aws-bucket-takeover.yaml
 - [Subjack](https://github.com/haccer/subjack)
 - [OWASP Amass](https://github.com/owasp-amass/amass)
 
-sha256: 807da040f4cc6699b6da68da4fd92ed0b5d2b2bcd60bed1e61ebef41815aed2d
-signature: MZdL+Jo2wOgXETNLqB5wNvQ5WC98zqYHtXYEX61+sAa8gyEImrLPYN3WmMJ57e4s7luvWISghrA/lhnEZH/GDA==
-signed_by: cyberstrike-official
 
 ---
 

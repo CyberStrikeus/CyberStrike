@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 49d458138625666e2c5e83ef28d5cc66497603a8fae67b4d55c7c8a5f4ccb85e
-signature: Q4S7tfBQdHpvpnYPfL9b7Nm6thYD2nyvfJQc4q2MtHzwTbz1mok+fNeMmMnQusdJyBT3wVyFtVyBXexBRW0KDg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-02
@@ -589,9 +586,6 @@ def process_payment():
 - [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
 - [OWASP Testing for CSRF](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/05-Testing_for_Cross_Site_Request_Forgery)
 
-sha256: abb9ab0acdf025ebf39d299736f0200f86162e78ac9a339d284c3bfb21814eb6
-signature: NIdaQGPnJit0qXxrWSBzIOlXsdzd5snueiyeuYddnUGgTHys0mo+NQiwfaXrzomGuKM3KsMNWoxef5MB1yeqDA==
-signed_by: cyberstrike-official
 
 ---
 
