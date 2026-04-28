@@ -11,32 +11,20 @@ import { Ripgrep } from "../file/ripgrep"
 import { iife } from "@/util/iife"
 
 export const SkillTool = Tool.define("skill", async (ctx) => {
-  const skills = await Skill.all()
-
-  const agent = ctx?.agent
-  const accessibleSkills = agent
-    ? skills.filter((skill) => {
-        const rule = PermissionNext.evaluate("skill", skill.name, agent.permission)
-        return rule.action !== "deny"
-      })
-    : skills
-
-  const description =
-    accessibleSkills.length === 0
-      ? "Manage and load specialized skills. No skills are currently available."
-      : [
-          "Manage and load specialized security skills with context-efficient lazy loading.",
-          "",
-          "Actions:",
-          "  load    - Load a skill into context (requires skill name)",
-          "  unload  - Remove a skill from context to free tokens",
-          "  search  - Search skills by keyword, tech stack, CWE, or category",
-          "  chain   - Analyze current findings for kill chain opportunities",
-          "  suggest - Get next-step skill suggestions based on findings",
-          "  list    - Show all available skills or currently loaded skills",
-          "",
-          `${accessibleSkills.length} skills available. Use "search" or "list" action to discover them.`,
-        ].join("\n")
+  // Lazy load skills only when tool is executed
+  const description = [
+    "Manage and load specialized security skills with context-efficient lazy loading.",
+    "",
+    "Actions:",
+    "  load    - Load a skill into context (requires skill name)",
+    "  unload  - Remove a skill from context to free tokens",
+    "  search  - Search skills by keyword, tech stack, CWE, or category",
+    "  chain   - Analyze current findings for kill chain opportunities",
+    "  suggest - Get next-step skill suggestions based on findings",
+    "  list    - Show all available skills or currently loaded skills",
+    "",
+    "Thousands of skills available. Use \"search\" or \"list\" action to discover them.",
+  ].join("\n")
 
   const parameters = z.object({
     action: z
@@ -66,6 +54,16 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     description,
     parameters,
     async execute(params: z.infer<typeof parameters>, ctx) {
+      // Load and filter skills only when tool is actually executed
+      const skills = await Skill.all()
+      const agent = ctx?.agent
+      const accessibleSkills = agent
+        ? skills.filter((skill) => {
+            const rule = PermissionNext.evaluate("skill", skill.name, agent.permission)
+            return rule.action !== "deny"
+          })
+        : skills
+
       await SkillIndex.rebuild()
 
       if (params.action === "list") {
