@@ -20,6 +20,7 @@ import PROMPT_MOBILE_APPLICATION from "./prompt/mobile-application.txt"
 import PROMPT_NORMALIZE_REQUEST from "./prompt/normalize-request.txt"
 import PROMPT_CYBERSTRIKE from "./prompt/cyberstrike.txt"
 import PROMPT_GENERAL from "./prompt/general.txt"
+import PROMPT_LLM_SECURITY from "./prompt/llm-security.txt"
 
 // New folder-based agent imports
 import PROMPT_VULN_COMMON from "./prompt/vuln/common-prompt.txt"
@@ -319,6 +320,30 @@ export namespace Agent {
         color: "yellow",
         prompt: PROMPT_INTERNAL_NETWORK,
         skills: ["ad-security", "kerberos-attacks"],
+        permission: PermissionNext.merge(
+          defaults,
+          PermissionNext.fromConfig({
+            question: "allow",
+            bash: "allow",
+            browser: "allow",
+            read: "allow",
+            glob: "allow",
+            grep: "allow",
+            report_vulnerability: "allow",
+          }),
+          user,
+        ),
+        options: {},
+      },
+      "llm-security": {
+        name: "llm-security",
+        description:
+          "LLM and AI application security specialist. OWASP LLM Top 10, prompt injection, multi-turn attacks, system prompt leakage.",
+        mode: "subagent",
+        native: true,
+        color: "green",
+        prompt: PROMPT_LLM_SECURITY,
+        skills: ["llm-security"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
