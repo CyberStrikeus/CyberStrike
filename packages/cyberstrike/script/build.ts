@@ -241,6 +241,13 @@ if (!workerBuildResult.success) {
 }
 console.log("hackbrowser-worker.js built")
 
+// Copy worker into each platform's bin/ so it's included in release archives.
+// install.sh users get the worker alongside the binary without needing npm.
+for (const key of Object.keys(binaries)) {
+  await $`cp dist/hackbrowser-worker/hackbrowser-worker.js dist/${key}/bin/hackbrowser-worker.js`
+}
+console.log("hackbrowser-worker.js copied to all platform bin/ directories")
+
 if (Script.release) {
   for (const key of Object.keys(binaries)) {
     if (key.includes("linux")) {
