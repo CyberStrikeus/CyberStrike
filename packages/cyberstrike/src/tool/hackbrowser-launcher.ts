@@ -140,6 +140,22 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     throw new Error("hackbrowser requires bun or node to run the worker process. " + "Install bun: https://bun.sh")
   }
 
+  // 2b. Verify playwright is resolvable from the worker's directory.
+  // If missing, the worker crashes at module import time (before any IPC
+  // message is sent), producing a raw stderr dump in the chat. Fail fast
+  // here so the error surfaces as a clean message instead.
+  // Bun.resolve mirrors the worker's actual module lookup (upward traversal
+  // from bin/ + NODE_PATH), so no false positives on non-standard installs.
+  try {
+    await Bun.resolve("playwright", Global.Path.bin)
+  } catch {
+    throw new Error(
+      `playwright is not installed. Run:\n` +
+        `  npm install --prefix ${Global.Path.data} playwright\n` +
+        `  npx playwright install chromium`,
+    )
+  }
+
   // 3. Resolve LLM via cyberstrike Provider — extract serializable descriptor
   //    instead of a LanguageModel instance (subprocess.md: model resolution).
   const modelInfo = await Provider.defaultModel()
