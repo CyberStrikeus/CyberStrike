@@ -75,7 +75,9 @@ export const HackbrowserCommand = cmd({
         url: serverUrl,
         args: { sessionID },
         directory: process.cwd(),
-        onExit: async () => { stopHackbrowser(sessionID) },
+        onExit: async () => {
+          stopHackbrowser(sessionID)
+        },
       })
     })
   },

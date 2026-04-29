@@ -21,13 +21,13 @@ interface Metrics {
   totalFields: number
   maxFields: number
   radioFields: number
-  radioNamesDup: number  // how many radio field-sets have duplicate name (BUG-15 signal)
+  radioNamesDup: number // how many radio field-sets have duplicate name (BUG-15 signal)
   displayOnly: number
   nameless: number
   hiddenFields: number
-  hiddenReasonPopulated: number  // BUG-17 — new signal
-  deleteWithFields: number  // BUG-19 signal
-  formNameDup: number  // BUG-14 signal — count of different endpoints sharing a formName
+  hiddenReasonPopulated: number // BUG-17 — new signal
+  deleteWithFields: number // BUG-19 signal
+  formNameDup: number // BUG-14 signal — count of different endpoints sharing a formName
 }
 
 async function load(path: string): Promise<any[]> {
@@ -94,7 +94,9 @@ function analyze(data: any[]): Metrics {
   return m
 }
 
-function fmt(n: number): string { return String(n).padStart(4) }
+function fmt(n: number): string {
+  return String(n).padStart(4)
+}
 function arrow(before: number, after: number, invertGood = false): string {
   if (before === after) return "="
   const improved = invertGood ? after > before : after < before
@@ -106,7 +108,22 @@ console.log("Küme A Regression Report — Baseline (pre-fix) vs Post-Küme-A")
 console.log("=".repeat(100))
 console.log()
 
-const cols = ["test", "payloads", "endpoints", "uiCtx", "fields", "max", "radio", "radioDup", "displayO", "nameless", "hidden", "withReason", "delWithFields", "fnDup"]
+const cols = [
+  "test",
+  "payloads",
+  "endpoints",
+  "uiCtx",
+  "fields",
+  "max",
+  "radio",
+  "radioDup",
+  "displayO",
+  "nameless",
+  "hidden",
+  "withReason",
+  "delWithFields",
+  "fnDup",
+]
 console.log(cols.map((c) => c.padEnd(10)).join(""))
 
 const totals = { coverage: 0, noise: 0, uiCount: 0 }
@@ -118,7 +135,9 @@ for (const t of TESTS) {
   const row = [
     t.slice(0, 10).padEnd(10),
     `${fmt(b.totalPayloads)}→${fmt(a.totalPayloads)}${arrow(a.totalPayloads, b.totalPayloads, true)}`.padEnd(10),
-    `${fmt(b.uniqueEndpoints)}→${fmt(a.uniqueEndpoints)}${arrow(a.uniqueEndpoints, b.uniqueEndpoints, true)}`.padEnd(10),
+    `${fmt(b.uniqueEndpoints)}→${fmt(a.uniqueEndpoints)}${arrow(a.uniqueEndpoints, b.uniqueEndpoints, true)}`.padEnd(
+      10,
+    ),
     `${fmt(b.uiCount)}→${fmt(a.uiCount)}`.padEnd(10),
     `${fmt(b.totalFields)}→${fmt(a.totalFields)}${arrow(b.totalFields, a.totalFields)}`.padEnd(10),
     `${fmt(b.maxFields)}→${fmt(a.maxFields)}${arrow(b.maxFields, a.maxFields)}`.padEnd(10),
@@ -127,7 +146,9 @@ for (const t of TESTS) {
     `${fmt(b.displayOnly)}→${fmt(a.displayOnly)}${arrow(b.displayOnly, a.displayOnly)}`.padEnd(10),
     `${fmt(b.nameless)}→${fmt(a.nameless)}${arrow(b.nameless, a.nameless)}`.padEnd(10),
     `${fmt(b.hiddenFields)}→${fmt(a.hiddenFields)}`.padEnd(10),
-    `${fmt(b.hiddenReasonPopulated)}→${fmt(a.hiddenReasonPopulated)}${arrow(a.hiddenReasonPopulated, b.hiddenReasonPopulated, true)}`.padEnd(10),
+    `${fmt(b.hiddenReasonPopulated)}→${fmt(a.hiddenReasonPopulated)}${arrow(a.hiddenReasonPopulated, b.hiddenReasonPopulated, true)}`.padEnd(
+      10,
+    ),
     `${fmt(b.deleteWithFields)}→${fmt(a.deleteWithFields)}${arrow(b.deleteWithFields, a.deleteWithFields)}`.padEnd(10),
     `${fmt(b.formNameDup)}→${fmt(a.formNameDup)}${arrow(b.formNameDup, a.formNameDup)}`.padEnd(10),
   ]

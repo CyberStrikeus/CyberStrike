@@ -28,6 +28,7 @@ npx playwright install chromium
 ```
 
 Set your Anthropic API key:
+
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
@@ -53,13 +54,13 @@ bun start https://app.example.com --headless --steps 100
 
 ## Auth Scenarios
 
-| Scenario | How |
-|---|---|
-| Session file (pre-logged in) | `--session ./session.json` |
-| Auto username/password | `--user x --pass y` |
-| 2FA / MFA | Agent pauses and waits for user to enter code in terminal |
-| SSO / OAuth | Log in manually first, save session, use `--session` |
-| Multiple roles | Run multiple times with different session files |
+| Scenario                     | How                                                       |
+| ---------------------------- | --------------------------------------------------------- |
+| Session file (pre-logged in) | `--session ./session.json`                                |
+| Auto username/password       | `--user x --pass y`                                       |
+| 2FA / MFA                    | Agent pauses and waits for user to enter code in terminal |
+| SSO / OAuth                  | Log in manually first, save session, use `--session`      |
+| Multiple roles               | Run multiple times with different session files           |
 
 ## Project Structure
 
@@ -99,6 +100,7 @@ Each ingested request includes a `ui_context` field:
 ```
 
 CyberStrike's proxy-analyzer and mass-assignment agents will use this to identify:
+
 - `email` is readonly in UI but sent in request → test if it can be changed
 - `role` is a hidden field → test mass assignment
 - `account_id` not in UI at all → high-risk hidden parameter

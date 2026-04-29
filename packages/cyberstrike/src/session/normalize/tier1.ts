@@ -27,7 +27,10 @@ const DYNAMIC_PATTERNS: ReadonlyArray<readonly [RegExp, Placeholder, string]> = 
 const STATIC_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/^[a-zA-Z]+$/, "pure alphabetic word"],
   [/^v\d+$/, "API version (v1, v2...)"],
-  [/^[a-zA-Z][a-zA-Z0-9_-]*\.(php|asp|aspx|jsp|do|action|cgi|html|htm|json|xml|css|js|ts|txt|csv|pdf|png|jpg|svg|ico)$/i, "filename with extension"],
+  [
+    /^[a-zA-Z][a-zA-Z0-9_-]*\.(php|asp|aspx|jsp|do|action|cgi|html|htm|json|xml|css|js|ts|txt|csv|pdf|png|jpg|svg|ico)$/i,
+    "filename with extension",
+  ],
 ]
 
 export function runTier1(pathSegments: string[]): Tier1Result {
@@ -61,7 +64,5 @@ function classifySegment(segment: string): SegmentClassification {
 }
 
 function toPath(classifications: SegmentClassification[]): string {
-  return classifications
-    .map((c) => (c.kind === "dynamic" ? c.placeholder : c.literal))
-    .join("/")
+  return classifications.map((c) => (c.kind === "dynamic" ? c.placeholder : c.literal)).join("/")
 }

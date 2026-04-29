@@ -49,13 +49,7 @@ export const HackbrowserTool = Tool.define("hackbrowser", {
       .describe(
         'Optional UI labels the planner must skip (e.g. "Delete Account", "Cancel Subscription"). Semantic match.',
       ),
-    steps: z
-      .number()
-      .int()
-      .min(1)
-      .max(200)
-      .optional()
-      .describe("Maximum number of pages to crawl. Defaults to 50."),
+    steps: z.number().int().min(1).max(200).optional().describe("Maximum number of pages to crawl. Defaults to 50."),
     headless: z
       .boolean()
       .optional()

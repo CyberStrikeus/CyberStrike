@@ -265,23 +265,13 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
         >
           <text
             fg={
-              store.credentialsPresent
-                ? theme.textMuted
-                : store.active === "headless"
-                  ? theme.primary
-                  : theme.textMuted
+              store.credentialsPresent ? theme.textMuted : store.active === "headless" ? theme.primary : theme.textMuted
             }
           >
             {(store.credentialsPresent ? false : store.headless) ? "[x]" : "[ ]"}
           </text>
           <text
-            fg={
-              store.credentialsPresent
-                ? theme.textMuted
-                : store.active === "headless"
-                  ? theme.primary
-                  : theme.text
-            }
+            fg={store.credentialsPresent ? theme.textMuted : store.active === "headless" ? theme.primary : theme.text}
           >
             {store.credentialsPresent ? "Headless (forced off — credentials need manual login)" : "Headless"}
           </text>
@@ -290,15 +280,14 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 
       <Show when={store.credentialsPresent}>
         <text fg={theme.warning ?? theme.textMuted} paddingLeft={1}>
-          ⚠ Manual login: Esc and /hackbrowser-stop cannot cancel during the login wait.
-          Close the browser window manually to abort. (INTEGRATION.md §10.10)
+          ⚠ Manual login: Esc and /hackbrowser-stop cannot cancel during the login wait. Close the browser window
+          manually to abort. (INTEGRATION.md §10.10)
         </text>
       </Show>
 
       <text fg={theme.textMuted} paddingBottom={1}>
-        <span style={{ fg: theme.text }}>tab</span> to switch fields,{" "}
-        <span style={{ fg: theme.text }}>space</span> to toggle headless,{" "}
-        <span style={{ fg: theme.text }}>return</span> to launch (works from any field),{" "}
+        <span style={{ fg: theme.text }}>tab</span> to switch fields, <span style={{ fg: theme.text }}>space</span> to
+        toggle headless, <span style={{ fg: theme.text }}>return</span> to launch (works from any field),{" "}
         <span style={{ fg: theme.text }}>esc</span> to cancel
       </text>
     </box>
@@ -308,12 +297,7 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 DialogHackbrowserLaunch.show = (dialog: DialogContext) => {
   return new Promise<HackbrowserLaunchInput | null>((resolve) => {
     dialog.replace(
-      () => (
-        <DialogHackbrowserLaunch
-          onConfirm={(input) => resolve(input)}
-          onCancel={() => resolve(null)}
-        />
-      ),
+      () => <DialogHackbrowserLaunch onConfirm={(input) => resolve(input)} onCancel={() => resolve(null)} />,
       () => resolve(null),
     )
   })

@@ -139,14 +139,14 @@ export const RequestTable = sqliteTable(
     // normalize-proto pipeline fields (nullable — legacy rows pre-date this).
     // canonical_path is the lowercased + percent-decoded form used for cache
     // identity; normalized_path holds the placeholder template (e.g. /users/{id}).
-    scheme: text(),                                                          // "http" | "https"
+    scheme: text(), // "http" | "https"
     host: text(),
     port: integer(),
-    origin: text(),                                                          // scheme://host:port
-    site: text(),                                                            // eTLD+1, populated by parser; not yet indexed
+    origin: text(), // scheme://host:port
+    site: text(), // eTLD+1, populated by parser; not yet indexed
     canonical_path: text(),
-    template_id: text(),                                                     // soft pointer to endpoint_template.id
-    norm_source: text(),                                                     // "tier1" | "tier2" | "tier3" | "failed"
+    template_id: text(), // soft pointer to endpoint_template.id
+    norm_source: text(), // "tier1" | "tier2" | "tier3" | "failed"
     // Response fields
     response_status: integer(),
     response_headers: text({ mode: "json" }).$type<Record<string, string>>(),
@@ -261,7 +261,7 @@ export const WebFunctionTable = sqliteTable(
       .references(() => RequestTable.id, { onDelete: "cascade" }),
     role_id: text(),
     objects: text({ mode: "json" }).$type<string[]>(),
-    template_id: text(),                                                     // soft pointer to endpoint_template.id
+    template_id: text(), // soft pointer to endpoint_template.id
     ...Timestamps,
   },
   (table) => [
@@ -281,12 +281,12 @@ export const EndpointTemplateTable = sqliteTable(
     session_id: text()
       .notNull()
       .references(() => SessionTable.id, { onDelete: "cascade" }),
-    origin: text().notNull(),                                                // scheme://host:port
+    origin: text().notNull(), // scheme://host:port
     method: text().notNull(),
-    template: text().notNull(),                                              // e.g. /users/{id}/posts/{id}
-    segment_count: integer().notNull(),                                      // pre-computed for O(1) bucket reject
-    source: text().notNull(),                                                // "tier1" | "tier3-llm"
-    confidence: real().notNull(),                                            // 1.0 for tier1, 0.8 for tier3-llm
+    template: text().notNull(), // e.g. /users/{id}/posts/{id}
+    segment_count: integer().notNull(), // pre-computed for O(1) bucket reject
+    source: text().notNull(), // "tier1" | "tier3-llm"
+    confidence: real().notNull(), // 1.0 for tier1, 0.8 for tier3-llm
     hit_count: integer().notNull(),
     ...Timestamps,
   },

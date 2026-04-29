@@ -137,12 +137,12 @@ Plus **8 spezialisierte Proxy-Tester**, die Datenverkehr abfangen und manipulier
 
 CyberStrike verbindet sich mit spezialisierten MCP-Servern, die seine Faehigkeiten erweitern:
 
-| Server                                                                 | Werkzeuge | Was er hinzufuegt                                                                |
-| ---------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Cloud-Sicherheitsaudits — 60+ Pruefungen ueber AWS, Azure, GCP                   |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | GitHub-Sicherheitsstatus — Repo, Org, Actions, Secrets, Lieferkette              |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | CVE-Informationen — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                    |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | OSINT-Aufklaerung — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS       |
+| Server                                                                 | Werkzeuge | Was er hinzufuegt                                                          |
+| ---------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Cloud-Sicherheitsaudits — 60+ Pruefungen ueber AWS, Azure, GCP             |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | GitHub-Sicherheitsstatus — Repo, Org, Actions, Secrets, Lieferkette        |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | CVE-Informationen — NVD, EPSS, CISA KEV, GitHub Advisory, OSV              |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | OSINT-Aufklaerung — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Alle quelloffen. Alle installierbar mit `npx`. Verbinden Sie sie mit CyberStrike oder nutzen Sie sie eigenstaendig mit jedem MCP-Client.
 

@@ -34,7 +34,12 @@ import { Identifier } from "../id/id"
 import { Session } from "../session"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { Global } from "../global"
-import type { WorkerOptions, WorkerMessage, ParentMessage, CredentialDispatch } from "../hackbrowser-subprocess/worker-ipc"
+import type {
+  WorkerOptions,
+  WorkerMessage,
+  ParentMessage,
+  CredentialDispatch,
+} from "../hackbrowser-subprocess/worker-ipc"
 
 const log = Log.create({ service: "hackbrowser-launcher" })
 
@@ -132,10 +137,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // 2. Find a JS runtime to run the worker. Bun preferred; node as fallback.
   const runtime = Bun.which("bun") ?? Bun.which("node")
   if (!runtime) {
-    throw new Error(
-      "hackbrowser requires bun or node to run the worker process. " +
-        "Install bun: https://bun.sh",
-    )
+    throw new Error("hackbrowser requires bun or node to run the worker process. " + "Install bun: https://bun.sh")
   }
 
   // 3. Resolve LLM via cyberstrike Provider — extract serializable descriptor
@@ -336,8 +338,7 @@ async function backgroundRun(
       const exitCode = await proc.exited.catch(() => -1)
       const stderr = await Bun.readableStreamToText(proc.stderr as ReadableStream).catch(() => "")
       const message =
-        `hackbrowser worker exited unexpectedly (code ${exitCode})` +
-        (stderr.trim() ? `: ${stderr.trim()}` : "")
+        `hackbrowser worker exited unexpectedly (code ${exitCode})` + (stderr.trim() ? `: ${stderr.trim()}` : "")
       log.error("hackbrowser worker crashed", { sessionID, exitCode, stderr })
       const prev = HackbrowserStatus.get(sessionID)
       HackbrowserStatus.set(sessionID, {

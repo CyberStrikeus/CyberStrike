@@ -50,9 +50,7 @@ export interface WorkerOptions {
 // Parent → Worker (stdin)
 // ============================================================
 
-export type ParentMessage =
-  | { type: "start"; options: WorkerOptions }
-  | { type: "abort" }
+export type ParentMessage = { type: "start"; options: WorkerOptions } | { type: "abort" }
 
 // ============================================================
 // Worker → Parent (stdout)

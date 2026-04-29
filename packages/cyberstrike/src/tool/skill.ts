@@ -24,7 +24,7 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     "  suggest - Get next-step skill suggestions based on findings",
     "  list    - Show all available skills or currently loaded skills",
     "",
-    "Thousands of skills available. Use \"search\" or \"list\" action to discover them.",
+    'Thousands of skills available. Use "search" or "list" action to discover them.',
   ].join("\n")
 
   const parameters = z.object({
