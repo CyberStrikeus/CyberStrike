@@ -160,96 +160,88 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
         </text>
       </box>
 
-      <box gap={1}>
-        <box>
+      <scrollbox maxHeight={20} gap={1}>
+        <box gap={1}>
           <text fg={store.active === "target" ? theme.primary : theme.text}>Target URL: *</text>
+          <textarea
+            onSubmit={submitFromTextarea}
+            height={1}
+            keyBindings={[{ name: "return", action: "submit" }]}
+            ref={(val: TextareaRenderable) => (targetArea = val)}
+            placeholder="https://target.example.com"
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            cursorColor={theme.text}
+          />
         </box>
-        <textarea
-          onSubmit={submitFromTextarea}
-          height={3}
-          keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (targetArea = val)}
-          placeholder="https://target.example.com"
-          textColor={theme.text}
-          focusedTextColor={theme.text}
-          cursorColor={theme.text}
-        />
-      </box>
 
-      <box gap={1}>
-        <box>
+        <box gap={1}>
           <text fg={store.active === "credentials" ? theme.primary : theme.text}>
             Credentials (optional, comma-separated IDs):
           </text>
+          <textarea
+            onSubmit={submitFromTextarea}
+            height={1}
+            keyBindings={[{ name: "return", action: "submit" }]}
+            ref={(val: TextareaRenderable) => (credsArea = val)}
+            placeholder="cred_admin, cred_user"
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            cursorColor={theme.text}
+          />
+          <text fg={theme.textMuted} paddingLeft={1}>
+            Anonymous crawl when empty. Each ID = one manual browser login. Multiple IDs run sequentially per identity.
+          </text>
         </box>
-        <textarea
-          onSubmit={submitFromTextarea}
-          height={3}
-          keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (credsArea = val)}
-          placeholder="cred_admin, cred_user"
-          textColor={theme.text}
-          focusedTextColor={theme.text}
-          cursorColor={theme.text}
-        />
-        <text fg={theme.textMuted} paddingLeft={1}>
-          Anonymous crawl when empty. Each ID = one manual browser login. Multiple IDs run sequentially per identity.
-        </text>
-      </box>
 
-      <box gap={1}>
-        <box>
+        <box gap={1}>
           <text fg={store.active === "scope" ? theme.primary : theme.text}>
             Scope (optional, comma-separated host patterns):
           </text>
+          <textarea
+            onSubmit={submitFromTextarea}
+            height={1}
+            keyBindings={[{ name: "return", action: "submit" }]}
+            ref={(val: TextareaRenderable) => (scopeArea = val)}
+            placeholder="*.localhost, api.example.com"
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            cursorColor={theme.text}
+          />
         </box>
-        <textarea
-          onSubmit={submitFromTextarea}
-          height={3}
-          keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (scopeArea = val)}
-          placeholder="*.localhost, api.example.com"
-          textColor={theme.text}
-          focusedTextColor={theme.text}
-          cursorColor={theme.text}
-        />
-      </box>
 
-      <box gap={1}>
-        <box>
+        <box gap={1}>
           <text fg={store.active === "exclude" ? theme.primary : theme.text}>
             Exclude (optional, comma-separated UI labels):
           </text>
+          <textarea
+            onSubmit={submitFromTextarea}
+            height={1}
+            keyBindings={[{ name: "return", action: "submit" }]}
+            ref={(val: TextareaRenderable) => (excludeArea = val)}
+            placeholder="Delete Account, Cancel Subscription"
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            cursorColor={theme.text}
+          />
         </box>
-        <textarea
-          onSubmit={submitFromTextarea}
-          height={3}
-          keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (excludeArea = val)}
-          placeholder="Delete Account, Cancel Subscription"
-          textColor={theme.text}
-          focusedTextColor={theme.text}
-          cursorColor={theme.text}
-        />
-      </box>
 
-      <box gap={1}>
-        <box>
+        <box gap={1}>
           <text fg={store.active === "steps" ? theme.primary : theme.text}>
             Max pages (optional, 1-200, default 50):
           </text>
+          <textarea
+            onSubmit={submitFromTextarea}
+            height={1}
+            keyBindings={[{ name: "return", action: "submit" }]}
+            ref={(val: TextareaRenderable) => (stepsArea = val)}
+            placeholder="50"
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            cursorColor={theme.text}
+          />
         </box>
-        <textarea
-          onSubmit={submitFromTextarea}
-          height={3}
-          keyBindings={[{ name: "return", action: "submit" }]}
-          ref={(val: TextareaRenderable) => (stepsArea = val)}
-          placeholder="50"
-          textColor={theme.text}
-          focusedTextColor={theme.text}
-          cursorColor={theme.text}
-        />
-      </box>
+      </scrollbox>
 
       <box flexDirection="column">
         <box

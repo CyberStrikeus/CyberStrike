@@ -34,6 +34,11 @@ export const HackbrowserCommand = cmd({
         type: "string",
         array: true,
         describe: "credential label to crawl as — repeatable, forces visible browser for manual login",
+      })
+      .option("headfull", {
+        type: "boolean",
+        default: false,
+        describe: "run browser in visible (headfull) mode",
       }),
   handler: async (args) => {
     await bootstrap(process.cwd(), async () => {
@@ -58,7 +63,7 @@ export const HackbrowserCommand = cmd({
         exclude: args.exclude,
         steps: args.steps,
         credentials,
-        headless: credentials.length === 0,
+        headless: credentials.length > 0 ? false : !args.headfull,
       }).catch((err: unknown) => {
         UI.error(`hackbrowser: ${err instanceof Error ? err.message : String(err)}`)
         process.exit(1)

@@ -136,18 +136,20 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
               <text fg={theme.textMuted}>{cost()} spent</text>
             </box>
-            <box>
-              <text fg={theme.text}>
-                <b>Ingest Queue</b>
-              </text>
-              <text fg={queueStatus()?.paused ? theme.warning : theme.success}>
-                {queueStatus()?.paused ? "⏸ Paused" : "● Running"}
-              </text>
-              <Show when={(queueStatus()?.pending ?? 0) > 0}>
-                <text fg={theme.textMuted}>{queueStatus()!.pending} pending</text>
-              </Show>
-              <text fg={theme.textMuted}>{queueStatus()?.paused ? "/qresume" : "/qpause"}</text>
-            </box>
+            <Show when={(queueStatus()?.pending ?? 0) > 0 || queueStatus()?.paused}>
+              <box>
+                <text fg={theme.text}>
+                  <b>Ingest Queue</b>
+                </text>
+                <text fg={queueStatus()?.paused ? theme.warning : theme.success}>
+                  {queueStatus()?.paused ? "⏸ Paused" : "● Running"}
+                </text>
+                <Show when={(queueStatus()?.pending ?? 0) > 0}>
+                  <text fg={theme.textMuted}>{queueStatus()!.pending} pending</text>
+                </Show>
+                <text fg={theme.info}>{queueStatus()?.paused ? "/qresume" : "/qpause"}</text>
+              </box>
+            </Show>
             <Show when={hackbrowserStatus()}>
               <box>
                 <text fg={theme.text}>
@@ -207,8 +209,13 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                     })()}
                   </text>
                 </Show>
-                <Show when={hackbrowserStatus()!.phase === "starting" || hackbrowserStatus()!.phase === "crawling"}>
-                  <text fg={theme.textMuted}>/hackbrowser-stop</text>
+                <Show
+                  when={
+                    hackbrowserStatus()!.phase === "starting" ||
+                    hackbrowserStatus()!.phase === "crawling"
+                  }
+                >
+                  <text fg={theme.info}>/hackbrowser-stop</text>
                 </Show>
               </box>
             </Show>
