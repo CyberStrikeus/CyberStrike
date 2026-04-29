@@ -147,6 +147,27 @@ This context is **critical** for making intelligent testing decisions.
 
 ### Step 4: Intelligent Agent Selection
 
+**Quick reference — Endpoint Pattern Recognition:**
+
+Use this table to quickly classify the endpoint and identify which testers to prioritize. This is a fast lookup, not a rigid rule — combine with deeper analysis below.
+
+| Pattern | Signal | High-priority dispatchers |
+|---|---|---|
+| **REST resource** | `/api/<entity>/<id>` | idor, authz, mass-assignment |
+| **GraphQL** | Path `/graphql`, body with `query`/`mutation` | idor (BOLA on resolvers), injection (introspection, deep nesting), authn (JWT), authz |
+| **Authentication** | `/login`, `/auth`, `/oauth/token`, `/sso`, `/register` | authn |
+| **JWT-protected** | `Authorization: Bearer eyJ...` in any request | authn (JWT analysis), authz |
+| **Payment / financial** | Body fields like `amount`, `total`, `price`, `currency`, `cart_id`, `coupon` | business-logic (race + payment + tampering), mass-assignment, authz |
+| **Race-prone** | Transfer, redeem, vote, claim, withdraw, like/follow operations | business-logic (race conditions — concurrent request testing) |
+| **Multi-step workflow** | Header `X-Step:`, body `step=N`, paths like `/checkout/step3` | business-logic (workflow bypass — try jumping/skipping steps) |
+| **File upload** | `Content-Type: multipart/form-data`, file field | file-attacks |
+| **File path / download** | Param like `file=`, `path=`, `download=`, `attachment=` | file-attacks (LFI, traversal), authz |
+| **URL / redirect / webhook** | Param like `url=`, `redirect=`, `callback=`, `webhook=`, `import=` | ssrf |
+| **Path-confusion-prone** | Routes with overlapping prefixes, `/api/v1/users/../admin` | ssrf, authz (path normalization bypass) |
+| **Admin / privileged** | Path contains `/admin`, `/manage`, `/internal`, `/system` | authz (vertical priv esc) |
+| **Search / filter** | Param like `q=`, `search=`, `filter=`, `where=` | injection (SQLi via filter, NoSQL operators) |
+| **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
+
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
 
 Instead, use **intelligent analysis** based on:
@@ -203,15 +224,18 @@ Use accumulated session context to inform decisions:
 
 **High Priority (Always Consider):**
 - proxy-analyzer - Always run first
-- If numeric/UUID IDs present → proxy-tester-idor
+- If numeric/UUID IDs present, or GraphQL with resolver IDs → proxy-tester-idor (covers BOLA on REST + GraphQL)
 - If POST/PUT/PATCH with body → proxy-tester-injection, proxy-tester-mass-assignment
-- If authentication-related → proxy-tester-authn
+- If authentication-related (login, JWT in headers, OAuth flow) → proxy-tester-authn (JWT analysis triggered on any Bearer token)
+- If financial/payment fields (amount, price, total, balance) → proxy-tester-business-logic (payment + race condition testing)
 
 **Medium Priority (Context-Dependent):**
 - If multiple credentials in session → proxy-tester-authz
-- If financial/transactional fields → proxy-tester-business-logic
-- If URL parameters present → proxy-tester-ssrf
-- If file upload/path params → proxy-tester-file-attacks
+- If URL/redirect/webhook params, or path-confusion-prone routes → proxy-tester-ssrf
+- If file upload (multipart) or path traversal params → proxy-tester-file-attacks
+- If multi-step workflow (X-Step header, sequential paths, wizard) → proxy-tester-business-logic (workflow bypass)
+- If race-prone operation (transfer, redeem, vote, claim, withdraw, like) → proxy-tester-business-logic (concurrent request testing)
+- If admin/privileged path with low-priv credential → proxy-tester-authz (vertical priv esc)
 
 **Low Priority (Specific Scenarios):**
 - Agents already run on similar endpoints
@@ -292,7 +316,7 @@ Agent Selection:
 ✅ proxy-analyzer (extract order details)
 ✅ proxy-tester-idor (test ID manipulation: 572, 574, 1, 0, -1, common IDs like 100, 1000)
 ✅ proxy-tester-authz (test without credential, test guest access if role hierarchy known)
-❌ proxy-tester-injection (no input parameters)
+✅ proxy-tester-injection (test ID for SQL Injection or others)
 ❌ proxy-tester-mass-assignment (GET request)
 ❌ proxy-tester-authn (not auth endpoint)
 ❌ proxy-tester-ssrf (no URL parameters)
@@ -332,7 +356,7 @@ Agent Selection:
 ✅ proxy-analyzer
 ✅ proxy-tester-file-attacks (test path traversal: ../../etc/passwd)
 ✅ proxy-tester-authz (test accessing other users' files)
-✅ proxy-tester-injection (test if filename reflected, XSS potential)
+✅ proxy-tester-injection (test if filename reflected, XSS potential, LFI, SQL Injection)
 ❌ proxy-tester-idor (file parameter is string, not numeric ID)
 ❌ proxy-tester-mass-assignment (GET request)
 ❌ proxy-tester-authn (not auth endpoint)
@@ -359,6 +383,86 @@ Agent Selection:
 ❌ proxy-tester-business-logic (not transactional)
 
 Note: SSRF is CRITICAL priority due to URL parameter!
+```
+
+### Example 6: POST /graphql (GraphQL API)
+```
+Request Analysis:
+- POST /graphql with body {"query": "query { user(id: 101) { id email creditCard } }"}
+- Authorization: Bearer eyJ... (JWT token)
+- Session: 1 credential, schema not yet introspected
+
+Agent Selection:
+✅ proxy-analyzer (extract User object from response, record schema discoveries)
+✅ proxy-tester-idor (BOLA on user(id) — try sequential IDs, swap with other credential's IDs, test admin IDs)
+✅ proxy-tester-authn (CRITICAL: JWT analysis — alg confusion, claim manipulation, kid injection, weak secret)
+✅ proxy-tester-injection (introspection: __schema query, batch queries, deep nesting DoS, field aliasing)
+✅ proxy-tester-authz (replay query as different roles, test query without auth)
+❌ proxy-tester-mass-assignment (read-only query — N/A; would apply to mutation)
+❌ proxy-tester-ssrf (no URL params)
+❌ proxy-tester-file-attacks (no file ops)
+❌ proxy-tester-business-logic (read-only query)
+
+Note: GraphQL endpoints are HIGH-VALUE — single endpoint exposes many objects via resolvers. For mutations, also dispatch mass-assignment.
+```
+
+### Example 7: POST /api/transfer (Race-Prone Financial Operation)
+```
+Request Analysis:
+- POST /api/transfer with body {"from_account": 100, "to_account": 200, "amount": 50.00}
+- Authorization: Bearer ... (user with account_id=100)
+- Session: User account_id=100 known, balance object discovered
+
+Agent Selection:
+✅ proxy-analyzer
+✅ proxy-tester-business-logic (CRITICAL: race condition — concurrent transfer requests can double-spend; also negative amounts, integer overflow, currency confusion)
+✅ proxy-tester-idor (test from_account=200 with our token — initiate transfer FROM another user's account)
+✅ proxy-tester-mass-assignment (try injecting fee=0, balance_override=999999, skip_limit=true)
+✅ proxy-tester-authz (test as guest, test other users' from_account values)
+✅ proxy-tester-injection (test SQLi in account_id, amount fields)
+❌ proxy-tester-authn (not auth endpoint)
+❌ proxy-tester-ssrf (no URL params)
+❌ proxy-tester-file-attacks (no file ops)
+
+Note: For ANY race-prone operation, business-logic must run with concurrent request testing.
+```
+
+### Example 8: POST /api/checkout/step3 (Multi-Step Workflow)
+```
+Request Analysis:
+- POST /api/checkout/step3 with body {"shipping_address": "..."}
+- Header: X-Step: 3
+- Session: Cart object known, order in progress
+
+Agent Selection:
+✅ proxy-analyzer
+✅ proxy-tester-business-logic (CRITICAL: workflow bypass — POST to /step5 directly without /step4; test skipping payment step; reverse navigation; replay completed step)
+✅ proxy-tester-mass-assignment (try injecting price, status="paid", payment_complete=true, total=0)
+✅ proxy-tester-authz (test other users' active carts via cart_id swap)
+✅ proxy-tester-injection (test address fields for SQLi/XSS)
+❌ proxy-tester-idor (no clear ID to manipulate; cart_id covered by authz)
+❌ proxy-tester-authn (not auth endpoint)
+❌ proxy-tester-ssrf (no URL params)
+❌ proxy-tester-file-attacks (no file ops)
+```
+
+### Example 9: POST /api/upload (File Upload)
+```
+Request Analysis:
+- POST /api/upload with Content-Type: multipart/form-data
+- Body: file field (binary) + filename="profile.jpg" + folder="avatars"
+- Session: Authenticated user, Profile object known
+
+Agent Selection:
+✅ proxy-analyzer
+✅ proxy-tester-file-attacks (CRITICAL: upload .php/.jsp/.asp; polyglot files; SVG with XSS; oversized files; XXE in DOCX/XLSX/SVG; double extension .jpg.php; null byte; magic-byte spoofing)
+✅ proxy-tester-injection (test filename for path traversal: ../../../etc/passwd, XSS in filename, SQLi)
+✅ proxy-tester-mass-assignment (try injecting file_type, owner_id, is_executable, public=true)
+✅ proxy-tester-authz (test uploading to other users' folders by manipulating folder param)
+❌ proxy-tester-idor (no resource ID being read)
+❌ proxy-tester-authn (not auth endpoint)
+❌ proxy-tester-ssrf (no URL params, but file content could trigger SSRF — covered by file-attacks XXE testing)
+❌ proxy-tester-business-logic (simple upload, not transactional)
 ```
 
 ## Important Rules
