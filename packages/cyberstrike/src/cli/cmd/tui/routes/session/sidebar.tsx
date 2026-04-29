@@ -79,11 +79,12 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   )
 
   const cost = createMemo(() => {
-    const total = messages().reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
+    const messageCost = messages().reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
+    const hackCost = hackbrowserStatus()?.cost ?? 0
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(total)
+    }).format(messageCost + hackCost)
   })
 
   const context = createMemo(() => {

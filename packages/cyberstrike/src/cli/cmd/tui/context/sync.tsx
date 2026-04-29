@@ -70,6 +70,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           errors: string[]
           startedAt: number
           finishedAt?: number
+          cost?: number
         }
       }
       session_diff: {

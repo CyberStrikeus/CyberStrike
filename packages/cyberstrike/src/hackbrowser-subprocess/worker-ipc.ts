@@ -56,8 +56,15 @@ export type ParentMessage = { type: "start"; options: WorkerOptions } | { type: 
 // Worker → Parent (stdout)
 // ============================================================
 
+export interface WorkerUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+}
+
 export type WorkerMessage =
   | { type: "log"; level: "debug" | "info" | "warn" | "error"; service: string; message: string; extra?: unknown }
   | { type: "event"; event: CSEvent }
-  | { type: "result"; pagesExplored: number; capturedEndpoints: number; errors: string[] }
+  | { type: "result"; pagesExplored: number; capturedEndpoints: number; errors: string[]; usage: WorkerUsage }
   | { type: "error"; message: string }

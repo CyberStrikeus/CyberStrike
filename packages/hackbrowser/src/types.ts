@@ -383,10 +383,18 @@ export interface QueueEntry {
  * `errors` array. Only truly fatal cases (resolveModel fails, initSession
  * fails) propagate as exceptions; everything else is collected.
  */
+export interface CrawlUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+}
+
 export interface CrawlResult {
   sessionID: string
   capturedEndpoints: number
   pagesExplored: number
   totalSteps: number
   errors: string[]
+  usage: CrawlUsage
 }

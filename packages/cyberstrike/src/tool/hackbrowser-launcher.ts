@@ -307,7 +307,27 @@ async function backgroundRun(
                 sessionID,
                 capturedEndpoints: msg.capturedEndpoints,
                 pagesExplored: msg.pagesExplored,
+                usage: msg.usage,
               })
+
+              let cost: number | undefined
+              if (msg.usage) {
+                try {
+                  const modelDetails = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
+                  const costInfo = modelDetails.cost
+                  if (costInfo) {
+                    cost =
+                      (msg.usage.inputTokens * (costInfo.input ?? 0)) / 1_000_000 +
+                      (msg.usage.outputTokens * (costInfo.output ?? 0)) / 1_000_000 +
+                      (msg.usage.cacheReadTokens * (costInfo.cache?.read ?? 0)) / 1_000_000 +
+                      (msg.usage.cacheWriteTokens * (costInfo.cache?.write ?? 0)) / 1_000_000
+                  }
+                } catch (err) {
+                  log.warn("hackbrowser cost calculation failed", { sessionID, err: String(err) })
+                }
+              }
+              log.info("hackbrowser cost calculated", { sessionID, cost })
+
               const prev = HackbrowserStatus.get(sessionID)
               HackbrowserStatus.set(sessionID, {
                 sessionID,
@@ -319,6 +339,7 @@ async function backgroundRun(
                 errors: [],
                 startedAt: prev?.startedAt ?? Date.now(),
                 finishedAt: Date.now(),
+                cost,
               })
               // Karar 2 in §13.1: success stays sidebar-only. No synthetic
               // message — LLM doesn't get nudged into polling loops.

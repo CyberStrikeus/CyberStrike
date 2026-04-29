@@ -217,6 +217,7 @@ export async function runCrawl(opts: CrawlOptions): Promise<CrawlResult> {
       capturedEndpoints: 0,
       pagesExplored: 0,
       totalSteps: 0,
+      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
       errors: [message],
     }
   } finally {

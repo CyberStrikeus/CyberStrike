@@ -787,6 +787,7 @@ export type HackbrowserStatus = {
   errors: Array<string>
   startedAt: number
   finishedAt?: number
+  cost?: number
 }
 
 export type EventSessionHackbrowserStatus = {
