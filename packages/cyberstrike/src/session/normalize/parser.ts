@@ -10,8 +10,8 @@ import type { Method, ParsedRequest } from "./types"
 const DEFAULT_PORT_FOR: Record<"http" | "https", number> = { http: 80, https: 443 }
 
 export interface ParseInput {
-  raw: string // full raw HTTP request text
-  scheme: "http" | "https" // ingest caller-supplied; hackbrowser knows this
+  raw: string                             // full raw HTTP request text
+  scheme: "http" | "https"                // ingest caller-supplied; hackbrowser knows this
 }
 
 export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
@@ -130,10 +130,7 @@ function extractBody(lines: string[]): string | undefined {
   // Body starts after the first blank line.
   const blank = lines.findIndex((l, i) => i > 0 && l.trim() === "")
   if (blank < 0) return undefined
-  const body = lines
-    .slice(blank + 1)
-    .join("\n")
-    .trim()
+  const body = lines.slice(blank + 1).join("\n").trim()
   return body.length > 0 ? body : undefined
 }
 
@@ -179,8 +176,8 @@ const COMPOUND_TLDS: ReadonlySet<string> = new Set([
 ])
 
 export function deriveSite(host: string): string {
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return host // IPv4
-  if (host.startsWith("[")) return host // IPv6
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return host  // IPv4
+  if (host.startsWith("[")) return host                   // IPv6
   const labels = host.split(".")
   if (labels.length < 2) return host
   if (labels.length >= 3) {

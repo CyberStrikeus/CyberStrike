@@ -24,28 +24,20 @@ interface Metrics {
   maxFields: number
   mutatingEndpoints: number
   hiddenReasonPopulated: number
-  emptyStateMarks: number // count of payloads with ui_context on DELETE (BUG-19 regression guard)
+  emptyStateMarks: number  // count of payloads with ui_context on DELETE (BUG-19 regression guard)
   deleteWithFields: number
 }
 
-async function load(path: string): Promise<any[]> {
-  return await Bun.file(path).json()
-}
+async function load(path: string): Promise<any[]> { return await Bun.file(path).json() }
 
 function analyze(data: any[]): Metrics {
   const ps = data.map((d: any) => d.payload).filter((p: any) => p.text?.includes("HTTP/1.1"))
   const endpoints = new Set<string>()
   const mutating = new Set<string>()
   const m: Metrics = {
-    totalPayloads: ps.length,
-    uniqueEndpoints: 0,
-    uiCount: 0,
-    totalFields: 0,
-    maxFields: 0,
-    mutatingEndpoints: 0,
-    hiddenReasonPopulated: 0,
-    emptyStateMarks: 0,
-    deleteWithFields: 0,
+    totalPayloads: ps.length, uniqueEndpoints: 0, uiCount: 0, totalFields: 0,
+    maxFields: 0, mutatingEndpoints: 0, hiddenReasonPopulated: 0,
+    emptyStateMarks: 0, deleteWithFields: 0,
   }
   for (const p of ps) {
     const first = (p.text || "").split(/\r?\n/)[0]
@@ -64,9 +56,7 @@ function analyze(data: any[]): Metrics {
   return m
 }
 
-function fmt(n: number): string {
-  return String(n).padStart(4)
-}
+function fmt(n: number): string { return String(n).padStart(4) }
 function arrow(before: number, after: number, invertGood = false): string {
   if (before === after) return "="
   const improved = invertGood ? after > before : after < before
@@ -83,7 +73,7 @@ console.log("  fields/max/delWithFields: noise — should stay SAME or DOWN")
 console.log()
 
 const headers = ["test", "payloads", "endpoints", "mutating", "uiCtx", "fields", "max", "hiddenRsn", "delWithFields"]
-console.log(headers.map((h) => h.padEnd(12)).join(""))
+console.log(headers.map(h => h.padEnd(12)).join(""))
 
 for (const t of TESTS) {
   const b = analyze(await load(`${BASELINE_DIR}/${t}.json`))
@@ -92,12 +82,8 @@ for (const t of TESTS) {
   const row = [
     t.slice(0, 12).padEnd(12),
     `${fmt(b.totalPayloads)}→${fmt(a.totalPayloads)}${arrow(a.totalPayloads, b.totalPayloads, true)}`.padEnd(12),
-    `${fmt(b.uniqueEndpoints)}→${fmt(a.uniqueEndpoints)}${arrow(a.uniqueEndpoints, b.uniqueEndpoints, true)}`.padEnd(
-      12,
-    ),
-    `${fmt(b.mutatingEndpoints)}→${fmt(a.mutatingEndpoints)}${arrow(a.mutatingEndpoints, b.mutatingEndpoints, true)}`.padEnd(
-      12,
-    ),
+    `${fmt(b.uniqueEndpoints)}→${fmt(a.uniqueEndpoints)}${arrow(a.uniqueEndpoints, b.uniqueEndpoints, true)}`.padEnd(12),
+    `${fmt(b.mutatingEndpoints)}→${fmt(a.mutatingEndpoints)}${arrow(a.mutatingEndpoints, b.mutatingEndpoints, true)}`.padEnd(12),
     `${fmt(b.uiCount)}→${fmt(a.uiCount)}`.padEnd(12),
     `${fmt(b.totalFields)}→${fmt(a.totalFields)}${arrow(b.totalFields, a.totalFields)}`.padEnd(12),
     `${fmt(b.maxFields)}→${fmt(a.maxFields)}${arrow(b.maxFields, a.maxFields)}`.padEnd(12),

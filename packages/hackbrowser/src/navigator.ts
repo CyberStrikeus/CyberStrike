@@ -79,7 +79,10 @@ export async function resolveModel(override?: LanguageModel): Promise<LanguageMo
  * Called once per page (not per action step).
  * Falls back to empty plan on failure so exploration can continue.
  */
-export async function planPage(snapshot: PlannerSnapshot, model: LanguageModel): Promise<PagePlan> {
+export async function planPage(
+  snapshot: PlannerSnapshot,
+  model: LanguageModel,
+): Promise<PagePlan> {
   const systemPrompt = loadPlannerPrompt()
   const userMessage = JSON.stringify(snapshot)
 
@@ -98,7 +101,7 @@ export async function planPage(snapshot: PlannerSnapshot, model: LanguageModel):
     // Extract JSON object from response
     const start = raw.indexOf("{")
     const end = raw.lastIndexOf("}")
-    if (start === -1 || end === -1) return { tasks: [] } // LLM said "nothing to do"
+    if (start === -1 || end === -1) return { tasks: [] }  // LLM said "nothing to do"
 
     const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>
     return validatePlan(parsed)
@@ -136,22 +139,19 @@ export async function planUnexploredElements(
   const systemPrompt = loadPlannerPrompt()
 
   // Send only unexplored elements to LLM — prevents re-planning already-done actions
-  const unexploredSet = new Set(
-    unexploredLabels.map((l) => {
-      // Extract label from "[role] label" format
-      const match = l.match(/^\[.*?\]\s*(.+)$/)
-      return match ? match[1] : l
-    }),
-  )
-  const filteredElements = snapshot.elements.filter((e) => unexploredSet.has(e.label))
+  const unexploredSet = new Set(unexploredLabels.map(l => {
+    // Extract label from "[role] label" format
+    const match = l.match(/^\[.*?\]\s*(.+)$/)
+    return match ? match[1] : l
+  }))
+  const filteredElements = snapshot.elements.filter(e => unexploredSet.has(e.label))
 
   const userMessage = JSON.stringify({
     url: snapshot.url,
     viewportCenterBlocked: snapshot.viewportCenterBlocked,
     totalPagesVisited: snapshot.totalPagesVisited,
     elements: filteredElements,
-    instruction:
-      "These elements were NOT explored yet. Plan actions for the ones that could trigger new HTTP endpoints or reveal hidden functionality.",
+    instruction: "These elements were NOT explored yet. Plan actions for the ones that could trigger new HTTP endpoints or reveal hidden functionality.",
   })
 
   const attempt = async (): Promise<PagePlan> => {
@@ -194,13 +194,12 @@ function validatePlan(raw: Record<string, unknown>): PagePlan {
   const tasks: PageTask[] = []
   for (const t of raw["tasks"] as unknown[]) {
     const task = t as Record<string, unknown>
-    const triggersMutation =
-      typeof task["triggersMutation"] === "string" && task["triggersMutation"].length > 0
-        ? (task["triggersMutation"] as string)
-        : undefined
+    const triggersMutation = typeof task["triggersMutation"] === "string" && task["triggersMutation"].length > 0
+      ? (task["triggersMutation"] as string)
+      : undefined
     if (task["type"] === "form") {
       const fields = Array.isArray(task["fields"])
-        ? (task["fields"] as Record<string, unknown>[]).map((f) => ({
+        ? (task["fields"] as Record<string, unknown>[]).map(f => ({
             role: String(f["role"] ?? ""),
             label: String(f["label"] ?? ""),
             value: String(f["value"] ?? ""),

@@ -98,7 +98,11 @@ export async function orchestrate(input: OrchestrateInput): Promise<NormalizeRes
 // covers, LLM decisions only for ambiguous slots. Any LLM output that names
 // a non-ambiguous segment is ignored — defense in depth on top of the prompt
 // contract. Ambiguous segments without an LLM decision fall back to literal.
-export function assemble(parsed: ParsedRequest, tier1: Tier1Result, llmDecisions: LLMSegmentDecision[]): string {
+export function assemble(
+  parsed: ParsedRequest,
+  tier1: Tier1Result,
+  llmDecisions: LLMSegmentDecision[],
+): string {
   const decisionByIndex = new Map<number, ClassificationKind>()
   for (const d of llmDecisions) decisionByIndex.set(d.segment_index, d.classification)
 

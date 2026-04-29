@@ -137,12 +137,12 @@ CyberStrike постачається з 13+ агентами, спеціальн
 
 CyberStrike підключається до спеціалізованих MCP-серверів, що розширюють його можливості:
 
-| Сервер                                                                 | Інструменти | Що додає                                                                |
-| ---------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38          | Аудит хмарної безпеки — 60+ перевірок для AWS, Azure, GCP               |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39          | Стан безпеки GitHub — repo, org, actions, secrets, supply chain         |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23          | Розвідка CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37          | Розвідка OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
+| Сервер                                                                 | Інструменти | Що додає                                                                        |
+| ---------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38          | Аудит хмарної безпеки — 60+ перевірок для AWS, Azure, GCP                       |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39          | Стан безпеки GitHub — repo, org, actions, secrets, supply chain                 |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23          | Розвідка CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                        |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37          | Розвідка OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS         |
 
 Усе з відкритим кодом. Усе встановлюється через `npx`. Підключайте до CyberStrike або використовуйте автономно з будь-яким MCP-клієнтом.
 

@@ -121,18 +121,10 @@ export namespace Log {
   export function create(options: CreateOptions): Logger {
     const { service } = options
     return {
-      debug(message, extra) {
-        emit("DEBUG", service, message, extra)
-      },
-      info(message, extra) {
-        emit("INFO", service, message, extra)
-      },
-      warn(message, extra) {
-        emit("WARN", service, message, extra)
-      },
-      error(message, extra) {
-        emit("ERROR", service, message, extra)
-      },
+      debug(message, extra) { emit("DEBUG", service, message, extra) },
+      info(message, extra)  { emit("INFO",  service, message, extra) },
+      warn(message, extra)  { emit("WARN",  service, message, extra) },
+      error(message, extra) { emit("ERROR", service, message, extra) },
     }
   }
 }

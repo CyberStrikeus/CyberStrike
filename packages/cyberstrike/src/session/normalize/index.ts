@@ -24,10 +24,10 @@ export { assemble, orchestrate } from "./pipeline"
 export namespace Normalize {
   export interface RunInput {
     sessionID: string
-    raw: string // full raw HTTP request text
-    scheme: "http" | "https" // ingest caller-supplied
-    providerID: string // for the LLM Tier 3 fallback
-    modelID: string // fallback model when no small-model
+    raw: string                                       // full raw HTTP request text
+    scheme: "http" | "https"                          // ingest caller-supplied
+    providerID: string                                // for the LLM Tier 3 fallback
+    modelID: string                                   // fallback model when no small-model
     /** Optional injected Tier 3 client — primarily for tests. */
     client?: Tier3Client
   }
@@ -55,12 +55,10 @@ export namespace Normalize {
    * tests can call orchestrate() directly with InMemoryTemplateStore.
    */
   export async function run(input: RunInput): Promise<RunResult> {
-    const client =
-      input.client ??
-      (await createProviderClient({
-        providerID: input.providerID,
-        modelID: input.modelID,
-      }))
+    const client = input.client ?? (await createProviderClient({
+      providerID: input.providerID,
+      modelID: input.modelID,
+    }))
 
     const orchestrateInput: OrchestrateInput = {
       raw: input.raw,

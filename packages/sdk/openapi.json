@@ -1499,284 +1499,6 @@
         ]
       }
     },
-    "/session/queue/status": {
-      "get": {
-        "operationId": "session.queueStatus",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "summary": "Get ingest queue status",
-        "description": "Retrieve the current ingest-queue state for all sessions (paused flag and pending count). Sessions with no active queue are omitted.",
-        "responses": {
-          "200": {
-            "description": "Queue status map keyed by sessionID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {
-                    "$ref": "#/components/schemas/SessionQueueStatus"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.queueStatus({\n  ...\n})"
-          }
-        ]
-      }
-    },
-    "/session/{sessionID}/hackbrowser/launch": {
-      "post": {
-        "operationId": "session.hackbrowserLaunch",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "sessionID",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "summary": "Launch a hackbrowser crawl",
-        "description": "Start a hackbrowser crawl for a session from an interactive entry point (TUI slash, CLI subcommand). Same backend as the LLM-callable hackbrowser tool — agent invocation, slash, and CLI all share this surface. Returns a KickOffResult; captures stream into the session asynchronously.",
-        "responses": {
-          "200": {
-            "description": "Crawl successfully kicked off; returns sessionID + started flag + status message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "sessionID": {
-                      "type": "string"
-                    },
-                    "started": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["sessionID", "started", "message"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "target": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "credentials": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "scope": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "exclude": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "steps": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 200
-                  },
-                  "headless": {
-                    "type": "boolean"
-                  }
-                },
-                "required": ["target"]
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.hackbrowserLaunch({\n  ...\n})"
-          }
-        ]
-      }
-    },
-    "/session/{sessionID}/hackbrowser/stop": {
-      "post": {
-        "operationId": "session.hackbrowserStop",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "sessionID",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "summary": "Stop the active hackbrowser run for a session",
-        "description": "Cancels an in-flight hackbrowser crawl. The agent finishes the current page's pending tasks (graceful exit), closes the browser, and transitions HackbrowserStatus to completed with whatever was captured so far. Returns false when no hackbrowser run is active for this session.",
-        "responses": {
-          "200": {
-            "description": "true when a run was cancelled, false when no active run",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
-                }
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.hackbrowserStop({\n  ...\n})"
-          }
-        ]
-      }
-    },
-    "/session/hackbrowser/status": {
-      "get": {
-        "operationId": "session.hackbrowserStatus",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "summary": "Get hackbrowser status",
-        "description": "Retrieve the current hackbrowser run state for all sessions (phase, page/endpoint counters, errors). Used by the TUI sidebar bootstrap. Sessions with no hackbrowser run are omitted.",
-        "responses": {
-          "200": {
-            "description": "Hackbrowser status map keyed by sessionID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {
-                    "$ref": "#/components/schemas/HackbrowserStatus"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.hackbrowserStatus({\n  ...\n})"
-          }
-        ]
-      }
-    },
     "/session/{sessionID}": {
       "get": {
         "operationId": "session.get",
@@ -2994,41 +2716,6 @@
                       }
                     },
                     "required": ["status", "headers", "body"]
-                  },
-                  "trigger_element": {
-                    "description": "UI element that triggered this request (role:label)",
-                    "type": "string"
-                  },
-                  "element_roles": {
-                    "description": "Roles that can see the trigger element",
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "ui_context": {
-                    "description": "UI form context at request time",
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {}
-                  },
-                  "page_url": {
-                    "description": "Page being explored when request was captured",
-                    "type": "string"
-                  },
-                  "page_visited_by": {
-                    "description": "Roles that can visit this page",
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "scheme": {
-                    "description": "URL scheme of the captured request; inferred from Host header / port when omitted",
-                    "type": "string",
-                    "enum": ["http", "https"]
                   }
                 },
                 "required": ["text"]
@@ -3245,130 +2932,6 @@
           {
             "lang": "js",
             "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.abort({\n  ...\n})"
-          }
-        ]
-      }
-    },
-    "/session/{sessionID}/queue/pause": {
-      "post": {
-        "operationId": "session.queuePause",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "sessionID",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "summary": "Pause ingest queue",
-        "description": "Pause the ingest queue for a session. The current in-flight ingest finishes; the next one waits until queue/resume is called. Other flows (chat input, abort) are unaffected.",
-        "responses": {
-          "200": {
-            "description": "Paused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
-                }
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.queuePause({\n  ...\n})"
-          }
-        ]
-      }
-    },
-    "/session/{sessionID}/queue/resume": {
-      "post": {
-        "operationId": "session.queueResume",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "directory",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "sessionID",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "summary": "Resume ingest queue",
-        "description": "Resume the ingest queue for a session. Tasks queued while paused start processing in original order.",
-        "responses": {
-          "200": {
-            "description": "Resumed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
-                }
-              }
-            }
-          }
-        },
-        "x-codeSamples": [
-          {
-            "lang": "js",
-            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.queueResume({\n  ...\n})"
           }
         ]
       }
@@ -3832,9 +3395,6 @@
                   "variant": {
                     "type": "string"
                   },
-                  "excludeHistory": {
-                    "type": "boolean"
-                  },
                   "parts": {
                     "type": "array",
                     "items": {
@@ -4213,9 +3773,6 @@
                   },
                   "variant": {
                     "type": "string"
-                  },
-                  "excludeHistory": {
-                    "type": "boolean"
                   },
                   "parts": {
                     "type": "array",
@@ -8755,9 +8312,6 @@
           },
           "variant": {
             "type": "string"
-          },
-          "excludeHistory": {
-            "type": "boolean"
           }
         },
         "required": ["id", "sessionID", "role", "time", "agent", "model"]
@@ -10340,57 +9894,6 @@
             "type": "string",
             "enum": ["queued", "processing", "processed"]
           },
-          "trigger_element": {
-            "type": "string"
-          },
-          "element_roles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "ui_context": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {}
-          },
-          "page_url": {
-            "type": "string"
-          },
-          "page_visited_by": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "scheme": {
-            "type": "string",
-            "enum": ["http", "https"]
-          },
-          "host": {
-            "type": "string"
-          },
-          "port": {
-            "type": "number"
-          },
-          "origin": {
-            "type": "string"
-          },
-          "site": {
-            "type": "string"
-          },
-          "canonical_path": {
-            "type": "string"
-          },
-          "template_id": {
-            "type": "string"
-          },
-          "norm_source": {
-            "type": "string",
-            "enum": ["tier1", "tier2", "tier3", "failed"]
-          },
           "response_status": {
             "type": "number"
           },
@@ -10515,110 +10018,6 @@
               }
             },
             "required": ["sessionID", "credentials"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "SessionQueueStatus": {
-        "type": "object",
-        "properties": {
-          "paused": {
-            "type": "boolean"
-          },
-          "pending": {
-            "type": "number"
-          }
-        },
-        "required": ["paused", "pending"]
-      },
-      "Event.session.queue.status": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "session.queue.status"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "status": {
-                "$ref": "#/components/schemas/SessionQueueStatus"
-              }
-            },
-            "required": ["sessionID", "status"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "HackbrowserPhase": {
-        "type": "string",
-        "enum": ["starting", "crawling", "completed", "failed"]
-      },
-      "HackbrowserStatus": {
-        "type": "object",
-        "properties": {
-          "sessionID": {
-            "type": "string"
-          },
-          "phase": {
-            "$ref": "#/components/schemas/HackbrowserPhase"
-          },
-          "targetUrl": {
-            "type": "string"
-          },
-          "pagesExplored": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "capturedEndpoints": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "currentPage": {
-            "type": "string"
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "startedAt": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "finishedAt": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          }
-        },
-        "required": ["sessionID", "phase", "targetUrl", "pagesExplored", "capturedEndpoints", "errors", "startedAt"]
-      },
-      "Event.session.hackbrowser.status": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "session.hackbrowser.status"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "status": {
-                "$ref": "#/components/schemas/HackbrowserStatus"
-              }
-            },
-            "required": ["sessionID", "status"]
           }
         },
         "required": ["type", "properties"]
@@ -10754,426 +10153,6 @@
               }
             },
             "required": ["sessionID", "vulnerabilities"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "EndpointTemplate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "origin": {
-            "type": "string"
-          },
-          "method": {
-            "type": "string",
-            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
-          },
-          "template": {
-            "type": "string"
-          },
-          "segment_count": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "source": {
-            "type": "string",
-            "enum": ["tier1", "tier3-llm"]
-          },
-          "confidence": {
-            "type": "number"
-          },
-          "hit_count": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": [
-          "id",
-          "session_id",
-          "origin",
-          "method",
-          "template",
-          "segment_count",
-          "source",
-          "confidence",
-          "hit_count",
-          "time"
-        ]
-      },
-      "Event.endpoint_template.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "endpoint_template.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "templates": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/EndpointTemplate"
-                }
-              }
-            },
-            "required": ["sessionID", "templates"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "WebFunction": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "action_type": {
-            "type": "string",
-            "enum": ["create", "read", "update", "delete"]
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "role_id": {
-            "type": "string"
-          },
-          "objects": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": ["id", "session_id", "name", "action_type", "request_id", "time"]
-      },
-      "Event.web_function.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "web_function.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "functions": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WebFunction"
-                }
-              }
-            },
-            "required": ["sessionID", "functions"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "WebObject": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sensitive_fields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "id_fields": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "discovered_from": {
-            "type": "string"
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": ["id", "session_id", "name", "time"]
-      },
-      "Event.web_object.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "web_object.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "objects": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WebObject"
-                }
-              }
-            },
-            "required": ["sessionID", "objects"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "WebObjectValue": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "object_id": {
-            "type": "string"
-          },
-          "field_name": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          },
-          "credential_id": {
-            "type": "string"
-          },
-          "discovered_from": {
-            "type": "string"
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": ["id", "session_id", "object_id", "field_name", "value", "time"]
-      },
-      "Event.web_object_value.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "web_object_value.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "objectID": {
-                "type": "string"
-              },
-              "values": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WebObjectValue"
-                }
-              }
-            },
-            "required": ["sessionID", "objectID", "values"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "WebRole": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "level": {
-            "type": "number"
-          },
-          "discovered_from": {
-            "type": "string"
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": ["id", "session_id", "name", "time"]
-      },
-      "Event.web_role.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "web_role.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "roles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WebRole"
-                }
-              }
-            },
-            "required": ["sessionID", "roles"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "WebRetest": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "request_id": {
-            "type": "string"
-          },
-          "trigger_type": {
-            "type": "string",
-            "enum": ["new_role", "new_object_value", "new_credential"]
-          },
-          "trigger_source": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "processing", "completed"]
-          },
-          "priority": {
-            "type": "string",
-            "enum": ["high", "medium", "low"]
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "updated": {
-                "type": "number"
-              }
-            },
-            "required": ["created", "updated"]
-          }
-        },
-        "required": ["id", "session_id", "request_id", "trigger_type", "trigger_source", "status", "priority", "time"]
-      },
-      "Event.web_retest.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "web_retest.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "queue": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WebRetest"
-                }
-              }
-            },
-            "required": ["sessionID", "queue"]
           }
         },
         "required": ["type", "properties"]
@@ -11330,6 +10309,339 @@
               }
             },
             "required": ["mcpName", "url"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebRole": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "number"
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "time"]
+      },
+      "Event.web_role.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_role.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebRole"
+                }
+              }
+            },
+            "required": ["sessionID", "roles"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebRetest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "trigger_type": {
+            "type": "string",
+            "enum": ["new_role", "new_object_value", "new_credential"]
+          },
+          "trigger_source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed"]
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "request_id", "trigger_type", "trigger_source", "status", "priority", "time"]
+      },
+      "Event.web_retest.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_retest.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "queue": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebRetest"
+                }
+              }
+            },
+            "required": ["sessionID", "queue"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sensitive_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "time"]
+      },
+      "Event.web_object.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_object.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebObject"
+                }
+              }
+            },
+            "required": ["sessionID", "objects"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebObjectValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "field_name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "discovered_from": {
+            "type": "string"
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "object_id", "field_name", "value", "time"]
+      },
+      "Event.web_object_value.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_object_value.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "objectID": {
+                "type": "string"
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebObjectValue"
+                }
+              }
+            },
+            "required": ["sessionID", "objectID", "values"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "WebFunction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "action_type": {
+            "type": "string",
+            "enum": ["create", "read", "update", "delete"]
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              }
+            },
+            "required": ["created", "updated"]
+          }
+        },
+        "required": ["id", "session_id", "name", "action_type", "request_id", "time"]
+      },
+      "Event.web_function.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "web_function.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebFunction"
+                }
+              }
+            },
+            "required": ["sessionID", "functions"]
           }
         },
         "required": ["type", "properties"]
@@ -11862,34 +11174,10 @@
             "$ref": "#/components/schemas/Event.web_credential.updated"
           },
           {
-            "$ref": "#/components/schemas/Event.session.queue.status"
-          },
-          {
-            "$ref": "#/components/schemas/Event.session.hackbrowser.status"
-          },
-          {
             "$ref": "#/components/schemas/Event.todo.updated"
           },
           {
             "$ref": "#/components/schemas/Event.vulnerability.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.endpoint_template.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.web_function.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.web_object.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.web_object_value.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.web_role.updated"
-          },
-          {
-            "$ref": "#/components/schemas/Event.web_retest.updated"
           },
           {
             "$ref": "#/components/schemas/Event.tui.prompt.append"
@@ -11908,6 +11196,21 @@
           },
           {
             "$ref": "#/components/schemas/Event.mcp.browser.open.failed"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_role.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_retest.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_object.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_object_value.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.web_function.updated"
           },
           {
             "$ref": "#/components/schemas/Event.command.executed"

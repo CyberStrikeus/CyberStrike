@@ -24,10 +24,10 @@ interface BrowserElement {
   href: string
   type: string
   placeholder: string
-  options: string // comma-separated option values for <select>
-  constraints: string // HTML5 validation meta (min/max/step/maxlength/pattern/type)
-  selectorRole: string // role=button[name="..."]
-  selectorCSS: string // fallback CSS selector
+  options: string        // comma-separated option values for <select>
+  constraints: string    // HTML5 validation meta (min/max/step/maxlength/pattern/type)
+  selectorRole: string   // role=button[name="..."]
+  selectorCSS: string    // fallback CSS selector
 }
 
 /**
@@ -131,13 +131,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
           const aTag = current.tagName.toLowerCase()
           const aId = current.getAttribute("id")
           if (aId) return `${aTag}#${CSS.escape(aId)} `
-          const aCls =
-            typeof current.className === "string"
-              ? current.className
-                  .trim()
-                  .split(/\s+/)
-                  .filter((c) => c.length > 2)[0]
-              : undefined
+          const aCls = typeof current.className === "string" ? current.className.trim().split(/\s+/).filter(c => c.length > 2)[0] : undefined
           if (aCls) return `${aTag}.${CSS.escape(aCls)} `
           current = current.parentElement
         }
@@ -147,10 +141,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // class-based selector with parent context
       const cls = el.className
       if (typeof cls === "string" && cls.trim()) {
-        const classes = cls
-          .trim()
-          .split(/\s+/)
-          .filter((c) => c.length > 2)
+        const classes = cls.trim().split(/\s+/).filter(c => c.length > 2)
         if (classes.length > 0) {
           const clsSel = `${tag}.${CSS.escape(classes[0]!)}`
           const parent = el.parentElement
@@ -211,8 +202,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const pattern = getAttr("pattern")
 
       const isNumericRange = type === "range" || type === "number"
-      const isDateTime =
-        type === "date" || type === "time" || type === "datetime-local" || type === "month" || type === "week"
+      const isDateTime = type === "date" || type === "time" || type === "datetime-local" || type === "month" || type === "week"
 
       if (isNumericRange || isDateTime) {
         if (min) parts.push(`min:${min}`)
@@ -253,19 +243,18 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const href = (el as HTMLAnchorElement).href || ""
       const value = isSlider
         ? (el.getAttribute("aria-valuenow") ?? (el as HTMLInputElement).value ?? "")
-        : (el as HTMLInputElement).value || ""
+        : ((el as HTMLInputElement).value || "")
       const placeholder = (el as HTMLInputElement).placeholder || ""
       const enabled = !(el as HTMLInputElement).disabled
 
       // Collect <select> options (invisible in DOM but readable)
-      const options =
-        tag === "select"
-          ? Array.from(el.querySelectorAll("option"))
-              .map((o) => o.textContent?.trim() || "")
-              .filter(Boolean)
-              .slice(0, 10) // max 10 options to keep token budget
-              .join(", ")
-          : ""
+      const options = tag === "select"
+        ? Array.from(el.querySelectorAll("option"))
+            .map(o => o.textContent?.trim() || "")
+            .filter(Boolean)
+            .slice(0, 10)  // max 10 options to keep token budget
+            .join(", ")
+        : ""
 
       // HTML5 validation constraints for the LLM to honor
       const constraints = serializeConstraints(el, type)
@@ -290,50 +279,28 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // executor resolves to the exact DOM element.
       const ariaLabelRaw = (el.getAttribute("aria-label") || "").trim()
       const safeAriaLabel = ariaLabelRaw.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      const selectorRole = count > 1 ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
+      const selectorRole = count > 1
+        ? ""
+        : (safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`)
       const selectorCSS = buildCSSSelector(el)
 
       // Track selectorRole usage — if duplicated, mark for CSS fallback
       const roleCount = (seenRoleSelectors.get(selectorRole) ?? 0) + 1
       seenRoleSelectors.set(selectorRole, roleCount)
 
-      elements.push({
-        tag,
-        role,
-        label: disambiguatedLabel,
-        value,
-        enabled,
-        href,
-        type,
-        placeholder,
-        options,
-        constraints,
-        selectorRole,
-        selectorCSS,
-      })
+      elements.push({ tag, role, label: disambiguatedLabel, value, enabled, href, type, placeholder, options, constraints, selectorRole, selectorCSS })
     }
 
     // ---- Info elements (CAPTCHA, hints, contextual labels) ----
     const INTERACTIVE_TAGS = new Set(["input", "button", "a", "select", "textarea"])
-    const INTERACTIVE_ROLES = new Set([
-      "button",
-      "link",
-      "menuitem",
-      "tab",
-      "checkbox",
-      "radio",
-      "combobox",
-      "option",
-      "slider",
-      "textbox",
-    ])
+    const INTERACTIVE_ROLES = new Set(["button", "link", "menuitem", "tab", "checkbox", "radio", "combobox", "option", "slider", "textbox"])
     const infoSeen = new Set<string>()
 
     // Build set of labels already captured as interactive elements (avoid duplicating slider labels etc.)
-    const interactiveLabels = new Set(elements.map((e) => e.label.toLowerCase()))
+    const interactiveLabels = new Set(elements.map(e => e.label.toLowerCase()))
 
     for (const el of document.querySelectorAll<HTMLElement>("[aria-label]")) {
-      if (el.closest("[data-cyberstrike-ui]")) continue // defensive: never leak panel UI into info elements
+      if (el.closest("[data-cyberstrike-ui]")) continue  // defensive: never leak panel UI into info elements
       const tag = el.tagName.toLowerCase()
       const role = (el.getAttribute("role") || "").toLowerCase()
       if (INTERACTIVE_TAGS.has(tag) || INTERACTIVE_ROLES.has(role)) continue
@@ -349,25 +316,16 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       infoSeen.add(key)
 
       elements.push({
-        tag,
-        role: "info",
-        label: ariaLabel,
-        value: text,
-        enabled: false,
-        href: "",
-        type: "",
-        placeholder: "",
-        options: "",
-        constraints: "",
-        selectorRole: "",
-        selectorCSS: "",
+        tag, role: "info", label: ariaLabel, value: text,
+        enabled: false, href: "", type: "", placeholder: "", options: "",
+        constraints: "", selectorRole: "", selectorCSS: "",
       })
     }
 
     // Replace ambiguous role selectors (duplicated) with CSS selectors
     for (const el of elements) {
       if (el.selectorRole && seenRoleSelectors.get(el.selectorRole)! > 1 && el.selectorCSS) {
-        el.selectorRole = "" // force CSS fallback in assignIds
+        el.selectorRole = ""  // force CSS fallback in assignIds
       }
     }
 
@@ -393,7 +351,7 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
     options: el.options,
     constraints: el.constraints,
     // Prefer role+name selector (unique); bare role without name is ambiguous — use CSS instead
-    selector: el.selectorRole.includes("[name=") ? el.selectorRole : el.selectorCSS || el.selectorRole,
+    selector: el.selectorRole.includes("[name=") ? el.selectorRole : (el.selectorCSS || el.selectorRole),
   }))
 }
 
@@ -475,7 +433,7 @@ function evalIsViewportCenterBlocked(page: Page): Promise<boolean> {
     }
     // Scan for any visible full-viewport fixed overlay element (e.g. modal backdrop not at center)
     const candidates = document.querySelectorAll<HTMLElement>(
-      '[class*="overlay"],[class*="backdrop"],[class*="modal"],[role="dialog"],[role="alertdialog"]',
+      '[class*="overlay"],[class*="backdrop"],[class*="modal"],[role="dialog"],[role="alertdialog"]'
     )
     for (const c of candidates) {
       const s = window.getComputedStyle(c)

@@ -1,20 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>BUG-6 SPA fixture — custom listbox options leaking as display-only fields</title>
-  </head>
-  <body>
-    <div id="app"></div>
+<head>
+  <meta charset="UTF-8">
+  <title>BUG-6 SPA fixture — custom listbox options leaking as display-only fields</title>
+</head>
+<body>
+  <div id="app"></div>
 
-    <script>
-      // SPA render pattern — mimics how a framework (React/Vue/Angular) mounts a
-      // custom dropdown (combobox + listbox with role=option) with data-value
-      // attributes on each option. This is the exact pattern that causes BUG-6.
-      const state = { query: "test", category: "", priceBand: "99.99" }
+  <script>
+    // SPA render pattern — mimics how a framework (React/Vue/Angular) mounts a
+    // custom dropdown (combobox + listbox with role=option) with data-value
+    // attributes on each option. This is the exact pattern that causes BUG-6.
+    const state = { query: "test", category: "", priceBand: "99.99" };
 
-      function render() {
-        document.getElementById("app").innerHTML = `
+    function render() {
+      document.getElementById("app").innerHTML = `
         <form id="search-form" novalidate>
 
           <!-- Real text input — should appear in ui_context -->
@@ -72,14 +72,14 @@
 
           <button type="submit">Search</button>
         </form>
-      `
-      }
+      `;
+    }
 
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", render)
-      } else {
-        render()
-      }
-    </script>
-  </body>
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", render);
+    } else {
+      render();
+    }
+  </script>
+</body>
 </html>
