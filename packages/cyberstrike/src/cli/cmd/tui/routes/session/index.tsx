@@ -1293,7 +1293,9 @@ function UserMessage(props: {
   const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
   const isIngestSummary = createMemo(() => text()?.metadata?.kind === "ingest-summary")
-  const color = createMemo(() => (isIngestSummary() ? theme.textMuted : local.agent.color(props.message.agent)))
+  const color = createMemo(() =>
+    isIngestSummary() ? theme.textMuted : local.agent.color(props.message.agent),
+  )
   const queuedFg = createMemo(() => selectedForeground(theme, color()))
   const metadataVisible = createMemo(() => queued() || ctx.showTimestamps())
 

@@ -96,8 +96,7 @@ async function executeFill(page: Page, element: RawElement, value: string): Prom
   if (!fillErr) return undefined
 
   // Fallback: pressSequentially (works for inputs that reject programmatic fill)
-  const typeErr = await page
-    .locator(selector)
+  const typeErr = await page.locator(selector)
     .pressSequentially(value, { delay: 30, timeout: FILL_TIMEOUT })
     .then(() => null)
     .catch((e: Error) => e.message.split("\n")[0]!)
@@ -120,18 +119,16 @@ async function executeSliderFill(page: Page, selector: string, value: string): P
   // wraps one). Setting value + dispatching events updates FormControl
   // bindings in both cases.
   const root = page.locator(selector).first()
-  const evalSuccess = await root
-    .evaluate((el: Element, val: number) => {
-      const input = el.matches("input[type=range]")
-        ? (el as HTMLInputElement)
-        : el.querySelector<HTMLInputElement>("input[type=range]")
-      if (!input) return false
-      input.value = String(val)
-      input.dispatchEvent(new Event("input", { bubbles: true }))
-      input.dispatchEvent(new Event("change", { bubbles: true }))
-      return true
-    }, numericValue)
-    .catch(() => false)
+  const evalSuccess = await root.evaluate((el: Element, val: number) => {
+    const input = el.matches("input[type=range]")
+      ? (el as HTMLInputElement)
+      : el.querySelector<HTMLInputElement>("input[type=range]")
+    if (!input) return false
+    input.value = String(val)
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    input.dispatchEvent(new Event("change", { bubbles: true }))
+    return true
+  }, numericValue).catch(() => false)
 
   if (evalSuccess) return undefined
 
@@ -194,10 +191,9 @@ async function executeSelect(page: Page, element: RawElement, value: string): Pr
     .click(`role=option[name="${value}"]`, { timeout: CLICK_TIMEOUT })
     .then(() => null)
     .catch(() =>
-      page
-        .click(`text="${value}"`, { timeout: CLICK_TIMEOUT })
+      page.click(`text="${value}"`, { timeout: CLICK_TIMEOUT })
         .then(() => null)
-        .catch((e: Error) => e.message.split("\n")[0]!),
+        .catch((e: Error) => e.message.split("\n")[0]!)
     )
 
   if (optionErr) {

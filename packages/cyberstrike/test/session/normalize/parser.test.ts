@@ -1,17 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import { parseRawRequest, deriveSite } from "../../../src/session/normalize/parser"
 
-function rawHttp(
-  method: string,
-  target: string,
-  host: string,
-  headers: Record<string, string> = {},
-  body = "",
-): string {
+function rawHttp(method: string, target: string, host: string, headers: Record<string, string> = {}, body = ""): string {
   const ct = body ? "\ncontent-type: application/json" : ""
-  const extra = Object.entries(headers)
-    .map(([k, v]) => `\n${k}: ${v}`)
-    .join("")
+  const extra = Object.entries(headers).map(([k, v]) => `\n${k}: ${v}`).join("")
   return `${method} ${target} HTTP/1.1\nhost: ${host}${ct}${extra}\n\n${body}`
 }
 

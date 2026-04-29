@@ -137,12 +137,12 @@ Dodatkowo **8 wyspecjalizowanych proxy testerów** przechwytujących i manipuluj
 
 CyberStrike łączy się ze specjalizowanymi serwerami MCP, które rozszerzają jego możliwości:
 
-| Serwer                                                                 | Narzędzia | Co Dodaje                                                                                |
-| ---------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Audyty bezpieczeństwa chmury — 60+ kontroli w AWS, Azure, GCP                            |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | Postura bezpieczeństwa GitHub — repozytoria, organizacja, actions, secrets, supply chain |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | Wywiad CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                                   |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS                |
+| Serwer                                                                 | Narzędzia | Co Dodaje                                                                                     |
+| ---------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Audyty bezpieczeństwa chmury — 60+ kontroli w AWS, Azure, GCP                                 |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | Postura bezpieczeństwa GitHub — repozytoria, organizacja, actions, secrets, supply chain      |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | Wywiad CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                                        |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS                     |
 
 Wszystkie open source. Wszystkie instalowalne przez `npx`. Podłącz je do CyberStrike lub używaj samodzielnie z dowolnym klientem MCP.
 

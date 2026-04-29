@@ -16,7 +16,10 @@ import z from "zod"
 import { Database, eq, and } from "../../storage/db"
 import { EndpointTemplateTable } from "../session.sql"
 import { Identifier } from "../../id/id"
-import type { EndpointTemplate as EndpointTemplateInfo, Method } from "../normalize/types"
+import type {
+  EndpointTemplate as EndpointTemplateInfo,
+  Method,
+} from "../normalize/types"
 import type { TemplateStore, TemplateUpsertInput } from "../normalize/tier2"
 
 const Source = z.enum(["tier1", "tier3-llm"])

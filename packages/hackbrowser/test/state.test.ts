@@ -52,7 +52,7 @@ test("markPageEmpty: rejects URL once hard limit reached", () => {
 
 test("markPageEmpty: second call with new keyword overwrites previous", () => {
   const s = createGlobalState()
-  markPageEmpty(s, C, "/basket") // ANY_MUTATION
+  markPageEmpty(s, C, "/basket")  // ANY_MUTATION
   markPageEmpty(s, C, "/basket", "cart-item-added")
   expect(intel(s).emptyStateQueue.get("/basket")).toBe("cart-item-added")
 })
@@ -108,19 +108,19 @@ test("drainEmptyStateQueue: respects hard limit across multiple drains", () => {
 
 test("drainOnMutation: ANY_MUTATION URLs drain on any keyword (or none)", () => {
   const s = createGlobalState()
-  markPageEmpty(s, C, "/basket") // ANY_MUTATION (no keyword)
-  markPageEmpty(s, C, "/orders") // ANY_MUTATION
+  markPageEmpty(s, C, "/basket")  // ANY_MUTATION (no keyword)
+  markPageEmpty(s, C, "/orders")  // ANY_MUTATION
 
-  const drained = drainOnMutation(s, C, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained.sort()).toEqual(["/basket", "/orders"])
 })
 
 test("drainOnMutation: keyword URLs drain ONLY on exact match", () => {
   const s = createGlobalState()
   markPageEmpty(s, C, "/basket", "cart-item-added")
-  markPageEmpty(s, C, "/users", "user-created")
+  markPageEmpty(s, C, "/users",  "user-created")
 
-  const drained = drainOnMutation(s, C, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained).toEqual(["/basket"])
   // /users should still be pending (no match)
   expect(intel(s).emptyStateQueue.get("/users")).toBe("user-created")
@@ -129,19 +129,19 @@ test("drainOnMutation: keyword URLs drain ONLY on exact match", () => {
 test("drainOnMutation: mixed ANY + keyword — both drain on matching keyword", () => {
   const s = createGlobalState()
   markPageEmpty(s, C, "/basket", "cart-item-added")
-  markPageEmpty(s, C, "/wishlist") // ANY_MUTATION
+  markPageEmpty(s, C, "/wishlist")  // ANY_MUTATION
 
-  const drained = drainOnMutation(s, C, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained.sort()).toEqual(["/basket", "/wishlist"])
 })
 
 test("drainOnMutation: no-keyword task drains ONLY ANY_MUTATION URLs", () => {
   const s = createGlobalState()
-  markPageEmpty(s, C, "/basket", "cart-item-added") // specific
-  markPageEmpty(s, C, "/wishlist") // ANY_MUTATION
+  markPageEmpty(s, C, "/basket", "cart-item-added")  // specific
+  markPageEmpty(s, C, "/wishlist")                   // ANY_MUTATION
 
   // Task had no keyword — only ANY_MUTATION URLs drain (backward-compat)
-  const drained = drainOnMutation(s, C, undefined)
+  const drained = drainOnMutation(s, C,undefined)
   expect(drained).toEqual(["/wishlist"])
   expect(intel(s).emptyStateQueue.get("/basket")).toBe("cart-item-added")
 })
@@ -150,7 +150,7 @@ test("drainOnMutation: unmatched keyword URLs remain pending", () => {
   const s = createGlobalState()
   markPageEmpty(s, C, "/users", "user-created")
 
-  const drained = drainOnMutation(s, C, "cart-item-added")
+  const drained = drainOnMutation(s, C,"cart-item-added")
   expect(drained).toEqual([])
   expect(intel(s).emptyStateQueue.get("/users")).toBe("user-created")
 })
@@ -160,7 +160,7 @@ test("drainOnMutation: drained URLs get fingerprint cleared", () => {
   intel(s).pageFingerprints.set("/basket", "old-fp")
   markPageEmpty(s, C, "/basket")
 
-  drainOnMutation(s, C, "anything")
+  drainOnMutation(s, C,"anything")
   expect(intel(s).pageFingerprints.has("/basket")).toBe(false)
 })
 
@@ -211,19 +211,23 @@ test("normalizeUrl: '/' and '/#/' and '/#' unify to root", () => {
 })
 
 test("normalizeUrl: trailing slash in hash route stripped", () => {
-  expect(normalizeUrl("http://x.com/#/cart/")).toBe(normalizeUrl("http://x.com/#/cart"))
+  expect(normalizeUrl("http://x.com/#/cart/"))
+    .toBe(normalizeUrl("http://x.com/#/cart"))
 })
 
 test("normalizeUrl: different hash routes stay distinct", () => {
-  expect(normalizeUrl("http://x.com/#/cart")).not.toBe(normalizeUrl("http://x.com/#/products"))
+  expect(normalizeUrl("http://x.com/#/cart"))
+    .not.toBe(normalizeUrl("http://x.com/#/products"))
 })
 
 test("normalizeUrl: non-hash URLs preserve pathname distinctions", () => {
-  expect(normalizeUrl("http://x.com/cart")).not.toBe(normalizeUrl("http://x.com/products"))
+  expect(normalizeUrl("http://x.com/cart"))
+    .not.toBe(normalizeUrl("http://x.com/products"))
 })
 
 test("normalizeUrl: query params preserved and sorted", () => {
-  expect(normalizeUrl("http://x.com/search?b=2&a=1")).toBe(normalizeUrl("http://x.com/search?a=1&b=2"))
+  expect(normalizeUrl("http://x.com/search?b=2&a=1"))
+    .toBe(normalizeUrl("http://x.com/search?a=1&b=2"))
 })
 
 // ============================================================
@@ -244,7 +248,7 @@ test("markPageEmpty: credA's queue does not leak into credB", () => {
 test("drainOnMutation: credA's mutation does not drain credB's queue", () => {
   const s = createGlobalState()
   markPageEmpty(s, "admin", "/users")
-  markPageEmpty(s, "user", "/users") // both marked empty independently
+  markPageEmpty(s, "user",  "/users")  // both marked empty independently
 
   // admin does a mutation — drains only admin's queue
   const drainedAdmin = drainOnMutation(s, "admin")

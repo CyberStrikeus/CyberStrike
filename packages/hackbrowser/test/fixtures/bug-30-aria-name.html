@@ -1,43 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>BUG-30 fixture</title>
-  </head>
-  <body>
-    <div id="app">
-      <form>
-        <!-- Classic named select -->
-        <label for="country">Country</label>
-        <select id="country" name="country">
-          <option value="TR">Turkey</option>
-          <option value="US">United States</option>
-        </select>
+<head><title>BUG-30 fixture</title></head>
+<body>
+<div id="app">
+  <form>
+    <!-- Classic named select -->
+    <label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="TR">Turkey</option>
+      <option value="US">United States</option>
+    </select>
 
-        <!-- Inline action cell: aria-label only, no name/id -->
-        <select aria-label="Assign request 42">
-          <option value="">Unassigned</option>
-          <option value="admin@test.com">Admin</option>
-          <option value="user@test.com">User</option>
-        </select>
+    <!-- Inline action cell: aria-label only, no name/id -->
+    <select aria-label="Assign request 42">
+      <option value="">Unassigned</option>
+      <option value="admin@test.com">Admin</option>
+      <option value="user@test.com">User</option>
+    </select>
 
-        <!-- Another aria-label only select with different identifier -->
-        <select aria-label="Status filter">
-          <option value="all">All</option>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-        </select>
+    <!-- Another aria-label only select with different identifier -->
+    <select aria-label="Status filter">
+      <option value="all">All</option>
+      <option value="open">Open</option>
+      <option value="closed">Closed</option>
+    </select>
 
-        <!-- React Testing Library pattern: data-testid only -->
-        <input type="text" data-testid="search-input" placeholder="Search..." />
+    <!-- React Testing Library pattern: data-testid only -->
+    <input type="text" data-testid="search-input" placeholder="Search...">
 
-        <!-- Cypress pattern: data-cy only, aria-label takes priority in ordering -->
-        <input type="text" data-cy="bulk-action-count" aria-label="Items to process" />
+    <!-- Cypress pattern: data-cy only, aria-label takes priority in ordering -->
+    <input type="text" data-cy="bulk-action-count" aria-label="Items to process">
 
-        <!-- data-test (generic) — name fallback to data-test when nothing else -->
-        <textarea data-test="comment-body"></textarea>
+    <!-- data-test (generic) — name fallback to data-test when nothing else -->
+    <textarea data-test="comment-body"></textarea>
 
-        <button type="submit">Submit</button>
-      </form>
-    </div>
-  </body>
+    <button type="submit">Submit</button>
+  </form>
+</div>
+</body>
 </html>

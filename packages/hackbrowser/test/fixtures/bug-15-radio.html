@@ -1,28 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>BUG-15 SPA fixture — radio groups mounted by JS</title>
-  </head>
-  <body>
-    <!-- SPA mount point — body initially empty, framework renders into #app -->
-    <div id="app"></div>
+<head>
+  <meta charset="UTF-8">
+  <title>BUG-15 SPA fixture — radio groups mounted by JS</title>
+</head>
+<body>
+  <!-- SPA mount point — body initially empty, framework renders into #app -->
+  <div id="app"></div>
 
-    <script>
-      // Simulates a React/Vue/Angular render cycle:
-      //  - state-driven (selected values stored in an object)
-      //  - DOM built via template strings + innerHTML (first render)
-      //  - event handlers attached after render
-      //  - no <form> children at DOMContentLoaded — they appear after mount
-      const state = { gender: "Female", priority: "Medium", subscription: "" }
+  <script>
+    // Simulates a React/Vue/Angular render cycle:
+    //  - state-driven (selected values stored in an object)
+    //  - DOM built via template strings + innerHTML (first render)
+    //  - event handlers attached after render
+    //  - no <form> children at DOMContentLoaded — they appear after mount
+    const state = { gender: "Female", priority: "Medium", subscription: "" };
 
-      function radio(name, value, labelText) {
-        const checked = state[name] === value ? "checked" : ""
-        return `<label class="radio-opt"><input type="radio" name="${name}" value="${value}" ${checked}> ${labelText}</label>`
-      }
+    function radio(name, value, labelText) {
+      const checked = state[name] === value ? "checked" : "";
+      return `<label class="radio-opt"><input type="radio" name="${name}" value="${value}" ${checked}> ${labelText}</label>`;
+    }
 
-      function render() {
-        document.getElementById("app").innerHTML = `
+    function render() {
+      document.getElementById("app").innerHTML = `
         <section class="preferences-shell">
           <header><h1>Preferences</h1></header>
           <form id="preferences-form" novalidate>
@@ -59,22 +59,22 @@
             <button type="submit">Save Preferences</button>
           </form>
         </section>
-      `
+      `;
 
-        // Framework-style: rebind handlers after each re-render
-        for (const input of document.querySelectorAll('input[type="radio"]')) {
-          input.addEventListener("change", (e) => {
-            state[e.target.name] = e.target.value
-          })
-        }
+      // Framework-style: rebind handlers after each re-render
+      for (const input of document.querySelectorAll('input[type="radio"]')) {
+        input.addEventListener("change", (e) => {
+          state[e.target.name] = e.target.value;
+        });
       }
+    }
 
-      // Defer render to mimic SPA mount (after initial parse)
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", render)
-      } else {
-        render()
-      }
-    </script>
-  </body>
+    // Defer render to mimic SPA mount (after initial parse)
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", render);
+    } else {
+      render();
+    }
+  </script>
+</body>
 </html>

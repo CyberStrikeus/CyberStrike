@@ -6,10 +6,7 @@ const log = Log.create({ service: "hackbrowser:ingest" })
 let authHeader = ""
 
 export function initAuth(username?: string, password?: string): void {
-  if (!password) {
-    authHeader = ""
-    return
-  }
+  if (!password) { authHeader = ""; return }
   authHeader = btoa(`${username ?? "cyberstrike"}:${password}`)
   authHeader = `Basic ${authHeader}`
 }
@@ -81,7 +78,7 @@ export async function sendIngest(
   captured: CapturedRequest,
   serverUrl: string,
   sessionID: string | undefined,
-  credentialId: string | undefined,
+  credentialId: string | undefined
 ): Promise<{ sessionID: string } | null> {
   const payload = buildIngestPayload(captured, sessionID, credentialId)
   const body = JSON.stringify(payload)
@@ -132,8 +129,8 @@ const COMMON_AUTH_HEADERS = [
 ]
 
 const CANONICAL_HEADER_NAMES: Record<string, string> = {
-  authorization: "Authorization",
-  cookie: "Cookie",
+  "authorization": "Authorization",
+  "cookie": "Cookie",
   "x-auth-token": "X-Auth-Token",
   "x-api-key": "X-API-Key",
   "x-access-token": "X-Access-Token",
@@ -159,7 +156,10 @@ export function extractAuthHeaders(rawRequest: string): Record<string, string> {
 }
 
 /** Check if auth headers changed since last sync. */
-export function headersChanged(oldHeaders: Record<string, string>, newHeaders: Record<string, string>): boolean {
+export function headersChanged(
+  oldHeaders: Record<string, string>,
+  newHeaders: Record<string, string>,
+): boolean {
   const oldKeys = Object.keys(oldHeaders)
   const newKeys = Object.keys(newHeaders)
   if (oldKeys.length !== newKeys.length) return true
@@ -170,7 +170,11 @@ export function headersChanged(oldHeaders: Record<string, string>, newHeaders: R
 }
 
 /** Register a credential with CyberStrike. Returns the credential ID. */
-export async function registerCredential(serverUrl: string, sessionID: string, label: string): Promise<string | null> {
+export async function registerCredential(
+  serverUrl: string,
+  sessionID: string,
+  label: string,
+): Promise<string | null> {
   try {
     const res = await fetch(`${serverUrl}/session/${sessionID}/web/credentials`, {
       method: "POST",

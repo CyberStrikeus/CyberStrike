@@ -1,12 +1,4 @@
-import type {
-  RawElement,
-  GlobalState,
-  IntelligenceState,
-  PageState,
-  ActionRecord,
-  ActionResult,
-  DeferredAuthPage,
-} from "./types.ts"
+import type { RawElement, GlobalState, IntelligenceState, PageState, ActionRecord, ActionResult, DeferredAuthPage } from "./types.ts"
 
 // ============================================================
 // Constants
@@ -77,7 +69,12 @@ export const ANY_MUTATION = "*"
  * Respects hard limit (MAX_REVISITS_PER_URL per credential).
  * @returns true if queued, false if rejected by hard limit.
  */
-export function markPageEmpty(state: GlobalState, credId: string, url: string, expectedMutation?: string): boolean {
+export function markPageEmpty(
+  state: GlobalState,
+  credId: string,
+  url: string,
+  expectedMutation?: string,
+): boolean {
   const intel = getIntelligence(state, credId)
   const count = intel.revisitCount.get(url) ?? 0
   if (count >= MAX_REVISITS_PER_URL) return false
@@ -95,12 +92,18 @@ export function markPageEmpty(state: GlobalState, credId: string, url: string, e
  * Other credentials' intelligence is untouched — cross-credential drain does
  * not occur. This preserves each credential's journey independence.
  */
-export function drainOnMutation(state: GlobalState, credId: string, taskMutation?: string): string[] {
+export function drainOnMutation(
+  state: GlobalState,
+  credId: string,
+  taskMutation?: string,
+): string[] {
   const intel = getIntelligence(state, credId)
   if (intel.emptyStateQueue.size === 0) return []
   const drained: string[] = []
   for (const [url, expected] of intel.emptyStateQueue) {
-    const matches = expected === ANY_MUTATION || (taskMutation !== undefined && expected === taskMutation)
+    const matches =
+      expected === ANY_MUTATION ||
+      (taskMutation !== undefined && expected === taskMutation)
     if (!matches) continue
     state.pageQueue.unshift(url)
     intel.revisitCount.set(url, (intel.revisitCount.get(url) ?? 0) + 1)
@@ -139,8 +142,8 @@ export function hasSuccessfulMutation(httpRequests: string[] | undefined): boole
 
 const AUTH_PATTERNS: { type: DeferredAuthPage["type"]; pattern: RegExp }[] = [
   { type: "register", pattern: /\/(register|signup|sign-up|create-account|join)/i },
-  { type: "login", pattern: /\/(login|signin|sign-in|authenticate|auth\/login)/i },
-  { type: "logout", pattern: /\/(logout|signout|sign-out|auth\/logout)/i },
+  { type: "login",    pattern: /\/(login|signin|sign-in|authenticate|auth\/login)/i },
+  { type: "logout",   pattern: /\/(logout|signout|sign-out|auth\/logout)/i },
 ]
 
 /**
@@ -201,7 +204,14 @@ export function generateFingerprint(elements: RawElement[]): string {
 export function generateFullFingerprint(elements: RawElement[]): string {
   return elements
     .filter((e) => e.label && e.role !== "link" && e.role !== "info")
-    .map((e) => [e.role, e.label, e.type, e.enabled, e.options || "", e.placeholder || ""].join(":"))
+    .map((e) => [
+      e.role,
+      e.label,
+      e.type,
+      e.enabled,
+      e.options || "",
+      e.placeholder || "",
+    ].join(":"))
     .sort()
     .join("|")
 }
@@ -215,7 +225,9 @@ export function generateFullFingerprint(elements: RawElement[]): string {
  *   "button::Edit"        → ["admin", "manager", "editor"]
  *   "textbox::Search"     → ["admin", "manager", "editor", "user", "viewer"]
  */
-export function computeElementAvailability(elementsByContext: Map<string, RawElement[]>): Map<string, string[]> {
+export function computeElementAvailability(
+  elementsByContext: Map<string, RawElement[]>,
+): Map<string, string[]> {
   const availability = new Map<string, string[]>()
   for (const [ctxId, elements] of elementsByContext) {
     for (const el of elements) {
@@ -231,7 +243,9 @@ export function computeElementAvailability(elementsByContext: Map<string, RawEle
  * Convert element availability map to a serializable record for CyberStrike page-diff.
  * Keys: "role:label" (single colon for readability), values: context ID arrays.
  */
-export function availabilityToRecord(availability: Map<string, string[]>): Record<string, string[]> {
+export function availabilityToRecord(
+  availability: Map<string, string[]>,
+): Record<string, string[]> {
   const record: Record<string, string[]> = {}
   for (const [key, contexts] of availability) {
     // Convert "role::label" to "role:label" for readability
@@ -340,7 +354,7 @@ function elementToPrompt(el: RawElement): PromptElement {
   if (el.placeholder) result.placeholder = el.placeholder
   if (el.options) result.options = el.options
   if (el.constraints) result.constraints = el.constraints
-  if (!el.enabled) result.enabled = false // only include when disabled (saves tokens)
+  if (!el.enabled) result.enabled = false  // only include when disabled (saves tokens)
   if (el.href) {
     // Show only path+hash, not full URL (saves tokens)
     try {
@@ -368,17 +382,21 @@ export interface PromptPayload {
  * Build the structured JSON payload that gets sent as the LLM user message.
  * All fields are bounded — total token count stays under ~3K.
  */
-export function buildPromptPayload(pageState: PageState, globalState: GlobalState): PromptPayload {
+export function buildPromptPayload(
+  pageState: PageState,
+  globalState: GlobalState,
+): PromptPayload {
   const recentActions = getActionsForPrompt(pageState.actionsThisPage)
   const failedElements = [...pageState.failedElementIds].slice(0, MAX_FAILED_ELEMENTS)
 
   // Count unvisited links among current elements (normalize href before comparing)
   const unvisitedLinksOnPage = pageState.elements.filter(
-    (el) => el.role === "link" && el.href && !globalState.visitedPages.has(normalizeUrl(el.href)),
+    (el) => el.role === "link" && el.href && !globalState.visitedPages.has(normalizeUrl(el.href))
   ).length
 
-  const lastAction =
-    pageState.actionsThisPage.length > 0 ? pageState.actionsThisPage[pageState.actionsThisPage.length - 1]! : null
+  const lastAction = pageState.actionsThisPage.length > 0
+    ? pageState.actionsThisPage[pageState.actionsThisPage.length - 1]!
+    : null
 
   return {
     url: pageState.currentUrl,

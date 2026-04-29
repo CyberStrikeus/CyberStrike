@@ -19,7 +19,6 @@ sağ-altta belirir. Agent crawl'e başladığında panelde canlı akan veri heme
 edilmelidir.
 
 **Başarı kriteri:**
-
 - İlk 3 saniye içinde gözle görülür hareket (pulse, flash, counter artışı)
 - Kullanıcı 30 saniye izlediğinde ne olduğunu anlar ("agent endpoint buluyor")
 - Sayfanın asıl içeriğini bozmaz / kaplamaz
@@ -34,7 +33,6 @@ edilmelidir.
 **Boyut:** yaklaşık `320×180px`, sağ-alt köşede sabit (`position: fixed; bottom: 16px; right: 16px`).
 
 **İçerik yerleşimi:**
-
 ```
 ┌─────────────────────────────┐
 │ 🛡 CS · admin · page 5/8    │ ← credential + page progress (sabit)
@@ -50,7 +48,6 @@ edilmelidir.
 ```
 
 **Kurallar:**
-
 - Her event geldiğinde ilgili satırlar animasyonla güncellenir (tipografi shift etmesin — fixed-width layout)
 - Capture row HTTP method'una göre renk (GET gri, POST yeşil, PUT sarı, DELETE kırmızı, PATCH mor)
 - Mutation (POST/PUT/DELETE/PATCH) geldiğinde kart kenarında 300ms kırmızı/yeşil glow
@@ -95,7 +92,6 @@ edilmelidir.
 ```
 
 **Kurallar:**
-
 - Credential tabs sadece multi-cred mode'da görünür; tıklayınca feed sadece o credential'ın event'leri filter'lanır
 - Live events monospace, max 20, yukarı scroll ile geçmişe bakılabilir
 - Plan bölümü agent'ın son plan'ını gösterir (LLM JSON özet)
@@ -116,15 +112,11 @@ edilmelidir.
 Panel host div'i **Shadow DOM** kullanır. Target sayfanın CSS'i ile çakışma olmaz.
 
 ```html
-<div
-  id="__cs-host"
-  data-cyberstrike-ui="panel"
-  style="all:initial;position:fixed;bottom:16px;right:16px;z-index:2147483647"
-></div>
+<div id="__cs-host" data-cyberstrike-ui="panel" style="all:initial;position:fixed;bottom:16px;right:16px;z-index:2147483647"></div>
 <script>
-  const host = document.getElementById("__cs-host")
-  const shadow = host.attachShadow({ mode: "closed" })
-  shadow.innerHTML = `<style>/* panel styles */</style><div class="card">...</div>`
+  const host = document.getElementById('__cs-host');
+  const shadow = host.attachShadow({ mode: 'closed' });
+  shadow.innerHTML = `<style>/* panel styles */</style><div class="card">...</div>`;
 </script>
 ```
 
@@ -156,7 +148,6 @@ export const PANEL_INIT_SCRIPT = `
 ```
 
 Hackbrowser tarafında tek satır:
-
 ```ts
 await context.addInitScript(PANEL_INIT_SCRIPT)
 ```
@@ -173,7 +164,6 @@ async function csEmit(page: Page, event: CSEvent): Promise<void> {
 ```
 
 **Neden `exposeBinding` değil `evaluate`?**
-
 - `exposeBinding` panel → agent yönünde çağrı için gerekir (iki yönlü)
 - Tek yönlü agent → panel için `page.evaluate` yeterli ve daha ucuz
 - Hata durumunda agent crash olmasın diye `.catch(() => {})`
@@ -189,64 +179,39 @@ Panel'in kabul edeceği event tipleri (TypeScript union). UI agent bu tipleri ku
 ```ts
 type CSEvent =
   // İlk mount'ta gelir — panel initial state'ini set eder
-  | { type: "init"; target: string; credentials: string[]; maxPages: number }
+  | { type: "init", target: string, credentials: string[], maxPages: number }
 
   // Sayfa değişikliği
-  | { type: "page-change"; url: string; pageNum: number; credential: string }
+  | { type: "page-change", url: string, pageNum: number, credential: string }
 
   // LLM plan alındı (mini card'da değişmez, expanded panel plan bölümünü günceller)
-  | {
-      type: "plan-received"
-      tasks: number
-      pageState: "populated" | "empty" | "unknown"
-      summary: Array<{ kind: "form" | "click"; label: string }>
-    }
+  | { type: "plan-received", tasks: number, pageState: "populated"|"empty"|"unknown",
+      summary: Array<{ kind: "form"|"click", label: string }> }
 
   // Agent bir action başlatmak üzere (mini'de current action satırını güncelle)
-  | {
-      type: "action-start"
-      kind: "click" | "fill" | "select" | "submit"
-      targetLabel: string
-      value?: string
-      credential: string
-    }
+  | { type: "action-start", kind: "click"|"fill"|"select"|"submit",
+      targetLabel: string, value?: string, credential: string }
 
   // Action bitti (başarı/başarısızlık — glow efektini aç/kapat)
-  | { type: "action-end"; ok: boolean }
+  | { type: "action-end", ok: boolean }
 
   // HTTP request yakalandı
-  | {
-      type: "capture"
-      method: string
-      path: string
-      status: number
-      trigger?: string
-      credential: string
-      isMutation: boolean
-    }
+  | { type: "capture", method: string, path: string, status: number,
+      trigger?: string, credential: string, isMutation: boolean }
 
   // Intelligence Layer event'i (Aşama 13)
-  | {
-      type: "intelligence"
-      kind: "mark-empty" | "drain" | "stale-prune" | "revisit"
-      url: string
-      credential: string
-      note?: string
-    }
+  | { type: "intelligence",
+      kind: "mark-empty"|"drain"|"stale-prune"|"revisit",
+      url: string, credential: string, note?: string }
 
   // Multi-cred credential değişimi (admin → manager → user)
-  | { type: "credential-switch"; from: string | null; to: string }
+  | { type: "credential-switch", from: string|null, to: string }
 
   // Crawl bittiğinde
-  | {
-      type: "crawl-done"
-      summary: {
-        pagesExplored: number
-        capturedEndpoints: number
-        mutations: number
-        credentials: string[]
-      }
-    }
+  | { type: "crawl-done", summary: {
+      pagesExplored: number, capturedEndpoints: number,
+      mutations: number, credentials: string[]
+    }}
 ```
 
 ### Example payloads
@@ -288,7 +253,6 @@ Panel'in hedef sayfayı bloklamaması kritik.
 ## 6. Scanner filter — kritik
 
 Hackbrowser `scanner.ts` DOM'u tarayıp element listesi üretir. Panel host div scanner'a girerse:
-
 - LLM panel elementlerini görür (tokens israf)
 - LLM panel butonlarını plan etmeye kalkabilir (plan gürültüsü)
 - Dedup key'ler karışır
@@ -298,7 +262,7 @@ Hackbrowser `scanner.ts` DOM'u tarayıp element listesi üretir. Panel host div 
 ```ts
 // scanner.ts — içeride page.evaluate'da
 for (const el of document.querySelectorAll(INTERACTIVE_SELECTORS)) {
-  if (el.closest("[data-cyberstrike-ui]")) continue // ← EKLENECEK
+  if (el.closest("[data-cyberstrike-ui]")) continue  // ← EKLENECEK
   // ... mevcut mantık
 }
 ```
@@ -331,15 +295,15 @@ Accent mag:   #a855f7 (intelligence events)
 
 ### Animasyon palet
 
-| Event             | Efekt                                                     | Süre   |
-| ----------------- | --------------------------------------------------------- | ------ |
-| Capture           | Yeni row için fade-in + left-border cyan flash            | 300ms  |
-| Mutation          | Kart sağ kenarında kırmızı/yeşil glow (risk rengine göre) | 300ms  |
-| Action-start      | "▶" ikonu cyan flash + current action satır highlight    | 200ms  |
-| Intelligence      | Kart sol kenarında magenta ripple                         | 400ms  |
-| Credential-switch | Üst bar renk fade geçişi (admin→manager→user)             | 250ms  |
-| Crawl-done        | Karta yeşil checkmark overlay + summary açılır            | 500ms  |
-| Idle pulse        | Header'daki 🛡 ikonu 2s'de bir hafif opacity pulse        | 2000ms |
+| Event | Efekt | Süre |
+|---|---|---|
+| Capture | Yeni row için fade-in + left-border cyan flash | 300ms |
+| Mutation | Kart sağ kenarında kırmızı/yeşil glow (risk rengine göre) | 300ms |
+| Action-start | "▶" ikonu cyan flash + current action satır highlight | 200ms |
+| Intelligence | Kart sol kenarında magenta ripple | 400ms |
+| Credential-switch | Üst bar renk fade geçişi (admin→manager→user) | 250ms |
+| Crawl-done | Karta yeşil checkmark overlay + summary açılır | 500ms |
+| Idle pulse | Header'daki 🛡 ikonu 2s'de bir hafif opacity pulse | 2000ms |
 
 ### Credential renkleri
 
@@ -408,7 +372,6 @@ UI agent'tan beklenen:
 3. **İsteğe bağlı opt-out flag**: `--no-panel` CLI flag ile panel injection atlanabilir (gizli test'ler için)
 
 ### Teslim sonrası hackbrowser ekibi yapar:
-
 - `agent.ts` event emission noktalarını ekler
 - `scanner.ts` / `capture.ts` filter'larını ekler
 - End-to-end canlı test
@@ -440,7 +403,6 @@ UI agent'tan beklenen:
 ## 12. Soru / iteration
 
 UI agent prototip aşamasında şu sorulara cevap verirse faydalı:
-
 - Panel başlangıçta mini mi expanded mi? (öneri: mini, ilk event'te mini)
 - Mini card genişliği sabit mi, event uzunluğuna göre esner mi? (öneri: sabit 320px, truncate long paths)
 - Credential yoksa (single-cred) header'da `single` mı `__single__` mı? (öneri: credential label göstermeme — sadece "CS · page 5/8")

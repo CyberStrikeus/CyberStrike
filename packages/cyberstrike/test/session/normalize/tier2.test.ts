@@ -34,19 +34,11 @@ describe("tier2.scoreTemplate — pure scoring", () => {
   })
 
   test("rejects on segment count mismatch", () => {
-    expect(
-      scoreTemplate(
-        ["", "users", "{id}"],
-        ["", "users", "42", "posts"],
-        [staticC(""), staticC("users"), dyn(), staticC("posts")],
-      ),
-    ).toBeNull()
+    expect(scoreTemplate(["", "users", "{id}"], ["", "users", "42", "posts"], [staticC(""), staticC("users"), dyn(), staticC("posts")])).toBeNull()
   })
 
   test("rejects literal mismatch (template literal != path literal)", () => {
-    expect(
-      scoreTemplate(["", "users", "{id}"], ["", "orders", "42"], [staticC(""), staticC("orders"), dyn()]),
-    ).toBeNull()
+    expect(scoreTemplate(["", "users", "{id}"], ["", "orders", "42"], [staticC(""), staticC("orders"), dyn()])).toBeNull()
   })
 
   test("static segment must NOT fill a placeholder slot", () => {
@@ -58,11 +50,12 @@ describe("tier2.scoreTemplate — pure scoring", () => {
 
   test("ambiguous segment may fill placeholder slot", () => {
     expect(
-      scoreTemplate(
-        ["", "blog", "{slug}", "comments"],
-        ["", "blog", "my-post", "comments"],
-        [staticC(""), staticC("blog"), ambig("my-post"), staticC("comments")],
-      ),
+      scoreTemplate(["", "blog", "{slug}", "comments"], ["", "blog", "my-post", "comments"], [
+        staticC(""),
+        staticC("blog"),
+        ambig("my-post"),
+        staticC("comments"),
+      ]),
     ).toBe(2 + 2 + 1 + 2)
   })
 })
@@ -180,40 +173,25 @@ describe("tier2.runTier2 — end-to-end against in-memory store", () => {
   test("literal beats placeholder when both exist (/users/me vs /users/{id})", () => {
     const store = new InMemoryTemplateStore()
     store.upsert({
-      sessionID: SESSION,
-      origin: ORIGIN,
-      method: METHOD,
-      template: "/users/{id}",
-      segmentCount: 3,
-      source: "tier1",
-      confidence: 1.0,
+      sessionID: SESSION, origin: ORIGIN, method: METHOD,
+      template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1.0,
     })
     store.upsert({
-      sessionID: SESSION,
-      origin: ORIGIN,
-      method: METHOD,
-      template: "/users/me",
-      segmentCount: 3,
-      source: "tier1",
-      confidence: 1.0,
+      sessionID: SESSION, origin: ORIGIN, method: METHOD,
+      template: "/users/me", segmentCount: 3, source: "tier1", confidence: 1.0,
     })
     const p = parsed("/users/me")
     const t1 = runTier1(p.pathSegments)
     const r = runTier2(store, SESSION, p, t1)
     expect(r.matched).toBe(true)
-    expect(r.normalizedPath).toBe("/users/me") // literal won (score 6 > placeholder 5)
+    expect(r.normalizedPath).toBe("/users/me")  // literal won (score 6 > placeholder 5)
   })
 
   test("does not match across sessions", () => {
     const store = new InMemoryTemplateStore()
     store.upsert({
-      sessionID: "ses_other",
-      origin: ORIGIN,
-      method: METHOD,
-      template: "/users/{id}",
-      segmentCount: 3,
-      source: "tier1",
-      confidence: 1.0,
+      sessionID: "ses_other", origin: ORIGIN, method: METHOD,
+      template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1.0,
     })
     const p = parsed("/users/42")
     const t1 = runTier1(p.pathSegments)

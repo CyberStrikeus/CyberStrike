@@ -55,7 +55,11 @@ export interface Tier3Client {
 
 // ---------- Pipeline glue ----------
 
-export async function runTier3(parsed: ParsedRequest, tier1: Tier1Result, client: Tier3Client): Promise<Tier3Result> {
+export async function runTier3(
+  parsed: ParsedRequest,
+  tier1: Tier1Result,
+  client: Tier3Client,
+): Promise<Tier3Result> {
   const start = performance.now()
   const ambiguousIndices = ambiguousSegmentIndices(tier1)
 
@@ -75,7 +79,9 @@ export async function runTier3(parsed: ParsedRequest, tier1: Tier1Result, client
   try {
     const response = await client.classify({ parsed, tier1, ambiguousIndices })
     return {
-      decisions: response.decisions.filter((d) => d.segment_index >= 0 && d.segment_index < parsed.pathSegments.length),
+      decisions: response.decisions.filter(
+        (d) => d.segment_index >= 0 && d.segment_index < parsed.pathSegments.length,
+      ),
       source: "llm-success",
       model: response.model,
       promptTokens: response.promptTokens,
@@ -105,8 +111,8 @@ export function ambiguousSegmentIndices(tier1: Tier1Result): number[] {
 // ---------- Production adapter — uses AI SDK's generateObject ----------
 
 export interface ProviderClientOptions {
-  providerID: string // e.g. "openai", "anthropic"
-  modelID: string // fallback when small model unavailable
+  providerID: string                      // e.g. "openai", "anthropic"
+  modelID: string                         // fallback when small model unavailable
 }
 
 /**
@@ -152,12 +158,18 @@ export async function createProviderClient(opts: ProviderClientOptions): Promise
 
 // ---------- Prompt builder (used by both adapters) ----------
 
-export function buildUserMessage(parsed: ParsedRequest, tier1: Tier1Result, ambiguousIndices: number[]): string {
+export function buildUserMessage(
+  parsed: ParsedRequest,
+  tier1: Tier1Result,
+  ambiguousIndices: number[],
+): string {
   const resolvedLines = tier1.classifications
     .map((cls, i) => describeResolved(cls, parsed.pathSegments[i] ?? "", i))
     .filter((line): line is string => line !== null)
 
-  const ambiguousLines = ambiguousIndices.map((i) => `  [${i}] "${parsed.pathSegments[i] ?? ""}"`)
+  const ambiguousLines = ambiguousIndices.map(
+    (i) => `  [${i}] "${parsed.pathSegments[i] ?? ""}"`,
+  )
 
   return [
     `Path: ${parsed.canonicalPath}`,
@@ -170,7 +182,11 @@ export function buildUserMessage(parsed: ParsedRequest, tier1: Tier1Result, ambi
   ].join("\n")
 }
 
-function describeResolved(cls: SegmentClassification, segment: string, index: number): string | null {
+function describeResolved(
+  cls: SegmentClassification,
+  segment: string,
+  index: number,
+): string | null {
   if (index === 0) return `  [0] ""  root`
   if (cls.kind === "ambiguous") return null
   if (cls.kind === "static") return `  [${index}] "${segment}"  static (${cls.reason})`

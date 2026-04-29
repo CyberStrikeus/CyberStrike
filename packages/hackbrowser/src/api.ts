@@ -65,7 +65,7 @@ export interface CrawlOptions {
   headless?: boolean
 
   // Auth
-  sessionFile?: string // resolved against process.cwd()
+  sessionFile?: string                 // resolved against process.cwd()
   credentials?: { username: string; password: string; usernameSelector?: string; passwordSelector?: string }
   authenticated?: boolean
   multiCredentials?: CredentialConfig[]

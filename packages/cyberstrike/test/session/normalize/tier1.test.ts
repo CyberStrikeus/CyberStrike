@@ -16,7 +16,7 @@ function kindAt(segs: string[], i: number): string {
 describe("tier1 — dynamic patterns (deterministic)", () => {
   test("pure numeric → {id}", () => {
     expect(kindAt(["", "users", "42"], 2)).toBe("{id}")
-    expect(kindAt(["", "orders", "202"], 2)).toBe("{id}") // original /orders/202 bug
+    expect(kindAt(["", "orders", "202"], 2)).toBe("{id}")  // original /orders/202 bug
     expect(kindAt(["", "x", "0"], 2)).toBe("{id}")
   })
 
@@ -110,6 +110,6 @@ describe("tier1 — full result behaviour", () => {
   test("durationMs is reported and small", () => {
     const r = runTier1(["", "api", "users", "1"])
     expect(r.durationMs).toBeGreaterThanOrEqual(0)
-    expect(r.durationMs).toBeLessThan(50) // even on slowest CI, sub-50ms
+    expect(r.durationMs).toBeLessThan(50)  // even on slowest CI, sub-50ms
   })
 })
