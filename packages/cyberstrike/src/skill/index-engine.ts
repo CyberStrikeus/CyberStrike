@@ -23,6 +23,7 @@ export namespace SkillIndex {
   let techIndex = new Map<string, Set<string>>()
   let cweIndex = new Map<string, Set<string>>()
   let categoryIndex = new Map<string, Set<string>>()
+  let initialized = false
 
   function toEntry(skill: Skill.Info): Entry {
     return {
@@ -62,7 +63,13 @@ export namespace SkillIndex {
     }
   }
 
+  export async function ensureBuilt() {
+    if (initialized) return
+    await rebuild()
+  }
+
   export async function rebuild() {
+    initialized = false
     entries = new Map()
     tagIndex = new Map()
     techIndex = new Map()
@@ -76,6 +83,7 @@ export namespace SkillIndex {
       indexEntry(entry)
     }
     log.info("skill index built", { count: entries.size })
+    initialized = true
   }
 
   export function get(name: string): Entry | undefined {

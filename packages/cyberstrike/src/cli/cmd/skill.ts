@@ -95,7 +95,7 @@ const SkillSearchCommand = cmd({
       directory: process.cwd(),
       async fn() {
         UI.empty()
-        await SkillIndex.rebuild()
+        await SkillIndex.ensureBuilt()
 
         let results: SkillIndex.Entry[]
         if (args.cwe) results = SkillIndex.byCWE(args.cwe)

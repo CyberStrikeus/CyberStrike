@@ -235,11 +235,12 @@ export namespace PermissionNext {
 
   export function evaluate(permission: string, pattern: string, ...rulesets: Ruleset[]): Rule {
     const merged = merge(...rulesets).filter((rule) => rule && rule.permission && rule.pattern && rule.action)
-    log.debug("evaluate", { permission, pattern, rules: merged.length })
     const match = merged.findLast(
       (rule) => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern),
     )
-    return match ?? { action: "ask", permission, pattern: "*" }
+    const result = match ?? { action: "ask", permission, pattern: "*" }
+    if (result.action !== "allow") log.debug("evaluate", { permission, pattern, action: result.action })
+    return result
   }
 
   const EDIT_TOOLS = ["edit", "write", "patch", "multiedit"]
