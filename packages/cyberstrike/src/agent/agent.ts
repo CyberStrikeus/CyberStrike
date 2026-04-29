@@ -92,7 +92,8 @@ export namespace Agent {
   const state = Instance.state(async () => {
     const cfg = await Config.get()
 
-    const skillDirs = await Skill.dirs()
+    // Use lightweight dirsOnly() to avoid triggering full skill indexing (4.3s → ~500ms)
+    const skillDirs = await Skill.dirsOnly()
     const defaults = PermissionNext.fromConfig({
       "*": "allow",
       doom_loop: "ask",

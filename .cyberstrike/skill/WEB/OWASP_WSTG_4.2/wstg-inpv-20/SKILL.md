@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 035dcbdc20cc032d82598f4c154a1f8f52463b504580f77bcacde19941fac001
-signature: mtJdckUSIhfJSgK2rcUnb9t9kS8z9bNCu7o/bu5YzfxAeUB4WkApYFwMwXQPgCsyaq9puIfa2Z7oQFx1981zDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-20
@@ -476,9 +473,6 @@ end
 | ----------- | ------------------------------------------------------------------------------ |
 | **CWE-915** | Improperly Controlled Modification of Dynamically-Determined Object Attributes |
 
-sha256: a35aeed607fba2149ff027b0fe5ea27e54e993193864f3609128c221e296d425
-signature: kjWgKZBDbslqueG0GjZ2fJbX6f6Pc1cW807vZqS3WdMLP6IVmN8jEgvrho6n/aOSLjD5bIARgyj4Y/gyYpIABA==
-signed_by: cyberstrike-official
 
 ---
 

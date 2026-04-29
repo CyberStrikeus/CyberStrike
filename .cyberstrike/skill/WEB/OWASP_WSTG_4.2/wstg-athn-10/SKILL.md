@@ -11,9 +11,6 @@ cwe_ids: [CWE-287]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 8a17d906573a312c4390b628cb28bcc46e971db22525ecb9f2cd4aae0509ef36
-signature: OD+1cjGkVJepAl6CrqaESxK2lw3Hj8gpUihNaI6PMKUPanZZSSTq3oPjDv/1iClwLSwKO7aLuZl//td6QnGnBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-10
@@ -606,9 +603,6 @@ routes:
 - [OWASP WSTG - Testing for Weaker Authentication in Alternative Channel](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/10-Testing_for_Weaker_Authentication_in_Alternative_Channel)
 - [OWASP API Security Top 10](https://owasp.org/API-Security/)
 
-sha256: 8e8e1b1af0186d1f7e969788fe6cc86f318475ada14811b9fd45d75c33874462
-signature: NAYu+b3bzUO9mD11KB9SKMMMyuV2RuqHGV3GpGBEd4zjeK6bl73YEQKw7A7bGBAl4bzIajnNerp3X5sPXI4uCA==
-signed_by: cyberstrike-official
 
 ---
 

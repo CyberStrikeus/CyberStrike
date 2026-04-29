@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3d6247f5988333e3ae1cad5dcf2f42dd31771bc239281e6c6eb65b357a221646
-signature: L+NHGldNVC+z5ZbWHOdYPyRgUzicj7mHjbsb9/lZGwrJo3EVkRCqImalVPyLLVwVn5BxXi1s3POSc+niXoH/Bg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-18
@@ -368,9 +365,6 @@ cfg.setNewBuiltinClassResolver(TemplateClassResolver.ALLOWS_NOTHING_RESOLVER);
 | ------------ | --------------------------------------------------------------------- |
 | **CWE-1336** | Improper Neutralization of Special Elements Used in a Template Engine |
 
-sha256: f1f3f78b933a47b8ac053a60d6f45090b30dcebf8135a61d78dffaac25cfe666
-signature: yUk3vZPU8dREb+Xbj5cn/ZpscpjNAfGs3x50bynHZWG03NxFyCilZIu/k/m0NoeWLHGFWNYT+6ITWBYS6D/tCA==
-signed_by: cyberstrike-official
 
 ---
 

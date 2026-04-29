@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: c4513b72dbda6b5ee9eb5920a1dc39f802e93bcc347d020b6e61e1a53ecf09ee
-signature: feAhP/7CLZ3MhLg9flKf2DqtxiGRY/l0DNIzIjczw+/peW6lYyVlkAjqw/DWjz7nyHotApDlEm9DP+GEcY7CBQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-08
@@ -195,9 +192,6 @@ Access-Control-Allow-Headers: Content-Type
 - [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
 - For modern cross-origin testing, see: **WSTG-CLNT-07: Test Cross Origin Resource Sharing (CORS)**
 
-sha256: d2be051666b7056cc4541beccb657269a17c63e349e588df31c733c96bde37f2
-signature: RbVROwnrt00DslFACj/z4ik8PeO3dgxw33Pl/AanmysAJJUCf3A2RL2y1AT+nhhrlCdB2bJKWARaL7LJlwKkDw==
-signed_by: cyberstrike-official
 
 ---
 

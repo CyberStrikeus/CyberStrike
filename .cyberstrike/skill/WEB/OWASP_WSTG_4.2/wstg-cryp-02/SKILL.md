@@ -11,9 +11,6 @@ cwe_ids: [CWE-326]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 9b1d9b319c4ec940aebbda0042ce12bf5666c6c7f576576f1fc266b0d7b7621e
-signature: FlzEkceXbrlV2llxB1Mg4gS+mTsKo+FFvPEVszDrwLXqk3THXQqKGenxfdL/aAoR9PKA7xSwbvEkta+b8BlOCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-cryp-02
@@ -272,9 +269,6 @@ plaintext = aesgcm.decrypt(nonce, ciphertext, None)
 | **CWE-209** | Information Exposure Through Error Message                       |
 | **CWE-649** | Reliance on Obfuscation or Encryption without Integrity Checking |
 
-sha256: 07f1ff5d28213cf6613eb95828823eed09f8f268934128ad80dc563e3033ab0a
-signature: +yrcuvU0/JQCKKlUeYUfuDsZeDvmwALNiefK8wwEEMUGca3ck/rxaXOzDxnaoKu98MJvCIil9MxE7cFO+/v5Ag==
-signed_by: cyberstrike-official
 
 ---
 

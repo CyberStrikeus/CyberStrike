@@ -11,9 +11,6 @@ cwe_ids: [CWE-93]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 36079779eafc3235cc7bc181508c4df693a1502fa7eda8a6878c75d76d09436a
-signature: 2+3LJ6GIeIoUS1Ede4qtrId4XONJK0xzYMDnMnCDyqfB0NUXJXF3iBhafxnXuwSzCCz3SgtMfhKvzvkzGICAAA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-01
@@ -432,9 +429,6 @@ element.innerHTML = DOMPurify.sanitize(userInput)
 - [PortSwigger XSS](https://portswigger.net/web-security/cross-site-scripting)
 - [XSS Filter Evasion Cheat Sheet](https://owasp.org/www-community/xss-filter-evasion-cheatsheet)
 
-sha256: ab9ddf192d1e547ba16373fc94b628e340d9e43c38d56bee3e61082e5ffb3ec5
-signature: vGtzXiETqn+ipt1c2c5j/P++3Gj1HRMD8IrgB8KoLb4rdvMTA7Evzt3qnHsjTnUk/zYa60lmp7a0KQlrfu5zDQ==
-signed_by: cyberstrike-official
 
 ---
 

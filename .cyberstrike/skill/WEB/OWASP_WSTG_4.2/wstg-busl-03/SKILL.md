@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: cd7395a094b388c0e52be12a6959480d76bbd58e414612374f47a5e55ad36d7f
-signature: 8XU1noHfH3PCElqMzoFEFuoz+cwsxqx4jAwVJgW9j+3stX8rE0HalawLpbmYS+gCK9oaO4mLb+NTZHgDh6JRBQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-03
@@ -578,9 +575,6 @@ def decrypt_and_verify(encrypted_data):
 - [OWASP Cryptographic Failures](https://owasp.org/Top10/A02_2021-Cryptographic_Failures/)
 - [NIST Hash Functions](https://csrc.nist.gov/projects/hash-functions)
 
-sha256: 00ba48d13046e0caafed20898007619d3643e92cf4131c3496ac3ec5b4d8fcd0
-signature: Xwuz52rkxh3WWKKxJ/r7enSE2aHp+TyAc4xWuWXXdS2pkyb06rLLZMoEKY6e2fUYDWPwCfkdTmCNOtMbgmkgAA==
-signed_by: cyberstrike-official
 
 ---
 

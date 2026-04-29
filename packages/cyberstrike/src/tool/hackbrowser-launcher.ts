@@ -1,44 +1,74 @@
 // Hackbrowser launcher — single binding point between cyberstrike's tool
-// system and the hackbrowser library API. Tool, Slash, and CLI subcommand
-// (when added) all funnel through here.
+// system and the hackbrowser worker subprocess. Tool, Slash, and CLI
+// subcommand all funnel through here.
 //
 // Responsibilities (SRP — three internal stages):
-//   1. prepareCrawl()    sync prep — Provider, Server URL, log sink bridge,
-//                         build CrawlOptions; throws on validation/preflight
-//                         fail fast (Karar 5, INTEGRATION.md §13.1)
-//   2. backgroundRun()   async fire-and-forget runner — owns crawl lifecycle,
-//                         activeRuns slot release, error logging
-//   3. launchHackbrowser() orchestration — re-entrance guard, prep, kick off,
-//                         immediate return so the tool framework unblocks
-//                         the chat session prompt loop (Faz B.0 / §13.6)
+//   1. prepareCrawl()    sync prep — Provider model descriptor, Server URL,
+//                         credential validation, WorkerOptions; throws on
+//                         validation fail or missing worker/runtime (Karar 5,
+//                         INTEGRATION.md §13.1)
+//   2. backgroundRun()   async fire-and-forget runner — owns worker subprocess
+//                         lifecycle, IPC reader loop, activeRuns slot release,
+//                         error logging
+//   3. launchHackbrowser() orchestration — re-entrance guard, prep, spawn
+//                         worker, kick off background reader, immediate return
+//                         so the tool framework unblocks the chat session
+//                         prompt loop (Faz B.0 / §13.6)
 //
-// Karar 2 (DI) korunur: hackbrowser stays decoupled, cyberstrike injects deps
-// via opts.model, opts.logSink. eventSink (Faz B.1+) joins this list later.
+// Subprocess approach (subprocess.md): the main binary has ZERO playwright
+// references. Hackbrowser runs in a separate worker process
+// (hackbrowser-worker.js) so playwright is only loaded in that process —
+// never at cyberstrike startup. This fixes the Bun compiled binary startup
+// crash for both npm install and install.sh users.
+//
+// Karar 2 (DI) preserved: model, logSink, eventSink injected by parent.
+// With subprocess these become IPC relay — parent receives log/event
+// messages from worker stdout and applies them locally.
 
-import { runCrawl, type CrawlOptions, type LogRecord, type CSEvent } from "@cyberstrike-io/hackbrowser/api"
+import path from "path"
+import { existsSync } from "fs"
 import { Provider } from "../provider/provider"
 import { Server } from "../server/server"
 import { Log } from "../util/log"
 import { Identifier } from "../id/id"
 import { Session } from "../session"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
+import { Global } from "../global"
+import type { WorkerOptions, WorkerMessage, ParentMessage, CredentialDispatch } from "../hackbrowser-subprocess/worker-ipc"
 
 const log = Log.create({ service: "hackbrowser-launcher" })
 
+// Bun.spawn returns stdin as `number | FileSink | undefined` depending on
+// how stdin is configured. When stdin: "pipe" is used it's always a FileSink,
+// but TypeScript doesn't narrow it at use sites. This helper safely writes
+// a JSON line to the worker's stdin.
+function workerWrite(proc: ReturnType<typeof Bun.spawn>, line: string): void {
+  const stdin = proc.stdin
+  if (!stdin || typeof stdin === "number") return
+  stdin.write(line)
+}
+
+// ============================================================
+// activeRuns — per-session worker subprocess handle
+// ============================================================
+//
 // Karar 5: re-entrance is an error, not a queue. One hackbrowser run per
 // session; concurrent invocations get a clear error rather than silent
 // serialization (INTEGRATION.md §2 Karar 5).
 //
-// Faz B.5: activeRuns now holds a per-session AbortController so the
-// `/hackbrowser-stop` slash command can cancel an in-flight crawl. The
-// controller's signal is wired into runCrawl(opts.signal), which the
-// agent's BFS loop checks at each iteration boundary.
-const activeRuns = new Map<string, AbortController>()
+// WorkerHandle replaces the previous AbortController: the subprocess is the
+// cancellation unit. stopHackbrowser() sends { type: "abort" } via stdin.
+
+interface WorkerHandle {
+  proc: ReturnType<typeof Bun.spawn>
+  modelInfo: { providerID: string; modelID: string }
+}
+
+const activeRuns = new Map<string, WorkerHandle>()
 
 export interface LauncherOptions {
   // Crawl URL. Named `target` here (and in all cyberstrike-facing surfaces:
-  // tool, slash form, CLI subcommand) for clarity; mapped to the library's
-  // `CrawlOptions.url` inside prepareCrawl.
+  // tool, slash form, CLI subcommand) for clarity; mapped to WorkerOptions.url.
   target: string
   sessionID: string
   scope?: string[]
@@ -56,8 +86,7 @@ export interface LauncherOptions {
   credentials?: string[]
   steps?: number
   headless?: boolean
-  // Soft signal — listener registered but runtime cancellation
-  // (browser.close on abort) still not wired through agent.ts.
+  // Soft signal — forwarded to worker as { type: "abort" } IPC message.
   // INTEGRATION.md §10.6.
   signal?: AbortSignal
 }
@@ -76,59 +105,55 @@ export interface KickOffResult {
 /** Output of prepareCrawl. modelInfo is preserved separately so the
  * background runner can attribute synthetic session messages
  * (failure path) to the same provider/model that the crawl ran with. */
-interface PreparedCrawl {
-  crawlOpts: CrawlOptions
+interface PreparedWorker {
+  workerOptions: WorkerOptions
   modelInfo: { providerID: string; modelID: string }
+  workerPath: string
+  runtime: string
 }
 
 /**
- * Resolve external dependencies and build hackbrowser CrawlOptions.
- * Sync prep — anything that can fail synchronously (Provider error,
- * server URL discovery) lives here so launchHackbrowser can surface
- * the error to the tool caller before the slot is claimed.
- *
- * api.ts:validate() and api.ts:preflightCheck() (chromium check) run
- * INSIDE runCrawl, not here. Their errors land in backgroundRun's
- * catch and become a "failed" status + synthetic failure message,
- * which is fine — those failures need a session-level audit trail
- * anyway (e.g. "you didn't install chromium").
+ * Resolve external dependencies and build WorkerOptions.
+ * Sync prep — anything that can fail before claiming the activeRuns slot:
+ * worker binary existence, runtime discovery, Provider model resolution,
+ * credential/headless validation. Throws on any failure so launchHackbrowser
+ * can surface the error to the tool caller without poisoning the slot.
  */
-async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
-  // 1. Resolve LLM via cyberstrike Provider — the inverted dependency that
-  //    hackbrowser used to do directly (Karar 2 / INTEGRATION.md §5).
+async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
+  // 1. Locate worker JS — placed by postinstall at Global.Path.bin.
+  const workerPath = path.join(Global.Path.bin, "hackbrowser-worker.js")
+  if (!existsSync(workerPath)) {
+    throw new Error(
+      `hackbrowser worker not found at ${workerPath}. ` +
+        `Re-install cyberstrike (npm install -g @cyberstrike-io/cyberstrike) to set it up.`,
+    )
+  }
+
+  // 2. Find a JS runtime to run the worker. Bun preferred; node as fallback.
+  const runtime = Bun.which("bun") ?? Bun.which("node")
+  if (!runtime) {
+    throw new Error(
+      "hackbrowser requires bun or node to run the worker process. " +
+        "Install bun: https://bun.sh",
+    )
+  }
+
+  // 3. Resolve LLM via cyberstrike Provider — extract serializable descriptor
+  //    instead of a LanguageModel instance (subprocess.md: model resolution).
   const modelInfo = await Provider.defaultModel()
   const modelDetails = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
-  const model = await Provider.getLanguage(modelDetails)
+  const modelDescriptor = await Provider.getModelDescriptor(modelDetails)
   log.info("resolved model for hackbrowser run", {
     provider: modelInfo.providerID,
     model: modelInfo.modelID,
   })
 
-  // 2. In-process loopback URL for the HTTP ingest path. Karar 6 — kept
+  // 4. In-process loopback URL for the HTTP ingest path. Karar 6 — kept
   //    HTTP for v1 to leave the existing ingest pipeline untouched.
   const cyberstrikeUrl = Server.url().toString().replace(/\/$/, "")
 
-  // 3. Forward hackbrowser log records into cyberstrike's logger.
-  //    Service name is preserved per record (hackbrowser:agent,
-  //    hackbrowser:scanner, etc.) so log flow is uniform.
-  const logSink = (rec: LogRecord) => {
-    const csLog = Log.create({ service: rec.service })
-    const level = rec.level.toLowerCase() as "debug" | "info" | "warn" | "error"
-    csLog[level](rec.message, rec.extra)
-  }
-
-  // 4. Forward CSEvents into HackbrowserStatus so the TUI sidebar updates
-  //    live as the crawl progresses. Sink throws are swallowed by csEmit
-  //    so a Status bug can't crash the agent (INTEGRATION.md §13.5).
-  const eventSink = (event: CSEvent) => {
-    HackbrowserStatus.handle(opts.sessionID, event)
-  }
-
-  // Translate the cyberstrike-facing `credentials` array into the library's
-  // dual auth surface (CrawlOptions.authenticated + credentialID for the
-  // single-cred case, multiCredentials for the multi-cred case). Length
-  // semantics from LauncherOptions are honored here — anything ≥1 forces
-  // manual login, which requires headfull.
+  // 5. Credential dispatch — translate cyberstrike credential IDs into the
+  //    serializable CredentialDispatch union the worker sends to runCrawl.
   const ids = opts.credentials ?? []
   if (ids.length >= 1 && opts.headless !== false) {
     throw new Error(
@@ -136,36 +161,27 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedCrawl> {
         `Got ${ids.length} credential ID${ids.length === 1 ? "" : "s"} with headless=${opts.headless ?? "default(true)"}.`,
     )
   }
-  const credentialDispatch =
+  const credentialDispatch: CredentialDispatch =
     ids.length >= 2
-      ? { multiCredentials: ids.map((id) => ({ id })) }
+      ? { kind: "multi", multiCredentials: ids.map((id) => ({ id })) }
       : ids.length === 1
-        ? { authenticated: true, credentialID: ids[0] }
-        : {}
+        ? { kind: "single", credentialID: ids[0] }
+        : { kind: "none" }
 
-  const crawlOpts: CrawlOptions = {
+  const workerOptions: WorkerOptions = {
     url: opts.target,
     sessionID: opts.sessionID,
-    ...credentialDispatch,
     scope: opts.scope,
     exclude: opts.exclude,
     steps: opts.steps,
-    // Anonymous: respect the caller's headless choice (default true).
-    // With credentials, the validation above already rejected anything
-    // other than headless=false, so it's safe to pass through here.
     headless: opts.headless ?? true,
-    // Browser-side telemetry HUD: enabled whenever the browser is visible
-    // (headless=false). When the browser is hidden the panel can't be
-    // seen anyway — disable it. The TUI sidebar bridge via eventSink
-    // (above) is independent of this and works in both modes.
     panel: opts.headless === false,
     cyberstrikeUrl,
-    model,
-    logSink,
-    eventSink,
+    model: modelDescriptor,
+    credentialDispatch,
   }
 
-  return { crawlOpts, modelInfo }
+  return { workerOptions, modelInfo, workerPath, runtime }
 }
 
 /**
@@ -202,73 +218,146 @@ async function writeFailureMessage(
 }
 
 /**
- * Background fire-and-forget runner. Owns the full crawl lifecycle:
- * runs hackbrowser, transitions HackbrowserStatus, releases the
- * activeRuns slot, surfaces failures via a synthetic session message.
- *
- * Two error classes the catch handles:
- *   - Validation/preflight throws from api.ts (e.g. chromium not
- *     installed) — runCrawl re-throws these before any crawl runs.
- *   - Runtime exceptions while crawling — runCrawl normally catches
- *     these into CrawlResult.errors, so the catch block here is rare;
- *     it only hits truly fatal cases (Promise rejection escape).
- *
- * In practice runCrawl ALWAYS resolves (validation errors throw;
- * runtime errors are aggregated into result.errors). The check on
- * result.errors below covers the second class. The catch covers the
- * first.
+ * Background fire-and-forget runner. Owns the full worker lifecycle:
+ * reads IPC messages from worker stdout, relays log records and CSEvents,
+ * transitions HackbrowserStatus on completion/failure, releases the
+ * activeRuns slot, and surfaces failures via a synthetic session message.
  */
-async function backgroundRun(sessionID: string, prepared: PreparedCrawl, targetUrl: string): Promise<void> {
-  try {
-    const result = await runCrawl(prepared.crawlOpts)
+async function backgroundRun(
+  sessionID: string,
+  prepared: PreparedWorker,
+  targetUrl: string,
+  proc: WorkerHandle["proc"],
+): Promise<void> {
+  const { modelInfo } = prepared
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let receivedResult = false
 
-    if (result.errors.length > 0) {
-      // Validation/preflight failure — runCrawl bottled it into errors[]
-      // (the standalone-CLI contract from Faz A.3), but for the tool path
-      // we want the same surface as a thrown exception.
-      const message = result.errors.join("; ")
-      log.error("hackbrowser run finished with errors", { sessionID, message })
+  try {
+    const reader = (proc.stdout as ReadableStream<Uint8Array>).getReader()
+
+    outer: while (true) {
+      const { done, value } = await reader.read()
+      if (done) break outer
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split("\n")
+      buffer = lines.pop() ?? ""
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        let msg: WorkerMessage
+        try {
+          msg = JSON.parse(trimmed) as WorkerMessage
+        } catch {
+          continue
+        }
+
+        switch (msg.type) {
+          case "log": {
+            const csLog = Log.create({ service: msg.service })
+            csLog[msg.level](msg.message, msg.extra as Record<string, unknown> | undefined)
+            break
+          }
+          case "event": {
+            HackbrowserStatus.handle(sessionID, msg.event)
+            break
+          }
+          case "result": {
+            receivedResult = true
+            if (msg.errors.length > 0) {
+              const errMsg = msg.errors.join("; ")
+              log.error("hackbrowser run finished with errors", { sessionID, message: errMsg })
+              const prev = HackbrowserStatus.get(sessionID)
+              HackbrowserStatus.set(sessionID, {
+                sessionID,
+                phase: "failed",
+                targetUrl,
+                pagesExplored: msg.pagesExplored,
+                capturedEndpoints: msg.capturedEndpoints,
+                currentPage: prev?.currentPage,
+                errors: msg.errors,
+                startedAt: prev?.startedAt ?? Date.now(),
+                finishedAt: Date.now(),
+              })
+              await writeFailureMessage(sessionID, errMsg, modelInfo).catch((err) =>
+                log.error("failed to write hackbrowser-error message", { sessionID, err: String(err) }),
+              )
+            } else {
+              log.info("hackbrowser crawl complete", {
+                sessionID,
+                capturedEndpoints: msg.capturedEndpoints,
+                pagesExplored: msg.pagesExplored,
+              })
+              const prev = HackbrowserStatus.get(sessionID)
+              HackbrowserStatus.set(sessionID, {
+                sessionID,
+                phase: "completed",
+                targetUrl,
+                pagesExplored: msg.pagesExplored,
+                capturedEndpoints: msg.capturedEndpoints,
+                currentPage: prev?.currentPage,
+                errors: [],
+                startedAt: prev?.startedAt ?? Date.now(),
+                finishedAt: Date.now(),
+              })
+              // Karar 2 in §13.1: success stays sidebar-only. No synthetic
+              // message — LLM doesn't get nudged into polling loops.
+            }
+            break outer
+          }
+          case "error": {
+            receivedResult = true
+            log.error("hackbrowser worker reported error", { sessionID, message: msg.message })
+            const prev = HackbrowserStatus.get(sessionID)
+            HackbrowserStatus.set(sessionID, {
+              sessionID,
+              phase: "failed",
+              targetUrl,
+              pagesExplored: prev?.pagesExplored ?? 0,
+              capturedEndpoints: prev?.capturedEndpoints ?? 0,
+              currentPage: prev?.currentPage,
+              errors: [msg.message],
+              startedAt: prev?.startedAt ?? Date.now(),
+              finishedAt: Date.now(),
+            })
+            await writeFailureMessage(sessionID, msg.message, modelInfo).catch((err) =>
+              log.error("failed to write hackbrowser-error message", { sessionID, err: String(err) }),
+            )
+            break outer
+          }
+        }
+      }
+    }
+
+    // Worker exited without sending result/error — unexpected crash.
+    if (!receivedResult) {
+      const exitCode = await proc.exited.catch(() => -1)
+      const stderr = await Bun.readableStreamToText(proc.stderr as ReadableStream).catch(() => "")
+      const message =
+        `hackbrowser worker exited unexpectedly (code ${exitCode})` +
+        (stderr.trim() ? `: ${stderr.trim()}` : "")
+      log.error("hackbrowser worker crashed", { sessionID, exitCode, stderr })
       const prev = HackbrowserStatus.get(sessionID)
       HackbrowserStatus.set(sessionID, {
         sessionID,
         phase: "failed",
         targetUrl,
-        pagesExplored: result.pagesExplored,
-        capturedEndpoints: result.capturedEndpoints,
+        pagesExplored: prev?.pagesExplored ?? 0,
+        capturedEndpoints: prev?.capturedEndpoints ?? 0,
         currentPage: prev?.currentPage,
-        errors: result.errors,
+        errors: [message],
         startedAt: prev?.startedAt ?? Date.now(),
         finishedAt: Date.now(),
       })
-      await writeFailureMessage(sessionID, message, prepared.modelInfo).catch((err) =>
+      await writeFailureMessage(sessionID, message, modelInfo).catch((err) =>
         log.error("failed to write hackbrowser-error message", { sessionID, err: String(err) }),
       )
-      return
     }
-
-    log.info("hackbrowser crawl complete", {
-      sessionID,
-      capturedEndpoints: result.capturedEndpoints,
-      pagesExplored: result.pagesExplored,
-      totalSteps: result.totalSteps,
-    })
-    const prev = HackbrowserStatus.get(sessionID)
-    HackbrowserStatus.set(sessionID, {
-      sessionID,
-      phase: "completed",
-      targetUrl,
-      pagesExplored: result.pagesExplored,
-      capturedEndpoints: result.capturedEndpoints,
-      currentPage: prev?.currentPage,
-      errors: [],
-      startedAt: prev?.startedAt ?? Date.now(),
-      finishedAt: Date.now(),
-    })
-    // Karar 2 in §13.1: success stays sidebar-only. No synthetic message
-    // here — LLM doesn't get nudged into "let me check the result" loops.
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    log.error("background hackbrowser run threw", { sessionID, error: message })
+    log.error("hackbrowser IPC reader threw", { sessionID, error: message })
     const prev = HackbrowserStatus.get(sessionID)
     HackbrowserStatus.set(sessionID, {
       sessionID,
@@ -281,11 +370,12 @@ async function backgroundRun(sessionID: string, prepared: PreparedCrawl, targetU
       startedAt: prev?.startedAt ?? Date.now(),
       finishedAt: Date.now(),
     })
-    await writeFailureMessage(sessionID, message, prepared.modelInfo).catch((err2) =>
+    await writeFailureMessage(sessionID, message, modelInfo).catch((err2) =>
       log.error("failed to write hackbrowser-error message", { sessionID, err: String(err2) }),
     )
   } finally {
     activeRuns.delete(sessionID)
+    proc.kill()
   }
 }
 
@@ -297,9 +387,10 @@ async function backgroundRun(sessionID: string, prepared: PreparedCrawl, targetU
  *
  * Throws on:
  *   - Re-entrance for an already-active session
+ *   - Worker JS not found (re-install required)
+ *   - Runtime not found (bun/node not on PATH)
  *   - Provider failure (no model configured)
- *   - api.ts validation (multi-cred + headless mismatch)
- *   - api.ts preflight (chromium binary missing)
+ *   - Credential/headless mismatch
  *
  * Throws happen during sync prep before the slot is claimed, so failures
  * here don't poison subsequent invocations.
@@ -309,25 +400,25 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
     throw new Error(`hackbrowser already running for session ${opts.sessionID}`)
   }
 
-  // Sync prep first — fail fast on Provider / server URL issues before
-  // claiming the slot. If prepareCrawl throws, activeRuns stays untouched
-  // and HackbrowserStatus is never set, so the sidebar shows nothing.
-  // Validation/preflight (chromium binary, multi-cred-headless mismatch)
-  // run inside runCrawl and surface as failed-status + synthetic message
-  // via backgroundRun's error path.
+  // Sync prep first — fail fast on any issue before claiming the slot.
   const prepared = await prepareCrawl(opts)
 
-  // Faz B.5: per-session AbortController. /hackbrowser-stop fires this
-  // controller; agent.ts BFS loop sees aborted=true and breaks out
-  // gracefully. ctx.abort (chat-Esc) is also bridged into this controller
-  // so both code paths converge on a single cancellation signal.
-  const controller = new AbortController()
-  prepared.crawlOpts.signal = controller.signal
-  activeRuns.set(opts.sessionID, controller)
+  // Spawn worker subprocess. stdin/stdout are pipes for JSON IPC.
+  // Inherits full parent env so AWS/GCP/other provider credentials
+  // (AWS_ACCESS_KEY_ID, GOOGLE_APPLICATION_CREDENTIALS, etc.) are
+  // available to the worker without explicit forwarding.
+  const proc = Bun.spawn([prepared.runtime, prepared.workerPath], {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env },
+  })
+
+  activeRuns.set(opts.sessionID, { proc, modelInfo: prepared.modelInfo })
 
   // Initial sidebar entry — phase="starting" so users see the run
-  // appear instantly. CSEvents from the crawler will transition this
-  // to "crawling" via HackbrowserStatus.handle as page-changes arrive.
+  // appear instantly. CSEvents from the worker relay to HackbrowserStatus.handle
+  // as page-changes arrive via the IPC reader loop.
   HackbrowserStatus.set(opts.sessionID, {
     sessionID: opts.sessionID,
     phase: "starting",
@@ -338,25 +429,24 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
     startedAt: Date.now(),
   })
 
-  // Bridge the chat track's ctx.abort (Esc) into the same controller so
-  // pressing Esc on the *currently running* chat turn also stops the
-  // crawl. Note this only fires while the chat track holds the prompt
-  // loop — once tool.execute returns, ctx.abort no longer triggers from
-  // user Esc on a new turn. The reliable cancellation path is the slash
-  // command `/hackbrowser-stop` → stopHackbrowser() which fires this
-  // controller directly (§13.7).
+  // Bridge the chat track's ctx.abort (Esc) into an IPC abort message so
+  // pressing Esc on the currently running chat turn also stops the crawl.
+  // The reliable cancellation path is /hackbrowser-stop → stopHackbrowser().
   if (opts.signal) {
     opts.signal.addEventListener("abort", () => {
-      log.info("ctx.abort received — forwarding to crawl controller", { sessionID: opts.sessionID })
-      controller.abort()
+      log.info("ctx.abort received — forwarding to worker", { sessionID: opts.sessionID })
+      workerWrite(proc, JSON.stringify({ type: "abort" } satisfies ParentMessage) + "\n")
     })
   }
 
-  // Fire and forget — runCrawl runs concurrently. The chat session prompt
+  // Send start message — worker begins crawl on receipt.
+  workerWrite(proc, JSON.stringify({ type: "start", options: prepared.workerOptions } satisfies ParentMessage) + "\n")
+
+  // Fire and forget — IPC reader runs concurrently. The chat session prompt
   // loop returns on tool completion, freeing the session for ingest queue
   // tasks to dispatch their own SessionPrompt.prompt() calls in parallel
   // (Faz B.0 / INTEGRATION.md §10.9).
-  void backgroundRun(opts.sessionID, prepared, opts.target)
+  void backgroundRun(opts.sessionID, prepared, opts.target, proc)
 
   return {
     sessionID: opts.sessionID,
@@ -369,18 +459,17 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
  * Cancel an in-flight hackbrowser run. Returns true if a run was active
  * (and therefore aborted), false if no run was found for this session.
  *
- * The agent's BFS loop checks signal.aborted at each iteration boundary,
- * so cancellation is graceful (not instant): the current page's LLM call
- * and pending tasks complete first, then the loop exits, browser closes
- * via the existing finally, and HackbrowserStatus transitions to
- * completed (with whatever was captured so far) — NOT failed, because
- * cancellation is a normal lifecycle exit, not an error.
+ * Sends { type: "abort" } to the worker's stdin. The worker's AbortController
+ * fires, the agent's BFS loop sees signal.aborted at the next iteration
+ * boundary, finishes the current page's pending tasks, closes the browser,
+ * and writes a final result message. HackbrowserStatus transitions to
+ * completed (not failed) — cancellation is a normal lifecycle exit.
  */
 export function stopHackbrowser(sessionID: string): boolean {
-  const controller = activeRuns.get(sessionID)
-  if (!controller) return false
-  log.info("stopHackbrowser: aborting run", { sessionID })
-  controller.abort()
+  const handle = activeRuns.get(sessionID)
+  if (!handle) return false
+  log.info("stopHackbrowser: sending abort to worker", { sessionID })
+  workerWrite(handle.proc, JSON.stringify({ type: "abort" } satisfies ParentMessage) + "\n")
   return true
 }
 

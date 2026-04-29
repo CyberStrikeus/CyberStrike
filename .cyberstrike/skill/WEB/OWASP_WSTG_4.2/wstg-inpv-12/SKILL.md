@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 7b1f975c00a35caf9b5dbe52320f4af12eebda5c5f4d348cef4b8e0e64795a78
-signature: Ctxgy43w7hIE4EBMyqpvyeQHAFUlT9NWPC0WIaiqWgUrVKFWAtLhxvkSJDnqWPa4pd5D/epPWqK14LrlQPRRCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-12
@@ -435,9 +432,6 @@ if (preg_match('/^[a-zA-Z0-9.-]+$/', $_GET['host'])) {
 | ---------- | ----------------------------------------------------------------- |
 | **CWE-78** | Improper Neutralization of Special Elements used in an OS Command |
 
-sha256: 9d6b07fcb8a62ce8d32b6b32dd8a9d75f468d755c730036c3b678a04922882fd
-signature: ZGOQ651itCfoimhfcKU9nrgfnFbh1DB3SgrgyAp7U0pPS5hsfoqGh15N4Pne2GvkNVrrhmNSbdq3PeGjI9SOBQ==
-signed_by: cyberstrike-official
 
 ---
 

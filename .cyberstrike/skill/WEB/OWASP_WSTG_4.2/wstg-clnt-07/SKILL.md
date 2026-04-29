@@ -11,9 +11,6 @@ cwe_ids: [CWE-942]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: f12f44d3182bc5891f6635603223ba0d9bc6ec819ce8b095d9d05504ce34adaa
-signature: I9h3pJcprLElZPPfEZKlz2QaIzKq413ZAnBA30tM7PJ2M1EyKvjFRvtlR+NanB/lkaR7ZgS1YJgImACTT3ymBg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-07
@@ -186,9 +183,6 @@ def add_cors_headers(response):
 | ----------- | ----------------------------------------------------- |
 | **CWE-942** | Permissive Cross-domain Policy with Untrusted Domains |
 
-sha256: 4a6dc4a0e00aec84842fde9a2f2ee43a15feed9fcbd2cc2a3eaec42e34808455
-signature: 90PcBZdleUw3i4EBHIpA2txEKaSZvjDjCNjwc1o16NlatK5yrBCidoHfkhPwN80s5D784nxFAfjoxVQ6tSS/Cw==
-signed_by: cyberstrike-official
 
 ---
 

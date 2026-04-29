@@ -11,9 +11,6 @@ cwe_ids: [CWE-16]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 4e8e8c220efd971106b3065448f9540ceeeb30a0cdae701c5b5ce0d12ef430b1
-signature: n5IEbY6jMCT9knDJv/TQiJ6BAEFEywxgqAs4xPChlWgKwJveEbKNQaVJj3HtfuAcmyo8E3DmDuWTRHBWTMIgAg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-02
@@ -447,9 +444,6 @@ CustomLog logs/access.log combined env=!dontlog
 - [OWASP WSTG - Test Application Platform Configuration](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/02-Test_Application_Platform_Configuration)
 - [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks)
 
-sha256: 50b6f93f7b609117a758afb882519c687bcfc3bd97e99918b5ed3cad8eb68092
-signature: qxpu6gFcRW9sUYlsrqSxjZEOagAN3q/uY13PHdg1zmdXMqTONyM5PEJ5xa2kTyRzEloXvmhIq+x1grsR7OnIDQ==
-signed_by: cyberstrike-official
 
 ---
 

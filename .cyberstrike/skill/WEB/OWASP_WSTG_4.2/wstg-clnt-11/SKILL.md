@@ -11,9 +11,6 @@ cwe_ids: [CWE-79]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 4a41b55e25ef6b0bf36964577979428a78187575c99ede1bd47d0bfc97bf9501
-signature: F+TD/C5jRWKipU1Pvl1aPVgQLflquUqbi6t+gT+w5iGrSaCTePTH7xX2W57xJxcv2C6BRWfMGTyX4qHECeYkBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-11
@@ -406,9 +403,6 @@ function processMessage(data) {
 - [MDN - Window.postMessage()](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage)
 - [HTML5 Security Cheatsheet](https://html5sec.org/)
 
-sha256: 085a4c43e5d8a6ca7b5f263b006091197d181f24268769d6ba30fe905d55fd36
-signature: aRGsUDTGZ0MXGUTzLp+du6ue7t4HrCDKGvh+cTIZe4Le0BJCuA3hTJrMZbsSOuoSCz8Bmu0IlcQqQgBMYLiYCQ==
-signed_by: cyberstrike-official
 
 ---
 

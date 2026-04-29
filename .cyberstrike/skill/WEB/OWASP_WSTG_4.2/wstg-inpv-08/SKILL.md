@@ -11,9 +11,6 @@ cwe_ids: [CWE-90]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: fe2cfdd8c9668874f9e64d7b6d88113159458fe089269309415323b776129b73
-signature: XSUn48hoR2kjsN1Euy6RTbRHHRa5I+oVxvF9aJcoHc+O09+BlKER4UxtCnTx+Ly7FMaxqkOYDdchwjo2Ko2MCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-08
@@ -335,9 +332,6 @@ ssi_types text/html;
 | ---------- | ----------------------------------------------------- |
 | **CWE-97** | Improper Neutralization of Server-Side Includes (SSI) |
 
-sha256: edcc23088c21c25a0d6f604a7e52db8e92c7d327edad7e7fc372a68f1f01ec23
-signature: c8X6N0GVd6zHaeR5gOjtN+d4jEjGQww18rlwb+/+QRjcqryj57egUJXDuutZxre0Ke2pes9nyAgGN9NiC4OOBg==
-signed_by: cyberstrike-official
 
 ---
 

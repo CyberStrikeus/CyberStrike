@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 7304ea3fdb5fa7b93c67bc8e61e859bee2d5e7a242d3b6fccb69b9d5b786dcfa
-signature: qnKzbtHM3ZI+1EkaPfJMs+miAP2T+BPYWd9jhlcuLoiYBd1i0zMP5MJqiqnqWJLDPlOeLqVIOcMYPYQH/oIQDQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-16
@@ -376,9 +373,6 @@ Timeout 60
 | ----------- | --------------------------------- |
 | **CWE-400** | Uncontrolled Resource Consumption |
 
-sha256: 64e6cd87a6f136b211d722395dc5e9b0b425937c5ad02f4d5916697047e41cae
-signature: oCnaKhl9nvDcf764gS5l3DjEuzOreetPQ/LWXYhmjC6FcifieajgpgUdens0WygbqxhzH+2twCSKW0C7nbKDBw==
-signed_by: cyberstrike-official
 
 ---
 

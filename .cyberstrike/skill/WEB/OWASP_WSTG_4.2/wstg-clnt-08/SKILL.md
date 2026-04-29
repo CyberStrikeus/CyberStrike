@@ -11,9 +11,6 @@ cwe_ids: [CWE-1021]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: efe02f927f16d4fe8a0e816f3015f605b9e1379c4d9a0924b66ea56e0ff7d477
-signature: bGWcflGWJSi9M7BCOJfF52fzf9kMSvbOR/GvBo+o0Px6swajC6Ec8SdaQ+PxFjpQGo9R7QLexfarLkOVXWxtBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-08
@@ -103,9 +100,6 @@ done
 | Wildcard crossdomain.xml | 5.3  | Medium   |
 | XSF vulnerability        | 6.1  | Medium   |
 
-sha256: 0549aa04ba90c7bbdb8dc0303bdef995da74f9a602312d31432327357bcd8365
-signature: 2zZ65IR6e7YW2ZA3R/CXddw544sRz5y3QJdHJ8W62nfOhr1VI8wSTDkiGIwhR0fmUKLJOZJdXEqqZ1X84rSTDg==
-signed_by: cyberstrike-official
 
 ---
 

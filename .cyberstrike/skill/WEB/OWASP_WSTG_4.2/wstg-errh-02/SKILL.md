@@ -11,9 +11,6 @@ cwe_ids: [CWE-209]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 706dc4390b51ba8a0aed58c1de89317c53b57c0a5ebf78425c6925d25ac4985f
-signature: KyVLiJ6yULMs/8vipYH1OssEcKoXaDWRghmA1clDNJi2n4QGtwR6gWrCSEPiUr/Wba9PVP44GkTCaWxf7f/xAA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-errh-02
@@ -273,9 +270,6 @@ error_log = /var/log/php/error.log
 | **CWE-209** | Generation of Error Message Containing Sensitive Information |
 | **CWE-215** | Insertion of Sensitive Information Into Debugging Code       |
 
-sha256: 55d836afd64348b1485f971534d755c36918b6a80d59b0e85bb99c6d933fd25c
-signature: 2mN9XQv3luf6Ei2PADXzubgVwtx8KGqudi0mQ9zODZaFJznQsj06lVz4Z7hWwCtUp3z0R/m72TZlsuGCDZCjAg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -52,6 +52,18 @@ if (existsSync(skillSrcPath)) {
   console.warn("Warning: Skills not found — npm package will not include built-in skills")
 }
 
+// Bundle hackbrowser worker JS (subprocess.md). Placed by postinstall into
+// Global.Path.bin (~/.local/share/cyberstrike/bin/) so the main binary can
+// spawn it at runtime without playwright in the main binary's module graph.
+const workerSrcPath = "./dist/hackbrowser-worker/hackbrowser-worker.js"
+const workerDestPath = `./${distDir}/hackbrowser-worker.js`
+if (await Bun.file(workerSrcPath).exists()) {
+  await $`cp ${workerSrcPath} ${workerDestPath}`
+  console.log("Bundled hackbrowser-worker.js into npm package")
+} else {
+  console.warn("Warning: hackbrowser-worker.js not found — run build.ts first")
+}
+
 await Bun.file(`./${distDir}/package.json`).write(
   JSON.stringify(
     {
@@ -70,6 +82,12 @@ await Bun.file(`./${distDir}/package.json`).write(
       repository: {
         type: "git",
         url: "https://github.com/CyberStrikeus/CyberStrike.git",
+      },
+      dependencies: {
+        // playwright is an npm dependency so it is installed next to the
+        // worker JS and can be resolved at runtime. It is NOT bundled into
+        // the main binary (subprocess.md — zero playwright in main binary).
+        playwright: "1.58.2",
       },
       optionalDependencies: binaries,
     },

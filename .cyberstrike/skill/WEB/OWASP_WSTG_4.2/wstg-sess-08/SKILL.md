@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 18a6579db17f7b88ff22b5145618cd00f58bbd8c57fbe796bb07f80f79fcb6f9
-signature: ZSl2r4jg2AA0/qD0u81Zgv7FK43VeDlbsGcb8gS5913VvCOiUsQ1U2Lz3HNdAfvsWISPZr3sIkTtUzHybBzqCw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-08
@@ -167,9 +164,6 @@ session['password_reset'] = {
 | ----------- | ----------------------------------------- |
 | **CWE-488** | Exposure of Data Element to Wrong Session |
 
-sha256: 206d02162f6aadd22fe16537aed13bf4236b8e4d70462fc9f0f822ccfbcfdd13
-signature: 7JVwygJkN2XLaVoBGL10J1ocflLgCrDxYY+K2FWBMO4kB3JAwVGt38IsBnMMjzBVTxHNWXphUVNyXTz/iHE5Aw==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: [CWE-601]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 468f0bd18a759b8ab74f0475a1d9e8f320b3fc6ba585b11ebdcc978315016e69
-signature: zlwSwBLxBEzcPLMruYCNqpPyVl3qDxbcttZSNCv76NXYU8uyjRveTYFOY7vbVXsFM3hh0ySHqMjsWI1IMasMCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-04
@@ -154,9 +151,6 @@ function safeRedirect(url) {
 | ----------- | --------------------------------- |
 | **CWE-601** | URL Redirection to Untrusted Site |
 
-sha256: 64316285eaaf83d7ec00e3f8cadae230b55f492742f5bc8148bc8651c44c8c07
-signature: TCudeyh3QfsIhD28QdOPDgnKppaCoJJWKemdg7erSKJqJxlEIQP/GIV6LeyyfoWGZaWinhbrf/AUejVt7z+8CQ==
-signed_by: cyberstrike-official
 
 ---
 

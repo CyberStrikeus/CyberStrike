@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: fa06650ac3cd5271e5ddfb402ebc53fd7ba2e0587441f4b00b92f7d76881b7c1
-signature: 7OL7irat8t2XJsqrDqMyP9irlCnqqyuY2I7Q9pLAv08ahoneN9iKWWK9Xzznb6RX6E/hxAPih3gDpwmTok4GBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-08
@@ -620,9 +617,6 @@ location /uploads {
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
 - [PayloadsAllTheThings - Upload Insecure Files](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Upload%20Insecure%20Files)
 
-sha256: b93ee7b8299472123c62d88472f01f8a00e6823366952508827d8d8d840ca457
-signature: 43FqEj0tqjc6WrVMhgonlVWBtRZ+sC3mKQ81z4rNCvPDL48zUc+6Q+AfQaSDTa5ExzhjBncf8C2PpCOuvWf8Ag==
-signed_by: cyberstrike-official
 
 ---
 

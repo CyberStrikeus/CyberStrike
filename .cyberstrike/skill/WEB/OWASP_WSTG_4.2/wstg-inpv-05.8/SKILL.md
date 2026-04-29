@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b9a1640396efbff9ea289b5f87be2ab21537489211b41ec8647dbdc415a421c2
-signature: QmaK56hkvoV6wEex4npEjkc28Nc5X4SlKgAR1H4lc6GkZYevpolXN/KezFHLs2F8IwNDyZN1ExreK3PVmPmxDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-05.8
@@ -364,9 +361,6 @@ function sanitizeForLocalSQL(input) {
 | ---------- | ------------- |
 | **CWE-89** | SQL Injection |
 
-sha256: 7df292015d1a63be8f60ef5bfcb65517f48c35e4e1901cbba6969736b7c4fe2e
-signature: H19an5cbrCMc82fiKtxDXaAMgCtisfc+fhTS4xJOio9RhI7Tkj0IJhaWHz3Fg8BPBiFcEqWOyHRSr8Y6HkZtDg==
-signed_by: cyberstrike-official
 
 ---
 

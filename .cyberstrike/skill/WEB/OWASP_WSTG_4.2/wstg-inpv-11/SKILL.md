@@ -11,9 +11,6 @@ cwe_ids: [CWE-94, CWE-95]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: e42a3b36dc54c6e3af7ec6cbdbf22ec811a0431e18c4f3b134f8a4b07eb5c1cc
-signature: CBjInp/LJPOx1m4ERCim+79Sni7Nh612czwgVZ3vssNX50VabYozlzKMQeVCGsbTqQetqeXnQ8a6uY4z31MZCg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-11
@@ -444,9 +441,6 @@ const result = vm.run(userInput)
 | ---------- | -------------------------------------- |
 | **CWE-94** | Improper Control of Generation of Code |
 
-sha256: c5b2498b9d2a0fe1df55124540df08d74dd8ae2f6672198d033ecb9c880e8a5e
-signature: WNv1M0ez0uKWhAs84dLfwvgGInreaYjrXK6tLWnJxVfMOj3wBT6Pyj54hzKEaghkjlZyjJ6O/2EdKnyz217wCQ==
-signed_by: cyberstrike-official
 
 ---
 

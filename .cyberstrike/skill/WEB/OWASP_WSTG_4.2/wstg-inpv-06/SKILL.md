@@ -11,9 +11,6 @@ cwe_ids: [CWE-90]
 chains_with: [wstg-athn-05, wstg-authz-02]
 prerequisites: [wstg-info-06]
 severity_boost: {}
-sha256: b8ac60cee963064af21d03b5dbc38e47f9f962b665619123355591cb7b91a37a
-signature: eKOJsJfhOTTbRqHq4JJiXfSxeQEvOmSWzqo9mDM3nJfMidAwfALynK3T6VfSWeSJKG7ZGYCE/TWya8imN36mBQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-06
@@ -423,9 +420,6 @@ $filter = "(&(uid=$safe_username)(objectClass=user))";
 - [OWASP LDAP Injection](https://owasp.org/www-community/attacks/LDAP_Injection)
 - [OWASP LDAP Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/LDAP_Injection_Prevention_Cheat_Sheet.html)
 
-sha256: 1c9db46f208c396216c0b99c33b8b6634a8f5a3859f34e8b6186eda1b672fc22
-signature: ILB9DAZKM2VurS9BRO4aSsgLsljMMmygpTt2eGxQI+JsyybhJZ8ygfgAlYXM9eIUzECHSaukkDDtXmF3fto5Cg==
-signed_by: cyberstrike-official
 
 ---
 

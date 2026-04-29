@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: fb401c0171017c18b7349e0135907e939075336b6b25c82f4ddc54d0582f6a16
-signature: W1yP1RHzTUt4lENQnJ8ipKkGTKpso/iYqPAHGJQTBVXdh33A7+gfCG25dU4zRzusB6veA7jHM7oMUYnnx5kGDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-authz-05
@@ -697,9 +694,6 @@ def token():
 - [RFC 7636 - PKCE](https://tools.ietf.org/html/rfc7636)
 - [PortSwigger OAuth](https://portswigger.net/web-security/oauth)
 
-sha256: 3b19018e4af8b4abcc3c85002ef6c3c307f010624994614bd79272975246f88c
-signature: vCSbqopW6TmiDM7znrgTmKcF7oSNhWy5NB4yaLYO+eAIwezYJBhBq0JbzXqFu1DlWZbxxOEXD7Wsaus0986aAA==
-signed_by: cyberstrike-official
 
 ---
 
