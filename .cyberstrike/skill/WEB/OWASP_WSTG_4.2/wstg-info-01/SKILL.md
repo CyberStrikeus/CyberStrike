@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: [wstg-info-06, wstg-conf-01]
 prerequisites: []
 severity_boost: {}
-sha256: 8ff669195bce65094b16bc34c809703aee3904361f74e519517c1585674ba8fc
-signature: ++43Lp/VjmMhDLTvPThIqCCPH0m9zhNU9l00C8jJFyjygksUe7Nu+iI/abNUd5yyrgJdBWANPDsO46+dhCzwCg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-01
@@ -414,9 +411,6 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
 - [Wayback Machine](https://web.archive.org/)
 - [Certificate Transparency - crt.sh](https://crt.sh/)
 
-sha256: ddd6df97530207a783a7829b2ea247a3aa1658c1786992720ea1d010ab3239dd
-signature: BlNOyZJyn82skCy9dcPB20g/vkYtrTTaZTLnOFIUQQ9qMXuCkdVktUyBRMsHxAK642dZnK4QIntcZZ2LjI4PDA==
-signed_by: cyberstrike-official
 
 ---
 

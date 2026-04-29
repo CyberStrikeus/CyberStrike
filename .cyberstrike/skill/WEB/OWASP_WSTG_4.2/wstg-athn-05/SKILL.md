@@ -11,9 +11,6 @@ cwe_ids: [CWE-287]
 chains_with: [wstg-authz-02, wstg-sess-01]
 prerequisites: [wstg-idnt-01]
 severity_boost: {}
-sha256: b2103d443831b38bcd75fc464d5bdfbba5fc54dd26aa8811ed2ccaf6b3ed3c2a
-signature: pZ0rSLgAT527caB6PAEz/wUatl8NDC4QcQnLlm+SrwpoYjqsitwos1IuduQxKor8vlpoTBVZENwDzodXC+oGBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-05
@@ -613,9 +610,6 @@ def verify_and_rotate_token(token, user_agent, ip_address):
 - [OWASP WSTG - Testing for Vulnerable Remember Password](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/05-Testing_for_Vulnerable_Remember_Password)
 - [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
 
-sha256: 788307eec8af978f02d6e86b4b4d1aee6611c4ac31da5843704eca0094b70ecd
-signature: z2UBTGq4QSFnb8Zhh6kcMY2/U4ms++r1ikyxq2Ufjp7L8dDuFE5GvJaugdVZ6pbqZc1jExgzoi8RQspRQCx4BQ==
-signed_by: cyberstrike-official
 
 ---
 

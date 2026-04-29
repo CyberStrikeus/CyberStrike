@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: [wstg-inpv-05, wstg-inpv-09, wstg-conf-05]
 prerequisites: [wstg-info-01]
 severity_boost: {}
-sha256: af750f0920d7b145e9e9ad550bbe43045c580c6287648be665762b4915428620
-signature: U1+Bk/o8uk4u2bNEI1yQVDaJ/m1pAygc9hDEOj56k3bzMQQJeVwPs7dbTXZbDOOuIttvdSYAqhMKZiIC1FBAAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-06
@@ -568,9 +565,6 @@ This is a **reconnaissance/enumeration activity**, not a direct vulnerability. T
 - [Attack Surface Detector](https://github.com/secdec/attack-surface-detector-cli)
 - [Param Miner (Burp Extension)](https://portswigger.net/bappstore/17d2949a985c4b7ca092728dba871943)
 
-sha256: e528cf1e97a978444c801effda7d922631e084ee2bad33ea595bda5eecf0605b
-signature: 831zUz4pByA1ZwJMrXIHNbT0qGCr7fAsNDarey6AIsgjxTzT8TvDnjdbsMn2HrGRB0Uq9TqGwn2Kgkd25PXBBQ==
-signed_by: cyberstrike-official
 
 ---
 

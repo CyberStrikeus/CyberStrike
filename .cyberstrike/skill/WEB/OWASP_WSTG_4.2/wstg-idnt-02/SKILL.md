@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 662168f2cbf2f7126c439112f7db53effc7ed33e693fb7800a2935c7e0f63fd6
-signature: NJlP2+FworoeEb4ffTpPUUz/8YGAEV92sD/taCrwUjmwjMyrOiyS3HdqALjC6AaO/ryTMdg82vYu1rFPsRZwCg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-idnt-02
@@ -462,9 +459,6 @@ def register():
 - [OWASP Testing Guide - Identity Management](https://owasp.org/www-project-web-security-testing-guide/)
 - [OWASP Mass Assignment](https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html)
 
-sha256: 620e7b5564b6ca5d5b56e581c8456449938c8ea3552166af3c2a077a82d50dac
-signature: 09IeF2gm674RFLlce6Hcn76Zw3K1lPBIWLr5dsPLqK4JqlhmHmmmO8rhBMyOgkDuXCA07/SzHiz9kukuHBZKBw==
-signed_by: cyberstrike-official
 
 ---
 

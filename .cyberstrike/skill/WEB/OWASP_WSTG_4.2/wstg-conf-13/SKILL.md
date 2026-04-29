@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 78de2ffa1f3173423e90fee4a1bad022ed941f1f4b1d76cc00f09ff294421a94
-signature: QX708htiEO+IezzNeLA3jXoRkLb8zmw+Ulw/2UQeKAjNBM7q8ibRffbwrPk4lkV9jt2sYRnfz02oT+Vd8sAMDA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-13
@@ -396,9 +393,6 @@ def normalize_path(path):
 - [Web Cache Deception Research](https://www.blackhat.com/docs/us-17/wednesday/us-17-Gil-Web-Cache-Deception-Attack.pdf)
 - [PortSwigger Web Cache Deception](https://portswigger.net/research/web-cache-deception)
 
-sha256: 8010131d09b9efa560cfb7cae45bbdcf0a62a11a16ffb4dd9aafcfcb22443aa3
-signature: 3c9IOC7m8XLcYrLRjGo6FRzCU+3pdpvr1pdhGYZbcRFuPGISm8WNKhREVjNx1YYV7Px4gtYGeLlpCwagHjrdDg==
-signed_by: cyberstrike-official
 
 ---
 

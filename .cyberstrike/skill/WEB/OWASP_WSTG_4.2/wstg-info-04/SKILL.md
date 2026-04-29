@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: f7d11fa0e24c2945437c1ae86dea540005354204dfdaf48b1b96b8ca041b31d1
-signature: uZZcNTRMHhtdYqhjMJKuW9K3kB+1K055LovUCzwIr6eGuW6YKXQVFii4H6IdQNIP15Qsje84K8cQN8SA+dWLBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-04
@@ -568,9 +565,6 @@ server {
 - [SecLists](https://github.com/danielmiessler/SecLists)
 - [Assetnote Wordlists](https://wordlists.assetnote.io/)
 
-sha256: fc9df25e01608b01e8d3c8a661abcaf4656e6e827343f8d3ef82fa0c554e34fc
-signature: 6WQ5c5gdGXygsCbY6Cvkpn8nKd9Ojbw/I68tcn7f1LuLiQwtyfEpaLuhraUBHJ0oAK2Hgt421hUuyPdQpsOyAQ==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b1292a990dda462ace68727609c573c3be321ae8d4d0b605c6f1ebcea72f5f47
-signature: qKE7Oif56+C6xqV2F3VqUBLrYa3NSuvVdA7s/RWeeu/TWYJ/YitmGSZW+oCJDEzMwgo8BEGeZA/TcjMeCk7tCg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-11
@@ -681,9 +678,6 @@ def disable_mfa():
 - [OWASP MFA Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html)
 - [NIST Digital Identity Guidelines - MFA](https://pages.nist.gov/800-63-3/)
 
-sha256: a27a05f1c08961839641255491547e4cc555762d5ba17e3ff026f793c0378f62
-signature: J9E7kjrjHPkN8oQoZ8suOq6mRaXpNexc+u4y1iXsiwU8lTIYmd8YpmlXQ3OGZhDq5iukKs9W5TmKhQn/ZsvXBQ==
-signed_by: cyberstrike-official
 
 ---
 

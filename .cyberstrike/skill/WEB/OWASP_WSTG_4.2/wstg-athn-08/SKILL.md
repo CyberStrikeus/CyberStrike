@@ -11,9 +11,6 @@ cwe_ids: [CWE-287]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: d1e2668af3394a8e8e9bc00083d5f658ef35e1fe4e6da10fcc1545f861b61e12
-signature: Ig5qn6SSJm+RaZRf/xcyoPVi1y0Gx5ujV2Lsgas/k+ssuYYAvqVweCZJ+nzbqNQHzxqm3ohVfCEEvPyOnOUTAw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-athn-08
@@ -500,9 +497,6 @@ class DynamicKBA:
 - [OWASP Forgot Password Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html)
 - [NIST Digital Identity Guidelines](https://pages.nist.gov/800-63-3/)
 
-sha256: ef57168360ba5fbb9b6ae88faa47bc7efdaa06449204267305c0dc6c34fdf004
-signature: TUZgeWj3QSTpjWbwwiZXu4Z9KTnts8lR9DAkzkQnyKcQyL0p+on5Q8r+gnHIS0RbvirQ/asKQkztWkm/d9lDDA==
-signed_by: cyberstrike-official
 
 ---
 

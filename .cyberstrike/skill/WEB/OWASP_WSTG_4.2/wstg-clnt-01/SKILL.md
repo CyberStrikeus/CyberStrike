@@ -11,9 +11,6 @@ cwe_ids: [CWE-79]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 3afb09d2e3ea52100efe2023bd11989a9d764031863a8d73072578b01a8c0ad0
-signature: k9Uk3S1xWgGBZM3GMEAlPBEhC5RfuirL2iBGwSlEjORZQ2+9IjlGZawnA6Khf1/f8bjRiskvGktHI5qbsSfYBw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-01
@@ -349,9 +346,6 @@ element.textContent = userInput // For text
 | ---------- | ----------------------------------------------------------- |
 | **CWE-79** | Improper Neutralization of Input During Web Page Generation |
 
-sha256: 71388098b2858a07ba7316ea7882e14bced150a0f047b7f7f636c1b49cb014fa
-signature: Q3VAB+9Oy5QXndggFOPDftV+xwSuHFJTwlYJx8jPB+Ce42isPiVd2vL11nk8QAfQ192aQwUoaqdQWmRTinafAw==
-signed_by: cyberstrike-official
 
 ---
 

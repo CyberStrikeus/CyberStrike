@@ -11,9 +11,6 @@ cwe_ids: [CWE-326]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 2ced6eb681b3cc32997c3d8ecac07f84f8915e1bcc44e4d28074946dc35c4003
-signature: EJdh6JVFrbUD+v2Uv53oxd0RZLErpMEaJMrTYADhbcPp5MR7EWh/bBBEob3F0LjFafgRJixalpeMpNzF/uLRCA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-cryp-01
@@ -368,9 +365,6 @@ Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains
 | **CWE-327** | Use of Broken or Risky Cryptographic Algorithm |
 | **CWE-295** | Improper Certificate Validation                |
 
-sha256: c1c0a150d29163d0ddddb67fede3289f0edc801a0fb58494952e6ac74ef3c3e4
-signature: yVwmioiuQeSy+NBtLWXkVl0svUP+3GHWE74CeFe7L6GS2WiXmqMMVWKj7iSHZt0U2Ah98og0MFZ2l24YGWILCw==
-signed_by: cyberstrike-official
 
 ---
 

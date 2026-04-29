@@ -88,7 +88,7 @@ export namespace Skill {
 
       // Warn on duplicate skill names
       if (skills[parsed.data.name]) {
-        log.warn("duplicate skill name", {
+        log.debug("duplicate skill name", {
           name: parsed.data.name,
           existing: skills[parsed.data.name].location,
           duplicate: match,
@@ -274,5 +274,111 @@ export namespace Skill {
 
   export async function dirs() {
     return state().then((x) => x.dirs)
+  }
+
+  /**
+   * Lightweight directory list - scans for SKILL.md files without parsing them.
+   * Used for permission initialization to avoid triggering full skill indexing.
+   * ~500ms vs 4.3s for full state() initialization.
+   */
+  export async function dirsOnly(): Promise<string[]> {
+    const dirs = new Set<string>()
+
+    const scanExternal = async (root: string) => {
+      for await (const match of EXTERNAL_SKILL_GLOB.scan({
+        cwd: root,
+        absolute: true,
+        onlyFiles: true,
+        followSymlinks: true,
+        dot: true,
+      })) {
+        dirs.add(path.dirname(match))
+      }
+    }
+
+    // Scan external skill directories (.claude/skills/, .agents/skills/)
+    if (!Flag.CYBERSTRIKE_DISABLE_EXTERNAL_SKILLS) {
+      for (const dir of EXTERNAL_DIRS) {
+        const root = path.join(Global.Path.home, dir)
+        if (!(await Filesystem.isDir(root))) continue
+        await scanExternal(root)
+      }
+
+      for await (const root of Filesystem.up({
+        targets: EXTERNAL_DIRS,
+        start: Instance.directory,
+        stop: Instance.worktree,
+      })) {
+        await scanExternal(root)
+      }
+    }
+
+    // Scan .cyberstrike/skill/ directories
+    for (const dir of await Config.directories()) {
+      for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
+        cwd: dir,
+        absolute: true,
+        onlyFiles: true,
+        followSymlinks: true,
+      })) {
+        dirs.add(path.dirname(match))
+      }
+    }
+
+    // Built-in skills
+    if (!process.env.CYBERSTRIKE_TEST_HOME) {
+      const builtinRoot = path.resolve(import.meta.dir, "../../../..")
+      const builtinDir = path.join(builtinRoot, ".cyberstrike")
+      if (await Filesystem.isDir(builtinDir)) {
+        for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
+          cwd: builtinDir,
+          absolute: true,
+          onlyFiles: true,
+          followSymlinks: true,
+        })) {
+          dirs.add(path.dirname(match))
+        }
+      }
+
+      // Installed skills: XDG data dir
+      const installedDir = path.join(Global.Path.data, "skill")
+      if (await Filesystem.isDir(installedDir)) {
+        for await (const match of SKILL_GLOB.scan({
+          cwd: installedDir,
+          absolute: true,
+          onlyFiles: true,
+          followSymlinks: true,
+        })) {
+          dirs.add(path.dirname(match))
+        }
+      }
+    }
+
+    // Scan additional skill paths from config
+    const config = await Config.get()
+    for (const skillPath of config.skills?.paths ?? []) {
+      const expanded = skillPath.startsWith("~/") ? path.join(os.homedir(), skillPath.slice(2)) : skillPath
+      const resolved = path.isAbsolute(expanded) ? expanded : path.join(Instance.directory, expanded)
+      if (!(await Filesystem.isDir(resolved))) continue
+      for await (const match of SKILL_GLOB.scan({
+        cwd: resolved,
+        absolute: true,
+        onlyFiles: true,
+        followSymlinks: true,
+      })) {
+        dirs.add(path.dirname(match))
+      }
+    }
+
+    // Downloaded skills from URLs
+    for (const url of config.skills?.urls ?? []) {
+      const list = await Discovery.pull(url).catch(() => [])
+      if (!list) continue
+      for (const dir of list) {
+        dirs.add(dir)
+      }
+    }
+
+    return Array.from(dirs)
   }
 }

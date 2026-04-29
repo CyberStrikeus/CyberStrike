@@ -11,9 +11,6 @@ cwe_ids: [CWE-327]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b51f233e61f6e16fdf9d341ae5158d39374ce3ca972d61ecf1842c3a47f6a6c7
-signature: V55OLT44ucW5TqAM/YH9sF/H7Y058ZL+yWid5d4ov7zUArP/RTXW7amQ5/dDwC1OTraxZi+9heTG9TKHbDCWCQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-cryp-04
@@ -249,9 +246,6 @@ if bcrypt.checkpw(password.encode(), stored_hash):
 | **CWE-328** | Reversible One-Way Hash                        |
 | **CWE-329** | Not Using a Random IV with CBC Mode            |
 
-sha256: c845f171cdf445c2e3e78f5f3e025ccd1d473925e7cebb1133894f0b209cb921
-signature: QBU22HqPkbB1f0NoIR6j9RZThD/4CEcky9T79a4qX55XhtQpkoVf1tbhnVZS6yZiyopWr4NwGOeIq9jYXwIVCQ==
-signed_by: cyberstrike-official
 
 ---
 

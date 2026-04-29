@@ -11,9 +11,6 @@ cwe_ids: [CWE-840]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: addecbd9610ab1e7d87758345e76d397614b9b5d832e227eff40b73c7d66c9d9
-signature: KC18T/SnzkEoVz+4QBNy7AgWEwbythupmhDDen4FYHWTWemZPg/YgoTb/n2nLpDAgyyLEwvsAVlBVFx0QnotAA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-01
@@ -570,9 +567,6 @@ def checkout():
 - [OWASP WSTG - Test Business Logic Data Validation](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Business_Logic_Testing/01-Test_Business_Logic_Data_Validation)
 - [OWASP Testing for Business Logic](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Business_Logic_Testing/)
 
-sha256: 19cd8c5603aaae2b15cd089d2f7147f96f3e30c948fd116bafd5a4fcc69e21c8
-signature: tpl/WiocBobUqaCZFfbKFRFnEJyRWGsha8b10QyagzE3lFpIVFDyEjX1v/MCO9krz4ElaEW2IYp0H4zE4Pz5Bw==
-signed_by: cyberstrike-official
 
 ---
 

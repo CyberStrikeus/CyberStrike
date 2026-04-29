@@ -11,9 +11,6 @@ cwe_ids: [CWE-942]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 38bf5c67ea12895a72f1e28c0dcd354ddf927e7d7bd3cb2bf60d71a12e5e7919
-signature: RCT6a3+XLg8lGPC4yTWA3Q6Ub4Usz/qphE28HA1J+cGkbpbpSuWw+oe7SH2Wx2OQ38B+5dMTl9C01zSP8LQ3BQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-13
@@ -473,9 +470,6 @@ async function fetchSecure(url) {
 - [Google - JSON Hijacking](https://security.googleblog.com/)
 - [Sebastian Lekies - XSSI Research](https://www.mbsd.jp/Whitepaper/xssi.pdf)
 
-sha256: 2529f6d6410eaae5f39789b09bc45a5869283bd1b59ef1a23e55529674f8540c
-signature: Z5b7UQvg3XHXZDaAbUmtsGsYXkinj/tpwKnC4IPiLcBH2fyAlXS26MmBmX9VSCNU9O+G/GKU9uSMTtndEpTAAA==
-signed_by: cyberstrike-official
 
 ---
 

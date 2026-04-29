@@ -11,9 +11,6 @@ cwe_ids: [CWE-614]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 072a55163c98cc0cd1eff25c7386066dfbad9789217fe9742ab8587dac0d4bbc
-signature: fEy/1zkqNQjRsyhDzcov/XmWxJq/gC2fQL0SLoHfUTWPdVnMghI4dOjcxA9KM98h8rZKCPFK5rol7gzC2Rp5DA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-04
@@ -374,9 +371,6 @@ location /dashboard {
 | **CWE-200** | Exposure of Sensitive Information                      |
 | **CWE-532** | Insertion of Sensitive Info into Log File              |
 
-sha256: 38c1559a38767fc49a54ea2827d9796e37e14d5c9d4646752b770d06d0f4b121
-signature: OuV493pP6SOFsvWj4D7dzQvMBJR6foGHlTQWRsT+hA5FxVNJ7lp+gLa2wf204ht3NWysEVW/K96MCJJCG+rxDg==
-signed_by: cyberstrike-official
 
 ---
 

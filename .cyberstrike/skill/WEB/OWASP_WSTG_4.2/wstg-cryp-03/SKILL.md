@@ -11,9 +11,6 @@ cwe_ids: [CWE-311]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 570f7d42bd364de199d50541ba66ad5cfd57a37bc8a8dd15b5f27b1252f01987
-signature: GEBRSfa8TcFQj9gvU5avBEQjpHbqYF5kWiQai8xr2SkW6iEWA+d1V3dfqkBZw6UIO2/4SDL6xCAjpe90ys4MDg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-cryp-03
@@ -292,9 +289,6 @@ add_header Content-Security-Policy "upgrade-insecure-requests";
 | **CWE-319** | Cleartext Transmission of Sensitive Information |
 | **CWE-311** | Missing Encryption of Sensitive Data            |
 
-sha256: 5c7c407ba0f6ee040a4e0bf3714e8fdec3cdd85624d659a90ef5946d1b27d1dc
-signature: pHBLH+MAhtTzX79zWjD42umup/bp/QaQuXvpdFsnAWWExtV9QXGXL0DHrijNJ/ta094LayQN7dmjEYwvL6/jDg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: b7c24b41c1ec21950a3b186dbe8797783a531979d4668f94c5e592b587cbe5d0
-signature: F1CcMIRQHyK3Sbo4FS35Gp8iA2XYxRuOE7ldbKHoGxEsa6CwcC63GsEuV5RqANTC+P+qM+XzIsaeMU6zw0eHCA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-conf-06
@@ -444,9 +441,6 @@ def resource():
 - [OWASP WSTG - Test HTTP Methods](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods)
 - [RFC 7231 - HTTP/1.1 Semantics](https://tools.ietf.org/html/rfc7231)
 
-sha256: 452328bad9036818b4d67026db2849e5443f90a4d9c754a72b0f5ee56abc8a5a
-signature: veFdV9nb33zI8d10SkOQMHa6G2txEycEAbZCeq2l7ixZTeZI/0jHF4rfvZrUf4krHKQCg4PJJVg0XY541PYfCg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 618cc4c5b582b579e3b374fae36f4982e2b7a7b343b71a1d7b97875aabae37de
-signature: yqztzgxK9uCWianHyGAhFKtNU4WRB59nf50m5SibizDhpFlv5Gaha+CZ6hVmsZL+3JJhh6F47n/UWHRGR+ZcAQ==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-14
@@ -405,9 +402,6 @@ cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 | **CWE-79** | Cross-Site Scripting |
 | **CWE-89** | SQL Injection        |
 
-sha256: 4a30ff7caa71b1724f797f4ae67f1b91995d5a65d61549a43446961199c6b41e
-signature: nWD0hCOuTsCD635396sCQEPutf15lm7GqDZxeiuQ0cCrgdDHDOgD8YY1srNcwhQdwx8vpYHuU1oFvIMevf5pDg==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: [CWE-200]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: c41062c84194f149092aa0e8052a355cedd2117ced69a8807a7102f31cdd8fd6
-signature: T/8UfjXBGoBoFHPSlK5JtpQDuU2cpsOmlWiATJjPgqjj4ONq7sy+t8vMdP+MeH7x5RX4451Dio9qlaZ8IYieDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-info-02
@@ -532,9 +529,6 @@ Deploy a hardened reverse proxy (nginx, HAProxy) in front of application servers
 - [Apache Security Tips](https://httpd.apache.org/docs/current/misc/security_tips.html)
 - [nginx Security Controls](https://docs.nginx.com/nginx/admin-guide/security-controls/)
 
-sha256: 8c87f4ca709112fa27d461a25314bd2932616ba7d6e010f8376b46a29984075c
-signature: zGBaYKlXbaeXDFcsKcc+UU/LVbm6Nn+owcCmLBzDGYRkcIi0bOd9oJfD82AviU/3cfBOLX2n7vbfA0OoDVVmCw==
-signed_by: cyberstrike-official
 
 ---
 

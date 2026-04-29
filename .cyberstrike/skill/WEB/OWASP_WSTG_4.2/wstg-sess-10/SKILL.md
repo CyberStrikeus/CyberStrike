@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 7c94f5c978970202661d2080e37c620edc3f19625a5871e5a04a54b276ed6da7
-signature: qrZKPeQ7EQJiLy3Tf89NGdnWqaEyk5b/ZftvH1kFeLpVI35xIJtHa99TF0cYjYB+hmnlziuMNJoihiWPiyMpDw==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-10
@@ -309,9 +306,6 @@ def verify_token(token):
 | **CWE-347** | Improper Verification of Cryptographic Signature      |
 | **CWE-757** | Selection of Less-Secure Algorithm During Negotiation |
 
-sha256: 0d28fb4a46e452c84fed13e735e62deb30fc9f82524b49297938eab9550aaee9
-signature: ZAxZNMiWaSOMcskyZPll80rB0UhnYiqHyPlVZ3CxzbrzMyW8KY94+9eu4EV2T2rF45w7m5yC1IgSrKP7OU+qDw==
-signed_by: cyberstrike-official
 
 ---
 

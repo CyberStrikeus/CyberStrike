@@ -11,9 +11,6 @@ cwe_ids: [CWE-352]
 chains_with: [wstg-inpv-02, wstg-athn-05]
 prerequisites: [wstg-sess-01]
 severity_boost: {}
-sha256: 37ed56b3517d6a0448d8e2f5f12f39d9925e0c2624faef252771051481192ac9
-signature: RIpCnyZLmUoJx6halELTnXWWD0KXJGv6HTCiXLHW3566HU6ndLBkO6Xyf2SqOLthhS8IjxP0ftck+SqyKmxuCA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-sess-05
@@ -363,9 +360,6 @@ def validate_origin():
 | ----------- | --------------------------------- |
 | **CWE-352** | Cross-Site Request Forgery (CSRF) |
 
-sha256: f158501d96049db0d040a4b19374da59f1ad1247f6a32a09379a7d7c76e2125e
-signature: RN5w4t7bfRcYA4u3rvNyfoQCtaGcBXzTp5nPloSFc48y3C78hIIHrJmzUptF9zeAEjOoqzZooSrk/I5XPWT7Cw==
-signed_by: cyberstrike-official
 
 ---
 

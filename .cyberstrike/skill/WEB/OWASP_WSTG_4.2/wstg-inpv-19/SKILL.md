@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 63fa1b2384d7324539742d51249860d3ebc5210447c110b5205c3d7798e1c7ca
-signature: xIaztbC5Cf0B8FpnNpQmsaa905NaT7vPu/AUVWvZcMFuAcnL7UyqK9D80qt3WzWEBXvtG2aJHvI7hp5CfBgbBA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-inpv-19
@@ -456,9 +453,6 @@ def is_safe_url(url):
 | ----------- | ---------------------------------- |
 | **CWE-918** | Server-Side Request Forgery (SSRF) |
 
-sha256: 42591dd5bc8bbf0aa0446e6e74b967b1a936e2264c3e563baf9df5def24e49b6
-signature: 8Ab37VYOIce+DHhEJIMzCbu5MD9p0v3BXzBnsTwnbCNmK1ZpYiY+k1uxUkeXlFDWbK51pAyGSWOgOdMIxs23BQ==
-signed_by: cyberstrike-official
 
 ---
 

@@ -11,9 +11,6 @@ cwe_ids: []
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 6cb4b1de060079bd8dbe71209306b7371ca355239d89e45febac549019bdb111
-signature: +EYYo++Bzf9b8+A9PJdcoC8KmAgZVFZjFus4SImY8whlGPXrEU0nU7f8Q/m1kgNm+ut4KEzm/mhlWttRNwGFCA==
-signed_by: cyberstrike-official
 ---
 
 # wstg-busl-10
@@ -771,9 +768,6 @@ class RefundProcessor:
 - [OWASP E-Commerce Security](https://owasp.org/www-project-web-security-testing-guide/)
 - [PCI DSS Requirements](https://www.pcisecuritystandards.org/)
 
-sha256: fcb07abb574974c9a50d56bc48d7f1918ff821a0ef4265f753cfc53aa5ae47ad
-signature: xI6DzMQlIPOWUfqPzP0dBXVInS6IQF/GTxJlSCY/Ry3RYuzJqOXsc735XPLwo0eRGqkBBqydPFUlWvwR/8htCw==
-signed_by: cyberstrike-official
 
 ---
 

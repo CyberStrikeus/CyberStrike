@@ -11,9 +11,6 @@ cwe_ids: [CWE-94]
 chains_with: []
 prerequisites: []
 severity_boost: {}
-sha256: 6d39d0c74b3106697c22fdbb1a65ed6430cf428c9b9e8854988424236e8626b7
-signature: IgwHdviBflpId8obaqNT0dLifgqpTubEus4djhoDCxnpxY/TTqWOUiElP1ylC+utT+s6rGHt7XPdw15IuO21Cg==
-signed_by: cyberstrike-official
 ---
 
 # wstg-clnt-05
@@ -154,9 +151,6 @@ def sanitize_css(property_name, value):
 | ---------- | ----------------------------------------------------- |
 | **CWE-74** | Improper Neutralization of Special Elements in Output |
 
-sha256: 7734171eed6aecdcb48474b8472eb336ba78752bdd167118492fd643199ccb86
-signature: bwEy6mTaZ5RNCT9XHyC+6qReeQv21SWIl7xhy/+1CuHcBcyTDxsODEg6DN3RnY55fwGrtt9TNel2OSBGMuVRAQ==
-signed_by: cyberstrike-official
 
 ---
 
