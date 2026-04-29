@@ -137,13 +137,12 @@ CyberStrike 13+ एजेंट के साथ आता है जो सु�
 
 CyberStrike विशेषज्ञ MCP सर्वर से जुड़ता है जो इसकी क्षमताओं का विस्तार करते हैं:
 
-| सर्वर                                                                  | टूल | क्या जोड़ता है                                                         |
-| ---------------------------------------------------------------------- | --- | ---------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39  | ब्राउज़र-आधारित सुरक्षा परीक्षण — XSS, CSRF, DOM मैनिपुलेशन, कुकी चोरी |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38  | क्लाउड सुरक्षा ऑडिट — AWS, Azure, GCP पर 60+ जाँचें                    |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39  | GitHub सुरक्षा स्थिति — रेपो, संगठन, actions, secrets, सप्लाई चेन      |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23  | CVE इंटेलिजेंस — NVD, EPSS, CISA KEV, GitHub Advisory, OSV             |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37  | OSINT टोही — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS    |
+| सर्वर                                                                  | टूल | क्या जोड़ता है                                                      |
+| ---------------------------------------------------------------------- | --- | ------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38  | क्लाउड सुरक्षा ऑडिट — AWS, Azure, GCP पर 60+ जाँचें                 |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39  | GitHub सुरक्षा स्थिति — रेपो, संगठन, actions, secrets, सप्लाई चेन   |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23  | CVE इंटेलिजेंस — NVD, EPSS, CISA KEV, GitHub Advisory, OSV          |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37  | OSINT टोही — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 सभी ओपन सोर्स। सभी `npx` से इंस्टॉल करने योग्य। इन्हें CyberStrike में प्लग करें या किसी भी MCP क्लाइंट के साथ स्वतंत्र रूप से उपयोग करें।
 
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

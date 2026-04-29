@@ -137,13 +137,12 @@ Dodatkowo **8 wyspecjalizowanych proxy testerów** przechwytujących i manipuluj
 
 CyberStrike łączy się ze specjalizowanymi serwerami MCP, które rozszerzają jego możliwości:
 
-| Serwer                                                                 | Narzędzia | Co Dodaje                                                                                     |
-| ---------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39        | Testy bezpieczeństwa oparte na przeglądarce — XSS, CSRF, manipulacja DOM, kradzież ciasteczek |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Audyty bezpieczeństwa chmury — 60+ kontroli w AWS, Azure, GCP                                 |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | Postura bezpieczeństwa GitHub — repozytoria, organizacja, actions, secrets, supply chain      |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | Wywiad CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                                        |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS                     |
+| Serwer                                                                 | Narzędzia | Co Dodaje                                                                                |
+| ---------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38        | Audyty bezpieczeństwa chmury — 60+ kontroli w AWS, Azure, GCP                            |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39        | Postura bezpieczeństwa GitHub — repozytoria, organizacja, actions, secrets, supply chain |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23        | Wywiad CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                                   |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37        | Rekonesans OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS                |
 
 Wszystkie open source. Wszystkie instalowalne przez `npx`. Podłącz je do CyberStrike lub używaj samodzielnie z dowolnym klientem MCP.
 
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

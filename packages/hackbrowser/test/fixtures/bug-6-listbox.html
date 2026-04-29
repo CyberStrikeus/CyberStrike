@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BUG-6 SPA fixture — custom listbox options leaking as display-only fields</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      // SPA render pattern — mimics how a framework (React/Vue/Angular) mounts a
+      // custom dropdown (combobox + listbox with role=option) with data-value
+      // attributes on each option. This is the exact pattern that causes BUG-6.
+      const state = { query: "test", category: "", priceBand: "99.99" }
+
+      function render() {
+        document.getElementById("app").innerHTML = `
+        <form id="search-form" novalidate>
+
+          <!-- Real text input — should appear in ui_context -->
+          <div class="field-group">
+            <label for="query-input">Search</label>
+            <input type="text" id="query-input" name="query" value="${state.query}" />
+          </div>
+
+          <!-- Custom listbox dropdown with role=option + data-value.
+               This is what SHOULD NOT leak into ui_context as display-only. -->
+          <div class="field-group">
+            <span id="category-label" class="group-label">Category</span>
+            <div class="combobox-wrap">
+              <button
+                type="button"
+                id="category-trigger"
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="category-listbox"
+                aria-labelledby="category-label">
+                Select category
+              </button>
+              <ul
+                id="category-listbox"
+                role="listbox"
+                aria-label="Category">
+                <li role="option" data-value="Electronics" tabindex="-1">Electronics</li>
+                <li role="option" data-value="Clothing" tabindex="-1">Clothing</li>
+                <li role="option" data-value="Books" tabindex="-1">Books</li>
+                <li role="option" data-value="Food" tabindex="-1">Food</li>
+                <li role="option" data-value="Sports" tabindex="-1">Sports</li>
+              </ul>
+            </div>
+            <input type="hidden" id="category-value" name="category" value="${state.category}" />
+          </div>
+
+          <!-- Menu pattern (role=menu with role=menuitem) — also a non-field container -->
+          <div class="field-group">
+            <span id="sort-label" class="group-label">Sort</span>
+            <div role="menu" aria-labelledby="sort-label">
+              <div role="menuitem" data-value="price-asc">Price ↑</div>
+              <div role="menuitem" data-value="price-desc">Price ↓</div>
+              <div role="menuitem" data-value="newest">Newest</div>
+            </div>
+            <input type="hidden" id="sort-value" name="sortBy" value="price-asc" />
+          </div>
+
+          <!-- Genuine display-only value — readonly price summary.
+               This SHOULD still appear in ui_context (regression guard). -->
+          <div class="field-group">
+            <span class="group-label">Current Price</span>
+            <span data-field="priceBand" class="field-value">${state.priceBand}</span>
+          </div>
+
+          <button type="submit">Search</button>
+        </form>
+      `
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", render)
+      } else {
+        render()
+      }
+    </script>
+  </body>
+</html>

@@ -72,13 +72,12 @@ Replace `<platform>` with your platform (e.g., `darwin-arm64`, `linux-x64`).
 
 ### MCP Ecosystem (separate repos)
 
-| Server              | Repo                                                                            | Description                               |
-| ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------- |
-| hackbrowser-mcp     | [badchars/hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing — 39 tools |
-| cloud-audit-mcp     | [badchars/cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security audits — AWS/Azure/GCP     |
-| github-security-mcp | [badchars/github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture — 39 tools        |
-| cve-mcp             | [badchars/cve-mcp](https://github.com/badchars/cve-mcp)                         | CVE intelligence — NVD/EPSS/KEV           |
-| osint-mcp           | [badchars/osint-mcp](https://github.com/badchars/osint-mcp)                     | OSINT recon — Shodan/VT/DNS/WHOIS         |
+| Server              | Repo                                                                            | Description                           |
+| ------------------- | ------------------------------------------------------------------------------- | ------------------------------------- |
+| cloud-audit-mcp     | [badchars/cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security audits — AWS/Azure/GCP |
+| github-security-mcp | [badchars/github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture — 39 tools    |
+| cve-mcp             | [badchars/cve-mcp](https://github.com/badchars/cve-mcp)                         | CVE intelligence — NVD/EPSS/KEV       |
+| osint-mcp           | [badchars/osint-mcp](https://github.com/badchars/osint-mcp)                     | OSINT recon — Shodan/VT/DNS/WHOIS     |
 
 ## How to Contribute
 
