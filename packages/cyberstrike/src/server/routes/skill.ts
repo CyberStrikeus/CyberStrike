@@ -93,7 +93,7 @@ export const SkillRoutes = lazy(() =>
         }),
       ),
       async (c) => {
-        await SkillIndex.rebuild()
+        await SkillIndex.ensureBuilt()
         const { q, tech, cwe, category, tag } = c.req.valid("query")
 
         let results: SkillIndex.Entry[]
@@ -180,7 +180,7 @@ export const SkillRoutes = lazy(() =>
         }),
       ),
       async (c) => {
-        await SkillIndex.rebuild()
+        await SkillIndex.ensureBuilt()
         const { findings } = c.req.valid("json")
         const chains = KillChain.analyze(findings)
         const summary = KillChain.summary(findings)

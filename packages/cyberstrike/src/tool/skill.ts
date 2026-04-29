@@ -11,6 +11,8 @@ import { Ripgrep } from "../file/ripgrep"
 import { iife } from "@/util/iife"
 import { Agent } from "../agent/agent"
 
+const accessibleCache = new Map<string, Skill.Info[]>()
+
 export const SkillTool = Tool.define("skill", async (ctx) => {
   // Lazy load skills only when tool is executed
   const description = [
@@ -55,17 +57,23 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
     description,
     parameters,
     async execute(params: z.infer<typeof parameters>, ctx) {
-      // Load and filter skills only when tool is actually executed
-      const skills = await Skill.all()
-      const agentInfo = await Agent.get(ctx.agent)
-      const accessibleSkills = agentInfo?.permission
-        ? skills.filter((skill) => {
-            const rule = PermissionNext.evaluate("skill", skill.name, agentInfo.permission)
-            return rule.action !== "deny"
-          })
-        : skills
+      await SkillIndex.ensureBuilt()
 
-      await SkillIndex.rebuild()
+      const agentKey = ctx.agent ?? ""
+      if (!accessibleCache.has(agentKey)) {
+        const skills = await Skill.all()
+        const agentInfo = await Agent.get(ctx.agent)
+        accessibleCache.set(
+          agentKey,
+          agentInfo?.permission
+            ? skills.filter((skill) => {
+                const rule = PermissionNext.evaluate("skill", skill.name, agentInfo.permission)
+                return rule.action !== "deny"
+              })
+            : skills,
+        )
+      }
+      const accessibleSkills = accessibleCache.get(agentKey)!
 
       if (params.action === "list") {
         if (params.loaded) {
