@@ -440,9 +440,10 @@ export function Session() {
         name: "qpause",
       },
       onSelect: async (dialog) => {
-        const result = await sdk.client.session
-          .queuePause({ sessionID: route.sessionID })
-          .catch(() => { toast.show({ message: "Failed to pause ingest queue", variant: "error" }); return null })
+        const result = await sdk.client.session.queuePause({ sessionID: route.sessionID }).catch(() => {
+          toast.show({ message: "Failed to pause ingest queue", variant: "error" })
+          return null
+        })
         if (result) toast.show({ message: "Ingest queue paused", variant: "info" })
         dialog.clear()
       },
@@ -456,9 +457,10 @@ export function Session() {
         name: "qresume",
       },
       onSelect: async (dialog) => {
-        const result = await sdk.client.session
-          .queueResume({ sessionID: route.sessionID })
-          .catch(() => { toast.show({ message: "Failed to resume ingest queue", variant: "error" }); return null })
+        const result = await sdk.client.session.queueResume({ sessionID: route.sessionID }).catch(() => {
+          toast.show({ message: "Failed to resume ingest queue", variant: "error" })
+          return null
+        })
         if (result) toast.show({ message: "Ingest queue resumed", variant: "info" })
         dialog.clear()
       },
