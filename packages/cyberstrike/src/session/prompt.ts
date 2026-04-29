@@ -110,6 +110,7 @@ export namespace SessionPrompt {
     format: MessageV2.Format.optional(),
     system: z.string().optional(),
     variant: z.string().optional(),
+    excludeHistory: z.boolean().optional(),
     parts: z.array(
       z.discriminatedUnion("type", [
         MessageV2.TextPart.omit({
@@ -264,6 +265,18 @@ export namespace SessionPrompt {
       return
     }
     match.abort.abort()
+    // Reject queued joiners before deleting state. Without this, callers that
+    // joined via the loop's callbacks queue (parallel SessionPrompt.prompt for
+    // the same sessionID) would hang forever — their resolution path runs
+    // inside loop after `if (abort.aborted) break`, which reads
+    // `state[sessionID]` after this function deletes it.
+    // The IngestQueue chain hits this whenever an ingest task is awaiting a
+    // running parent loop and Esc fires; the orphaned callbacks froze the
+    // chain (see hackbrowser INTEGRATION.md §13.7).
+    const error = new Error("session prompt cancelled")
+    const callbacks = match.callbacks
+    match.callbacks = []
+    for (const cb of callbacks) cb.reject(error)
     delete s[sessionID]
     SessionStatus.set(sessionID, { type: "idle" })
     return
@@ -719,7 +732,12 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...MessageV2.toModelMessages(sessionMessages, model),
+          ...MessageV2.toModelMessages(
+            lastUser.excludeHistory
+              ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
+              : MessageV2.filterExcluded(sessionMessages, lastUser.id),
+            model,
+          ),
           ...(isLastStep
             ? [
                 {
@@ -1032,6 +1050,7 @@ export namespace SessionPrompt {
       system: input.system,
       format: input.format,
       variant,
+      excludeHistory: input.excludeHistory,
     }
     using _ = defer(() => InstructionPrompt.clear(info.id))
 

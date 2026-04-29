@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BUG-17 SPA fixture — distinguish hidden reasons (type=hidden vs CSS-hidden)</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      // Conditional-form style SPA — account type toggles field visibility via CSS.
+      // UIContext should carry WHY each field is hidden so proxy-agent can
+      // distinguish: type=hidden (intentional state) vs display:none (conditional branch)
+      // vs visibility:hidden (placeholder space) vs opacity:0 (invisible but interactive).
+      function render() {
+        document.getElementById("app").innerHTML = `
+        <form id="registration-form" novalidate>
+          <!-- type=hidden input — CSRF/state, always sent -->
+          <input type="hidden" name="csrf_token" value="abc123">
+
+          <!-- Visible field -->
+          <label>Email <input type="email" name="email" value="a@x.com"></label>
+
+          <!-- display:none conditional field (Personal branch) -->
+          <label style="display:none">
+            Company Name <input type="text" name="companyName" value="">
+          </label>
+
+          <!-- visibility:hidden field (placeholder takes space) -->
+          <label style="visibility:hidden">
+            Tax ID <input type="text" name="taxId" value="">
+          </label>
+
+          <!-- opacity:0 field (invisible, still interactive) -->
+          <label style="opacity:0">
+            Referral Code <input type="text" name="referralCode" value="">
+          </label>
+
+          <!-- Visible field (regression guard — should NOT have hiddenReason) -->
+          <label>Full Name <input type="text" name="fullName" value="Alice"></label>
+
+          <button type="submit" data-test="submit">Register</button>
+        </form>
+      `
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", render)
+      } else {
+        render()
+      }
+    </script>
+  </body>
+</html>

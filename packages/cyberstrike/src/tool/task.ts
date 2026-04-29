@@ -12,6 +12,7 @@ import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
+import { renderAccessContextLines } from "../server/routes/session"
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -174,6 +175,19 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             lines.push("## Credential Context")
             lines.push("UNAUTHENTICATED (no credential associated with this request)")
           }
+
+          // Access Context — present only when source is hackbrowser with
+          // UI crawling enrichment. Firefox extension data has all these
+          // fields null, so renderAccessContextLines returns [].
+          lines.push(
+            ...renderAccessContextLines({
+              triggerElement: current.trigger_element,
+              elementRoles: current.element_roles,
+              pageUrl: current.page_url,
+              pageVisitedBy: current.page_visited_by,
+              uiContext: current.ui_context,
+            }),
+          )
 
           if (current.raw_request) {
             lines.push("", "## Raw HTTP Request", "```", current.raw_request, "```")

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index, primaryKey } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer, real, index, primaryKey } from "drizzle-orm/sqlite-core"
 import { ProjectTable } from "../project/project.sql"
 import type { MessageV2 } from "./message-v2"
 import type { Snapshot } from "@/snapshot"
@@ -130,6 +130,23 @@ export const RequestTable = sqliteTable(
     body_hash: text(),
     query_hash: text(),
     status: text().notNull(),
+    // Hackbrowser enrichment fields (nullable — not sent by Firefox extension)
+    trigger_element: text(),
+    element_roles: text({ mode: "json" }).$type<string[]>(),
+    ui_context: text({ mode: "json" }).$type<Record<string, unknown>>(),
+    page_url: text(),
+    page_visited_by: text({ mode: "json" }).$type<string[]>(),
+    // normalize-proto pipeline fields (nullable — legacy rows pre-date this).
+    // canonical_path is the lowercased + percent-decoded form used for cache
+    // identity; normalized_path holds the placeholder template (e.g. /users/{id}).
+    scheme: text(), // "http" | "https"
+    host: text(),
+    port: integer(),
+    origin: text(), // scheme://host:port
+    site: text(), // eTLD+1, populated by parser; not yet indexed
+    canonical_path: text(),
+    template_id: text(), // soft pointer to endpoint_template.id
+    norm_source: text(), // "tier1" | "tier2" | "tier3" | "failed"
     // Response fields
     response_status: integer(),
     response_headers: text({ mode: "json" }).$type<Record<string, string>>(),
@@ -142,6 +159,7 @@ export const RequestTable = sqliteTable(
     index("request_session_idx").on(table.session_id),
     index("request_normalized_idx").on(table.session_id, table.method, table.normalized_path),
     index("request_credential_idx").on(table.credential_id),
+    index("request_template_idx").on(table.template_id),
   ],
 )
 
@@ -243,11 +261,39 @@ export const WebFunctionTable = sqliteTable(
       .references(() => RequestTable.id, { onDelete: "cascade" }),
     role_id: text(),
     objects: text({ mode: "json" }).$type<string[]>(),
+    template_id: text(), // soft pointer to endpoint_template.id
     ...Timestamps,
   },
   (table) => [
     index("web_function_session_idx").on(table.session_id),
     index("web_function_request_idx").on(table.request_id),
+  ],
+)
+
+// Endpoint template cache for the 4-tier path normalizer.
+// One row per (session, origin, method, template). Tier 2 reads it during
+// path normalization; tier 1 / tier 3 write it as new shapes are discovered.
+// FK on session_id ensures templates are gc'd when a session is deleted.
+export const EndpointTemplateTable = sqliteTable(
+  "endpoint_template",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    origin: text().notNull(), // scheme://host:port
+    method: text().notNull(),
+    template: text().notNull(), // e.g. /users/{id}/posts/{id}
+    segment_count: integer().notNull(), // pre-computed for O(1) bucket reject
+    source: text().notNull(), // "tier1" | "tier3-llm"
+    confidence: real().notNull(), // 1.0 for tier1, 0.8 for tier3-llm
+    hit_count: integer().notNull(),
+    ...Timestamps,
+  },
+  (table) => [
+    index("endpoint_template_session_idx").on(table.session_id),
+    index("endpoint_template_lookup_idx").on(table.session_id, table.origin, table.method, table.segment_count),
+    index("endpoint_template_unique_idx").on(table.session_id, table.origin, table.method, table.template),
   ],
 )
 

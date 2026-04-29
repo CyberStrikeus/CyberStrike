@@ -138,6 +138,7 @@ export type UserMessage = {
     [key: string]: boolean
   }
   variant?: string
+  excludeHistory?: boolean
 }
 
 export type ProviderAuthError = {
@@ -702,6 +703,21 @@ export type Request = {
   body_hash?: string
   query_hash?: string
   status: "queued" | "processing" | "processed"
+  trigger_element?: string
+  element_roles?: Array<string>
+  ui_context?: {
+    [key: string]: unknown
+  }
+  page_url?: string
+  page_visited_by?: Array<string>
+  scheme?: "http" | "https"
+  host?: string
+  port?: number
+  origin?: string
+  site?: string
+  canonical_path?: string
+  template_id?: string
+  norm_source?: "tier1" | "tier2" | "tier3" | "failed"
   response_status?: number
   response_headers?: {
     [key: string]: string
@@ -743,6 +759,41 @@ export type EventWebCredentialUpdated = {
   properties: {
     sessionID: string
     credentials: Array<WebCredential>
+  }
+}
+
+export type SessionQueueStatus = {
+  paused: boolean
+  pending: number
+}
+
+export type EventSessionQueueStatus = {
+  type: "session.queue.status"
+  properties: {
+    sessionID: string
+    status: SessionQueueStatus
+  }
+}
+
+export type HackbrowserPhase = "starting" | "crawling" | "completed" | "failed"
+
+export type HackbrowserStatus = {
+  sessionID: string
+  phase: HackbrowserPhase
+  targetUrl: string
+  pagesExplored: number
+  capturedEndpoints: number
+  currentPage?: string
+  errors: Array<string>
+  startedAt: number
+  finishedAt?: number
+}
+
+export type EventSessionHackbrowserStatus = {
+  type: "session.hackbrowser.status"
+  properties: {
+    sessionID: string
+    status: HackbrowserStatus
   }
 }
 
@@ -795,6 +846,139 @@ export type EventVulnerabilityUpdated = {
   properties: {
     sessionID: string
     vulnerabilities: Array<Vulnerability>
+  }
+}
+
+export type EndpointTemplate = {
+  id: string
+  session_id: string
+  origin: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  template: string
+  segment_count: number
+  source: "tier1" | "tier3-llm"
+  confidence: number
+  hit_count: number
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventEndpointTemplateUpdated = {
+  type: "endpoint_template.updated"
+  properties: {
+    sessionID: string
+    templates: Array<EndpointTemplate>
+  }
+}
+
+export type WebFunction = {
+  id: string
+  session_id: string
+  name: string
+  action_type: "create" | "read" | "update" | "delete"
+  request_id: string
+  role_id?: string
+  objects?: Array<string>
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebFunctionUpdated = {
+  type: "web_function.updated"
+  properties: {
+    sessionID: string
+    functions: Array<WebFunction>
+  }
+}
+
+export type WebObject = {
+  id: string
+  session_id: string
+  name: string
+  fields?: Array<string>
+  sensitive_fields?: Array<string>
+  id_fields?: Array<string>
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectUpdated = {
+  type: "web_object.updated"
+  properties: {
+    sessionID: string
+    objects: Array<WebObject>
+  }
+}
+
+export type WebObjectValue = {
+  id: string
+  session_id: string
+  object_id: string
+  field_name: string
+  value: string
+  credential_id?: string
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectValueUpdated = {
+  type: "web_object_value.updated"
+  properties: {
+    sessionID: string
+    objectID: string
+    values: Array<WebObjectValue>
+  }
+}
+
+export type WebRole = {
+  id: string
+  session_id: string
+  name: string
+  level?: number
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRoleUpdated = {
+  type: "web_role.updated"
+  properties: {
+    sessionID: string
+    roles: Array<WebRole>
+  }
+}
+
+export type WebRetest = {
+  id: string
+  session_id: string
+  request_id: string
+  trigger_type: "new_role" | "new_object_value" | "new_credential"
+  trigger_source: string
+  status: "pending" | "processing" | "completed"
+  priority: "high" | "medium" | "low"
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRetestUpdated = {
+  type: "web_retest.updated"
+  properties: {
+    sessionID: string
+    queue: Array<WebRetest>
   }
 }
 
@@ -864,115 +1048,6 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
-  }
-}
-
-export type WebRole = {
-  id: string
-  session_id: string
-  name: string
-  level?: number
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebRoleUpdated = {
-  type: "web_role.updated"
-  properties: {
-    sessionID: string
-    roles: Array<WebRole>
-  }
-}
-
-export type WebRetest = {
-  id: string
-  session_id: string
-  request_id: string
-  trigger_type: "new_role" | "new_object_value" | "new_credential"
-  trigger_source: string
-  status: "pending" | "processing" | "completed"
-  priority: "high" | "medium" | "low"
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebRetestUpdated = {
-  type: "web_retest.updated"
-  properties: {
-    sessionID: string
-    queue: Array<WebRetest>
-  }
-}
-
-export type WebObject = {
-  id: string
-  session_id: string
-  name: string
-  fields?: Array<string>
-  sensitive_fields?: Array<string>
-  id_fields?: Array<string>
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebObjectUpdated = {
-  type: "web_object.updated"
-  properties: {
-    sessionID: string
-    objects: Array<WebObject>
-  }
-}
-
-export type WebObjectValue = {
-  id: string
-  session_id: string
-  object_id: string
-  field_name: string
-  value: string
-  credential_id?: string
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebObjectValueUpdated = {
-  type: "web_object_value.updated"
-  properties: {
-    sessionID: string
-    objectID: string
-    values: Array<WebObjectValue>
-  }
-}
-
-export type WebFunction = {
-  id: string
-  session_id: string
-  name: string
-  action_type: "create" | "read" | "update" | "delete"
-  request_id: string
-  role_id?: string
-  objects?: Array<string>
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebFunctionUpdated = {
-  type: "web_function.updated"
-  properties: {
-    sessionID: string
-    functions: Array<WebFunction>
   }
 }
 
@@ -1159,19 +1234,22 @@ export type Event =
   | EventFileWatcherUpdated
   | EventRequestUpdated
   | EventWebCredentialUpdated
+  | EventSessionQueueStatus
+  | EventSessionHackbrowserStatus
   | EventTodoUpdated
   | EventVulnerabilityUpdated
+  | EventEndpointTemplateUpdated
+  | EventWebFunctionUpdated
+  | EventWebObjectUpdated
+  | EventWebObjectValueUpdated
+  | EventWebRoleUpdated
+  | EventWebRetestUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
-  | EventWebRoleUpdated
-  | EventWebRetestUpdated
-  | EventWebObjectUpdated
-  | EventWebObjectValueUpdated
-  | EventWebFunctionUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -3264,6 +3342,143 @@ export type SessionStatusResponses = {
 
 export type SessionStatusResponse = SessionStatusResponses[keyof SessionStatusResponses]
 
+export type SessionQueueStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/session/queue/status"
+}
+
+export type SessionQueueStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SessionQueueStatusError = SessionQueueStatusErrors[keyof SessionQueueStatusErrors]
+
+export type SessionQueueStatusResponses = {
+  /**
+   * Queue status map keyed by sessionID
+   */
+  200: {
+    [key: string]: SessionQueueStatus
+  }
+}
+
+export type SessionQueueStatusResponse = SessionQueueStatusResponses[keyof SessionQueueStatusResponses]
+
+export type SessionHackbrowserLaunchData = {
+  body?: {
+    target: string
+    credentials?: Array<string>
+    scope?: Array<string>
+    exclude?: Array<string>
+    steps?: number
+    headless?: boolean
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/hackbrowser/launch"
+}
+
+export type SessionHackbrowserLaunchErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionHackbrowserLaunchError = SessionHackbrowserLaunchErrors[keyof SessionHackbrowserLaunchErrors]
+
+export type SessionHackbrowserLaunchResponses = {
+  /**
+   * Crawl successfully kicked off; returns sessionID + started flag + status message
+   */
+  200: {
+    sessionID: string
+    started: boolean
+    message: string
+  }
+}
+
+export type SessionHackbrowserLaunchResponse =
+  SessionHackbrowserLaunchResponses[keyof SessionHackbrowserLaunchResponses]
+
+export type SessionHackbrowserStopData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/hackbrowser/stop"
+}
+
+export type SessionHackbrowserStopErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionHackbrowserStopError = SessionHackbrowserStopErrors[keyof SessionHackbrowserStopErrors]
+
+export type SessionHackbrowserStopResponses = {
+  /**
+   * true when a run was cancelled, false when no active run
+   */
+  200: boolean
+}
+
+export type SessionHackbrowserStopResponse = SessionHackbrowserStopResponses[keyof SessionHackbrowserStopResponses]
+
+export type SessionHackbrowserStatusData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/session/hackbrowser/status"
+}
+
+export type SessionHackbrowserStatusErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type SessionHackbrowserStatusError = SessionHackbrowserStatusErrors[keyof SessionHackbrowserStatusErrors]
+
+export type SessionHackbrowserStatusResponses = {
+  /**
+   * Hackbrowser status map keyed by sessionID
+   */
+  200: {
+    [key: string]: HackbrowserStatus
+  }
+}
+
+export type SessionHackbrowserStatusResponse =
+  SessionHackbrowserStatusResponses[keyof SessionHackbrowserStatusResponses]
+
 export type SessionDeleteData = {
   body?: never
   path: {
@@ -3881,6 +4096,32 @@ export type SessionIngestData = {
        */
       body: string
     }
+    /**
+     * UI element that triggered this request (role:label)
+     */
+    trigger_element?: string
+    /**
+     * Roles that can see the trigger element
+     */
+    element_roles?: Array<string>
+    /**
+     * UI form context at request time
+     */
+    ui_context?: {
+      [key: string]: unknown
+    }
+    /**
+     * Page being explored when request was captured
+     */
+    page_url?: string
+    /**
+     * Roles that can visit this page
+     */
+    page_visited_by?: Array<string>
+    /**
+     * URL scheme of the captured request; inferred from Host header / port when omitted
+     */
+    scheme?: "http" | "https"
   }
   path?: never
   query?: {
@@ -4010,6 +4251,72 @@ export type SessionAbortResponses = {
 }
 
 export type SessionAbortResponse = SessionAbortResponses[keyof SessionAbortResponses]
+
+export type SessionQueuePauseData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/queue/pause"
+}
+
+export type SessionQueuePauseErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionQueuePauseError = SessionQueuePauseErrors[keyof SessionQueuePauseErrors]
+
+export type SessionQueuePauseResponses = {
+  /**
+   * Paused
+   */
+  200: boolean
+}
+
+export type SessionQueuePauseResponse = SessionQueuePauseResponses[keyof SessionQueuePauseResponses]
+
+export type SessionQueueResumeData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/queue/resume"
+}
+
+export type SessionQueueResumeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionQueueResumeError = SessionQueueResumeErrors[keyof SessionQueueResumeErrors]
+
+export type SessionQueueResumeResponses = {
+  /**
+   * Resumed
+   */
+  200: boolean
+}
+
+export type SessionQueueResumeResponse = SessionQueueResumeResponses[keyof SessionQueueResumeResponses]
 
 export type SessionUnshareData = {
   body?: never
@@ -4196,6 +4503,7 @@ export type SessionPromptData = {
     format?: OutputFormat
     system?: string
     variant?: string
+    excludeHistory?: boolean
     parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
   }
   path: {
@@ -4384,6 +4692,7 @@ export type SessionPromptAsyncData = {
     format?: OutputFormat
     system?: string
     variant?: string
+    excludeHistory?: boolean
     parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
   }
   path: {

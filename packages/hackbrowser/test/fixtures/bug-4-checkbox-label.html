@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BUG-4 SPA fixture — checkbox labels wrapped in parent label element</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      // Classic web pattern rendered in SPA style: <label><input/>text</label>
+      // Used by Bootstrap, Tailwind UI, Material UI, Ant Design, Chakra, etc.
+      // Scanner.getLabel must resolve to the parent-label's textContent.
+      function render() {
+        document.getElementById("app").innerHTML = `
+        <form id="settings-form" novalidate>
+
+          <!-- Pattern 1: input wrapped directly in <label> (most common) -->
+          <label><input type="checkbox" name="notifications" checked> Enable Notifications</label>
+
+          <!-- Pattern 2: input + sibling text (no for= attribute) -->
+          <label><input type="checkbox" name="darkMode"> Dark Mode</label>
+
+          <!-- Pattern 3: input + <span> sibling for styling (Material/Chakra-like) -->
+          <label>
+            <input type="checkbox" name="marketing">
+            <span>Receive marketing emails</span>
+          </label>
+
+          <!-- Pattern 4: radio with wrapped label (BUG-4 applies to radios too) -->
+          <fieldset>
+            <legend>Theme</legend>
+            <label><input type="radio" name="theme" value="light" checked> Light</label>
+            <label><input type="radio" name="theme" value="dark"> Dark</label>
+            <label><input type="radio" name="theme" value="auto"> Auto</label>
+          </fieldset>
+
+          <!-- Regression guard: input with aria-label should still use aria-label, not parent text -->
+          <label>
+            <input type="checkbox" name="priority" aria-label="Priority User">
+            (beta feature)
+          </label>
+
+          <!-- Regression guard: input with label[for=id] should still use that -->
+          <label for="newsletter-cb">Newsletter subscription</label>
+          <input type="checkbox" id="newsletter-cb" name="newsletter">
+
+          <button type="submit">Save Settings</button>
+        </form>
+      `
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", render)
+      } else {
+        render()
+      }
+    </script>
+  </body>
+</html>

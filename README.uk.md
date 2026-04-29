@@ -137,13 +137,12 @@ CyberStrike постачається з 13+ агентами, спеціальн
 
 CyberStrike підключається до спеціалізованих MCP-серверів, що розширюють його можливості:
 
-| Сервер                                                                 | Інструменти | Що додає                                                                        |
-| ---------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------- |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | 39          | Тестування безпеки через браузер — XSS, CSRF, маніпуляція DOM, крадіжка cookies |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38          | Аудит хмарної безпеки — 60+ перевірок для AWS, Azure, GCP                       |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39          | Стан безпеки GitHub — repo, org, actions, secrets, supply chain                 |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23          | Розвідка CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                        |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37          | Розвідка OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS         |
+| Сервер                                                                 | Інструменти | Що додає                                                                |
+| ---------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38          | Аудит хмарної безпеки — 60+ перевірок для AWS, Azure, GCP               |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39          | Стан безпеки GitHub — repo, org, actions, secrets, supply chain         |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23          | Розвідка CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37          | Розвідка OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 Усе з відкритим кодом. Усе встановлюється через `npx`. Підключайте до CyberStrike або використовуйте автономно з будь-яким MCP-клієнтом.
 
@@ -250,7 +249,6 @@ CyberStrike is the core platform. These MCP servers extend its capabilities:
 | Project                                                                | Domain                                  | Tools                                 |
 | ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
 | **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [hackbrowser-mcp](https://github.com/badchars/hackbrowser-mcp)         | Browser-based security testing          | 39 tools, Firefox, injection testing  |
 | [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
 | [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
 | [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |

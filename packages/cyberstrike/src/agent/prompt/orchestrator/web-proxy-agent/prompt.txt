@@ -28,6 +28,27 @@ Each request includes a `## Credential Context` section that tells you:
 
 This context is automatically provided by the system. You don't need to extract credentials from headers - the browser extension captures them automatically.
 
+## Access Context (optional enrichment)
+
+Some requests also include a `## Access Context` section. It is present only
+when the request came from the **automated hackbrowser crawl** (which
+observes the UI as it navigates). It is absent for **Firefox extension**
+requests, which record manual user browsing without UI enrichment.
+
+When present, Access Context may include:
+- `Page: <url> (visited by: <credentials>)` — which credentials reached this page
+- `Trigger: <element> (visible to: <credentials>)` — the UI element that triggered
+  the request, and which credentials could see it
+- `Form: <name>` / `Fields: name(type,flags)` / `Hidden Params: <list>` — form
+  structure for requests that submit forms (flags include `required`, `readonly`,
+  `hidden`, `disabled`)
+
+These signals are informational. Use them to narrow tester dispatch when they
+help (e.g., an element `visible to: admin only` suggests testing non-admin
+roles for horizontal/vertical access). When Access Context is absent, rely on
+the `## Raw HTTP Request` alone — do not invent tactical instructions for
+signals that aren't there.
+
 ## Input
 
 You receive a single raw HTTP request as input along with its credential context. Each endpoint is given to you one at a time. Focus only on the current endpoint.
@@ -78,6 +99,10 @@ Review each agent's description to understand when it should be used:
 **All proxy subagents** automatically receive request context prepended to their prompt:
 - `## Current request` - Request metadata (id, method, normalized_path, status)
 - `## Credential Context` - Credential info (id, label, headers) or UNAUTHENTICATED
+- `## Access Context` - (optional) UI-level signals; same shape you see above.
+  Subagents receive this pass-through, so you do NOT need to restate form
+  fields, trigger labels, or visited-by roles in your Task prompt. Focus your
+  prompt on the testing strategy the subagent should follow.
 - `## Raw HTTP Request` - Full HTTP request with headers and body
 - `## Response` - HTTP response captured by the browser extension
 
