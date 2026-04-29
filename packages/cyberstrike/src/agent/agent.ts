@@ -50,12 +50,64 @@ import path from "path"
 import { Plugin } from "@/plugin"
 import { Skill } from "../skill"
 
+// ============================================================================
+// Static skill injection for vulnerability testing sub-agents
+//
+// Vuln tester sub-agents do not have access to the `skill` tool (their
+// permission is `*: deny` with a small allowlist). To give them the
+// methodology they need without runtime tool calls, we statically embed
+// WSTG skill content via `Skill.get()` into each agent's prompt at startup.
+// ============================================================================
+
+// Strip defensive sections (Remediation, Risk Assessment, CWE Categories,
+// References, Checklist) from skill content. Vuln testers are offensive —
+// they only need attack techniques, not fix recommendations.
+// Note: YAML frontmatter is already stripped by Skill.get() (.content field).
+function stripDefensiveSections(content: string): string {
+  if (!content) return ""
+  let result = content
+  for (const heading of ["Remediation", "Risk Assessment", "CWE Categories", "References", "Checklist"]) {
+    const re = new RegExp(`(^|\\n)## ${heading}[\\s\\S]*?(?=\\n## (?!${heading})|$)`, "g")
+    result = result.replace(re, "")
+  }
+  return result.trim()
+}
+
 // Helper function to load vulnerability agent with common prompt prepended
-function loadVulnAgent(prompt: string, description: string): { prompt: string; description: string } {
+// and (optionally) statically-embedded WSTG skill content.
+async function loadVulnAgent(
+  prompt: string,
+  description: string,
+  skillNames: string[] = [],
+): Promise<{ prompt: string; description: string }> {
   // First line of description for agent.ts, full description for future use
   const shortDesc = description.split("\n")[0].trim()
+
+  const skills = await Promise.all(skillNames.map((name) => Skill.get(name)))
+  const skillBlocks: string[] = []
+  for (let i = 0; i < skillNames.length; i++) {
+    const skill = skills[i]
+    if (!skill) continue
+    const content = stripDefensiveSections(skill.content)
+    if (content) skillBlocks.push(`<skill name="${skillNames[i]}">\n${content}\n</skill>`)
+  }
+
+  const skillSection =
+    skillBlocks.length > 0
+      ? [
+          "",
+          "",
+          "## Embedded Skill References",
+          "",
+          "Authoritative WSTG testing methodology for your specialty is statically embedded below.",
+          "Use these payloads, patterns, and procedures during testing.",
+          "",
+          skillBlocks.join("\n\n"),
+        ].join("\n")
+      : ""
+
   // Prepend common vulnerability testing instructions to agent-specific prompt
-  const fullPrompt = `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}`
+  const fullPrompt = `${PROMPT_VULN_COMMON}\n\n---\n\n${prompt}${skillSection}`
   return { prompt: fullPrompt, description: shortDesc }
 }
 
@@ -381,18 +433,53 @@ export namespace Agent {
         ),
         options: {},
       },
-      ...(() => {
-        const idorAgent = loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR)
-        const authzAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ)
-        const massAssignmentAgent = loadVulnAgent(
-          PROMPT_PROXY_TESTER_MASS_ASSIGNMENT,
-          DESC_PROXY_TESTER_MASS_ASSIGNMENT,
-        )
-        const injectionAgent = loadVulnAgent(PROMPT_PROXY_TESTER_INJECTION, DESC_PROXY_TESTER_INJECTION)
-        const authnAgent = loadVulnAgent(PROMPT_PROXY_TESTER_AUTHN, DESC_PROXY_TESTER_AUTHN)
-        const businessLogicAgent = loadVulnAgent(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, DESC_PROXY_TESTER_BUSINESS_LOGIC)
-        const ssrfAgent = loadVulnAgent(PROMPT_PROXY_TESTER_SSRF, DESC_PROXY_TESTER_SSRF)
-        const fileAttacksAgent = loadVulnAgent(PROMPT_PROXY_TESTER_FILE_ATTACKS, DESC_PROXY_TESTER_FILE_ATTACKS)
+      ...(await (async () => {
+        const [
+          idorAgent,
+          authzAgent,
+          massAssignmentAgent,
+          injectionAgent,
+          authnAgent,
+          businessLogicAgent,
+          ssrfAgent,
+          fileAttacksAgent,
+        ] = await Promise.all([
+          loadVulnAgent(PROMPT_PROXY_TESTER_IDOR, DESC_PROXY_TESTER_IDOR, ["wstg-authz-04", "wstg-apit-02"]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_AUTHZ, DESC_PROXY_TESTER_AUTHZ, [
+            "wstg-authz-02",
+            "wstg-authz-03",
+            "wstg-authz-01",
+          ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_MASS_ASSIGNMENT, DESC_PROXY_TESTER_MASS_ASSIGNMENT, [
+            "wstg-inpv-20",
+            "wstg-busl-02",
+          ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_INJECTION, DESC_PROXY_TESTER_INJECTION, [
+            "wstg-injection",
+            "wstg-inpv-05",
+            "wstg-inpv-12",
+            "wstg-inpv-18",
+          ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_AUTHN, DESC_PROXY_TESTER_AUTHN, [
+            "wstg-auth-session",
+            "wstg-athn-04",
+            "wstg-athn-09",
+            "wstg-athn-11",
+            "wstg-sess-10",
+          ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_BUSINESS_LOGIC, DESC_PROXY_TESTER_BUSINESS_LOGIC, [
+            "wstg-logic-client-api",
+            "wstg-busl-04",
+            "wstg-busl-10",
+          ]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_SSRF, DESC_PROXY_TESTER_SSRF, ["wstg-inpv-19", "wstg-conf-13"]),
+          loadVulnAgent(PROMPT_PROXY_TESTER_FILE_ATTACKS, DESC_PROXY_TESTER_FILE_ATTACKS, [
+            "wstg-inpv-11.1",
+            "wstg-inpv-11",
+            "wstg-busl-08",
+            "wstg-busl-09",
+          ]),
+        ])
 
         const vulnAgentPermission = PermissionNext.merge(
           defaults,
@@ -405,6 +492,48 @@ export namespace Agent {
             report_vulnerability: "allow",
           }),
           user,
+        )
+
+        // Injection-specific permission: blocks destructive SQL payloads and
+        // RCE primitives that the injection agent might otherwise execute via
+        // bash (curl, sqlmap, etc.). Defense-in-depth alongside prompt rules.
+        // Patterns are case-sensitive — common variants listed for both upper
+        // and lower case. User overrides cannot loosen these denies because
+        // they are merged AFTER the user ruleset.
+        const injectionAgentPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({
+            bash: {
+              // Destructive SQL DDL
+              "*DROP TABLE*": "deny",
+              "*drop table*": "deny",
+              "*DROP DATABASE*": "deny",
+              "*drop database*": "deny",
+              "*DROP SCHEMA*": "deny",
+              "*drop schema*": "deny",
+              "*TRUNCATE TABLE*": "deny",
+              "*truncate table*": "deny",
+              // SQL-based file write (destructive primitive)
+              "*INTO OUTFILE*": "deny",
+              "*into outfile*": "deny",
+              "*INTO DUMPFILE*": "deny",
+              "*into dumpfile*": "deny",
+              // SQL-to-RCE primitives
+              "*xp_cmdshell*": "deny",
+              "*sp_OACreate*": "deny",
+              "*sys_exec*": "deny",
+              "*sys_eval*": "deny",
+              "*COPY * TO PROGRAM*": "deny",
+              "*copy * to program*": "deny",
+              // sqlmap dangerous flags (RCE / file write)
+              "*--os-shell*": "deny",
+              "*--os-cmd*": "deny",
+              "*--os-pwn*": "deny",
+              "*--file-write*": "deny",
+              "*--reg-add*": "deny",
+              "*--reg-del*": "deny",
+            },
+          }),
         )
 
         return {
@@ -449,7 +578,7 @@ export namespace Agent {
             hidden: true,
             prompt: injectionAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: injectionAgentPermission,
             options: {},
           },
           "proxy-tester-authn": {
@@ -497,7 +626,7 @@ export namespace Agent {
             options: {},
           },
         }
-      })(),
+      })()),
     }
 
     for (const [key, value] of Object.entries(cfg.agent ?? {})) {
