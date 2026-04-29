@@ -1,22 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>BUG-19 SPA fixture — scope resolution (form / dialog / table-row / form-less)</title>
-</head>
-<body>
-  <div id="app"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>BUG-19 SPA fixture — scope resolution (form / dialog / table-row / form-less)</title>
+  </head>
+  <body>
+    <div id="app"></div>
 
-  <script>
-    // SPA mount — 4 scope scenarios rendered together, so one snapshot call can
-    // exercise all branches by picking different triggers:
-    //   1. Contact form  (submit button inside <form>)  → form scope
-    //   2. Feedback form (separate sibling <form>)       → form scope (must NOT see contact fields)
-    //   3. Modal dialog  (role=dialog, input without form inside) → dialog scope
-    //   4. Users table   (delete button in <tr>, no form ancestor)  → empty fields
-    //   5. Form-less card (div-wrapped input + onClick button, no form, no dialog) → empty (known limitation)
-    function render() {
-      document.getElementById("app").innerHTML = `
+    <script>
+      // SPA mount — 4 scope scenarios rendered together, so one snapshot call can
+      // exercise all branches by picking different triggers:
+      //   1. Contact form  (submit button inside <form>)  → form scope
+      //   2. Feedback form (separate sibling <form>)       → form scope (must NOT see contact fields)
+      //   3. Modal dialog  (role=dialog, input without form inside) → dialog scope
+      //   4. Users table   (delete button in <tr>, no form ancestor)  → empty fields
+      //   5. Form-less card (div-wrapped input + onClick button, no form, no dialog) → empty (known limitation)
+      function render() {
+        document.getElementById("app").innerHTML = `
 
         <!-- Scenario 1: Contact form -->
         <form id="contact-form" novalidate>
@@ -62,14 +62,14 @@
           <label>Password <input type="password" name="password" value="p"></label>
           <button type="button" data-test="formless-login">Log In</button>
         </div>
-      `;
-    }
+      `
+      }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", render);
-    } else {
-      render();
-    }
-  </script>
-</body>
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", render)
+      } else {
+        render()
+      }
+    </script>
+  </body>
 </html>

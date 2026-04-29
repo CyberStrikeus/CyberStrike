@@ -137,12 +137,12 @@ CyberStrike มาพร้อมเอเจนต์ 13+ ตัวที่ส
 
 CyberStrike เชื่อมต่อกับเซิร์ฟเวอร์ MCP เฉพาะทางที่ขยายความสามารถ:
 
-| เซิร์ฟเวอร์                                                            | เครื่องมือ | สิ่งที่เพิ่มเติม                                                             |
-| ---------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------- |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38         | การตรวจสอบความปลอดภัยคลาวด์ — 60+ การตรวจสอบครอบคลุม AWS, Azure, GCP         |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39         | สถานะความปลอดภัย GitHub — repo, org, actions, secrets, supply chain          |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23         | ข่าวกรอง CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                     |
-| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37         | การสำรวจ OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS      |
+| เซิร์ฟเวอร์                                                            | เครื่องมือ | สิ่งที่เพิ่มเติม                                                        |
+| ---------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------- |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | 38         | การตรวจสอบความปลอดภัยคลาวด์ — 60+ การตรวจสอบครอบคลุม AWS, Azure, GCP    |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | 39         | สถานะความปลอดภัย GitHub — repo, org, actions, secrets, supply chain     |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | 23         | ข่าวกรอง CVE — NVD, EPSS, CISA KEV, GitHub Advisory, OSV                |
+| [osint-mcp](https://github.com/badchars/osint-mcp)                     | 37         | การสำรวจ OSINT — Shodan, VirusTotal, SecurityTrails, Censys, DNS, WHOIS |
 
 ทั้งหมดเป็นโอเพนซอร์ส ติดตั้งได้ด้วย `npx` ต่อเข้ากับ CyberStrike หรือใช้แบบสแตนด์อโลนกับ MCP client ใดก็ได้
 

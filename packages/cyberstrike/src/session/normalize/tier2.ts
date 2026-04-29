@@ -11,14 +11,7 @@
 // highest score wins, so /users/me literal beats /users/{id} placeholder.
 
 import { Identifier } from "../../id/id"
-import type {
-  EndpointTemplate,
-  Method,
-  ParsedRequest,
-  SegmentClassification,
-  Tier1Result,
-  Tier2Result,
-} from "./types"
+import type { EndpointTemplate, Method, ParsedRequest, SegmentClassification, Tier1Result, Tier2Result } from "./types"
 
 // ---------- Store contract ----------
 

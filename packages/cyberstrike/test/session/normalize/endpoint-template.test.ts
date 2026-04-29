@@ -24,8 +24,13 @@ describe("EndpointTemplate.upsert / find", () => {
   test("upsert inserts new row with hit_count=1 and ept_ id", async () => {
     await withSession(async (sessionID) => {
       const t = EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       expect(t.hit_count).toBe(1)
       expect(t.id.startsWith("ept_")).toBe(true)
@@ -36,12 +41,22 @@ describe("EndpointTemplate.upsert / find", () => {
   test("upsert is idempotent on (sessionID, origin, method, template)", async () => {
     await withSession(async (sessionID) => {
       const a = EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       const b = EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       expect(b.id).toBe(a.id)
       expect(b.hit_count).toBe(2)
@@ -52,30 +67,54 @@ describe("EndpointTemplate.upsert / find", () => {
   test("find buckets by (sessionID, origin, method, segmentCount)", async () => {
     await withSession(async (sessionID) => {
       EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/orders/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/orders/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "POST",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "POST",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
 
       const getBucket = EndpointTemplate.find({
-        sessionID, origin: ORIGIN, method: "GET", segmentCount: 3,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        segmentCount: 3,
       })
       expect(getBucket).toHaveLength(2)
 
       const postBucket = EndpointTemplate.find({
-        sessionID, origin: ORIGIN, method: "POST", segmentCount: 3,
+        sessionID,
+        origin: ORIGIN,
+        method: "POST",
+        segmentCount: 3,
       })
       expect(postBucket).toHaveLength(1)
 
       const otherSegCount = EndpointTemplate.find({
-        sessionID, origin: ORIGIN, method: "GET", segmentCount: 4,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        segmentCount: 4,
       })
       expect(otherSegCount).toHaveLength(0)
     })
@@ -84,19 +123,35 @@ describe("EndpointTemplate.upsert / find", () => {
   test("find isolates by origin (api.example.com vs app.example.com)", async () => {
     await withSession(async (sessionID) => {
       EndpointTemplate.upsert({
-        sessionID, origin: "https://api.example.com:443", method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: "https://api.example.com:443",
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       EndpointTemplate.upsert({
-        sessionID, origin: "https://app.example.com:443", method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: "https://app.example.com:443",
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
 
       const apiBucket = EndpointTemplate.find({
-        sessionID, origin: "https://api.example.com:443", method: "GET", segmentCount: 3,
+        sessionID,
+        origin: "https://api.example.com:443",
+        method: "GET",
+        segmentCount: 3,
       })
       const appBucket = EndpointTemplate.find({
-        sessionID, origin: "https://app.example.com:443", method: "GET", segmentCount: 3,
+        sessionID,
+        origin: "https://app.example.com:443",
+        method: "GET",
+        segmentCount: 3,
       })
       expect(apiBucket).toHaveLength(1)
       expect(appBucket).toHaveLength(1)
@@ -107,8 +162,13 @@ describe("EndpointTemplate.upsert / find", () => {
   test("incrementHit bumps hit_count", async () => {
     await withSession(async (sessionID) => {
       const t = EndpointTemplate.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/x", segmentCount: 2, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/x",
+        segmentCount: 2,
+        source: "tier1",
+        confidence: 1,
       })
       EndpointTemplate.incrementHit(t.id)
       EndpointTemplate.incrementHit(t.id)
@@ -127,13 +187,21 @@ describe("EndpointTemplate.upsert / find", () => {
   test("templates are scoped to their session", async () => {
     await withSession(async (sessionA) => {
       EndpointTemplate.upsert({
-        sessionID: sessionA, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID: sessionA,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       // A different session in the same DB should see no templates
       const sessionB = (await Session.createNext({ directory: "." })).id
       const found = EndpointTemplate.find({
-        sessionID: sessionB, origin: ORIGIN, method: "GET", segmentCount: 3,
+        sessionID: sessionB,
+        origin: ORIGIN,
+        method: "GET",
+        segmentCount: 3,
       })
       expect(found).toHaveLength(0)
     })
@@ -145,8 +213,13 @@ describe("DBTemplateStore — TemplateStore adapter contract", () => {
     await withSession(async (sessionID) => {
       const store = new DBTemplateStore()
       store.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       const rows = store.find(sessionID, ORIGIN, "GET", 3)
       expect(rows).toHaveLength(1)
@@ -163,12 +236,22 @@ describe("DBTemplateStore — TemplateStore adapter contract", () => {
     await withSession(async (sessionID) => {
       const store = new DBTemplateStore()
       const a = store.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       const b = store.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/users/{id}", segmentCount: 3, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/users/{id}",
+        segmentCount: 3,
+        source: "tier1",
+        confidence: 1,
       })
       expect(b.id).toBe(a.id)
       expect(b.hitCount).toBe(2)
@@ -179,8 +262,13 @@ describe("DBTemplateStore — TemplateStore adapter contract", () => {
     await withSession(async (sessionID) => {
       const store = new DBTemplateStore()
       const t = store.upsert({
-        sessionID, origin: ORIGIN, method: "GET",
-        template: "/x", segmentCount: 2, source: "tier1", confidence: 1,
+        sessionID,
+        origin: ORIGIN,
+        method: "GET",
+        template: "/x",
+        segmentCount: 2,
+        source: "tier1",
+        confidence: 1,
       })
       store.incrementHit(t.id)
       const refreshed = store.find(sessionID, ORIGIN, "GET", 2)

@@ -39,7 +39,7 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     if (desc.apiKey) opts.apiKey = desc.apiKey
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
-    return (createAnthropic(opts as Parameters<typeof createAnthropic>[0]))(desc.modelApiId)
+    return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
   }
 
   if (desc.npm === "@ai-sdk/openai") {
@@ -47,7 +47,7 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     if (desc.apiKey) opts.apiKey = desc.apiKey
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
-    return (createOpenAI(opts as Parameters<typeof createOpenAI>[0]))(desc.modelApiId)
+    return createOpenAI(opts as Parameters<typeof createOpenAI>[0])(desc.modelApiId)
   }
 
   // openai-compatible, openrouter, azure, mistral, groq, deepinfra, cerebras,
@@ -67,7 +67,13 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
 
 function buildCrawlOptions(opts: WorkerOptions, signal: AbortSignal): CrawlOptions {
   const logSink = (rec: LogRecord) => {
-    send({ type: "log", level: rec.level.toLowerCase() as "debug" | "info" | "warn" | "error", service: rec.service, message: rec.message, extra: rec.extra })
+    send({
+      type: "log",
+      level: rec.level.toLowerCase() as "debug" | "info" | "warn" | "error",
+      service: rec.service,
+      message: rec.message,
+      extra: rec.extra,
+    })
   }
   const eventSink = (event: CSEvent) => {
     send({ type: "event", event })
