@@ -2,7 +2,7 @@ import { generateText, type LanguageModel } from "ai"
 import { Log } from "./log.ts"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI } from "@ai-sdk/openai"
-import type { PagePlan, PageTask, PageStateKind, RevisitTrigger } from "./types.ts"
+import type { PagePlan, PageTask, PageStateKind, RevisitTrigger, CrawlUsage } from "./types.ts"
 import type { PlannerSnapshot } from "./state.ts"
 
 // Bundle the planner prompt as text at import time. Previously this used
@@ -79,7 +79,11 @@ export async function resolveModel(override?: LanguageModel): Promise<LanguageMo
  * Called once per page (not per action step).
  * Falls back to empty plan on failure so exploration can continue.
  */
-export async function planPage(snapshot: PlannerSnapshot, model: LanguageModel): Promise<PagePlan> {
+export async function planPage(
+  snapshot: PlannerSnapshot,
+  model: LanguageModel,
+  usageAcc?: CrawlUsage,
+): Promise<PagePlan> {
   const systemPrompt = loadPlannerPrompt()
   const userMessage = JSON.stringify(snapshot)
 
@@ -91,6 +95,12 @@ export async function planPage(snapshot: PlannerSnapshot, model: LanguageModel):
       maxOutputTokens: 2048,
       temperature: 0,
     })
+
+    if (usageAcc) {
+      usageAcc.inputTokens += result.usage.inputTokens ?? 0
+      usageAcc.outputTokens += result.usage.outputTokens ?? 0
+      usageAcc.cacheReadTokens += result.usage.cachedInputTokens ?? 0
+    }
 
     const raw = result.text.trim()
     log.debug("planner response", { length: raw.length, raw: raw.slice(0, 500) })
@@ -132,6 +142,7 @@ export async function planUnexploredElements(
   snapshot: PlannerSnapshot,
   unexploredLabels: string[],
   model: LanguageModel,
+  usageAcc?: CrawlUsage,
 ): Promise<PagePlan> {
   const systemPrompt = loadPlannerPrompt()
 
@@ -162,6 +173,12 @@ export async function planUnexploredElements(
       maxOutputTokens: 2048,
       temperature: 0,
     })
+
+    if (usageAcc) {
+      usageAcc.inputTokens += result.usage.inputTokens ?? 0
+      usageAcc.outputTokens += result.usage.outputTokens ?? 0
+      usageAcc.cacheReadTokens += result.usage.cachedInputTokens ?? 0
+    }
 
     const raw = result.text.trim()
     log.debug("unexplored planner response", { length: raw.length, raw: raw.slice(0, 500) })

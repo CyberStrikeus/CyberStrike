@@ -155,6 +155,7 @@ async function runWorker(opts: WorkerOptions, signal: AbortSignal): Promise<void
       pagesExplored: result.pagesExplored,
       capturedEndpoints: result.capturedEndpoints,
       errors: result.errors,
+      usage: result.usage,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

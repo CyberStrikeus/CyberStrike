@@ -13,6 +13,7 @@ import type {
   CredentialConfig,
   CSEvent,
   CrawlResult,
+  CrawlUsage,
 } from "./types.ts"
 import { buildRawRequest, correlateWithUI, parseRequestParams } from "./capture.ts"
 import {
@@ -541,6 +542,7 @@ async function explorePageWithAI(
   inScope: ScopeMatcher,
   credentialId: string,
   maxPages: number,
+  usageAcc?: CrawlUsage,
 ): Promise<string[]> {
   const linksToEnqueue: string[] = []
   const semanticActionsDone = new Set<string>()
@@ -567,7 +569,7 @@ async function explorePageWithAI(
   const vcBlocked = await isViewportCenterBlocked(page)
   const snapshot = buildPlannerSnapshot(pageUrl, elements, globalState, credentialId, vcBlocked)
   void csEmit(page, { type: "llm-thinking", reason: "page-plan", elements: elements.length, credential: credentialId })
-  const plan = await planPage(snapshot, model)
+  const plan = await planPage(snapshot, model, usageAcc)
   log.info("page plan received", {
     tasks: plan.tasks.length,
     pageState: plan.pageState ?? "unknown",
@@ -683,7 +685,7 @@ async function explorePageWithAI(
         elements: freshElements.length,
         credential: credentialId,
       })
-      const newPlan = await planPage(snapshot, model)
+      const newPlan = await planPage(snapshot, model, usageAcc)
       applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
       if (newPlan.tasks.length > 0) {
         log.debug("re-plan after state change", {
@@ -755,7 +757,7 @@ async function explorePageWithAI(
       elements: currentElements.length,
       credential: credentialId,
     })
-    const additionalPlan = await planUnexploredElements(snap, unexplored, model)
+    const additionalPlan = await planUnexploredElements(snap, unexplored, model, usageAcc)
     applyPlanIntelligence(additionalPlan, pageUrl, globalState, credentialId, page) // Aşama 13
 
     if (additionalPlan.tasks.length === 0) break
@@ -849,7 +851,7 @@ async function explorePageWithAI(
           elements: freshElements.length,
           credential: credentialId,
         })
-        const newPlan = await planPage(freshSnap, model)
+        const newPlan = await planPage(freshSnap, model, usageAcc)
         applyPlanIntelligence(newPlan, pageUrl, globalState, credentialId, page) // Aşama 13
         if (newPlan.tasks.length > 0) {
           void csEmit(page, {
@@ -1503,6 +1505,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   const dryRun = config.dryRun ?? false
   const panelOn = config.panel ?? true
   setPanelEnabled(panelOn)
+  const usageAcc: CrawlUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
 
   logScope(targetUrl, scopePatterns, !!config.scope)
 
@@ -1778,6 +1781,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
         inScope,
         ctx.id,
         maxPages,
+        usageAcc,
       )
       for (const url of discovered) {
         enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
@@ -1837,6 +1841,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     pagesExplored,
     totalSteps: globalState.totalSteps,
     errors: [],
+    usage: usageAcc,
   }
 }
 
@@ -1859,6 +1864,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   const serverUrl = config.cyberstrike.serverUrl ?? "http://127.0.0.1:4096"
   const maxPages = config.maxSteps ?? 50
   const dryRun = config.dryRun ?? false
+  const usageAcc: CrawlUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
   let credentialId = config.cyberstrike.credentialId
   const panelOn = config.panel ?? true
   setPanelEnabled(panelOn)
@@ -2113,6 +2119,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       inScope,
       SINGLE_CRED,
       maxPages,
+      usageAcc,
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
@@ -2181,5 +2188,6 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     pagesExplored,
     totalSteps: globalState.totalSteps,
     errors: [],
+    usage: usageAcc,
   }
 }

@@ -40,6 +40,7 @@ export namespace HackbrowserStatus {
       errors: z.array(z.string()),
       startedAt: z.number().int(),
       finishedAt: z.number().int().optional(),
+      cost: z.number().optional(),
     })
     .meta({
       ref: "HackbrowserStatus",
