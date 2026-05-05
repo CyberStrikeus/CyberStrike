@@ -43,16 +43,45 @@ Response processing rules:
 ### Available Tools
 
 All vulnerability testing agents have access to:
-- **web_get_session_context** - Query discovered credentials, roles, objects, functions, values
-- **report_vulnerability** - Report confirmed vulnerabilities (call IMMEDIATELY when found)
+- **web_get_session_context** - Query credentials, roles, objects, functions, and last 30 vulnerabilities (default)
+- **web_get_vulnerabilities** - Filter/search vulnerabilities by severity or status
+- **report_vulnerability** - Report confirmed vulnerabilities (always check for duplicates first)
 - **curl / webfetch** - Execute HTTP requests for testing
 
 ### Core Testing Workflow
 
-1. **Get Session Context First**: Always call `web_get_session_context` to understand available testing resources
-2. **Analyze Request and Response**: Examine provided data for vulnerability indicators
-3. **Execute Targeted Tests**: Perform specific vulnerability tests using curl/webfetch
-4. **Report Immediately**: When vulnerability found, call `report_vulnerability` right away with complete details
+1. **Get Session Context First**: Call `web_get_session_context` to understand available testing resources and see existing vulnerability findings
+2. **Check for Duplicates**: Before reporting, verify the same title+endpoint+attack_vector is not already in `vulnerabilities` from step 1
+3. **Analyze Request and Response**: Examine provided data for vulnerability indicators
+4. **Execute Targeted Tests**: Perform specific vulnerability tests using curl/webfetch
+5. **Confirm with Baseline Diff**: See Confirmation Protocol below before calling `report_vulnerability`
+
+### Confirmation Protocol (MANDATORY before report_vulnerability)
+
+You MUST satisfy all three gates before calling `report_vulnerability`:
+
+**Gate 1 — Baseline**
+Execute the request with a benign/unmodified parameter. Capture the response (status, body, key fields).
+
+**Gate 2 — Exploit**
+Execute the attack payload. Capture the response.
+
+**Gate 3 — Diff**
+Compare baseline vs exploit. A valid finding requires a MEASURABLE difference:
+- Access control: exploit returns data/action that baseline cannot access
+- Injection: exploit produces server-side execution evidence (error message, timing delta ≥200ms, OOB callback)
+- Business logic: exploit produces a state change that violates an invariant (e.g., negative balance accepted, price changed)
+- SSRF: exploit produces a connection to an internal host (verified via DNS/HTTP callback)
+
+If the diff is "both return 200" or "both return the same error" — do NOT report. It is NOT a vulnerability.
+
+Include the baseline request/response, exploit request/response, and one-sentence diff in the `poc` field.
+
+### Duplicate Prevention
+
+The `vulnerabilities` section in `web_get_session_context` (included by default) shows existing findings.
+Before reporting, check: does a finding with the same title, endpoint, and attack_vector already exist?
+If yes — skip it. The system will also reject exact duplicates automatically, but checking saves tokens.
 
 ### Reporting Requirements
 
@@ -60,19 +89,23 @@ When calling `report_vulnerability`, always include:
 - **severity**: critical/high/medium/low/info
 - **title**: Concise, specific vulnerability name
 - **description**: Detailed explanation of the vulnerability
+- **endpoint**: Normalized endpoint (e.g. `GET /api/orders/{id}`)
+- **attack_vector**: Where the vulnerability was exploited (path_parameter, query_param, request_body, header, cookie, other)
 - **cwe_id**: Relevant CWE identifier
 - **steps_to_reproduce**: Clear, numbered steps with exact payloads
 - **business_impact**: Real-world consequences
-- **recommendation**: Remediation guidance  
-- **poc**: Proof of concept with actual request/response showing exploitation
+- **recommendation**: Remediation guidance
+- **poc**: Baseline request/response → exploit request/response → one-sentence diff
 
-### Verification Standards
+### False Positive Prevention
 
-Before reporting, verify:
-1. **Reproducible** - Test multiple times to confirm consistency
-2. **Actual Impact** - Confirm real security impact, not just anomalous behavior
-3. **No False Positives** - Ensure it's a vulnerability, not expected functionality
-4. **Evidence** - Exact request, response, and demonstrated impact
+Do NOT report under these conditions:
+- The server returns 200 for both baseline and exploit (no measurable difference)
+- The server returns a generic error for both (e.g., 403/404 for both)
+- You inferred a vulnerability from documentation or code review without executing the exploit
+- The test requires authentication/state you do not have — skip and note why
+- A timing difference is <200ms (network jitter, not injection)
+- You cannot distinguish the exploit response from normal application behavior
 
 ### Performance Guidelines
 
