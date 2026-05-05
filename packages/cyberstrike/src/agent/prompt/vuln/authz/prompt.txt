@@ -113,15 +113,16 @@ curl -s -X POST "https://target.com/api/admin/users" \
 
 ## Response Analysis
 
-**Vulnerable indicators:**
-- 200 OK with protected data/functionality
-- Different response between roles when shouldn't be
-- Admin functionality accessible to regular users
+**Vulnerable indicators (ALL must be true):**
+- High-privilege credential receives a meaningful response (200 with data or action confirmation) — this is your baseline
+- Lower-privilege credential receives the SAME meaningful response to the same request
+- The data/action is one that should be restricted (admin panel, other user's data, privileged operation)
 
 **False positive checks:**
-- Cached responses
-- Public endpoints that look protected
-- Different error messages (information disclosure, not access control)
+- Cached responses — verify by adding a cache-busting query param
+- Public endpoints that look protected (e.g., /admin/status that returns "OK" to everyone)
+- Different error messages between roles — that is information disclosure, not broken access control
+- Both roles return 200 but different data — not a vulnerability if they're supposed to get different views
 
 ## Reporting
 
