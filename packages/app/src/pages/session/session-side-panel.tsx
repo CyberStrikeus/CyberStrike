@@ -283,7 +283,7 @@ function VulnDetailSection(props: { label: string; content: string | undefined }
       {(text) => (
         <div class="flex flex-col gap-0.5">
           <span class="text-11-medium text-text-weaker uppercase tracking-wider">{props.label}</span>
-          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words">{text()}</div>
+          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words select-text">{text()}</div>
         </div>
       )}
     </Show>
@@ -1020,7 +1020,7 @@ export function SessionSidePanel(props: {
                   </Show>
                 </Tabs.Content>
 
-                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden">
                   <Show when={props.activeTab() === "vulns-panel"}>
                     <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
                       <VulnsPanelList />
