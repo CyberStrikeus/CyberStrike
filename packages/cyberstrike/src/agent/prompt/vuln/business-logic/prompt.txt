@@ -334,6 +334,12 @@ X-Originating-IP: 1.2.3.6
 
 ## Step 4: Verify and Report
 
+**Confirmation requirement**: Before reporting any business logic issue, you must verify server-side state change — not just that the server returned 200.
+- For price manipulation: Confirm the order was actually created at the manipulated price (check order confirmation, balance change, or receipt)
+- For workflow bypass: Confirm the server accepted the out-of-order state (check resulting resource state, not just response code)
+- For race conditions: Confirm both requests succeeded AND that the outcome exceeds permitted limits
+- If you can only confirm the request was accepted (200 OK) but cannot verify the resulting state — do NOT report
+
 When vulnerability confirmed, call `report_vulnerability` with:
 
 **Price Manipulation:**

@@ -277,13 +277,63 @@ const statusLabel = (status: string) => {
   return "Open"
 }
 
+function formatVulnForClipboard(v: {
+  title: string
+  severity: string
+  status?: string
+  cwe_id?: string
+  endpoint?: string
+  attack_vector?: string
+  description?: string
+  steps_to_reproduce?: string
+  poc?: string
+  business_impact?: string
+  recommendation?: string
+}): string {
+  const lines: string[] = []
+  lines.push(`# [${v.severity.toUpperCase()}] ${v.title}`)
+  if (v.cwe_id) lines.push(`CWE: ${v.cwe_id}`)
+  if (v.endpoint) lines.push(`Endpoint: ${v.endpoint}`)
+  if (v.attack_vector) lines.push(`Attack Vector: ${v.attack_vector}`)
+  lines.push(`Status: ${v.status ?? "open"}`)
+  if (v.description) lines.push(`\n## Description\n${v.description}`)
+  if (v.steps_to_reproduce) lines.push(`\n## Steps to Reproduce\n${v.steps_to_reproduce}`)
+  if (v.poc) lines.push(`\n## Proof of Concept\n${v.poc}`)
+  if (v.business_impact) lines.push(`\n## Business Impact\n${v.business_impact}`)
+  if (v.recommendation) lines.push(`\n## Recommendation\n${v.recommendation}`)
+  return lines.join("\n")
+}
+
+function CopyVulnButton(props: { vuln: Parameters<typeof formatVulnForClipboard>[0] }): JSX.Element {
+  const [copied, setCopied] = createSignal(false)
+
+  const copy = (e: MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(formatVulnForClipboard(props.vuln)).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={copy}
+      class="flex items-center gap-1 text-10-medium text-text-weaker hover:text-text-base transition-colors cursor-pointer select-none"
+      title="Copy vulnerability details"
+    >
+      <Icon name={copied() ? "check" : "copy"} size="small" />
+      <span>{copied() ? "Copied!" : "Copy"}</span>
+    </button>
+  )
+}
+
 function VulnDetailSection(props: { label: string; content: string | undefined }): JSX.Element {
   return (
     <Show when={props.content}>
       {(text) => (
         <div class="flex flex-col gap-0.5">
           <span class="text-11-medium text-text-weaker uppercase tracking-wider">{props.label}</span>
-          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words">{text()}</div>
+          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words select-text">{text()}</div>
         </div>
       )}
     </Show>
@@ -360,6 +410,9 @@ function VulnsPanelList() {
                     {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
                   </span>
                 </div>
+                <Show when={isExpanded()}>
+                  <CopyVulnButton vuln={v} />
+                </Show>
                 <Icon
                   name={isExpanded() ? "chevron-down" : "chevron-right"}
                   size="small"
@@ -1020,7 +1073,7 @@ export function SessionSidePanel(props: {
                   </Show>
                 </Tabs.Content>
 
-                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden contain-strict">
+                <Tabs.Content value="vulns-panel" class="flex flex-col h-full overflow-hidden">
                   <Show when={props.activeTab() === "vulns-panel"}>
                     <div class="relative pt-2 flex-1 min-h-0 overflow-y-auto px-2">
                       <VulnsPanelList />
