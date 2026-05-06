@@ -398,6 +398,9 @@ function VulnsPanelList() {
                     {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
                   </span>
                 </div>
+                <Show when={isExpanded()}>
+                  <CopyVulnButton vuln={v} />
+                </Show>
                 <Icon
                   name={isExpanded() ? "chevron-down" : "chevron-right"}
                   size="small"
@@ -418,9 +421,6 @@ function VulnsPanelList() {
                         CWE-{v.cwe_id}
                       </span>
                     </Show>
-                    <div class="ml-auto">
-                      <CopyVulnButton vuln={v} />
-                    </div>
                   </div>
                   <Show when={v.file}>
                     <div class="flex flex-col gap-0.5">
