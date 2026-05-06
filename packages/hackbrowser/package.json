@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/hackbrowser",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "description": "AI-driven hackbrowser — autonomous web pentesting crawler with HTTP capture and UI context",
   "type": "module",
   "private": true,

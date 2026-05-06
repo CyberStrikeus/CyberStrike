@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@cyberstrike-io/plugin",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "type": "module",
   "license": "AGPL-3.0-only",
   "scripts": {
