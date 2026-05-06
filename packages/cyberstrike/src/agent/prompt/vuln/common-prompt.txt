@@ -102,6 +102,10 @@ When calling `report_vulnerability`, always include:
 Do NOT report under these conditions:
 - The server returns 200 for both baseline and exploit (no measurable difference)
 - The server returns a generic error for both (e.g., 403/404 for both)
+- **The exploit request returns 403 or 401** — this means the server IS enforcing access control. A 403 response is NOT a vulnerability; it is the correct behavior. Do NOT report it.
+- The response body contains words like "forbidden", "unauthorized", "access denied", or "not allowed" — verify the HTTP status first; if it is 4xx, do not report
+- The endpoint appears admin-only and returns 403 for your credential — skip; it is working as intended
+- A public/read-only endpoint returns the same data to all authenticated users — this is not broken access control
 - You inferred a vulnerability from documentation or code review without executing the exploit
 - The test requires authentication/state you do not have — skip and note why
 - A timing difference is <200ms (network jitter, not injection)
