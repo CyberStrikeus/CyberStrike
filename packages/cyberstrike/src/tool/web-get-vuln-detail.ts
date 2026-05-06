@@ -13,11 +13,7 @@ Maximum 10 IDs per call.`
 export const WebGetVulnDetailTool = Tool.define("web_get_vuln_detail", {
   description,
   parameters: z.object({
-    ids: z
-      .array(z.string())
-      .min(1)
-      .max(10)
-      .describe("Array of vulnerability IDs to retrieve (max 10)."),
+    ids: z.array(z.string()).min(1).max(10).describe("Array of vulnerability IDs to retrieve (max 10)."),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)

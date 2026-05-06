@@ -277,7 +277,19 @@ const statusLabel = (status: string) => {
   return "Open"
 }
 
-function formatVulnForClipboard(v: { title: string; severity: string; status?: string; cwe_id?: string; endpoint?: string; attack_vector?: string; description?: string; steps_to_reproduce?: string; poc?: string; business_impact?: string; recommendation?: string }): string {
+function formatVulnForClipboard(v: {
+  title: string
+  severity: string
+  status?: string
+  cwe_id?: string
+  endpoint?: string
+  attack_vector?: string
+  description?: string
+  steps_to_reproduce?: string
+  poc?: string
+  business_impact?: string
+  recommendation?: string
+}): string {
   const lines: string[] = []
   lines.push(`# [${v.severity.toUpperCase()}] ${v.title}`)
   if (v.cwe_id) lines.push(`CWE: ${v.cwe_id}`)

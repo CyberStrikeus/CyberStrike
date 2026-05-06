@@ -18,10 +18,7 @@ export const WebGetVulnerabilitiesTool = Tool.define("web_get_vulnerabilities", 
       .enum(["critical", "high", "medium", "low", "info"])
       .optional()
       .describe("Filter by severity. Omit to return all severities."),
-    status: z
-      .enum(["open", "fixed", "ignored"])
-      .optional()
-      .describe("Filter by status. Omit to return all statuses."),
+    status: z.enum(["open", "fixed", "ignored"]).optional().describe("Filter by status. Omit to return all statuses."),
     limit: z
       .number()
       .int()
