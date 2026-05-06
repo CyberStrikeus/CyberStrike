@@ -37,6 +37,8 @@ import { WebWriteObjectValueTool } from "./web-write-object-value"
 import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
+import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
+import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { HackbrowserTool } from "./hackbrowser"
 
@@ -146,6 +148,8 @@ export namespace ToolRegistry {
       WebWriteFunctionTool,
       WebGetSessionContextTool,
       WebGetRequestDetailTool,
+      WebGetVulnerabilitiesTool,
+      WebGetVulnDetailTool,
       WebUpdateCredentialClaimsTool,
       // Hackbrowser — autonomous crawler that produces captures the
       // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
