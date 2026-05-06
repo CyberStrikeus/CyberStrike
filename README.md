@@ -163,11 +163,48 @@ Switch between agents with `Tab`. Each one is a domain specialist.
 | **cloud-security**     | Cloud   | AWS, Azure, GCP — IAM misconfigs, CIS benchmarks, exposed resources |
 | **internal-network**   | Network | Active Directory, Kerberos attacks, lateral movement, pivoting      |
 
-Plus **8 specialized proxy testers** that intercept and manipulate traffic for targeted vulnerability classes:
+Plus **8 specialized proxy testers** that run automatically on intercepted traffic:
 
-`IDOR` · `Authorization Bypass` · `Mass Assignment` · `Injection` · `Authentication` · `Business Logic` · `SSRF` · `File Attacks`
+| Tester                   | What It Tests                                                              |
+| ------------------------ | -------------------------------------------------------------------------- |
+| **IDOR**                 | Object-level access control — can user A reach user B's resources?        |
+| **Authorization Bypass** | Vertical privilege escalation — can low-privilege users hit admin endpoints? |
+| **Mass Assignment**      | Unexpected writable fields — role, price, balance, userId in request bodies |
+| **Injection**            | SQL, command, LDAP, template injection across all input vectors            |
+| **Authentication**       | Token validation, session fixation, credential exposure                    |
+| **Business Logic**       | Price manipulation, coupon reuse, race conditions, workflow bypass         |
+| **SSRF**                 | Internal host access via user-controlled URLs or redirect parameters       |
+| **File Attacks**         | Path traversal, unrestricted upload, dangerous file types                  |
 
-Each proxy tester follows a structured methodology: intercept traffic, identify patterns, generate test cases, execute attacks, and report findings with evidence.
+Each tester uses a **3-gate confirmation protocol**: execute a baseline request, execute the attack, compare responses. A finding is only reported when there is a measurable, reproducible difference — not on speculation. Duplicate findings (same endpoint + attack vector) are automatically suppressed across the session.
+
+---
+
+### HackBrowser
+
+> Full documentation: **[docs.cyberstrike.io/docs/tools/hacker-browser](https://docs.cyberstrike.io/docs/tools/hacker-browser/)**
+
+HackBrowser is CyberStrike's built-in Chromium browser. Start it from the TUI with `/hackbrowser`. As you browse, every HTTP request is captured and routed through the proxy-agent pipeline — no manual export, no Burp project files.
+
+**Two capture modes:**
+
+- **Manual** — Browse the target yourself. Log in as different users, navigate features, trigger actions. HackBrowser captures the real API traffic behind every click.
+- **Autonomous** — Provide credentials for multiple accounts, set a scope, and let HackBrowser crawl automatically. It logs in as each user, maps reachable pages, and captures the traffic difference between roles.
+
+**Role & credential discovery:**
+
+As you browse with multiple accounts, CyberStrike builds a session context — a live map of discovered credentials, inferred role hierarchy, and which endpoints each role can reach. The 8 proxy sub-testers use this context directly: they know which token to use for a high-privilege baseline and which lower-privilege credentials to test with, without any manual setup.
+
+```
+Browser traffic → Proxy intercept → Orchestrator → 8 sub-testers (parallel)
+                                          ↓
+                               Session context (credentials, roles,
+                               endpoints, functions) shared across all testers
+```
+
+**Scope control:**
+
+Use `--scope` to limit testing to specific domains. CyberStrike automatically derives the registered domain (e.g. `--scope api.example.com` covers `api.example.com` but not `other.com`). Pass multiple `--scope` flags for multi-domain targets.
 
 ---
 
@@ -203,7 +240,7 @@ cloudflared tunnel --url http://localhost:4096 run your-tunnel
 | **MCP**             | Live MCP server status, health, and tool counts    |
 | **Bolt**            | Bolt remote server connection monitoring           |
 | **Vulnerabilities** | Discovered vulns with severity, PoC, and impact    |
-| **Web Context**     | Endpoints, roles, credentials from Firefox Capture |
+| **Web Context**     | Endpoints, roles, credentials, and functions discovered during active sessions |
 
 **[app.cyberstrike.io](https://app.cyberstrike.io)** is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.
 
@@ -262,7 +299,7 @@ CyberStrike agents have direct access to 30+ tools without any external dependen
 | **Execution**   | Shell (bash), file read/write/edit, directory listing           |
 | **Discovery**   | Web fetch, web search, code search, glob, grep                  |
 | **Security**    | Vulnerability reporting (HackerOne format), evidence collection |
-| **Proxy**       | HTTP/HTTPS interception, request replay, traffic analysis       |
+| **Proxy**       | HTTP/HTTPS interception, request replay, session context sharing across sub-testers |
 | **Integration** | MCP servers, Bolt remote tools, custom plugins                  |
 
 Plus a **plugin SDK** — build your own agents and tools, register them at runtime.
