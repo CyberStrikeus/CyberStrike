@@ -118,11 +118,13 @@ curl -s -X POST "https://target.com/api/admin/users" \
 - Lower-privilege credential receives the SAME meaningful response to the same request
 - The data/action is one that should be restricted (admin panel, other user's data, privileged operation)
 
-**False positive checks:**
+**False positive checks — do NOT report if ANY of these are true:**
+- The low-privilege request returns **403 or 401** — this is correct access control, NOT a vulnerability
+- The response body says "forbidden", "unauthorized", or "not allowed" — check the HTTP status; if 4xx, skip
+- The endpoint is genuinely public and returns the same response to everyone (e.g., /api/products, /api/status)
 - Cached responses — verify by adding a cache-busting query param
-- Public endpoints that look protected (e.g., /admin/status that returns "OK" to everyone)
-- Different error messages between roles — that is information disclosure, not broken access control
-- Both roles return 200 but different data — not a vulnerability if they're supposed to get different views
+- Different error messages between roles — information disclosure only, not broken access control
+- Both roles return 200 but with different (role-appropriate) data — not a vulnerability
 
 ## Reporting
 
