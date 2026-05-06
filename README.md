@@ -165,16 +165,16 @@ Switch between agents with `Tab`. Each one is a domain specialist.
 
 Plus **8 specialized proxy testers** that run automatically on intercepted traffic:
 
-| Tester                   | What It Tests                                                              |
-| ------------------------ | -------------------------------------------------------------------------- |
-| **IDOR**                 | Object-level access control — can user A reach user B's resources?        |
+| Tester                   | What It Tests                                                                |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| **IDOR**                 | Object-level access control — can user A reach user B's resources?           |
 | **Authorization Bypass** | Vertical privilege escalation — can low-privilege users hit admin endpoints? |
-| **Mass Assignment**      | Unexpected writable fields — role, price, balance, userId in request bodies |
-| **Injection**            | SQL, command, LDAP, template injection across all input vectors            |
-| **Authentication**       | Token validation, session fixation, credential exposure                    |
-| **Business Logic**       | Price manipulation, coupon reuse, race conditions, workflow bypass         |
-| **SSRF**                 | Internal host access via user-controlled URLs or redirect parameters       |
-| **File Attacks**         | Path traversal, unrestricted upload, dangerous file types                  |
+| **Mass Assignment**      | Unexpected writable fields — role, price, balance, userId in request bodies  |
+| **Injection**            | SQL, command, LDAP, template injection across all input vectors              |
+| **Authentication**       | Token validation, session fixation, credential exposure                      |
+| **Business Logic**       | Price manipulation, coupon reuse, race conditions, workflow bypass           |
+| **SSRF**                 | Internal host access via user-controlled URLs or redirect parameters         |
+| **File Attacks**         | Path traversal, unrestricted upload, dangerous file types                    |
 
 Each tester uses a **3-gate confirmation protocol**: execute a baseline request, execute the attack, compare responses. A finding is only reported when there is a measurable, reproducible difference — not on speculation. Duplicate findings (same endpoint + attack vector) are automatically suppressed across the session.
 
@@ -234,12 +234,12 @@ cloudflared tunnel --url http://localhost:4096 run your-tunnel
 
 **What's in the Web UI:**
 
-| Tab                 | What It Does                                       |
-| ------------------- | -------------------------------------------------- |
-| **Chat**            | Full conversation with all 13+ security agents     |
-| **MCP**             | Live MCP server status, health, and tool counts    |
-| **Bolt**            | Bolt remote server connection monitoring           |
-| **Vulnerabilities** | Discovered vulns with severity, PoC, and impact    |
+| Tab                 | What It Does                                                                   |
+| ------------------- | ------------------------------------------------------------------------------ |
+| **Chat**            | Full conversation with all 13+ security agents                                 |
+| **MCP**             | Live MCP server status, health, and tool counts                                |
+| **Bolt**            | Bolt remote server connection monitoring                                       |
+| **Vulnerabilities** | Discovered vulns with severity, PoC, and impact                                |
 | **Web Context**     | Endpoints, roles, credentials, and functions discovered during active sessions |
 
 **[app.cyberstrike.io](https://app.cyberstrike.io)** is a hosted static page (no backend, no data storage) for convenience. Or self-host: clone the repo and serve `packages/app/dist/` from your own domain.
@@ -294,13 +294,13 @@ All open source. All installable with `npx`. Plug them into CyberStrike or use t
 
 CyberStrike agents have direct access to 30+ tools without any external dependencies:
 
-| Category        | Tools                                                           |
-| --------------- | --------------------------------------------------------------- |
-| **Execution**   | Shell (bash), file read/write/edit, directory listing           |
-| **Discovery**   | Web fetch, web search, code search, glob, grep                  |
-| **Security**    | Vulnerability reporting (HackerOne format), evidence collection |
+| Category        | Tools                                                                               |
+| --------------- | ----------------------------------------------------------------------------------- |
+| **Execution**   | Shell (bash), file read/write/edit, directory listing                               |
+| **Discovery**   | Web fetch, web search, code search, glob, grep                                      |
+| **Security**    | Vulnerability reporting (HackerOne format), evidence collection                     |
 | **Proxy**       | HTTP/HTTPS interception, request replay, session context sharing across sub-testers |
-| **Integration** | MCP servers, Bolt remote tools, custom plugins                  |
+| **Integration** | MCP servers, Bolt remote tools, custom plugins                                      |
 
 Plus a **plugin SDK** — build your own agents and tools, register them at runtime.
 
