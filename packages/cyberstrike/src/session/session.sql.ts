@@ -98,6 +98,8 @@ export const VulnerabilityTable = sqliteTable(
     business_impact: text(),
     recommendation: text(),
     poc: text(),
+    endpoint: text(),
+    attack_vector: text(),
     status: text().notNull(),
     position: integer().notNull(),
     ...Timestamps,

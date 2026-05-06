@@ -93,21 +93,23 @@ Test: 572, 574, 1, 100, 1000, 0, -1
 
 ### Step 5: Analyze Results
 
-**Vulnerable If:**
-- 200 OK with another user's data
-- Unauthorized data modification successful
-- Different response than expected (not 403/404)
+**Vulnerable If (ALL conditions must be true):**
+- Exploit response returns 200 with data that belongs to a different user/resource
+- You can confirm the data is not your own (different user_id, different email, different resource identifier)
+- Baseline request (own resource) returns the same structure — confirming the endpoint works correctly for authorized access
+- The diff is: baseline returns your data, exploit returns someone else's data
 
 **Not Vulnerable If:**
 - 401 Unauthorized
-- 403 Forbidden  
+- 403 Forbidden
 - 404 Not Found (consistent timing)
-- Empty response
+- Empty response (no data disclosed)
+- Both baseline and exploit return identical error responses
+- The "different" response is just a generic error, not actual unauthorized data
 
 **Edge Cases:**
-- Timing differences (404 for existing vs non-existing)
-- Error messages leaking information
-- Partial data disclosure
+- Timing differences (404 for existing vs non-existing) — information disclosure only, not IDOR
+- Error messages leaking information — report as Information Disclosure (lower severity), not IDOR
 
 ## Testing Patterns
 

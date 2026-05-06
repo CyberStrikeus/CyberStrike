@@ -399,6 +399,8 @@ export namespace Agent {
           PermissionNext.fromConfig({
             question: "allow",
             web_get_session_context: "allow",
+            web_get_vulnerabilities: "allow",
+            web_get_vuln_detail: "allow",
             // proxy-agent is a pure orchestrator - it only reads session context
             // and delegates to subagents. Writing is done by proxy-analyzer.
           }),
@@ -489,6 +491,7 @@ export namespace Agent {
             webfetch: "allow",
             web_get_session_context: "allow",
             web_get_request_detail: "allow",
+            web_get_vulnerabilities: "allow",
             report_vulnerability: "allow",
           }),
           user,

@@ -10713,6 +10713,12 @@
           "poc": {
             "type": "string"
           },
+          "endpoint": {
+            "type": "string"
+          },
+          "attack_vector": {
+            "type": "string"
+          },
           "status": {
             "default": "open",
             "type": "string",

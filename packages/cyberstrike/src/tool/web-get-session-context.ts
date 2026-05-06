@@ -7,6 +7,7 @@ import { WebFunction } from "../session/web/web-function"
 import { WebRetest } from "../session/web/web-retest"
 import { Request } from "../session/request"
 import { Session } from "../session"
+import { Vulnerability } from "../session/vulnerability"
 
 const description = `Get the current web application context for this session.
 
@@ -15,13 +16,15 @@ Returns discovered information about:
 - Roles: User roles and hierarchy (included by default)
 - Objects: Data entities and their fields (included by default)
 - Functions: Endpoint-to-function mappings (included by default)
+- Vulnerabilities: Last 30 reported findings (included by default — always check before reporting new vulns to avoid duplicates)
 - Retest Queue: Pending re-tests triggered by new discoveries (optional, use include parameter)
 - Requests: Analyzed endpoints summary (optional, use include parameter - returns only id, method, path, status)
 
-By default, returns: credentials, roles, objects, functions.
+By default, returns: credentials, roles, objects, functions, vulnerabilities.
 Use the 'include' parameter to specify exactly which sections you need.
 
 For detailed request information (headers, body, response), use the web_get_request_detail tool with a specific request ID.
+For full vulnerability details, use the web_get_vuln_detail tool with specific IDs.
 
 Use this to understand the application architecture before planning tests.`
 
@@ -29,16 +32,16 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
   description,
   parameters: z.object({
     include: z
-      .array(z.enum(["credentials", "roles", "objects", "functions", "retest_queue", "requests"]))
+      .array(z.enum(["credentials", "roles", "objects", "functions", "vulnerabilities", "retest_queue", "requests"]))
       .optional()
       .describe(
-        "Specific sections to include. Default: ['credentials', 'roles', 'objects', 'functions']. " +
+        "Specific sections to include. Default: ['credentials', 'roles', 'objects', 'functions', 'vulnerabilities']. " +
           "Add 'retest_queue' or 'requests' only if needed. Note: 'requests' returns only summary (id, method, path, status), not full request details.",
       ),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const include = params.include ?? ["credentials", "roles", "objects", "functions"]
+    const include = params.include ?? ["credentials", "roles", "objects", "functions", "vulnerabilities"]
 
     const context: Record<string, unknown> = {}
 
@@ -107,6 +110,22 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
       }
     }
 
+    if (include.includes("vulnerabilities")) {
+      const vulns = Vulnerability.get(sessionID)
+      const last30 = vulns.slice(-30)
+      context.vulnerabilities = {
+        count: vulns.length,
+        items: last30.map((v) => ({
+          id: v.id,
+          severity: v.severity,
+          title: v.title,
+          endpoint: v.endpoint,
+          attack_vector: v.attack_vector,
+          status: v.status,
+        })),
+      }
+    }
+
     if (include.includes("retest_queue")) {
       const queue = WebRetest.getPending(sessionID)
       const counts = WebRetest.count(sessionID)
@@ -146,6 +165,9 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
         ? (context.retest_queue as { pending: number }).pending
         : undefined,
       total_requests: include.includes("requests") ? (context.requests as { count: number }).count : undefined,
+      total_vulnerabilities: include.includes("vulnerabilities")
+        ? (context.vulnerabilities as { count: number }).count
+        : undefined,
     }
 
     return {

@@ -834,6 +834,8 @@ export type Vulnerability = {
   business_impact?: string
   recommendation?: string
   poc?: string
+  endpoint?: string
+  attack_vector?: string
   status?: "open" | "fixed" | "ignored"
   message_id?: string
   time?: {
