@@ -44,6 +44,10 @@ import DESC_PROXY_TESTER_SSRF from "./prompt/vuln/ssrf/description.txt"
 import PROMPT_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/prompt.txt"
 import DESC_PROXY_TESTER_FILE_ATTACKS from "./prompt/vuln/file-attacks/description.txt"
 
+// Methodology Engine prompts — intelligence logging, coverage tracking, forced continuation
+import PROMPT_METHODOLOGY_COMMON from "./prompt/methodology/common-methodology.txt"
+import PROMPT_METHODOLOGY_CONTINUATION from "./prompt/methodology/forced-continuation.txt"
+
 import { PermissionNext } from "@/permission/next"
 import { mergeDeep, pipe, sortBy, values } from "remeda"
 import path from "path"
@@ -169,7 +173,7 @@ export namespace Agent {
       cyberstrike: {
         name: "cyberstrike",
         description: "The default CyberStrike agent. AI-powered offensive security with full tool access.",
-        prompt: PROMPT_CYBERSTRIKE,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_CYBERSTRIKE}`,
         options: {},
         permission: PermissionNext.merge(
           defaults,
@@ -292,7 +296,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         color: "red",
-        prompt: PROMPT_WEB_APPLICATION,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_WEB_APPLICATION}`,
         skills: ["wstg-recon-config", "wstg-auth-session", "wstg-injection", "wstg-logic-client-api"],
         permission: PermissionNext.merge(
           defaults,
@@ -306,6 +310,12 @@ export namespace Agent {
             webfetch: "allow",
             websearch: "allow",
             report_vulnerability: "allow",
+            add_intel: "allow",
+            update_vrt_check: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
+            ensure_tools: "allow",
+            attack_script: "allow",
           }),
           user,
         ),
@@ -318,7 +328,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         color: "magenta",
-        prompt: PROMPT_MOBILE_APPLICATION,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_MOBILE_APPLICATION}`,
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -329,6 +339,12 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            add_intel: "allow",
+            update_vrt_check: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
+            ensure_tools: "allow",
+            attack_script: "allow",
           }),
           user,
         ),
@@ -340,7 +356,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         color: "cyan",
-        prompt: PROMPT_CLOUD_SECURITY,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_CLOUD_SECURITY}`,
         skills: [
           "cis-aws-foundations-2.1.1",
           "cis-aws-foundations-2.2",
@@ -359,6 +375,12 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            add_intel: "allow",
+            update_vrt_check: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
+            ensure_tools: "allow",
+            attack_script: "allow",
           }),
           user,
         ),
@@ -370,7 +392,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         color: "yellow",
-        prompt: PROMPT_INTERNAL_NETWORK,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_INTERNAL_NETWORK}`,
         skills: ["ad-security", "kerberos-attacks"],
         permission: PermissionNext.merge(
           defaults,
@@ -382,6 +404,12 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            add_intel: "allow",
+            update_vrt_check: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
+            ensure_tools: "allow",
+            attack_script: "allow",
           }),
           user,
         ),
@@ -393,7 +421,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         color: "blue",
-        prompt: PROMPT_WEB_PROXY_AGENT,
+        prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_PROXY_AGENT}`,
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -403,6 +431,9 @@ export namespace Agent {
             web_get_vuln_detail: "allow",
             // proxy-agent is a pure orchestrator - it only reads session context
             // and delegates to subagents. Writing is done by proxy-analyzer.
+            add_intel: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
           }),
           user,
         ),
@@ -493,6 +524,12 @@ export namespace Agent {
             web_get_request_detail: "allow",
             web_get_vulnerabilities: "allow",
             report_vulnerability: "allow",
+            // Methodology Engine tools
+            add_intel: "allow",
+            update_vrt_check: "allow",
+            methodology_status: "allow",
+            scope_check: "allow",
+            attack_script: "allow",
           }),
           user,
         )
