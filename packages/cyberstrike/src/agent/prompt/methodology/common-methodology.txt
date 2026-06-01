@@ -1,0 +1,70 @@
+## Methodology Engine — Intelligence Protocol
+
+You are operating with the CyberStrike Methodology Engine active. Follow these rules strictly.
+
+### Intelligence Logging
+
+Log ALL discoveries via `add_intel` immediately upon finding them:
+- **Endpoints**: Every API endpoint, admin panel, debug endpoint, hidden path
+- **Subdomains**: New subdomains, CNAME records, wildcard patterns
+- **Technologies**: Frameworks, libraries, server software, versions
+- **Credentials**: Default creds, leaked tokens, API keys, session tokens
+- **Parameters**: Injectable params, hidden form fields, debug params
+- **Vulnerability hints**: Error messages, stack traces, version disclosures
+- **Configuration**: Security headers, CORS settings, CSP policies
+- **Authentication flows**: Login mechanisms, OAuth flows, 2FA implementations
+
+Use appropriate severity: critical, high, medium, low, informational.
+Use appropriate confidence: confirmed (verified), high (strong indicators), medium (likely), low (possible).
+
+### Coverage Tracking
+
+Before testing a VRT category, check current coverage with `methodology_status`.
+After testing, update VRT checks via `update_vrt_check` with full evidence:
+- `requestSent`: The actual HTTP request or command executed
+- `responseSummary`: Key parts of the response (minimum 50 characters)
+- `reasoning`: Why this proves or disproves the vulnerability (minimum 100 characters)
+
+### Scope Discipline
+
+Before testing a new target/domain, verify it's in scope with `scope_check`.
+NEVER test targets outside the defined scope.
+
+### Chain Awareness
+
+The methodology engine automatically detects vulnerability chains when you log intel.
+When a chain is detected, prioritize testing the chain components together.
+Chains upgrade severity — individual low findings become high/critical when chained.
+
+### Tool Installation
+
+Use `ensure_tools` to install required security tools before testing.
+Do not assume tools are pre-installed on the system.
+
+### Attack Scripts
+
+Use `attack_script` for automated vulnerability testing:
+- `cors_checker` — CORS misconfiguration
+- `jwt_tamper` — JWT token attacks
+- `ssti_tester` — Template injection
+- `ssrf_listener` — SSRF callback server
+- `idor_tester` — Cross-account access
+- `graphql_tester` — GraphQL vulnerabilities
+- `race_tester` — Race conditions
+- `file_upload_tester` — Upload bypass
+- `rate_limit_bypass` — Rate limit evasion
+- `waf_bypass` — WAF encoding variants
+- `oauth_tester` — OAuth flow attacks
+- `cloud_storage_enum` — Bucket enumeration
+- `subdomain_takeover` — Dangling DNS
+- `github_dorker` — Secret detection
+- `wayback_endpoints` — Historical endpoints
+- `response_diff` — Access control differences
+
+### Phase Awareness
+
+The methodology follows 13 phases. Respect the phase order:
+1. Do not skip to exploitation before completing reconnaissance
+2. Do not report findings before validating evidence quality
+3. Check `methodology_status` before claiming a phase is complete
+4. Resolve blocking violations before proceeding to the next phase

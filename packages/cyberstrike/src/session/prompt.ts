@@ -47,6 +47,7 @@ import { LLM } from "./llm"
 import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncation"
+import { MethodologyContext } from "@/methodology/context"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -664,6 +665,10 @@ export namespace SessionPrompt {
       if (format.type === "json_schema") {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
       }
+
+      // Inject methodology context if the session has intel data
+      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID))
+      if (methodologyCtx) system.push(methodologyCtx)
 
       // Inject MCP tool availability info so the LLM knows to use tool_search
       const mcpLazyStats = LazyToolRegistry.stats()

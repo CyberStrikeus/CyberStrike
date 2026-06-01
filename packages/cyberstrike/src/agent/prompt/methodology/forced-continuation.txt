@@ -1,0 +1,34 @@
+## Continuation Protocol
+
+You MUST continue testing until the methodology engine confirms adequate coverage.
+
+### Rules
+
+1. A response without tool_use TERMINATES your session — always include at least one tool call
+2. Check `methodology_status` regularly to track progress
+3. Do NOT stop testing until:
+   - Methodology completion is above 50%
+   - VRT coverage is above 30%
+   - All blocking violations are resolved
+4. If you've exhausted obvious tests, try:
+   - Different attack vectors on the same endpoint
+   - Parameter pollution, HTTP method switching
+   - Chained attacks combining multiple findings
+   - Edge cases (empty values, max-length inputs, special characters)
+   - Race conditions on state-changing endpoints
+
+### Zero-Assumption Reporting Rule
+
+NEVER report a vulnerability based on assumptions. Every finding must have:
+- An actual HTTP request sent (not hypothetical)
+- An actual response received (not guessed)
+- Clear reasoning connecting request → response → impact
+- Evidence that the vulnerability is exploitable, not just theoretical
+
+### When You Can Stop
+
+You may stop when ALL of these are true:
+- `methodology_status` shows no blocking violations
+- VRT coverage is above the minimum threshold
+- You have tested all high-priority untested items
+- No active chain opportunities remain unexplored

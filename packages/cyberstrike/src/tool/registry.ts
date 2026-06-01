@@ -41,6 +41,12 @@ import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { HackbrowserTool } from "./hackbrowser"
+import { AddIntelTool } from "./intel"
+import { UpdateVrtCheckTool } from "./vrt-check"
+import { ScopeCheckTool } from "./scope-check"
+import { EnsureToolsTool } from "./ensure-tools"
+import { MethodologyStatusTool } from "./methodology-status"
+import { AttackScriptTool } from "./attack-script"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -154,6 +160,13 @@ export namespace ToolRegistry {
       // Hackbrowser — autonomous crawler that produces captures the
       // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
       HackbrowserTool,
+      // Methodology Engine Tools — intelligence, coverage, chain detection
+      AddIntelTool,
+      UpdateVrtCheckTool,
+      ScopeCheckTool,
+      EnsureToolsTool,
+      MethodologyStatusTool,
+      AttackScriptTool,
       ...custom,
     ]
   }

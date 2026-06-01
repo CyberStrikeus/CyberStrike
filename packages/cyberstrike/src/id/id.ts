@@ -20,6 +20,12 @@ export namespace Identifier {
     web_function: "wfn",
     web_retest: "wrt",
     endpoint_template: "ept",
+    intel_entry: "int",
+    vrt_check: "vrc",
+    methodology_phase: "mph",
+    chain_candidate: "chn",
+    agent_performance: "apf",
+    validation_violation: "vvl",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {
