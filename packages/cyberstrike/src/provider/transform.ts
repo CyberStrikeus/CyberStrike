@@ -334,7 +334,6 @@ export namespace ProviderTransform {
 
     const id = model.id.toLowerCase()
     if (
-      id.includes("deepseek") ||
       id.includes("minimax") ||
       id.includes("glm") ||
       id.includes("mistral") ||
@@ -343,6 +342,16 @@ export namespace ProviderTransform {
       id.includes("k2p5")
     )
       return {}
+
+    // DeepSeek V4 supports only "high" and "max" reasoning_effort (low/medium are mapped to high by API)
+    if (id.includes("deepseek")) {
+      if (id.includes("deepseek-v4"))
+        return {
+          high: { reasoning_effort: "high" },
+          max: { reasoning_effort: "max" },
+        }
+      return {}
+    }
 
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
     if (id.includes("grok") && id.includes("grok-3-mini")) {
@@ -696,6 +705,15 @@ export namespace ProviderTransform {
       }
     }
 
+    // Enable thinking for DeepSeek reasoning models (V4+)
+    // In thinking mode, temperature/top_p/presence_penalty are ignored by DeepSeek API
+    if (input.model.providerID === "deepseek" && input.model.capabilities.reasoning) {
+      result["thinking"] = {
+        type: "enabled",
+      }
+      result["reasoning_effort"] = "high"
+    }
+
     if (input.model.providerID === "openai" || input.providerOptions?.setCacheKey) {
       result["promptCacheKey"] = input.sessionID
     }
@@ -801,6 +819,9 @@ export namespace ProviderTransform {
         return { reasoning: { enabled: false } }
       }
       return { reasoningEffort: "minimal" }
+    }
+    if (model.providerID === "deepseek") {
+      return { thinking: { type: "disabled" } }
     }
     return {}
   }

@@ -1572,7 +1572,7 @@ describe("ProviderTransform.variants", () => {
     expect(result).toEqual({})
   })
 
-  test("deepseek returns empty object", () => {
+  test("deepseek legacy models return empty object", () => {
     const model = createMockModel({
       id: "deepseek/deepseek-chat",
       providerID: "deepseek",
@@ -1584,6 +1584,40 @@ describe("ProviderTransform.variants", () => {
     })
     const result = ProviderTransform.variants(model)
     expect(result).toEqual({})
+  })
+
+  test("deepseek-v4-pro returns high/max reasoning_effort variants", () => {
+    const model = createMockModel({
+      id: "deepseek/deepseek-v4-pro",
+      providerID: "deepseek",
+      api: {
+        id: "deepseek-v4-pro",
+        url: "https://api.deepseek.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    })
+    const result = ProviderTransform.variants(model)
+    expect(result).toEqual({
+      high: { reasoning_effort: "high" },
+      max: { reasoning_effort: "max" },
+    })
+  })
+
+  test("deepseek-v4-flash returns high/max reasoning_effort variants", () => {
+    const model = createMockModel({
+      id: "deepseek/deepseek-v4-flash",
+      providerID: "deepseek",
+      api: {
+        id: "deepseek-v4-flash",
+        url: "https://api.deepseek.com",
+        npm: "@ai-sdk/openai-compatible",
+      },
+    })
+    const result = ProviderTransform.variants(model)
+    expect(result).toEqual({
+      high: { reasoning_effort: "high" },
+      max: { reasoning_effort: "max" },
+    })
   })
 
   test("minimax returns empty object", () => {
