@@ -1,6 +1,7 @@
 import { Database, eq, and } from "../storage/db"
 import { AgentPerformanceTable } from "./methodology.sql"
 import { Identifier } from "../id/id"
+import { Phase } from "./phase"
 
 // ============================================================
 // AGENT PERFORMANCE — Liyakat scoring, codenames, mission tracking
@@ -214,7 +215,65 @@ export namespace AgentPerformance {
     return lines.join("\n")
   }
 
-  // --- Agent Selection ---
+  // --- Agent Meta ---
+
+  export function getAgentMeta(agentName: string): { codename: string; archetype: string; strengths: string[] } | undefined {
+    const bones = BONES[agentName]
+    if (!bones) return undefined
+    return { codename: bones.codename, archetype: bones.archetype, strengths: [...bones.strengths] }
+  }
+
+  export function allAgentNames(): string[] {
+    return Object.keys(BONES)
+  }
+
+  // --- Phase-Aware Agent Selection ---
+
+  export interface PhaseAgent {
+    name: string
+    codename: string
+    score: number
+    reason: string
+    role: "primary" | "secondary"
+    stats: Stats
+  }
+
+  export function selectAgentsForPhase(sessionID: string, phaseId: Phase.Id): PhaseAgent[] {
+    const phaseDef = Phase.get(phaseId)
+    if (!phaseDef) return []
+
+    const candidates: Array<Omit<PhaseAgent, "role">> = []
+
+    for (const agentName of phaseDef.agents) {
+      const bones = BONES[agentName]
+      if (!bones || agentName === "cyberstrike") continue
+
+      const stats = getOrCreate(sessionID, agentName)
+      let score = stats.performanceScore > 0 ? stats.performanceScore : 50
+      let reason = "phase-recommended"
+
+      const matchingStrengths = bones.strengths.filter((s) =>
+        phaseDef.requiredTags.some(
+          (tag) => s.toLowerCase().includes(tag.replace(/-/g, " ")) || tag.replace(/-/g, " ").includes(s.toLowerCase()),
+        ),
+      )
+      if (matchingStrengths.length > 0) {
+        score += 15
+        reason = `strength: ${matchingStrengths.join(", ")}`
+      }
+
+      if (stats.morale > 70) score += 10
+      if (stats.morale < 30) score -= 15
+      if (stats.missionsCompleted > 0) score += 5
+
+      candidates.push({ name: agentName, codename: bones.codename, score, reason, stats })
+    }
+
+    candidates.sort((a, b) => b.score - a.score)
+    return candidates.map((c, i) => ({ ...c, role: i === 0 ? "primary" as const : "secondary" as const }))
+  }
+
+  // --- Agent Selection (free-text mission) ---
 
   export function selectAgentForMission(
     sessionID: string,

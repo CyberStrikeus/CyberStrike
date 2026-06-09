@@ -3,6 +3,7 @@ import path from "path"
 import { Instance } from "../../src/project/instance"
 import { Session } from "../../src/session"
 import { AgentPerformance } from "../../src/methodology/performance"
+import { Phase } from "../../src/methodology/phase"
 import { Log } from "../../src/util/log"
 
 const projectRoot = path.join(__dirname, "../..")
@@ -227,6 +228,96 @@ describe("AgentPerformance — Agent Selection", () => {
 
         const selection = AgentPerformance.selectAgentForMission(session.id, "cloud assessment")
         expect(selection.agent).toBe("cloud-security")
+
+        await Session.remove(session.id)
+      },
+    })
+  })
+})
+
+describe("AgentPerformance — getAgentMeta", () => {
+  test("returns meta for known agent", () => {
+    const meta = AgentPerformance.getAgentMeta("web-application")
+    expect(meta).toBeDefined()
+    expect(meta!.codename).toBe("STRIKER")
+    expect(meta!.archetype).toBe("aggressive")
+    expect(meta!.strengths).toContain("exploit development")
+  })
+
+  test("returns undefined for unknown agent", () => {
+    const meta = AgentPerformance.getAgentMeta("nonexistent-agent")
+    expect(meta).toBeUndefined()
+  })
+
+  test("allAgentNames returns all registered agents", () => {
+    const names = AgentPerformance.allAgentNames()
+    expect(names).toContain("web-application")
+    expect(names).toContain("cloud-security")
+    expect(names).toContain("explore")
+    expect(names).toContain("cyberstrike")
+    expect(names.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
+describe("AgentPerformance — selectAgentsForPhase", () => {
+  test("returns explore as primary for scope_analysis", async () => {
+    await Instance.provide({
+      directory: projectRoot,
+      fn: async () => {
+        const session = await Session.create({})
+
+        const agents = AgentPerformance.selectAgentsForPhase(session.id, "scope_analysis")
+        expect(agents.length).toBeGreaterThan(0)
+        expect(agents[0].name).toBe("explore")
+        expect(agents[0].role).toBe("primary")
+        expect(agents[0].codename).toBe("GHOST")
+
+        await Session.remove(session.id)
+      },
+    })
+  })
+
+  test("returns web-application as primary for authentication_testing", async () => {
+    await Instance.provide({
+      directory: projectRoot,
+      fn: async () => {
+        const session = await Session.create({})
+
+        const agents = AgentPerformance.selectAgentsForPhase(session.id, "authentication_testing")
+        expect(agents.length).toBeGreaterThan(0)
+        expect(agents[0].name).toBe("web-application")
+        expect(agents[0].role).toBe("primary")
+
+        await Session.remove(session.id)
+      },
+    })
+  })
+
+  test("returns empty for unknown phase", async () => {
+    await Instance.provide({
+      directory: projectRoot,
+      fn: async () => {
+        const session = await Session.create({})
+
+        const agents = AgentPerformance.selectAgentsForPhase(session.id, "nonexistent" as Phase.Id)
+        expect(agents).toEqual([])
+
+        await Session.remove(session.id)
+      },
+    })
+  })
+
+  test("marks first as primary and rest as secondary", async () => {
+    await Instance.provide({
+      directory: projectRoot,
+      fn: async () => {
+        const session = await Session.create({})
+
+        // authentication_testing has both web-application and proxy-agent
+        const agents = AgentPerformance.selectAgentsForPhase(session.id, "authentication_testing")
+        expect(agents.length).toBe(2)
+        expect(agents[0].role).toBe("primary")
+        expect(agents[1].role).toBe("secondary")
 
         await Session.remove(session.id)
       },

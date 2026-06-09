@@ -48,6 +48,7 @@ import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncation"
 import { MethodologyContext } from "@/methodology/context"
+import { AgentPerformance } from "@/methodology/performance"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -490,6 +491,17 @@ export namespace SessionPrompt {
               },
             },
           } satisfies MessageV2.ToolPart)
+          // Record successful mission for agent performance tracking
+          try {
+            const output = result.output ?? ""
+            const findings = (output.match(/report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi) ?? []).length
+            const vrtUpdates = (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
+            AgentPerformance.recordMission(Session.root(sessionID), task.agent, {
+              success: true,
+              findingsReported: findings,
+              coverageContributed: vrtUpdates,
+            })
+          } catch {}
         }
         if (!result) {
           await Session.updatePart({
@@ -505,6 +517,10 @@ export namespace SessionPrompt {
               input: part.state.input,
             },
           } satisfies MessageV2.ToolPart)
+          // Record failed mission for agent performance tracking
+          try {
+            AgentPerformance.recordMission(Session.root(sessionID), task.agent, { success: false })
+          } catch {}
         }
 
         if (task.command) {
