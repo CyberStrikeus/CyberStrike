@@ -13,9 +13,18 @@ import z from "zod"
 
 export namespace Intel {
   export const Type = z.enum([
-    "endpoint", "subdomain", "technology", "credential", "parameter",
-    "vulnerability_hint", "configuration", "api_schema", "authentication_flow",
-    "business_rule", "sensitive_data", "infrastructure",
+    "endpoint",
+    "subdomain",
+    "technology",
+    "credential",
+    "parameter",
+    "vulnerability_hint",
+    "configuration",
+    "api_schema",
+    "authentication_flow",
+    "business_rule",
+    "sensitive_data",
+    "infrastructure",
   ])
   export type Type = z.infer<typeof Type>
 
@@ -84,8 +93,7 @@ export namespace Intel {
   }): Entry & { duplicate: boolean; vrtChecksCreated: number } {
     // Dedup check
     const existing = findDuplicate(input.sessionID, input.data.title, input.data.asset)
-    if (existing)
-      return { ...existing, duplicate: true, vrtChecksCreated: 0 }
+    if (existing) return { ...existing, duplicate: true, vrtChecksCreated: 0 }
 
     const id = Identifier.ascending("intel_entry")
     const now = Date.now()
@@ -170,16 +178,20 @@ export namespace Intel {
     return { ...entry, duplicate: false, vrtChecksCreated: vrtChecks.length }
   }
 
-  export function update(sessionID: string, entryID: string, updates: Partial<{
-    severity: string
-    title: string
-    detail: string
-    confidenceLevel: Confidence
-    tags: string[]
-    chainPotential: string
-    relatedEntries: string[]
-    status: EntryStatus
-  }>): void {
+  export function update(
+    sessionID: string,
+    entryID: string,
+    updates: Partial<{
+      severity: string
+      title: string
+      detail: string
+      confidenceLevel: Confidence
+      tags: string[]
+      chainPotential: string
+      relatedEntries: string[]
+      status: EntryStatus
+    }>,
+  ): void {
     Database.use((db) => {
       const values: Record<string, any> = { time_updated: Date.now() }
       if (updates.severity !== undefined) values.severity = updates.severity
@@ -250,7 +262,10 @@ export namespace Intel {
     return Phase.VRT_CATEGORIES_BY_TYPE[entryType] ?? []
   }
 
-  export function getVrtChecks(sessionID: string, entryID?: string): Array<{
+  export function getVrtChecks(
+    sessionID: string,
+    entryID?: string,
+  ): Array<{
     id: string
     entryID: string
     category: string
@@ -262,7 +277,10 @@ export namespace Intel {
   }> {
     const rows = Database.use((db) => {
       const query = entryID
-        ? db.select().from(VrtCheckTable).where(and(eq(VrtCheckTable.session_id, sessionID), eq(VrtCheckTable.intel_entry_id, entryID)))
+        ? db
+            .select()
+            .from(VrtCheckTable)
+            .where(and(eq(VrtCheckTable.session_id, sessionID), eq(VrtCheckTable.intel_entry_id, entryID)))
         : db.select().from(VrtCheckTable).where(eq(VrtCheckTable.session_id, sessionID))
       return query.all()
     })
@@ -411,10 +429,7 @@ export namespace Intel {
     }
   }
 
-  function detectRedFlags(
-    entries: Entry[],
-    checks: ReturnType<typeof getVrtChecks>,
-  ): RedFlag[] {
+  function detectRedFlags(entries: Entry[], checks: ReturnType<typeof getVrtChecks>): RedFlag[] {
     const flags: RedFlag[] = []
     const entryCheckMap = new Map<string, typeof checks>()
     for (const check of checks) {

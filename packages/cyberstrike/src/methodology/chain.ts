@@ -69,7 +69,15 @@ export namespace Chain {
     const chains: Candidate[] = []
     const seen = new Set<string>()
 
-    const addChain = (pattern: Pattern, a: Intel.Entry, b: Intel.Entry, impact: string, sev: string, plan: string, conf: number) => {
+    const addChain = (
+      pattern: Pattern,
+      a: Intel.Entry,
+      b: Intel.Entry,
+      impact: string,
+      sev: string,
+      plan: string,
+      conf: number,
+    ) => {
       const key = `${pattern}:${[a.id, b.id].sort().join("+")}`
       if (seen.has(key)) return
       seen.add(key)
@@ -98,8 +106,15 @@ export namespace Chain {
         if (!sameAssetOrRelated(cred, ep)) continue
         if (ep.severity === "info") continue
         const conf = cred.status === "exploited" ? 90 : cred.confidenceLevel === "confirmed" ? 85 : 65
-        addChain("credential_endpoint", cred, ep, "ACCOUNT_TAKEOVER", "critical",
-          `Use credential "${cred.title}" to authenticate against "${ep.title}"`, conf)
+        addChain(
+          "credential_endpoint",
+          cred,
+          ep,
+          "ACCOUNT_TAKEOVER",
+          "critical",
+          `Use credential "${cred.title}" to authenticate against "${ep.title}"`,
+          conf,
+        )
       }
     }
 
@@ -110,8 +125,15 @@ export namespace Chain {
         const hasSsrf = (checkMap.get(ep.id) ?? []).some((c) => c.category.toLowerCase().includes("ssrf"))
         if (!hasSsrf) continue
         const conf = hasVulnCheck(ep, "ssrf") ? 90 : 55
-        addChain("info_disclosure_ssrf", info, ep, "SSRF_TO_INTERNAL", "high",
-          `Use internal URL/config from "${info.title}" as SSRF target via "${ep.title}"`, conf)
+        addChain(
+          "info_disclosure_ssrf",
+          info,
+          ep,
+          "SSRF_TO_INTERNAL",
+          "high",
+          `Use internal URL/config from "${info.title}" as SSRF target via "${ep.title}"`,
+          conf,
+        )
       }
     }
 
@@ -123,8 +145,15 @@ export namespace Chain {
         if (!sameAssetOrRelated(a, b)) continue
         const text = `${b.title} ${b.detail ?? ""}`
         if (!OAUTH_REGEX.test(text)) continue
-        addChain("redirect_oauth", a, b, "TOKEN_THEFT", "critical",
-          `Chain open redirect from "${a.title}" into OAuth flow at "${b.title}" to steal access_token`, 80)
+        addChain(
+          "redirect_oauth",
+          a,
+          b,
+          "TOKEN_THEFT",
+          "critical",
+          `Chain open redirect from "${a.title}" into OAuth flow at "${b.title}" to steal access_token`,
+          80,
+        )
       }
     }
 
@@ -136,8 +165,15 @@ export namespace Chain {
         if (!sameAssetOrRelated(a, b)) continue
         const text = `${b.title} ${b.detail ?? ""}`
         if (!USER_DATA_REGEX.test(text)) continue
-        addChain("idor_data_leak", a, b, "MASS_DATA_LEAK", "critical",
-          `Use IDOR from "${a.title}" to enumerate user data via "${b.title}"`, 85)
+        addChain(
+          "idor_data_leak",
+          a,
+          b,
+          "MASS_DATA_LEAK",
+          "critical",
+          `Use IDOR from "${a.title}" to enumerate user data via "${b.title}"`,
+          85,
+        )
       }
     }
 
@@ -149,16 +185,30 @@ export namespace Chain {
         if (!sameAssetOrRelated(a, b)) continue
         const text = `${b.title} ${b.detail ?? ""}`
         if (!STATE_CHANGE_REGEX.test(text)) continue
-        addChain("xss_csrf", a, b, "CSRF_BYPASS", "high",
-          `Use XSS from "${a.title}" to perform CSRF on state-changing "${b.title}"`, 75)
+        addChain(
+          "xss_csrf",
+          a,
+          b,
+          "CSRF_BYPASS",
+          "high",
+          `Use XSS from "${a.title}" to perform CSRF on state-changing "${b.title}"`,
+          75,
+        )
       }
     }
 
     // 6. ssti_rce: SSTI → RCE
     for (const a of entries) {
       if (!hasVulnCheck(a, "ssti")) continue
-      addChain("ssti_rce", a, a, "RCE", "critical",
-        `Escalate SSTI in "${a.title}" to full RCE via template engine gadgets`, 85)
+      addChain(
+        "ssti_rce",
+        a,
+        a,
+        "RCE",
+        "critical",
+        `Escalate SSTI in "${a.title}" to full RCE via template engine gadgets`,
+        85,
+      )
     }
 
     // 7. race_condition_business: Race + payment/transfer
@@ -169,8 +219,15 @@ export namespace Chain {
         if (!sameAssetOrRelated(a, b)) continue
         const text = `${b.title} ${b.detail ?? ""}`
         if (!PAYMENT_REGEX.test(text)) continue
-        addChain("race_condition_business", a, b, "FINANCIAL_IMPACT", "critical",
-          `Use race condition from "${a.title}" on financial endpoint "${b.title}" for double-spend/bypass`, 80)
+        addChain(
+          "race_condition_business",
+          a,
+          b,
+          "FINANCIAL_IMPACT",
+          "critical",
+          `Use race condition from "${a.title}" on financial endpoint "${b.title}" for double-spend/bypass`,
+          80,
+        )
       }
     }
 
@@ -180,8 +237,15 @@ export namespace Chain {
       for (const relId of a.relatedEntries) {
         const b = entries.find((e) => e.id === relId)
         if (!b) continue
-        addChain("custom", a, b, "ESCALATION", a.severity ?? "medium",
-          a.chainPotential ?? `Chain "${a.title}" with "${b.title}"`, 60)
+        addChain(
+          "custom",
+          a,
+          b,
+          "ESCALATION",
+          a.severity ?? "medium",
+          a.chainPotential ?? `Chain "${a.title}" with "${b.title}"`,
+          60,
+        )
       }
     }
 
@@ -194,9 +258,7 @@ export namespace Chain {
   export function save(sessionID: string, chains: Candidate[]): void {
     // Load existing to preserve status
     const existing = load(sessionID)
-    const existingMap = new Map(
-      existing.map((c) => [`${c.pattern}:${c.entryIDs.sort().join("+")}`, c]),
-    )
+    const existingMap = new Map(existing.map((c) => [`${c.pattern}:${c.entryIDs.sort().join("+")}`, c]))
 
     Database.use((db) => {
       // Clear old chains for this session
@@ -263,7 +325,9 @@ export namespace Chain {
     const lines: string[] = [`## Chain Opportunities (${active.length} detected)`]
     for (const c of active.slice(0, 10)) {
       const confLabel = c.confidence >= 80 ? "HIGH" : c.confidence >= 60 ? "MED" : "LOW"
-      lines.push(`[${confLabel}-${c.confidence}%] ${c.pattern.toUpperCase()}: "${c.entryTitles[0]}" + "${c.entryTitles[1]}" -> ${c.expectedImpact}`)
+      lines.push(
+        `[${confLabel}-${c.confidence}%] ${c.pattern.toUpperCase()}: "${c.entryTitles[0]}" + "${c.entryTitles[1]}" -> ${c.expectedImpact}`,
+      )
       lines.push(`  Test: ${c.testingPlan}`)
       lines.push(`  Entries: ${c.entryIDs.join(", ")} | Assets: ${c.assets.join(", ")}`)
     }

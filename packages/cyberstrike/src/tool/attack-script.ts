@@ -14,7 +14,8 @@ const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> =
     args: "URL [-m METHOD] [-H key:value] [-d JSON_BODY] [-c COUNT] [--delay MS] [--json-output]",
   },
   ssti_tester: {
-    description: "Server-Side Template Injection detection and engine fingerprinting (Jinja2, FreeMarker, Velocity, Twig, ERB, Pebble)",
+    description:
+      "Server-Side Template Injection detection and engine fingerprinting (Jinja2, FreeMarker, Velocity, Twig, ERB, Pebble)",
     args: "URL [--param NAME] [--method GET|POST] [--data JSON] [-H key:value] [--quick] [--json-output]",
   },
   ssrf_listener: {
@@ -42,11 +43,13 @@ const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> =
     args: "AUTH_URL --client-id ID --redirect-uri URI [--json-output]",
   },
   rate_limit_bypass: {
-    description: "Rate limit bypass tester — XFF rotation, case variation, method switching, query params, header variations",
+    description:
+      "Rate limit bypass tester — XFF rotation, case variation, method switching, query params, header variations",
     args: "URL [--method METHOD] [-H key:value] [-d JSON] [--count N] [--json-output]",
   },
   waf_bypass: {
-    description: "WAF bypass encoder — generates encoding variants (URL, unicode, HTML entity, hex, mixed case) with optional live testing",
+    description:
+      "WAF bypass encoder — generates encoding variants (URL, unicode, HTML entity, hex, mixed case) with optional live testing",
     args: "PAYLOAD [--test-url URL] [--param NAME] [--json-output]",
   },
   cloud_storage_enum: {
@@ -66,7 +69,8 @@ const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> =
     args: "DOMAIN [--probe] [--limit N] [--json-output]",
   },
   response_diff: {
-    description: "HTTP response diff — compare two responses with different headers to detect access control differences",
+    description:
+      "HTTP response diff — compare two responses with different headers to detect access control differences",
     args: "URL [--header-a key:value] [--header-b key:value] [--method METHOD] [--data JSON] [--json-output]",
   },
 }
@@ -74,20 +78,14 @@ const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> =
 export const AttackScriptTool = Tool.define("attack_script", {
   description: `Execute a bundled attack script for automated vulnerability testing. Available scripts: ${Object.keys(AVAILABLE_SCRIPTS).join(", ")}. Each script outputs structured results. Use --json-output for machine-readable output.`,
   parameters: z.object({
-    script: z
-      .enum(Object.keys(AVAILABLE_SCRIPTS) as [string, ...string[]])
-      .describe(
-        "Script to execute. Options: " +
-          Object.entries(AVAILABLE_SCRIPTS)
-            .map(([k, v]) => `${k} — ${v.description}`)
-            .join("; "),
-      ),
+    script: z.enum(Object.keys(AVAILABLE_SCRIPTS) as [string, ...string[]]).describe(
+      "Script to execute. Options: " +
+        Object.entries(AVAILABLE_SCRIPTS)
+          .map(([k, v]) => `${k} — ${v.description}`)
+          .join("; "),
+    ),
     args: z.array(z.string()).describe("Arguments to pass to the script"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(120)
-      .describe("Maximum execution time in seconds (default: 120)"),
+    timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
     const scriptPath = path.join(SCRIPTS_DIR, `${params.script}.py`)

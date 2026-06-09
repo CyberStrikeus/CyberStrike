@@ -43,7 +43,7 @@ export namespace Methodology {
     )
 
     const scopeItems = entries
-      .filter((e) => e.type === "subdomain" || (e.tags as string[] || []).includes("scope"))
+      .filter((e) => e.type === "subdomain" || ((e.tags as string[]) || []).includes("scope"))
       .map((e) => e.asset)
     const scopeType = Phase.detectScopeType(scopeItems.length > 0 ? scopeItems : entries.map((e) => e.asset))
     const applicablePhases = Phase.forScope(scopeType)
@@ -143,8 +143,7 @@ export namespace Methodology {
       if (!result.completed) missing.push(prereq)
     }
 
-    if (missing.length > 0)
-      return { canStart: false, reason: `Prerequisites incomplete: ${missing.join(", ")}` }
+    if (missing.length > 0) return { canStart: false, reason: `Prerequisites incomplete: ${missing.join(", ")}` }
     return { canStart: true }
   }
 
@@ -214,7 +213,8 @@ export namespace Methodology {
     }
 
     // 2. methodology_progress: Check if testing is happening without reconnaissance
-    const hasRecon = completedIds.has("passive_recon") || completedIds.has("active_recon") || completedIds.has("scope_analysis")
+    const hasRecon =
+      completedIds.has("passive_recon") || completedIds.has("active_recon") || completedIds.has("scope_analysis")
     const hasExploitPhase = phases.some(
       (p) => ["input_validation", "authorization_testing", "business_logic"].includes(p.id) && p.deliverableCount > 0,
     )
@@ -354,19 +354,32 @@ export namespace Methodology {
 
   export function getPhaseDirectives(phaseId: Phase.Id): string {
     const directives: Record<Phase.Id, string> = {
-      scope_analysis: "Analyze the target scope. Identify all in-scope domains, subdomains, IP ranges. Use add_intel to log each discovered asset with tag 'scope-analysis'.",
-      passive_recon: "Perform passive reconnaissance: DNS records, WHOIS, certificate transparency, Wayback Machine, Google dorking. Log all subdomains and services via add_intel with tag 'passive-recon'.",
-      active_recon: "Run active enumeration: port scanning, service detection, directory bruteforcing, crawler. Log live hosts and endpoints via add_intel with tag 'active-recon'.",
-      technology_profiling: "Identify technology stack: frameworks, CMS, server software, JavaScript libraries. Log each technology via add_intel with tag 'technology'. Check for known CVEs.",
-      authentication_testing: "Test authentication mechanisms: default credentials, brute force protection, password policy, MFA bypass, account lockout. Log findings with tag 'auth-testing'.",
-      session_management: "Test session handling: cookie flags, session fixation, session timeout, CSRF protection, token entropy. Log findings with tag 'session-testing'.",
-      authorization_testing: "Test access controls: IDOR, privilege escalation (horizontal/vertical), missing function-level access control. Build access matrix per role. Log with tag 'authz-testing'.",
-      input_validation: "Test all input vectors: XSS (reflected/stored/DOM), SQL injection, SSTI, command injection, SSRF, XXE. Use update_vrt_check to record test results per entry.",
-      business_logic: "Test business logic: race conditions, price manipulation, workflow bypass, feature abuse. Log with tag 'business-logic'.",
-      data_protection: "Test data protection: sensitive data in URLs, unencrypted storage, missing TLS, improper error handling. Log with tag 'data-protection'.",
-      api_security: "Test API security: BOLA/IDOR, broken auth, mass assignment, rate limiting, GraphQL introspection. Log with tag 'api-security'.",
-      infrastructure: "Test infrastructure: cloud misconfigurations, DNS zone transfer, open services, default installations. Log with tag 'infrastructure'.",
-      reporting: "Validate all findings, ensure evidence quality meets validation gates, check OWASP coverage, and generate final report. Use methodology_status to review coverage.",
+      scope_analysis:
+        "Analyze the target scope. Identify all in-scope domains, subdomains, IP ranges. Use add_intel to log each discovered asset with tag 'scope-analysis'.",
+      passive_recon:
+        "Perform passive reconnaissance: DNS records, WHOIS, certificate transparency, Wayback Machine, Google dorking. Log all subdomains and services via add_intel with tag 'passive-recon'.",
+      active_recon:
+        "Run active enumeration: port scanning, service detection, directory bruteforcing, crawler. Log live hosts and endpoints via add_intel with tag 'active-recon'.",
+      technology_profiling:
+        "Identify technology stack: frameworks, CMS, server software, JavaScript libraries. Log each technology via add_intel with tag 'technology'. Check for known CVEs.",
+      authentication_testing:
+        "Test authentication mechanisms: default credentials, brute force protection, password policy, MFA bypass, account lockout. Log findings with tag 'auth-testing'.",
+      session_management:
+        "Test session handling: cookie flags, session fixation, session timeout, CSRF protection, token entropy. Log findings with tag 'session-testing'.",
+      authorization_testing:
+        "Test access controls: IDOR, privilege escalation (horizontal/vertical), missing function-level access control. Build access matrix per role. Log with tag 'authz-testing'.",
+      input_validation:
+        "Test all input vectors: XSS (reflected/stored/DOM), SQL injection, SSTI, command injection, SSRF, XXE. Use update_vrt_check to record test results per entry.",
+      business_logic:
+        "Test business logic: race conditions, price manipulation, workflow bypass, feature abuse. Log with tag 'business-logic'.",
+      data_protection:
+        "Test data protection: sensitive data in URLs, unencrypted storage, missing TLS, improper error handling. Log with tag 'data-protection'.",
+      api_security:
+        "Test API security: BOLA/IDOR, broken auth, mass assignment, rate limiting, GraphQL introspection. Log with tag 'api-security'.",
+      infrastructure:
+        "Test infrastructure: cloud misconfigurations, DNS zone transfer, open services, default installations. Log with tag 'infrastructure'.",
+      reporting:
+        "Validate all findings, ensure evidence quality meets validation gates, check OWASP coverage, and generate final report. Use methodology_status to review coverage.",
     }
     return directives[phaseId] || ""
   }

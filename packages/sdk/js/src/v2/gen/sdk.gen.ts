@@ -69,6 +69,20 @@ import type {
   McpRemoteConfig,
   McpRemoveResponses,
   McpStatusResponses,
+  MethodologyAssetCoverageErrors,
+  MethodologyAssetCoverageResponses,
+  MethodologyChainsErrors,
+  MethodologyChainsResponses,
+  MethodologyCoverageErrors,
+  MethodologyCoverageResponses,
+  MethodologyIntelErrors,
+  MethodologyIntelResponses,
+  MethodologyPerformanceErrors,
+  MethodologyPerformanceResponses,
+  MethodologyStateErrors,
+  MethodologyStateResponses,
+  MethodologyViolationsErrors,
+  MethodologyViolationsResponses,
   OutputFormat,
   Part as Part2,
   PartDeleteErrors,
@@ -3909,6 +3923,232 @@ export class Tui extends HeyApiClient {
   }
 }
 
+export class Methodology extends HeyApiClient {
+  /**
+   * Get methodology state
+   *
+   * Returns phase progression, violations, and completion percentage for a session.
+   */
+  public state<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MethodologyStateResponses, MethodologyStateErrors, ThrowOnError>({
+      url: "/methodology/session/{sessionID}/state",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get intel entries
+   *
+   * Returns all intelligence entries for a session.
+   */
+  public intel<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MethodologyIntelResponses, MethodologyIntelErrors, ThrowOnError>({
+      url: "/methodology/session/{sessionID}/intel",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get coverage report
+   *
+   * Returns VRT coverage statistics and untested items.
+   */
+  public coverage<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MethodologyCoverageResponses, MethodologyCoverageErrors, ThrowOnError>({
+      url: "/methodology/session/{sessionID}/intel/coverage",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get chain candidates
+   *
+   * Returns detected vulnerability chain opportunities.
+   */
+  public chains<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<MethodologyChainsResponses, MethodologyChainsErrors, ThrowOnError>({
+      url: "/methodology/session/{sessionID}/chains",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get validation violations
+   *
+   * Returns methodology and evidence quality violations.
+   */
+  public violations<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      scope_items?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "scope_items" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyViolationsResponses,
+      MethodologyViolationsErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/violations",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get agent performance
+   *
+   * Returns Liyakat scores and mission stats for all agents in a session.
+   */
+  public performance<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyPerformanceResponses,
+      MethodologyPerformanceErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/performance",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get per-asset coverage
+   *
+   * Returns VRT coverage broken down by target asset.
+   */
+  public assetCoverage<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyAssetCoverageResponses,
+      MethodologyAssetCoverageErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/intel/coverage/assets",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Instance extends HeyApiClient {
   /**
    * Dispose instance
@@ -4519,6 +4759,11 @@ export class CyberstrikeClient extends HeyApiClient {
   private _tui?: Tui
   get tui(): Tui {
     return (this._tui ??= new Tui({ client: this.client }))
+  }
+
+  private _methodology?: Methodology
+  get methodology(): Methodology {
+    return (this._methodology ??= new Methodology({ client: this.client }))
   }
 
   private _instance?: Instance

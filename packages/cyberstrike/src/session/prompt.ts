@@ -494,7 +494,9 @@ export namespace SessionPrompt {
           // Record successful mission for agent performance tracking
           try {
             const output = result.output ?? ""
-            const findings = (output.match(/report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi) ?? []).length
+            const findings = (
+              output.match(/report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi) ?? []
+            ).length
             const vrtUpdates = (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
             AgentPerformance.recordMission(Session.root(sessionID), task.agent, {
               success: true,

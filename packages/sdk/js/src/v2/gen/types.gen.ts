@@ -1054,6 +1054,14 @@ export type EventMcpBrowserOpenFailed = {
   }
 }
 
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
+  }
+}
+
 export type EventCommandExecuted = {
   type: "command.executed"
   properties: {
@@ -1253,6 +1261,7 @@ export type Event =
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
+  | EventIntelUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -6108,6 +6117,261 @@ export type TuiControlResponseResponses = {
 }
 
 export type TuiControlResponseResponse = TuiControlResponseResponses[keyof TuiControlResponseResponses]
+
+export type MethodologyStateData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/state"
+}
+
+export type MethodologyStateErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyStateError = MethodologyStateErrors[keyof MethodologyStateErrors]
+
+export type MethodologyStateResponses = {
+  /**
+   * Methodology state
+   */
+  200: {
+    phases: Array<{
+      id: string
+      name: string
+      status: string
+      deliverableCount: number
+    }>
+    violations: Array<{
+      gate: string
+      severity: string
+      message: string
+    }>
+    completionPercent: number
+    completedCount: number
+    totalCount: number
+    currentPhase: string | null
+  }
+}
+
+export type MethodologyStateResponse = MethodologyStateResponses[keyof MethodologyStateResponses]
+
+export type MethodologyIntelData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel"
+}
+
+export type MethodologyIntelErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyIntelError = MethodologyIntelErrors[keyof MethodologyIntelErrors]
+
+export type MethodologyIntelResponses = {
+  /**
+   * Intel entries
+   */
+  200: Array<{
+    [key: string]: unknown
+  }>
+}
+
+export type MethodologyIntelResponse = MethodologyIntelResponses[keyof MethodologyIntelResponses]
+
+export type MethodologyCoverageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel/coverage"
+}
+
+export type MethodologyCoverageErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyCoverageError = MethodologyCoverageErrors[keyof MethodologyCoverageErrors]
+
+export type MethodologyCoverageResponses = {
+  /**
+   * Coverage report
+   */
+  200: {
+    totalChecks: number
+    completedChecks: number
+    vulnerableChecks: number
+    coveragePercent: number
+    totalEntries: number
+  }
+}
+
+export type MethodologyCoverageResponse = MethodologyCoverageResponses[keyof MethodologyCoverageResponses]
+
+export type MethodologyChainsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/chains"
+}
+
+export type MethodologyChainsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyChainsError = MethodologyChainsErrors[keyof MethodologyChainsErrors]
+
+export type MethodologyChainsResponses = {
+  /**
+   * Chain candidates
+   */
+  200: Array<{
+    [key: string]: unknown
+  }>
+}
+
+export type MethodologyChainsResponse = MethodologyChainsResponses[keyof MethodologyChainsResponses]
+
+export type MethodologyViolationsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    scope_items?: string
+  }
+  url: "/methodology/session/{sessionID}/violations"
+}
+
+export type MethodologyViolationsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyViolationsError = MethodologyViolationsErrors[keyof MethodologyViolationsErrors]
+
+export type MethodologyViolationsResponses = {
+  /**
+   * Validation results
+   */
+  200: {
+    summary: string
+    blockingCount: number
+    warningCount: number
+  }
+}
+
+export type MethodologyViolationsResponse = MethodologyViolationsResponses[keyof MethodologyViolationsResponses]
+
+export type MethodologyPerformanceData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/performance"
+}
+
+export type MethodologyPerformanceErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyPerformanceError = MethodologyPerformanceErrors[keyof MethodologyPerformanceErrors]
+
+export type MethodologyPerformanceResponses = {
+  /**
+   * Agent performance data
+   */
+  200: Array<{
+    agent: string
+    stats: {
+      missionsCompleted: number
+      findingsReported: number
+      chainsContributed: number
+      turnsUsed: number
+      successRate: number
+      coverageContributed: number
+      rejectionCount: number
+      averageEvidenceQuality: number
+      performanceScore: number
+      morale: number
+    }
+  }>
+}
+
+export type MethodologyPerformanceResponse = MethodologyPerformanceResponses[keyof MethodologyPerformanceResponses]
+
+export type MethodologyAssetCoverageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel/coverage/assets"
+}
+
+export type MethodologyAssetCoverageErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyAssetCoverageError = MethodologyAssetCoverageErrors[keyof MethodologyAssetCoverageErrors]
+
+export type MethodologyAssetCoverageResponses = {
+  /**
+   * Per-asset coverage
+   */
+  200: Array<{
+    asset: string
+    totalChecks: number
+    completedChecks: number
+    vulnerableChecks: number
+    coveragePercent: number
+  }>
+}
+
+export type MethodologyAssetCoverageResponse =
+  MethodologyAssetCoverageResponses[keyof MethodologyAssetCoverageResponses]
 
 export type InstanceDisposeData = {
   body?: never

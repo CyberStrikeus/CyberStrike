@@ -7,9 +7,11 @@ import { Methodology } from "./methodology"
 // ============================================================
 
 export namespace Validation {
-  const P1_INDICATOR_REGEX = /\b(rce|remote code|command exec|full.*bypass|auth.*bypass.*complete|account.*takeover|mass.*data|sql.*inject.*data|ssrf.*internal.*data)\b/i
+  const P1_INDICATOR_REGEX =
+    /\b(rce|remote code|command exec|full.*bypass|auth.*bypass.*complete|account.*takeover|mass.*data|sql.*inject.*data|ssrf.*internal.*data)\b/i
   const INFO_ONLY_REGEX = /\b(version|fingerprint|header|stack trace|error message|debug|info disclosure)\b/i
-  const EXPLOITED_DATA_REGEX = /\b(user|email|token|key|password|secret|admin|session|cookie|api.?key|access.?token|private|credential)\b/i
+  const EXPLOITED_DATA_REGEX =
+    /\b(user|email|token|key|password|secret|admin|session|cookie|api.?key|access.?token|private|credential)\b/i
   const HTTP_VERB_REGEX = /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD|curl|http)\b/i
 
   export interface EvidenceQualityResult {
@@ -305,7 +307,9 @@ export namespace Validation {
     ]
     for (const ac of assetCoverages) {
       const status = ac.totalChecks > 0 && ac.coveragePercent < MIN_COVERAGE ? "FAIL" : "OK"
-      summaryLines.push(`  ${status}: ${ac.asset} — ${ac.coveragePercent}% (${ac.completedChecks}/${ac.totalChecks} checks)`)
+      summaryLines.push(
+        `  ${status}: ${ac.asset} — ${ac.coveragePercent}% (${ac.completedChecks}/${ac.totalChecks} checks)`,
+      )
     }
     summaryLines.push("")
     summaryLines.push(`## Evidence Quality — ${evidenceResults.every((r) => r.passed) ? "PASS" : "FAIL"}`)
