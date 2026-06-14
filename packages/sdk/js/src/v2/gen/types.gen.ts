@@ -985,6 +985,14 @@ export type EventWebRetestUpdated = {
   }
 }
 
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
+  }
+}
+
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -1051,14 +1059,6 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
-  }
-}
-
-export type EventIntelUpdated = {
-  type: "intel.updated"
-  properties: {
-    sessionID: string
-    entryCount: number
   }
 }
 
@@ -1255,13 +1255,13 @@ export type Event =
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
   | EventWebRetestUpdated
+  | EventIntelUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
-  | EventIntelUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -1814,7 +1814,7 @@ export type ProviderConfig = {
       interleaved?:
         | true
         | {
-            field: "reasoning_content" | "reasoning_details"
+            field: "reasoning" | "reasoning_content" | "reasoning_details"
           }
       cost?: {
         input: number
@@ -1837,7 +1837,27 @@ export type ProviderConfig = {
         input: Array<"text" | "audio" | "image" | "video" | "pdf">
         output: Array<"text" | "audio" | "image" | "video" | "pdf">
       }
-      experimental?: boolean
+      experimental?:
+        | boolean
+        | {
+            modes?: {
+              [key: string]: {
+                cost?: {
+                  input?: number
+                  output?: number
+                  cache_read?: number
+                }
+                provider?: {
+                  body?: {
+                    [key: string]: unknown
+                  }
+                  headers?: {
+                    [key: string]: string
+                  }
+                }
+              }
+            }
+          }
       status?: "alpha" | "beta" | "deprecated"
       options?: {
         [key: string]: unknown
@@ -1849,6 +1869,21 @@ export type ProviderConfig = {
         npm?: string
         api?: string
       }
+      reasoning_options?: Array<
+        | {
+            type: "effort"
+            values: Array<string>
+          }
+        | {
+            type: "toggle"
+          }
+        | {
+            type: "budget_tokens"
+            min?: number
+            max?: number
+          }
+      >
+      structured_output?: boolean
       /**
        * Variant-specific configuration
        */
@@ -2273,7 +2308,7 @@ export type Model = {
     interleaved:
       | boolean
       | {
-          field: "reasoning_content" | "reasoning_details"
+          field: "reasoning" | "reasoning_content" | "reasoning_details"
         }
   }
   cost: {
@@ -2305,6 +2340,20 @@ export type Model = {
     [key: string]: string
   }
   release_date: string
+  reasoning_options?: Array<
+    | {
+        type: "effort"
+        values: Array<string>
+      }
+    | {
+        type: "toggle"
+      }
+    | {
+        type: "budget_tokens"
+        min?: number
+        max?: number
+      }
+  >
   variants?: {
     [key: string]: {
       [key: string]: unknown
@@ -5119,7 +5168,7 @@ export type ProviderListResponses = {
           interleaved?:
             | true
             | {
-                field: "reasoning_content" | "reasoning_details"
+                field: "reasoning" | "reasoning_content" | "reasoning_details"
               }
           cost?: {
             input: number
@@ -5142,7 +5191,27 @@ export type ProviderListResponses = {
             input: Array<"text" | "audio" | "image" | "video" | "pdf">
             output: Array<"text" | "audio" | "image" | "video" | "pdf">
           }
-          experimental?: boolean
+          experimental?:
+            | boolean
+            | {
+                modes?: {
+                  [key: string]: {
+                    cost?: {
+                      input?: number
+                      output?: number
+                      cache_read?: number
+                    }
+                    provider?: {
+                      body?: {
+                        [key: string]: unknown
+                      }
+                      headers?: {
+                        [key: string]: string
+                      }
+                    }
+                  }
+                }
+              }
           status?: "alpha" | "beta" | "deprecated"
           options: {
             [key: string]: unknown
@@ -5154,6 +5223,21 @@ export type ProviderListResponses = {
             npm?: string
             api?: string
           }
+          reasoning_options?: Array<
+            | {
+                type: "effort"
+                values: Array<string>
+              }
+            | {
+                type: "toggle"
+              }
+            | {
+                type: "budget_tokens"
+                min?: number
+                max?: number
+              }
+          >
+          structured_output?: boolean
           variants?: {
             [key: string]: {
               [key: string]: unknown

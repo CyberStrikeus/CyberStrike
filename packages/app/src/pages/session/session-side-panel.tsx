@@ -28,6 +28,7 @@ import { FileTabContent } from "@/pages/session/file-tabs"
 import { StickyAddButton } from "@/pages/session/review-tab"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import { ConstrainDragYAxis } from "@/utils/solid-dnd"
+import { copyVulnToClipboard } from "@/utils/vulnerability"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
 import { useComments } from "@/context/comments"
 import { useCommand } from "@/context/command"
@@ -277,41 +278,19 @@ const statusLabel = (status: string) => {
   return "Open"
 }
 
-function formatVulnForClipboard(v: {
-  title: string
-  severity: string
-  status?: string
-  cwe_id?: string
-  endpoint?: string
-  attack_vector?: string
-  description?: string
-  steps_to_reproduce?: string
-  poc?: string
-  business_impact?: string
-  recommendation?: string
-}): string {
-  const lines: string[] = []
-  lines.push(`# [${v.severity.toUpperCase()}] ${v.title}`)
-  if (v.cwe_id) lines.push(`CWE: ${v.cwe_id}`)
-  if (v.endpoint) lines.push(`Endpoint: ${v.endpoint}`)
-  if (v.attack_vector) lines.push(`Attack Vector: ${v.attack_vector}`)
-  lines.push(`Status: ${v.status ?? "open"}`)
-  if (v.description) lines.push(`\n## Description\n${v.description}`)
-  if (v.steps_to_reproduce) lines.push(`\n## Steps to Reproduce\n${v.steps_to_reproduce}`)
-  if (v.poc) lines.push(`\n## Proof of Concept\n${v.poc}`)
-  if (v.business_impact) lines.push(`\n## Business Impact\n${v.business_impact}`)
-  if (v.recommendation) lines.push(`\n## Recommendation\n${v.recommendation}`)
-  return lines.join("\n")
-}
-
-function CopyVulnButton(props: { vuln: Parameters<typeof formatVulnForClipboard>[0] }): JSX.Element {
+function CopyVulnButton(props: {
+  vuln: Parameters<typeof copyVulnToClipboard>[0]
+  iconOnly?: boolean
+}): JSX.Element {
   const [copied, setCopied] = createSignal(false)
 
   const copy = (e: MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(formatVulnForClipboard(props.vuln)).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+    copyVulnToClipboard(props.vuln).then((ok) => {
+      if (ok) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
     })
   }
 
@@ -322,7 +301,9 @@ function CopyVulnButton(props: { vuln: Parameters<typeof formatVulnForClipboard>
       title="Copy vulnerability details"
     >
       <Icon name={copied() ? "check" : "copy"} size="small" />
-      <span>{copied() ? "Copied!" : "Copy"}</span>
+      <Show when={!props.iconOnly}>
+        <span>{copied() ? "Copied!" : "Copy"}</span>
+      </Show>
     </button>
   )
 }
@@ -395,7 +376,7 @@ function VulnsPanelList() {
           const isExpanded = () => expanded() === id()
           return (
             <div
-              class="flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
+              class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
               classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
             >
               <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
@@ -410,7 +391,11 @@ function VulnsPanelList() {
                     {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
                   </span>
                 </div>
-                <Show when={isExpanded()}>
+                <Show when={isExpanded()} fallback={
+                  <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <CopyVulnButton vuln={v} iconOnly />
+                  </span>
+                }>
                   <CopyVulnButton vuln={v} />
                 </Show>
                 <Icon

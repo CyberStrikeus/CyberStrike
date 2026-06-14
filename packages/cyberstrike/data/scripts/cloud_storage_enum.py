@@ -29,10 +29,10 @@ def check_s3(name):
                 results.append({"url": url, "status": "NOT_FOUND", "severity": "NONE"})
             # Try upload
             try:
-                put_resp = requests.put(url + "/bountycode_test.txt", data="test", timeout=10, verify=False)
+                put_resp = requests.put(url + "/cyberstrike_test.txt", data="test", timeout=10, verify=False)
                 if put_resp.status_code in [200, 201]:
                     results.append({"url": url, "status": "PUBLIC_WRITE", "severity": "CRITICAL"})
-                    requests.delete(url + "/bountycode_test.txt", timeout=5, verify=False)
+                    requests.delete(url + "/cyberstrike_test.txt", timeout=5, verify=False)
             except:
                 pass
         except:

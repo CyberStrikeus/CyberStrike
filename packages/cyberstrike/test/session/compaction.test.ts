@@ -228,18 +228,23 @@ describe("session.compaction.isOverflow", () => {
 })
 
 describe("util.token.estimate", () => {
-  test("estimates tokens from text (4 chars per token)", () => {
-    const text = "x".repeat(4000)
+  test("estimates tokens from text (3.5 chars per token default)", () => {
+    const text = "x".repeat(3500)
     expect(Token.estimate(text)).toBe(1000)
   })
 
   test("estimates tokens from larger text", () => {
-    const text = "y".repeat(20_000)
-    expect(Token.estimate(text)).toBe(5000)
+    const text = "y".repeat(21_000)
+    expect(Token.estimate(text)).toBe(6000)
   })
 
   test("returns 0 for empty string", () => {
     expect(Token.estimate("")).toBe(0)
+  })
+
+  test("uses provider-specific ratio", () => {
+    const text = "z".repeat(3300)
+    expect(Token.estimate(text, "deepseek")).toBe(1000)
   })
 })
 

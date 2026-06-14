@@ -1,6 +1,6 @@
 // ============================================================
 // PHASE DEFINITIONS — 13-phase testing methodology
-// Adapted from BountyCode's bountyMethodology.ts
+// CyberStrike methodology engine — phase lifecycle management
 // ============================================================
 
 export namespace Phase {

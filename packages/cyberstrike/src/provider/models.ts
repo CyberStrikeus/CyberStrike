@@ -28,7 +28,7 @@ export namespace ModelsDev {
         z.literal(true),
         z
           .object({
-            field: z.enum(["reasoning_content", "reasoning_details"]),
+            field: z.enum(["reasoning", "reasoning_content", "reasoning_details"]),
           })
           .strict(),
       ])
@@ -60,11 +60,32 @@ export namespace ModelsDev {
         output: z.array(z.enum(["text", "audio", "image", "video", "pdf"])),
       })
       .optional(),
-    experimental: z.boolean().optional(),
+    experimental: z.union([
+      z.boolean(),
+      z.object({
+        modes: z.record(z.string(), z.object({
+          cost: z.object({
+            input: z.number().optional(),
+            output: z.number().optional(),
+            cache_read: z.number().optional(),
+          }).optional(),
+          provider: z.object({
+            body: z.record(z.string(), z.any()).optional(),
+            headers: z.record(z.string(), z.string()).optional(),
+          }).optional(),
+        })).optional(),
+      }),
+    ]).optional(),
     status: z.enum(["alpha", "beta", "deprecated"]).optional(),
     options: z.record(z.string(), z.any()),
     headers: z.record(z.string(), z.string()).optional(),
     provider: z.object({ npm: z.string().optional(), api: z.string().optional() }).optional(),
+    reasoning_options: z.array(z.union([
+      z.object({ type: z.literal("effort"), values: z.array(z.string()) }),
+      z.object({ type: z.literal("toggle") }),
+      z.object({ type: z.literal("budget_tokens"), min: z.number().optional(), max: z.number().optional() }),
+    ])).optional(),
+    structured_output: z.boolean().optional(),
     variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
   })
   export type Model = z.infer<typeof Model>

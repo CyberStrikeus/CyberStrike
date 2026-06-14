@@ -1,6 +1,6 @@
 -- methodology-engine: Intelligence, coverage, chain detection, agent performance
 --
--- 6 new tables for the methodology engine ported from BountyCode:
+-- 6 tables for the CyberStrike methodology engine:
 -- intel_entry, vrt_check, methodology_phase, chain_candidate,
 -- agent_performance, validation_violation.
 -- All session-scoped with FK cascade deletes.

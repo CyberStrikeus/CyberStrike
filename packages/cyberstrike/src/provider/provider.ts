@@ -38,6 +38,8 @@ import { createGateway } from "@ai-sdk/gateway"
 import { createTogetherAI } from "@ai-sdk/togetherai"
 import { createPerplexity } from "@ai-sdk/perplexity"
 import { createVercel } from "@ai-sdk/vercel"
+import { createAlibaba } from "@ai-sdk/alibaba"
+import { createVenice } from "venice-ai-sdk-provider"
 import { createGitLab, VERSION as GITLAB_PROVIDER_VERSION } from "@gitlab/gitlab-ai-provider"
 import { ProviderTransform } from "./transform"
 import { Installation } from "../installation"
@@ -78,6 +80,8 @@ export namespace Provider {
     "@ai-sdk/perplexity": createPerplexity,
     "@ai-sdk/vercel": createVercel,
     "@gitlab/gitlab-ai-provider": createGitLab,
+    "@ai-sdk/alibaba": createAlibaba,
+    "venice-ai-sdk-provider": createVenice,
     // @ts-ignore (TODO: kill this code so we dont have to maintain it)
     "@ai-sdk/github-copilot": createGitHubCopilotOpenAICompatible,
   }
@@ -688,7 +692,7 @@ export namespace Provider {
         interleaved: z.union([
           z.boolean(),
           z.object({
-            field: z.enum(["reasoning_content", "reasoning_details"]),
+            field: z.enum(["reasoning", "reasoning_content", "reasoning_details"]),
           }),
         ]),
       }),
@@ -719,6 +723,11 @@ export namespace Provider {
       options: z.record(z.string(), z.any()),
       headers: z.record(z.string(), z.string()),
       release_date: z.string(),
+      reasoning_options: z.array(z.union([
+        z.object({ type: z.literal("effort"), values: z.array(z.string()) }),
+        z.object({ type: z.literal("toggle") }),
+        z.object({ type: z.literal("budget_tokens"), min: z.number().optional(), max: z.number().optional() }),
+      ])).optional(),
       variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
     })
     .meta({
@@ -800,10 +809,23 @@ export namespace Provider {
         interleaved: model.interleaved ?? false,
       },
       release_date: model.release_date,
+      reasoning_options: model.reasoning_options,
       variants: {},
     }
 
-    m.variants = mapValues(ProviderTransform.variants(m), (v) => v)
+    // Merge hardcoded variants with data-driven modes from models.dev
+    const hardcoded = ProviderTransform.variants(m)
+    const fromModes: Record<string, Record<string, any>> = {}
+    if (typeof model.experimental === "object" && model.experimental?.modes) {
+      for (const [name, mode] of Object.entries(model.experimental.modes)) {
+        fromModes[name] = {
+          ...(mode.provider?.body ?? {}),
+          ...(mode.provider?.headers ? { _headers: mode.provider.headers } : {}),
+          ...(mode.cost ? { _cost: mode.cost } : {}),
+        }
+      }
+    }
+    m.variants = { ...mapValues(hardcoded, (v) => v), ...fromModes }
 
     return m
   }

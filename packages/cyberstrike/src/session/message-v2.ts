@@ -618,7 +618,9 @@ export namespace MessageV2 {
           if (part.type === "tool") {
             toolNames.add(part.tool)
             if (part.state.status === "completed") {
-              const outputText = part.state.time.compacted ? "[Old tool result content cleared]" : part.state.output
+              const outputText = part.state.time.compacted
+                ? `[Compacted — ${part.tool} call completed, see summary above]`
+                : part.state.output
               const attachments = part.state.time.compacted ? [] : (part.state.attachments ?? [])
 
               // For providers that don't support media in tool results, extract media files

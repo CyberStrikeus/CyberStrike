@@ -714,6 +714,11 @@ export namespace ProviderTransform {
       result["reasoning_effort"] = "high"
     }
 
+    // OpenAI Priority Tier — faster queue for supported models, falls back to standard
+    if (input.model.providerID === "openai" || input.model.api.npm === "@ai-sdk/openai") {
+      result["serviceTier"] = "auto"
+    }
+
     if (input.model.providerID === "openai" || input.providerOptions?.setCacheKey) {
       result["promptCacheKey"] = input.sessionID
     }

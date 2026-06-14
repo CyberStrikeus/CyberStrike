@@ -47,6 +47,7 @@ import { LLM } from "./llm"
 import { iife } from "@/util/iife"
 import { Shell } from "@/shell/shell"
 import { Truncate } from "@/tool/truncation"
+import { Token } from "@/util/token"
 import { MethodologyContext } from "@/methodology/context"
 import { AgentPerformance } from "@/methodology/performance"
 
@@ -476,14 +477,19 @@ export namespace SessionPrompt {
         assistantMessage.time.completed = Date.now()
         await Session.updateMessage(assistantMessage)
         if (result && part.state.status === "running") {
+          const truncated = await Truncate.output(result.output ?? "", {})
           await Session.updatePart({
             ...part,
             state: {
               status: "completed",
               input: part.state.input,
               title: result.title,
-              metadata: result.metadata,
-              output: result.output,
+              metadata: {
+                ...result.metadata,
+                truncated: truncated.truncated,
+                ...("outputPath" in truncated && { outputPath: truncated.outputPath }),
+              },
+              output: truncated.content,
               attachments: result.attachments,
               time: {
                 ...part.state.time,
@@ -748,6 +754,32 @@ export namespace SessionPrompt {
         system.push(lines.join("\n"))
       }
 
+      // Pre-flight token check — trigger compaction before wasting an API call
+      const modelMessages = MessageV2.toModelMessages(
+        lastUser.excludeHistory
+          ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
+          : MessageV2.filterExcluded(sessionMessages, lastUser.id),
+        model,
+      )
+      const preflightEstimate = Token.estimate(JSON.stringify(modelMessages) + system.join(""))
+      const preflightLimit = model.limit.input
+        ? model.limit.input
+        : model.limit.context - ProviderTransform.maxOutputTokens(model)
+      if (preflightLimit > 0 && preflightEstimate >= preflightLimit * 0.95) {
+        log.info("pre-flight overflow detected, triggering compaction", {
+          estimated: preflightEstimate,
+          limit: preflightLimit,
+          utilization: Math.round((preflightEstimate / preflightLimit) * 100),
+        })
+        await SessionCompaction.create({
+          sessionID,
+          agent: lastUser.agent,
+          model: lastUser.model,
+          auto: true,
+        })
+        continue
+      }
+
       const result = await processor.process({
         user: lastUser,
         agent,
@@ -755,12 +787,7 @@ export namespace SessionPrompt {
         sessionID,
         system,
         messages: [
-          ...MessageV2.toModelMessages(
-            lastUser.excludeHistory
-              ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
-              : MessageV2.filterExcluded(sessionMessages, lastUser.id),
-            model,
-          ),
+          ...modelMessages,
           ...(isLastStep
             ? [
                 {
@@ -773,6 +800,22 @@ export namespace SessionPrompt {
         tools,
         model,
         toolChoice: format.type === "json_schema" ? "required" : undefined,
+      })
+
+      // Context usage logging
+      const tokens = processor.message.tokens
+      const totalTokens = tokens.input + tokens.output + tokens.cache.read + tokens.cache.write
+      const contextLimit = model.limit.input
+        ? model.limit.input
+        : model.limit.context - ProviderTransform.maxOutputTokens(model)
+      log.info("context usage", {
+        input: tokens.input,
+        output: tokens.output,
+        cacheRead: tokens.cache.read,
+        cacheWrite: tokens.cache.write,
+        total: totalTokens,
+        contextLimit,
+        utilization: contextLimit > 0 ? Math.round((totalTokens / contextLimit) * 100) : 0,
       })
 
       // If structured output was captured, save it and exit immediately
@@ -1011,7 +1054,7 @@ export namespace SessionPrompt {
           metadata,
           output: truncated.content,
           attachments,
-          content: result.content, // directly return content to preserve ordering when outputting to model
+          content: truncated.truncated ? undefined : result.content, // skip raw content when truncated to avoid double inclusion
         }
       }
       tools[key] = item

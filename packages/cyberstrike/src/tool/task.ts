@@ -13,6 +13,7 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
+import { MethodologyContext } from "@/methodology/context"
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -200,6 +201,13 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         }
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }
+
+      // Inject methodology context so sub-agents have intel, work queue, and chain data
+      const methodologyCtx = MethodologyContext.generate(Session.root(ctx.sessionID))
+      if (methodologyCtx) {
+        prompt = "## Methodology Context\n" + methodologyCtx + "\n\n" + prompt
+      }
+
       const promptParts = await SessionPrompt.resolvePromptParts(prompt)
 
       const result = await SessionPrompt.prompt({

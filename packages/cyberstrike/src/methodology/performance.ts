@@ -5,7 +5,7 @@ import { Phase } from "./phase"
 
 // ============================================================
 // AGENT PERFORMANCE — Liyakat scoring, codenames, mission tracking
-// Adapted from BountyCode's Soul System
+// CyberStrike agent performance — liyakat scoring and mission tracking
 // ============================================================
 
 export namespace AgentPerformance {

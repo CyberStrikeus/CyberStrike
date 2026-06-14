@@ -16,6 +16,18 @@ export const TodoWriteTool = Tool.define("todowrite", {
       metadata: {},
     })
 
+    const activeCount = params.todos.filter((x) => x.status === "pending" || x.status === "in_progress").length
+    if (activeCount > 25) {
+      return {
+        title: "error",
+        output:
+          "Cannot have more than 25 active (pending/in_progress) todos. Consolidate related items or complete/cancel existing ones first.",
+        metadata: {
+          todos: params.todos,
+        },
+      }
+    }
+
     await Todo.update({
       sessionID: ctx.sessionID,
       todos: params.todos,
@@ -42,12 +54,17 @@ export const TodoReadTool = Tool.define("todoread", {
     })
 
     const todos = await Todo.get(ctx.sessionID)
+    const active = todos.filter((x) => x.status === "pending" || x.status === "in_progress")
+    const doneCount = todos.length - active.length
+    const output = doneCount > 0
+      ? JSON.stringify(active, null, 2) + `\n\n(${doneCount} completed/cancelled items hidden)`
+      : JSON.stringify(active, null, 2)
     return {
-      title: `${todos.filter((x) => x.status !== "completed").length} todos`,
+      title: `${active.length} todos`,
       metadata: {
         todos,
       },
-      output: JSON.stringify(todos, null, 2),
+      output,
     }
   },
 })
