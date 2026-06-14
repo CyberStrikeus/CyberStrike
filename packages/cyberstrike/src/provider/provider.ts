@@ -723,11 +723,15 @@ export namespace Provider {
       options: z.record(z.string(), z.any()),
       headers: z.record(z.string(), z.string()),
       release_date: z.string(),
-      reasoning_options: z.array(z.union([
-        z.object({ type: z.literal("effort"), values: z.array(z.string()) }),
-        z.object({ type: z.literal("toggle") }),
-        z.object({ type: z.literal("budget_tokens"), min: z.number().optional(), max: z.number().optional() }),
-      ])).optional(),
+      reasoning_options: z
+        .array(
+          z.union([
+            z.object({ type: z.literal("effort"), values: z.array(z.string()) }),
+            z.object({ type: z.literal("toggle") }),
+            z.object({ type: z.literal("budget_tokens"), min: z.number().optional(), max: z.number().optional() }),
+          ]),
+        )
+        .optional(),
       variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
     })
     .meta({

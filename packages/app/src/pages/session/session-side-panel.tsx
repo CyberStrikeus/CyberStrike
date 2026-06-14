@@ -278,10 +278,7 @@ const statusLabel = (status: string) => {
   return "Open"
 }
 
-function CopyVulnButton(props: {
-  vuln: Parameters<typeof copyVulnToClipboard>[0]
-  iconOnly?: boolean
-}): JSX.Element {
+function CopyVulnButton(props: { vuln: Parameters<typeof copyVulnToClipboard>[0]; iconOnly?: boolean }): JSX.Element {
   const [copied, setCopied] = createSignal(false)
 
   const copy = (e: MouseEvent) => {
@@ -391,11 +388,14 @@ function VulnsPanelList() {
                     {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
                   </span>
                 </div>
-                <Show when={isExpanded()} fallback={
-                  <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <CopyVulnButton vuln={v} iconOnly />
-                  </span>
-                }>
+                <Show
+                  when={isExpanded()}
+                  fallback={
+                    <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <CopyVulnButton vuln={v} iconOnly />
+                    </span>
+                  }
+                >
                   <CopyVulnButton vuln={v} />
                 </Show>
                 <Icon

@@ -5098,7 +5098,7 @@
                                       "properties": {
                                         "field": {
                                           "type": "string",
-                                          "enum": ["reasoning_content", "reasoning_details"]
+                                          "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                                         }
                                       },
                                       "required": ["field"],
@@ -5178,7 +5178,62 @@
                                   "required": ["input", "output"]
                                 },
                                 "experimental": {
-                                  "type": "boolean"
+                                  "anyOf": [
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "modes": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {
+                                            "type": "object",
+                                            "properties": {
+                                              "cost": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "input": {
+                                                    "type": "number"
+                                                  },
+                                                  "output": {
+                                                    "type": "number"
+                                                  },
+                                                  "cache_read": {
+                                                    "type": "number"
+                                                  }
+                                                }
+                                              },
+                                              "provider": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "body": {
+                                                    "type": "object",
+                                                    "propertyNames": {
+                                                      "type": "string"
+                                                    },
+                                                    "additionalProperties": {}
+                                                  },
+                                                  "headers": {
+                                                    "type": "object",
+                                                    "propertyNames": {
+                                                      "type": "string"
+                                                    },
+                                                    "additionalProperties": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
                                 },
                                 "status": {
                                   "type": "string",
@@ -5210,6 +5265,58 @@
                                       "type": "string"
                                     }
                                   }
+                                },
+                                "reasoning_options": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "effort"
+                                          },
+                                          "values": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["type", "values"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "toggle"
+                                          }
+                                        },
+                                        "required": ["type"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "budget_tokens"
+                                          },
+                                          "min": {
+                                            "type": "number"
+                                          },
+                                          "max": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": ["type"]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "structured_output": {
+                                  "type": "boolean"
                                 },
                                 "variants": {
                                   "type": "object",
@@ -11747,6 +11854,28 @@
         },
         "required": ["type", "properties"]
       },
+      "Event.intel.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "intel.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "entryCount": {
+                "type": "number"
+              }
+            },
+            "required": ["sessionID", "entryCount"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
       "Event.tui.prompt.append": {
         "type": "object",
         "properties": {
@@ -11899,28 +12028,6 @@
               }
             },
             "required": ["mcpName", "url"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "Event.intel.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "intel.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "entryCount": {
-                "type": "number"
-              }
-            },
-            "required": ["sessionID", "entryCount"]
           }
         },
         "required": ["type", "properties"]
@@ -12483,6 +12590,9 @@
             "$ref": "#/components/schemas/Event.web_retest.updated"
           },
           {
+            "$ref": "#/components/schemas/Event.intel.updated"
+          },
+          {
             "$ref": "#/components/schemas/Event.tui.prompt.append"
           },
           {
@@ -12499,9 +12609,6 @@
           },
           {
             "$ref": "#/components/schemas/Event.mcp.browser.open.failed"
-          },
-          {
-            "$ref": "#/components/schemas/Event.intel.updated"
           },
           {
             "$ref": "#/components/schemas/Event.command.executed"
@@ -13314,7 +13421,7 @@
                       "properties": {
                         "field": {
                           "type": "string",
-                          "enum": ["reasoning_content", "reasoning_details"]
+                          "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                         }
                       },
                       "required": ["field"],
@@ -13394,7 +13501,62 @@
                   "required": ["input", "output"]
                 },
                 "experimental": {
-                  "type": "boolean"
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "modes": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "cost": {
+                                "type": "object",
+                                "properties": {
+                                  "input": {
+                                    "type": "number"
+                                  },
+                                  "output": {
+                                    "type": "number"
+                                  },
+                                  "cache_read": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              "provider": {
+                                "type": "object",
+                                "properties": {
+                                  "body": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {}
+                                  },
+                                  "headers": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 },
                 "status": {
                   "type": "string",
@@ -13426,6 +13588,58 @@
                       "type": "string"
                     }
                   }
+                },
+                "reasoning_options": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "effort"
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["type", "values"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "toggle"
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "budget_tokens"
+                          },
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["type"]
+                      }
+                    ]
+                  }
+                },
+                "structured_output": {
+                  "type": "boolean"
                 },
                 "variants": {
                   "description": "Variant-specific configuration",
@@ -14290,7 +14504,7 @@
                     "properties": {
                       "field": {
                         "type": "string",
-                        "enum": ["reasoning_content", "reasoning_details"]
+                        "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                       }
                     },
                     "required": ["field"]
@@ -14385,6 +14599,55 @@
           },
           "release_date": {
             "type": "string"
+          },
+          "reasoning_options": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "effort"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["type", "values"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "toggle"
+                    }
+                  },
+                  "required": ["type"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "budget_tokens"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["type"]
+                }
+              ]
+            }
           },
           "variants": {
             "type": "object",

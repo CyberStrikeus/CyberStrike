@@ -56,9 +56,10 @@ export const TodoReadTool = Tool.define("todoread", {
     const todos = await Todo.get(ctx.sessionID)
     const active = todos.filter((x) => x.status === "pending" || x.status === "in_progress")
     const doneCount = todos.length - active.length
-    const output = doneCount > 0
-      ? JSON.stringify(active, null, 2) + `\n\n(${doneCount} completed/cancelled items hidden)`
-      : JSON.stringify(active, null, 2)
+    const output =
+      doneCount > 0
+        ? JSON.stringify(active, null, 2) + `\n\n(${doneCount} completed/cancelled items hidden)`
+        : JSON.stringify(active, null, 2)
     return {
       title: `${active.length} todos`,
       metadata: {
