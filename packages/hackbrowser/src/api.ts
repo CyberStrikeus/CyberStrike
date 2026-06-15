@@ -125,9 +125,10 @@ function validate(opts: CrawlOptions): void {
     throw new Error("opts.url is required")
   }
   // Multi-credential needs manual login; headless makes that impossible.
-  // (INTEGRATION.md §10.3)
-  const headlessRequested = opts.headless !== false
-  if (opts.multiCredentials && opts.multiCredentials.length >= 2 && headlessRequested) {
+  // (INTEGRATION.md §10.3). Only reject an explicit headless:true — when the
+  // caller leaves headless undefined, agent.ts defaults to visible for the
+  // multi-cred path, which is what we want.
+  if (opts.multiCredentials && opts.multiCredentials.length >= 2 && opts.headless === true) {
     throw new Error(
       "multi-credential mode requires headless: false (manual login is currently the only supported flow)",
     )

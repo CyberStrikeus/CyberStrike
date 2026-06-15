@@ -7,3 +7,6 @@ PLAN.md
 PROGRESS.md
 test-case-bugs.md
 test-cases/
+
+# Local dummy API server for testing — not part of the published package
+dummy-api/
