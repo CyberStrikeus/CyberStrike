@@ -16,6 +16,9 @@ import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
 import { Global } from "../global"
 import path from "path"
+import { createHash } from "node:crypto"
+import { getAnthropicAccountUuid } from "../auth/anthropic-oauth"
+import { createAnthropicSubscriptionModel } from "./anthropic-subscription-model"
 
 // Direct imports for bundled providers
 import { createAmazonBedrock, type AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
@@ -93,50 +96,34 @@ export namespace Provider {
     options?: Record<string, any>
   }>
 
-  // Claude Code billing header constants (2026-03-17)
-  const CC_VERSION = "2.1.76"
-  const CC_BILLING_SALT = "59cf53e54c78"
-
-  function sampleJsCodeUnit(text: string, idx: number): string {
-    let i = 0
-    for (let c = 0; c < text.length; c++) {
-      const code = text.charCodeAt(c)
-      if (code >= 0xd800 && code <= 0xdbff) {
-        // surrogate pair = 2 UTF-16 units
-        if (i === idx) return text.charAt(c)
-        if (i + 1 === idx) return text.charAt(c + 1)
-        i += 2
-        c++ // skip low surrogate
-      } else {
-        if (i === idx) return text.charAt(c)
-        i++
+  // Subscription request metadata parity with Claude Code (metadata.user_id is
+  // a JSON-stringified object). device_id is stable per machine; account_uuid is
+  // fetched from the OAuth profile (passed in); session_id is per process.
+  let _deviceId: string | undefined
+  let _sessionId: string | undefined
+  function subscriptionUserId(accountUuid?: string): string {
+    if (!_deviceId) {
+      try {
+        _deviceId = createHash("sha256")
+          .update(`${os.hostname()}:${os.userInfo().username}`)
+          .digest("hex")
+          .slice(0, 32)
+      } catch {
+        _deviceId = "cyberstrike"
       }
     }
-    return "0"
-  }
-
-  function firstUserMessageText(messages: Array<{ role: string; content: any }>): string {
-    const msg = messages.find((m) => m.role === "user")
-    if (!msg) return ""
-    if (typeof msg.content === "string") return msg.content
-    if (Array.isArray(msg.content)) {
-      for (const block of msg.content) {
-        if (block.type === "text" && typeof block.text === "string") return block.text
-        if (typeof block === "string") return block
+    if (!_sessionId) {
+      try {
+        _sessionId = crypto.randomUUID()
+      } catch {
+        _sessionId = "00000000-0000-0000-0000-000000000000"
       }
     }
-    return ""
-  }
-
-  async function ccBillingHeader(messages: Array<{ role: string; content: any }>): Promise<string> {
-    const text = firstUserMessageText(messages)
-    const sampled = [4, 7, 20].map((idx) => sampleJsCodeUnit(text, idx)).join("")
-    const data = new TextEncoder().encode(`${CC_BILLING_SALT}${sampled}${CC_VERSION}`)
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-    const hashHex = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-    return `x-anthropic-billing-header: cc_version=${CC_VERSION}.${hashHex.slice(0, 3)}; cc_entrypoint=cli; cch=00000;`
+    return JSON.stringify({
+      device_id: _deviceId,
+      ...(accountUuid ? { account_uuid: accountUuid } : {}),
+      session_id: _sessionId,
+    })
   }
 
   const CUSTOM_LOADERS: Record<string, CustomLoader> = {
@@ -147,68 +134,31 @@ export namespace Provider {
       const auth = await Auth.get(input.id)
       const key =
         input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
-      const isOAT = key?.startsWith("sk-ant-oat")
+      const explicitOAT = key?.startsWith("sk-ant-oat") ? key : undefined
+      // Subscription (Claude Pro/Max): cyberstrike's own OAuth credential,
+      // stored in auth.json via the AnthropicAuthPlugin login flow. The token is
+      // fetched and auto-refreshed per request inside the custom adapter.
+      const oauthSubscription = !explicitOAT && auth?.type === "oauth"
 
-      if (isOAT) {
+      if (explicitOAT || oauthSubscription) {
+        // Subscription path: use the OFFICIAL @anthropic-ai/sdk (via a custom
+        // LanguageModelV2) instead of @ai-sdk/anthropic — byte-identical to the
+        // genuine client (real x-stainless signature, ?beta=true, AGENT_SDK_PREFIX
+        // system[0], Bearer OAuth). Resolve the account UUID once (from the OAuth
+        // profile) for metadata.user_id parity; non-fatal if it fails.
+        const accountUuid = await getAnthropicAccountUuid().catch(() => undefined)
         return {
-          autoload: false,
-          options: {
-            apiKey: "oat-bearer",
-            headers: {
-              "anthropic-beta":
-                "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
-              "user-agent": `claude-code/${CC_VERSION}`,
-              "x-app": "cli",
-            },
-            fetch: async (url: any, init?: any) => {
-              const headers = new Headers(init?.headers)
-              headers.delete("x-api-key")
-              headers.set("Authorization", `Bearer ${key}`)
-              let body = init?.body
-              if (body && typeof body === "string") {
-                try {
-                  const parsed = JSON.parse(body)
-                  // Strip cache_control from request body
-                  if (Array.isArray(parsed.system)) {
-                    for (const block of parsed.system) {
-                      delete block.cache_control
-                    }
-                  }
-                  if (Array.isArray(parsed.messages)) {
-                    for (const msg of parsed.messages) {
-                      if (Array.isArray(msg.content)) {
-                        for (const part of msg.content) {
-                          delete part.cache_control
-                        }
-                      }
-                    }
-                  }
-                  // Prepend billing header as first system text block
-                  const billing = await ccBillingHeader(parsed.messages || [])
-                  const billingBlock = { type: "text", text: billing }
-                  if (Array.isArray(parsed.system)) {
-                    parsed.system.unshift(billingBlock)
-                  } else if (typeof parsed.system === "string" && parsed.system.trim()) {
-                    parsed.system = [billingBlock, { type: "text", text: parsed.system }]
-                  } else {
-                    parsed.system = [billingBlock]
-                  }
-                  // Strip ephemeral scope from system cache_control
-                  if (Array.isArray(parsed.system)) {
-                    for (const block of parsed.system) {
-                      if (block.cache_control?.ephemeral) {
-                        delete block.cache_control.ephemeral.scope
-                      }
-                      if (block.cache_control?.type === "ephemeral") {
-                        delete block.cache_control.scope
-                      }
-                    }
-                  }
-                  body = JSON.stringify(parsed)
-                } catch {}
-              }
-              return fetch(url, { ...init, headers, body })
-            },
+          autoload: true,
+          options: {},
+          async getModel(_sdk: any, mdl: string) {
+            // Only reasoning models (opus/sonnet) accept adaptive thinking /
+            // context_management / output_config; gate on the capability so we
+            // never send fields haiku rejects.
+            const supportsThinking = !!(input.models?.[mdl] as any)?.reasoning
+            return createAnthropicSubscriptionModel(mdl, {
+              userId: () => subscriptionUserId(accountUuid),
+              supportsThinking,
+            })
           },
         }
       }
