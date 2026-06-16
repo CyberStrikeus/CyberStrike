@@ -62,6 +62,7 @@ import { DialogSessionRename } from "../../component/dialog-session-rename"
 import { DialogHackbrowserLaunch } from "../../component/dialog-hackbrowser-launch"
 import { DialogVulnerability } from "../../component/dialog-vulnerability"
 import { DialogWebContext } from "../../component/dialog-web-context"
+import { DialogMethodology } from "../../component/dialog-methodology"
 import { Sidebar } from "./sidebar"
 import { Flag } from "@/flag/flag"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
@@ -555,6 +556,18 @@ export function Session() {
       },
       onSelect: (dialog) => {
         dialog.replace(() => <DialogWebContext sessionID={route.sessionID} />)
+      },
+    },
+    {
+      title: "View methodology",
+      value: "session.methodology",
+      category: "Session",
+      slash: {
+        name: "methodology",
+        aliases: ["intel", "vrt", "chains"],
+      },
+      onSelect: (dialog) => {
+        dialog.replace(() => <DialogMethodology sessionID={route.sessionID} />)
       },
     },
     {

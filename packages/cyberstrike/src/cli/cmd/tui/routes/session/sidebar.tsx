@@ -1,5 +1,5 @@
 import { useSync } from "@tui/context/sync"
-import { createMemo, For, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, For, Show, Switch, Match } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useTheme } from "../../context/theme"
 import { Locale } from "@/util/locale"
@@ -42,6 +42,15 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
   const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
+  const methodology = createMemo(() => sync.data.methodology?.[props.sessionID])
+  // Load the methodology digest when a session is opened (the SSE "intel.updated"
+  // path only fires on new activity). Guarded on absence so it fetches once per
+  // session and never loops: once the store is populated the effect re-runs, sees
+  // the value present, and skips.
+  createEffect(() => {
+    const sid = props.sessionID
+    if (sid && !sync.data.methodology?.[sid]) void sync.refreshMethodology(sid)
+  })
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -213,6 +222,38 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 <Show when={hackbrowserStatus()!.phase === "starting" || hackbrowserStatus()!.phase === "crawling"}>
                   <text fg={theme.info}>/hackbrowser-stop</text>
                 </Show>
+              </box>
+            </Show>
+            <Show when={methodology() && methodology()!.totalEntries > 0}>
+              <box>
+                <text fg={theme.text}>
+                  <b>Methodology</b>
+                </text>
+                <Show when={methodology()!.currentPhase}>
+                  <text fg={theme.textMuted}>
+                    Phase {methodology()!.currentPhase} ({methodology()!.completedCount}/{methodology()!.totalCount})
+                  </text>
+                </Show>
+                <text fg={theme.textMuted}>
+                  Intel {methodology()!.totalEntries} {methodology()!.totalEntries === 1 ? "entry" : "entries"}
+                </text>
+                <Show when={methodology()!.totalChecks > 0}>
+                  <text fg={theme.textMuted}>
+                    VRT {methodology()!.completedChecks}/{methodology()!.totalChecks} ({Math.round(
+                      methodology()!.coveragePercent,
+                    )}
+                    %)
+                  </text>
+                </Show>
+                <Show when={methodology()!.chains > 0}>
+                  <text fg={theme.warning}>Chains {methodology()!.chains} ⚠</text>
+                </Show>
+                <Show when={methodology()!.violations > 0}>
+                  <text fg={theme.warning}>
+                    Gates {methodology()!.violations} {methodology()!.violations === 1 ? "violation" : "violations"}
+                  </text>
+                </Show>
+                <text fg={theme.info}>/methodology</text>
               </box>
             </Show>
             <Show when={mcpEntries().length > 0}>
