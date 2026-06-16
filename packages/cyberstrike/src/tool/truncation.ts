@@ -16,6 +16,18 @@ export namespace Truncate {
 
   export type Result = { content: string; truncated: false } | { content: string; truncated: true; outputPath: string }
 
+  // Hard byte cap for tool ERROR strings. Unlike output(), this is synchronous
+  // and persists nothing — error text rarely needs to survive in full, and the
+  // head carries the actual message. Guards against a single huge error (e.g. a
+  // DeniedError or a multi-MB stack/dump) blowing the model context window.
+  export const MAX_ERROR_BYTES = 50 * 1024
+  export function error(text: string, maxBytes: number = MAX_ERROR_BYTES): string {
+    const total = Buffer.byteLength(text, "utf-8")
+    if (total <= maxBytes) return text
+    const head = Buffer.from(text, "utf-8").subarray(0, maxBytes).toString("utf-8")
+    return `${head}\n\n...[error truncated: showing ${maxBytes} of ${total} bytes]`
+  }
+
   export interface Options {
     maxLines?: number
     maxBytes?: number
