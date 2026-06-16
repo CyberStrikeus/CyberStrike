@@ -550,6 +550,44 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .get(
+      "/:sessionID/usage",
+      describeRoute({
+        summary: "Get session usage",
+        tags: ["Session"],
+        description:
+          "Aggregate token and cost usage across the session and all its descendant subagents. Resolves the tree root, so the result is the same whether a parent or child session ID is passed.",
+        operationId: "session.usage",
+        responses: {
+          200: {
+            description: "Aggregated usage",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    rootID: z.string(),
+                    totalCost: z.number(),
+                    totalTokens: z.number(),
+                    sessionCount: z.number(),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: Session.usage.schema,
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json(await Session.usage(sessionID))
+      },
+    )
+    .get(
       "/:sessionID/todo",
       describeRoute({
         summary: "Get session todos",

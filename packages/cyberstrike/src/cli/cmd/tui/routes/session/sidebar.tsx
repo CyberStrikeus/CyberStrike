@@ -1,5 +1,5 @@
 import { useSync } from "@tui/context/sync"
-import { createEffect, createMemo, For, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, For, onCleanup, Show, Switch, Match } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useTheme } from "../../context/theme"
 import { Locale } from "@/util/locale"
@@ -12,6 +12,10 @@ import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
 import { formatEndpointHost } from "@tui/util/format"
+
+const fmtTokens = (n: number) =>
+  n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? Math.round(n / 1_000) + "K" : String(n)
+const usd = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n)
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -51,6 +55,18 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     const sid = props.sessionID
     if (sid && !sync.data.methodology?.[sid]) void sync.refreshMethodology(sid)
   })
+
+  // Cumulative usage across the session tree (main + subagents). Debounced on
+  // message activity so a burst of subagent turns triggers at most one refetch.
+  const treeUsage = createMemo(() => sync.data.session_usage?.[props.sessionID])
+  let usageTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(() => {
+    const sid = props.sessionID
+    messages().length // track new activity
+    clearTimeout(usageTimer)
+    usageTimer = setTimeout(() => sid && void sync.refreshUsage(sid), 1200)
+  })
+  onCleanup(() => clearTimeout(usageTimer))
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -145,6 +161,12 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               <text fg={theme.textMuted}>{context()?.tokens ?? 0} tokens</text>
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
               <text fg={theme.textMuted}>{cost()} spent</text>
+              {/* cumulative across the whole session tree (main + subagents) */}
+              <Show when={treeUsage()}>
+                <text fg={theme.textMuted}>
+                  Σ {fmtTokens(treeUsage()!.totalTokens)} · {usd(treeUsage()!.totalCost)} tree total
+                </text>
+              </Show>
             </box>
             <Show when={(queueStatus()?.pending ?? 0) > 0 || queueStatus()?.paused}>
               <box>

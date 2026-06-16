@@ -88,6 +88,14 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           violations: number
         }
       }
+      // Cumulative usage across a session's whole tree (main + subagents),
+      // keyed by the queried sessionID. Fetched from /session/:id/usage.
+      session_usage: {
+        [sessionID: string]: {
+          totalCost: number
+          totalTokens: number
+        }
+      }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
@@ -189,6 +197,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_queue_status: {},
       session_hackbrowser_status: {},
       methodology: {},
+      session_usage: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -240,6 +249,20 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         totalChecks: coverage?.totalChecks ?? 0,
         chains: Array.isArray(chains) ? chains.length : 0,
       })
+    }
+
+    // Fetch cumulative tree usage (main + all subagents) for a session and store
+    // it under that sessionID. The server resolves the tree root and sums
+    // per-message cost + processed tokens — see Session.usage.
+    async function refreshUsage(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/usage`)
+        const u = (await r.json()) as { totalCost?: unknown; totalTokens?: unknown }
+        if (typeof u?.totalCost === "number" && typeof u?.totalTokens === "number")
+          setStore("session_usage", sessionID, { totalCost: u.totalCost, totalTokens: u.totalTokens })
+      } catch {
+        /* ignore — header/sidebar fall back to per-session figures */
+      }
     }
 
     sdk.event.listen((e) => {
@@ -627,6 +650,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       // is opened) — the SSE "intel.updated" path only fires on new activity, so
       // re-entering a session with existing intel needs this to populate.
       refreshMethodology,
+      // Refresh cumulative tree usage (main + subagents) for a session.
+      refreshUsage,
       get status() {
         return store.status
       },
