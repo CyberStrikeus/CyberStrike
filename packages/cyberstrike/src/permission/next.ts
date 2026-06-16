@@ -275,8 +275,16 @@ export namespace PermissionNext {
   /** Auto-rejected by config rule - halts execution */
   export class DeniedError extends Error {
     constructor(public readonly ruleset: Ruleset) {
+      // Show only the rule(s) that actually deny (or a small sample), plus a
+      // count of the rest. Serializing the full ruleset here used to embed
+      // ~15k skill-derived allow rules into the message (multi-MB), which then
+      // got fed back into the model context and overflowed the window.
+      const denies = ruleset.filter((r) => r.action === "deny")
+      const shown = (denies.length ? denies : ruleset).slice(0, 10)
+      const omitted = ruleset.length - shown.length
+      const suffix = omitted > 0 ? ` (and ${omitted} more matching rule${omitted === 1 ? "" : "s"} omitted)` : ""
       super(
-        `The user has specified a rule which prevents you from using this specific tool call. Here are some of the relevant rules ${JSON.stringify(ruleset)}`,
+        `The user has specified a rule which prevents you from using this specific tool call. Relevant rules: ${JSON.stringify(shown)}${suffix}`,
       )
     }
   }
