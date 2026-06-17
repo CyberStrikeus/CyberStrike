@@ -17,8 +17,8 @@ import { iife } from "@/util/iife"
 import { Global } from "../global"
 import path from "path"
 import { createHash } from "node:crypto"
-import { getAnthropicAccountUuid } from "../auth/anthropic-oauth"
-import { createAnthropicSubscriptionModel } from "./anthropic-subscription-model"
+import { getAnthropicAccountUuid, getValidAnthropicToken } from "../auth/anthropic-oauth"
+import { createAnthropicSubscriptionModel, SUBSCRIPTION_BETAS, AGENT_SDK_PREFIX } from "./anthropic-subscription-model"
 
 // Direct imports for bundled providers
 import { createAmazonBedrock, type AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
@@ -1249,9 +1249,14 @@ export namespace Provider {
   export async function getModelDescriptor(model: Model): Promise<{
     npm: string
     apiKey?: string
+    authToken?: string
+    anthropicBeta?: string
     baseURL?: string
     modelApiId: string
     headers?: Record<string, string>
+    supportsTemperature?: boolean
+    anthropicUserId?: string
+    anthropicSystemPrefix?: string
   }> {
     const s = await state()
     const provider = s.providers[model.providerID]
@@ -1262,12 +1267,44 @@ export namespace Provider {
       model.headers || options["headers"]
         ? { ...(options["headers"] as Record<string, string> | undefined), ...model.headers }
         : undefined
+
+    // Anthropic OAuth/subscription (or an sk-ant-oat key) authenticates with a
+    // Bearer token, not x-api-key. The apiKey-only descriptor couldn't carry it,
+    // so subscription crawls failed with "API key missing". Pass the Bearer token
+    // (+ the safe beta set — never context-1m) so the worker can use it. Other
+    // providers and api-key Anthropic fall through to the apiKey path unchanged.
+    if (model.providerID === "anthropic") {
+      const apiKey = options["apiKey"] as string | undefined
+      const explicitOAT = apiKey?.startsWith("sk-ant-oat") ? apiKey : undefined
+      const auth = await Auth.get(model.providerID)
+      const token = explicitOAT ?? (auth?.type === "oauth" ? ((await getValidAnthropicToken()) ?? undefined) : undefined)
+      if (token) {
+        // Subscription request parity (same data the in-process subscription
+        // model sends). Without metadata.user_id + the Agent SDK system prefix,
+        // the OAuth endpoint returns 429 rate_limit_error. account_uuid is
+        // best-effort (non-fatal if the profile lookup fails).
+        const accountUuid = await getAnthropicAccountUuid().catch(() => undefined)
+        return {
+          npm: model.api.npm,
+          authToken: token,
+          anthropicBeta: SUBSCRIPTION_BETAS.join(","),
+          anthropicUserId: subscriptionUserId(accountUuid),
+          anthropicSystemPrefix: AGENT_SDK_PREFIX,
+          baseURL: options["baseURL"] as string | undefined,
+          modelApiId: model.api.id,
+          headers: mergedHeaders,
+          supportsTemperature: model.capabilities.temperature,
+        }
+      }
+    }
+
     return {
       npm: model.api.npm,
       apiKey: options["apiKey"] as string | undefined,
       baseURL: options["baseURL"] as string | undefined,
       modelApiId: model.api.id,
       headers: mergedHeaders,
+      supportsTemperature: model.capabilities.temperature,
     }
   }
 

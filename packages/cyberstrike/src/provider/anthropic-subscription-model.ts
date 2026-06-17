@@ -14,7 +14,9 @@ const log = Log.create({ service: "anthropic-subscription-model" })
 
 // Fixed Agent SDK system prefix that the genuine client (bountycode) sends as
 // system[0]. Part of the wire shape that gets the request recognized.
-const AGENT_SDK_PREFIX = "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+// Exported so the hackbrowser worker applies the exact same prefix (subscription
+// requests without it are rejected with 429 rate_limit_error).
+export const AGENT_SDK_PREFIX = "You are a Claude agent, built on Anthropic's Claude Agent SDK."
 
 // Beta set that the subscription (Claude Pro/Max) is entitled to. PROVEN: this
 // draws from the included quota (overage-status: rejected, claim: five_hour).
@@ -25,7 +27,9 @@ const AGENT_SDK_PREFIX = "You are a Claude agent, built on Anthropic's Claude Ag
 // That single beta was the cause of every prior "extra usage"/400 failure.
 // Similarly `effort-2025-11-24`/`advanced-tool-use-2025-11-20` are unnecessary
 // and only add risk; the four below are sufficient and safe.
-const SUBSCRIPTION_BETAS = [
+// Exported so the hackbrowser worker descriptor reuses the exact same beta set
+// instead of a copy-pasted literal (single source of truth — no drift).
+export const SUBSCRIPTION_BETAS = [
   "claude-code-20250219",
   "oauth-2025-04-20",
   "interleaved-thinking-2025-05-14",
