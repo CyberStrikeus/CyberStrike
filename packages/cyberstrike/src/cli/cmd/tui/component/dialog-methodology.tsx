@@ -221,8 +221,8 @@ export function DialogMethodology(props: { sessionID: string }) {
                         <Show when={section() === "coverage"}>
                           <text fg={theme.text}>{v().asset}</text>
                           <text fg={theme.textMuted}>
-                            {v().completedChecks}/{v().totalChecks} checked ({v().coveragePercent}%) · {v().vulnerableChecks}{" "}
-                            vulnerable
+                            {v().completedChecks}/{v().totalChecks} checked ({v().coveragePercent}%) ·{" "}
+                            {v().vulnerableChecks} vulnerable
                           </text>
                         </Show>
                         <Show when={section() === "chains"}>
@@ -246,7 +246,8 @@ export function DialogMethodology(props: { sessionID: string }) {
                         </Show>
                         <Show when={section() === "violations"}>
                           <text fg={theme.text}>
-                            <span style={{ fg: sev(v().severity) }}>[{(v().severity ?? "").toUpperCase()}]</span> {v().gate}
+                            <span style={{ fg: sev(v().severity) }}>[{(v().severity ?? "").toUpperCase()}]</span>{" "}
+                            {v().gate}
                           </text>
                           <text fg={theme.textMuted} wrapMode="word">
                             {v().message}
@@ -284,7 +285,7 @@ export function DialogMethodology(props: { sessionID: string }) {
       <box paddingTop={1}>
         <text fg={theme.textMuted}>
           <Show when={mode() === "detail"} fallback="←→ Section  ↑↓ Navigate  Enter Details  Esc Close">
-            Enter Back  Esc Close
+            Enter Back Esc Close
           </Show>
         </text>
       </box>

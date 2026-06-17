@@ -203,7 +203,13 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           const reqHint = (shown: number, total: number) =>
             `...[truncated: showing ${shown} of ${total} bytes — call web_get_request_detail with request_id ${current.id} for the full request/response]`
           if (current.raw_request) {
-            lines.push("", "## Raw HTTP Request", "```", Truncate.cap(current.raw_request, MAX_PREPEND_BYTES, reqHint), "```")
+            lines.push(
+              "",
+              "## Raw HTTP Request",
+              "```",
+              Truncate.cap(current.raw_request, MAX_PREPEND_BYTES, reqHint),
+              "```",
+            )
           }
 
           // Response

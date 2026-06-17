@@ -261,9 +261,8 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 </text>
                 <Show when={methodology()!.totalChecks > 0}>
                   <text fg={theme.textMuted}>
-                    VRT {methodology()!.completedChecks}/{methodology()!.totalChecks} ({Math.round(
-                      methodology()!.coveragePercent,
-                    )}
+                    VRT {methodology()!.completedChecks}/{methodology()!.totalChecks} (
+                    {Math.round(methodology()!.coveragePercent)}
                     %)
                   </text>
                 </Show>
