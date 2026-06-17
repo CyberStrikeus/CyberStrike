@@ -1,6 +1,6 @@
 // ============================================================
 // PHASE DEFINITIONS — 13-phase testing methodology
-// Adapted from BountyCode's bountyMethodology.ts
+// CyberStrike methodology engine — phase lifecycle management
 // ============================================================
 
 export namespace Phase {
@@ -159,9 +159,15 @@ export namespace Phase {
       id: "reporting",
       name: "Reporting & Validation",
       prerequisites: [
-        "scope_analysis", "passive_recon", "active_recon", "technology_profiling",
-        "authentication_testing", "session_management", "authorization_testing",
-        "input_validation", "business_logic",
+        "scope_analysis",
+        "passive_recon",
+        "active_recon",
+        "technology_profiling",
+        "authentication_testing",
+        "session_management",
+        "authorization_testing",
+        "input_validation",
+        "business_logic",
       ],
       requiredTags: ["reporting", "report"],
       minDeliverables: 0,
@@ -189,11 +195,21 @@ export namespace Phase {
   }
 
   export const OWASP_WEB_TOP10: OWASPDefinition[] = [
-    { id: "A01", name: "Broken Access Control", category: "web", vrtCategories: ["IDOR", "Privilege Escalation", "Auth Bypass", "CORS"] },
+    {
+      id: "A01",
+      name: "Broken Access Control",
+      category: "web",
+      vrtCategories: ["IDOR", "Privilege Escalation", "Auth Bypass", "CORS"],
+    },
     { id: "A02", name: "Cryptographic Failures", category: "web", vrtCategories: ["Info Disclosure", "Known CVE"] },
     { id: "A03", name: "Injection", category: "web", vrtCategories: ["SQLi", "XSS", "SSTI", "Command Injection"] },
     { id: "A04", name: "Insecure Design", category: "web", vrtCategories: ["Race Condition", "Chain Test"] },
-    { id: "A05", name: "Security Misconfiguration", category: "web", vrtCategories: ["CORS", "Info Disclosure", "Default Creds", "Config Manipulation"] },
+    {
+      id: "A05",
+      name: "Security Misconfiguration",
+      category: "web",
+      vrtCategories: ["CORS", "Info Disclosure", "Default Creds", "Config Manipulation"],
+    },
     { id: "A06", name: "Vulnerable Components", category: "web", vrtCategories: ["Known CVE", "Framework Vuln"] },
     { id: "A07", name: "Auth Failures", category: "web", vrtCategories: ["Auth Bypass"] },
     { id: "A08", name: "Software & Data Integrity", category: "web", vrtCategories: ["Deserialization"] },
@@ -207,9 +223,19 @@ export namespace Phase {
     { id: "API3", name: "BOPLA", category: "api", vrtCategories: ["Privilege Escalation", "Info Disclosure"] },
     { id: "API4", name: "Unrestricted Resource Consumption", category: "api", vrtCategories: ["Race Condition"] },
     { id: "API5", name: "BFLA", category: "api", vrtCategories: ["Privilege Escalation", "Auth Bypass"] },
-    { id: "API6", name: "Unrestricted Sensitive Business Flows", category: "api", vrtCategories: ["Race Condition", "Chain Test"] },
+    {
+      id: "API6",
+      name: "Unrestricted Sensitive Business Flows",
+      category: "api",
+      vrtCategories: ["Race Condition", "Chain Test"],
+    },
     { id: "API7", name: "SSRF", category: "api", vrtCategories: ["SSRF"] },
-    { id: "API8", name: "Security Misconfiguration", category: "api", vrtCategories: ["CORS", "Info Disclosure", "Config Manipulation"] },
+    {
+      id: "API8",
+      name: "Security Misconfiguration",
+      category: "api",
+      vrtCategories: ["CORS", "Info Disclosure", "Config Manipulation"],
+    },
     { id: "API9", name: "Improper Inventory Management", category: "api", vrtCategories: ["Info Disclosure"] },
     { id: "API10", name: "Unsafe Consumption of APIs", category: "api", vrtCategories: ["SSRF"] },
   ]

@@ -91,6 +91,8 @@ export namespace SessionCompaction {
       for (const part of toPrune) {
         if (part.state.status === "completed") {
           part.state.time.compacted = Date.now()
+          const summary = `[Pruned] ${part.tool} call completed. Output was ${Token.estimate(part.state.output)} tokens.`
+          part.state.output = summary
           await Session.updatePart(part)
         }
       }
@@ -177,6 +179,34 @@ When constructing the summary, try to stick to this template:
 ---`
 
     const promptText = compacting.prompt ?? [defaultPrompt, ...compacting.context].join("\n\n")
+    // Limit messages sent to compaction agent to prevent double-overflow
+    const compactionLimit = model.limit.input
+      ? model.limit.input
+      : model.limit.context - ProviderTransform.maxOutputTokens(model)
+    const budget = Math.floor(compactionLimit * 0.8)
+
+    const summaryIdx = input.messages.findLastIndex(
+      (m) => m.info.role === "assistant" && (m.info as MessageV2.Assistant).summary === true,
+    )
+    const prefix = summaryIdx >= 0 ? input.messages.slice(summaryIdx, summaryIdx + 1) : []
+    const tail = input.messages.slice(summaryIdx >= 0 ? summaryIdx + 1 : 0)
+
+    let tokenCount = 0
+    let startIdx = tail.length
+    for (let i = tail.length - 1; i >= 0; i--) {
+      const est = Token.estimate(JSON.stringify(tail[i]))
+      if (tokenCount + est > budget) break
+      tokenCount += est
+      startIdx = i
+    }
+    const limitedMessages = [...prefix, ...tail.slice(startIdx)]
+    log.info("compaction input limited", {
+      original: input.messages.length,
+      limited: limitedMessages.length,
+      budget,
+      estimated: tokenCount,
+    })
+
     const result = await processor.process({
       user: userMessage,
       agent,
@@ -185,7 +215,7 @@ When constructing the summary, try to stick to this template:
       tools: {},
       system: [],
       messages: [
-        ...MessageV2.toModelMessages(input.messages, model),
+        ...MessageV2.toModelMessages(limitedMessages, model),
         {
           role: "user",
           content: [

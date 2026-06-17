@@ -6,6 +6,7 @@ import { useDialog, type DialogContext } from "@tui/ui/dialog"
 import { useSDK } from "../context/sdk"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import { Link } from "../ui/link"
+import open from "open"
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
 import type { ProviderAuthAuthorization } from "@cyberstrike-io/sdk/v2"
@@ -132,6 +133,8 @@ function AutoMethod(props: AutoMethodProps) {
   })
 
   onMount(async () => {
+    // Open the authorization URL in the browser automatically.
+    open(props.authorization.url).catch(() => {})
     const result = await sdk.client.provider.oauth.callback({
       providerID: props.providerID,
       method: props.index,
@@ -179,6 +182,11 @@ function CodeMethod(props: CodeMethodProps) {
   const sync = useSync()
   const dialog = useDialog()
   const [error, setError] = createSignal(false)
+
+  // Open the authorization URL in the browser automatically.
+  onMount(() => {
+    open(props.authorization.url).catch(() => {})
+  })
 
   return (
     <DialogPrompt

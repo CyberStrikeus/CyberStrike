@@ -24,13 +24,20 @@ export namespace Todo {
     ),
   }
 
+  const MAX_COMPLETED = 5
+
   export function update(input: { sessionID: string; todos: Info[] }) {
+    // Auto-cleanup: keep only the last MAX_COMPLETED completed/cancelled items
+    const active = input.todos.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+    const done = input.todos.filter((t) => t.status === "completed" || t.status === "cancelled")
+    const trimmed = [...active, ...done.slice(-MAX_COMPLETED)]
+
     Database.transaction((db) => {
       db.delete(TodoTable).where(eq(TodoTable.session_id, input.sessionID)).run()
-      if (input.todos.length === 0) return
+      if (trimmed.length === 0) return
       db.insert(TodoTable)
         .values(
-          input.todos.map((todo, position) => ({
+          trimmed.map((todo, position) => ({
             session_id: input.sessionID,
             content: todo.content,
             status: todo.status,
@@ -40,7 +47,7 @@ export namespace Todo {
         )
         .run()
     })
-    Bus.publish(Event.Updated, input)
+    Bus.publish(Event.Updated, { sessionID: input.sessionID, todos: trimmed })
   }
 
   export function get(sessionID: string) {

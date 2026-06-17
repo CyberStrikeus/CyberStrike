@@ -1,4 +1,4 @@
-import { type Accessor, createMemo, createSignal, Match, Show, Switch } from "solid-js"
+import { type Accessor, createEffect, createMemo, createSignal, Match, onCleanup, Show, Switch } from "solid-js"
 import { useRouteData } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
 import { pipe, sumBy } from "remeda"
@@ -18,12 +18,26 @@ const Title = (props: { session: Accessor<Session> }) => {
   )
 }
 
-const ContextInfo = (props: { context: Accessor<string | undefined>; cost: Accessor<string> }) => {
+const fmtTokens = (n: number) =>
+  n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? Math.round(n / 1_000) + "K" : String(n)
+const usd = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n)
+
+const ContextInfo = (props: {
+  context: Accessor<string | undefined>
+  cost: Accessor<string>
+  usage: Accessor<{ totalCost: number; totalTokens: number } | undefined>
+}) => {
   const { theme } = useTheme()
   return (
     <Show when={props.context()}>
       <text fg={theme.textMuted} wrapMode="none" flexShrink={0}>
-        {props.context()} ({props.cost()})
+        {props.context()}
+        {/* once the tree usage is loaded, show the cumulative total (main + all
+            subagents); until then fall back to this session's cost. Σ = tree total. */}
+        <Show when={props.usage()} fallback={<> ({props.cost()})</>}>
+          {" "}
+          · Σ {fmtTokens(props.usage()!.totalTokens)} {usd(props.usage()!.totalCost)}
+        </Show>
       </text>
     </Show>
   )
@@ -60,6 +74,20 @@ export function Header() {
     return result
   })
 
+  // Cumulative usage across the whole session tree (main + all subagents). Read
+  // from the shared sync store (Session.usage via /session/:id/usage); refresh
+  // is debounced on message activity so a burst of subagent turns triggers at
+  // most one refetch.
+  const treeUsage = createMemo(() => sync.data.session_usage?.[route.sessionID])
+  let usageTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(() => {
+    const sessionID = route.sessionID
+    messages().length // track new activity
+    clearTimeout(usageTimer)
+    usageTimer = setTimeout(() => sessionID && void sync.refreshUsage(sessionID), 1500)
+  })
+  onCleanup(() => clearTimeout(usageTimer))
+
   const { theme } = useTheme()
   const keybind = useKeybind()
   const command = useCommandDialog()
@@ -87,7 +115,7 @@ export function Header() {
                 <text fg={theme.text}>
                   <b>Subagent session</b>
                 </text>
-                <ContextInfo context={context} cost={cost} />
+                <ContextInfo context={context} cost={cost} usage={treeUsage} />
               </box>
               <box flexDirection="row" gap={2}>
                 <box
@@ -132,7 +160,7 @@ export function Header() {
                     ⏸ Queue paused — {queueStatus()!.pending} pending
                   </text>
                 </Show>
-                <ContextInfo context={context} cost={cost} />
+                <ContextInfo context={context} cost={cost} usage={treeUsage} />
               </box>
             </box>
           </Match>

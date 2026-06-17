@@ -5,7 +5,7 @@ import { Phase } from "./phase"
 
 // ============================================================
 // AGENT PERFORMANCE — Liyakat scoring, codenames, mission tracking
-// Adapted from BountyCode's Soul System
+// CyberStrike agent performance — liyakat scoring and mission tracking
 // ============================================================
 
 export namespace AgentPerformance {
@@ -74,15 +74,10 @@ export namespace AgentPerformance {
     // Liyakat = successRate*0.4 + coverageNorm*0.25 + evidenceQuality*0.2 + efficiency*0.15
     const coverageNorm = Math.min(stats.coverageContributed / 50, 1) * 100 // normalize to 0-100
     const efficiency =
-      stats.turnsUsed > 0
-        ? Math.min((stats.findingsReported + stats.chainsContributed) / stats.turnsUsed, 1) * 100
-        : 0
+      stats.turnsUsed > 0 ? Math.min((stats.findingsReported + stats.chainsContributed) / stats.turnsUsed, 1) * 100 : 0
 
     return Math.round(
-      stats.successRate * 0.4 +
-      coverageNorm * 0.25 +
-      stats.averageEvidenceQuality * 0.2 +
-      efficiency * 0.15,
+      stats.successRate * 0.4 + coverageNorm * 0.25 + stats.averageEvidenceQuality * 0.2 + efficiency * 0.15,
     )
   }
 
@@ -203,7 +198,9 @@ export namespace AgentPerformance {
     ]
 
     if (stats.missionsCompleted > 0) {
-      lines.push(`Performance: score=${stats.performanceScore} | missions=${stats.missionsCompleted} | findings=${stats.findingsReported} | morale=${stats.morale}%`)
+      lines.push(
+        `Performance: score=${stats.performanceScore} | missions=${stats.missionsCompleted} | findings=${stats.findingsReported} | morale=${stats.morale}%`,
+      )
 
       if (stats.morale < 30) {
         lines.push("MORALE LOW — Focus on high-confidence tests. Avoid risky approaches.")
@@ -217,7 +214,9 @@ export namespace AgentPerformance {
 
   // --- Agent Meta ---
 
-  export function getAgentMeta(agentName: string): { codename: string; archetype: string; strengths: string[] } | undefined {
+  export function getAgentMeta(
+    agentName: string,
+  ): { codename: string; archetype: string; strengths: string[] } | undefined {
     const bones = BONES[agentName]
     if (!bones) return undefined
     return { codename: bones.codename, archetype: bones.archetype, strengths: [...bones.strengths] }
@@ -270,15 +269,12 @@ export namespace AgentPerformance {
     }
 
     candidates.sort((a, b) => b.score - a.score)
-    return candidates.map((c, i) => ({ ...c, role: i === 0 ? "primary" as const : "secondary" as const }))
+    return candidates.map((c, i) => ({ ...c, role: i === 0 ? ("primary" as const) : ("secondary" as const) }))
   }
 
   // --- Agent Selection (free-text mission) ---
 
-  export function selectAgentForMission(
-    sessionID: string,
-    missionType: string,
-  ): { agent: string; reason: string } {
+  export function selectAgentForMission(sessionID: string, missionType: string): { agent: string; reason: string } {
     const candidates: Array<{ name: string; score: number; reason: string }> = []
 
     for (const [name, bones] of Object.entries(BONES)) {
@@ -289,9 +285,7 @@ export namespace AgentPerformance {
       let reason = `base score: ${score}`
 
       // Boost for matching strengths
-      const matchingStrengths = bones.strengths.filter((s) =>
-        missionType.toLowerCase().includes(s.toLowerCase()),
-      )
+      const matchingStrengths = bones.strengths.filter((s) => missionType.toLowerCase().includes(s.toLowerCase()))
       if (matchingStrengths.length > 0) {
         score += 20
         reason = `strength match: ${matchingStrengths.join(", ")}`
@@ -306,8 +300,6 @@ export namespace AgentPerformance {
 
     candidates.sort((a, b) => b.score - a.score)
     const best = candidates[0]
-    return best
-      ? { agent: best.name, reason: best.reason }
-      : { agent: "web-application", reason: "default fallback" }
+    return best ? { agent: best.name, reason: best.reason } : { agent: "web-application", reason: "default fallback" }
   }
 }

@@ -2051,6 +2051,85 @@
         ]
       }
     },
+    "/session/{sessionID}/usage": {
+      "get": {
+        "operationId": "session.usage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string",
+              "pattern": "^ses.*"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get session usage",
+        "tags": ["Session"],
+        "description": "Aggregate token and cost usage across the session and all its descendant subagents. Resolves the tree root, so the result is the same whether a parent or child session ID is passed.",
+        "responses": {
+          "200": {
+            "description": "Aggregated usage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rootID": {
+                      "type": "string"
+                    },
+                    "totalCost": {
+                      "type": "number"
+                    },
+                    "totalTokens": {
+                      "type": "number"
+                    },
+                    "sessionCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["rootID", "totalCost", "totalTokens", "sessionCount"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.usage({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/session/{sessionID}/todo": {
       "get": {
         "operationId": "session.todo",
@@ -5098,7 +5177,7 @@
                                       "properties": {
                                         "field": {
                                           "type": "string",
-                                          "enum": ["reasoning_content", "reasoning_details"]
+                                          "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                                         }
                                       },
                                       "required": ["field"],
@@ -5178,7 +5257,62 @@
                                   "required": ["input", "output"]
                                 },
                                 "experimental": {
-                                  "type": "boolean"
+                                  "anyOf": [
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "modes": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {
+                                            "type": "object",
+                                            "properties": {
+                                              "cost": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "input": {
+                                                    "type": "number"
+                                                  },
+                                                  "output": {
+                                                    "type": "number"
+                                                  },
+                                                  "cache_read": {
+                                                    "type": "number"
+                                                  }
+                                                }
+                                              },
+                                              "provider": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "body": {
+                                                    "type": "object",
+                                                    "propertyNames": {
+                                                      "type": "string"
+                                                    },
+                                                    "additionalProperties": {}
+                                                  },
+                                                  "headers": {
+                                                    "type": "object",
+                                                    "propertyNames": {
+                                                      "type": "string"
+                                                    },
+                                                    "additionalProperties": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
                                 },
                                 "status": {
                                   "type": "string",
@@ -5210,6 +5344,58 @@
                                       "type": "string"
                                     }
                                   }
+                                },
+                                "reasoning_options": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "effort"
+                                          },
+                                          "values": {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "required": ["type", "values"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "toggle"
+                                          }
+                                        },
+                                        "required": ["type"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "const": "budget_tokens"
+                                          },
+                                          "min": {
+                                            "type": "number"
+                                          },
+                                          "max": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": ["type"]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "structured_output": {
+                                  "type": "boolean"
                                 },
                                 "variants": {
                                   "type": "object",
@@ -7241,6 +7427,566 @@
           {
             "lang": "js",
             "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.tui.control.response({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/state": {
+      "get": {
+        "operationId": "methodology.state",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get methodology state",
+        "description": "Returns phase progression, violations, and completion percentage for a session.",
+        "responses": {
+          "200": {
+            "description": "Methodology state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "phases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "deliverableCount": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["id", "name", "status", "deliverableCount"]
+                      }
+                    },
+                    "violations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "gate": {
+                            "type": "string"
+                          },
+                          "severity": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["gate", "severity", "message"]
+                      }
+                    },
+                    "completionPercent": {
+                      "type": "number"
+                    },
+                    "completedCount": {
+                      "type": "number"
+                    },
+                    "totalCount": {
+                      "type": "number"
+                    },
+                    "currentPhase": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "phases",
+                    "violations",
+                    "completionPercent",
+                    "completedCount",
+                    "totalCount",
+                    "currentPhase"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.state({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/intel": {
+      "get": {
+        "operationId": "methodology.intel",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get intel entries",
+        "description": "Returns all intelligence entries for a session.",
+        "responses": {
+          "200": {
+            "description": "Intel entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.intel({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/intel/coverage": {
+      "get": {
+        "operationId": "methodology.coverage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get coverage report",
+        "description": "Returns VRT coverage statistics and untested items.",
+        "responses": {
+          "200": {
+            "description": "Coverage report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalChecks": {
+                      "type": "number"
+                    },
+                    "completedChecks": {
+                      "type": "number"
+                    },
+                    "vulnerableChecks": {
+                      "type": "number"
+                    },
+                    "coveragePercent": {
+                      "type": "number"
+                    },
+                    "totalEntries": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["totalChecks", "completedChecks", "vulnerableChecks", "coveragePercent", "totalEntries"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.coverage({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/chains": {
+      "get": {
+        "operationId": "methodology.chains",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get chain candidates",
+        "description": "Returns detected vulnerability chain opportunities.",
+        "responses": {
+          "200": {
+            "description": "Chain candidates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.chains({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/violations": {
+      "get": {
+        "operationId": "methodology.violations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "scope_items",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Get validation violations",
+        "description": "Returns methodology and evidence quality violations.",
+        "responses": {
+          "200": {
+            "description": "Validation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "blockingCount": {
+                      "type": "number"
+                    },
+                    "warningCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["summary", "blockingCount", "warningCount"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.violations({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/performance": {
+      "get": {
+        "operationId": "methodology.performance",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get agent performance",
+        "description": "Returns Liyakat scores and mission stats for all agents in a session.",
+        "responses": {
+          "200": {
+            "description": "Agent performance data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "agent": {
+                        "type": "string"
+                      },
+                      "stats": {
+                        "type": "object",
+                        "properties": {
+                          "missionsCompleted": {
+                            "type": "number"
+                          },
+                          "findingsReported": {
+                            "type": "number"
+                          },
+                          "chainsContributed": {
+                            "type": "number"
+                          },
+                          "turnsUsed": {
+                            "type": "number"
+                          },
+                          "successRate": {
+                            "type": "number"
+                          },
+                          "coverageContributed": {
+                            "type": "number"
+                          },
+                          "rejectionCount": {
+                            "type": "number"
+                          },
+                          "averageEvidenceQuality": {
+                            "type": "number"
+                          },
+                          "performanceScore": {
+                            "type": "number"
+                          },
+                          "morale": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "missionsCompleted",
+                          "findingsReported",
+                          "chainsContributed",
+                          "turnsUsed",
+                          "successRate",
+                          "coverageContributed",
+                          "rejectionCount",
+                          "averageEvidenceQuality",
+                          "performanceScore",
+                          "morale"
+                        ]
+                      }
+                    },
+                    "required": ["agent", "stats"]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.performance({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/intel/coverage/assets": {
+      "get": {
+        "operationId": "methodology.assetCoverage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get per-asset coverage",
+        "description": "Returns VRT coverage broken down by target asset.",
+        "responses": {
+          "200": {
+            "description": "Per-asset coverage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "asset": {
+                        "type": "string"
+                      },
+                      "totalChecks": {
+                        "type": "number"
+                      },
+                      "completedChecks": {
+                        "type": "number"
+                      },
+                      "vulnerableChecks": {
+                        "type": "number"
+                      },
+                      "coveragePercent": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["asset", "totalChecks", "completedChecks", "vulnerableChecks", "coveragePercent"]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.assetCoverage({\n  ...\n})"
           }
         ]
       }
@@ -11187,6 +11933,28 @@
         },
         "required": ["type", "properties"]
       },
+      "Event.intel.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "intel.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "entryCount": {
+                "type": "number"
+              }
+            },
+            "required": ["sessionID", "entryCount"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
       "Event.tui.prompt.append": {
         "type": "object",
         "properties": {
@@ -11899,6 +12667,9 @@
           },
           {
             "$ref": "#/components/schemas/Event.web_retest.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.intel.updated"
           },
           {
             "$ref": "#/components/schemas/Event.tui.prompt.append"
@@ -12729,7 +13500,7 @@
                       "properties": {
                         "field": {
                           "type": "string",
-                          "enum": ["reasoning_content", "reasoning_details"]
+                          "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                         }
                       },
                       "required": ["field"],
@@ -12809,7 +13580,62 @@
                   "required": ["input", "output"]
                 },
                 "experimental": {
-                  "type": "boolean"
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "modes": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "cost": {
+                                "type": "object",
+                                "properties": {
+                                  "input": {
+                                    "type": "number"
+                                  },
+                                  "output": {
+                                    "type": "number"
+                                  },
+                                  "cache_read": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              "provider": {
+                                "type": "object",
+                                "properties": {
+                                  "body": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {}
+                                  },
+                                  "headers": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 },
                 "status": {
                   "type": "string",
@@ -12841,6 +13667,58 @@
                       "type": "string"
                     }
                   }
+                },
+                "reasoning_options": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "effort"
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["type", "values"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "toggle"
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "budget_tokens"
+                          },
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["type"]
+                      }
+                    ]
+                  }
+                },
+                "structured_output": {
+                  "type": "boolean"
                 },
                 "variants": {
                   "description": "Variant-specific configuration",
@@ -13705,7 +14583,7 @@
                     "properties": {
                       "field": {
                         "type": "string",
-                        "enum": ["reasoning_content", "reasoning_details"]
+                        "enum": ["reasoning", "reasoning_content", "reasoning_details"]
                       }
                     },
                     "required": ["field"]
@@ -13800,6 +14678,55 @@
           },
           "release_date": {
             "type": "string"
+          },
+          "reasoning_options": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "effort"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["type", "values"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "toggle"
+                    }
+                  },
+                  "required": ["type"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "budget_tokens"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["type"]
+                }
+              ]
+            }
           },
           "variants": {
             "type": "object",

@@ -11,6 +11,7 @@ import { CodexAuthPlugin } from "./codex"
 import { Session } from "../session"
 import { NamedError } from "@cyberstrike-io/util/error"
 import { CopilotAuthPlugin } from "./copilot"
+import { AnthropicAuthPlugin } from "./anthropic"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
 
 export namespace Plugin {
@@ -22,6 +23,7 @@ export namespace Plugin {
   const INTERNAL_PLUGINS: PluginInstance[] = [
     CodexAuthPlugin,
     CopilotAuthPlugin,
+    AnthropicAuthPlugin,
     GitlabAuthPlugin as unknown as PluginInstance,
   ]
 

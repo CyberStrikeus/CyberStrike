@@ -164,6 +164,12 @@ function installSkills() {
  * The actual chromium binary requires a separate one-time step:
  *   npx playwright install chromium
  */
+// Pinned playwright version for the hackbrowser worker. MUST stay in sync with
+// packages/hackbrowser/package.json (and packages/cyberstrike/package.json). The
+// playwright version is coupled to a specific Chromium build, so a drift here
+// causes "Chromium <rev> is not installed" at runtime.
+const PLAYWRIGHT_VERSION = "1.58.2"
+
 function installHackbrowserWorker() {
   const workerSrc = path.join(__dirname, "hackbrowser-worker.js")
   if (!fs.existsSync(workerSrc)) {
@@ -187,16 +193,23 @@ function installHackbrowserWorker() {
   if (!fs.existsSync(playwrightDir)) {
     console.log("Installing playwright npm package for hackbrowser worker...")
     try {
-      execSync(`npm install --prefix "${dataDir}" playwright@1.58.2 --no-fund --no-audit --loglevel=error`, {
-        stdio: "inherit",
-        timeout: 120000,
-      })
+      // --save-exact pins the dependency without a caret ("1.58.2", not
+      // "^1.58.2"). A caret range lets a later `npm install` in this dir bump
+      // to a newer minor (e.g. 1.59.x) whose Chromium build won't match the one
+      // installed via `npx playwright install chromium`, breaking the worker.
+      execSync(
+        `npm install --prefix "${dataDir}" --save-exact playwright@${PLAYWRIGHT_VERSION} --no-fund --no-audit --loglevel=error`,
+        {
+          stdio: "inherit",
+          timeout: 120000,
+        },
+      )
       console.log("playwright installed to", nodeModulesDir)
     } catch (err) {
       console.warn(
         "Warning: Failed to install playwright automatically:",
         err.message,
-        "\nTo install manually: npm install --prefix ~/.local/share/cyberstrike playwright@1.58.2",
+        `\nTo install manually: npm install --prefix ~/.local/share/cyberstrike --save-exact playwright@${PLAYWRIGHT_VERSION}`,
       )
     }
   } else {

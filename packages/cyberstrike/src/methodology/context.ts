@@ -30,10 +30,7 @@ export namespace MethodologyContext {
     )
     if (count.length === 0) return null
 
-    const sections: string[] = [
-      "# Methodology Engine Active",
-      "",
-    ]
+    const sections: string[] = ["# Methodology Engine Active", ""]
 
     // 1. Methodology progress
     const state = Methodology.computeState(sessionID)
@@ -41,10 +38,13 @@ export namespace MethodologyContext {
     sections.push("")
     for (const phase of state.phases) {
       const icon =
-        phase.status === "completed" ? "[x]"
-        : phase.status === "in_progress" ? "[>]"
-        : phase.status === "blocked" ? "[!]"
-        : "[ ]"
+        phase.status === "completed"
+          ? "[x]"
+          : phase.status === "in_progress"
+            ? "[>]"
+            : phase.status === "blocked"
+              ? "[!]"
+              : "[ ]"
       sections.push(`${icon} ${phase.name} (${phase.deliverableCount} entries)`)
     }
     sections.push(`\nOverall: ${state.completionPercent}% (${state.completedCount}/${state.totalCount})`)
@@ -73,7 +73,9 @@ export namespace MethodologyContext {
     const coverage = Intel.computeCoverage(sessionID)
     if (coverage.totalChecks > 0) {
       sections.push("")
-      sections.push(`## Coverage: ${coverage.coveragePercent}% (${coverage.completedChecks}/${coverage.totalChecks} VRT checks)`)
+      sections.push(
+        `## Coverage: ${coverage.coveragePercent}% (${coverage.completedChecks}/${coverage.totalChecks} VRT checks)`,
+      )
       if (coverage.vulnerableChecks > 0) {
         sections.push(`Vulnerable: ${coverage.vulnerableChecks} findings`)
       }
@@ -109,7 +111,9 @@ export namespace MethodologyContext {
     // 7. Intelligence protocol reminder
     sections.push("")
     sections.push("## Protocol Reminders")
-    sections.push("- Log ALL discoveries via `add_intel` — endpoints, subdomains, technologies, credentials, parameters")
+    sections.push(
+      "- Log ALL discoveries via `add_intel` — endpoints, subdomains, technologies, credentials, parameters",
+    )
     sections.push("- After testing a VRT check, update it via `update_vrt_check` with evidence")
     sections.push("- Check `methodology_status` before reporting done")
     sections.push("- Use `scope_check` before testing new targets")
@@ -192,14 +196,18 @@ export namespace MethodologyContext {
 
     // Find worst coverage asset
     const assetCoverages = Intel.computePerAssetCoverage(sessionID)
-    const worstAsset = assetCoverages.filter((a) => a.totalChecks > 0).sort((a, b) => a.coveragePercent - b.coveragePercent)[0]
+    const worstAsset = assetCoverages
+      .filter((a) => a.totalChecks > 0)
+      .sort((a, b) => a.coveragePercent - b.coveragePercent)[0]
 
     // Find current phase's recommended agent
     if (state.currentPhase) {
       const ranked = AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)
       const primary = ranked[0]
       if (primary && worstAsset) {
-        lines.push(`NEXT ACTION: Delegate to ${primary.codename} (${primary.name}) for ${state.currentPhase} on ${worstAsset.asset} (${worstAsset.coveragePercent}% coverage).`)
+        lines.push(
+          `NEXT ACTION: Delegate to ${primary.codename} (${primary.name}) for ${state.currentPhase} on ${worstAsset.asset} (${worstAsset.coveragePercent}% coverage).`,
+        )
       } else if (primary) {
         lines.push(`NEXT ACTION: Delegate to ${primary.codename} (${primary.name}) for ${state.currentPhase}.`)
       }
@@ -228,13 +236,13 @@ export namespace MethodologyContext {
 
       // Generate specific fix instructions per violation type
       if (v.gate === "per_asset_coverage" && v.affectedAsset) {
-        const ranked = state.currentPhase
-          ? AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)
-          : []
+        const ranked = state.currentPhase ? AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase) : []
         const agent = ranked[0]?.name ?? "web-application"
         lines.push(`  FIX: Delegate to ${agent} — focus testing on ${v.affectedAsset}`)
       } else if (v.gate === "evidence_quality") {
-        lines.push(`  FIX: Re-delegate with instruction "provide full PoC — requestSent, responseSummary (50+ chars), reasoning (100+ chars), requestCount ≥ 1"`)
+        lines.push(
+          `  FIX: Re-delegate with instruction "provide full PoC — requestSent, responseSummary (50+ chars), reasoning (100+ chars), requestCount ≥ 1"`,
+        )
       } else if (v.gate === "methodology_ordering") {
         lines.push(`  FIX: Complete prerequisite phases first before advancing`)
       }
@@ -301,7 +309,11 @@ export namespace MethodologyContext {
     // 4. Red flags → agent quality
     const agentNames = AgentPerformance.allAgentNames().filter((n) => n !== "cyberstrike")
     const lowMorale = agentNames
-      .map((name) => ({ name, meta: AgentPerformance.getAgentMeta(name), stats: AgentPerformance.getOrCreate(sessionID, name) }))
+      .map((name) => ({
+        name,
+        meta: AgentPerformance.getAgentMeta(name),
+        stats: AgentPerformance.getOrCreate(sessionID, name),
+      }))
       .filter((a) => a.stats.missionsCompleted > 0 && a.stats.morale < 30)
     if (lowMorale.length > 0) {
       lines.push("")
@@ -490,9 +502,13 @@ export namespace MethodologyContext {
         if (v.field === "requestSent") {
           lines.push(`  FIX: Re-delegate with "send actual HTTP request using curl/httpx, include full request line"`)
         } else if (v.field === "responseSummary") {
-          lines.push(`  FIX: Re-delegate with "capture actual HTTP response, summarize in 50+ chars with status code and key data"`)
+          lines.push(
+            `  FIX: Re-delegate with "capture actual HTTP response, summarize in 50+ chars with status code and key data"`,
+          )
         } else if (v.field === "reasoning") {
-          lines.push(`  FIX: Re-delegate with "explain why this is vulnerable — describe the flaw, impact, and how it differs from expected behavior (100+ chars)"`)
+          lines.push(
+            `  FIX: Re-delegate with "explain why this is vulnerable — describe the flaw, impact, and how it differs from expected behavior (100+ chars)"`,
+          )
         } else if (v.field === "requestCount") {
           lines.push(`  FIX: Re-delegate with "send at least 1 real HTTP request to verify the vulnerability"`)
         }

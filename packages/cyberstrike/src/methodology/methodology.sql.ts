@@ -4,7 +4,7 @@ import { Timestamps } from "../storage/schema.sql"
 
 // ============================================================================
 // Methodology Engine Tables — Intelligence, Coverage, Chain Detection
-// Ported from BountyCode's file-based persistence to CyberStrike's SQLite/Drizzle
+// CyberStrike methodology engine — SQLite/Drizzle persistence
 // ============================================================================
 
 /**

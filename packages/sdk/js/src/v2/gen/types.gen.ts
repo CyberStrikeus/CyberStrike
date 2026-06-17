@@ -985,6 +985,14 @@ export type EventWebRetestUpdated = {
   }
 }
 
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
+  }
+}
+
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -1247,6 +1255,7 @@ export type Event =
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
   | EventWebRetestUpdated
+  | EventIntelUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -1805,7 +1814,7 @@ export type ProviderConfig = {
       interleaved?:
         | true
         | {
-            field: "reasoning_content" | "reasoning_details"
+            field: "reasoning" | "reasoning_content" | "reasoning_details"
           }
       cost?: {
         input: number
@@ -1828,7 +1837,27 @@ export type ProviderConfig = {
         input: Array<"text" | "audio" | "image" | "video" | "pdf">
         output: Array<"text" | "audio" | "image" | "video" | "pdf">
       }
-      experimental?: boolean
+      experimental?:
+        | boolean
+        | {
+            modes?: {
+              [key: string]: {
+                cost?: {
+                  input?: number
+                  output?: number
+                  cache_read?: number
+                }
+                provider?: {
+                  body?: {
+                    [key: string]: unknown
+                  }
+                  headers?: {
+                    [key: string]: string
+                  }
+                }
+              }
+            }
+          }
       status?: "alpha" | "beta" | "deprecated"
       options?: {
         [key: string]: unknown
@@ -1840,6 +1869,21 @@ export type ProviderConfig = {
         npm?: string
         api?: string
       }
+      reasoning_options?: Array<
+        | {
+            type: "effort"
+            values: Array<string>
+          }
+        | {
+            type: "toggle"
+          }
+        | {
+            type: "budget_tokens"
+            min?: number
+            max?: number
+          }
+      >
+      structured_output?: boolean
       /**
        * Variant-specific configuration
        */
@@ -2264,7 +2308,7 @@ export type Model = {
     interleaved:
       | boolean
       | {
-          field: "reasoning_content" | "reasoning_details"
+          field: "reasoning" | "reasoning_content" | "reasoning_details"
         }
   }
   cost: {
@@ -2296,6 +2340,20 @@ export type Model = {
     [key: string]: string
   }
   release_date: string
+  reasoning_options?: Array<
+    | {
+        type: "effort"
+        values: Array<string>
+      }
+    | {
+        type: "toggle"
+      }
+    | {
+        type: "budget_tokens"
+        min?: number
+        max?: number
+      }
+  >
   variants?: {
     [key: string]: {
       [key: string]: unknown
@@ -3618,6 +3676,44 @@ export type SessionChildrenResponses = {
 }
 
 export type SessionChildrenResponse = SessionChildrenResponses[keyof SessionChildrenResponses]
+
+export type SessionUsageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/usage"
+}
+
+export type SessionUsageErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionUsageError = SessionUsageErrors[keyof SessionUsageErrors]
+
+export type SessionUsageResponses = {
+  /**
+   * Aggregated usage
+   */
+  200: {
+    rootID: string
+    totalCost: number
+    totalTokens: number
+    sessionCount: number
+  }
+}
+
+export type SessionUsageResponse = SessionUsageResponses[keyof SessionUsageResponses]
 
 export type SessionTodoData = {
   body?: never
@@ -5110,7 +5206,7 @@ export type ProviderListResponses = {
           interleaved?:
             | true
             | {
-                field: "reasoning_content" | "reasoning_details"
+                field: "reasoning" | "reasoning_content" | "reasoning_details"
               }
           cost?: {
             input: number
@@ -5133,7 +5229,27 @@ export type ProviderListResponses = {
             input: Array<"text" | "audio" | "image" | "video" | "pdf">
             output: Array<"text" | "audio" | "image" | "video" | "pdf">
           }
-          experimental?: boolean
+          experimental?:
+            | boolean
+            | {
+                modes?: {
+                  [key: string]: {
+                    cost?: {
+                      input?: number
+                      output?: number
+                      cache_read?: number
+                    }
+                    provider?: {
+                      body?: {
+                        [key: string]: unknown
+                      }
+                      headers?: {
+                        [key: string]: string
+                      }
+                    }
+                  }
+                }
+              }
           status?: "alpha" | "beta" | "deprecated"
           options: {
             [key: string]: unknown
@@ -5145,6 +5261,21 @@ export type ProviderListResponses = {
             npm?: string
             api?: string
           }
+          reasoning_options?: Array<
+            | {
+                type: "effort"
+                values: Array<string>
+              }
+            | {
+                type: "toggle"
+              }
+            | {
+                type: "budget_tokens"
+                min?: number
+                max?: number
+              }
+          >
+          structured_output?: boolean
           variants?: {
             [key: string]: {
               [key: string]: unknown
@@ -6108,6 +6239,261 @@ export type TuiControlResponseResponses = {
 }
 
 export type TuiControlResponseResponse = TuiControlResponseResponses[keyof TuiControlResponseResponses]
+
+export type MethodologyStateData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/state"
+}
+
+export type MethodologyStateErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyStateError = MethodologyStateErrors[keyof MethodologyStateErrors]
+
+export type MethodologyStateResponses = {
+  /**
+   * Methodology state
+   */
+  200: {
+    phases: Array<{
+      id: string
+      name: string
+      status: string
+      deliverableCount: number
+    }>
+    violations: Array<{
+      gate: string
+      severity: string
+      message: string
+    }>
+    completionPercent: number
+    completedCount: number
+    totalCount: number
+    currentPhase: string | null
+  }
+}
+
+export type MethodologyStateResponse = MethodologyStateResponses[keyof MethodologyStateResponses]
+
+export type MethodologyIntelData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel"
+}
+
+export type MethodologyIntelErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyIntelError = MethodologyIntelErrors[keyof MethodologyIntelErrors]
+
+export type MethodologyIntelResponses = {
+  /**
+   * Intel entries
+   */
+  200: Array<{
+    [key: string]: unknown
+  }>
+}
+
+export type MethodologyIntelResponse = MethodologyIntelResponses[keyof MethodologyIntelResponses]
+
+export type MethodologyCoverageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel/coverage"
+}
+
+export type MethodologyCoverageErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyCoverageError = MethodologyCoverageErrors[keyof MethodologyCoverageErrors]
+
+export type MethodologyCoverageResponses = {
+  /**
+   * Coverage report
+   */
+  200: {
+    totalChecks: number
+    completedChecks: number
+    vulnerableChecks: number
+    coveragePercent: number
+    totalEntries: number
+  }
+}
+
+export type MethodologyCoverageResponse = MethodologyCoverageResponses[keyof MethodologyCoverageResponses]
+
+export type MethodologyChainsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/chains"
+}
+
+export type MethodologyChainsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyChainsError = MethodologyChainsErrors[keyof MethodologyChainsErrors]
+
+export type MethodologyChainsResponses = {
+  /**
+   * Chain candidates
+   */
+  200: Array<{
+    [key: string]: unknown
+  }>
+}
+
+export type MethodologyChainsResponse = MethodologyChainsResponses[keyof MethodologyChainsResponses]
+
+export type MethodologyViolationsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    scope_items?: string
+  }
+  url: "/methodology/session/{sessionID}/violations"
+}
+
+export type MethodologyViolationsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyViolationsError = MethodologyViolationsErrors[keyof MethodologyViolationsErrors]
+
+export type MethodologyViolationsResponses = {
+  /**
+   * Validation results
+   */
+  200: {
+    summary: string
+    blockingCount: number
+    warningCount: number
+  }
+}
+
+export type MethodologyViolationsResponse = MethodologyViolationsResponses[keyof MethodologyViolationsResponses]
+
+export type MethodologyPerformanceData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/performance"
+}
+
+export type MethodologyPerformanceErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyPerformanceError = MethodologyPerformanceErrors[keyof MethodologyPerformanceErrors]
+
+export type MethodologyPerformanceResponses = {
+  /**
+   * Agent performance data
+   */
+  200: Array<{
+    agent: string
+    stats: {
+      missionsCompleted: number
+      findingsReported: number
+      chainsContributed: number
+      turnsUsed: number
+      successRate: number
+      coverageContributed: number
+      rejectionCount: number
+      averageEvidenceQuality: number
+      performanceScore: number
+      morale: number
+    }
+  }>
+}
+
+export type MethodologyPerformanceResponse = MethodologyPerformanceResponses[keyof MethodologyPerformanceResponses]
+
+export type MethodologyAssetCoverageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/intel/coverage/assets"
+}
+
+export type MethodologyAssetCoverageErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyAssetCoverageError = MethodologyAssetCoverageErrors[keyof MethodologyAssetCoverageErrors]
+
+export type MethodologyAssetCoverageResponses = {
+  /**
+   * Per-asset coverage
+   */
+  200: Array<{
+    asset: string
+    totalChecks: number
+    completedChecks: number
+    vulnerableChecks: number
+    coveragePercent: number
+  }>
+}
+
+export type MethodologyAssetCoverageResponse =
+  MethodologyAssetCoverageResponses[keyof MethodologyAssetCoverageResponses]
 
 export type InstanceDisposeData = {
   body?: never

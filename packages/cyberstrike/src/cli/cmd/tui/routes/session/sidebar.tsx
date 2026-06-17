@@ -1,5 +1,5 @@
 import { useSync } from "@tui/context/sync"
-import { createMemo, For, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, For, onCleanup, Show, Switch, Match } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useTheme } from "../../context/theme"
 import { Locale } from "@/util/locale"
@@ -12,6 +12,10 @@ import { useDirectory } from "../../context/directory"
 import { useKV } from "../../context/kv"
 import { TodoItem } from "../../component/todo-item"
 import { formatEndpointHost } from "@tui/util/format"
+
+const fmtTokens = (n: number) =>
+  n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? Math.round(n / 1_000) + "K" : String(n)
+const usd = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n)
 
 export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const sync = useSync()
@@ -42,6 +46,27 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const messages = createMemo(() => sync.data.message[props.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[props.sessionID])
   const hackbrowserStatus = createMemo(() => sync.data.session_hackbrowser_status?.[props.sessionID])
+  const methodology = createMemo(() => sync.data.methodology?.[props.sessionID])
+  // Load the methodology digest when a session is opened (the SSE "intel.updated"
+  // path only fires on new activity). Guarded on absence so it fetches once per
+  // session and never loops: once the store is populated the effect re-runs, sees
+  // the value present, and skips.
+  createEffect(() => {
+    const sid = props.sessionID
+    if (sid && !sync.data.methodology?.[sid]) void sync.refreshMethodology(sid)
+  })
+
+  // Cumulative usage across the session tree (main + subagents). Debounced on
+  // message activity so a burst of subagent turns triggers at most one refetch.
+  const treeUsage = createMemo(() => sync.data.session_usage?.[props.sessionID])
+  let usageTimer: ReturnType<typeof setTimeout> | undefined
+  createEffect(() => {
+    const sid = props.sessionID
+    messages().length // track new activity
+    clearTimeout(usageTimer)
+    usageTimer = setTimeout(() => sid && void sync.refreshUsage(sid), 1200)
+  })
+  onCleanup(() => clearTimeout(usageTimer))
 
   const [expanded, setExpanded] = createStore({
     mcp: true,
@@ -136,6 +161,12 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
               <text fg={theme.textMuted}>{context()?.tokens ?? 0} tokens</text>
               <text fg={theme.textMuted}>{context()?.percentage ?? 0}% used</text>
               <text fg={theme.textMuted}>{cost()} spent</text>
+              {/* cumulative across the whole session tree (main + subagents) */}
+              <Show when={treeUsage()}>
+                <text fg={theme.textMuted}>
+                  Σ {fmtTokens(treeUsage()!.totalTokens)} · {usd(treeUsage()!.totalCost)} tree total
+                </text>
+              </Show>
             </box>
             <Show when={(queueStatus()?.pending ?? 0) > 0 || queueStatus()?.paused}>
               <box>
@@ -213,6 +244,37 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                 <Show when={hackbrowserStatus()!.phase === "starting" || hackbrowserStatus()!.phase === "crawling"}>
                   <text fg={theme.info}>/hackbrowser-stop</text>
                 </Show>
+              </box>
+            </Show>
+            <Show when={methodology() && methodology()!.totalEntries > 0}>
+              <box>
+                <text fg={theme.text}>
+                  <b>Methodology</b>
+                </text>
+                <Show when={methodology()!.currentPhase}>
+                  <text fg={theme.textMuted}>
+                    Phase {methodology()!.currentPhase} ({methodology()!.completedCount}/{methodology()!.totalCount})
+                  </text>
+                </Show>
+                <text fg={theme.textMuted}>
+                  Intel {methodology()!.totalEntries} {methodology()!.totalEntries === 1 ? "entry" : "entries"}
+                </text>
+                <Show when={methodology()!.totalChecks > 0}>
+                  <text fg={theme.textMuted}>
+                    VRT {methodology()!.completedChecks}/{methodology()!.totalChecks} (
+                    {Math.round(methodology()!.coveragePercent)}
+                    %)
+                  </text>
+                </Show>
+                <Show when={methodology()!.chains > 0}>
+                  <text fg={theme.warning}>Chains {methodology()!.chains} ⚠</text>
+                </Show>
+                <Show when={methodology()!.violations > 0}>
+                  <text fg={theme.warning}>
+                    Gates {methodology()!.violations} {methodology()!.violations === 1 ? "violation" : "violations"}
+                  </text>
+                </Show>
+                <text fg={theme.info}>/methodology</text>
               </box>
             </Show>
             <Show when={mcpEntries().length > 0}>

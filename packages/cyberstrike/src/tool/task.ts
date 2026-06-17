@@ -13,6 +13,12 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
+import { MethodologyContext } from "@/methodology/context"
+import { Truncate } from "./truncation"
+
+// Per-field byte cap for raw request/response prepended into a subagent prompt.
+// The full content stays retrievable via the web_get_request_detail tool.
+const MAX_PREPEND_BYTES = 16 * 1024
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -189,17 +195,43 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             }),
           )
 
+          // Cap raw request/response before prepending. These can be up to
+          // ~100KB each (and this path bypasses the tool-output truncation that
+          // web_get_request_detail goes through), so without a cap a single big
+          // request fans out into every dispatched subagent's prompt. The full
+          // request/response stays available on demand via web_get_request_detail.
+          const reqHint = (shown: number, total: number) =>
+            `...[truncated: showing ${shown} of ${total} bytes — call web_get_request_detail with request_id ${current.id} for the full request/response]`
           if (current.raw_request) {
-            lines.push("", "## Raw HTTP Request", "```", current.raw_request, "```")
+            lines.push(
+              "",
+              "## Raw HTTP Request",
+              "```",
+              Truncate.cap(current.raw_request, MAX_PREPEND_BYTES, reqHint),
+              "```",
+            )
           }
 
           // Response
           if (current.processed_response) {
-            lines.push("", "## Response", "```", current.processed_response, "```")
+            lines.push(
+              "",
+              "## Response",
+              "```",
+              Truncate.cap(current.processed_response, MAX_PREPEND_BYTES, reqHint),
+              "```",
+            )
           }
         }
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }
+
+      // Inject methodology context so sub-agents have intel, work queue, and chain data
+      const methodologyCtx = MethodologyContext.generate(Session.root(ctx.sessionID))
+      if (methodologyCtx) {
+        prompt = "## Methodology Context\n" + methodologyCtx + "\n\n" + prompt
+      }
+
       const promptParts = await SessionPrompt.resolvePromptParts(prompt)
 
       const result = await SessionPrompt.prompt({

@@ -192,6 +192,8 @@ Assign priorities based on exploitability and impact:
 
 8. **Cross-reference with web context**: When the proxy/relay provides captured traffic (requests, credentials, roles, objects, functions), cross-reference with your todo list. New web context should generate new todos or update existing ones.
 
+9. **Clean up aggressively**: After completing a testing phase or series of related tasks, remove all completed and cancelled items from the list. Only keep active work items (pending/in_progress). This prevents the todo list from bloating and consuming excessive context tokens. The system auto-trims to 5 completed items, but you should proactively clean up before hitting that limit.
+
 ## Examples
 
 <example>

@@ -33,12 +33,99 @@ function send(msg: WorkerMessage): void {
 // Model reconstruction from ModelDescriptor
 // ============================================================
 
+// Recent Claude (4.7+/fable) and the GPT-5 family reject temperature/top_p/top_k
+// with a 400. The model catalog flags this via capabilities.temperature; when it
+// is false the worker strips those params from the outgoing request body. This
+// lives at the adapter (fetch) layer — the same place the main process drops
+// them (anthropic-subscription-model omits them; ProviderTransform.temperature
+// returns undefined for such models) — and is keyed on the capability, not on a
+// provider name, so it generalizes to any model that advertises temperature:false.
+function stripSamplingParams(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const json = JSON.parse(body)
+    if (json && typeof json === "object") {
+      delete (json as Record<string, unknown>)["temperature"]
+      delete (json as Record<string, unknown>)["top_p"]
+      delete (json as Record<string, unknown>)["top_k"]
+      return JSON.stringify(json)
+    }
+  } catch {
+    // body is not JSON — leave it untouched
+  }
+  return body
+}
+
+// Anthropic Bearer (subscription/OAT) request transform: optionally strip
+// unsupported sampling params, and inject the subscription parity the OAuth
+// endpoint requires — metadata.user_id and the Agent SDK system[0] prefix.
+// Without parity the endpoint replies 429 rate_limit_error (message "Error").
+function applyAnthropicBearerBody(
+  body: BodyInit | null | undefined,
+  opts: { stripSampling: boolean; userId?: string; systemPrefix?: string },
+): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const j = JSON.parse(body) as Record<string, any>
+    if (opts.stripSampling) {
+      delete j["temperature"]
+      delete j["top_p"]
+      delete j["top_k"]
+    }
+    if (opts.userId) j["metadata"] = { ...(j["metadata"] ?? {}), user_id: opts.userId }
+    if (opts.systemPrefix) {
+      const prefix = { type: "text", text: opts.systemPrefix }
+      if (Array.isArray(j["system"])) j["system"] = [prefix, ...j["system"]]
+      else if (typeof j["system"] === "string") j["system"] = [prefix, { type: "text", text: j["system"] }]
+      else if (j["system"] == null) j["system"] = [prefix]
+    }
+    return JSON.stringify(j)
+  } catch {
+    return body
+  }
+}
+
 function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
+  const stripSampling = desc.supportsTemperature === false
+
+  // Fetch wrapper that drops unsupported sampling params (used by the branches
+  // that don't already install a custom fetch).
+  const samplingFetch: typeof globalThis.fetch | undefined = stripSampling
+    ? (((input: any, init?: any) =>
+        fetch(input, init ? { ...init, body: stripSamplingParams(init.body) } : init)) as typeof globalThis.fetch)
+    : undefined
+
   if (desc.npm.includes("anthropic")) {
+    // OAuth/subscription (or sk-ant-oat): authenticate via Authorization: Bearer.
+    // @ai-sdk/anthropic has no authToken option and sends x-api-key by default,
+    // so swap the header (and add the beta header) in a custom fetch.
+    if (desc.authToken) {
+      const token = desc.authToken
+      const beta = desc.anthropicBeta
+      const opts: Record<string, unknown> = {
+        apiKey: "placeholder", // x-api-key is deleted in the fetch below
+        fetch: (url: any, init?: any) => {
+          const headers = new Headers(init?.headers)
+          headers.delete("x-api-key")
+          headers.set("authorization", `Bearer ${token}`)
+          if (beta) headers.set("anthropic-beta", beta)
+          const body = applyAnthropicBearerBody(init?.body, {
+            stripSampling,
+            userId: desc.anthropicUserId,
+            systemPrefix: desc.anthropicSystemPrefix,
+          })
+          return fetch(url, { ...init, headers, body })
+        },
+      }
+      if (desc.baseURL) opts.baseURL = desc.baseURL
+      if (desc.headers) opts.headers = desc.headers
+      return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
+    }
     const opts: Record<string, unknown> = {}
     if (desc.apiKey) opts.apiKey = desc.apiKey
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
+    if (samplingFetch) opts.fetch = samplingFetch
     return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
   }
 
@@ -47,18 +134,21 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     if (desc.apiKey) opts.apiKey = desc.apiKey
     if (desc.baseURL) opts.baseURL = desc.baseURL
     if (desc.headers) opts.headers = desc.headers
+    if (samplingFetch) opts.fetch = samplingFetch
     return createOpenAI(opts as Parameters<typeof createOpenAI>[0])(desc.modelApiId)
   }
 
   // openai-compatible, openrouter, azure, mistral, groq, deepinfra, cerebras,
   // cohere, togetherai, perplexity, vercel, gateway, gitlab, xai, etc. —
   // all expose OpenAI-compatible endpoints.
-  return createOpenAICompatible({
+  const opts: Parameters<typeof createOpenAICompatible>[0] = {
     name: "hackbrowser-provider",
     apiKey: desc.apiKey ?? "",
     baseURL: desc.baseURL ?? "https://api.openai.com/v1",
     headers: desc.headers,
-  }).languageModel(desc.modelApiId)
+  }
+  if (samplingFetch) opts.fetch = samplingFetch
+  return createOpenAICompatible(opts).languageModel(desc.modelApiId)
 }
 
 // ============================================================

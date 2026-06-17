@@ -16,6 +16,24 @@ export namespace Truncate {
 
   export type Result = { content: string; truncated: false } | { content: string; truncated: true; outputPath: string }
 
+  // Synchronous hard byte cap for a single string, keeping the head (where the
+  // useful content usually is) and appending a caller-supplied note. Unlike
+  // output() it persists nothing — for cases where the full text is available
+  // elsewhere (a tool the agent can re-call) or simply isn't worth keeping.
+  export function cap(text: string, maxBytes: number, note: (shown: number, total: number) => string): string {
+    const total = Buffer.byteLength(text, "utf-8")
+    if (total <= maxBytes) return text
+    const head = Buffer.from(text, "utf-8").subarray(0, maxBytes).toString("utf-8")
+    return `${head}\n\n${note(maxBytes, total)}`
+  }
+
+  // Hard byte cap for tool ERROR strings. Guards against a single huge error
+  // (e.g. a DeniedError or a multi-MB stack/dump) blowing the model context.
+  export const MAX_ERROR_BYTES = 50 * 1024
+  export function error(text: string, maxBytes: number = MAX_ERROR_BYTES): string {
+    return cap(text, maxBytes, (shown, total) => `...[error truncated: showing ${shown} of ${total} bytes]`)
+  }
+
   export interface Options {
     maxLines?: number
     maxBytes?: number

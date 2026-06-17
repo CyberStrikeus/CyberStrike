@@ -28,6 +28,7 @@
 import path from "path"
 import { existsSync } from "fs"
 import { Provider } from "../provider/provider"
+import { Auth } from "../auth"
 import { Server } from "../server/server"
 import { Log } from "../util/log"
 import { Identifier } from "../id/id"
@@ -159,6 +160,22 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // 3. Resolve LLM via cyberstrike Provider — extract serializable descriptor
   //    instead of a LanguageModel instance (subprocess.md: model resolution).
   const modelInfo = await Provider.defaultModel()
+
+  // The worker is a separate subprocess and can only receive a *serializable*
+  // credential (an api key or the Anthropic Bearer token). For non-anthropic
+  // OAuth providers (Codex/ChatGPT, Copilot, GitLab-OAuth, …) the real
+  // credential and request shaping live in an in-process fetch closure that
+  // cannot cross the IPC boundary — the descriptor would carry only a
+  // placeholder key, the LLM calls would 401, and the crawl would silently
+  // finish with zero endpoints. Fail fast with an actionable message instead.
+  const auth = await Auth.get(modelInfo.providerID)
+  if (auth?.type === "oauth" && modelInfo.providerID !== "anthropic") {
+    throw new Error(
+      `HackBrowser can't use ${modelInfo.providerID}/${modelInfo.modelID}: its OAuth/subscription auth runs only in the main process and can't be passed to the crawler subprocess. ` +
+        `Use an API-key provider (or Anthropic Pro/Max) as your default model for hackbrowser runs.`,
+    )
+  }
+
   const modelDetails = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
   const modelDescriptor = await Provider.getModelDescriptor(modelDetails)
   log.info("resolved model for hackbrowser run", {

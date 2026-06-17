@@ -15,6 +15,7 @@ import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
+import { Truncate } from "@/tool/truncation"
 
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
@@ -209,7 +210,10 @@ export namespace SessionProcessor {
                       state: {
                         status: "error",
                         input: value.input ?? match.state.input,
-                        error: (value.error as any).toString(),
+                        // cap the error string so a single huge error (e.g. a
+                        // serialized ruleset, a multi-MB stack/dump) can't be
+                        // fed back into context and overflow the window
+                        error: Truncate.error((value.error as any).toString()),
                         time: {
                           start: match.state.time.start,
                           end: Date.now(),
@@ -354,7 +358,9 @@ export namespace SessionProcessor {
             })
             const error = MessageV2.fromError(e, { providerID: input.model.providerID })
             if (MessageV2.ContextOverflowError.isInstance(error)) {
-              // TODO: Handle context overflow error
+              log.info("context overflow detected, triggering compaction")
+              needsCompaction = true
+              break
             }
             const retry = SessionRetry.retryable(error)
             if (retry !== undefined) {

@@ -9,19 +9,14 @@ export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
   parameters: z.object({
     entry_id: z.string().describe("The intel entry ID to update the VRT check for"),
     vrt_category: z.string().describe("The VRT category being tested (e.g., IDOR, XSS, SQLi, SSRF, Auth Bypass)"),
-    status: z
-      .enum(["tested_vulnerable", "tested_not_vulnerable", "not_applicable"])
-      .describe("Result of the test"),
+    status: z.enum(["tested_vulnerable", "tested_not_vulnerable", "not_applicable"]).describe("Result of the test"),
     technique: z
       .string()
       .optional()
       .describe("Testing technique used (e.g., 'parameter tampering', 'reflected input test')"),
     evidence: z
       .object({
-        requestSent: z
-          .string()
-          .optional()
-          .describe("The HTTP request sent (must contain HTTP verb or curl command)"),
+        requestSent: z.string().optional().describe("The HTTP request sent (must contain HTTP verb or curl command)"),
         responseCode: z.number().optional().describe("HTTP response status code"),
         responseSummary: z
           .string()
@@ -32,9 +27,7 @@ export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
         reasoning: z
           .string()
           .optional()
-          .describe(
-            "Explanation of why this is/isn't vulnerable (min 100 chars for vulnerable findings)",
-          ),
+          .describe("Explanation of why this is/isn't vulnerable (min 100 chars for vulnerable findings)"),
         requestCount: z
           .number()
           .optional()
@@ -45,17 +38,12 @@ export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
       .describe("Evidence supporting the test result. Required for 'tested_vulnerable' status."),
   }),
   async execute(params, ctx) {
-    Intel.updateVrtCheck(
-      Session.root(ctx.sessionID),
-      params.entry_id,
-      params.vrt_category,
-      {
-        status: params.status,
-        technique: params.technique,
-        testedBy: ctx.agent,
-        evidence: params.evidence as Record<string, unknown>,
-      },
-    )
+    Intel.updateVrtCheck(Session.root(ctx.sessionID), params.entry_id, params.vrt_category, {
+      status: params.status,
+      technique: params.technique,
+      testedBy: ctx.agent,
+      evidence: params.evidence as Record<string, unknown>,
+    })
 
     const icon =
       params.status === "tested_vulnerable"

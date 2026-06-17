@@ -56,7 +56,9 @@ export const MethodologyStatusTool = Tool.define("methodology_status", {
       sections.push("")
       sections.push("## Per-Asset Coverage")
       for (const ac of assetCoverages) {
-        sections.push(`- ${ac.asset}: ${ac.coveragePercent}% (${ac.completedChecks}/${ac.totalChecks} checks, ${ac.vulnerableChecks} vuln)`)
+        sections.push(
+          `- ${ac.asset}: ${ac.coveragePercent}% (${ac.completedChecks}/${ac.totalChecks} checks, ${ac.vulnerableChecks} vuln)`,
+        )
       }
     }
 

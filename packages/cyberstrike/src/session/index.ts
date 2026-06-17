@@ -10,7 +10,7 @@ import { Flag } from "../flag/flag"
 import { Identifier } from "../id/id"
 import { Installation } from "../installation"
 
-import { Database, NotFoundError, eq, and, or, gte, isNull, desc, like } from "../storage/db"
+import { Database, NotFoundError, eq, and, or, gte, isNull, desc, like, inArray } from "../storage/db"
 import { SessionTable, MessageTable, PartTable } from "./session.sql"
 import { Storage } from "@/storage/storage"
 import { Log } from "../util/log"
@@ -566,6 +566,51 @@ export namespace Session {
         .all(),
     )
     return rows.map(fromRow)
+  })
+
+  // Pure aggregation over assistant message infos. `totalTokens` is cumulative
+  // tokens PROCESSED (billed) — input+output+reasoning+cache.read+cache.write
+  // summed per turn, so resent history is re-counted on purpose (it matches what
+  // was billed; this is NOT the unique context size). `totalCost` sums the
+  // already-computed per-message cost — never re-priced (each cost already bakes
+  // in the right over-200k tier and per-bucket rate; see this file's cost calc).
+  export function sumUsage(infos: MessageV2.Info[]): { totalCost: number; totalTokens: number } {
+    let totalCost = 0
+    let totalTokens = 0
+    for (const m of infos) {
+      if (m.role !== "assistant") continue
+      totalCost += m.cost ?? 0
+      const t = m.tokens
+      if (t)
+        totalTokens +=
+          (t.input ?? 0) + (t.output ?? 0) + (t.reasoning ?? 0) + (t.cache?.read ?? 0) + (t.cache?.write ?? 0)
+    }
+    return { totalCost, totalTokens }
+  }
+
+  // Aggregate token + cost usage across a session and ALL its descendants
+  // (subagents). Resolves the tree root first so the total is the same whether
+  // you pass the main session or any subagent within it.
+  export const usage = fn(Identifier.schema("session"), async (sessionID) => {
+    const rootID = root(sessionID)
+    // Collect the whole subtree by parent_id only — the tree relationship is the
+    // source of truth and children always share the root's project, so no project
+    // filter is needed (and root() doesn't filter either). Depth is 1 in practice
+    // (subagents can't spawn subagents); the bounded BFS is just future-proofing.
+    const ids = [rootID]
+    let frontier = [rootID]
+    for (let depth = 0; depth < 10 && frontier.length > 0; depth++) {
+      const next = Database.use((db) =>
+        db.select({ id: SessionTable.id }).from(SessionTable).where(inArray(SessionTable.parent_id, frontier)).all(),
+      ).map((r) => r.id)
+      ids.push(...next)
+      frontier = next
+    }
+    const rows = Database.use((db) =>
+      db.select({ data: MessageTable.data }).from(MessageTable).where(inArray(MessageTable.session_id, ids)).all(),
+    )
+    const { totalCost, totalTokens } = sumUsage(rows.map((r) => r.data as MessageV2.Info))
+    return { rootID, totalCost, totalTokens, sessionCount: ids.length }
   })
 
   export const remove = fn(Identifier.schema("session"), async (sessionID) => {

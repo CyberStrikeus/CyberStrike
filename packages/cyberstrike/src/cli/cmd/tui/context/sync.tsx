@@ -73,6 +73,29 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           cost?: number
         }
       }
+      // Methodology engine digest — populated by SSE event "intel.updated"
+      // (each add_intel publishes it) via a refetch of the /methodology routes.
+      methodology: {
+        [sessionID: string]: {
+          currentPhase: string | null
+          completedCount: number
+          totalCount: number
+          totalEntries: number
+          coveragePercent: number
+          completedChecks: number
+          totalChecks: number
+          chains: number
+          violations: number
+        }
+      }
+      // Cumulative usage across a session's whole tree (main + subagents),
+      // keyed by the queried sessionID. Fetched from /session/:id/usage.
+      session_usage: {
+        [sessionID: string]: {
+          totalCost: number
+          totalTokens: number
+        }
+      }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
@@ -173,6 +196,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_status: {},
       session_queue_status: {},
       session_hackbrowser_status: {},
+      methodology: {},
+      session_usage: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -194,6 +219,51 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     })
 
     const sdk = useSDK()
+
+    // Refetch the methodology digest for a session and merge into the store.
+    // Driven by the "intel.updated" SSE event (published on every add_intel).
+    async function refreshMethodology(sessionID: string) {
+      const [state, coverage, chains] = await Promise.all([
+        sdk.client.methodology
+          .state({ sessionID })
+          .then((r) => r.data)
+          .catch(() => undefined),
+        sdk.client.methodology
+          .coverage({ sessionID })
+          .then((r) => r.data)
+          .catch(() => undefined),
+        sdk.client.methodology
+          .chains({ sessionID })
+          .then((r) => r.data)
+          .catch(() => undefined),
+      ])
+      if (!state && !coverage) return
+      setStore("methodology", sessionID, {
+        currentPhase: state?.currentPhase ?? null,
+        completedCount: state?.completedCount ?? 0,
+        totalCount: state?.totalCount ?? 0,
+        violations: state?.violations?.length ?? 0,
+        totalEntries: coverage?.totalEntries ?? 0,
+        coveragePercent: coverage?.coveragePercent ?? 0,
+        completedChecks: coverage?.completedChecks ?? 0,
+        totalChecks: coverage?.totalChecks ?? 0,
+        chains: Array.isArray(chains) ? chains.length : 0,
+      })
+    }
+
+    // Fetch cumulative tree usage (main + all subagents) for a session and store
+    // it under that sessionID. The server resolves the tree root and sums
+    // per-message cost + processed tokens — see Session.usage.
+    async function refreshUsage(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/usage`)
+        const u = (await r.json()) as { totalCost?: unknown; totalTokens?: unknown }
+        if (typeof u?.totalCost === "number" && typeof u?.totalTokens === "number")
+          setStore("session_usage", sessionID, { totalCost: u.totalCost, totalTokens: u.totalTokens })
+      } catch {
+        /* ignore — header/sidebar fall back to per-session figures */
+      }
+    }
 
     sdk.event.listen((e) => {
       const event = e.details
@@ -323,6 +393,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 
         case "session.hackbrowser.status": {
           setStore("session_hackbrowser_status", event.properties.sessionID, event.properties.status as never)
+          break
+        }
+
+        case "intel.updated": {
+          void refreshMethodology(event.properties.sessionID)
           break
         }
 
@@ -571,6 +646,12 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const result = {
       data: store,
       set: setStore,
+      // Load the methodology digest for a session on demand (e.g. when a session
+      // is opened) — the SSE "intel.updated" path only fires on new activity, so
+      // re-entering a session with existing intel needs this to populate.
+      refreshMethodology,
+      // Refresh cumulative tree usage (main + subagents) for a session.
+      refreshUsage,
       get status() {
         return store.status
       },
