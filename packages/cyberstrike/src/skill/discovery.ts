@@ -9,10 +9,7 @@ export namespace Discovery {
   type IndexSkill = {
     name: string
     description: string
-  } & (
-    | { files: string[] }
-    | { type: "skill-md" | "archive"; url: string; digest?: string }
-  )
+  } & ({ files: string[] } | { type: "skill-md" | "archive"; url: string; digest?: string })
 
   type Index = {
     skills: IndexSkill[]
