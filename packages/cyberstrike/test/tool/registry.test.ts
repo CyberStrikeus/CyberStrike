@@ -114,11 +114,11 @@ describe("tool.registry", () => {
     await Instance.provide({
       directory: tmp.path,
       fn: async () => {
-        // Registry should not crash when a tool has unresolved external deps.
-        // The tool with missing deps is skipped gracefully.
+        // Registry should not crash when a tool has external deps.
+        // waitForDependencies() installs the deps, then the tool loads normally.
         const ids = await ToolRegistry.ids()
         expect(Array.isArray(ids)).toBe(true)
-        expect(ids).not.toContain("cowsay")
+        expect(ids).toContain("cowsay")
       },
     })
   })

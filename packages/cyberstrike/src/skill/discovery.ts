@@ -6,12 +6,16 @@ import { Global } from "../global"
 export namespace Discovery {
   const log = Log.create({ service: "skill-discovery" })
 
+  type IndexSkill = {
+    name: string
+    description: string
+  } & (
+    | { files: string[] }
+    | { type: "skill-md" | "archive"; url: string; digest?: string }
+  )
+
   type Index = {
-    skills: Array<{
-      name: string
-      description: string
-      files: string[]
-    }>
+    skills: IndexSkill[]
   }
 
   export function dir() {
@@ -68,7 +72,13 @@ export namespace Discovery {
     }
 
     const list = data.skills.filter((skill) => {
-      if (!skill?.name || !Array.isArray(skill.files)) {
+      if (!skill?.name) {
+        log.warn("invalid skill entry", { url: index, skill })
+        return false
+      }
+      const hasFiles = "files" in skill && Array.isArray(skill.files)
+      const hasUrl = "url" in skill && typeof skill.url === "string"
+      if (!hasFiles && !hasUrl) {
         log.warn("invalid skill entry", { url: index, skill })
         return false
       }
@@ -78,14 +88,33 @@ export namespace Discovery {
     await Promise.all(
       list.map(async (skill) => {
         const root = path.join(cache, skill.name)
-        await Promise.all(
-          skill.files.map(async (file) => {
-            const link = new URL(file, `${host}/${skill.name}/`).href
-            const dest = path.join(root, file)
-            await mkdir(path.dirname(dest), { recursive: true })
+
+        if ("files" in skill && Array.isArray(skill.files)) {
+          // Legacy format: array of individual files
+          await Promise.all(
+            skill.files.map(async (file) => {
+              const link = new URL(file, `${host}/${skill.name}/`).href
+              const dest = path.join(root, file)
+              await mkdir(path.dirname(dest), { recursive: true })
+              await get(link, dest)
+            }),
+          )
+        } else if ("url" in skill && typeof skill.url === "string") {
+          const link = new URL(skill.url, base).href
+          if ("type" in skill && skill.type === "archive") {
+            // Archive format: download tar.gz and extract
+            const archive = path.join(root, `${skill.name}.tar.gz`)
+            await mkdir(root, { recursive: true })
+            if (await get(link, archive)) {
+              await Bun.$`tar xzf ${archive} -C ${root} 2>/dev/null`.quiet().nothrow()
+            }
+          } else {
+            // Single file (skill-md): download as SKILL.md
+            const dest = path.join(root, "SKILL.md")
+            await mkdir(root, { recursive: true })
             await get(link, dest)
-          }),
-        )
+          }
+        }
 
         const md = path.join(root, "SKILL.md")
         if (await Bun.file(md).exists()) result.push(root)
