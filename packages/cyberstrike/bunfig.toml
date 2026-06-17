@@ -2,6 +2,10 @@ preload = ["@opentui/solid/preload"]
 
 [test]
 preload = ["./test/preload.ts"]
+# Scope test discovery to ./test to avoid scanning node_modules/.cyberstrike etc.
+# Without this, bun test opens 10k+ fds during discovery on macOS, crossing OPEN_MAX
+# and breaking child process stdio pipes (oven-sh/bun#24690, #32067)
+root = "./test"
 # timeout is not actually parsed from bunfig.toml (see src/bunfig.zig in oven-sh/bun)
 # using --timeout in package.json scripts instead
 # https://github.com/oven-sh/bun/issues/7789
