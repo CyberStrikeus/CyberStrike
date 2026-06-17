@@ -582,7 +582,8 @@ export namespace Session {
       totalCost += m.cost ?? 0
       const t = m.tokens
       if (t)
-        totalTokens += (t.input ?? 0) + (t.output ?? 0) + (t.reasoning ?? 0) + (t.cache?.read ?? 0) + (t.cache?.write ?? 0)
+        totalTokens +=
+          (t.input ?? 0) + (t.output ?? 0) + (t.reasoning ?? 0) + (t.cache?.read ?? 0) + (t.cache?.write ?? 0)
     }
     return { totalCost, totalTokens }
   }

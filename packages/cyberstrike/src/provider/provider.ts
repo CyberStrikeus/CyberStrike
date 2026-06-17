@@ -104,10 +104,7 @@ export namespace Provider {
   function subscriptionUserId(accountUuid?: string): string {
     if (!_deviceId) {
       try {
-        _deviceId = createHash("sha256")
-          .update(`${os.hostname()}:${os.userInfo().username}`)
-          .digest("hex")
-          .slice(0, 32)
+        _deviceId = createHash("sha256").update(`${os.hostname()}:${os.userInfo().username}`).digest("hex").slice(0, 32)
       } catch {
         _deviceId = "cyberstrike"
       }
@@ -1277,7 +1274,8 @@ export namespace Provider {
       const apiKey = options["apiKey"] as string | undefined
       const explicitOAT = apiKey?.startsWith("sk-ant-oat") ? apiKey : undefined
       const auth = await Auth.get(model.providerID)
-      const token = explicitOAT ?? (auth?.type === "oauth" ? ((await getValidAnthropicToken()) ?? undefined) : undefined)
+      const token =
+        explicitOAT ?? (auth?.type === "oauth" ? ((await getValidAnthropicToken()) ?? undefined) : undefined)
       if (token) {
         // Subscription request parity (same data the in-process subscription
         // model sends). Without metadata.user_id + the Agent SDK system prefix,

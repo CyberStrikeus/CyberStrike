@@ -3677,6 +3677,44 @@ export type SessionChildrenResponses = {
 
 export type SessionChildrenResponse = SessionChildrenResponses[keyof SessionChildrenResponses]
 
+export type SessionUsageData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/usage"
+}
+
+export type SessionUsageErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionUsageError = SessionUsageErrors[keyof SessionUsageErrors]
+
+export type SessionUsageResponses = {
+  /**
+   * Aggregated usage
+   */
+  200: {
+    rootID: string
+    totalCost: number
+    totalTokens: number
+    sessionCount: number
+  }
+}
+
+export type SessionUsageResponse = SessionUsageResponses[keyof SessionUsageResponses]
+
 export type SessionTodoData = {
   body?: never
   path: {

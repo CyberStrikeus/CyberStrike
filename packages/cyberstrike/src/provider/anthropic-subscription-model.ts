@@ -140,7 +140,12 @@ function mapPrompt(prompt: LanguageModelV2Prompt): { system: any[]; messages: an
               input = {}
             }
           }
-          content.push({ type: "tool_use", id: part.toolCallId, name: toWireToolName(part.toolName), input: input ?? {} })
+          content.push({
+            type: "tool_use",
+            id: part.toolCallId,
+            name: toWireToolName(part.toolName),
+            input: input ?? {},
+          })
         }
         // reasoning parts intentionally omitted (signature replay complexity)
       }
@@ -348,7 +353,8 @@ export function createAnthropicSubscriptionModel(
                 case "content_block_delta": {
                   const blk = blocks.get(ev.index)
                   const d = ev.delta
-                  if (d.type === "text_delta" && blk) controller.enqueue({ type: "text-delta", id: blk.id, delta: d.text })
+                  if (d.type === "text_delta" && blk)
+                    controller.enqueue({ type: "text-delta", id: blk.id, delta: d.text })
                   else if (d.type === "thinking_delta" && blk)
                     controller.enqueue({ type: "reasoning-delta", id: blk.id, delta: d.thinking })
                   else if (d.type === "input_json_delta" && blk) {
@@ -404,14 +410,22 @@ export function createAnthropicSubscriptionModel(
     async doGenerate(options: LanguageModelV2CallOptions) {
       const client = await makeClient()
       const params = await buildParams(modelID, options, deps.userId, supportsThinking)
-      const res: any = await client.beta.messages.create({ ...(params as any), stream: false }, { signal: options.abortSignal })
+      const res: any = await client.beta.messages.create(
+        { ...(params as any), stream: false },
+        { signal: options.abortSignal },
+      )
 
       const content: LanguageModelV2Content[] = []
       for (const b of res.content ?? []) {
         if (b.type === "text") content.push({ type: "text", text: b.text })
         else if (b.type === "thinking") content.push({ type: "reasoning", text: b.thinking })
         else if (b.type === "tool_use")
-          content.push({ type: "tool-call", toolCallId: b.id, toolName: fromWireToolName(b.name), input: JSON.stringify(b.input ?? {}) })
+          content.push({
+            type: "tool-call",
+            toolCallId: b.id,
+            toolName: fromWireToolName(b.name),
+            input: JSON.stringify(b.input ?? {}),
+          })
       }
       return {
         content,

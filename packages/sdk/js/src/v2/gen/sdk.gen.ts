@@ -188,6 +188,8 @@ import type {
   SessionUpdateResponses,
   SessionUpdateWebCredentialErrors,
   SessionUpdateWebCredentialResponses,
+  SessionUsageErrors,
+  SessionUsageResponses,
   SessionVulnerabilityErrors,
   SessionVulnerabilityResponses,
   SessionWebCredentialsErrors,
@@ -1380,6 +1382,36 @@ export class Session extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<SessionChildrenResponses, SessionChildrenErrors, ThrowOnError>({
       url: "/session/{sessionID}/children",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get session usage
+   *
+   * Aggregate token and cost usage across the session and all its descendant subagents. Resolves the tree root, so the result is the same whether a parent or child session ID is passed.
+   */
+  public usage<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionUsageResponses, SessionUsageErrors, ThrowOnError>({
+      url: "/session/{sessionID}/usage",
       ...options,
       ...params,
     })
