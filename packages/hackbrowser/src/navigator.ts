@@ -15,6 +15,23 @@ import plannerPromptText from "./prompt/planner.txt" with { type: "text" }
 
 const log = Log.create({ service: "hackbrowser:navigator" })
 
+/**
+ * Auth/credential failures (missing key, 401/403) never recover within a run,
+ * so they must NOT be masked by the empty-plan fallback below — otherwise a
+ * crawl with broken auth finishes as a clean run that simply "found nothing".
+ * Rethrowing lets runCrawl record the error in CrawlResult.errors[], which the
+ * launcher surfaces as a "failed" phase. Transient errors keep the fallback.
+ */
+function isAuthError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false
+  const e = err as { name?: string; statusCode?: number; lastError?: unknown; errors?: unknown[] }
+  if (e.name === "AI_LoadAPIKeyError") return true
+  if (e.statusCode === 401 || e.statusCode === 403) return true
+  // AI_RetryError wraps the real cause — unwrap so a retried 401/403 still counts.
+  if (e.lastError && isAuthError(e.lastError)) return true
+  return Array.isArray(e.errors) && e.errors.some(isAuthError)
+}
+
 // ============================================================
 // Prompt loading
 // ============================================================
@@ -119,10 +136,12 @@ export async function planPage(
     log.debug("page plan", { tasks: plan.tasks.length })
     return plan
   } catch (err) {
+    if (isAuthError(err)) throw err
     log.warn("planPage failed, retrying once", { err: String(err) })
     try {
       return await attempt()
     } catch (err2) {
+      if (isAuthError(err2)) throw err2
       log.error("planPage failed after retry, returning empty plan", { err: String(err2) })
       return { tasks: [] }
     }
@@ -196,6 +215,7 @@ export async function planUnexploredElements(
     log.debug("unexplored plan", { tasks: plan.tasks.length })
     return plan
   } catch (err) {
+    if (isAuthError(err)) throw err
     log.warn("planUnexploredElements failed", { err: String(err) })
     return { tasks: [] }
   }
