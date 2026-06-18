@@ -129,8 +129,9 @@ export namespace Provider {
       // OAT tokens require Authorization: Bearer + Claude Code identity headers
       // @ai-sdk/anthropic doesn't support authToken, so we use custom fetch
       const auth = await Auth.get(input.id)
-      const key =
+      const key = (
         input.env.map((item) => Env.all()[item]).find(Boolean) ?? (auth?.type === "api" ? auth.key : undefined)
+      )?.trim()
       const explicitOAT = key?.startsWith("sk-ant-oat") ? key : undefined
       // Subscription (Claude Pro/Max): cyberstrike's own OAuth credential,
       // stored in auth.json via the AnthropicAuthPlugin login flow. The token is
@@ -1271,11 +1272,11 @@ export namespace Provider {
     // (+ the safe beta set — never context-1m) so the worker can use it. Other
     // providers and api-key Anthropic fall through to the apiKey path unchanged.
     if (model.providerID === "anthropic") {
-      const apiKey = options["apiKey"] as string | undefined
-      const explicitOAT = apiKey?.startsWith("sk-ant-oat") ? apiKey : undefined
-      const auth = await Auth.get(model.providerID)
-      const token =
-        explicitOAT ?? (auth?.type === "oauth" ? ((await getValidAnthropicToken()) ?? undefined) : undefined)
+      // Single source of truth for the subscription Bearer token: getValidAnthropicToken
+      // yields the OAuth access token (type:"oauth", auto-refreshed) OR an sk-ant-oat
+      // pasted as an api key (type:"api"). A normal sk-ant-api key returns null here
+      // and falls through to the x-api-key path below.
+      const token = (await getValidAnthropicToken()) ?? undefined
       if (token) {
         // Subscription request parity (same data the in-process subscription
         // model sends). Without metadata.user_id + the Agent SDK system prefix,
