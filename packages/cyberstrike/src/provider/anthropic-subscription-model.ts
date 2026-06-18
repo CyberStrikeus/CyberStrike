@@ -174,6 +174,29 @@ function mapPrompt(prompt: LanguageModelV2Prompt): { system: any[]; messages: an
   const system: any[] = [{ type: "text", text: AGENT_SDK_PREFIX }]
   const realSystem = systemTexts.filter(Boolean).join("\n\n")
   if (realSystem) system.push({ type: "text", text: realSystem })
+
+  // Prompt caching. transform.ts/applyCaching sets cacheControl on the AI-SDK
+  // message objects, but this custom wire-mapper rebuilds raw Anthropic blocks
+  // and would otherwise drop those breakpoints — so re-apply them here directly.
+  // Without this, every turn re-bills the full system+tools+history at full price
+  // (measured: cache_read=0 across all proxy agents). Anthropic caches the prefix
+  // up to each breakpoint; longest cached prefix is reused on the next turn.
+  // Breakpoints (max 4 allowed): the last system block (covers tools + system +
+  // skill — the big stable chunk) + the last block of the final up-to-2 messages
+  // (incremental conversation caching across turns).
+  if (system.length) system[system.length - 1].cache_control = { type: "ephemeral" }
+  let marked = 0
+  for (let i = messages.length - 1; i >= 0 && marked < 2; i--) {
+    const c = messages[i].content
+    if (Array.isArray(c) && c.length > 0) {
+      const last = c[c.length - 1]
+      if (last && typeof last === "object") {
+        last.cache_control = { type: "ephemeral" }
+        marked++
+      }
+    }
+  }
+
   return { system, messages }
 }
 
@@ -320,6 +343,10 @@ export function createAnthropicSubscriptionModel(
         totalTokens: undefined as number | undefined,
         cachedInputTokens: undefined as number | undefined,
       }
+      // cache_creation_input_tokens (cache WRITE). Surfaced via providerMetadata
+      // so session/index.ts records tokens.cache.write AND flips excludesCachedTokens
+      // true (Anthropic's input_tokens already excludes cached/created tokens).
+      let cacheCreationInputTokens: number | undefined
 
       const stream = new ReadableStream<LanguageModelV2StreamPart>({
         async start(controller) {
@@ -331,6 +358,7 @@ export function createAnthropicSubscriptionModel(
                   controller.enqueue({ type: "response-metadata", id: ev.message?.id, modelId: ev.message?.model })
                   usage.inputTokens = ev.message?.usage?.input_tokens
                   usage.cachedInputTokens = ev.message?.usage?.cache_read_input_tokens
+                  cacheCreationInputTokens = ev.message?.usage?.cache_creation_input_tokens
                   break
                 }
                 case "content_block_start": {
@@ -385,8 +413,17 @@ export function createAnthropicSubscriptionModel(
                   break
                 }
                 case "message_stop": {
-                  usage.totalTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0)
-                  controller.enqueue({ type: "finish", finishReason: mapStop(stopReason), usage })
+                  usage.totalTokens =
+                    (usage.inputTokens ?? 0) +
+                    (usage.outputTokens ?? 0) +
+                    (usage.cachedInputTokens ?? 0) +
+                    (cacheCreationInputTokens ?? 0)
+                  controller.enqueue({
+                    type: "finish",
+                    finishReason: mapStop(stopReason),
+                    usage,
+                    providerMetadata: { anthropic: { cacheCreationInputTokens: cacheCreationInputTokens ?? 0 } },
+                  })
                   break
                 }
                 case "error": {
@@ -433,8 +470,15 @@ export function createAnthropicSubscriptionModel(
         usage: {
           inputTokens: res.usage?.input_tokens,
           outputTokens: res.usage?.output_tokens,
-          totalTokens: (res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0),
+          totalTokens:
+            (res.usage?.input_tokens ?? 0) +
+            (res.usage?.output_tokens ?? 0) +
+            (res.usage?.cache_read_input_tokens ?? 0) +
+            (res.usage?.cache_creation_input_tokens ?? 0),
           cachedInputTokens: res.usage?.cache_read_input_tokens,
+        },
+        providerMetadata: {
+          anthropic: { cacheCreationInputTokens: res.usage?.cache_creation_input_tokens ?? 0 },
         },
         warnings: [],
       }
