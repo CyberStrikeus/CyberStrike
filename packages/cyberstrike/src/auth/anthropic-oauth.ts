@@ -160,7 +160,15 @@ export async function hasAnthropicOAuth(): Promise<boolean> {
  */
 export async function getValidAnthropicToken(): Promise<string | null> {
   const auth = await Auth.get(PROVIDER_ID)
-  if (!auth || auth.type !== "oauth") return null
+  if (!auth) return null
+  // An `sk-ant-oat…` token pasted into the API-key field is a subscription OAuth
+  // Access Token (Bearer), not an x-api-key. It has no refresh token, so return
+  // it as-is. trim() guards against whitespace pasted with the token.
+  if (auth.type === "api") {
+    const key = auth.key?.trim()
+    return key?.startsWith("sk-ant-oat") ? key : null
+  }
+  if (auth.type !== "oauth") return null
   if (auth.expires > Date.now() + EXPIRY_BUFFER_MS) return auth.access
 
   if (!pendingRefresh) {

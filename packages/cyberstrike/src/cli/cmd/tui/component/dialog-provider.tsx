@@ -247,12 +247,13 @@ function ApiMethod(props: ApiMethodProps) {
         ) : undefined
       }
       onConfirm={async (value) => {
-        if (!value) return
+        const key = value.trim()
+        if (!key) return
         await sdk.client.auth.set({
           providerID: props.providerID,
           auth: {
             type: "api",
-            key: value,
+            key,
           },
         })
         await sdk.client.instance.dispose()
