@@ -15,6 +15,7 @@ import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
 import { MethodologyContext } from "@/methodology/context"
 import { Truncate } from "./truncation"
+import { dispatchScopeViolation, dispatchOffLaneMessage, testerClass } from "./vuln-scope"
 
 // Per-field byte cap for raw request/response prepended into a subagent prompt.
 // The full content stays retrievable via the web_get_request_detail tool.
@@ -58,6 +59,23 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       // Skip permission check when user explicitly invoked via @ or command subtask
       if (!ctx.extra?.bypassAgentCheck) {
+        // Dispatch lane guard (Phase 4): the orchestrator must route each test to
+        // the specialist whose lane owns it. Bounce a confidently mis-routed
+        // proxy-tester dispatch (e.g. a rate-limiting task sent to business-logic)
+        // with a re-dispatch hint instead of spawning a wasted subagent. Domain
+        // logic lives in vuln-scope; here we only enforce. Only autonomous dispatch
+        // is constrained — explicit user @-invocation is bypassAgentCheck and skips.
+        const violation = dispatchScopeViolation(params.subagent_type, `${params.description}\n${params.prompt}`)
+        if (violation) {
+          return {
+            title: `Dispatch rejected — ${params.subagent_type} out of lane`,
+            output: dispatchOffLaneMessage(violation.cls, violation.inferred),
+            // Match the success return's metadata shape so the tool's inferred
+            // Metadata type stays consistent (no subtask was created here).
+            metadata: { sessionId: "", model: { providerID: "", modelID: "" } },
+          }
+        }
+
         await ctx.ask({
           permission: "task",
           patterns: [params.subagent_type],
@@ -114,10 +132,14 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       const msg = await MessageV2.get({ sessionID: ctx.sessionID, messageID: ctx.messageID })
       if (msg.info.role !== "assistant") throw new Error("Not an assistant message")
 
-      const model = agent.model ?? {
-        modelID: msg.info.modelID,
-        providerID: msg.info.providerID,
-      }
+      // Inherit the caller's INTENDED model — its user-message model, NOT the
+      // assistant message's model. The assistant model reflects the model actually
+      // run, which for a useSmallModel caller (orchestrator/analyzer) is already
+      // downgraded; inheriting it would force every dispatched tester onto the
+      // small tier too. The user message keeps the original tier. The subagent's
+      // own useSmallModel downgrade (if any) is applied at run time in the
+      // SessionPrompt loop — never here.
+      const model = agent.model ?? (await SessionPrompt.lastModel(ctx.sessionID))
 
       ctx.metadata({
         title: params.description,
@@ -226,8 +248,13 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }
 
-      // Inject methodology context so sub-agents have intel, work queue, and chain data
-      const methodologyCtx = MethodologyContext.generate(Session.root(ctx.sessionID))
+      // Inject methodology context so sub-agents have intel, work queue, and chain
+      // data. Scope it to the dispatched tester's lane (Phase 2.3) — testers get
+      // only their own work; the orchestrator/non-tester agents get the full view.
+      const methodologyCtx = MethodologyContext.generate(
+        Session.root(ctx.sessionID),
+        testerClass(params.subagent_type),
+      )
       if (methodologyCtx) {
         prompt = "## Methodology Context\n" + methodologyCtx + "\n\n" + prompt
       }

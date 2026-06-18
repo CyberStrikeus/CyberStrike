@@ -356,7 +356,7 @@ Agent Selection:
 ✅ proxy-analyzer
 ✅ proxy-tester-file-attacks (test path traversal: ../../etc/passwd)
 ✅ proxy-tester-authz (test accessing other users' files)
-✅ proxy-tester-injection (test if filename reflected, XSS potential, LFI, SQL Injection)
+✅ proxy-tester-injection (test if filename reflected: XSS potential, SQL Injection — NOT LFI/path traversal, that is file-attacks' lane)
 ❌ proxy-tester-idor (file parameter is string, not numeric ID)
 ❌ proxy-tester-mass-assignment (GET request)
 ❌ proxy-tester-authn (not auth endpoint)
@@ -456,7 +456,7 @@ Request Analysis:
 Agent Selection:
 ✅ proxy-analyzer
 ✅ proxy-tester-file-attacks (CRITICAL: upload .php/.jsp/.asp; polyglot files; SVG with XSS; oversized files; XXE in DOCX/XLSX/SVG; double extension .jpg.php; null byte; magic-byte spoofing)
-✅ proxy-tester-injection (test filename for path traversal: ../../../etc/passwd, XSS in filename, SQLi)
+✅ proxy-tester-injection (test filename for XSS and SQLi only — path traversal/LFI is proxy-tester-file-attacks' lane, do not route it here)
 ✅ proxy-tester-mass-assignment (try injecting file_type, owner_id, is_executable, public=true)
 ✅ proxy-tester-authz (test uploading to other users' folders by manipulating folder param)
 ❌ proxy-tester-idor (no resource ID being read)

@@ -6,6 +6,7 @@ import { Chain } from "./chain"
 import { AgentPerformance } from "./performance"
 import { Phase } from "./phase"
 import { Validation } from "./validation"
+import { categoryInLane } from "../tool/vuln-scope"
 
 // ============================================================
 // METHODOLOGY CONTEXT — System prompt injection for
@@ -18,7 +19,15 @@ export namespace MethodologyContext {
    * Generate methodology context for system prompt injection.
    * Returns null if methodology is not active (no intel entries).
    */
-  export function generate(sessionID: string): string | null {
+  /**
+   * @param agentClass when set to a proxy-tester class (e.g. "idor"), the context
+   *   is scoped to that lane (Phase 2.3): the untested-items list is filtered to
+   *   the lane and orchestrator-only sections (delegation briefing, work queue)
+   *   are dropped — a tester is handed only its own work, not the routing view.
+   *   Leave undefined for the orchestrator / non-tester agents (full context).
+   */
+  export function generate(sessionID: string, agentClass?: string): string | null {
+    const isTester = !!agentClass
     // Check if any intel entries exist for this session
     const count = Database.use((db) =>
       db
@@ -99,11 +108,16 @@ export namespace MethodologyContext {
       }
     }
 
-    // 6. Untested items (top 5)
-    if (coverage.untestedItems.length > 0) {
+    // 6. Untested items (top 5). For a tester, filter to its own lane (Phase 2.3)
+    // so it sees only its hints/work, not every other specialist's queue.
+    const untested = isTester
+      ? coverage.untestedItems.filter((item) => categoryInLane(agentClass!, item.vrtCategory))
+      : coverage.untestedItems
+    if (untested.length > 0) {
+      const scope = isTester ? ` for proxy-tester-${agentClass}` : ""
       sections.push("")
-      sections.push(`## Priority Untested (${coverage.untestedItems.length} total)`)
-      for (const item of coverage.untestedItems.slice(0, 5)) {
+      sections.push(`## Priority Untested${scope} (${untested.length} total)`)
+      for (const item of untested.slice(0, 5)) {
         sections.push(`- ${item.entryTitle}: ${item.vrtCategory} (${item.asset})`)
       }
     }
@@ -118,13 +132,16 @@ export namespace MethodologyContext {
     sections.push("- Check `methodology_status` before reporting done")
     sections.push("- Use `scope_check` before testing new targets")
 
-    // 8. Agent Delegation Briefing
-    const briefing = generateDelegationBriefing(sessionID, state, coverage, active)
-    if (briefing) sections.push(briefing)
+    // 8 & 9. Delegation briefing + work queue are ORCHESTRATOR-only routing views
+    // (which specialist to dispatch next). Testers can't delegate, so skip them for
+    // a tester (Phase 2.3) — removes cross-lane noise and tokens.
+    if (!isTester) {
+      const briefing = generateDelegationBriefing(sessionID, state, coverage, active)
+      if (briefing) sections.push(briefing)
 
-    // 9. Work Queue — prioritized next actions
-    const workQueue = generateWorkQueue(sessionID, state, coverage, active)
-    if (workQueue) sections.push(workQueue)
+      const workQueue = generateWorkQueue(sessionID, state, coverage, active)
+      if (workQueue) sections.push(workQueue)
+    }
 
     // 10. Inter-agent intelligence — shareable discoveries
     const intelBrief = generateIntelBrief(sessionID)

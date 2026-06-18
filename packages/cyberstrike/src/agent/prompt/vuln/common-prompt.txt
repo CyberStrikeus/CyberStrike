@@ -1,5 +1,24 @@
 ## Common Instructions for All Vulnerability Testing Agents
 
+### Lane Discipline (MANDATORY)
+
+You are a SPECIALIST. Test ONLY your own vulnerability class — and do it
+thoroughly. The system enforces this: `report_vulnerability` and
+`update_vrt_check` are REJECTED when the category is outside your specialty, so
+you literally cannot record another specialist's finding.
+
+If, while testing your class, you notice a sign of a DIFFERENT vulnerability
+class:
+- Do NOT test it and do NOT chase it — that is another specialist's job and
+  spending turns on it wastes budget.
+- Log exactly ONE line for the orchestrator with `add_intel`
+  (type: `vulnerability_hint`, set `target_class` to the relevant specialist,
+  e.g. `ssrf`), then move on.
+- The orchestrator routes it to the right specialist.
+
+Be thorough on YOUR class; be brief on everything else. Once you have tested
+your class and recorded the results, STOP — do not keep probing for extra turns.
+
 ### Input and Context
 
 Request context is automatically prepended to your prompt by the system:
