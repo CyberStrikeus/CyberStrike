@@ -18,8 +18,14 @@ import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage, testerClass } from "./vuln-scope"
 
 // Per-field byte cap for raw request/response prepended into a subagent prompt.
-// The full content stays retrievable via the web_get_request_detail tool.
-const MAX_PREPEND_BYTES = 16 * 1024
+// Raised 16KB→48KB: validation showed weak models (o4-mini) do NOT follow the
+// "call web_get_request_detail" hint when content is truncated — they proceed on
+// the head and MISS anything past the cap (e.g. a secret leaked at byte 30k). The
+// cap is now large enough that most responses fit in-context (structural fix:
+// don't depend on the model following a hint), affordable since prompt caching
+// makes the extra tokens cheap. The full content stays retrievable via
+// web_get_request_detail for the rare response that still exceeds this.
+const MAX_PREPEND_BYTES = 48 * 1024
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -223,7 +229,10 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           // request fans out into every dispatched subagent's prompt. The full
           // request/response stays available on demand via web_get_request_detail.
           const reqHint = (shown: number, total: number) =>
-            `...[truncated: showing ${shown} of ${total} bytes — call web_get_request_detail with request_id ${current.id} for the full request/response]`
+            `\n\n⚠️ TRUNCATED: only the first ${shown} of ${total} bytes are shown above. ` +
+            `The rest (including anything past this point — params, headers, leaked data, sinks) is NOT visible here. ` +
+            `You MUST call web_get_request_detail with request_id "${current.id}" to read the FULL request/response ` +
+            `before you conclude anything about this endpoint — do NOT decide based only on this truncated head.`
           if (current.raw_request) {
             lines.push(
               "",

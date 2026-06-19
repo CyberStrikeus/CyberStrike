@@ -425,7 +425,10 @@ export namespace Agent {
         description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
         mode: "subagent",
         native: true,
-        useSmallModel: true, // orchestration is routing, not exploitation — run cheap
+        // NOTE: proxy-agent runs on the FULL run model (no useSmallModel). Routing
+        // is the brain of the pipeline — dispatch quality matters; downgrading it to
+        // the small tier caused measured mis-/over-/under-dispatch. Only the analyzer
+        // (pure recon/extraction) runs cheap.
         color: "blue",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_PROXY_AGENT}`,
         permission: PermissionNext.merge(
@@ -727,12 +730,17 @@ export namespace Agent {
     }
 
     // Phase 1a (docs/proxy-pipeline-redesign): default turn budget for the proxy
-    // vuln testers. Measured baseline: a single tester ran up to 12 turns / ~500K
-    // tokens on ONE request (exhaustive payload loops well past finding the bug).
-    // The cap is soft (forces a text wrap-up at the limit, prompt.ts:592) and only
-    // applies when not explicitly configured, so user config still overrides.
+    // vuln testers. Measured baseline: a single tester ran up to ~12 turns on ONE
+    // request. An earlier cap of 8 turned out to be BELOW that natural length —
+    // testers spent all their turns verifying via bash and hit the soft wrap-up
+    // before ever calling report_vulnerability, so confirmed findings were summarized
+    // to the orchestrator but never recorded. Raised to 15 to leave headroom for
+    // verification AND reporting. Affordable now that prompt caching is on (extra
+    // turns re-read the cached prefix at ~10% cost, not full price). The cap is soft
+    // (forces a text wrap-up at the limit, prompt.ts) and only applies when not
+    // explicitly configured, so user config still overrides.
     for (const name in result) {
-      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 8
+      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 15
     }
 
     return result
