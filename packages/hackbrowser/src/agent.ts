@@ -1549,7 +1549,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   // Track auth headers per credential for sync (same pattern as Firefox extension)
   const lastAuthHeaders = new Map<string, Record<string, string>>()
 
-  for (const cred of credentials) {
+  for (const [credIndex, cred] of credentials.entries()) {
     const browserContext = await browser.newContext({
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     })
@@ -1571,8 +1571,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     })
     void csEmit(page, { type: "credential-switch", from: null, to: cred.id })
 
-    // Manual login for this credential
-    await waitForManualLogin(page, cred.id)
+    // Manual login for this credential. Pass position in the sequence so the
+    // button shows progress (e.g. "ADMIN (1/2)") and only the final credential
+    // says "START SCAN" — earlier ones say "CONFIRM & NEXT".
+    await waitForManualLogin(page, cred.id, { index: credIndex, total: credentials.length })
 
     // Register credential with CyberStrike (same as Firefox extension pattern)
     let credentialId = cred.id
