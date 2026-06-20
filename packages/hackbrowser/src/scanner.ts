@@ -76,6 +76,14 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       "@click",
       "data-toggle",
       "data-bs-toggle",
+      // data-* prefixed variants (htmx and AngularJS both accept them for
+      // HTML-validator-friendly markup).
+      "data-hx-get",
+      "data-hx-post",
+      "data-hx-put",
+      "data-hx-patch",
+      "data-hx-delete",
+      "data-ng-click",
     ]
 
     // ---- isStructurallyVisible: DOM-level visibility (not viewport) ----
