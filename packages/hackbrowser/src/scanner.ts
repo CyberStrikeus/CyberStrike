@@ -94,7 +94,13 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const style = window.getComputedStyle(el)
       if (style.display === "none") return false
       if (style.visibility === "hidden") return false
-      if (parseFloat(style.opacity) === 0) return false
+      // Native form controls are routinely opacity:0 by design — Material Web, MUI,
+      // Ant, Chakra hide the real input/checkbox/radio behind a styled visual, yet
+      // the control is real and interactable (and Playwright can act on it). Keep
+      // excluding opacity:0 for everything else (transition/decorative artifacts).
+      const tag = el.tagName.toLowerCase()
+      const isFormControl = tag === "input" || tag === "select" || tag === "textarea"
+      if (parseFloat(style.opacity) === 0 && !isFormControl) return false
       if (el.getAttribute("aria-hidden") === "true") return false
       // pointer-events:none on non-disabled interactives usually means overlay blocker
       // (disabled buttons legitimately have pointer-events:none on Angular Material/MUI)
