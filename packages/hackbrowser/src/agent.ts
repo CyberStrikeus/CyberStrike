@@ -28,7 +28,13 @@ import {
 } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
-import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
+import {
+  collectElements,
+  isViewportCenterBlocked,
+  filterVisitedLinks,
+  revealLazyContent,
+  expandDisclosures,
+} from "./scanner.ts"
 import {
   createGlobalState,
   buildPlannerSnapshot,
@@ -1731,6 +1737,8 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       await ctx.page.keyboard.press("Escape").catch(() => {})
       await ctx.page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
       await dismissCookieBanner(ctx.page)
+      await revealLazyContent(ctx.page)
+      await expandDisclosures(ctx.page)
     }
 
     // Collect elements from each context
@@ -2080,6 +2088,13 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
     // Dismiss cookie banners — deterministic, no LLM needed
     await dismissCookieBanner(page)
+
+    // Reveal lazily-rendered below-the-fold content (scroll-gated sections) before
+    // collection so a non-scrolling scan doesn't miss unique sections. Bounded.
+    await revealLazyContent(page)
+    // Expand safe disclosures (<details>, aria-expanded accordions) so hidden
+    // actions become visible surface without spending LLM turns. Bounded, ARIA-safe.
+    await expandDisclosures(page)
 
     // Fingerprint comparison: skip unchanged pages on re-visit (no LLM calls)
     // Fingerprint only includes input roles (textbox/combobox/checkbox/radio/slider)

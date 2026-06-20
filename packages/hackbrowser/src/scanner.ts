@@ -11,6 +11,23 @@ const log = Log.create({ service: "hackbrowser:scanner" })
 
 const MAX_ELEMENTS = 50
 
+// Representatives kept per templated (numbered) label cluster — mirrors the URL
+// BFS policy (MAX_PER_PATH_PATTERN) and the action-dedup in agent.ts: a long
+// list of "Item 1..55" is one endpoint template, so a handful of representatives
+// covers the attack surface (IDOR across instances) without letting the list eat
+// the MAX_ELEMENTS budget and crowd out unique, security-critical controls.
+const MAX_PER_TEMPLATE = 5
+
+// revealLazyContent scroll bounds. MAX_STEPS caps an infinite-scroll page so the
+// reveal can't trap the crawler; STEP_WAIT lets lazy renders / IntersectionObserver
+// callbacks fire between viewport-sized steps.
+const REVEAL_MAX_STEPS = 10
+const REVEAL_STEP_WAIT = 250
+
+// Max disclosures expanded per page in expandDisclosures — bounds pages built from
+// long lists of collapsibles so the reveal stays cheap and predictable.
+const EXPAND_MAX = 20
+
 // ============================================================
 // Element collection — runs inside browser via page.evaluate
 // ============================================================
@@ -28,6 +45,7 @@ interface BrowserElement {
   constraints: string // HTML5 validation meta (min/max/step/maxlength/pattern/type)
   selectorRole: string // role=button[name="..."]
   selectorCSS: string // fallback CSS selector
+  inChrome: boolean // inside a site-chrome landmark (nav/header/footer/aside)
 }
 
 /**
@@ -41,6 +59,25 @@ interface BrowserElement {
  */
 async function collectInteractiveElements(page: Page): Promise<BrowserElement[]> {
   return page.evaluate((): BrowserElement[] => {
+    // Framework click bindings — strong, unambiguous interactivity signals used by
+    // non-SPA / server-rendered stacks (Laravel/Livewire, htmx, Alpine, AngularJS,
+    // Bootstrap, Rails UJS) on otherwise-plain div/span/a elements that have no
+    // role, no onclick and often no cursor:pointer. Zero false-positive risk — these
+    // attributes only ever mark interactive elements.
+    const FRAMEWORK_CLICK_ATTRS = [
+      "wire:click",
+      "hx-get",
+      "hx-post",
+      "hx-put",
+      "hx-patch",
+      "hx-delete",
+      "ng-click",
+      "x-on:click",
+      "@click",
+      "data-toggle",
+      "data-bs-toggle",
+    ]
+
     // ---- isStructurallyVisible: DOM-level visibility (not viewport) ----
     function isStructurallyVisible(el: Element): boolean {
       const rect = el.getBoundingClientRect()
@@ -89,6 +126,21 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       }
       const placeholder = (el as HTMLInputElement).placeholder
       if (placeholder) return placeholder
+      // Submit/button/image inputs: the visible label is the value (or alt for an
+      // image button) — NOT the field name, which is server-control noise like
+      // "ctl00$btnSave" on ASP.NET WebForms. Only for these types — a text input's
+      // value is user data, not a label.
+      if (el.tagName.toLowerCase() === "input") {
+        const itype = (el as HTMLInputElement).type?.toLowerCase()
+        if (itype === "image") {
+          const alt = el.getAttribute("alt")?.trim()
+          if (alt) return alt
+        }
+        if (itype === "submit" || itype === "button" || itype === "image") {
+          const val = (el as HTMLInputElement).value?.trim()
+          if (val) return val
+        }
+      }
       const name = el.getAttribute("name") || el.getAttribute("data-testid")
       if (name) return name
       return ""
@@ -100,9 +152,10 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const tag = el.tagName.toLowerCase()
       const type = (el as HTMLInputElement).type?.toLowerCase()
       if (tag === "button") return "button"
+      if (tag === "summary") return "button" // <details> disclosure toggle — a real control
       if (tag === "a" && el.getAttribute("href")) return "link"
       if (tag === "input") {
-        if (type === "submit" || type === "button") return "button"
+        if (type === "submit" || type === "button" || type === "image") return "button"
         if (type === "checkbox") return "checkbox"
         if (type === "radio") return "radio"
         if (type === "hidden") return ""
@@ -114,6 +167,9 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       if (tag === "li" && el.closest("[role=menu],[role=listbox]")) return "menuitem"
       // Clickable divs/spans with onclick handler — treat as button
       if (el.hasAttribute("onclick")) return "button"
+      // Framework click bindings (Livewire/htmx/Alpine/AngularJS/Bootstrap/Rails UJS)
+      // on otherwise-plain elements — unambiguous interactivity signal.
+      for (const a of FRAMEWORK_CLICK_ATTRS) if (el.hasAttribute(a)) return "button"
       return ""
     }
 
@@ -191,7 +247,32 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       "[role=option]",
       "[role=slider]",
       "[onclick]",
+      "summary", // <details> disclosure toggle
+      // Framework click bindings (escaped — names contain : and @).
+      ...FRAMEWORK_CLICK_ATTRS.map((a) => `[${CSS.escape(a)}]`),
     ].join(", ")
+
+    // Deep query that pierces OPEN shadow roots — web-component SPAs (Lit/Stencil/
+    // LWC etc.) put their real buttons/inputs inside shadow DOM, which a flat
+    // document.querySelectorAll cannot see. We walk every element's open
+    // shadowRoot recursively. CLOSED roots return null and stay unreachable (a
+    // hard browser limit) — including the CyberStrike panel's own closed root, so
+    // the LLM never sees its own UI. We also skip any data-cyberstrike-ui host
+    // defensively. Document order is preserved per root; shadow matches append
+    // after their host's light-DOM siblings.
+    function queryAllDeep(selector: string): Element[] {
+      const out: Element[] = []
+      const walk = (root: Document | ShadowRoot) => {
+        for (const el of root.querySelectorAll(selector)) out.push(el)
+        for (const host of root.querySelectorAll("*")) {
+          if (host.closest("[data-cyberstrike-ui]")) continue
+          const sr = (host as HTMLElement).shadowRoot
+          if (sr) walk(sr)
+        }
+      }
+      walk(document)
+      return out
+    }
 
     // Serialize HTML5 validation attributes into a compact string the LLM can
     // interpret. Empty return = no constraints (saves tokens). Only meaningful
@@ -234,23 +315,19 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
     const seenCount = new Map<string, number>()
     const seenRoleSelectors = new Map<string, number>()
 
-    for (const el of document.querySelectorAll(INTERACTIVE_SELECTORS)) {
-      // Skip anything inside the injected CyberStrike telemetry panel — LLM
-      // must never see its own UI. Shadow DOM normally hides it, but this is
-      // a defensive guard for any panel DOM that leaks into the light tree.
-      if (el.closest("[data-cyberstrike-ui]")) continue
-      const role = getRole(el)
-      if (!role) continue
-
-      // Sliders (mat-slider, [role=slider]) often have pointer-events:none or opacity:0
-      // on the container — skip visibility check, use input[type=range] as selector
-      const isSlider = role === "slider"
-      if (!isSlider && !isStructurallyVisible(el)) continue
-
+    // Build a BrowserElement from a DOM node with a known role — dedup,
+    // disambiguation and selector resolution. Shared by the interactive sweep and
+    // the heuristic clickable-container sweep so both stay consistent (DRY). The
+    // caller is responsible for the visibility check (the slider exception lives
+    // there). `syntheticRole` = the role is assigned by heuristic, not the
+    // element's real ARIA role (a plain clickable div) — force the CSS selector
+    // since Playwright's role=button engine would never resolve such a node.
+    function addElement(el: Element, role: string, syntheticRole = false): void {
       const label = getLabel(el)
       const tag = el.tagName.toLowerCase()
       const type = (el as HTMLInputElement).type?.toLowerCase() || ""
       const href = (el as HTMLAnchorElement).href || ""
+      const isSlider = role === "slider"
       const value = isSlider
         ? (el.getAttribute("aria-valuenow") ?? (el as HTMLInputElement).value ?? "")
         : (el as HTMLInputElement).value || ""
@@ -280,7 +357,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // so LLM and executor can address each instance separately (e.g. toolbar "Add User"
       // vs form-submit "Add User"). innerText-differentiated elements still unique without
       // suffix.
-      if (count > 3) continue
+      if (count > 3) return
       const disambiguatedLabel = count > 1 ? `${label} (${count})` : label
 
       // Selector always uses raw aria-label (stable for Playwright).
@@ -290,8 +367,17 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // executor resolves to the exact DOM element.
       const ariaLabelRaw = (el.getAttribute("aria-label") || "").trim()
       const safeAriaLabel = ariaLabelRaw.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      const selectorRole = count > 1 ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
+      const selectorRole =
+        syntheticRole || count > 1 ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
       const selectorCSS = buildCSSSelector(el)
+
+      // Site-chrome detection: actions inside navigation/banner/footer/aside
+      // landmarks (navbar Logout/Profile etc.) change site-wide after login and
+      // must NOT flip a page's re-discovery fingerprint. Semantic landmarks only —
+      // class-based guessing would wrongly exclude real content toolbars.
+      const inChrome = !!el.closest(
+        "nav, header, footer, aside, [role=navigation], [role=banner], [role=contentinfo], [role=complementary]",
+      )
 
       // Track selectorRole usage — if duplicated, mark for CSS fallback
       const roleCount = (seenRoleSelectors.get(selectorRole) ?? 0) + 1
@@ -310,7 +396,53 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
         constraints,
         selectorRole,
         selectorCSS,
+        inChrome,
       })
+    }
+
+    // ---- Interactive sweep: native controls + ARIA roles + inline onclick ----
+    for (const el of queryAllDeep(INTERACTIVE_SELECTORS)) {
+      // Skip anything inside the injected CyberStrike telemetry panel — LLM
+      // must never see its own UI. Shadow DOM normally hides it, but this is
+      // a defensive guard for any panel DOM that leaks into the light tree.
+      if (el.closest("[data-cyberstrike-ui]")) continue
+      const role = getRole(el)
+      if (!role) continue
+
+      // Sliders (mat-slider, [role=slider]) often have pointer-events:none or opacity:0
+      // on the container — skip visibility check, use input[type=range] as selector
+      const isSlider = role === "slider"
+      if (!isSlider && !isStructurallyVisible(el)) continue
+
+      addElement(el, role)
+    }
+
+    // ---- Heuristic clickable containers (Case 2) ----
+    // div/span/li wired up via addEventListener with NO role and NO inline onclick
+    // — common in React/Vue, where onClick is event-delegated at the root and so
+    // leaves no detectable attribute. Click listeners are NOT introspectable from
+    // page JS (getEventListeners is devtools-only), so we fall back to
+    // cursor:pointer (author intent) bounded by guards that suppress decorative
+    // false positives. Cheap guards run before the costly getComputedStyle. The
+    // truly bare clickable div (no cursor, no role, no tabindex) stays
+    // undetectable — an accepted hard limit.
+    for (const el of queryAllDeep("div, span, li")) {
+      if (el.closest("[data-cyberstrike-ui]")) continue
+      if (el.getAttribute("role")) continue // explicit role → handled by the sweep above
+      if (el.hasAttribute("onclick")) continue // inline onclick → handled by the sweep above
+      if (!isStructurallyVisible(el)) continue
+      const text = (el as HTMLElement).innerText?.trim() || ""
+      if (!text || text.length > 80) continue // no/over-long label → not a button
+      if (el.querySelector(INTERACTIVE_SELECTORS)) continue // wraps a real control → click the inner one
+      if (window.getComputedStyle(el).cursor !== "pointer") continue // the intent signal (costly — last)
+      // cursor is inherited: every child of a clickable region reports pointer too.
+      // Capture only the OUTERMOST element of a pointer chain (parent not pointer)
+      // so a clickable card yields one button, not one per descendant span.
+      const parent = el.parentElement
+      if (parent && window.getComputedStyle(parent).cursor === "pointer") continue
+      const rect = el.getBoundingClientRect() // near-viewport container → layout, not a button
+      if (rect.width >= window.innerWidth * 0.9 && rect.height >= window.innerHeight * 0.5) continue
+      addElement(el, "button", true)
     }
 
     // ---- Info elements (CAPTCHA, hints, contextual labels) ----
@@ -361,6 +493,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
         constraints: "",
         selectorRole: "",
         selectorCSS: "",
+        inChrome: false, // info elements are never actions — excluded from the fingerprint regardless
       })
     }
 
@@ -394,6 +527,7 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
     constraints: el.constraints,
     // Prefer role+name selector (unique); bare role without name is ambiguous — use CSS instead
     selector: el.selectorRole.includes("[name=") ? el.selectorRole : el.selectorCSS || el.selectorRole,
+    inChrome: el.inChrome,
   }))
 }
 
@@ -415,7 +549,106 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
  */
 export async function collectElements(page: Page): Promise<RawElement[]> {
   const browserElements = await collectInteractiveElements(page)
-  return assignIds(browserElements, 1).slice(0, MAX_ELEMENTS)
+  const sampled = sampleTemplates(browserElements)
+  return assignIds(sampled, 1).slice(0, MAX_ELEMENTS)
+}
+
+/**
+ * Collapse templated (numbered) sibling clusters to a handful of representatives
+ * BEFORE the MAX_ELEMENTS cap, so a long "Item 1..55" list cannot crowd out
+ * unique, security-critical controls that sit later in the DOM.
+ *
+ * Clustering is digit-masked: "Item 1"/"Item 2" → "Item #" cluster, but a label
+ * with NO digits ("Delete Account", "Delete User") masks to itself and stays a
+ * singleton — so distinct controls are never merged. Exact duplicates are already
+ * bounded upstream (seenCount > 3 in the collector). Order is preserved; the
+ * first MAX_PER_TEMPLATE of each numbered cluster survive (IDOR-across-instances
+ * coverage), the rest drop.
+ */
+function sampleTemplates(elements: BrowserElement[]): BrowserElement[] {
+  const clusterCount = new Map<string, number>()
+  const out: BrowserElement[] = []
+  for (const el of elements) {
+    const masked = el.label.replace(/\d+/g, "#")
+    if (masked === el.label) {
+      out.push(el) // no digits → unique control, never clustered
+      continue
+    }
+    const key = `${el.role}::${masked}`
+    const n = (clusterCount.get(key) ?? 0) + 1
+    clusterCount.set(key, n)
+    if (n <= MAX_PER_TEMPLATE) out.push(el)
+  }
+  return out
+}
+
+/**
+ * Reveal lazily-rendered content before collection. Some apps only render
+ * below-the-fold sections once scrolled near (IntersectionObserver, react-lazyload,
+ * content-visibility:auto), so a non-scrolling scan misses unique sections lower on
+ * the page. We step down ~one viewport at a time to trip those observers, then
+ * return to the top. BOUNDED by REVEAL_MAX_STEPS so an infinite-scroll page cannot
+ * trap us; the duplicate rows scrolling materializes are collapsed by template
+ * sampling. Deterministic, no LLM — a sibling of dismissCookieBanner that keeps
+ * collectElements itself a pure, scroll-free DOM observer. Mid-scroll navigation or
+ * a destroyed context is non-fatal: collection proceeds on whatever rendered.
+ */
+export async function revealLazyContent(page: Page): Promise<void> {
+  try {
+    for (let i = 0; i < REVEAL_MAX_STEPS; i++) {
+      const advanced = await page.evaluate(() => {
+        const before = window.scrollY
+        window.scrollBy(0, Math.round(window.innerHeight * 0.9))
+        return window.scrollY > before
+      })
+      await page.waitForTimeout(REVEAL_STEP_WAIT)
+      if (!advanced) break // reached the bottom — no further scroll possible
+    }
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(REVEAL_STEP_WAIT)
+  } catch {
+    // page navigated/closed mid-scroll — non-fatal
+  }
+}
+
+/**
+ * Expand interaction-gated disclosures before collection so the hidden actions
+ * behind accordions and <details> become real attack surface in the snapshot —
+ * without spending LLM turns on them. SAFE SUBSET ONLY, by ARIA semantics:
+ *   - Tier 1: native <details> → set `open` (no click, zero side effect).
+ *   - Tier 2: [aria-expanded="false"] → click (the standardized disclosure
+ *     contract — reveals a controlled region, does not mutate server state).
+ * Tabs (role=tab) are excluded: selecting one mutates active-panel state, so they
+ * stay with the LLM, which navigates them in context. Mutating actions (Delete,
+ * submit) have no disclosure semantics and are never touched. BOUNDED by
+ * EXPAND_MAX against pages built from long collapsible lists. A sibling of
+ * revealLazyContent — collectElements stays a pure DOM observer. Non-fatal on
+ * mid-expand navigation.
+ */
+export async function expandDisclosures(page: Page): Promise<void> {
+  try {
+    await page.evaluate((max: number) => {
+      let budget = max
+      // Tier 1 — native <details>: reveal via attribute, no event dispatch.
+      for (const d of Array.from(document.querySelectorAll("details:not([open])"))) {
+        if (budget <= 0) break
+        if (d.closest("[data-cyberstrike-ui]")) continue
+        ;(d as HTMLDetailsElement).open = true
+        budget--
+      }
+      // Tier 2 — ARIA disclosures: click controls that semantically reveal a region.
+      for (const c of Array.from(document.querySelectorAll('[aria-expanded="false"]'))) {
+        if (budget <= 0) break
+        if (c.closest("[data-cyberstrike-ui]")) continue
+        if (c.getAttribute("role") === "tab") continue // tabs mutate state → left to the LLM
+        ;(c as HTMLElement).click()
+        budget--
+      }
+    }, EXPAND_MAX)
+    await page.waitForTimeout(REVEAL_STEP_WAIT)
+  } catch {
+    // page navigated/closed mid-expand — non-fatal
+  }
 }
 
 /**
