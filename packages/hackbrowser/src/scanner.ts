@@ -149,6 +149,23 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
           if (val) return val
         }
       }
+      // Web-component slotted-label fallback: a control inside an open shadow root
+      // (Shoelace, Material Web, Ionic, Fast — i.e. most real design systems) gets
+      // its visible text slotted from light DOM, so the shadow node's own innerText
+      // is empty. The shadow HOST carries the accessible label. Without this, real
+      // web-component buttons are collected but unlabeled — useless to the LLM.
+      const root = el.getRootNode()
+      if (root instanceof ShadowRoot && root.host) {
+        const host = root.host as HTMLElement
+        const hostAria = host.getAttribute("aria-label")?.trim()
+        if (hostAria) return hostAria
+        // WC form fields expose their label via a `label` attr/prop (sl-input,
+        // md-outlined-text-field, etc.) rather than slotted text.
+        const hostLabelAttr = host.getAttribute("label")?.trim()
+        if (hostLabelAttr) return hostLabelAttr
+        const hostText = host.innerText?.trim()
+        if (hostText && hostText.length < 80) return hostText
+      }
       const name = el.getAttribute("name") || el.getAttribute("data-testid")
       if (name) return name
       return ""
