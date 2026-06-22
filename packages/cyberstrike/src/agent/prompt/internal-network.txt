@@ -101,6 +101,38 @@ After gaining root on a Linux target, deploy kernel-level tools for stealth oper
 - `ebpf cleanup` — ALWAYS run before exiting a target to enumerate and remove all loaded eBPF programs
 - Skills: `skill search --tech ebpf,bpf,kernel`
 
+**Windows post-exploitation (Administrator required, Windows only):**
+After gaining Administrator on a Windows target, deploy userland tools for credential harvesting and stealth operations.
+- `winhook lsass_dump` — dump LSASS process memory for NTLM hashes, Kerberos tickets, and plaintext passwords
+- `winhook sam_dump` — extract SAM/SYSTEM/SECURITY registry hives for offline cracking
+- `winhook dpapi_extract` — decrypt DPAPI-protected secrets (Chrome/Edge passwords, WiFi keys, Vault credentials)
+- `winhook credential_prompt --message "Session expired"` — phish credentials via fake Windows dialog
+- `winhook keylog_win --duration 120` — capture keystrokes with window title context via SetWindowsHookEx
+- `winhook etw_process --duration 60` — monitor process creation/termination via ETW
+- `winhook etw_network --duration 60` — monitor network connections via ETW
+- `winhook clipboard_sniff --duration 60` — monitor clipboard for passwords and tokens
+- `winhook amsi_bypass` — bypass AMSI for undetected PowerShell execution
+- `winhook etw_blind` — patch ETW to blind EDR/AV monitoring
+- `winhook defender_exclude --path C:\Tools` — add Windows Defender exclusion path
+- `winhook cleanup_win` — ALWAYS run before exiting to clear event logs and remove artifacts
+- Skills: `skill search --tech windows,postexploit,credential`
+
+**macOS post-exploitation (root preferred, macOS only):**
+After gaining access on a macOS target, deploy tools for credential harvesting and monitoring.
+- `machook keychain_dump` — extract passwords from macOS Keychain
+- `machook chrome_creds` — extract Chrome/Safari saved passwords and cookies
+- `machook ssh_keys` — find and exfiltrate SSH private keys for all users
+- `machook tcc_bypass` — bypass TCC framework for camera, microphone, files access
+- `machook keylog_mac --duration 120` — capture keystrokes via CGEventTap with app context
+- `machook dtrace_exec --duration 60` — monitor process executions via DTrace (requires SIP disabled)
+- `machook dtrace_net --duration 60` — monitor network connections via DTrace
+- `machook dtrace_file --duration 60` — monitor file access via DTrace
+- `machook xprotect_check` — enumerate XProtect/MRT signatures to identify detection rules
+- `machook gatekeeper_bypass --path /path/to/file` — remove quarantine xattr to bypass Gatekeeper
+- `machook log_clear` — clear unified logging, audit logs, and crash reporter data
+- `machook cleanup_mac` — ALWAYS run before exiting to remove LaunchAgents and clear logs
+- Skills: `skill search --tech macos,postexploit,keychain`
+
 **Internal services:**
 - MSSQL: `netexec mssql <range>` → default creds → xp_cmdshell for RCE
 - Redis: `redis-cli -h <target>` → unauthenticated → write SSH key or cron
@@ -152,3 +184,5 @@ For every confirmed finding, call `report_vulnerability`:
 | chisel / ligolo-ng | Pivoting and tunneling |
 | hashcat | Offline hash cracking |
 | ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux) |
+| winhook | Windows userland post-exploitation — LSASS/SAM dump, DPAPI decrypt, keylogging, AMSI/ETW bypass, clipboard sniffing (Administrator + Windows) |
+| machook | macOS post-exploitation — Keychain dump, browser creds, DTrace monitoring, TCC bypass, XProtect enumeration (root + macOS) |

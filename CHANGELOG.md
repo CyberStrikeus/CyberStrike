@@ -6,6 +6,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **eBPF post-exploitation tool** — 10 kernel-level programs for the `internal-network` agent, executed via `ebpf <program>` after gaining root on Linux targets
+  - **Credential harvesting:** `pam_sniff` (PAM uprobe — cleartext SSH/sudo/su passwords), `ssl_sniff` (SSL uprobe — TLS plaintext capture), `keylog` (TTY kprobe — keystroke capture)
+  - **Stealth operations:** `proc_hide` (hide processes from ps/top/htop), `file_hide` (hide files from ls/find), `conn_hide` (hide connections from netstat/ss)
+  - **Monitoring:** `execve_sniff` (system-wide process execution tracing), `dns_sniff` (kernel-level DNS query capture), `dep_scan` (runtime dependency and vulnerable library scanner)
+  - **Cleanup:** `cleanup` (enumerate and remove all CyberStrike eBPF programs from target)
+- **`ebpf-attacks` skill** — kill chain methodology with 4 phases: situational awareness, credential harvesting, stealth operations, cleanup. Includes MITRE ATT&CK mappings (T1014, T1040, T1056.001, T1556) and detection considerations
+
+---
+
 ## [1.1.6] — 2026-03-30
 
 ### Added
