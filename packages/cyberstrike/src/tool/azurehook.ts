@@ -16,13 +16,11 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
     args: "--method <consent_grant|pim_activate|sp_secret|app_role> [--target-id ID] [--json-output]",
   },
   keyvault_dump: {
-    description:
-      "Extract secrets, keys, and certificates from all accessible Azure Key Vaults in the subscription",
+    description: "Extract secrets, keys, and certificates from all accessible Azure Key Vaults in the subscription",
     args: "[--vault-name NAME] [--subscription-id SUB] [--json-output]",
   },
   storage_dump: {
-    description:
-      "Enumerate and download sensitive data from Azure Blob Storage containers, Tables, and Queues",
+    description: "Enumerate and download sensitive data from Azure Blob Storage containers, Tables, and Queues",
     args: "[--account-name NAME] [--container CONTAINER] [--download] [--pattern REGEX] [--json-output]",
   },
   managed_identity: {
@@ -57,11 +55,7 @@ export const AzurehookTool = Tool.define("azurehook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(300)
-      .describe("Maximum execution time in seconds (default: 300)"),
+    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
     const scriptPath = path.join(AZUREHOOK_DIR, `${params.program}.py`)
@@ -69,7 +63,9 @@ export const AzurehookTool = Tool.define("azurehook", {
     if (!(await file.exists())) {
       return {
         title: `azurehook: ${params.program}`,
-        output: `Azure program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(AVAILABLE_PROGRAMS)
+        output: `Azure program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(
+          AVAILABLE_PROGRAMS,
+        )
           .map(([k, v]) => `  ${k}: ${v.description}\n    Usage: ${v.args}`)
           .join("\n")}`,
         metadata: { program: params.program, exitCode: -1, hasStderr: false },
@@ -96,7 +92,9 @@ export const AzurehookTool = Tool.define("azurehook", {
     if (exitCode !== 0) {
       output.push(`\nExit code: ${exitCode}`)
       if (stderr.includes("ModuleNotFoundError") && (stderr.includes("azure") || stderr.includes("msal"))) {
-        output.push("\n⚠ Azure SDK required. Install with: pip3 install azure-identity azure-mgmt-resource azure-keyvault-secrets azure-storage-blob msal")
+        output.push(
+          "\n⚠ Azure SDK required. Install with: pip3 install azure-identity azure-mgmt-resource azure-keyvault-secrets azure-storage-blob msal",
+        )
       }
       if (stderr.includes("DefaultAzureCredential") || stderr.includes("EnvironmentCredential")) {
         output.push(

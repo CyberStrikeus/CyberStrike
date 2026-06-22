@@ -52,11 +52,7 @@ export const KubehookTool = Tool.define("kubehook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(300)
-      .describe("Maximum execution time in seconds (default: 300)"),
+    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
     const scriptPath = path.join(KUBEHOOK_DIR, `${params.program}.py`)
@@ -64,7 +60,9 @@ export const KubehookTool = Tool.define("kubehook", {
     if (!(await file.exists())) {
       return {
         title: `kubehook: ${params.program}`,
-        output: `Kubernetes program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(AVAILABLE_PROGRAMS)
+        output: `Kubernetes program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(
+          AVAILABLE_PROGRAMS,
+        )
           .map(([k, v]) => `  ${k}: ${v.description}\n    Usage: ${v.args}`)
           .join("\n")}`,
         metadata: { program: params.program, exitCode: -1, hasStderr: false },
@@ -94,9 +92,7 @@ export const KubehookTool = Tool.define("kubehook", {
         output.push("\n⚠ kubernetes client required. Install with: pip3 install kubernetes")
       }
       if (stderr.includes("ConfigException") || stderr.includes("KUBECONFIG")) {
-        output.push(
-          "\n⚠ Kubernetes credentials not found. Set KUBECONFIG environment variable or use --kubeconfig",
-        )
+        output.push("\n⚠ Kubernetes credentials not found. Set KUBECONFIG environment variable or use --kubeconfig")
       }
     }
 
