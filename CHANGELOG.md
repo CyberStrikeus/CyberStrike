@@ -16,6 +16,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
   - **Monitoring:** `execve_sniff` (system-wide process execution tracing), `dns_sniff` (kernel-level DNS query capture), `dep_scan` (runtime dependency and vulnerable library scanner)
   - **Cleanup:** `cleanup` (enumerate and remove all CyberStrike eBPF programs from target)
 - **`ebpf-attacks` skill** — kill chain methodology with 4 phases: situational awareness, credential harvesting, stealth operations, cleanup. Includes MITRE ATT&CK mappings (T1014, T1040, T1056.001, T1556) and detection considerations
+- **Windows post-exploitation tool (winhook)** — 12 userland programs for the `internal-network` agent, executed via `winhook <program>` after gaining Administrator on Windows targets
+  - **AV/EDR evasion:** `amsi_bypass` (patch AmsiScanBuffer in-memory), `etw_blind` (patch EtwEventWrite to blind EDR), `defender_exclude` (add Windows Defender exclusion paths)
+  - **Credential harvesting:** `lsass_dump` (LSASS memory dump via comsvcs.dll/MiniDumpWriteDump), `sam_dump` (SAM/SYSTEM/SECURITY registry hive extraction), `dpapi_extract` (DPAPI secret decryption — browser passwords, WiFi, Vault), `credential_prompt` (fake CredUI dialog), `keylog_win` (SetWindowsHookEx keystroke capture), `clipboard_sniff` (clipboard monitoring)
+  - **Monitoring:** `etw_process` (process creation tracking), `etw_network` (network connection tracking)
+  - **Cleanup:** `cleanup_win` (event log clearing, artifact removal, Defender exclusion rollback)
+- **macOS post-exploitation tool (machook)** — 12 programs for the `internal-network` agent, executed via `machook <program>` after gaining root on macOS targets
+  - **Credential harvesting:** `keychain_dump` (Keychain password extraction via security CLI), `chrome_creds` (Chrome/Safari credential decryption — PBKDF2 + AES-128-CBC), `ssh_keys` (SSH private key discovery for all users), `tcc_bypass` (TCC.db manipulation for camera/mic/FDA access), `keylog_mac` (CGEventTap keystroke capture)
+  - **Monitoring:** `dtrace_exec` (process execution tracing), `dtrace_net` (network connection tracing), `dtrace_file` (file access tracing)
+  - **Stealth:** `xprotect_check` (XProtect/MRT/Gatekeeper/SIP/EDR enumeration), `gatekeeper_bypass` (quarantine xattr removal), `log_clear` (unified log, ASL, audit log clearing)
+  - **Cleanup:** `cleanup_mac` (LaunchAgent/Daemon removal, process cleanup, temp file removal)
+- **`windows-postexploit` skill** — kill chain with AV/EDR evasion → credential harvesting → monitoring → cleanup phases. MITRE ATT&CK mappings (T1003, T1056.001, T1059.001, T1562.001, T1070.001, T1555)
+- **`macos-postexploit` skill** — kill chain with situational awareness → credential harvesting → monitoring → stealth → cleanup phases. MITRE ATT&CK mappings (T1555.001, T1056.001, T1059.004, T1562.001, T1070.002, T1553.001)
 
 ---
 
