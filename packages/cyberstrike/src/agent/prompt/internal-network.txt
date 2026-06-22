@@ -87,6 +87,20 @@ Follow the path of least resistance. If a technique fails, move to the next — 
 - NFS no_root_squash: `showmount -e <target>` → mount → write SUID binary
 - Writable /etc/passwd or shadow: add root user
 
+**eBPF post-exploitation (root required, Linux only):**
+After gaining root on a Linux target, deploy kernel-level tools for stealth operations and credential harvesting.
+- `ebpf pam_sniff --duration 300` — capture cleartext passwords for all PAM-authenticated sessions (SSH, sudo, su, login)
+- `ebpf ssl_sniff --pid <PID>` — capture TLS plaintext before encryption for a specific process
+- `ebpf dep_scan` — scan all running processes for loaded shared libraries and identify vulnerable dependencies
+- `ebpf execve_sniff --duration 60` — monitor all process executions system-wide (PID, PPID, command, args)
+- `ebpf dns_sniff --duration 60` — capture DNS queries at the kernel level
+- `ebpf keylog --duration 120` — capture keystrokes from TTY file descriptors
+- `ebpf proc_hide --pid <PID>` — hide your tools from ps, top, htop, /proc enumeration
+- `ebpf file_hide --name <FILENAME>` — hide files/directories from ls, find, directory listings
+- `ebpf conn_hide --port <PORT>` — hide network connections from netstat, ss, /proc/net/tcp
+- `ebpf cleanup` — ALWAYS run before exiting a target to enumerate and remove all loaded eBPF programs
+- Skills: `skill search --tech ebpf,bpf,kernel`
+
 **Internal services:**
 - MSSQL: `netexec mssql <range>` → default creds → xp_cmdshell for RCE
 - Redis: `redis-cli -h <target>` → unauthenticated → write SSH key or cron
@@ -137,3 +151,4 @@ For every confirmed finding, call `report_vulnerability`:
 | linpeas / linux-smart-enumeration | Linux privilege escalation enumeration |
 | chisel / ligolo-ng | Pivoting and tunneling |
 | hashcat | Offline hash cracking |
+| ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux) |
