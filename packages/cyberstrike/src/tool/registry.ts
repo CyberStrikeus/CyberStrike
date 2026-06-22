@@ -48,6 +48,8 @@ import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
 import { EbpfTool } from "./ebpf"
+import { WinhookTool } from "./winhook"
+import { MachookTool } from "./machook"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -169,6 +171,8 @@ export namespace ToolRegistry {
       MethodologyStatusTool,
       AttackScriptTool,
       EbpfTool,
+      WinhookTool,
+      MachookTool,
       ...custom,
     ]
   }

@@ -393,7 +393,7 @@ export namespace Agent {
         native: true,
         color: "yellow",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n${PROMPT_METHODOLOGY_CONTINUATION}\n\n---\n\n${PROMPT_INTERNAL_NETWORK}`,
-        skills: ["ad-security", "kerberos-attacks", "ebpf-attacks"],
+        skills: ["ad-security", "kerberos-attacks", "ebpf-attacks", "windows-postexploit", "macos-postexploit"],
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
@@ -411,6 +411,8 @@ export namespace Agent {
             ensure_tools: "allow",
             attack_script: "allow",
             ebpf: "allow",
+            winhook: "allow",
+            machook: "allow",
           }),
           user,
         ),
