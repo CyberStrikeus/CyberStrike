@@ -67,11 +67,7 @@ export const AwshookTool = Tool.define("awshook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(300)
-      .describe("Maximum execution time in seconds (default: 300)"),
+    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
     const scriptPath = path.join(AWSHOOK_DIR, `${params.program}.py`)
@@ -79,7 +75,9 @@ export const AwshookTool = Tool.define("awshook", {
     if (!(await file.exists())) {
       return {
         title: `awshook: ${params.program}`,
-        output: `AWS program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(AVAILABLE_PROGRAMS)
+        output: `AWS program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(
+          AVAILABLE_PROGRAMS,
+        )
           .map(([k, v]) => `  ${k}: ${v.description}\n    Usage: ${v.args}`)
           .join("\n")}`,
         metadata: { program: params.program, exitCode: -1, hasStderr: false },

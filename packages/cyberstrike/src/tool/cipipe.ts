@@ -42,11 +42,7 @@ export const CipipeTool = Tool.define("cipipe", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(300)
-      .describe("Maximum execution time in seconds (default: 300)"),
+    timeout_seconds: z.number().optional().default(300).describe("Maximum execution time in seconds (default: 300)"),
   }),
   async execute(params) {
     const scriptPath = path.join(CIPIPE_DIR, `${params.program}.py`)
@@ -54,7 +50,9 @@ export const CipipeTool = Tool.define("cipipe", {
     if (!(await file.exists())) {
       return {
         title: `cipipe: ${params.program}`,
-        output: `CI/CD program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(AVAILABLE_PROGRAMS)
+        output: `CI/CD program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(
+          AVAILABLE_PROGRAMS,
+        )
           .map(([k, v]) => `  ${k}: ${v.description}\n    Usage: ${v.args}`)
           .join("\n")}`,
         metadata: { program: params.program, exitCode: -1, hasStderr: false },
