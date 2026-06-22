@@ -47,6 +47,7 @@ import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
+import { EbpfTool } from "./ebpf"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -167,6 +168,7 @@ export namespace ToolRegistry {
       EnsureToolsTool,
       MethodologyStatusTool,
       AttackScriptTool,
+      EbpfTool,
       ...custom,
     ]
   }
