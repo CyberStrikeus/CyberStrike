@@ -180,6 +180,43 @@ Skills: `skill search --tech secrets,iac,devsecops`
 
 Skills: `skill search --tech logging,monitoring,detection`
 
+### AWS Post-Exploitation (after compromising IAM credentials)
+
+When AWS credentials are compromised during assessment, use awshook for advanced exploitation:
+- `awshook iam_enum` — enumerate IAM and find privilege escalation paths
+- `awshook iam_privesc --method passrole` — exploit IAM misconfigurations
+- `awshook s3_dump` — find and download sensitive data from S3 buckets
+- `awshook secrets_dump` — extract Secrets Manager and SSM Parameter Store values
+- `awshook metadata_harvest` — extract IAM role credentials from EC2/ECS/Lambda metadata
+- `awshook cloudtrail_blind --action stop` — blind CloudTrail for operational security
+- `awshook cleanup_aws` — ALWAYS run to restore and clean artifacts
+
+Skills: `skill search --tech aws,iam,postexploit`
+
+### Azure Post-Exploitation (after compromising Azure credentials)
+
+When Azure/Entra ID credentials are compromised, use azurehook for tenant compromise:
+- `azurehook entra_enum` — enumerate Entra ID tenant (users, groups, apps, SPs)
+- `azurehook entra_privesc --method consent_grant` — privilege escalation via consent grant
+- `azurehook keyvault_dump` — extract all Key Vault secrets
+- `azurehook managed_identity` — harvest managed identity tokens
+- `azurehook storage_dump` — exfiltrate Azure Storage data
+- `azurehook cleanup_azure` — ALWAYS run to restore and clean artifacts
+
+Skills: `skill search --tech azure,entraid,postexploit`
+
+### Kubernetes Post-Exploitation (after compromising pod or kubeconfig)
+
+When Kubernetes access is obtained, use kubehook for cluster compromise:
+- `kubehook k8s_enum` — full cluster enumeration
+- `kubehook k8s_secrets` — extract and decode all Kubernetes Secrets
+- `kubehook k8s_escape` — detect and exploit container escape vectors
+- `kubehook k8s_privesc --method bind_admin` — RBAC privilege escalation
+- `kubehook etcd_dump --endpoint ENDPOINT` — direct etcd secret extraction
+- `kubehook cleanup_k8s` — ALWAYS run to remove created resources
+
+Skills: `skill search --tech kubernetes,container,postexploit`
+
 ## Skill Usage
 
 ```
@@ -203,6 +240,9 @@ skill unload <skill-name>
 | Checkov / tfsec | IaC misconfiguration detection |
 | TruffleHog / GitLeaks | Secret scanning |
 | nmap | External service discovery |
+| awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, CloudTrail manipulation, secrets extraction |
+| azurehook | Azure/Entra ID post-exploitation — Key Vault dump, managed identity harvest, runbook backdoor, consent grants |
+| kubehook | Kubernetes post-exploitation — secret extraction, container escape, RBAC abuse, etcd dump, backdoor deployment |
 
 ## Reporting
 

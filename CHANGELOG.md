@@ -28,6 +28,35 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
   - **Cleanup:** `cleanup_mac` (LaunchAgent/Daemon removal, process cleanup, temp file removal)
 - **`windows-postexploit` skill** — kill chain with AV/EDR evasion → credential harvesting → monitoring → cleanup phases. MITRE ATT&CK mappings (T1003, T1056.001, T1059.001, T1562.001, T1070.001, T1555)
 - **`macos-postexploit` skill** — kill chain with situational awareness → credential harvesting → monitoring → stealth → cleanup phases. MITRE ATT&CK mappings (T1555.001, T1056.001, T1059.004, T1562.001, T1070.002, T1553.001)
+- **AWS post-exploitation tool (awshook)** — 10 cloud programs for `internal-network` and `cloud-security` agents, executed via `awshook <program>` with valid AWS credentials
+  - **IAM exploitation:** `iam_enum` (IAM users/roles/groups enumeration + privilege escalation path analysis), `iam_privesc` (PassRole, AssumeRole, AttachPolicy, CreateAccessKey chains)
+  - **Data exfiltration:** `s3_dump` (sensitive file discovery via pattern matching + download), `secrets_dump` (Secrets Manager + SSM Parameter Store extraction), `ec2_snapshot` (EBS volume snapshot + cross-account sharing)
+  - **Persistence:** `lambda_backdoor` (layer injection or new backdoor function with admin role)
+  - **Remote execution:** `ssm_exec` (SSM RunCommand on managed EC2 instances)
+  - **Credential harvesting:** `metadata_harvest` (EC2 IMDSv1/v2, ECS task metadata, Lambda env credential extraction)
+  - **Defense evasion:** `cloudtrail_blind` (stop trails, manipulate event selectors, delete logs)
+  - **Cleanup:** `cleanup_aws` (restore CloudTrail, delete Lambda/IAM/EBS artifacts, clean state file)
+- **Azure post-exploitation tool (azurehook)** — 8 cloud programs for `internal-network` and `cloud-security` agents, executed via `azurehook <program>` with Azure access tokens
+  - **Entra ID exploitation:** `entra_enum` (users, groups, apps, service principals, directory roles via Graph API), `entra_privesc` (OAuth2 consent grant, PIM role activation, SP credential injection)
+  - **Data exfiltration:** `keyvault_dump` (secrets, keys, certificates from all accessible Key Vaults), `storage_dump` (Blob storage sensitive file discovery + download)
+  - **Credential harvesting:** `managed_identity` (IMDS token harvest from VM/App Service for ARM, Graph, KeyVault, Storage, SQL), `azuread_token` (FOCI client ID abuse, token refresh, JWT decode)
+  - **Persistence:** `runbook_backdoor` (Automation Account Python3 runbook with callback + hourly schedule)
+  - **Cleanup:** `cleanup_azure` (revoke consent grants, remove SP secrets, delete runbooks/schedules)
+- **Kubernetes post-exploitation tool (kubehook)** — 7 programs for `internal-network` and `cloud-security` agents, executed via `kubehook <program>` with valid kubeconfig
+  - **Enumeration:** `k8s_enum` (namespaces, pods, services, secrets, RBAC, nodes — 11 resource categories)
+  - **Credential harvesting:** `k8s_secrets` (Secret extraction + base64 decode across namespaces, TLS cert/dockerconfig/SA token parsing), `etcd_dump` (direct etcd connection for protobuf-encoded secret extraction)
+  - **Privilege escalation:** `k8s_privesc` (SA token theft, ClusterRoleBinding creation, TokenRequest API minting)
+  - **Container escape:** `k8s_escape` (privileged mode, hostPID, hostNetwork, Docker socket, cgroup release_agent — 7 detection vectors)
+  - **Persistence:** `k8s_backdoor` (privileged DaemonSet on all nodes or CronJob with callback, deployed to kube-system)
+  - **Cleanup:** `cleanup_k8s` (state file + label selector `app=cyberstrike` resource removal)
+- **CI/CD pipeline attack tool (cipipe)** — 5 programs for the `internal-network` agent, executed via `cipipe <program>` with platform API tokens
+  - **Secret extraction:** `gh_secrets` (GitHub Actions secret enumeration, workflow log credential scanning, workflow dispatch exfiltration), `gitlab_tokens` (CI/CD variables, runner tokens, deploy tokens, project access tokens), `jenkins_creds` (credential API dump + Groovy Script Console extraction with password/SSH key/secret decryption)
+  - **Pipeline injection:** `pipeline_inject` (GitHub Actions / GitLab CI workflow file injection with env exfiltration to callback URL)
+  - **Cleanup:** `cleanup_ci` (GitHub/GitLab branch deletion from state file)
+- **`aws-postexploit` skill** — 6-phase kill chain: recon → IAM privesc → data access → persistence → defense evasion → cleanup. MITRE ATT&CK mappings (T1078.004, T1530, T1537, T1562.008, T1098)
+- **`azure-postexploit` skill** — 5-phase kill chain: Entra ID recon → privilege escalation → secret extraction → persistence → cleanup. MITRE ATT&CK mappings (T1078.004, T1552.001, T1098.001, T1550.001)
+- **`k8s-postexploit` skill** — 5-phase kill chain: cluster recon → secret extraction → privilege escalation → persistence → cleanup. MITRE ATT&CK mappings (T1611, T1552.007, T1613, T1610)
+- **`cicd-attacks` skill** — 4-phase kill chain: enumeration → secret extraction → pipeline injection → cleanup. MITRE ATT&CK mappings (T1195.002, T1552.004, T1059)
 
 ---
 
