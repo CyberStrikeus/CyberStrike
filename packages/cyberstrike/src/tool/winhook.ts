@@ -77,11 +77,7 @@ export const WinhookTool = Tool.define("winhook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(120)
-      .describe("Maximum execution time in seconds (default: 120)"),
+    timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
     if (process.platform !== "win32") {

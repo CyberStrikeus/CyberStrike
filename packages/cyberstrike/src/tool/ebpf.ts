@@ -21,18 +21,15 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
     args: "[--pid PID] [--json-output]",
   },
   proc_hide: {
-    description:
-      "Hide a process from ps, top, htop, and /proc enumeration by hooking sys_getdents64 on /proc",
+    description: "Hide a process from ps, top, htop, and /proc enumeration by hooking sys_getdents64 on /proc",
     args: "--pid PID [--json-output]",
   },
   file_hide: {
-    description:
-      "Hide files or directories from ls, find, and directory listings by hooking sys_getdents64",
+    description: "Hide files or directories from ls, find, and directory listings by hooking sys_getdents64",
     args: "--name FILENAME [--json-output]",
   },
   conn_hide: {
-    description:
-      "Hide network connections from netstat, ss, and /proc/net/tcp by hooking sys_read on procfs",
+    description: "Hide network connections from netstat, ss, and /proc/net/tcp by hooking sys_read on procfs",
     args: "--port PORT [--json-output]",
   },
   execve_sniff: {
@@ -67,11 +64,7 @@ export const EbpfTool = Tool.define("ebpf", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(120)
-      .describe("Maximum execution time in seconds (default: 120)"),
+    timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
     const scriptPath = path.join(EBPF_DIR, `${params.program}.py`)
@@ -79,7 +72,9 @@ export const EbpfTool = Tool.define("ebpf", {
     if (!(await file.exists())) {
       return {
         title: `ebpf: ${params.program}`,
-        output: `eBPF program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(AVAILABLE_PROGRAMS)
+        output: `eBPF program not found: ${params.program}.py\n\nAvailable programs:\n${Object.entries(
+          AVAILABLE_PROGRAMS,
+        )
           .map(([k, v]) => `  ${k}: ${v.description}\n    Usage: ${v.args}`)
           .join("\n")}`,
         metadata: { program: params.program, exitCode: -1, hasStderr: false },

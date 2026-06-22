@@ -41,8 +41,7 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
     args: "[--duration SECONDS] [--json-output]",
   },
   dtrace_file: {
-    description:
-      "Monitor file access via DTrace syscall::open*: probes — capture PID, process name, file path, flags",
+    description: "Monitor file access via DTrace syscall::open*: probes — capture PID, process name, file path, flags",
     args: "[--duration SECONDS] [--pid PID] [--json-output]",
   },
   xprotect_check: {
@@ -56,8 +55,7 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
     args: "--path PATH [--recursive] [--json-output]",
   },
   log_clear: {
-    description:
-      "Clear unified logging (ASL), audit logs at /var/audit/, system log archives, and crash reporter data",
+    description: "Clear unified logging (ASL), audit logs at /var/audit/, system log archives, and crash reporter data",
     args: "[--json-output]",
   },
   cleanup_mac: {
@@ -77,11 +75,7 @@ export const MachookTool = Tool.define("machook", {
           .join("; "),
     ),
     args: z.array(z.string()).describe("Arguments to pass to the program"),
-    timeout_seconds: z
-      .number()
-      .optional()
-      .default(120)
-      .describe("Maximum execution time in seconds (default: 120)"),
+    timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
     if (process.platform !== "darwin") {
