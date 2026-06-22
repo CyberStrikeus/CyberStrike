@@ -50,6 +50,10 @@ import { AttackScriptTool } from "./attack-script"
 import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
+import { AwshookTool } from "./awshook"
+import { AzurehookTool } from "./azurehook"
+import { KubehookTool } from "./kubehook"
+import { CipipeTool } from "./cipipe"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -173,6 +177,10 @@ export namespace ToolRegistry {
       EbpfTool,
       WinhookTool,
       MachookTool,
+      AwshookTool,
+      AzurehookTool,
+      KubehookTool,
+      CipipeTool,
       ...custom,
     ]
   }
