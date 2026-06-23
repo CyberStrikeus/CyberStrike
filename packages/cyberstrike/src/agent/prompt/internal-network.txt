@@ -100,8 +100,8 @@ After gaining root on a Linux target, deploy kernel-level tools for stealth oper
 - `ebpf conn_hide --port <PORT>` — hide network connections from netstat, ss, /proc/net/tcp
 - `ebpf cleanup` — ALWAYS run before exiting a target to enumerate and remove all loaded eBPF programs
 
-**eBPF advanced evasion monitoring (root required, Linux only):**
-Detect attack primitives that bypass classical syscall-based monitoring.
+**eBPF blind spot monitors (root required, Linux only):**
+20 monitors for attack primitives that bypass classical syscall hooks and operate through kernel subsystems invisible to standard monitoring.
 - `ebpf io_uring_sniff --duration 60` — monitor io_uring ring buffer operations that bypass syscall hooks (kernel 5.1+)
 - `ebpf memfd_exec --duration 60` — detect fileless execution via memfd_create + execveat (diskless payload delivery)
 - `ebpf ptrace_sniff --duration 60` — monitor ptrace-based process injection (ATTACH → POKEDATA → SETREGS sequences)
@@ -110,9 +110,6 @@ Detect attack primitives that bypass classical syscall-based monitoring.
 - `ebpf bpf_integrity --baseline --duration 300` — verify CyberStrike eBPF hook integrity, detect unauthorized BPF program loads
 - `ebpf netlink_sniff --duration 60` — monitor netlink messages for stealthy route/firewall rule manipulation
 - `ebpf seccomp_sniff --duration 60` — detect processes weakening their own seccomp/prctl security profiles
-
-**eBPF blind spot monitors (root required, Linux only):**
-Detect attack primitives that operate through kernel subsystems invisible to classical syscall hooks.
 - `ebpf mmap_sniff --duration 60` — monitor shared memory IPC (mmap MAP_SHARED, shmget, shmat) — data flows without syscalls after initial mapping
 - `ebpf zerocopy_sniff --duration 60` — monitor zero-copy fd-to-fd transfers (splice, tee, sendfile64) invisible to buffer-based profilers
 - `ebpf vdso_sniff --duration 60` — monitor VDSO timing calls and page tampering — calls resolved in userspace without kernel entry

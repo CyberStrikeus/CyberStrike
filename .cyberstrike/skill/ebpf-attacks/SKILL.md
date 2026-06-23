@@ -76,9 +76,9 @@ Hide your presence from system administrators and monitoring tools.
 
 **Connection hiding** hooks `sys_read` on `/proc/net/tcp` and `/proc/net/tcp6`. When a monitoring tool reads the connection table, lines containing the target port are overwritten with spaces.
 
-### Phase 4 — Advanced Evasion Detection
+### Phase 4 — Blind Spot Detection (20 monitors)
 
-Detect attack primitives that bypass classical syscall-based monitoring. These monitors identify techniques that evade standard tracepoint/kprobe hooks.
+Detect attack primitives that bypass classical syscall hooks and operate through kernel subsystems invisible to standard monitoring.
 
 | Action | Command | Purpose |
 |--------|---------|---------|
