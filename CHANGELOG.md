@@ -15,15 +15,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
   - **Stealth operations:** `proc_hide` (hide processes from ps/top/htop), `file_hide` (hide files from ls/find), `conn_hide` (hide connections from netstat/ss)
   - **Monitoring:** `execve_sniff` (system-wide process execution tracing), `dns_sniff` (kernel-level DNS query capture), `dep_scan` (runtime dependency and vulnerable library scanner)
   - **Cleanup:** `cleanup` (enumerate and remove all CyberStrike eBPF programs from target)
-- **eBPF advanced evasion monitors** — 8 kernel-level detection programs for attack primitives that bypass classical syscall hooks
-  - **Syscall bypass detection:** `io_uring_sniff` (io_uring SQE submission monitoring — CONNECT/READ/WRITE/OPENAT via ring buffer bypass, kernel 5.1+)
+- **eBPF blind spot monitors** — 20 kernel-level detection programs for attack primitives that bypass classical syscall hooks and operate through kernel subsystems invisible to standard monitoring
+  - **Syscall bypass:** `io_uring_sniff` (io_uring SQE submission monitoring — CONNECT/READ/WRITE/OPENAT via ring buffer bypass, kernel 5.1+)
   - **Fileless execution:** `memfd_exec` (memfd_create + execveat AT_EMPTY_PATH correlation — diskless payload delivery detection)
   - **Process injection:** `ptrace_sniff` (ATTACH → POKEDATA → SETREGS → CONT injection sequence detection), `crossmem_sniff` (process_vm_writev/readv cross-process memory injection)
   - **Exploit primitives:** `userfaultfd_sniff` (userfaultfd race condition timing primitive detection)
   - **Integrity verification:** `bpf_integrity` (bpf() syscall monitoring + bpftool baseline comparison — detect unauthorized BPF program loads, CyberStrike hook tampering)
   - **Network manipulation:** `netlink_sniff` (netlink socket message monitoring — route/firewall rule injection detection)
   - **Sandbox evasion:** `seccomp_sniff` (prctl/seccomp self-modification — sandbox weakening, process name masquerading, privilege restriction bypass)
-- **eBPF blind spot monitors** — 12 kernel-level detection programs for attack primitives operating through subsystems invisible to classical syscall hooks
   - **Memory IPC:** `mmap_sniff` (shared memory via mmap MAP_SHARED/shmget/shmat — covert IPC without syscalls after mapping)
   - **Zero-copy transfers:** `zerocopy_sniff` (splice/tee/sendfile64 fd-to-fd data movement invisible to buffer profilers)
   - **VDSO side-channels:** `vdso_sniff` (clock_gettime/gettimeofday high-frequency timing + mprotect VDSO page tampering)
