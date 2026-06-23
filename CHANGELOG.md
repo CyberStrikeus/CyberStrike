@@ -57,6 +57,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **`azure-postexploit` skill** — 5-phase kill chain: Entra ID recon → privilege escalation → secret extraction → persistence → cleanup. MITRE ATT&CK mappings (T1078.004, T1552.001, T1098.001, T1550.001)
 - **`k8s-postexploit` skill** — 5-phase kill chain: cluster recon → secret extraction → privilege escalation → persistence → cleanup. MITRE ATT&CK mappings (T1611, T1552.007, T1613, T1610)
 - **`cicd-attacks` skill** — 4-phase kill chain: enumeration → secret extraction → pipeline injection → cleanup. MITRE ATT&CK mappings (T1195.002, T1552.004, T1059)
+- **GitHub Copilot Enterprise provider** — verified and validated full Copilot provider support for Enterprise license holders. Use Claude, GPT, and Gemini models at zero cost through GitHub Copilot. Includes OAuth device flow auth, Enterprise Server URL support, Chat + Responses API, reasoning, tool calling, vision, and streaming. Authenticate via `/provider add` → `github-copilot`.
 
 ---
 
