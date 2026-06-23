@@ -76,7 +76,38 @@ Hide your presence from system administrators and monitoring tools.
 
 **Connection hiding** hooks `sys_read` on `/proc/net/tcp` and `/proc/net/tcp6`. When a monitoring tool reads the connection table, lines containing the target port are overwritten with spaces.
 
-### Phase 4 — Cleanup (MANDATORY)
+### Phase 4 — Advanced Evasion Detection
+
+Detect attack primitives that bypass classical syscall-based monitoring. These monitors identify techniques that evade standard tracepoint/kprobe hooks.
+
+| Action | Command | Purpose |
+|--------|---------|---------|
+| io_uring bypass | `ebpf io_uring_sniff --duration 60` | Detect file/socket/connect operations via io_uring that bypass syscall hooks (kernel 5.1+) |
+| Fileless execution | `ebpf memfd_exec --duration 60` | Detect memfd_create + execveat diskless payload delivery chains |
+| ptrace injection | `ebpf ptrace_sniff --duration 60` | Monitor ATTACH → POKEDATA → SETREGS shellcode injection sequences |
+| Cross-process memory | `ebpf crossmem_sniff --duration 60` | Detect stealthy process_vm_writev/readv memory injection |
+| Race condition exploits | `ebpf userfaultfd_sniff --duration 60` | Detect userfaultfd-based timing control primitives |
+| BPF integrity | `ebpf bpf_integrity --baseline --duration 300` | Verify CyberStrike hook integrity, detect unauthorized BPF program loads |
+| Netlink manipulation | `ebpf netlink_sniff --duration 60` | Detect stealthy route/firewall rule manipulation via netlink |
+| Sandbox weakening | `ebpf seccomp_sniff --duration 60` | Detect processes disabling their own seccomp/prctl security profiles |
+
+**io_uring sniffing** monitors SQE submissions via `io_uring_submit_sqe` kprobe. Operations like CONNECT, READ, WRITE, OPENAT through io_uring bypass classical syscall hooks entirely — a reverse shell built on io_uring is invisible to execve/connect tracepoints.
+
+**Fileless execution detection** correlates `memfd_create` → `write` → `execveat(fd, "", AT_EMPTY_PATH)` chains. The payload never touches disk — it exists only in memory via memfd. This is the primary technique for diskless implant delivery.
+
+**ptrace injection monitoring** tracks the ATTACH → POKEDATA → SETREGS → CONT sequence that constitutes shellcode injection. Each ptrace operation is logged with target PID and memory addresses.
+
+**Cross-process memory monitoring** captures `process_vm_writev`/`process_vm_readv` syscalls. These enable memory injection without ptrace — bypassing ptrace-based detection entirely.
+
+**userfaultfd monitoring** detects creation of userfaultfd file descriptors. Legitimate use is rare (QEMU/KVM live migration); in exploit context, userfaultfd provides precise timing control for race condition exploitation.
+
+**BPF integrity verification** takes a baseline of loaded BPF programs via `bpftool` and periodically verifies no CyberStrike programs have been detached or tampered with. Also monitors `bpf()` syscall for unauthorized program loads.
+
+**Netlink monitoring** captures netlink socket messages for NEWROUTE, DELROUTE, NEWRULE, DELRULE operations — detecting stealthy routing table and firewall rule manipulation.
+
+**Seccomp/prctl monitoring** captures PR_SET_SECCOMP, PR_SET_NO_NEW_PRIVS, PR_SET_NAME, PR_SET_DUMPABLE, and seccomp filter installation — detecting processes weakening their own security profiles or masquerading via name changes.
+
+### Phase 5 — Cleanup (MANDATORY)
 
 Always run cleanup before exiting a target.
 
@@ -119,3 +150,11 @@ eBPF programs are detectable by:
 | dns_sniff | kprobe | `udp_sendmsg` port 53 | T1071.004 — DNS Application Layer Protocol |
 | keylog | kprobe | `sys_read` on TTY fds | T1056.001 — Keylogging |
 | cleanup | bpftool | BPF programs/maps | — |
+| io_uring_sniff | kprobe | `io_uring_submit_sqe` | T1014 — Rootkit (syscall bypass) |
+| memfd_exec | tracepoint | `memfd_create` + `execveat` | T1620 — Reflective Code Loading |
+| ptrace_sniff | tracepoint | `sys_enter_ptrace` | T1055.008 — Ptrace System Calls |
+| crossmem_sniff | tracepoint | `process_vm_writev`/`readv` | T1055.012 — Process Hollowing |
+| userfaultfd_sniff | tracepoint | `sys_enter_userfaultfd` | T1068 — Exploitation for Privilege Escalation |
+| bpf_integrity | tracepoint | `sys_enter_bpf` + bpftool | T1553 — Subvert Trust Controls |
+| netlink_sniff | kprobe | `netlink_sendmsg` | T1562.004 — Disable or Modify System Firewall |
+| seccomp_sniff | tracepoint | `sys_enter_prctl` + `sys_enter_seccomp` | T1562.001 — Disable or Modify Tools |

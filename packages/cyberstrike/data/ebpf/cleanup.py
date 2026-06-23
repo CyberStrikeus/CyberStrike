@@ -44,6 +44,14 @@ CYBERSTRIKE_PATTERNS = [
     r"^dns_sniff",            # DNS sniffer
     r"^sock_trace",           # Socket tracer
     r"^syscall_hook",         # Syscall hooks
+    r"^io_uring",             # io_uring ring buffer sniffer
+    r"^memfd",                # memfd_create + execveat detector
+    r"^ptrace_sniff",         # ptrace injection monitor
+    r"^crossmem",             # cross-process memory monitor
+    r"^uffd",                 # userfaultfd monitor
+    r"^bpf_integrity",        # BPF integrity verifier
+    r"^netlink_sniff",        # netlink socket monitor
+    r"^seccomp_sniff",        # seccomp/prctl monitor
 ]
 
 COMPILED_PATTERNS = [re.compile(p, re.IGNORECASE) for p in CYBERSTRIKE_PATTERNS]

@@ -99,7 +99,18 @@ After gaining root on a Linux target, deploy kernel-level tools for stealth oper
 - `ebpf file_hide --name <FILENAME>` — hide files/directories from ls, find, directory listings
 - `ebpf conn_hide --port <PORT>` — hide network connections from netstat, ss, /proc/net/tcp
 - `ebpf cleanup` — ALWAYS run before exiting a target to enumerate and remove all loaded eBPF programs
-- Skills: `skill search --tech ebpf,bpf,kernel`
+
+**eBPF advanced evasion monitoring (root required, Linux only):**
+Detect attack primitives that bypass classical syscall-based monitoring.
+- `ebpf io_uring_sniff --duration 60` — monitor io_uring ring buffer operations that bypass syscall hooks (kernel 5.1+)
+- `ebpf memfd_exec --duration 60` — detect fileless execution via memfd_create + execveat (diskless payload delivery)
+- `ebpf ptrace_sniff --duration 60` — monitor ptrace-based process injection (ATTACH → POKEDATA → SETREGS sequences)
+- `ebpf crossmem_sniff --duration 60` — monitor cross-process memory writes via process_vm_writev/readv
+- `ebpf userfaultfd_sniff --duration 60` — detect userfaultfd race condition exploit primitives
+- `ebpf bpf_integrity --baseline --duration 300` — verify CyberStrike eBPF hook integrity, detect unauthorized BPF program loads
+- `ebpf netlink_sniff --duration 60` — monitor netlink messages for stealthy route/firewall rule manipulation
+- `ebpf seccomp_sniff --duration 60` — detect processes weakening their own seccomp/prctl security profiles
+- Skills: `skill search --tech ebpf,bpf,kernel,evasion`
 
 **Windows post-exploitation (Administrator required, Windows only):**
 After gaining Administrator on a Windows target, deploy userland tools for credential harvesting and stealth operations.
@@ -229,7 +240,7 @@ For every confirmed finding, call `report_vulnerability`:
 | linpeas / linux-smart-enumeration | Linux privilege escalation enumeration |
 | chisel / ligolo-ng | Pivoting and tunneling |
 | hashcat | Offline hash cracking |
-| ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux) |
+| ebpf | eBPF kernel-level post-exploitation — credential capture, process/file/connection hiding, traffic interception (root + Linux). Advanced evasion monitors: io_uring bypass, fileless exec (memfd), ptrace injection, cross-process memory, userfaultfd races, BPF integrity, netlink manipulation, seccomp self-modification |
 | winhook | Windows userland post-exploitation — LSASS/SAM dump, DPAPI decrypt, keylogging, AMSI/ETW bypass, clipboard sniffing (Administrator + Windows) |
 | machook | macOS post-exploitation — Keychain dump, browser creds, DTrace monitoring, TCC bypass, XProtect enumeration (root + macOS) |
 | awshook | AWS post-exploitation — IAM privesc, S3 dump, Lambda backdoor, SSM exec, CloudTrail manipulation, secrets extraction (AWS credentials required) |

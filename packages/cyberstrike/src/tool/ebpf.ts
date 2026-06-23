@@ -52,10 +52,50 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
       "Enumerate and detach all CyberStrike eBPF programs and maps from the system. Always run this before exiting a target",
     args: "[--json-output]",
   },
+  io_uring_sniff: {
+    description:
+      "Monitor io_uring ring buffer operations — detect file, socket, and connect operations that bypass classical syscall hooks via submission queue entries (kernel 5.1+)",
+    args: "[--duration SECONDS] [--pid PID] [--json-output] [--dangerous-only]",
+  },
+  memfd_exec: {
+    description:
+      "Detect fileless execution via memfd_create + execveat — correlate memory-only file creation with execution to identify diskless payload delivery",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  ptrace_sniff: {
+    description:
+      "Monitor ptrace-based process injection — capture ATTACH, POKEDATA, SETREGS operations and detect shellcode injection sequences",
+    args: "[--duration SECONDS] [--pid PID] [--json-output]",
+  },
+  crossmem_sniff: {
+    description:
+      "Monitor cross-process memory operations via process_vm_writev/readv — detect stealthy memory injection that bypasses ptrace-based detection",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  userfaultfd_sniff: {
+    description:
+      "Monitor userfaultfd creation and page fault handling — detect race condition exploit primitives that use userspace page fault handlers for timing control",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  bpf_integrity: {
+    description:
+      "Monitor bpf() syscall for program load/attach/detach operations and verify integrity of CyberStrike eBPF programs — detect tampering, unauthorized BPF program injection, and hook evasion",
+    args: "[--duration SECONDS] [--json-output] [--baseline] [--check-interval SECONDS]",
+  },
+  netlink_sniff: {
+    description:
+      "Monitor netlink socket messages for stealthy network configuration changes — detect route manipulation, firewall rule injection, and policy routing modifications",
+    args: "[--duration SECONDS] [--json-output] [--route-only]",
+  },
+  seccomp_sniff: {
+    description:
+      "Monitor prctl and seccomp syscalls for security profile self-modification — detect processes weakening their own sandboxes, changing names for masquerading, or disabling privilege restrictions",
+    args: "[--duration SECONDS] [--json-output]",
+  },
 }
 
 export const EbpfTool = Tool.define("ebpf", {
-  description: `Execute an eBPF post-exploitation program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. ALWAYS run cleanup before leaving a target.`,
+  description: `Execute an eBPF program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. Advanced evasion monitors (io_uring_sniff, memfd_exec, ptrace_sniff, crossmem_sniff, userfaultfd_sniff, bpf_integrity, netlink_sniff, seccomp_sniff) detect attack primitives that bypass classical syscall hooks. ALWAYS run cleanup before leaving a target.`,
   parameters: z.object({
     program: z.enum(Object.keys(AVAILABLE_PROGRAMS) as [string, ...string[]]).describe(
       "eBPF program to execute. Options: " +
