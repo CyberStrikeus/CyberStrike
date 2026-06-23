@@ -52,6 +52,18 @@ CYBERSTRIKE_PATTERNS = [
     r"^bpf_integrity",        # BPF integrity verifier
     r"^netlink_sniff",        # netlink socket monitor
     r"^seccomp_sniff",        # seccomp/prctl monitor
+    r"^mmap_sniff",           # shared memory IPC monitor
+    r"^zerocopy",             # zero-copy transfer monitor
+    r"^vdso_sniff",           # VDSO timing/tampering monitor
+    r"^keyring_sniff",        # kernel keyring monitor
+    r"^namespace_sniff",      # namespace escape monitor
+    r"^ioctl_sniff",          # dangerous ioctl monitor
+    r"^mount_sniff",          # mount manipulation monitor
+    r"^fuse_sniff",           # FUSE filesystem monitor
+    r"^perf_sniff",           # perf_event_open monitor
+    r"^bpfmap_sniff",         # BPF map covert channel monitor
+    r"^ldpreload",            # LD_PRELOAD injection monitor
+    r"^futex_sniff",          # futex covert channel monitor
 ]
 
 COMPILED_PATTERNS = [re.compile(p, re.IGNORECASE) for p in CYBERSTRIKE_PATTERNS]

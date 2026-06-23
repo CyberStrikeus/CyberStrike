@@ -23,6 +23,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
   - **Integrity verification:** `bpf_integrity` (bpf() syscall monitoring + bpftool baseline comparison — detect unauthorized BPF program loads, CyberStrike hook tampering)
   - **Network manipulation:** `netlink_sniff` (netlink socket message monitoring — route/firewall rule injection detection)
   - **Sandbox evasion:** `seccomp_sniff` (prctl/seccomp self-modification — sandbox weakening, process name masquerading, privilege restriction bypass)
+- **eBPF blind spot monitors** — 12 kernel-level detection programs for attack primitives operating through subsystems invisible to classical syscall hooks
+  - **Memory IPC:** `mmap_sniff` (shared memory via mmap MAP_SHARED/shmget/shmat — covert IPC without syscalls after mapping)
+  - **Zero-copy transfers:** `zerocopy_sniff` (splice/tee/sendfile64 fd-to-fd data movement invisible to buffer profilers)
+  - **VDSO side-channels:** `vdso_sniff` (clock_gettime/gettimeofday high-frequency timing + mprotect VDSO page tampering)
+  - **Kernel keyring:** `keyring_sniff` (add_key/keyctl/request_key — credential storage in kernel keyring evading filesystem monitoring)
+  - **Namespace escape:** `namespace_sniff` (setns/unshare — container escape, namespace pivoting, single-namespace monitoring bypass)
+  - **Terminal injection:** `ioctl_sniff` (TIOCSTI keystroke injection, TIOCLINUX, TIOCSCTTY terminal steal — ioctl blind spot)
+  - **Mount manipulation:** `mount_sniff` (overlay/bind mounts over /etc, /usr, /bin + FUSE mount detection)
+  - **FUSE hijacking:** `fuse_sniff` (/dev/fuse open + fuse-type mount — file operations bypass kernel VFS)
+  - **Perf side-channels:** `perf_sniff` (perf_event_open — cache miss/branch misprediction hardware counter abuse)
+  - **BPF map covert channels:** `bpfmap_sniff` (MAP_CREATE/UPDATE/LOOKUP/DELETE — inter-process data sharing via BPF maps)
+  - **Dynamic linker injection:** `ldpreload_sniff` (LD_PRELOAD env injection + ld.so.preload/conf write detection)
+  - **Futex covert channels:** `futex_sniff` (WAIT/WAKE timing-based signaling between processes, busy-wait exploitation)
 - **`ebpf-attacks` skill** — kill chain methodology with 5 phases: situational awareness, credential harvesting, stealth operations, advanced evasion detection, cleanup. Includes MITRE ATT&CK mappings (T1014, T1040, T1055.008, T1055.012, T1056.001, T1068, T1553, T1556, T1562.001, T1562.004, T1620) and detection considerations
 - **Windows post-exploitation tool (winhook)** — 12 userland programs for the `internal-network` agent, executed via `winhook <program>` after gaining Administrator on Windows targets
   - **AV/EDR evasion:** `amsi_bypass` (patch AmsiScanBuffer in-memory), `etw_blind` (patch EtwEventWrite to blind EDR), `defender_exclude` (add Windows Defender exclusion paths)

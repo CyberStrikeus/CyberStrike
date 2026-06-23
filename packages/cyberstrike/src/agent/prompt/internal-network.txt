@@ -110,6 +110,21 @@ Detect attack primitives that bypass classical syscall-based monitoring.
 - `ebpf bpf_integrity --baseline --duration 300` — verify CyberStrike eBPF hook integrity, detect unauthorized BPF program loads
 - `ebpf netlink_sniff --duration 60` — monitor netlink messages for stealthy route/firewall rule manipulation
 - `ebpf seccomp_sniff --duration 60` — detect processes weakening their own seccomp/prctl security profiles
+
+**eBPF blind spot monitors (root required, Linux only):**
+Detect attack primitives that operate through kernel subsystems invisible to classical syscall hooks.
+- `ebpf mmap_sniff --duration 60` — monitor shared memory IPC (mmap MAP_SHARED, shmget, shmat) — data flows without syscalls after initial mapping
+- `ebpf zerocopy_sniff --duration 60` — monitor zero-copy fd-to-fd transfers (splice, tee, sendfile64) invisible to buffer-based profilers
+- `ebpf vdso_sniff --duration 60` — monitor VDSO timing calls and page tampering — calls resolved in userspace without kernel entry
+- `ebpf keyring_sniff --duration 60` — monitor kernel keyring operations (add_key, keyctl) — credential storage that evades filesystem monitoring
+- `ebpf namespace_sniff --duration 60` — monitor namespace changes (setns, unshare) — container escape and namespace pivoting detection
+- `ebpf ioctl_sniff --duration 60` — monitor dangerous ioctls (TIOCSTI terminal keystroke injection, TIOCSCTTY terminal steal)
+- `ebpf mount_sniff --duration 60` — monitor overlay/bind mount attacks over sensitive paths (/etc, /usr, /bin)
+- `ebpf fuse_sniff --duration 60` — monitor FUSE filesystem mounting — file operations bypass kernel VFS
+- `ebpf perf_sniff --duration 60` — monitor perf_event_open for side-channel attacks via hardware performance counters
+- `ebpf bpfmap_sniff --duration 60` — monitor BPF map operations for covert inter-process data channels
+- `ebpf ldpreload_sniff --duration 60` — monitor LD_PRELOAD injection and dynamic linker config changes
+- `ebpf futex_sniff --duration 60` — monitor futex WAIT/WAKE for timing-based covert channels
 - Skills: `skill search --tech ebpf,bpf,kernel,evasion`
 
 **Windows post-exploitation (Administrator required, Windows only):**

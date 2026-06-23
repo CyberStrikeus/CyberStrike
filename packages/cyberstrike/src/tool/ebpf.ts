@@ -92,10 +92,70 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
       "Monitor prctl and seccomp syscalls for security profile self-modification — detect processes weakening their own sandboxes, changing names for masquerading, or disabling privilege restrictions",
     args: "[--duration SECONDS] [--json-output]",
   },
+  mmap_sniff: {
+    description:
+      "Monitor shared memory creation via mmap MAP_SHARED, shmget, and shmat — detect covert IPC channels where data flows in memory without generating syscalls after initial mapping",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  zerocopy_sniff: {
+    description:
+      "Monitor zero-copy data transfers via splice, tee, and sendfile64 — detect fd-to-fd data movement invisible to userspace profilers and buffer-based monitoring",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  vdso_sniff: {
+    description:
+      "Monitor VDSO timing calls (clock_gettime, gettimeofday) and mprotect on high-address VDSO pages — detect timing side-channels and VDSO page tampering",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  keyring_sniff: {
+    description:
+      "Monitor kernel keyring operations (add_key, keyctl, request_key) — detect credential storage in kernel keyring to evade filesystem monitoring",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  namespace_sniff: {
+    description:
+      "Monitor namespace changes via setns and unshare — detect container escapes and namespace pivoting that makes processes invisible to single-namespace monitoring",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  ioctl_sniff: {
+    description:
+      "Monitor dangerous ioctl operations (TIOCSTI terminal keystroke injection, TIOCLINUX, TIOCSCTTY controlling terminal steal) — detect terminal manipulation attacks",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  mount_sniff: {
+    description:
+      "Monitor mount/umount operations for overlay mounts, bind mounts over sensitive paths (/etc, /usr, /bin), and FUSE filesystem manipulation used to hide changes",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  fuse_sniff: {
+    description:
+      "Monitor FUSE filesystem operations — detect /dev/fuse opens and fuse-type mounts where file operations bypass kernel VFS and run in attacker-controlled userspace code",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  perf_sniff: {
+    description:
+      "Monitor perf_event_open syscall — detect side-channel attacks abusing hardware performance counters (cache misses, branch mispredictions) for information leakage",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  bpfmap_sniff: {
+    description:
+      "Monitor BPF map operations (create, lookup, update, delete) — detect covert channels using BPF maps for inter-process data sharing and exfiltration",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  ldpreload_sniff: {
+    description:
+      "Monitor LD_PRELOAD environment variable injection and dynamic linker configuration changes (/etc/ld.so.preload, /etc/ld.so.conf) — detect library injection before process start",
+    args: "[--duration SECONDS] [--json-output]",
+  },
+  futex_sniff: {
+    description:
+      "Monitor futex WAIT/WAKE operations — detect timing-based covert channels using futex signaling between processes and busy-wait exploitation loops",
+    args: "[--duration SECONDS] [--json-output]",
+  },
 }
 
 export const EbpfTool = Tool.define("ebpf", {
-  description: `Execute an eBPF program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. Advanced evasion monitors (io_uring_sniff, memfd_exec, ptrace_sniff, crossmem_sniff, userfaultfd_sniff, bpf_integrity, netlink_sniff, seccomp_sniff) detect attack primitives that bypass classical syscall hooks. ALWAYS run cleanup before leaving a target.`,
+  description: `Execute an eBPF program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. Advanced evasion monitors detect attack primitives that bypass classical syscall hooks — including io_uring bypass, fileless execution, process injection, shared memory IPC, zero-copy transfers, VDSO tampering, kernel keyring abuse, namespace escape, terminal injection, mount manipulation, FUSE hijacking, perf side-channels, BPF map covert channels, LD_PRELOAD injection, and futex timing channels. ALWAYS run cleanup before leaving a target.`,
   parameters: z.object({
     program: z.enum(Object.keys(AVAILABLE_PROGRAMS) as [string, ...string[]]).describe(
       "eBPF program to execute. Options: " +

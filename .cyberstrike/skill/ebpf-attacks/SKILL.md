@@ -90,6 +90,18 @@ Detect attack primitives that bypass classical syscall-based monitoring. These m
 | BPF integrity | `ebpf bpf_integrity --baseline --duration 300` | Verify CyberStrike hook integrity, detect unauthorized BPF program loads |
 | Netlink manipulation | `ebpf netlink_sniff --duration 60` | Detect stealthy route/firewall rule manipulation via netlink |
 | Sandbox weakening | `ebpf seccomp_sniff --duration 60` | Detect processes disabling their own seccomp/prctl security profiles |
+| Shared memory IPC | `ebpf mmap_sniff --duration 60` | Detect covert IPC via mmap MAP_SHARED, shmget, shmat — data flows without syscalls |
+| Zero-copy transfers | `ebpf zerocopy_sniff --duration 60` | Detect splice/tee/sendfile64 fd-to-fd transfers invisible to buffer profilers |
+| VDSO tampering | `ebpf vdso_sniff --duration 60` | Detect timing side-channels and VDSO page modification attacks |
+| Kernel keyring abuse | `ebpf keyring_sniff --duration 60` | Detect credential storage in kernel keyring (add_key/keyctl) |
+| Namespace escape | `ebpf namespace_sniff --duration 60` | Detect container escape via setns/unshare namespace pivoting |
+| Terminal injection | `ebpf ioctl_sniff --duration 60` | Detect TIOCSTI keystroke injection and terminal manipulation |
+| Mount manipulation | `ebpf mount_sniff --duration 60` | Detect overlay/bind mounts hiding changes on sensitive paths |
+| FUSE hijacking | `ebpf fuse_sniff --duration 60` | Detect userspace filesystem mounting that bypasses kernel VFS |
+| Perf side-channel | `ebpf perf_sniff --duration 60` | Detect perf_event_open side-channel attacks via HW counters |
+| BPF map covert channel | `ebpf bpfmap_sniff --duration 60` | Detect covert data sharing via BPF map create/update operations |
+| LD_PRELOAD injection | `ebpf ldpreload_sniff --duration 60` | Detect library injection via LD_PRELOAD env and ld.so config |
+| Futex covert channel | `ebpf futex_sniff --duration 60` | Detect timing-based covert channels via futex WAIT/WAKE |
 
 **io_uring sniffing** monitors SQE submissions via `io_uring_submit_sqe` kprobe. Operations like CONNECT, READ, WRITE, OPENAT through io_uring bypass classical syscall hooks entirely — a reverse shell built on io_uring is invisible to execve/connect tracepoints.
 
@@ -158,3 +170,15 @@ eBPF programs are detectable by:
 | bpf_integrity | tracepoint | `sys_enter_bpf` + bpftool | T1553 — Subvert Trust Controls |
 | netlink_sniff | kprobe | `netlink_sendmsg` | T1562.004 — Disable or Modify System Firewall |
 | seccomp_sniff | tracepoint | `sys_enter_prctl` + `sys_enter_seccomp` | T1562.001 — Disable or Modify Tools |
+| mmap_sniff | tracepoint | `sys_enter_mmap` + `sys_enter_shmget` + `sys_enter_shmat` | T1055.009 — Proc Memory (shared memory IPC) |
+| zerocopy_sniff | tracepoint | `sys_enter_splice` + `sys_enter_tee` + `sys_enter_sendfile64` | T1041 — Exfiltration Over C2 Channel |
+| vdso_sniff | tracepoint | `sys_enter_clock_gettime` + `sys_enter_mprotect` | T1497.003 — Time Based Evasion |
+| keyring_sniff | tracepoint | `sys_enter_add_key` + `sys_enter_keyctl` + `sys_enter_request_key` | T1003 — OS Credential Dumping |
+| namespace_sniff | tracepoint | `sys_enter_setns` + `sys_enter_unshare` | T1611 — Escape to Host |
+| ioctl_sniff | tracepoint | `sys_enter_ioctl` (TIOCSTI/TIOCLINUX/TIOCSCTTY) | T1056.001 — Keylogging |
+| mount_sniff | tracepoint | `sys_enter_mount` + `sys_enter_umount` | T1006 — Direct Volume Access |
+| fuse_sniff | tracepoint | `sys_enter_openat` (/dev/fuse) + `sys_enter_mount` (fuse) | T1014 — Rootkit |
+| perf_sniff | tracepoint | `sys_enter_perf_event_open` | T1497.003 — Time Based Evasion |
+| bpfmap_sniff | tracepoint | `sys_enter_bpf` (MAP_CREATE/UPDATE/LOOKUP/DELETE) | T1071 — Application Layer Protocol |
+| ldpreload_sniff | tracepoint | `sys_enter_execve` (env scan) + `sys_enter_openat` (ld.so) | T1574.006 — Dynamic Linker Hijacking |
+| futex_sniff | tracepoint | `sys_enter_futex` (WAIT/WAKE/BITSET/PI) | T1029 — Scheduled Transfer |
