@@ -155,7 +155,7 @@ const AVAILABLE_PROGRAMS: Record<string, { description: string; args: string }> 
 }
 
 export const EbpfTool = Tool.define("ebpf", {
-  description: `Execute an eBPF program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. Advanced evasion monitors detect attack primitives that bypass classical syscall hooks — including io_uring bypass, fileless execution, process injection, shared memory IPC, zero-copy transfers, VDSO tampering, kernel keyring abuse, namespace escape, terminal injection, mount manipulation, FUSE hijacking, perf side-channels, BPF map covert channels, LD_PRELOAD injection, and futex timing channels. ALWAYS run cleanup before leaving a target.`,
+  description: `Execute an eBPF program for kernel-level operations on Linux. Requires root privileges on the target. Available programs: ${Object.keys(AVAILABLE_PROGRAMS).join(", ")}. These tools operate below userland monitoring and leave minimal forensic artifacts. Includes 20 blind spot monitors that detect attack primitives bypassing classical syscall hooks — io_uring bypass, fileless execution, process injection, shared memory IPC, zero-copy transfers, VDSO tampering, kernel keyring abuse, namespace escape, terminal injection, mount manipulation, FUSE hijacking, perf side-channels, BPF map covert channels, LD_PRELOAD injection, and futex timing channels. ALWAYS run cleanup before leaving a target.`,
   parameters: z.object({
     program: z.enum(Object.keys(AVAILABLE_PROGRAMS) as [string, ...string[]]).describe(
       "eBPF program to execute. Options: " +
