@@ -507,15 +507,26 @@ export namespace SessionPrompt {
               },
             },
           } satisfies MessageV2.ToolPart)
-          // Record successful mission for agent performance tracking
+          // Record mission for agent performance tracking. Gate success on the
+          // subagent's ACTUAL outcome (set by the task tool) — an aborted / errored
+          // / step-capped run returns a result but did NOT complete, so it must not
+          // count as success, and its (partial) output must not inflate findings.
           try {
+            const outcome = (result.metadata as { outcome?: string } | undefined)?.outcome ?? "clean"
+            const clean = outcome === "clean"
             const output = result.output ?? ""
-            const findings = (
-              output.match(/report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi) ?? []
-            ).length
-            const vrtUpdates = (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
+            const findings = clean
+              ? (
+                  output.match(
+                    /report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi,
+                  ) ?? []
+                ).length
+              : 0
+            const vrtUpdates = clean
+              ? (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
+              : 0
             AgentPerformance.recordMission(Session.root(sessionID), task.agent, {
-              success: true,
+              success: clean,
               findingsReported: findings,
               coverageContributed: vrtUpdates,
             })
@@ -615,6 +626,9 @@ export namespace SessionPrompt {
           mode: agent.name,
           agent: agent.name,
           variant: lastUser.variant,
+          // Mark the forced wrap-up turn so callers (task tool) can tell a
+          // step-capped run apart from a genuinely clean finish.
+          ...(isLastStep ? { stepCapped: true } : {}),
           path: {
             cwd: Instance.directory,
             root: Instance.worktree,

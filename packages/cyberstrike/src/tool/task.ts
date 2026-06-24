@@ -77,7 +77,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             output: dispatchOffLaneMessage(violation.cls, violation.inferred),
             // Match the success return's metadata shape so the tool's inferred
             // Metadata type stays consistent (no subtask was created here).
-            metadata: { sessionId: "", model: { providerID: "", modelID: "" } },
+            metadata: { sessionId: "", model: { providerID: "", modelID: "" }, outcome: "clean" as const },
           }
         }
 
@@ -283,7 +283,32 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
 
+      // Classify the subagent's ACTUAL outcome from its final assistant message so
+      // the parent's recording gate (session/prompt.ts) doesn't count an aborted /
+      // errored / step-capped run as a successful mission. The child loop swallows
+      // aborts/errors into info.error and still returns a result, and a step-capped
+      // run looks like a clean finish:"stop" — both previously recorded success:true.
+      const childInfo = result.info
+      const childError = childInfo.role === "assistant" ? childInfo.error : undefined
+      const outcome: "clean" | "aborted" | "errored" | "capped" = childError
+        ? MessageV2.AbortedError.isInstance(childError)
+          ? "aborted"
+          : "errored"
+        : childInfo.role === "assistant" && childInfo.stepCapped
+          ? "capped"
+          : "clean"
+
+      const statusBanner =
+        outcome === "clean"
+          ? null
+          : outcome === "aborted"
+            ? "INCOMPLETE: this subagent was ABORTED before finishing. Its results are partial and were NOT credited as tested."
+            : outcome === "errored"
+              ? `INCOMPLETE: this subagent ERRORED before finishing (${(childError as { name?: string })?.name ?? "error"}). Its results are partial and were NOT credited as tested.`
+              : "INCOMPLETE: this subagent hit its step limit and was forced to wrap up before finishing. Its results may be partial and were NOT credited as tested."
+
       const output = [
+        ...(statusBanner ? [`<task_status>${statusBanner}</task_status>`, ""] : []),
         `task_id: ${session.id} (for resuming to continue this task if needed)`,
         "",
         "<task_result>",
@@ -296,6 +321,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         metadata: {
           sessionId: session.id,
           model,
+          outcome,
         },
         output,
       }
