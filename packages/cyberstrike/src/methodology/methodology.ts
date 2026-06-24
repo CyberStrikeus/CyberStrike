@@ -379,7 +379,7 @@ export namespace Methodology {
       infrastructure:
         "Test infrastructure: cloud misconfigurations, DNS zone transfer, open services, default installations. Log with tag 'infrastructure'.",
       reporting:
-        "Validate all findings, ensure evidence quality meets validation gates, check OWASP coverage, and generate final report. Use methodology_status to review coverage.",
+        "Call `generate_report` to compile all session data into a structured Markdown report. Review the output, then write three AI sections: Executive Summary (overall risk posture), Risk Assessment (likelihood × impact matrix), and Remediation Priorities (actionable steps). Replace the `<!-- AI: ... -->` placeholders and save to `.cyberstrike/reports/report-<timestamp>.md` via the write tool. Ensure all blocking violations are resolved before finalizing.",
     }
     return directives[phaseId] || ""
   }

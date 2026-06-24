@@ -47,6 +47,7 @@ import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
+import { GenerateReportTool } from "./generate-report"
 import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
@@ -174,6 +175,7 @@ export namespace ToolRegistry {
       EnsureToolsTool,
       MethodologyStatusTool,
       AttackScriptTool,
+      GenerateReportTool,
       EbpfTool,
       WinhookTool,
       MachookTool,
