@@ -13,9 +13,8 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
-import { MethodologyContext } from "@/methodology/context"
 import { Truncate } from "./truncation"
-import { dispatchScopeViolation, dispatchOffLaneMessage, testerClass } from "./vuln-scope"
+import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 
 // Per-field byte cap for raw request/response prepended into a subagent prompt.
 // Raised 16KB→48KB: validation showed weak models (o4-mini) do NOT follow the
@@ -257,17 +256,12 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }
 
-      // Inject methodology context so sub-agents have intel, work queue, and chain
-      // data. Scope it to the dispatched tester's lane (Phase 2.3) — testers get
-      // only their own work; the orchestrator/non-tester agents get the full view.
-      const methodologyCtx = MethodologyContext.generate(
-        Session.root(ctx.sessionID),
-        testerClass(params.subagent_type),
-      )
-      if (methodologyCtx) {
-        prompt = "## Methodology Context\n" + methodologyCtx + "\n\n" + prompt
-      }
-
+      // NOTE: methodology context is NOT injected here. The subagent's own run loop
+      // (session/prompt.ts) pushes MethodologyContext.generate(root, testerClass(agent))
+      // into the system prompt on EVERY turn (lane-scoped identically), and that prefix
+      // is prompt-cached. Prepending it here too only duplicated it into turn-1's user
+      // message. The system-prompt path covers all subagent sessions, so this is the
+      // single source.
       const promptParts = await SessionPrompt.resolvePromptParts(prompt)
 
       const result = await SessionPrompt.prompt({
