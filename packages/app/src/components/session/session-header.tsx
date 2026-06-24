@@ -565,9 +565,7 @@ export function SessionHeader() {
                         const baseUrl = globalSDK.url
                         if (!baseUrl) return
                         try {
-                          const res = await fetch(
-                            `${baseUrl}/methodology/session/${session.id}/report/download`,
-                          )
+                          const res = await fetch(`${baseUrl}/methodology/session/${session.id}/report/download`)
                           if (!res.ok) {
                             showToast({
                               variant: "error",
@@ -580,10 +578,8 @@ export function SessionHeader() {
                           const a = document.createElement("a")
                           a.href = url
                           a.download =
-                            res.headers
-                              .get("content-disposition")
-                              ?.split("filename=")[1]
-                              ?.replace(/"/g, "") ?? "report.md"
+                            res.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") ??
+                            "report.md"
                           a.click()
                           URL.revokeObjectURL(url)
                           showToast({

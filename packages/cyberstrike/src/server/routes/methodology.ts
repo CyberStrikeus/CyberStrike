@@ -402,9 +402,7 @@ export const MethodologyRoutes = lazy(() =>
         const reportsDir = path.join(Instance.worktree, ".cyberstrike", "reports")
 
         const glob = new Bun.Glob("report-*.md")
-        const files = [...glob.scanSync({ cwd: reportsDir, absolute: true })]
-          .sort()
-          .reverse()
+        const files = [...glob.scanSync({ cwd: reportsDir, absolute: true })].sort().reverse()
 
         if (files.length === 0) return c.json({ error: "No reports found" }, 404)
 

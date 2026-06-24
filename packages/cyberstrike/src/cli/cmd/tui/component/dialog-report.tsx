@@ -81,9 +81,7 @@ export function DialogReport(props: { sessionID: string; onGenerate?: () => void
               </text>
 
               <box flexDirection="column">
-                <text fg={theme.text}>
-                  Findings: {findings.length} total
-                </text>
+                <text fg={theme.text}>Findings: {findings.length} total</text>
                 <text fg={theme.textMuted}>
                   {"  "}
                   <Show when={crit > 0}>
@@ -95,12 +93,8 @@ export function DialogReport(props: { sessionID: string; onGenerate?: () => void
                   <Show when={med > 0}>
                     <span style={{ fg: theme.warning }}>{med} Medium</span>{" "}
                   </Show>
-                  <Show when={low > 0}>
-                    {low} Low{" "}
-                  </Show>
-                  <Show when={info > 0}>
-                    {info} Info
-                  </Show>
+                  <Show when={low > 0}>{low} Low </Show>
+                  <Show when={info > 0}>{info} Info</Show>
                 </text>
               </box>
 
@@ -123,16 +117,20 @@ export function DialogReport(props: { sessionID: string; onGenerate?: () => void
                   Validation:{" "}
                   <Show when={report.validation?.passed} fallback={<span style={{ fg: theme.error }}>FAILED</span>}>
                     <span style={{ fg: theme.success }}>PASSED</span>
-                  </Show>
-                  {" "}({report.validation?.blockingCount ?? 0} blocking, {report.validation?.warningCount ?? 0} warnings)
+                  </Show>{" "}
+                  ({report.validation?.blockingCount ?? 0} blocking, {report.validation?.warningCount ?? 0} warnings)
                 </text>
-                <text fg={theme.text}>
-                  Requests: {report.requests?.total ?? 0} total
-                </text>
+                <text fg={theme.text}>Requests: {report.requests?.total ?? 0} total</text>
               </box>
 
               <box paddingTop={1}>
-                <text fg={theme.primary} onMouseUp={() => { props.onGenerate?.(); dialog.clear() }}>
+                <text
+                  fg={theme.primary}
+                  onMouseUp={() => {
+                    props.onGenerate?.()
+                    dialog.clear()
+                  }}
+                >
                   Press Enter to generate report via agent
                 </text>
               </box>
@@ -142,7 +140,7 @@ export function DialogReport(props: { sessionID: string; onGenerate?: () => void
       </Show>
 
       <box paddingTop={1}>
-        <text fg={theme.textMuted}>Enter Generate  Esc Close</text>
+        <text fg={theme.textMuted}>Enter Generate Esc Close</text>
       </box>
     </box>
   )

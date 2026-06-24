@@ -585,7 +585,8 @@ export function Session() {
             sessionID={route.sessionID}
             onGenerate={() => {
               prompt.set({
-                input: "Generate final report with generate_report tool. Fill all AI sections and save to .cyberstrike/reports/",
+                input:
+                  "Generate final report with generate_report tool. Fill all AI sections and save to .cyberstrike/reports/",
                 parts: [],
               })
             }}
