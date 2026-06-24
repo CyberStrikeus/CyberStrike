@@ -79,6 +79,10 @@ import type {
   MethodologyIntelResponses,
   MethodologyPerformanceErrors,
   MethodologyPerformanceResponses,
+  MethodologyReportCompileErrors,
+  MethodologyReportCompileResponses,
+  MethodologyReportDownloadErrors,
+  MethodologyReportDownloadResponses,
   MethodologyStateErrors,
   MethodologyStateResponses,
   MethodologyViolationsErrors,
@@ -4175,6 +4179,74 @@ export class Methodology extends HeyApiClient {
       ThrowOnError
     >({
       url: "/methodology/session/{sessionID}/intel/coverage/assets",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Compile report data
+   *
+   * Compiles all session data into a structured report object for UI rendering.
+   */
+  public reportCompile<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyReportCompileResponses,
+      MethodologyReportCompileErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/report/compile",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Download latest report
+   *
+   * Returns the most recent generated Markdown report for a session.
+   */
+  public reportDownload<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyReportDownloadResponses,
+      MethodologyReportDownloadErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/report/download",
       ...options,
       ...params,
     })
