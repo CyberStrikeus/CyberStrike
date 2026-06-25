@@ -6,6 +6,7 @@
 
 import { createHash } from "crypto"
 import type { Method, ParsedRequest } from "./types"
+import { extractOperation } from "./protocol"
 
 const DEFAULT_PORT_FOR: Record<"http" | "https", number> = { http: 80, https: 443 }
 
@@ -40,6 +41,15 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
   const body = extractBody(lines)
   const bodyHash = body ? hashBody(body, bodyContentType) : undefined
 
+  // Body/header-dispatched protocols (GraphQL, JSON-RPC): derive a per-operation
+  // identity so each operation is its own dedup unit. Undefined ⇒ plain REST.
+  const op = extractOperation({
+    method,
+    bodyContentType,
+    body,
+    query: targetUrl.search.replace(/^\?/, ""),
+  })
+
   return {
     method,
     scheme,
@@ -54,6 +64,9 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
     queryKeyHash,
     bodyContentType,
     bodyHash,
+    protocol: op?.protocol,
+    operation: op?.operation,
+    opKeyHash: op?.opKeyHash,
   }
 }
 

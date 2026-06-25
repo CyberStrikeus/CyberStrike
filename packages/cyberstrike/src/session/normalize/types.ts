@@ -39,6 +39,13 @@ export interface ParsedRequest {
   queryKeyHash: string | undefined // sha256 hash of sorted query keys
   bodyContentType: string | undefined
   bodyHash: string | undefined // sha256 hash of normalized body (json keys sorted)
+  // Protocol/operation enrichment for body-dispatched APIs (GraphQL, JSON-RPC).
+  // Undefined for plain REST. When set, opKeyHash is the per-operation dedup key
+  // (values stripped) that REPLACES bodyHash in dedup so same-operation calls
+  // collapse while distinct operations stay distinct.
+  protocol: string | undefined // "graphql" | "jsonrpc"
+  operation: string | undefined // human label, e.g. "mutation:deleteUser"
+  opKeyHash: string | undefined
 }
 
 // Per-segment Tier 1 classification.

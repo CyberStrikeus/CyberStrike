@@ -149,6 +149,12 @@ export const RequestTable = sqliteTable(
     canonical_path: text(),
     template_id: text(), // soft pointer to endpoint_template.id
     norm_source: text(), // "tier1" | "tier2" | "tier3" | "failed"
+    // Protocol/operation enrichment (nullable — REST rows leave these null).
+    // op_key_hash is the per-operation dedup key (values stripped) used in place
+    // of body_hash for GraphQL/JSON-RPC so each operation is its own unit.
+    protocol: text(), // "graphql" | "jsonrpc"
+    operation: text(), // human label, e.g. "mutation:deleteUser"
+    op_key_hash: text(),
     // Response fields
     response_status: integer(),
     response_headers: text({ mode: "json" }).$type<Record<string, string>>(),

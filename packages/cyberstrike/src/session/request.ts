@@ -38,6 +38,10 @@ export namespace Request {
       canonical_path: z.string().optional(),
       template_id: z.string().optional(),
       norm_source: NormSource.optional(),
+      // Protocol/operation enrichment (optional — REST rows leave these unset).
+      protocol: z.string().optional(),
+      operation: z.string().optional(),
+      op_key_hash: z.string().optional(),
       // Response fields
       response_status: z.number().optional(),
       response_headers: z.record(z.string(), z.string()).optional(),
@@ -86,6 +90,9 @@ export namespace Request {
     canonicalPath?: string
     templateID?: string
     normSource?: z.infer<typeof NormSource>
+    protocol?: string
+    operation?: string
+    opKeyHash?: string
   }) {
     const id = Identifier.ascending("request")
     const now = Date.now()
@@ -118,6 +125,9 @@ export namespace Request {
           canonical_path: input.canonicalPath ?? null,
           template_id: input.templateID ?? null,
           norm_source: input.normSource ?? null,
+          protocol: input.protocol ?? null,
+          operation: input.operation ?? null,
+          op_key_hash: input.opKeyHash ?? null,
           response_status: processed?.status ?? null,
           response_headers: processed?.headers ?? null,
           response_content_type: processed?.contentType ?? null,
@@ -153,6 +163,9 @@ export namespace Request {
       canonical_path: input.canonicalPath,
       template_id: input.templateID,
       norm_source: input.normSource,
+      protocol: input.protocol,
+      operation: input.operation,
+      op_key_hash: input.opKeyHash,
       response_status: processed?.status,
       response_headers: processed?.headers,
       response_content_type: processed?.contentType,
@@ -221,13 +234,21 @@ export namespace Request {
     origin?: string
     bodyHash?: string
     queryHash?: string
+    opKeyHash?: string
   }): boolean {
-    const matches = (rows: { body_hash: string | null; query_hash: string | null }[]) =>
-      rows.some(
-        (r) =>
-          (input.bodyHash ? r.body_hash === input.bodyHash : r.body_hash == null) &&
-          (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
-      )
+    // For body/header-dispatched protocols (GraphQL/JSON-RPC) the operation key
+    // REPLACES body_hash/query_hash as the discriminator — body_hash carries
+    // values, so same-operation/different-values calls would never collapse if we
+    // also AND'd it in. REST rows have op_key_hash null and use the body/query
+    // hashes exactly as before.
+    const matches = (rows: { body_hash: string | null; query_hash: string | null; op_key_hash: string | null }[]) =>
+      input.opKeyHash != null
+        ? rows.some((r) => r.op_key_hash === input.opKeyHash)
+        : rows.some(
+            (r) =>
+              (input.bodyHash ? r.body_hash === input.bodyHash : r.body_hash == null) &&
+              (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
+          )
 
     // Stage 1: new identity — origin scopes the template (api vs admin
     // subdomain stay separate; the template alone would collide them).
@@ -235,7 +256,11 @@ export namespace Request {
     if (origin) {
       const newKeyRows = Database.use((db) =>
         db
-          .select({ body_hash: RequestTable.body_hash, query_hash: RequestTable.query_hash })
+          .select({
+            body_hash: RequestTable.body_hash,
+            query_hash: RequestTable.query_hash,
+            op_key_hash: RequestTable.op_key_hash,
+          })
           .from(RequestTable)
           .where(
             and(
@@ -253,7 +278,11 @@ export namespace Request {
     // Stage 2: legacy fallback. Only matches rows that pre-date origin.
     const legacyRows = Database.use((db) =>
       db
-        .select({ body_hash: RequestTable.body_hash, query_hash: RequestTable.query_hash })
+        .select({
+          body_hash: RequestTable.body_hash,
+          query_hash: RequestTable.query_hash,
+          op_key_hash: RequestTable.op_key_hash,
+        })
         .from(RequestTable)
         .where(
           and(

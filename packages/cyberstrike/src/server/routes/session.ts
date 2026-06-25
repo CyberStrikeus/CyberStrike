@@ -171,8 +171,19 @@ function buildPromptWithCredentialContext(
   credentialID?: string,
   processedResponse?: string,
   accessContext?: AccessContextInput,
+  operationContext?: { protocol: string; operation: string },
 ): string {
   const lines: string[] = []
+
+  // Protocol/operation banner — this request is a body-dispatched operation
+  // (GraphQL/JSON-RPC), not a plain REST endpoint. Route protocol-aware tests
+  // (e.g. GraphQL introspection/batching/field-authz; JSON-RPC method enum).
+  if (operationContext) {
+    lines.push(`## Operation`)
+    lines.push(`- protocol: ${operationContext.protocol}`)
+    lines.push(`- operation: ${operationContext.operation}`)
+    lines.push("")
+  }
 
   lines.push("## Credential Context")
 
@@ -1087,6 +1098,7 @@ export const SessionRoutes = lazy(() =>
             origin: normalized.origin,
             bodyHash: normalized.bodyHash,
             queryHash: normalized.queryKeyHash,
+            opKeyHash: normalized.opKeyHash,
           })
 
           if (isDuplicate) {
@@ -1123,6 +1135,9 @@ export const SessionRoutes = lazy(() =>
             canonicalPath: normalized.canonicalPath,
             templateID: normalized.templateId,
             normSource: normalized.normSource,
+            protocol: normalized.protocol,
+            operation: normalized.operation,
+            opKeyHash: normalized.opKeyHash,
           })
 
           // Build prompt with credential context, response, and access context
@@ -1137,6 +1152,9 @@ export const SessionRoutes = lazy(() =>
               pageVisitedBy: body.page_visited_by,
               uiContext: body.ui_context as Record<string, unknown> | undefined,
             },
+            normalized.protocol && normalized.operation
+              ? { protocol: normalized.protocol, operation: normalized.operation }
+              : undefined,
           )
 
           if (ingestDryRun) {

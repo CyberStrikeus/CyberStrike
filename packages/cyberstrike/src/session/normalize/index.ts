@@ -43,6 +43,9 @@ export namespace Normalize {
     site: string
     queryKeyHash: string | undefined
     bodyHash: string | undefined
+    protocol: string | undefined
+    operation: string | undefined
+    opKeyHash: string | undefined
     templateId: string | undefined
     normSource: NormSource
     durationMs: number
@@ -82,6 +85,9 @@ export namespace Normalize {
       site: result.parsed.site,
       queryKeyHash: result.parsed.queryKeyHash,
       bodyHash: result.parsed.bodyHash,
+      protocol: result.parsed.protocol,
+      operation: result.parsed.operation,
+      opKeyHash: result.parsed.opKeyHash,
       templateId: result.templateId,
       normSource: result.normSource,
       durationMs: result.totalDurationMs,
