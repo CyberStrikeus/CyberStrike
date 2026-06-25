@@ -718,13 +718,41 @@ const functionActionColor = (action: string) => {
   return "text-text-weak"
 }
 
+type ObsTree = {
+  params: { name: string; byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[] }[]
+}
+
 function WebContextPanelList() {
   const sync = useSync()
+  const sdk = useSDK()
   const language = useLanguage()
   const params = useParams()
   const [section, setSection] = createSignal<WebSection>("endpoints")
+  // Per-endpoint expand state (by request id) + fetched observed-value trees (by key_hash).
+  const [expandedEp, setExpandedEp] = createSignal<Record<string, boolean>>({})
+  const [obsTree, setObsTree] = createSignal<Record<string, ObsTree>>({})
 
   const sessionID = () => params.id ?? ""
+  const credLabel = (id: string | null) =>
+    id == null
+      ? "anon"
+      : ((sync.data.web_credential[sessionID()] ?? []) as { id: string; label: string }[]).find((c) => c.id === id)
+          ?.label ?? id.slice(0, 6)
+  const toggleEndpoint = async (v: Record<string, unknown>) => {
+    const id = v.id as string
+    const open = !expandedEp()[id]
+    setExpandedEp({ ...expandedEp(), [id]: open })
+    // Fetch by request id (always present; the SDK can strip key_hash from the list).
+    if (open && !obsTree()[id]) {
+      try {
+        const r = await sdk.fetch(`/session/${sessionID()}/observations?id=${encodeURIComponent(id)}`)
+        const tree = (await r.json()) as ObsTree
+        if (tree && Array.isArray(tree.params)) setObsTree({ ...obsTree(), [id]: tree })
+      } catch {
+        /* ignore — expanded row simply shows nothing */
+      }
+    }
+  }
 
   // Fetch web context for active session
   createEffect(() => {
@@ -799,10 +827,44 @@ function WebContextPanelList() {
           return (
             <div class="flex items-start gap-2 px-2 py-1 rounded">
               <Show when={section() === "endpoints"}>
-                <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${endpointStatusColor(v.status as string)}`} />
-                <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-accent shrink-0">{v.method as string}</span>
-                  <span class="text-12-regular truncate">{v.normalized_path as string}</span>
+                <div class="flex flex-col w-full gap-0.5">
+                  <div class="flex items-center gap-1.5 cursor-pointer" onClick={() => toggleEndpoint(v)}>
+                    <span class="text-11-regular text-text-muted shrink-0">
+                      {expandedEp()[v.id as string] ? "▾" : "▸"}
+                    </span>
+                    <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${endpointStatusColor(v.status as string)}`} />
+                    <span class="text-12-medium text-text-accent shrink-0">{v.method as string}</span>
+                    <span class="text-12-regular truncate">{v.normalized_path as string}</span>
+                    <Show when={v.operation as string | undefined}>
+                      <span class="text-12-regular text-text-muted shrink-0">· {v.operation as string}</span>
+                    </Show>
+                  </div>
+                  <Show when={expandedEp()[v.id as string]}>
+                    <div class="flex flex-col gap-0.5 pl-5">
+                      <For each={obsTree()[v.id as string]?.params ?? []}>
+                        {(p) => (
+                          <div class="flex flex-col">
+                            <span class="text-11-regular text-text-muted">{p.name}</span>
+                            <For each={p.byCredential}>
+                              {(bc) => (
+                                <div class="flex gap-1.5 pl-3">
+                                  <span class="text-11-medium text-text-accent shrink-0">
+                                    {credLabel(bc.credentialID)}
+                                  </span>
+                                  <span class="text-11-regular truncate">
+                                    → {bc.redacted ? "[redacted]" : bc.values.join(", ")}
+                                  </span>
+                                </div>
+                              )}
+                            </For>
+                          </div>
+                        )}
+                      </For>
+                      <Show when={obsTree()[v.id as string] && (obsTree()[v.id as string]?.params ?? []).length === 0}>
+                        <span class="text-11-regular text-text-weak pl-3">(no observed values)</span>
+                      </Show>
+                    </div>
+                  </Show>
                 </div>
               </Show>
               <Show when={section() === "roles"}>

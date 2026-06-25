@@ -6,7 +6,7 @@
 
 import { createHash } from "crypto"
 import type { Method, ParsedRequest } from "./types"
-import { extractOperation } from "./protocol"
+import { extractOperation, bodyKeyShapeHash } from "./protocol"
 
 const DEFAULT_PORT_FOR: Record<"http" | "https", number> = { http: 80, https: 443 }
 
@@ -40,6 +40,10 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
   const bodyContentType = findHeaderValue(lines, "content-type")?.split(";")[0]?.trim().toLowerCase()
   const body = extractBody(lines)
   const bodyHash = body ? hashBody(body, bodyContentType) : undefined
+  // Faz 1: structural key-shape of a JSON body (values stripped) — the REST dedup
+  // discriminator, so same-shape/different-values mutations collapse. undefined
+  // for non-JSON, where the value-bearing bodyHash remains the fallback.
+  const bodyKeyHash = bodyKeyShapeHash(body, bodyContentType)
 
   // Body/header-dispatched protocols (GraphQL, JSON-RPC): derive a per-operation
   // identity so each operation is its own dedup unit. Undefined ⇒ plain REST.
@@ -64,9 +68,11 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
     queryKeyHash,
     bodyContentType,
     bodyHash,
+    bodyKeyHash,
     protocol: op?.protocol,
     operation: op?.operation,
     opKeyHash: op?.opKeyHash,
+    body,
   }
 }
 

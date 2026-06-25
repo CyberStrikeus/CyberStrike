@@ -42,6 +42,8 @@ export namespace Request {
       protocol: z.string().optional(),
       operation: z.string().optional(),
       op_key_hash: z.string().optional(),
+      // Unified structural identity (Faz 0). Explicit dedup key; nullable on legacy rows.
+      key_hash: z.string().optional(),
       // Response fields
       response_status: z.number().optional(),
       response_headers: z.record(z.string(), z.string()).optional(),
@@ -93,15 +95,23 @@ export namespace Request {
     protocol?: string
     operation?: string
     opKeyHash?: string
-  }) {
+    keyHash?: string
+  }): Info | undefined {
     const id = Identifier.ascending("request")
     const now = Date.now()
 
     // Process response if provided
     const processed = input.response ? processResponse(input.response) : undefined
 
-    Database.use((db) => {
-      db.insert(RequestTable)
+    // Atomic dedup guard (Faz 0): one row per (session, key_hash). If a concurrent
+    // ingest already inserted this key_hash, ON CONFLICT DO NOTHING drops the second
+    // write and `returning` comes back empty — we report the race-duplicate to the
+    // caller (returns undefined) so it skips the redundant LLM enqueue. key_hash NULL
+    // (legacy / non-HTTP) never conflicts (NULLs are distinct), so behavior is
+    // unchanged for those rows.
+    const inserted = Database.use((db) =>
+      db
+        .insert(RequestTable)
         .values({
           id,
           session_id: input.sessionID,
@@ -128,6 +138,7 @@ export namespace Request {
           protocol: input.protocol ?? null,
           operation: input.operation ?? null,
           op_key_hash: input.opKeyHash ?? null,
+          key_hash: input.keyHash ?? null,
           response_status: processed?.status ?? null,
           response_headers: processed?.headers ?? null,
           response_content_type: processed?.contentType ?? null,
@@ -136,8 +147,12 @@ export namespace Request {
           time_created: now,
           time_updated: now,
         })
-        .run()
-    })
+        .onConflictDoNothing({ target: [RequestTable.session_id, RequestTable.key_hash] })
+        .returning({ id: RequestTable.id })
+        .all(),
+    )
+    // Race-duplicate: a concurrent ingest already owns this key_hash → caller skips.
+    if (inserted.length === 0) return undefined
     const list = get(input.sessionID)
     Bus.publish(Event.Updated, { sessionID: input.sessionID, requests: list })
     return {
@@ -166,6 +181,7 @@ export namespace Request {
       protocol: input.protocol,
       operation: input.operation,
       op_key_hash: input.opKeyHash,
+      key_hash: input.keyHash,
       response_status: processed?.status,
       response_headers: processed?.headers,
       response_content_type: processed?.contentType,
@@ -202,6 +218,12 @@ export namespace Request {
       canonical_path: row.canonical_path ?? undefined,
       template_id: row.template_id ?? undefined,
       norm_source: (row.norm_source as Info["norm_source"]) ?? undefined,
+      // Protocol/operation surfaced so the UI can label GraphQL/RPC endpoints
+      // (multiple operations share one /graphql path; the operation distinguishes them).
+      protocol: row.protocol ?? undefined,
+      operation: row.operation ?? undefined,
+      op_key_hash: row.op_key_hash ?? undefined,
+      key_hash: row.key_hash ?? undefined,
       response_status: row.response_status ?? undefined,
       response_headers: (row.response_headers as Record<string, string>) ?? undefined,
       response_content_type: row.response_content_type ?? undefined,
@@ -235,7 +257,25 @@ export namespace Request {
     bodyHash?: string
     queryHash?: string
     opKeyHash?: string
+    keyHash?: string
   }): boolean {
+    // Primary (Faz 1): key_hash is the unified structural identity. One indexed
+    // lookup collapses same-shape requests — including REST mutations whose values
+    // differ but whose body key-shape matches. The value-bearing stages below
+    // remain as a correctness fallback and for legacy rows (key_hash IS NULL);
+    // they can only ever AND-narrow, so they never cause a false collapse.
+    const keyHash = input.keyHash
+    if (keyHash != null) {
+      const hit = Database.use((db) =>
+        db
+          .select({ id: RequestTable.id })
+          .from(RequestTable)
+          .where(and(eq(RequestTable.session_id, input.sessionID), eq(RequestTable.key_hash, keyHash)))
+          .limit(1)
+          .all(),
+      )
+      if (hit.length > 0) return true
+    }
     // For body/header-dispatched protocols (GraphQL/JSON-RPC) the operation key
     // REPLACES body_hash/query_hash as the discriminator — body_hash carries
     // values, so same-operation/different-values calls would never collapse if we
@@ -250,8 +290,10 @@ export namespace Request {
               (input.queryHash ? r.query_hash === input.queryHash : r.query_hash == null),
           )
 
-    // Stage 1: new identity — origin scopes the template (api vs admin
-    // subdomain stay separate; the template alone would collide them).
+    // Stages below are the LEGACY fallback, scoped to rows that pre-date key_hash
+    // (key_hash IS NULL). For new rows the key_hash stage above is authoritative —
+    // without this scope the value-only query_hash would over-collapse dispatcher
+    // variants (e.g. /search?type=user vs ?type=admin) that key_hash correctly splits.
     const origin = input.origin
     if (origin) {
       const newKeyRows = Database.use((db) =>
@@ -268,6 +310,7 @@ export namespace Request {
               eq(RequestTable.method, input.method),
               eq(RequestTable.origin, origin),
               eq(RequestTable.normalized_path, input.normalizedPath),
+              isNull(RequestTable.key_hash),
             ),
           )
           .all(),
@@ -290,6 +333,7 @@ export namespace Request {
             eq(RequestTable.method, input.method),
             eq(RequestTable.normalized_path, input.normalizedPath),
             isNull(RequestTable.origin),
+            isNull(RequestTable.key_hash),
           ),
         )
         .all(),

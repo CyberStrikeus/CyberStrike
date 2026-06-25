@@ -13,6 +13,7 @@
 // preserves mass-assignment signal (an extra input field changes the shape).
 
 import { createHash } from "crypto"
+import { extractInlineArgPaths } from "./graphql-inline"
 
 export interface OperationInfo {
   protocol: "graphql" | "jsonrpc"
@@ -215,6 +216,39 @@ function parseGraphQL(queryRaw: string): GqlOp | undefined {
   }
 }
 
+// Relay global IDs are base64("Type:localId") (or "Type\nlocalId"). Decode and
+// return the TYPE — the real endpoint discriminator that `node(id:)` hides in the
+// value. undefined when not a decodable global id.
+export function relayType(globalId: string): string | undefined {
+  if (typeof globalId !== "string" || globalId.length < 6 || !/^[A-Za-z0-9+/=_-]+$/.test(globalId)) return undefined
+  try {
+    const decoded = Buffer.from(globalId.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")
+    const m = decoded.match(/^([A-Za-z][A-Za-z0-9_]*)[:\n]/)
+    return m ? m[1]! : undefined
+  } catch {
+    return undefined
+  }
+}
+
+// Polymorphic GraphQL fields whose `id` value selects the object TYPE — Relay's
+// node()/nodes() pattern. Without promoting the type, every node() call collapses
+// to one endpoint (showstopper S2: cross-type BOLA becomes invisible).
+const GQL_DISPATCH_FIELDS: ReadonlySet<string> = new Set(["node", "nodes"])
+
+function graphqlDispatcher(rootFields: string[], query: string, vars: Record<string, unknown> | undefined): string {
+  if (!rootFields.some((f) => GQL_DISPATCH_FIELDS.has(f))) return ""
+  let idVal: string | undefined
+  const cand = vars?.id ?? vars?.ids
+  if (typeof cand === "string") idVal = cand
+  else if (Array.isArray(cand) && typeof cand[0] === "string") idVal = cand[0]
+  else {
+    const m = query.match(/\bnodes?\s*\(\s*ids?\s*:\s*\[?\s*"([^"]+)"/)
+    idVal = m?.[1]
+  }
+  const t = idVal ? relayType(idVal) : undefined
+  return t ? "node-type:" + t : ""
+}
+
 function graphqlFrom(query: string, variables: unknown): OperationInfo | undefined {
   const op = parseGraphQL(query)
   if (!op) return undefined
@@ -226,14 +260,25 @@ function graphqlFrom(query: string, variables: unknown): OperationInfo | undefin
       vars = undefined
     }
   }
-  const varKeys = keyPaths(vars).sort()
+  // Unify inline vs variable: an arg supplied inline (product(id:"88")) and via a
+  // variable (product(id:$id)) must collapse to one operation. varKeys carries the
+  // variable-supplied key-paths; extractInlineArgPaths carries the inline ones —
+  // their union is the same regardless of how the value was supplied.
+  const varKeys = [...new Set([...keyPaths(vars), ...extractInlineArgPaths(query)])].sort()
   const label = op.rootFields.length
     ? `${op.opType}:${op.rootFields.join("+")}`
     : op.operationName
       ? `${op.opType}:${op.operationName}`
       : op.opType
-  const key = ["graphql", op.opType, op.rootFields.join(","), op.argNames.join(","), varKeys.join(",")].join("\u0000")
-  return { protocol: "graphql", operation: label, opKeyHash: sha16(key) }
+  // Drop __typename: clients add it inconsistently, so it must not fragment the key.
+  const rootFields = op.rootFields.filter((f) => f !== "__typename")
+  // Conditionally append the dispatcher discriminator so node()/nodes() splits by
+  // Relay type (node(User:) ≠ node(Order:)); other operations keep the plain key.
+  const keyParts = ["graphql", op.opType, rootFields.join(","), op.argNames.join(","), varKeys.join(",")]
+  const dispatch = graphqlDispatcher(rootFields, query, vars as Record<string, unknown> | undefined)
+  if (dispatch) keyParts.push(dispatch)
+  const operation = dispatch ? `${label}(${dispatch})` : label
+  return { protocol: "graphql", operation, opKeyHash: sha16(keyParts.join("<|>")) }
 }
 
 function operationFromJson(obj: unknown): OperationInfo | undefined {
@@ -251,20 +296,61 @@ function operationFromJson(obj: unknown): OperationInfo | undefined {
   const ext = o.extensions as Record<string, unknown> | undefined
   const apq = (ext?.persistedQuery as Record<string, unknown> | undefined)?.sha256Hash
   if (typeof apq === "string" && apq) {
-    return { protocol: "graphql", operation: "apq:" + apq.slice(0, 8), opKeyHash: sha16("graphql-apq\u0000" + apq) }
+    return { protocol: "graphql", operation: "apq:" + apq.slice(0, 8), opKeyHash: sha16("graphql-apq<|>" + apq) }
   }
 
   // JSON-RPC: { jsonrpc?, method, params?, id? }
   if (typeof o.method === "string" && !("query" in o) && ("jsonrpc" in o || ("params" in o && "id" in o))) {
     const keyShape = keyPaths(o.params).sort()
+    // Generic dispatch envelope: when method is invoke/dispatch/call/execute the
+    // REAL operation is a value in params (fn/action/method/op). Promote it into the
+    // key so `invoke(fn:deleteUser)` ≠ `invoke(fn:getProfile)` (showstopper S2).
+    const disc = rpcDispatcher(o.method, o.params)
+    const keyParts = ["jsonrpc", o.method, keyShape.join(",")]
+    if (disc) keyParts.push(disc)
     return {
       protocol: "jsonrpc",
-      operation: o.method,
-      opKeyHash: sha16("jsonrpc\u0000" + o.method + "\u0000" + keyShape.join(",")),
+      operation: disc ? `${o.method}(${disc})` : o.method,
+      opKeyHash: sha16(keyParts.join("<|>")),
     }
   }
 
   return undefined
+}
+
+const RPC_DISPATCH_METHODS: ReadonlySet<string> = new Set(["invoke", "dispatch", "call", "execute", "exec", "run"])
+const RPC_DISPATCH_PARAMS = ["method", "fn", "function", "action", "op", "operation", "cmd", "command", "procedure"]
+
+function rpcDispatcher(method: string, params: unknown): string {
+  if (!RPC_DISPATCH_METHODS.has(method.toLowerCase())) return ""
+  if (!params || typeof params !== "object" || Array.isArray(params)) return ""
+  const p = params as Record<string, unknown>
+  for (const k of RPC_DISPATCH_PARAMS) {
+    const v = p[k]
+    if (typeof v === "string" && v) return `${k}:${v}`
+  }
+  return ""
+}
+
+/**
+ * Structural key-shape hash of a JSON request body (Faz 1) — sorted key PATHS,
+ * VALUES STRIPPED. This is the REST counterpart of opKeyHash: it lets the dedup
+ * gate collapse same-shape/different-values mutations (`POST /users {a:1}` vs
+ * `{a:2}`) while keeping a different shape (an extra `role` field — the
+ * mass-assignment signal) distinct. Returns undefined for non-JSON or empty
+ * bodies, where the caller falls back to the value-bearing body_hash.
+ */
+export function bodyKeyShapeHash(body: string | undefined, contentType: string | undefined): string | undefined {
+  if (!body || !(contentType ?? "").includes("json")) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    return undefined
+  }
+  const paths = keyPaths(parsed).sort()
+  if (paths.length === 0) return undefined
+  return sha16("rest-shape<|>" + paths.join(","))
 }
 
 /**
@@ -309,7 +395,7 @@ export function extractOperation(input: {
       return {
         protocol: proto,
         operation: `batch[${ops.join(",")}]`,
-        opKeyHash: sha16(proto + "\u0000batch\u0000" + members.map((m) => m.opKeyHash).sort().join(",")),
+        opKeyHash: sha16(proto + "<|>batch<|>" + members.map((m) => m.opKeyHash).sort().join(",")),
       }
     }
     return operationFromJson(parsed)

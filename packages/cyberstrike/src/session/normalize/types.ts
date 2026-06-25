@@ -38,7 +38,10 @@ export interface ParsedRequest {
   query: string | undefined // canonicalized: keys sorted, values URL-encoded
   queryKeyHash: string | undefined // sha256 hash of sorted query keys
   bodyContentType: string | undefined
-  bodyHash: string | undefined // sha256 hash of normalized body (json keys sorted)
+  bodyHash: string | undefined // sha256 hash of normalized body (json keys sorted) — VALUES included
+  // Faz 1: structural key-shape hash of a JSON body (values STRIPPED). The REST
+  // dedup discriminator; bodyHash is demoted to the value side. undefined for non-JSON.
+  bodyKeyHash: string | undefined
   // Protocol/operation enrichment for body-dispatched APIs (GraphQL, JSON-RPC).
   // Undefined for plain REST. When set, opKeyHash is the per-operation dedup key
   // (values stripped) that REPLACES bodyHash in dedup so same-operation calls
@@ -46,6 +49,23 @@ export interface ParsedRequest {
   protocol: string | undefined // "graphql" | "jsonrpc"
   operation: string | undefined // human label, e.g. "mutation:deleteUser"
   opKeyHash: string | undefined
+  // Faz 2: raw request body, surfaced so the slot extractor can pull concrete
+  // values (path/query/body) for observed-value accumulation. Transient.
+  body: string | undefined
+}
+
+// A single concrete input value carried by a request, located by where it lives
+// (path placeholder, query param, or body key-path) and named in the keyPath
+// vocabulary. RAW FACT ONLY — no interpretation (no idLike/reference/self-foreign
+// classification; that is the orchestrator/DAST-agent's judgment, not this
+// deterministic module's). `retained` is the redactor's data-hygiene decision:
+// false means the value is sensitive/oversized and only its presence (and the
+// valueHash) is kept, never the concrete value.
+export interface ParamSlot {
+  loc: "path" | "query" | "body"
+  name: string
+  value: string
+  retained?: boolean
 }
 
 // Per-segment Tier 1 classification.

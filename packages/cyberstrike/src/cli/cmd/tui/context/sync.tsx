@@ -96,6 +96,14 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           totalTokens: number
         }
       }
+      // Per-endpoint observed values, fetched on-demand when an endpoint is expanded
+      // in the sidebar. Keyed by the endpoint's key_hash. Raw facts only.
+      request_observation: {
+        [keyHash: string]: {
+          credentials: (string | null)[]
+          params: { name: string; loc: string; byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[] }[]
+        }
+      }
       session_diff: {
         [sessionID: string]: Snapshot.FileDiff[]
       }
@@ -122,6 +130,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           port?: number
           normalized_path: string
           status: string
+          protocol?: string
+          operation?: string
+          key_hash?: string
         }>
       }
       web_credential: {
@@ -198,6 +209,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       session_hackbrowser_status: {},
       methodology: {},
       session_usage: {},
+      request_observation: {},
       session_diff: {},
       todo: {},
       vulnerability: {},
@@ -262,6 +274,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           setStore("session_usage", sessionID, { totalCost: u.totalCost, totalTokens: u.totalTokens })
       } catch {
         /* ignore — header/sidebar fall back to per-session figures */
+      }
+    }
+
+    // Fetch per-endpoint observed values on demand (when the user expands an
+    // endpoint in the sidebar). Stored by key_hash. Raw facts; no interpretation.
+    async function fetchObservations(sessionID: string, keyHash: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/observations?keyHash=${encodeURIComponent(keyHash)}`)
+        const tree = (await r.json()) as (typeof store)["request_observation"][string]
+        if (tree && Array.isArray(tree.params)) setStore("request_observation", keyHash, tree)
+      } catch {
+        /* ignore — expanded row simply shows nothing */
       }
     }
 
@@ -652,6 +676,8 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       refreshMethodology,
       // Refresh cumulative tree usage (main + subagents) for a session.
       refreshUsage,
+      // Fetch per-endpoint observed values on demand (sidebar expand).
+      fetchObservations,
       get status() {
         return store.status
       },

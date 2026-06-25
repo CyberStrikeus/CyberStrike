@@ -14,6 +14,7 @@ import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
+import { Observation } from "../../session/observation"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
@@ -688,6 +689,37 @@ export const SessionRoutes = lazy(() =>
         return c.json(list)
       },
     )
+    .get(
+      "/:sessionID/observations",
+      describeRoute({
+        summary: "Get observed values for an endpoint",
+        description:
+          "Per-endpoint observed values (raw facts): which credential used which concrete values for each parameter. " +
+          "Pulled on-demand when the UI expands an endpoint. Pass the endpoint's key_hash.",
+        operationId: "session.observations",
+        responses: {
+          200: { description: "Observed-value tree", content: { "application/json": { schema: resolver(z.any()) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "query",
+        z.object({
+          keyHash: z.string().optional().meta({ description: "Endpoint key_hash" }),
+          id: z.string().optional().meta({ description: "Request id (alternative to keyHash)" }),
+        }),
+      ),
+      async (c) => {
+        const { sessionID } = c.req.valid("param")
+        const { keyHash, id } = c.req.valid("query")
+        // Resolve the key_hash from a request id when keyHash isn't supplied (the web
+        // client's stale SDK schema can strip key_hash from the request list).
+        const kh = keyHash ?? (id ? Request.get(sessionID).find((r) => r.id === id)?.key_hash : undefined)
+        if (!kh) return c.json({ keyHash: "", credentials: [], params: [] })
+        return c.json(Observation.endpointTree(sessionID, kh))
+      },
+    )
     // Web Proxy Agent Context Endpoints
     .get(
       "/:sessionID/web/credentials",
@@ -1099,9 +1131,26 @@ export const SessionRoutes = lazy(() =>
             bodyHash: normalized.bodyHash,
             queryHash: normalized.queryKeyHash,
             opKeyHash: normalized.opKeyHash,
+            keyHash: normalized.keyHash,
           })
 
+          // Record per-credential observed values on EVERY ingest — including
+          // dedup skips, because the whole point is capturing which values which
+          // credential used on an already-known endpoint (IDOR/BFLA substrate).
+          // Append-only + idempotent, so safe to call on every path.
+          const recordObservation = (requestID?: string) =>
+            Observation.observe({
+              sessionID,
+              keyHash: normalized.keyHash,
+              opGroupHash: normalized.opGroupHash,
+              requestID,
+              credentialID,
+              valueHash: normalized.valueHash,
+              slots: normalized.observedParams,
+            })
+
           if (isDuplicate) {
+            recordObservation()
             log.info("duplicate request skipped", {
               sessionID,
               method: normalized.method,
@@ -1138,7 +1187,21 @@ export const SessionRoutes = lazy(() =>
             protocol: normalized.protocol,
             operation: normalized.operation,
             opKeyHash: normalized.opKeyHash,
+            keyHash: normalized.keyHash,
           })
+
+          // Race-duplicate: a concurrent ingest won the atomic key_hash upsert
+          // between our exists() check and this insert. Treat exactly like a
+          // duplicate — no row was created, so skip the LLM enqueue, but still
+          // record the observation (the values are evidence regardless).
+          if (!req) {
+            recordObservation()
+            c.status(202)
+            return c.json({ sessionID, skipped: true })
+          }
+
+          // New endpoint shape: record the first observation, linked to the row.
+          recordObservation(req.id)
 
           // Build prompt with credential context, response, and access context
           const promptText = buildPromptWithCredentialContext(

@@ -83,6 +83,17 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     retests: true,
   })
 
+  // Per-endpoint expand state (by request id). Clicking an endpoint fetches its
+  // observed values on demand and reveals the param→credential→values tree.
+  const [expandedEp, setExpandedEp] = createStore<Record<string, boolean>>({})
+  const credLabel = (id: string | null) =>
+    id == null ? "anon" : credentials().find((c) => c.id === id)?.label ?? id.slice(0, 6)
+  const toggleEndpoint = (r: { id: string; key_hash?: string }) => {
+    const open = !expandedEp[r.id]
+    setExpandedEp(r.id, open)
+    if (open && r.key_hash) void sync.fetchObservations(props.sessionID, r.key_hash)
+  }
+
   // Sort MCP servers alphabetically for consistent display order
   const mcpEntries = createMemo(() => Object.entries(sync.data.mcp).sort(([a], [b]) => a.localeCompare(b)))
 
@@ -483,26 +494,65 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </text>
                         <For each={rows}>
                           {(r) => (
-                            <box flexDirection="row" gap={1} paddingLeft={1}>
-                              <text
-                                flexShrink={0}
-                                style={{
-                                  fg:
-                                    {
-                                      queued: theme.textMuted,
-                                      processing: theme.warning,
-                                      processed: theme.success,
-                                    }[r.status] ?? theme.text,
-                                }}
-                              >
-                                •
-                              </text>
-                              <text fg={theme.accent} flexShrink={0}>
-                                {r.method}
-                              </text>
-                              <text fg={theme.text} wrapMode="none">
-                                {r.normalized_path}
-                              </text>
+                            <box flexDirection="column">
+                              <box flexDirection="row" gap={1} paddingLeft={1} onMouseDown={() => toggleEndpoint(r)}>
+                                <text fg={theme.textMuted} flexShrink={0}>
+                                  {expandedEp[r.id] ? "▼" : "▶"}
+                                </text>
+                                <text
+                                  flexShrink={0}
+                                  style={{
+                                    fg:
+                                      {
+                                        queued: theme.textMuted,
+                                        processing: theme.warning,
+                                        processed: theme.success,
+                                      }[r.status] ?? theme.text,
+                                  }}
+                                >
+                                  •
+                                </text>
+                                <text fg={theme.accent} flexShrink={0}>
+                                  {r.method}
+                                </text>
+                                <text fg={theme.text} wrapMode="none">
+                                  {r.normalized_path}
+                                </text>
+                                <Show when={r.operation}>
+                                  <text fg={theme.textMuted} wrapMode="none" flexShrink={0}>
+                                    · {r.operation}
+                                  </text>
+                                </Show>
+                              </box>
+                              {/* Observed values tree — fetched on expand */}
+                              <Show when={expandedEp[r.id] && r.key_hash}>
+                                <For each={sync.data.request_observation[r.key_hash!]?.params ?? []}>
+                                  {(p) => (
+                                    <box flexDirection="column" paddingLeft={3}>
+                                      <text fg={theme.textMuted} wrapMode="none">
+                                        {p.name}
+                                      </text>
+                                      <For each={p.byCredential}>
+                                        {(bc) => (
+                                          <box flexDirection="row" gap={1} paddingLeft={2}>
+                                            <text fg={theme.accent} flexShrink={0} wrapMode="none">
+                                              {credLabel(bc.credentialID)}
+                                            </text>
+                                            <text fg={theme.text} wrapMode="none">
+                                              → {bc.redacted ? "[redacted]" : bc.values.join(", ")}
+                                            </text>
+                                          </box>
+                                        )}
+                                      </For>
+                                    </box>
+                                  )}
+                                </For>
+                                <Show when={(sync.data.request_observation[r.key_hash!]?.params ?? []).length === 0}>
+                                  <text fg={theme.textMuted} wrapMode="none" style={{ paddingLeft: 3 }}>
+                                    (no observed values)
+                                  </text>
+                                </Show>
+                              </Show>
                             </box>
                           )}
                         </For>

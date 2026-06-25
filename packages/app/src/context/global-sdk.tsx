@@ -14,6 +14,8 @@ export type GlobalSDKValue = {
   client: CyberstrikeClient
   event: GlobalEmitter<{ [key: string]: Event }>
   createClient: (opts: CreateClientOpts) => CyberstrikeClient
+  // Authed raw fetch against the server (for endpoints not on the typed client yet).
+  fetch: (path: string, init?: RequestInit) => Promise<Response>
 }
 
 export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleContext({
@@ -316,6 +318,13 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
           fetch: platform.fetch,
           ...opts,
         })
+      },
+      async fetch(path: string, init?: RequestInit): Promise<Response> {
+        const headers: Record<string, string> = { ...((init?.headers as Record<string, string>) ?? {}) }
+        if (currentServer.http.password)
+          headers["Authorization"] = basicAuth(currentServer.http.username ?? "cyberstrike", currentServer.http.password)
+        const f = platform.fetch ?? fetch
+        return f(`${currentServer.http.url}${path}`, { ...init, headers })
       },
     }
   },

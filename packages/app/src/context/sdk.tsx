@@ -16,6 +16,7 @@ export type SDKValue = {
   event: GlobalEmitter<SDKEventMap>
   readonly url: string
   createClient: (opts: CreateClientOpts) => CyberstrikeClient
+  fetch: (path: string, init?: RequestInit) => Promise<Response>
 }
 
 export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
@@ -53,6 +54,9 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
       },
       createClient(opts: CreateClientOpts) {
         return globalSDK.createClient(opts)
+      },
+      fetch(path: string, init?: RequestInit) {
+        return globalSDK.fetch(path, init)
       },
     }
   },
