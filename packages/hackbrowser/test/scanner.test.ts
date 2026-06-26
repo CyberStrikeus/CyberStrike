@@ -20,7 +20,8 @@ async function loadFixture(name: string): Promise<Page> {
   await p
     .waitForFunction(
       () => document.querySelectorAll("input, textarea, select, [role=radiogroup], [role=combobox]").length > 0,
-      { timeout: 2000 },
+      undefined,
+      { timeout: 2000 }, // options is the 3rd arg — `{timeout}` here was being read as `arg`, leaving the default 30s wait
     )
     .catch(() => {})
   return p
@@ -218,5 +219,39 @@ test("constraints: plain text input with no attributes emits empty string", asyn
   const title = elements.find((e) => e.tag === "input" && e.type === "text")
   expect(title).toBeDefined()
   expect(title!.constraints).toBe("")
+  await page.close()
+}, 15000)
+
+// ============================================================
+// EPHEMERAL-IDS — framework-generated ids must never become selectors
+//
+// React/MUI `useId` ids (`:r21:`, `:R2lH1:`) and older generated ids (`mui-7`)
+// look like stable `id` selectors but regenerate on every render, so a captured
+// `div#:r21:` is detached by click time → "click: Timeout exceeded" (the prod
+// failure reproduced by test-cases/mui-spa-trap). buildCSSSelector must reject
+// them and fall to a render-stable selector. Authored mid-colon ids (JSF
+// `form:saveBtn`) must be KEPT — the rule only targets the framework-id shape.
+// ============================================================
+
+test("ephemeral-ids: useId/generated ids rejected, authored ids kept", async () => {
+  const page = await loadFixture("ephemeral-ids.html")
+  const elements = await collectElements(page)
+  const sel = (labelSubstr: string) =>
+    elements.find((e) => e.label.toLowerCase().includes(labelSubstr.toLowerCase()))?.selector ?? ""
+
+  // Authored ids — used as-is.
+  expect(sel("Checkout Item")).toContain("checkout-button")
+  expect(sel("Pharmacy Locator Item")).toContain("pharmacy-locator")
+  // JSF mid-colon authored id — kept (no false positive).
+  expect(sel("Jsf Save Item")).toContain("saveBtn")
+
+  // Ephemeral framework ids — rejected, never embedded in the selector.
+  const react = sel("React UseId Item")
+  expect(react.length).toBeGreaterThan(0) // still discovered
+  expect(react).not.toContain(":r21") // but NOT via the ephemeral id
+  expect(await page.locator(react).count()).toBe(1) // fallback selector resolves uniquely
+  expect(sel("React Ssr Item")).not.toContain(":R2lH1")
+  expect(sel("Mui Generated Item")).not.toContain("mui-7")
+
   await page.close()
 }, 15000)

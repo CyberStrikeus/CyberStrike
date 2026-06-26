@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ephemeral framework ids must not become selectors</title>
+  </head>
+  <body>
+    <!-- Each is a clickable div (cursor:pointer + listener) → synthetic role → the
+         scanner is FORCED down the CSS-selector path (buildCSSSelector), which is
+         exactly where an ephemeral framework id would otherwise be captured. In a
+         real SPA these ids regenerate on every render, so a captured `div#:r21:`
+         is detached by click time → "click: Timeout exceeded". -->
+
+    <!-- STABLE authored id — selector SHOULD use it. -->
+    <div id="checkout-button" class="card" style="cursor: pointer" tabindex="0">Checkout Item</div>
+
+    <!-- React useId / MUI useId (colon-WRAPPED). Ephemeral → MUST NOT be used. -->
+    <div id=":r21:" class="card" style="cursor: pointer" tabindex="0">React UseId Item</div>
+
+    <!-- React 18 SSR useId (capital R). Ephemeral → MUST NOT be used. -->
+    <div id=":R2lH1:" class="card" style="cursor: pointer" tabindex="0">React Ssr Item</div>
+
+    <!-- Older MUI numeric generated id. Ephemeral → MUST NOT be used. -->
+    <div id="mui-7" class="card" style="cursor: pointer" tabindex="0">Mui Generated Item</div>
+
+    <!-- JSF / PrimeFaces id with a MID colon — authored & stable. The narrowed rule
+         only rejects colon-LEADING / `:r…:` ids, so this MUST be KEPT. -->
+    <div id="form:saveBtn" class="card" style="cursor: pointer" tabindex="0">Jsf Save Item</div>
+
+    <!-- Plain stable id. MUST be used. -->
+    <div id="pharmacy-locator" class="card" style="cursor: pointer" tabindex="0">Pharmacy Locator Item</div>
+
+    <script>
+      for (const id of ["checkout-button", ":r21:", ":R2lH1:", "mui-7", "form:saveBtn", "pharmacy-locator"]) {
+        const el = document.getElementById(id)
+        if (el) el.addEventListener("click", () => {})
+      }
+    </script>
+  </body>
+</html>
