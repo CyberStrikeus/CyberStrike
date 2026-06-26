@@ -6,6 +6,7 @@ import { WebObject } from "../session/web/web-object"
 import { WebFunction } from "../session/web/web-function"
 import { WebRetest } from "../session/web/web-retest"
 import { Request } from "../session/request"
+import { Observation } from "../session/observation"
 import { Session } from "../session"
 import { Vulnerability } from "../session/vulnerability"
 
@@ -17,10 +18,11 @@ Returns discovered information about:
 - Objects: Data entities and their fields (included by default)
 - Functions: Endpoint-to-function mappings (included by default)
 - Vulnerabilities: Last 30 reported findings (included by default — always check before reporting new vulns to avoid duplicates)
+- Observations: Endpoints with the concrete input values each credential was observed using (deterministic, from captured traffic). Highlights multi-credential endpoints — the access-control / IDOR shortlist (included by default). Pull full per-endpoint values with web_get_request_detail.
 - Retest Queue: Pending re-tests triggered by new discoveries (optional, use include parameter)
 - Requests: Analyzed endpoints summary (optional, use include parameter - returns only id, method, path, status)
 
-By default, returns: credentials, roles, objects, functions, vulnerabilities.
+By default, returns: credentials, roles, objects, functions, vulnerabilities, observations.
 Use the 'include' parameter to specify exactly which sections you need.
 
 For detailed request information (headers, body, response), use the web_get_request_detail tool with a specific request ID.
@@ -32,16 +34,18 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
   description,
   parameters: z.object({
     include: z
-      .array(z.enum(["credentials", "roles", "objects", "functions", "vulnerabilities", "retest_queue", "requests"]))
+      .array(
+        z.enum(["credentials", "roles", "objects", "functions", "vulnerabilities", "observations", "retest_queue", "requests"]),
+      )
       .optional()
       .describe(
-        "Specific sections to include. Default: ['credentials', 'roles', 'objects', 'functions', 'vulnerabilities']. " +
+        "Specific sections to include. Default: ['credentials', 'roles', 'objects', 'functions', 'vulnerabilities', 'observations']. " +
           "Add 'retest_queue' or 'requests' only if needed. Note: 'requests' returns only summary (id, method, path, status), not full request details.",
       ),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const include = params.include ?? ["credentials", "roles", "objects", "functions", "vulnerabilities"]
+    const include = params.include ?? ["credentials", "roles", "objects", "functions", "vulnerabilities", "observations"]
 
     const context: Record<string, unknown> = {}
 
@@ -126,6 +130,34 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
       }
     }
 
+    if (include.includes("observations")) {
+      const summary = Observation.sessionSummary(sessionID)
+      const reqByKey = new Map<string, { id: string; method: string; path: string }>()
+      for (const r of Request.get(sessionID)) {
+        if (r.key_hash && !reqByKey.has(r.key_hash)) {
+          reqByKey.set(r.key_hash, { id: r.id, method: r.method, path: r.normalized_path })
+        }
+      }
+      const endpoints = summary.map((s) => {
+        const r = reqByKey.get(s.keyHash)
+        return {
+          request_id: r?.id ?? null,
+          method: r?.method ?? null,
+          path: r?.path ?? null,
+          credential_count: s.credentialIDs.length,
+          params: s.paramNames,
+        }
+      })
+      // Multi-credential endpoints are the access-control / IDOR shortlist: the same
+      // endpoint shape was reached by 2+ distinct credentials, so cross-replay is testable.
+      const multiCred = endpoints.filter((e) => e.credential_count >= 2)
+      context.observations = {
+        endpoints: endpoints.length,
+        multi_credential_count: multiCred.length,
+        multi_credential_endpoints: multiCred,
+      }
+    }
+
     if (include.includes("retest_queue")) {
       const queue = WebRetest.getPending(sessionID)
       const counts = WebRetest.count(sessionID)
@@ -167,6 +199,9 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
       total_requests: include.includes("requests") ? (context.requests as { count: number }).count : undefined,
       total_vulnerabilities: include.includes("vulnerabilities")
         ? (context.vulnerabilities as { count: number }).count
+        : undefined,
+      multi_credential_endpoints: include.includes("observations")
+        ? (context.observations as { multi_credential_count: number }).multi_credential_count
         : undefined,
     }
 

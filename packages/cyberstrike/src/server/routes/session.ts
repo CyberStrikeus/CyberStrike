@@ -167,12 +167,37 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
   return lines
 }
 
+// Renders the `## Observed Values` block: which concrete inputs each credential was
+// observed using on THIS endpoint shape (deterministic, redaction-aware). Empty when
+// no params carry values. 2+ credentials on one param is an IDOR/BOLA cross-replay
+// candidate — surfaced so the orchestrator routes access-control tests. The judgment
+// (is it actually IDOR?) stays with the tester subagent, not here.
+function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
+  if (tree.params.length === 0) return []
+  const lines = [
+    "",
+    "## Observed Values",
+    "Concrete inputs captured on this endpoint, per credential (deterministic). 2+ credentials on one param = IDOR/BOLA cross-replay candidate.",
+  ]
+  for (const p of tree.params.slice(0, 12)) {
+    const parts = p.byCredential.map((c) => {
+      const label = c.credentialID ? WebCredential.getById(c.credentialID)?.label ?? c.credentialID : "unauthenticated"
+      if (c.redacted && c.values.length === 0) return `${label}=[redacted]`
+      const vals = c.values.slice(0, 6).map((v) => JSON.stringify(v)).join(", ")
+      return `${label}=[${vals}]${c.redacted ? " (+redacted)" : ""}`
+    })
+    lines.push(`- ${p.name} (${p.loc}): ${parts.join("; ")}`)
+  }
+  return lines
+}
+
 function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
   processedResponse?: string,
   accessContext?: AccessContextInput,
   operationContext?: { protocol: string; operation: string },
+  observedValues?: Observation.EndpointTree,
 ): string {
   const lines: string[] = []
 
@@ -215,6 +240,10 @@ function buildPromptWithCredentialContext(
 
   if (accessContext) {
     lines.push(...renderAccessContextLines(accessContext))
+  }
+
+  if (observedValues) {
+    lines.push(...renderObservedValuesLines(observedValues))
   }
 
   lines.push("")
@@ -1218,6 +1247,7 @@ export const SessionRoutes = lazy(() =>
             normalized.protocol && normalized.operation
               ? { protocol: normalized.protocol, operation: normalized.operation }
               : undefined,
+            Observation.endpointTree(sessionID, normalized.keyHash),
           )
 
           if (ingestDryRun) {

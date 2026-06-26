@@ -130,4 +130,32 @@ export namespace Observation {
     }))
     return { keyHash, credentials, params }
   }
+
+  export interface EndpointObsSummary {
+    keyHash: string
+    credentialIDs: (string | null)[] // distinct credentials that hit this endpoint shape
+    paramNames: string[] // distinct param names observed (no values — summary only)
+  }
+
+  /**
+   * Session-wide rollup, one entry per endpoint shape (key_hash): which credentials
+   * hit it and which param names carry values. Cheap, value-free — the orchestrator
+   * uses it to spot multi-credential endpoints (the access-control shortlist) and
+   * then pulls full values via web_get_request_detail. RAW FACTS ONLY (no verdict).
+   */
+  export function sessionSummary(sessionID: string): EndpointObsSummary[] {
+    const obs = listBySession(sessionID)
+    const byKey = new Map<string, { creds: Set<string | null>; params: Set<string> }>()
+    for (const o of obs) {
+      const e = byKey.get(o.key_hash) ?? { creds: new Set<string | null>(), params: new Set<string>() }
+      e.creds.add(o.credential_id)
+      for (const s of (o.slots ?? []) as { name: string }[]) e.params.add(s.name)
+      byKey.set(o.key_hash, e)
+    }
+    return [...byKey.entries()].map(([keyHash, e]) => ({
+      keyHash,
+      credentialIDs: [...e.creds],
+      paramNames: [...e.params],
+    }))
+  }
 }
