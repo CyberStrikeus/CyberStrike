@@ -204,10 +204,24 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       return ""
     }
 
+    // Framework-generated ids (React useId `:r21:`, Radix, MUI) look like stable
+    // `id` selectors but regenerate on every render/remount — a captured
+    // `button#:r21:` is detached by click time → "click: Timeout exceeded". Reject
+    // them so the selector falls through to a render-stable one (name/class/nth, or
+    // the role + accessible-name selector built upstream).
+    function isEphemeralId(id: string): boolean {
+      // React/MUI/Radix `useId` ids are colon-WRAPPED (`:r21:`, `:R2lH1:`) or embed a
+      // `:r…:` token. Authored ids never lead with a colon — so JSF/PrimeFaces ids
+      // with a MID colon (`form:saveBtn`) are kept, only the framework-id shape is rejected.
+      if (/^:/.test(id) || /:r[0-9a-z]+:/i.test(id)) return true
+      // Known generated-id prefixes (older MUI numeric ids, component-lib auto ids).
+      return /^(mui-\d|radix-|headlessui-|react-aria-|rc-_?\d|ember\d)/i.test(id)
+    }
+
     function buildCSSSelector(el: Element): string {
       const tag = el.tagName.toLowerCase()
       const id = el.getAttribute("id")
-      if (id) return `${tag}#${CSS.escape(id)}`
+      if (id && !isEphemeralId(id)) return `${tag}#${CSS.escape(id)}`
       const name = el.getAttribute("name")
       if (name) return `${tag}[name="${CSS.escape(name)}"]`
 
@@ -217,7 +231,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
         while (current && current !== document.documentElement) {
           const aTag = current.tagName.toLowerCase()
           const aId = current.getAttribute("id")
-          if (aId) return `${aTag}#${CSS.escape(aId)} `
+          if (aId && !isEphemeralId(aId)) return `${aTag}#${CSS.escape(aId)} `
           const aCls =
             typeof current.className === "string"
               ? current.className
