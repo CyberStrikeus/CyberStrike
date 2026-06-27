@@ -43,6 +43,7 @@ import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { UpdateVrtCheckTool } from "./vrt-check"
+import { RecordCoverageNoteTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
@@ -171,6 +172,7 @@ export namespace ToolRegistry {
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,
       UpdateVrtCheckTool,
+      RecordCoverageNoteTool,
       ScopeCheckTool,
       EnsureToolsTool,
       MethodologyStatusTool,
