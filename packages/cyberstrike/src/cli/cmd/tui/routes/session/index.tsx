@@ -63,6 +63,7 @@ import { DialogHackbrowserLaunch } from "../../component/dialog-hackbrowser-laun
 import { DialogVulnerability } from "../../component/dialog-vulnerability"
 import { DialogWebContext } from "../../component/dialog-web-context"
 import { DialogMethodology } from "../../component/dialog-methodology"
+import { DialogReport } from "../../component/dialog-report"
 import { Sidebar } from "./sidebar"
 import { Flag } from "@/flag/flag"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
@@ -568,6 +569,29 @@ export function Session() {
       },
       onSelect: (dialog) => {
         dialog.replace(() => <DialogMethodology sessionID={route.sessionID} />)
+      },
+    },
+    {
+      title: "Generate report",
+      value: "session.report",
+      category: "Session",
+      slash: {
+        name: "report",
+        aliases: ["export"],
+      },
+      onSelect: (dialog) => {
+        dialog.replace(() => (
+          <DialogReport
+            sessionID={route.sessionID}
+            onGenerate={() => {
+              prompt.set({
+                input:
+                  "Generate final report with generate_report tool. Fill all AI sections and save to .cyberstrike/reports/",
+                parts: [],
+              })
+            }}
+          />
+        ))
       },
     },
     {

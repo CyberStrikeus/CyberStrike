@@ -26,9 +26,9 @@
 
 <p align="center">
   <picture>
-    <source srcset="assets/social-preview-dark.svg" media="(prefers-color-scheme: dark)">
-    <source srcset="assets/social-preview-light.svg" media="(prefers-color-scheme: light)">
-    <img src="assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.webp">
+    <img src="assets/hero-dark.png" alt="CyberStrike — open-source AI agent for offensive security" width="880">
   </picture>
 </p>
 

@@ -553,6 +553,49 @@ export function SessionHeader() {
                   </Show>
                 </div>
               </Show>
+              <Show when={currentSession()}>
+                <div class="flex items-center ml-2">
+                  <Tooltip value={language.t("command.session.report")}>
+                    <Button
+                      variant="ghost"
+                      class="rounded-md h-[24px] px-3 border border-border-base bg-surface-panel shadow-none"
+                      onClick={async () => {
+                        const session = currentSession()
+                        if (!session) return
+                        const baseUrl = globalSDK.url
+                        if (!baseUrl) return
+                        try {
+                          const res = await fetch(`${baseUrl}/methodology/session/${session.id}/report/download`)
+                          if (!res.ok) {
+                            showToast({
+                              variant: "error",
+                              title: language.t("session.report.noReport"),
+                            })
+                            return
+                          }
+                          const blob = await res.blob()
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement("a")
+                          a.href = url
+                          a.download =
+                            res.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") ??
+                            "report.md"
+                          a.click()
+                          URL.revokeObjectURL(url)
+                          showToast({
+                            variant: "success",
+                            title: language.t("session.report.exported"),
+                          })
+                        } catch (err) {
+                          showRequestError(language, err)
+                        }
+                      }}
+                    >
+                      {language.t("command.session.report")}
+                    </Button>
+                  </Tooltip>
+                </div>
+              </Show>
               <div class="flex items-center gap-3 ml-2 shrink-0">
                 <TooltipKeybind
                   title={language.t("command.terminal.toggle")}

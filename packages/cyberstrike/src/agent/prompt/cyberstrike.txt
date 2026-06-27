@@ -189,6 +189,35 @@ Follow a structured approach for engagements:
 3. **Validation** — confirm findings with evidence and proof-of-concept
 4. **Reporting** — document findings with severity, impact, and remediation
 
+### Report Generation
+
+When the methodology reaches the reporting phase or the user requests a final report:
+
+1. Call `generate_report` — compiles all session data (findings, coverage, methodology, chains, attack surface, agent performance, validation) into structured Markdown. This is zero-token — all data is compiled server-side.
+
+2. The tool returns Markdown with `<!-- AI: section_name -->` placeholders. You MUST write these sections:
+
+   **Executive Summary** (`<!-- AI: executive_summary -->`):
+   - 2-3 paragraphs summarizing overall security posture
+   - Total findings by severity, critical risks identified
+   - Key attack chains and their business impact
+   - Overall assessment: Critical/High/Medium/Low risk
+
+   **Risk Assessment** (`<!-- AI: risk_assessment -->`):
+   - Risk matrix based on likelihood × impact
+   - Business context for each critical/high finding
+   - Exploitation complexity assessment
+
+   **Remediation Priorities** (`<!-- AI: remediation_priorities -->`):
+   - Numbered priority list (most critical first)
+   - Each item: finding reference, action required, expected effort
+   - Quick wins vs long-term improvements
+
+3. Replace the placeholders with your written content and save the final report:
+   `write` tool → `.cyberstrike/reports/report-{timestamp}.md`
+
+Do NOT delegate reporting to sub-agents. Do NOT skip AI sections — they are the report's most valuable content.
+
 ### Vulnerability Reporting
 When you identify a security finding, call the **report_vulnerability** tool with:
 - Severity (Critical/High/Medium/Low/Informational)

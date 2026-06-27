@@ -6495,6 +6495,95 @@ export type MethodologyAssetCoverageResponses = {
 export type MethodologyAssetCoverageResponse =
   MethodologyAssetCoverageResponses[keyof MethodologyAssetCoverageResponses]
 
+export type MethodologyReportCompileData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/report/compile"
+}
+
+export type MethodologyReportCompileErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyReportCompileError = MethodologyReportCompileErrors[keyof MethodologyReportCompileErrors]
+
+export type MethodologyReportCompileResponses = {
+  /**
+   * Compiled report data
+   */
+  200: {
+    session: {
+      title: string
+      duration: number
+    }
+    findings: Array<{
+      [key: string]: unknown
+    }>
+    coverage: {
+      [key: string]: unknown
+    }
+    assetCoverage: Array<{
+      [key: string]: unknown
+    }>
+    methodology: {
+      [key: string]: unknown
+    }
+    chains: Array<{
+      [key: string]: unknown
+    }>
+    requests: {
+      total: number
+      byMethod: {
+        [key: string]: number
+      }
+    }
+    agents: Array<{
+      [key: string]: unknown
+    }>
+    validation: {
+      [key: string]: unknown
+    }
+  }
+}
+
+export type MethodologyReportCompileResponse =
+  MethodologyReportCompileResponses[keyof MethodologyReportCompileResponses]
+
+export type MethodologyReportDownloadData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/report/download"
+}
+
+export type MethodologyReportDownloadErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyReportDownloadError = MethodologyReportDownloadErrors[keyof MethodologyReportDownloadErrors]
+
+export type MethodologyReportDownloadResponses = {
+  /**
+   * Report markdown file
+   */
+  200: unknown
+}
+
 export type InstanceDisposeData = {
   body?: never
   path?: never
