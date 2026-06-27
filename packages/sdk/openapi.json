@@ -7991,6 +7991,207 @@
         ]
       }
     },
+    "/methodology/session/{sessionID}/report/compile": {
+      "get": {
+        "operationId": "methodology.reportCompile",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Compile report data",
+        "description": "Compiles all session data into a structured report object for UI rendering.",
+        "responses": {
+          "200": {
+            "description": "Compiled report data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "duration": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["title", "duration"]
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "assetCoverage": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "methodology": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "chains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "requests": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "byMethod": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "required": ["total", "byMethod"]
+                    },
+                    "agents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "validation": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "session",
+                    "findings",
+                    "coverage",
+                    "assetCoverage",
+                    "methodology",
+                    "chains",
+                    "requests",
+                    "agents",
+                    "validation"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.reportCompile({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/methodology/session/{sessionID}/report/download": {
+      "get": {
+        "operationId": "methodology.reportDownload",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Download latest report",
+        "description": "Returns the most recent generated Markdown report for a session.",
+        "responses": {
+          "200": {
+            "description": "Report markdown file"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.reportDownload({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/instance/dispose": {
       "post": {
         "operationId": "instance.dispose",

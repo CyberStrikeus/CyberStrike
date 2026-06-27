@@ -1,3 +1,4 @@
+import path from "path"
 import { Hono } from "hono"
 import { describeRoute, validator, resolver } from "hono-openapi"
 import z from "zod"
@@ -9,6 +10,9 @@ import { Chain } from "../../methodology/chain"
 import { Validation } from "../../methodology/validation"
 import { AgentPerformance } from "../../methodology/performance"
 import { Session } from "../../session"
+import { Instance } from "../../project/instance"
+import { Vulnerability } from "../../session/vulnerability"
+import { Request as Req } from "../../session/request"
 
 const sessionParam = z.object({
   sessionID: z.string(),
@@ -293,6 +297,121 @@ export const MethodologyRoutes = lazy(() =>
         const rootSession = Session.root(sessionID)
         const assetCoverage = Intel.computePerAssetCoverage(rootSession)
         return c.json(assetCoverage)
+      },
+    )
+
+    // Report data compilation (JSON — for UI/TUI)
+    .get(
+      "/session/:sessionID/report/compile",
+      describeRoute({
+        summary: "Compile report data",
+        description: "Compiles all session data into a structured report object for UI rendering.",
+        operationId: "methodology.reportCompile",
+        responses: {
+          200: {
+            description: "Compiled report data",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    session: z.object({ title: z.string(), duration: z.number() }),
+                    findings: z.array(z.record(z.string(), z.any())),
+                    coverage: z.record(z.string(), z.any()),
+                    assetCoverage: z.array(z.record(z.string(), z.any())),
+                    methodology: z.record(z.string(), z.any()),
+                    chains: z.array(z.record(z.string(), z.any())),
+                    requests: z.object({ total: z.number(), byMethod: z.record(z.string(), z.number()) }),
+                    agents: z.array(z.record(z.string(), z.any())),
+                    validation: z.record(z.string(), z.any()),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", sessionParam),
+      async (c) => {
+        const { sessionID } = c.req.valid("param")
+        const rootSession = Session.root(sessionID)
+        const session = await Session.get(rootSession)
+
+        const vulns = Vulnerability.get(rootSession)
+        const coverage = Intel.computeCoverage(rootSession)
+        const assetCoverage = Intel.computePerAssetCoverage(rootSession)
+        const state = Methodology.computeState(rootSession)
+        const chains = Chain.load(rootSession)
+        const requests = Req.get(rootSession)
+        const gates = Validation.runAllGates(rootSession, [])
+
+        const byMethod: Record<string, number> = {}
+        for (const r of requests) byMethod[r.method] = (byMethod[r.method] ?? 0) + 1
+
+        const agents = [
+          "web-application",
+          "proxy-agent",
+          "explore",
+          "cloud-security",
+          "internal-network",
+          "mobile-application",
+          "cyberstrike",
+        ].map((name) => ({
+          name,
+          stats: AgentPerformance.getOrCreate(rootSession, name),
+        }))
+
+        return c.json({
+          session: {
+            title: session.title,
+            duration: session.time.updated - session.time.created,
+          },
+          findings: vulns,
+          coverage,
+          assetCoverage,
+          methodology: state,
+          chains,
+          requests: { total: requests.length, byMethod },
+          agents,
+          validation: {
+            passed: gates.overallPassed,
+            blockingCount: gates.blockingViolations.length,
+            warningCount: gates.warningViolations.length,
+            summary: gates.summary,
+          },
+        })
+      },
+    )
+
+    // Report download (Markdown file)
+    .get(
+      "/session/:sessionID/report/download",
+      describeRoute({
+        summary: "Download latest report",
+        description: "Returns the most recent generated Markdown report for a session.",
+        operationId: "methodology.reportDownload",
+        responses: {
+          200: { description: "Report markdown file" },
+          ...errors(404),
+        },
+      }),
+      validator("param", sessionParam),
+      async (c) => {
+        const { sessionID } = c.req.valid("param")
+        const rootSession = Session.root(sessionID)
+        const reportsDir = path.join(Instance.worktree, ".cyberstrike", "reports")
+
+        const glob = new Bun.Glob("report-*.md")
+        const files = [...glob.scanSync({ cwd: reportsDir, absolute: true })].sort().reverse()
+
+        if (files.length === 0) return c.json({ error: "No reports found" }, 404)
+
+        const content = await Bun.file(files[0]).text()
+        const filename = path.basename(files[0])
+
+        c.header("Content-Disposition", `attachment; filename="${filename}"`)
+        c.header("Content-Type", "text/markdown; charset=utf-8")
+        return c.body(content)
       },
     ),
 )

@@ -96,6 +96,10 @@ export const dict = {
   "command.session.share.description": "Share this session and copy the URL to clipboard",
   "command.session.unshare": "Unshare session",
   "command.session.unshare.description": "Stop sharing this session",
+  "command.session.report": "Export Report",
+  "command.session.report.description": "Download the latest generated security assessment report",
+  "session.report.noReport": "No report found. Use the agent to generate one first.",
+  "session.report.exported": "Report downloaded successfully",
 
   "palette.search.placeholder": "Search files, commands, sessions, and skills",
   "palette.empty": "No results found",

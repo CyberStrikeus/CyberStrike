@@ -1,0 +1,29 @@
+Compile all session data into a structured Markdown security assessment report. Returns a complete report with vulnerability findings, coverage statistics, methodology progress, chain opportunities, attack surface mapping, assessment timeline, agent performance, and validation status.
+
+The report contains three `<!-- AI: ... -->` placeholder sections that you MUST fill in:
+
+1. `<!-- AI: executive_summary -->` — Write 2-3 paragraphs summarizing:
+   - Overall security posture and risk level (Critical/High/Medium/Low)
+   - Total findings by severity and critical risks identified
+   - Key attack chains and their business impact
+   - Assessment completeness (coverage %, methodology %)
+
+2. `<!-- AI: risk_assessment -->` — Write a risk assessment:
+   - Risk matrix based on likelihood × impact for each critical/high finding
+   - Business context and exploitation complexity
+   - Systemic patterns (e.g., "all auth endpoints lack rate limiting")
+
+3. `<!-- AI: remediation_priorities -->` — Write a numbered priority list:
+   - Most critical items first
+   - Each item: finding reference [SEVERITY-NNN], specific action required, expected effort (quick win / medium / significant)
+   - Separate quick wins from long-term improvements
+
+After receiving the report output:
+1. Read the compiled Markdown carefully
+2. Write all three AI sections based on the actual findings data
+3. Replace each `<!-- AI: ... -->` placeholder with your written content
+4. Save the final report using the `write` tool to `.cyberstrike/reports/report-<timestamp>.md`
+
+Do NOT skip the AI sections. They are the most valuable part of the report — the deterministic data is compiled automatically, but the executive analysis requires your reasoning.
+
+The `include_sections` parameter allows generating partial reports. Default includes all sections.
