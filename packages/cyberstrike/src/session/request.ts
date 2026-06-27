@@ -1,7 +1,7 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
-import { Database, eq, and, isNull } from "../storage/db"
+import { Database, eq, and, isNull, asc } from "../storage/db"
 import { RequestTable } from "./session.sql"
 import { Identifier } from "../id/id"
 import { createHash } from "crypto"
@@ -193,7 +193,11 @@ export namespace Request {
 
   export function get(sessionID: string): Info[] {
     const rows = Database.use((db) =>
-      db.select().from(RequestTable).where(eq(RequestTable.session_id, sessionID)).all(),
+      // ORDER BY id ASC = ingest order. id is an ascending identifier (Identifier.ascending),
+      // so it sorts in creation/ingest order. Required because, without an explicit order,
+      // SQLite's row order is undefined and the request_keyhash_idx unique index makes it
+      // scan by (session_id, key_hash) — reordering the list away from ingest order in the UI.
+      db.select().from(RequestTable).where(eq(RequestTable.session_id, sessionID)).orderBy(asc(RequestTable.id)).all(),
     )
     return rows.map((row) => ({
       id: row.id,
