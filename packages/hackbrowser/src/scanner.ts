@@ -686,6 +686,11 @@ export async function expandDisclosures(page: Page): Promise<void> {
         if (budget <= 0) break
         if (c.closest("[data-cyberstrike-ui]")) continue
         if (c.getAttribute("role") === "tab") continue // tabs mutate state → left to the LLM
+        // A real disclosure reveals INLINE content; an `aria-haspopup` control instead
+        // opens a FLOATING overlay (menu/listbox/dialog) whose backdrop intercepts all
+        // subsequent clicks — auto-triggering it (e.g. a nav/account/language menu) freezes
+        // the whole page. Leave popup triggers to the LLM; only expand true disclosures.
+        if (c.hasAttribute("aria-haspopup") && c.getAttribute("aria-haspopup") !== "false") continue
         ;(c as HTMLElement).click()
         budget--
       }

@@ -1042,7 +1042,17 @@ async function executeClickTask(
     targetSelector: el.selector,
     credential: credentialId,
   })
-  const result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  let result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  // Reactive overlay-aware retry: a stray overlay (a menu/dropdown/dialog backdrop opened
+  // by a PRIOR action) can intercept this click and time it out even though the target is
+  // fine. The existing proactive closeOverlay only runs when an element is NOT found; here
+  // the element IS found but blocked. If the click failed while a blocking overlay is up,
+  // dismiss it (closeOverlay: Escape → backdrop click) and retry the click ONCE.
+  if (!result.success && (await isViewportCenterBlocked(page))) {
+    log.debug("click blocked by a stray overlay — closing it and retrying once", { label: el.label })
+    await closeOverlay(page)
+    result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  }
   interceptor.clearPendingTrigger()
   trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
   void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
