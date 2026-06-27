@@ -14,6 +14,7 @@ export namespace Identifier {
     vulnerability: "vul",
     request: "req",
     request_observation: "rob",
+    coverage_note: "cov",
     web_credential: "wcr",
     web_role: "wrl",
     web_object: "wob",

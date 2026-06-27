@@ -347,6 +347,32 @@ export const RequestObservationTable = sqliteTable(
   ],
 )
 
+// Append-only coverage memory: WHAT vuln class was tested at WHICH scope, declared
+// by the tester agent itself. Generic text — `asset` and `class` are LLM-declared
+// strings so the same table serves web (origin/keyHash), cloud (ARN) and network
+// (host:port) alike. The note's EXISTENCE for an (asset, class) cell means "tested";
+// verdict (vuln/clean) lives in intel/vulnerability, NOT here. No status column.
+// The orchestrator reads these notes and skips re-dispatching a covered cell.
+export const CoverageNoteTable = sqliteTable(
+  "coverage_note",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    asset: text().notNull(), // LLM-declared scope id: origin / endpoint / ARN / host:port
+    class: text().notNull(), // LLM-declared vuln class: authn-crypto / idor / iam-posture …
+    note: text().notNull(), // compact prose: what was tried + result + gaps
+    tested_by: text(), // agent name that recorded it
+    request_id: text(), // optional traceability soft pointer (absent for cloud/network)
+    ...Timestamps,
+  },
+  (table) => [
+    index("coverage_note_cell_idx").on(table.session_id, table.asset, table.class),
+    index("coverage_note_session_idx").on(table.session_id),
+  ],
+)
+
 export const WebRetestQueueTable = sqliteTable(
   "web_retest_queue",
   {
