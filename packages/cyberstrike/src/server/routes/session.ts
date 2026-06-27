@@ -167,17 +167,16 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
   return lines
 }
 
-// Renders the `## Observed Values` block: which concrete inputs each credential was
-// observed using on THIS endpoint shape (deterministic, redaction-aware). Empty when
-// no params carry values. 2+ credentials on one param is an IDOR/BOLA cross-replay
-// candidate — surfaced so the orchestrator routes access-control tests. The judgment
-// (is it actually IDOR?) stays with the tester subagent, not here.
+// Renders the `## Observed Values` block: the concrete input values each credential was
+// observed using on THIS endpoint shape (deterministic, redaction-aware). RAW FACTS ONLY —
+// no interpretation. What the values mean (access-control/IDOR/etc.) is the orchestrator's
+// and tester subagent's call, never pre-judged here. Empty when no params carry values.
 function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
   if (tree.params.length === 0) return []
   const lines = [
     "",
     "## Observed Values",
-    "Concrete inputs captured on this endpoint, per credential (deterministic). 2+ credentials on one param = IDOR/BOLA cross-replay candidate.",
+    "Concrete input values captured on this endpoint, per credential (deterministic, redaction-aware).",
   ]
   for (const p of tree.params.slice(0, 12)) {
     const parts = p.byCredential.map((c) => {
@@ -1232,23 +1231,28 @@ export const SessionRoutes = lazy(() =>
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
 
-          // Build prompt with credential context, response, and access context
-          const promptText = buildPromptWithCredentialContext(
-            truncatedRawRequest,
-            credentialID,
-            req.processed_response,
-            {
-              triggerElement: body.trigger_element,
-              elementRoles: body.element_roles,
-              pageUrl: body.page_url,
-              pageVisitedBy: body.page_visited_by,
-              uiContext: body.ui_context as Record<string, unknown> | undefined,
-            },
-            normalized.protocol && normalized.operation
-              ? { protocol: normalized.protocol, operation: normalized.operation }
-              : undefined,
-            Observation.endpointTree(sessionID, normalized.keyHash),
-          )
+          // Build the prompt as a thunk so the `## Observed Values` block reflects the
+          // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
+          // are slow) and other per-credential requests to the SAME endpoint accrue
+          // observations while a prompt waits — rendering at dequeue captures them (e.g. a
+          // second credential's values land in the prompt instead of being missed).
+          const buildPrompt = () =>
+            buildPromptWithCredentialContext(
+              truncatedRawRequest,
+              credentialID,
+              req.processed_response,
+              {
+                triggerElement: body.trigger_element,
+                elementRoles: body.element_roles,
+                pageUrl: body.page_url,
+                pageVisitedBy: body.page_visited_by,
+                uiContext: body.ui_context as Record<string, unknown> | undefined,
+              },
+              normalized.protocol && normalized.operation
+                ? { protocol: normalized.protocol, operation: normalized.operation }
+                : undefined,
+              Observation.endpointTree(sessionID, normalized.keyHash),
+            )
 
           if (ingestDryRun) {
             // Log the prompt that would be sent to LLM — skip actual LLM call
@@ -1258,7 +1262,7 @@ export const SessionRoutes = lazy(() =>
               path: normalized.normalizedPath,
               requestId: req.id,
             })
-            log.info("prompt preview:\n" + promptText)
+            log.info("prompt preview:\n" + buildPrompt())
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
             const agentName = body.agent ?? "proxy-agent"
@@ -1266,6 +1270,10 @@ export const SessionRoutes = lazy(() =>
             IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)
+              // Render at dequeue (send time) so `## Observed Values` includes observations
+              // that accrued while this prompt waited in the queue — other credentials and
+              // other values seen on the same endpoint shape in the meantime.
+              const promptText = buildPrompt()
               try {
                 await SessionPrompt.prompt({
                   sessionID,

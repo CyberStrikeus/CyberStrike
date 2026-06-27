@@ -18,7 +18,7 @@ Returns discovered information about:
 - Objects: Data entities and their fields (included by default)
 - Functions: Endpoint-to-function mappings (included by default)
 - Vulnerabilities: Last 30 reported findings (included by default — always check before reporting new vulns to avoid duplicates)
-- Observations: Endpoints with the concrete input values each credential was observed using (deterministic, from captured traffic). Highlights multi-credential endpoints — the access-control / IDOR shortlist (included by default). Pull full per-endpoint values with web_get_request_detail.
+- Observations: Endpoints with the concrete input values each credential was observed using (deterministic, from captured traffic). Highlights endpoints reached by 2+ distinct credentials (included by default). Pull full per-endpoint values with web_get_request_detail.
 - Retest Queue: Pending re-tests triggered by new discoveries (optional, use include parameter)
 - Requests: Analyzed endpoints summary (optional, use include parameter - returns only id, method, path, status)
 
