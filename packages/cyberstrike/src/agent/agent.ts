@@ -565,6 +565,7 @@ export namespace Agent {
             // Methodology Engine tools
             add_intel: "allow",
             update_vrt_check: "allow",
+            record_coverage_note: "allow",
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",

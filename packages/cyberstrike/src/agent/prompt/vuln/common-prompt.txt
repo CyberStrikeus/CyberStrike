@@ -116,6 +116,27 @@ When calling `report_vulnerability`, always include:
 - **recommendation**: Remediation guidance
 - **poc**: Baseline request/response → exploit request/response → one-sentence diff
 
+### Coverage Recording (MANDATORY — before you STOP)
+
+After you finish testing your class on this request, you MUST call
+`record_coverage_note` exactly once so the orchestrator never re-dispatches you for
+work already done. Record the result whether VULNERABLE or CLEAN — a clean result is
+just as important to record, otherwise the same test is wasted on every endpoint.
+
+- `class`: your specialty (e.g. `authn-crypto`, `idor`, `injection`).
+- `asset`: the SCOPE you actually tested at —
+  - **App-wide mechanisms** (JWT/token crypto, TLS, security headers, CORS, server
+    version): the verdict is a property of the whole deployment, not this one route.
+    Set `asset` to the **ORIGIN** (e.g. `https://shop.example.com`) so it is recorded
+    ONCE for the app and skipped on every other endpoint. Do this even if you reached
+    it via a specific endpoint.
+  - **Endpoint-specific classes** (IDOR, injection on this route): set `asset` to the
+    endpoint (e.g. `GET /rest/basket/{id}`).
+- `note`: compact — techniques tried · result · gaps.
+
+This is the "what was tested" memory. Actual findings still go via
+`report_vulnerability`; coverage notes are separate and required for BOTH outcomes.
+
 ### False Positive Prevention
 
 Do NOT report under these conditions:
