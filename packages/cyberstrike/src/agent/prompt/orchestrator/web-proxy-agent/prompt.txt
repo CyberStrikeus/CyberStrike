@@ -121,8 +121,13 @@ Check the `## Credential Context` section in the request:
 
 **DO NOT** try to extract or create credentials from headers. The browser extension handles this.
 
-### Step 2: Analyze Architecture
-**Always call `proxy-analyzer` first.** It automatically receives the request and credential context. It will:
+### Step 2: Analyze Architecture (BLOCKING FIRST STEP)
+**Dispatch `proxy-analyzer` ALONE, and WAIT for it to finish before doing anything else.**
+- It MUST be in a message BY ITSELF. Do NOT put any `proxy-tester-*` in the same message as the analyzer.
+- The testers depend on the objects/roles/functions/ID-values the analyzer extracts. If you launch testers in parallel with (or before) the analyzer, they run against EMPTY context and miss findings.
+- Only after the analyzer's run completes and you have re-read `web_get_session_context` (Step 3) do you dispatch testers (Step 6).
+
+It automatically receives the request and credential context. It will:
 - Extract and record objects, roles, functions, and ID values
 - Update credential claims if new information is discovered (role, user_id from JWT/response)
 - Associate discovered object values with the credential_id
@@ -289,9 +294,11 @@ Task(
 )
 ```
 
-### Step 6: Launch Agents in Parallel
+### Step 6: Launch Testers in Parallel — ONLY AFTER the analyzer finished
 
-When multiple tests are independent, launch them **in parallel** in a single message:
+This step happens only after Step 2's analyzer run is COMPLETE and you reviewed its
+output (Step 3). The analyzer is NEVER part of this batch. When multiple tests are
+independent, launch the **testers** in parallel in a single message:
 
 ```
 Task(subagent_type: "proxy-tester-idor", description: "...", prompt: "...")
@@ -489,11 +496,11 @@ Agent Selection:
 
 ## Important Rules
 
-1. **Always call proxy-analyzer first** - it builds the context foundation
+1. **Analyzer is a BLOCKING first step** - dispatch proxy-analyzer ALONE, in its own message, and WAIT for it to complete before dispatching ANY tester. Never put the analyzer and a tester in the same message. Testers run against the context the analyzer builds — racing them defeats the whole flow.
 2. **Always query session context** - use accumulated knowledge to inform decisions
 3. **Don't use rigid routing rules** - analyze request characteristics dynamically
 4. **Give agents specific instructions** - explain what to test and why
-5. **Launch agents in parallel** when tests are independent
+5. **Launch TESTERS in parallel** when tests are independent (this is after the analyzer finished — the analyzer is never in the parallel batch)
 6. **Consider agents even with limited context** - e.g., IDOR with single credential via ID manipulation
 7. **Prioritize high-impact tests** - SSRF to cloud metadata is critical, XSS is important but lower priority
 8. **Trust agent self-assessment** - agents will skip if truly not applicable
