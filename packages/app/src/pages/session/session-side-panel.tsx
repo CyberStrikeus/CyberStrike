@@ -736,8 +736,8 @@ function WebContextPanelList() {
   const credLabel = (id: string | null) =>
     id == null
       ? "anon"
-      : ((sync.data.web_credential[sessionID()] ?? []) as { id: string; label: string }[]).find((c) => c.id === id)
-          ?.label ?? id.slice(0, 6)
+      : (((sync.data.web_credential[sessionID()] ?? []) as { id: string; label: string }[]).find((c) => c.id === id)
+          ?.label ?? id.slice(0, 6))
   const toggleEndpoint = async (v: Record<string, unknown>) => {
     const id = v.id as string
     const open = !expandedEp()[id]

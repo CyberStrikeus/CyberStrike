@@ -322,7 +322,10 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       async fetch(path: string, init?: RequestInit): Promise<Response> {
         const headers: Record<string, string> = { ...((init?.headers as Record<string, string>) ?? {}) }
         if (currentServer.http.password)
-          headers["Authorization"] = basicAuth(currentServer.http.username ?? "cyberstrike", currentServer.http.password)
+          headers["Authorization"] = basicAuth(
+            currentServer.http.username ?? "cyberstrike",
+            currentServer.http.password,
+          )
         const f = platform.fetch ?? fetch
         return f(`${currentServer.http.url}${path}`, { ...init, headers })
       },

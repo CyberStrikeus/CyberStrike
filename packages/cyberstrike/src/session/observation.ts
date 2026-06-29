@@ -107,7 +107,10 @@ export namespace Observation {
   export function endpointTree(sessionID: string, keyHash: string): EndpointTree {
     const obs = listByKeyHash(sessionID, keyHash)
     const credentials = [...new Set(obs.map((o) => o.credential_id))]
-    const byParam = new Map<string, { loc: string; byCred: Map<string | null, { values: Set<string>; redacted: boolean }> }>()
+    const byParam = new Map<
+      string,
+      { loc: string; byCred: Map<string | null, { values: Set<string>; redacted: boolean }> }
+    >()
     for (const o of obs) {
       const slots = (o.slots ?? []) as { loc: string; name: string; value: string; retained?: boolean }[]
       for (const s of slots) {

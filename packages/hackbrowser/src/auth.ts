@@ -275,12 +275,9 @@ export async function waitForManualLogin(
           // Affordance hint under the action: the bar moves via the grip.
           const hint = document.createElement("span")
           hint.textContent = "drag ⠿ to move"
-          hint.style.cssText = [
-            "font-size: 8px",
-            "letter-spacing: 0.1em",
-            "color: #6b7280",
-            "margin-top: 1px",
-          ].join(";")
+          hint.style.cssText = ["font-size: 8px", "letter-spacing: 0.1em", "color: #6b7280", "margin-top: 1px"].join(
+            ";",
+          )
           btn.appendChild(hint)
 
           // Drag via Pointer Events + capture: one path for mouse/touch/pen and no

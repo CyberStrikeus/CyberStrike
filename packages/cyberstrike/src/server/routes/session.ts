@@ -181,9 +181,14 @@ function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
   ]
   for (const p of tree.params.slice(0, 12)) {
     const parts = p.byCredential.map((c) => {
-      const label = c.credentialID ? WebCredential.getById(c.credentialID)?.label ?? c.credentialID : "unauthenticated"
+      const label = c.credentialID
+        ? (WebCredential.getById(c.credentialID)?.label ?? c.credentialID)
+        : "unauthenticated"
       if (c.redacted && c.values.length === 0) return `${label}=[redacted]`
-      const vals = c.values.slice(0, 6).map((v) => JSON.stringify(v)).join(", ")
+      const vals = c.values
+        .slice(0, 6)
+        .map((v) => JSON.stringify(v))
+        .join(", ")
       return `${label}=[${vals}]${c.redacted ? " (+redacted)" : ""}`
     })
     lines.push(`- ${p.name} (${p.loc}): ${parts.join("; ")}`)

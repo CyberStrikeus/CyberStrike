@@ -8,10 +8,10 @@ export const RecordCoverageNoteTool = Tool.define("record_coverage_note", {
     "Record what you tested so it is not re-tested. Call this AFTER you finish testing a CLASS of issue, " +
     "for BOTH outcomes (found or clean — a clean result is just as important to record). Declare the SCOPE " +
     "you tested at:\n" +
-    "- `scope: \"wide\"` — the verdict is a property of the whole deployment/account/host, not one specific " +
+    '- `scope: "wide"` — the verdict is a property of the whole deployment/account/host, not one specific ' +
     "asset. Set `asset` to the deployment-wide identifier. Recorded ONCE and applied to every later asset " +
     "under it — do NOT re-test it per asset.\n" +
-    "- `scope: \"local\"` — specific to this one asset (a single endpoint, resource, or service). Set `asset` " +
+    '- `scope: "local"` — specific to this one asset (a single endpoint, resource, or service). Set `asset` ' +
     "to that asset's identifier.\n" +
     "Make a SEPARATE call for EACH distinct asset you tested — never describe two assets in one note. " +
     "The note's existence marks that cell tested. Actual findings still go via report_vulnerability; this is " +
@@ -29,7 +29,9 @@ export const RecordCoverageNoteTool = Tool.define("record_coverage_note", {
       ),
     class: z
       .string()
-      .describe("The class of issue you tested (e.g. authn-crypto, idor, injection, iam-misconfig, weak-tls — whatever fits your domain)."),
+      .describe(
+        "The class of issue you tested (e.g. authn-crypto, idor, injection, iam-misconfig, weak-tls — whatever fits your domain).",
+      ),
     scope: z
       .enum(["wide", "local"])
       .describe(
@@ -70,7 +72,10 @@ export const GetCoverageNotesTool = Tool.define("get_coverage_notes", {
     "local = per-asset) and/or `asset`. The wide notes relevant to your current scope are already auto-injected " +
     "into your prompt — use this only when you need more (the full list, a specific asset, or local notes).",
   parameters: z.object({
-    scope: z.enum(["wide", "local"]).optional().describe("Filter to wide (deployment-wide) or local (per-asset) notes."),
+    scope: z
+      .enum(["wide", "local"])
+      .optional()
+      .describe("Filter to wide (deployment-wide) or local (per-asset) notes."),
     asset: z.string().optional().describe("Filter to one asset identifier."),
     offset: z.number().optional().describe("Pagination offset (default 0). Add 20 to page forward."),
   }),

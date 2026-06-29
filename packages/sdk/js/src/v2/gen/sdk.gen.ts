@@ -74,6 +74,8 @@ import type {
   MethodologyChainsErrors,
   MethodologyChainsResponses,
   MethodologyCoverageErrors,
+  MethodologyCoverageNotesErrors,
+  MethodologyCoverageNotesResponses,
   MethodologyCoverageResponses,
   MethodologyIntelErrors,
   MethodologyIntelResponses,
@@ -160,6 +162,8 @@ import type {
   SessionMessageResponses,
   SessionMessagesErrors,
   SessionMessagesResponses,
+  SessionObservationsErrors,
+  SessionObservationsResponses,
   SessionPromptAsyncErrors,
   SessionPromptAsyncResponses,
   SessionPromptErrors,
@@ -1510,6 +1514,40 @@ export class Session extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<SessionRequestResponses, SessionRequestErrors, ThrowOnError>({
       url: "/session/{sessionID}/request",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get observed values for an endpoint
+   *
+   * Per-endpoint observed values (raw facts): which credential used which concrete values for each parameter. Pulled on-demand when the UI expands an endpoint. Pass the endpoint's key_hash.
+   */
+  public observations<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      keyHash?: string
+      id?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "keyHash" },
+            { in: "query", key: "id" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionObservationsResponses, SessionObservationsErrors, ThrowOnError>({
+      url: "/session/{sessionID}/observations",
       ...options,
       ...params,
     })
@@ -4015,6 +4053,40 @@ export class Methodology extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<MethodologyIntelResponses, MethodologyIntelErrors, ThrowOnError>({
       url: "/methodology/session/{sessionID}/intel",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get coverage notes
+   *
+   * Returns the coverage notes (what vuln class was tested at which scope/asset) for a session.
+   */
+  public coverageNotes<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      MethodologyCoverageNotesResponses,
+      MethodologyCoverageNotesErrors,
+      ThrowOnError
+    >({
+      url: "/methodology/session/{sessionID}/coverage-notes",
       ...options,
       ...params,
     })

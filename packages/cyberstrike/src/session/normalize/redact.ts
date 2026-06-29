@@ -21,16 +21,38 @@ const MAX_VALUE_LEN = 128
 
 // Whole-segment secret key names (matched against keyPath tokens like input.password).
 const DENY_TOKENS: ReadonlySet<string> = new Set([
-  "password", "passwd", "pwd", "secret", "token", "tokens", "otp", "cvv", "cvc", "ssn",
-  "pin", "auth", "authorization", "cookie", "apikey", "credential", "credentials",
-  "privatekey", "clientsecret", "refresh", "sessionid", "accesskey",
+  "password",
+  "passwd",
+  "pwd",
+  "secret",
+  "token",
+  "tokens",
+  "otp",
+  "cvv",
+  "cvc",
+  "ssn",
+  "pin",
+  "auth",
+  "authorization",
+  "cookie",
+  "apikey",
+  "credential",
+  "credentials",
+  "privatekey",
+  "clientsecret",
+  "refresh",
+  "sessionid",
+  "accesskey",
 ])
 
 const JWT_RE = /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 const SECRET_SUFFIX_RE = /(secret|token|password|passwd|apikey|api_key|privatekey)$/i
 
 function denyByName(name: string): boolean {
-  const tokens = name.toLowerCase().split(/[._\-[\]]+/).filter(Boolean)
+  const tokens = name
+    .toLowerCase()
+    .split(/[._\-[\]]+/)
+    .filter(Boolean)
   if (tokens.some((t) => DENY_TOKENS.has(t))) return true
   return SECRET_SUFFIX_RE.test(name)
 }

@@ -30,7 +30,6 @@ function restDispatcher(query: string | undefined): string {
   return ""
 }
 
-
 export type { TemplateStore } from "./tier2"
 export type { Tier3Client } from "./tier3"
 export { runTier1 } from "./tier1"

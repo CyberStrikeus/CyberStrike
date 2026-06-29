@@ -87,7 +87,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   // observed values on demand and reveals the param→credential→values tree.
   const [expandedEp, setExpandedEp] = createStore<Record<string, boolean>>({})
   const credLabel = (id: string | null) =>
-    id == null ? "anon" : credentials().find((c) => c.id === id)?.label ?? id.slice(0, 6)
+    id == null ? "anon" : (credentials().find((c) => c.id === id)?.label ?? id.slice(0, 6))
   const toggleEndpoint = (r: { id: string; key_hash?: string }) => {
     const open = !expandedEp[r.id]
     setExpandedEp(r.id, open)

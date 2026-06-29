@@ -242,6 +242,7 @@ export type AssistantMessage = {
   structured?: unknown
   variant?: string
   finish?: string
+  stepCapped?: boolean
 }
 
 export type Message = UserMessage | AssistantMessage
@@ -718,6 +719,10 @@ export type Request = {
   canonical_path?: string
   template_id?: string
   norm_source?: "tier1" | "tier2" | "tier3" | "failed"
+  protocol?: string
+  operation?: string
+  op_key_hash?: string
+  key_hash?: string
   response_status?: number
   response_headers?: {
     [key: string]: string
@@ -836,7 +841,8 @@ export type Vulnerability = {
   poc?: string
   endpoint?: string
   attack_vector?: string
-  status?: "open" | "fixed" | "ignored"
+  status?: "new" | "approved" | "duplicate" | "open" | "fixed" | "ignored"
+  duplicate_of?: string
   message_id?: string
   time?: {
     created: number
@@ -985,14 +991,6 @@ export type EventWebRetestUpdated = {
   }
 }
 
-export type EventIntelUpdated = {
-  type: "intel.updated"
-  properties: {
-    sessionID: string
-    entryCount: number
-  }
-}
-
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -1059,6 +1057,14 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
+  }
+}
+
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
   }
 }
 
@@ -1255,13 +1261,13 @@ export type Event =
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
   | EventWebRetestUpdated
-  | EventIntelUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
+  | EventIntelUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -2597,6 +2603,7 @@ export type Agent = {
     modelID: string
     providerID: string
   }
+  useSmallModel?: boolean
   variant?: string
   prompt?: string
   skills?: Array<string>
@@ -3822,6 +3829,48 @@ export type SessionRequestResponses = {
 }
 
 export type SessionRequestResponse = SessionRequestResponses[keyof SessionRequestResponses]
+
+export type SessionObservationsData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    /**
+     * Endpoint key_hash
+     */
+    keyHash?: string
+    /**
+     * Request id (alternative to keyHash)
+     */
+    id?: string
+  }
+  url: "/session/{sessionID}/observations"
+}
+
+export type SessionObservationsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionObservationsError = SessionObservationsErrors[keyof SessionObservationsErrors]
+
+export type SessionObservationsResponses = {
+  /**
+   * Observed-value tree
+   */
+  200: unknown
+}
 
 export type SessionWebCredentialsData = {
   body?: never
@@ -6315,6 +6364,38 @@ export type MethodologyIntelResponses = {
 }
 
 export type MethodologyIntelResponse = MethodologyIntelResponses[keyof MethodologyIntelResponses]
+
+export type MethodologyCoverageNotesData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/methodology/session/{sessionID}/coverage-notes"
+}
+
+export type MethodologyCoverageNotesErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MethodologyCoverageNotesError = MethodologyCoverageNotesErrors[keyof MethodologyCoverageNotesErrors]
+
+export type MethodologyCoverageNotesResponses = {
+  /**
+   * Coverage notes
+   */
+  200: Array<{
+    [key: string]: unknown
+  }>
+}
+
+export type MethodologyCoverageNotesResponse =
+  MethodologyCoverageNotesResponses[keyof MethodologyCoverageNotesResponses]
 
 export type MethodologyCoverageData = {
   body?: never

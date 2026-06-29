@@ -101,7 +101,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       request_observation: {
         [keyHash: string]: {
           credentials: (string | null)[]
-          params: { name: string; loc: string; byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[] }[]
+          params: {
+            name: string
+            loc: string
+            byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[]
+          }[]
         }
       }
       session_diff: {

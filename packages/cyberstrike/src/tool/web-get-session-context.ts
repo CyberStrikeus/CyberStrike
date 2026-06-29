@@ -35,7 +35,16 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
   parameters: z.object({
     include: z
       .array(
-        z.enum(["credentials", "roles", "objects", "functions", "vulnerabilities", "observations", "retest_queue", "requests"]),
+        z.enum([
+          "credentials",
+          "roles",
+          "objects",
+          "functions",
+          "vulnerabilities",
+          "observations",
+          "retest_queue",
+          "requests",
+        ]),
       )
       .optional()
       .describe(
@@ -45,7 +54,14 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
-    const include = params.include ?? ["credentials", "roles", "objects", "functions", "vulnerabilities", "observations"]
+    const include = params.include ?? [
+      "credentials",
+      "roles",
+      "objects",
+      "functions",
+      "vulnerabilities",
+      "observations",
+    ]
 
     const context: Record<string, unknown> = {}
 

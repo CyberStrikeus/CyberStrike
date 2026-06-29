@@ -27,7 +27,8 @@ function sha16(s: string): string {
   return createHash("sha256").update(s).digest("hex").slice(0, 16)
 }
 
-const isIdentChar = (c: string) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c === "_"
+const isIdentChar = (c: string) =>
+  (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c === "_"
 const isIdentStart = (c: string) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_"
 const isWs = (c: string) => c === " " || c === "\t" || c === "\n" || c === "\r" || c === ","
 
@@ -395,7 +396,14 @@ export function extractOperation(input: {
       return {
         protocol: proto,
         operation: `batch[${ops.join(",")}]`,
-        opKeyHash: sha16(proto + "<|>batch<|>" + members.map((m) => m.opKeyHash).sort().join(",")),
+        opKeyHash: sha16(
+          proto +
+            "<|>batch<|>" +
+            members
+              .map((m) => m.opKeyHash)
+              .sort()
+              .join(","),
+        ),
       }
     }
     return operationFromJson(parsed)

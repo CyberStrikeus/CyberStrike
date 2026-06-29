@@ -100,13 +100,12 @@ export namespace CoverageNote {
    * `limit` is clamped to PAGE_LIMIT. Returns the page plus the total matched count so
    * the caller knows whether to page further.
    */
-  export function query(input: {
-    sessionID: string
-    scope?: Scope
-    asset?: string
-    offset?: number
-    limit?: number
-  }): { notes: Info[]; total: number; offset: number; limit: number } {
+  export function query(input: { sessionID: string; scope?: Scope; asset?: string; offset?: number; limit?: number }): {
+    notes: Info[]
+    total: number
+    offset: number
+    limit: number
+  } {
     const offset = Math.max(0, input.offset ?? 0)
     const limit = Math.min(input.limit ?? PAGE_LIMIT, PAGE_LIMIT)
     const conds = [eq(CoverageNoteTable.session_id, input.sessionID)]
@@ -115,7 +114,11 @@ export namespace CoverageNote {
     const where = and(...conds)
 
     const total = Database.use((db) =>
-      db.select({ n: sql<number>`count(*)` }).from(CoverageNoteTable).where(where).get(),
+      db
+        .select({ n: sql<number>`count(*)` })
+        .from(CoverageNoteTable)
+        .where(where)
+        .get(),
     )
     const rows = Database.use((db) =>
       db
@@ -131,7 +134,11 @@ export namespace CoverageNote {
   }
 
   /** Wide (deployment-wide) notes already recorded for an origin — the auto-injection set. */
-  export function wideForAsset(sessionID: string, asset: string, limit = INJECT_LIMIT): { notes: Info[]; total: number } {
+  export function wideForAsset(
+    sessionID: string,
+    asset: string,
+    limit = INJECT_LIMIT,
+  ): { notes: Info[]; total: number } {
     const total = Database.use((db) =>
       db
         .select({ n: sql<number>`count(*)` })
