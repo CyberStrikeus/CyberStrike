@@ -334,24 +334,49 @@ function rpcDispatcher(method: string, params: unknown): string {
 }
 
 /**
- * Structural key-shape hash of a JSON request body (Faz 1) — sorted key PATHS,
- * VALUES STRIPPED. This is the REST counterpart of opKeyHash: it lets the dedup
- * gate collapse same-shape/different-values mutations (`POST /users {a:1}` vs
- * `{a:2}`) while keeping a different shape (an extra `role` field — the
- * mass-assignment signal) distinct. Returns undefined for non-JSON or empty
+ * Structural key-shape hash of a request body — the field STRUCTURE with VALUES
+ * STRIPPED. The REST counterpart of opKeyHash: it lets the dedup gate collapse
+ * same-shape/different-values mutations (`POST /users {a:1}` vs `{a:2}`) while
+ * keeping a different shape (an extra `role` field — the mass-assignment signal)
+ * distinct. Covers JSON, form-urlencoded, and multipart (field names). For these,
+ * a body that is 100% volatile values (e.g. Pusher `socket_id=..&channel_name=..`)
+ * collapses to ONE endpoint instead of one per call. Returns undefined for opaque
  * bodies, where the caller falls back to the value-bearing body_hash.
  */
 export function bodyKeyShapeHash(body: string | undefined, contentType: string | undefined): string | undefined {
-  if (!body || !(contentType ?? "").includes("json")) return undefined
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(body)
-  } catch {
-    return undefined
+  if (!body) return undefined
+  const ct = (contentType ?? "").toLowerCase()
+
+  if (ct.includes("json")) {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(body)
+    } catch {
+      return undefined
+    }
+    const paths = keyPaths(parsed).sort()
+    if (paths.length === 0) return undefined
+    return sha16("rest-shape<|>" + paths.join(","))
   }
-  const paths = keyPaths(parsed).sort()
-  if (paths.length === 0) return undefined
-  return sha16("rest-shape<|>" + paths.join(","))
+
+  if (ct.includes("x-www-form-urlencoded")) {
+    let keys: string[]
+    try {
+      keys = [...new Set([...new URLSearchParams(body).keys()])].sort()
+    } catch {
+      return undefined
+    }
+    if (keys.length === 0) return undefined
+    return sha16("form-shape<|>" + keys.join(","))
+  }
+
+  if (ct.includes("multipart/form-data")) {
+    const names = [...new Set([...body.matchAll(/name="([^"]+)"/g)].map((m) => m[1]))].sort()
+    if (names.length === 0) return undefined
+    return sha16("multipart-shape<|>" + names.join(","))
+  }
+
+  return undefined
 }
 
 /**
