@@ -101,6 +101,7 @@ export const VulnerabilityTable = sqliteTable(
     endpoint: text(),
     attack_vector: text(),
     status: text().notNull(),
+    duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
     ...Timestamps,
   },
@@ -362,6 +363,7 @@ export const CoverageNoteTable = sqliteTable(
       .references(() => SessionTable.id, { onDelete: "cascade" }),
     asset: text().notNull(), // LLM-declared scope id: origin / endpoint / ARN / host:port
     class: text().notNull(), // LLM-declared vuln class: authn-crypto / idor / iam-posture …
+    scope: text().notNull(), // LLM-declared: "wide" (deployment-wide, recurs across endpoints) | "local" (this asset only)
     note: text().notNull(), // compact prose: what was tried + result + gaps
     tested_by: text(), // agent name that recorded it
     request_id: text(), // optional traceability soft pointer (absent for cloud/network)

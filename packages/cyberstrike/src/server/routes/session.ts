@@ -15,6 +15,7 @@ import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
 import { Observation } from "../../session/observation"
+import { CoverageNote } from "../../session/coverage-note"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
@@ -1236,8 +1237,12 @@ export const SessionRoutes = lazy(() =>
           // are slow) and other per-credential requests to the SAME endpoint accrue
           // observations while a prompt waits — rendering at dequeue captures them (e.g. a
           // second credential's values land in the prompt instead of being missed).
-          const buildPrompt = () =>
-            buildPromptWithCredentialContext(
+          const buildPrompt = () => {
+            // Prepend app-wide coverage already recorded for this origin so the
+            // orchestrator skips re-dispatching deployment-wide testers (JWT/TLS/headers).
+            // Rendered at dequeue, so it reflects coverage that accrued while queued.
+            const coverage = CoverageNote.wideBlock(sessionID, normalized.origin)
+            const base = buildPromptWithCredentialContext(
               truncatedRawRequest,
               credentialID,
               req.processed_response,
@@ -1253,6 +1258,8 @@ export const SessionRoutes = lazy(() =>
                 : undefined,
               Observation.endpointTree(sessionID, normalized.keyHash),
             )
+            return coverage ? `${coverage}\n\n${base}` : base
+          }
 
           if (ingestDryRun) {
             // Log the prompt that would be sent to LLM — skip actual LLM call

@@ -8,6 +8,7 @@ import { ReadTool } from "./read"
 import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
 import { ReportVulnerabilityTool } from "./vulnerability"
+import { TriageVulnerabilityTool } from "./triage-vulnerability"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
@@ -43,7 +44,7 @@ import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { UpdateVrtCheckTool } from "./vrt-check"
-import { RecordCoverageNoteTool } from "./coverage-note"
+import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
@@ -141,6 +142,7 @@ export namespace ToolRegistry {
       WebFetchTool,
       TodoWriteTool,
       ReportVulnerabilityTool,
+      TriageVulnerabilityTool,
       // TodoReadTool,
       WebSearchTool,
       CodeSearchTool,
@@ -173,6 +175,7 @@ export namespace ToolRegistry {
       AddIntelTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
+      GetCoverageNotesTool,
       ScopeCheckTool,
       EnsureToolsTool,
       MethodologyStatusTool,

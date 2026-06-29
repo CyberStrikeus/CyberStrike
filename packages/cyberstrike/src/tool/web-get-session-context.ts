@@ -115,7 +115,7 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
     }
 
     if (include.includes("vulnerabilities")) {
-      const vulns = Vulnerability.get(sessionID)
+      const vulns = Vulnerability.confirmed(sessionID)
       const last30 = vulns.slice(-30)
       context.vulnerabilities = {
         count: vulns.length,

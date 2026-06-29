@@ -24,7 +24,7 @@ export namespace IngestSummary {
       objects: WebObject.get(sessionID).length,
       roles: WebRole.get(sessionID).length,
       credentials: WebCredential.get(sessionID).length,
-      vulnerabilities: Vulnerability.get(sessionID).length,
+      vulnerabilities: Vulnerability.confirmed(sessionID).length,
     }
   }
 

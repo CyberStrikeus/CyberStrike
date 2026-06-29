@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS coverage_note (
   session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
   asset TEXT NOT NULL,
   class TEXT NOT NULL,
+  scope TEXT NOT NULL,
   note TEXT NOT NULL,
   tested_by TEXT,
   request_id TEXT,

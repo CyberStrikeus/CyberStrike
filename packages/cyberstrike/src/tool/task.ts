@@ -11,6 +11,7 @@ import { defer } from "@/util/defer"
 import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
+import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
 import { Truncate } from "./truncation"
@@ -178,8 +179,17 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             `- session_id: ${current.session_id}`,
             `- method: ${current.method}`,
             `- normalized_path: ${current.normalized_path}`,
+            `- origin: ${current.origin ?? "—"}`,
             `- status: ${current.status}`,
           )
+
+          // App-wide coverage already recorded for this origin — reuse the verdict /
+          // forged artifacts and do NOT re-test these deployment-wide classes here.
+          const coverage = CoverageNote.wideBlock(Session.root(ctx.sessionID), current.origin ?? "")
+          if (coverage) {
+            lines.push("")
+            lines.push(coverage)
+          }
 
           // Credential context
           if (current.credential_id) {
