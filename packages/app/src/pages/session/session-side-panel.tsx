@@ -346,6 +346,25 @@ function VulnsPanelList() {
 
   const openCount = createMemo(() => items().filter((v) => v.status !== "fixed" && v.status !== "ignored").length)
 
+  // Group by triage status (New → Duplicate → Approved). items() is already severity-sorted,
+  // so each group stays severity-sorted. "approved" is a catch-all so no vuln is ever dropped.
+  const vulnGroups = createMemo(() => {
+    const all = items()
+    const out: { key: string; label: string; symbol: string; items: typeof all }[] = []
+    const n = all.filter((v) => v.status === "new")
+    if (n.length) out.push({ key: "new", label: "New", symbol: "◍", items: n })
+    const d = all.filter((v) => v.status === "duplicate")
+    if (d.length) out.push({ key: "duplicate", label: "Duplicates", symbol: "⊗", items: d })
+    const a = all.filter((v) => v.status !== "new" && v.status !== "duplicate")
+    if (a.length) out.push({ key: "approved", label: "Approved", symbol: "●", items: a })
+    return out
+  })
+  // New + Duplicate collapsed by default; Approved open.
+  const [collapsedGroups, setCollapsedGroups] = createSignal<Record<string, boolean>>({ new: true, duplicate: true })
+  const toggleGroup = (key: string) => setCollapsedGroups((p) => ({ ...p, [key]: !p[key] }))
+  const canonicalTitle = (v: ReturnType<typeof items>[number]) =>
+    v.duplicate_of ? items().find((x) => x.id === v.duplicate_of)?.title : undefined
+
   const toggle = (id: string) => {
     setExpanded((prev) => (prev === id ? undefined : id))
   }
@@ -367,9 +386,26 @@ function VulnsPanelList() {
           {language.t("dialog.vulnerability.empty")}
         </div>
       </Show>
-      <For each={items()}>
-        {(v) => {
-          const id = () => v.id ?? v.title
+      <For each={vulnGroups()}>
+        {(g) => (
+          <div class="flex flex-col">
+            <div
+              class="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-text-weaker"
+              on:click={() => toggleGroup(g.key)}
+            >
+              <Icon
+                name={collapsedGroups()[g.key] ? "chevron-right" : "chevron-down"}
+                size="small"
+                class="shrink-0 text-icon-weak"
+              />
+              <span class="text-11-medium uppercase tracking-wider">
+                {g.symbol} {g.label} ({g.items.length})
+              </span>
+            </div>
+            <Show when={!collapsedGroups()[g.key]}>
+              <For each={g.items}>
+                {(v) => {
+                  const id = () => v.id ?? v.title
           const isExpanded = () => expanded() === id()
           return (
             <div
@@ -386,6 +422,7 @@ function VulnsPanelList() {
                     {v.severity.toUpperCase()}
                     {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
                     {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
+                    {v.status === "duplicate" && canonicalTitle(v) ? ` · → ${canonicalTitle(v)}` : ""}
                   </span>
                 </div>
                 <Show
@@ -437,8 +474,12 @@ function VulnsPanelList() {
                 </div>
               </Show>
             </div>
-          )
-        }}
+                  )
+                }}
+              </For>
+            </Show>
+          </div>
+        )}
       </For>
     </div>
   )
