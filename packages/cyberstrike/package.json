@@ -43,7 +43,7 @@
     "./*": "./src/*.ts"
   },
   "devDependencies": {
-    "@babel/core": "7.28.4",
+    "@babel/core": "7.29.6",
     "@octokit/webhooks-types": "7.6.1",
     "@cyberstrike-io/script": "workspace:*",
     "@parcel/watcher-darwin-arm64": "2.5.1",
