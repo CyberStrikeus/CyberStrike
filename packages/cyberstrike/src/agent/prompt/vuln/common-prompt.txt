@@ -62,7 +62,8 @@ Response processing rules:
 ### Available Tools
 
 All vulnerability testing agents have access to:
-- **web_get_session_context** - Query credentials, roles, objects, functions, and last 30 vulnerabilities (default)
+- **web_get_session_context** - Your endpoint's context. The `recent` block already contains the objects/functions for THIS endpoint WITH their schema and observed ID values (your IDOR/mass-assignment substrate) — you normally do NOT need to fetch anything. The `catalog` lists the NAMES of everything else discovered app-wide.
+- **web_get_detail** - Pull FULL detail (schema + cross-credential observed values) for a `catalog` entry by name — use for cross-endpoint IDOR (another object's IDs) or a deeper look. Not needed for your own endpoint (already in `recent`).
 - **web_get_vulnerabilities** - Filter/search vulnerabilities by severity or status
 - **report_vulnerability** - Report a confirmed finding. It is ALWAYS recorded — never skip a real one. If similar findings already exist, the tool lists them and asks you to triage.
 - **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
