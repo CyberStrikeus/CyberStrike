@@ -406,74 +406,74 @@ function VulnsPanelList() {
               <For each={g.items}>
                 {(v) => {
                   const id = () => v.id ?? v.title
-          const isExpanded = () => expanded() === id()
-          return (
-            <div
-              class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
-              classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
-            >
-              <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
-                <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
-                <div class="flex flex-col min-w-0 flex-1">
-                  <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
-                    {v.title}
-                  </span>
-                  <span class="text-11-regular text-text-weaker truncate">
-                    {v.severity.toUpperCase()}
-                    {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
-                    {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
-                    {v.status === "duplicate" && canonicalTitle(v) ? ` · → ${canonicalTitle(v)}` : ""}
-                  </span>
-                </div>
-                <Show
-                  when={isExpanded()}
-                  fallback={
-                    <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <CopyVulnButton vuln={v} iconOnly />
-                    </span>
-                  }
-                >
-                  <CopyVulnButton vuln={v} />
-                </Show>
-                <Icon
-                  name={isExpanded() ? "chevron-down" : "chevron-right"}
-                  size="small"
-                  class="shrink-0 mt-0.5 text-icon-weak"
-                />
-              </div>
-              <Show when={isExpanded()}>
-                <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
-                      {severityLabel(v.severity)}
-                    </span>
-                    <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                      {statusLabel(v.status ?? "open")}
-                    </span>
-                    <Show when={v.cwe_id}>
-                      <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                        CWE-{v.cwe_id}
-                      </span>
-                    </Show>
-                  </div>
-                  <Show when={v.file}>
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-11-medium text-text-weaker uppercase tracking-wider">Location</span>
-                      <span class="text-12-regular text-text-base font-mono">
-                        {v.file}
-                        {v.line_start ? `:${v.line_start}` : ""}
-                        {v.line_end && v.line_end !== v.line_start ? `-${v.line_end}` : ""}
-                      </span>
+                  const isExpanded = () => expanded() === id()
+                  return (
+                    <div
+                      class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
+                      classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
+                    >
+                      <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
+                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
+                        <div class="flex flex-col min-w-0 flex-1">
+                          <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
+                            {v.title}
+                          </span>
+                          <span class="text-11-regular text-text-weaker truncate">
+                            {v.severity.toUpperCase()}
+                            {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
+                            {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
+                            {v.status === "duplicate" && canonicalTitle(v) ? ` · → ${canonicalTitle(v)}` : ""}
+                          </span>
+                        </div>
+                        <Show
+                          when={isExpanded()}
+                          fallback={
+                            <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <CopyVulnButton vuln={v} iconOnly />
+                            </span>
+                          }
+                        >
+                          <CopyVulnButton vuln={v} />
+                        </Show>
+                        <Icon
+                          name={isExpanded() ? "chevron-down" : "chevron-right"}
+                          size="small"
+                          class="shrink-0 mt-0.5 text-icon-weak"
+                        />
+                      </div>
+                      <Show when={isExpanded()}>
+                        <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
+                              {severityLabel(v.severity)}
+                            </span>
+                            <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
+                              {statusLabel(v.status ?? "open")}
+                            </span>
+                            <Show when={v.cwe_id}>
+                              <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
+                                CWE-{v.cwe_id}
+                              </span>
+                            </Show>
+                          </div>
+                          <Show when={v.file}>
+                            <div class="flex flex-col gap-0.5">
+                              <span class="text-11-medium text-text-weaker uppercase tracking-wider">Location</span>
+                              <span class="text-12-regular text-text-base font-mono">
+                                {v.file}
+                                {v.line_start ? `:${v.line_start}` : ""}
+                                {v.line_end && v.line_end !== v.line_start ? `-${v.line_end}` : ""}
+                              </span>
+                            </div>
+                          </Show>
+                          <VulnDetailSection label="Description" content={v.description} />
+                          <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
+                          <VulnDetailSection label="Proof of Concept" content={v.poc} />
+                          <VulnDetailSection label="Business Impact" content={v.business_impact} />
+                          <VulnDetailSection label="Recommendation" content={v.recommendation} />
+                        </div>
+                      </Show>
                     </div>
-                  </Show>
-                  <VulnDetailSection label="Description" content={v.description} />
-                  <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
-                  <VulnDetailSection label="Proof of Concept" content={v.poc} />
-                  <VulnDetailSection label="Business Impact" content={v.business_impact} />
-                  <VulnDetailSection label="Recommendation" content={v.recommendation} />
-                </div>
-              </Show>
-            </div>
                   )
                 }}
               </For>
