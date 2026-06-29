@@ -235,6 +235,11 @@ export const WebObjectTable = sqliteTable(
     sensitive_fields: text({ mode: "json" }).$type<string[]>(),
     id_fields: text({ mode: "json" }).$type<string[]>(),
     discovered_from: text(),
+    // Provenance for context relevance-scoping (code-stamped from the processing
+    // request; the analyzer never sees these): which endpoint created this object,
+    // and the list of endpoints whose analysis touched it.
+    created_request_id: text(),
+    updated_request_ids: text({ mode: "json" }).$type<string[]>(),
     ...Timestamps,
   },
   (table) => [

@@ -37,6 +37,7 @@ import { WebWriteObjectTool } from "./web-write-object"
 import { WebWriteObjectValueTool } from "./web-write-object-value"
 import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
+import { WebGetDetailTool } from "./web-get-detail"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
@@ -164,6 +165,7 @@ export namespace ToolRegistry {
       WebWriteObjectValueTool,
       WebWriteFunctionTool,
       WebGetSessionContextTool,
+      WebGetDetailTool,
       WebGetRequestDetailTool,
       WebGetVulnerabilitiesTool,
       WebGetVulnDetailTool,

@@ -1,8 +1,8 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import z from "zod"
-import { Database, eq, and } from "../../storage/db"
-import { WebObjectTable, WebObjectValueTable } from "../session.sql"
+import { Database, eq, and, desc } from "../../storage/db"
+import { WebObjectTable, WebObjectValueTable, RequestTable } from "../session.sql"
 import { Identifier } from "../../id/id"
 
 export namespace WebObject {
@@ -78,6 +78,7 @@ export namespace WebObject {
 
     const id = Identifier.ascending("web_object")
     const now = Date.now()
+    const reqId = currentRequestId(input.sessionID)
 
     Database.use((db) => {
       db.insert(WebObjectTable)
@@ -89,6 +90,8 @@ export namespace WebObject {
           sensitive_fields: input.sensitiveFields ?? null,
           id_fields: input.idFields ?? null,
           discovered_from: input.discoveredFrom ?? null,
+          created_request_id: reqId ?? null,
+          updated_request_ids: reqId ? [reqId] : null,
           time_created: now,
           time_updated: now,
         })
@@ -126,6 +129,11 @@ export namespace WebObject {
       const mergedFields = [...new Set([...(existing.fields ?? []), ...(input.fields ?? [])])]
       const mergedSensitive = [...new Set([...(existing.sensitive_fields ?? []), ...(input.sensitiveFields ?? [])])]
       const mergedIdFields = [...new Set([...(existing.id_fields ?? []), ...(input.idFields ?? [])])]
+      // Stamp the request whose analysis touched this object (provenance for scoping).
+      const reqId = currentRequestId(existing.session_id)
+      const mergedReqIds = reqId
+        ? [...new Set([...(existing.updated_request_ids ?? []), reqId])]
+        : (existing.updated_request_ids ?? null)
 
       return db
         .update(WebObjectTable)
@@ -133,6 +141,7 @@ export namespace WebObject {
           fields: mergedFields.length > 0 ? mergedFields : null,
           sensitive_fields: mergedSensitive.length > 0 ? mergedSensitive : null,
           id_fields: mergedIdFields.length > 0 ? mergedIdFields : null,
+          updated_request_ids: mergedReqIds,
           time_updated: now,
         })
         .where(eq(WebObjectTable.id, id))
@@ -326,5 +335,40 @@ export namespace WebObject {
       discovered_from: row.discovered_from ?? undefined,
       time: { created: row.time_created, updated: row.time_updated },
     }
+  }
+
+  /** The endpoint currently being analyzed for this session — the single request in
+   *  'processing' status (the ingest queue is serial per session). Used to stamp object
+   *  provenance and to scope context to "objects touched by THIS request". */
+  function currentRequestId(sessionID: string): string | undefined {
+    const row = Database.use((db) =>
+      db
+        .select({ id: RequestTable.id })
+        .from(RequestTable)
+        .where(and(eq(RequestTable.session_id, sessionID), eq(RequestTable.status, "processing")))
+        .orderBy(desc(RequestTable.time_created))
+        .get(),
+    )
+    return row?.id
+  }
+
+  /** Objects whose analysis was created or touched by the given request — the
+   *  relevance-scoping primitive for recent-inline context (no vuln-class interpretation). */
+  export function touchedByRequest(sessionID: string, requestId: string): Info[] {
+    const rows = Database.use((db) =>
+      db.select().from(WebObjectTable).where(eq(WebObjectTable.session_id, sessionID)).all(),
+    )
+    return rows
+      .filter((r) => r.created_request_id === requestId || (r.updated_request_ids ?? []).includes(requestId))
+      .map((row) => ({
+        id: row.id,
+        session_id: row.session_id,
+        name: row.name,
+        fields: row.fields ?? undefined,
+        sensitive_fields: row.sensitive_fields ?? undefined,
+        id_fields: row.id_fields ?? undefined,
+        discovered_from: row.discovered_from ?? undefined,
+        time: { created: row.time_created, updated: row.time_updated },
+      }))
   }
 }
