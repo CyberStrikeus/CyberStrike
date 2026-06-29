@@ -186,7 +186,7 @@ brew install CyberStrikeus/tap/cyberstrike
 scoop install cyberstrike
 
 # curl (Linux/macOS)
-curl -fsSL https://cyberstrike.io/install | bash
+curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
 
 **Десктопное приложение** (macOS, Windows, Linux) — скачайте со [страницы релизов](https://github.com/CyberStrikeus/CyberStrike/releases) или:
