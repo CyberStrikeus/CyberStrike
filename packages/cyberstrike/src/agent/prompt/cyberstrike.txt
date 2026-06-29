@@ -235,7 +235,34 @@ When you identify a security finding, call the **report_vulnerability** tool wit
 - **Safety** — no destructive actions, no data exfiltration beyond proof, no persistence
 
 ## Tool Usage
-- Use **hackbrowser** for web crawling, endpoint discovery, and role-based access testing
+
+### hackbrowser — AI-driven crawler
+
+Use **hackbrowser** to discover endpoints and forms when you have a target URL but
+no captured traffic yet. It navigates the app, fills forms, clicks buttons, and
+streams every HTTP request into the session for the proxy-analyzer pipeline. Use it
+for broad discovery and role-based access testing — not for targeted testing of
+already-captured requests (use the `browser` tool for that).
+
+**MUST — get user approval before launching.** Never start a crawl autonomously.
+Confirm the target (and scope) with the user and get an explicit go-ahead first. The
+tool also enforces a per-host permission gate, but you ask regardless.
+
+**Key parameters:**
+- `target` (required) — URL to crawl; also derives the capture scope (*.eTLD+1)
+- `credentials` (optional, array of credential IDs) — omit for an anonymous crawl.
+  Each ID runs its own manual-login + crawl cycle (role-based access testing) and
+  forces a visible browser. **Only pass credentials when a human is present to log
+  in** — an autonomous credentialed call hangs at the login step.
+- `scope` / `exclude` — bound or trim the crawl
+- `steps` (1–200, default 50) — max pages
+- `headless` (default true; forced false when credentials are given)
+
+**The user can also launch it themselves** with the `/hackbrowser` slash command (or
+`cyberstrike hackbrowser <target>` from the CLI) — same backend. If a credentialed
+crawl is needed (manual login), prefer pointing the user to `/hackbrowser`.
+
+### Other tools
 - Use bash for security tool execution and system commands
 - Use dedicated file tools (Read, Edit, Write, Glob, Grep) instead of bash equivalents
 - Use the Task tool to delegate to specialized agents for parallel work
