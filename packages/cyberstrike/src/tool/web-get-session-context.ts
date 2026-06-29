@@ -28,7 +28,9 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
     include: z
       .array(z.enum(["retest_queue"]))
       .optional()
-      .describe("Optional extra sections. The core (recent, catalog, credentials, vulnerabilities, recent_requests, observations) is always returned."),
+      .describe(
+        "Optional extra sections. The core (recent, catalog, credentials, vulnerabilities, recent_requests, observations) is always returned.",
+      ),
   }),
   async execute(params, ctx) {
     const sessionID = Session.root(ctx.sessionID)
@@ -144,7 +146,8 @@ export const WebGetSessionContextTool = Tool.define("web_get_session_context", {
 
 // 3rd-party analytics/tracking cookies carry zero security signal but bloat every credential
 // in every context injection. Drop them; keep auth/session/csrf cookies.
-const NOISE_COOKIE = /^(_ga|_gid|_gcl|_gat|_fbp|_fbc|_hj|hubspotutk|__hs|__hstc|__hssrc|__hssc|mixpanel|_uet|ir_|_pin|_scid|ajs_|amplitude|optimizely|intercom)/i
+const NOISE_COOKIE =
+  /^(_ga|_gid|_gcl|_gat|_fbp|_fbc|_hj|hubspotutk|__hs|__hstc|__hssrc|__hssc|mixpanel|_uet|ir_|_pin|_scid|ajs_|amplitude|optimizely|intercom)/i
 function stripHeaderNoise(headers: Record<string, string> | undefined): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(headers ?? {})) {

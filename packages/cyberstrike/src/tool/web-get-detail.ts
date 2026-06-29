@@ -45,7 +45,13 @@ export const WebGetDetailTool = Tool.define("web_get_detail", {
       case "function": {
         const fn = WebFunction.get(sessionID).find((f) => f.name === params.id || f.id === params.id)
         if (fn)
-          detail = { name: fn.name, action_type: fn.action_type, request_id: fn.request_id, objects: fn.objects, role_id: fn.role_id }
+          detail = {
+            name: fn.name,
+            action_type: fn.action_type,
+            request_id: fn.request_id,
+            objects: fn.objects,
+            role_id: fn.role_id,
+          }
         break
       }
       case "role": {
