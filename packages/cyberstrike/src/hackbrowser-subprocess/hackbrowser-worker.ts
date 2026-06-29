@@ -13,9 +13,8 @@
 // from the main binary's module graph entirely.
 
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { createOpenAI } from "@ai-sdk/openai"
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import type { LanguageModel } from "ai"
+import { BUNDLED_PROVIDERS } from "../provider/bundled-providers"
 import { runCrawl } from "@cyberstrike-io/hackbrowser/api"
 import type { CrawlOptions, LogRecord, CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import type { ParentMessage, WorkerMessage, WorkerOptions, ModelDescriptor } from "./worker-ipc"
@@ -129,26 +128,35 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
   }
 
-  if (desc.npm === "@ai-sdk/openai") {
-    const opts: Record<string, unknown> = {}
-    if (desc.apiKey) opts.apiKey = desc.apiKey
-    if (desc.baseURL) opts.baseURL = desc.baseURL
-    if (desc.headers) opts.headers = desc.headers
-    if (samplingFetch) opts.fetch = samplingFetch
-    return createOpenAI(opts as Parameters<typeof createOpenAI>[0])(desc.modelApiId)
+  // Every other provider: resolve the SDK factory from the SHARED provider map
+  // (the same npm → create* table Provider.getSDK uses). This is the single
+  // source of truth for provider routing — without it the worker used to fall
+  // through to an OpenAI-compatible client and silently send e.g. a Gemini or
+  // Bedrock key to https://api.openai.com. An unknown npm now throws loudly
+  // instead of misrouting (the launcher already rejects OAuth-only providers,
+  // so only serializable api-key providers reach here).
+  const factory = BUNDLED_PROVIDERS[desc.npm]
+  if (!factory) {
+    throw new Error(
+      `hackbrowser: unsupported model provider "${desc.npm}" (model "${desc.modelApiId}"). ` +
+        `The crawler subprocess can only use providers in the bundled provider map. ` +
+        `Set a bundled API-key provider (e.g. Anthropic, OpenAI, Google/Gemini) as your default model for hackbrowser runs.`,
+    )
   }
 
-  // openai-compatible, openrouter, azure, mistral, groq, deepinfra, cerebras,
-  // cohere, togetherai, perplexity, vercel, gateway, gitlab, xai, etc. —
-  // all expose OpenAI-compatible endpoints.
-  const opts: Parameters<typeof createOpenAICompatible>[0] = {
-    name: "hackbrowser-provider",
+  const opts: Record<string, unknown> = {
+    name: desc.npm,
     apiKey: desc.apiKey ?? "",
-    baseURL: desc.baseURL ?? "https://api.openai.com/v1",
-    headers: desc.headers,
   }
+  if (desc.baseURL) opts.baseURL = desc.baseURL
+  if (desc.headers) opts.headers = desc.headers
   if (samplingFetch) opts.fetch = samplingFetch
-  return createOpenAICompatible(opts).languageModel(desc.modelApiId)
+
+  // Construct the language model the same way the main process does: OpenAI uses
+  // the Responses API (Provider's `openai` loader calls sdk.responses(...)), and
+  // every other provider uses the default languageModel(...).
+  const sdk = factory(opts) as any
+  return desc.npm === "@ai-sdk/openai" ? sdk.responses(desc.modelApiId) : sdk.languageModel(desc.modelApiId)
 }
 
 // ============================================================
