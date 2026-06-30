@@ -78,6 +78,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **`k8s-postexploit` skill** — 5-phase kill chain: cluster recon → secret extraction → privilege escalation → persistence → cleanup. MITRE ATT&CK mappings (T1611, T1552.007, T1613, T1610)
 - **`cicd-attacks` skill** — 4-phase kill chain: enumeration → secret extraction → pipeline injection → cleanup. MITRE ATT&CK mappings (T1195.002, T1552.004, T1059)
 - **GitHub Copilot Enterprise provider** — verified and validated full Copilot provider support for Enterprise license holders. Use Claude, GPT, and Gemini models at zero cost through GitHub Copilot. Includes OAuth device flow auth, Enterprise Server URL support, Chat + Responses API, reasoning, tool calling, vision, and streaming. Authenticate via `/provider add` → `github-copilot`.
+- **DAST proxy-testing memory (coverage notes)** — testers record what they tested per asset via `record_coverage_note`, scoped wide (deployment/account-wide, e.g. auth mechanism) or local (per-endpoint); the orchestrator and testers read app-wide coverage to skip redundant re-testing. New `get_coverage_notes` tool + `coverage_note` store.
+- **Per-credential observed values** — REST/GraphQL/JSON-RPC requests record the concrete ID/field values seen for each credential as raw IDOR/access-control substrate, surfaced to the orchestrator and request tools and shown in the TUI/Web object tree.
+- **GraphQL & JSON-RPC operations as first-class endpoints** — each operation is keyed by a deterministic value-stripped op-key, so it is modeled and tested as its own endpoint instead of collapsing onto the shared transport URL.
+- **`web_get_detail` tool** — pull the full detail of a single object/function/role/credential on demand, complementing the names-only session-context catalog.
+- **Vulnerability triage lifecycle + grouped views** — `report_vulnerability` now always records every finding with a status (new/approved/duplicate); `triage_vulnerability` links duplicates to their canonical instead of discarding them. TUI and Web group findings by status (New / Duplicate / Approved, sorted by severity) with duplicate→canonical references.
+- **Hybrid report generation** — `generate_report` produces HackerOne-ready reports across TUI and Web surfaces, including a per-endpoint coverage subsection.
+
+### Changed
+
+- **Bounded session context** — `web_get_session_context` no longer returns all accumulated session data on every call (which grew O(N²) and stalled long runs). It now returns endpoint-scoped recent objects + values inline, a names-only catalog of everything else, the last few requests, and pull tools — keeping per-call size at a few KB regardless of session size (previously ~20 KB and growing) while preserving the model's recall of findings.
+
+### Fixed
+
+- **Endpoint over-fragmentation** — form-urlencoded and multipart POST bodies are value-stripped like JSON when computing the endpoint key, so the same logical endpoint hit with volatile body values (e.g. WebSocket channel-auth) collapses to one record instead of hundreds.
+- **Phantom hosts during normalization** — `//`-relative targets and HTTP/2 `:authority` no longer produce spurious host entries.
+- **Silent vulnerability loss** — the previous dedup path dropped roughly half of reported findings; findings are now always recorded and de-duplicated through the triage lifecycle (measured drop rate 0).
+- **Proxy-flow ordering** — the per-endpoint analyzer runs as a blocking first step before the tester subagents, so testers act on its findings instead of racing it.
+- **Hackbrowser crawl coverage & robustness** — broader DOM capture (shadow-DOM / web-component controls, `opacity:0` design-system inputs, `data-hx-*` / `data-ng-click` framework bindings), ephemeral framework ids rejected as click selectors (crawl-loop fix), and crawl-unblock fixes (popup-trigger expand, non-blocking panel, overlay retry).
+- **Hackbrowser provider routing** — the crawl worker routes each model through the shared provider map, so non-OpenAI keys (Gemini, Bedrock, Cohere) reach the correct API instead of silently hitting OpenAI.
+- **Token cost accounting** — stopped double-charging reasoning tokens; aborted, errored, or context-capped subagents are no longer recorded as successful.
 
 ---
 

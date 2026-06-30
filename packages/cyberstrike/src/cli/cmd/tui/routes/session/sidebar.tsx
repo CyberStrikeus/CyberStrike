@@ -24,6 +24,22 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   const diff = createMemo(() => sync.data.session_diff[props.sessionID] ?? [])
   const todo = createMemo(() => sync.data.todo[props.sessionID] ?? [])
   const vulnerability = createMemo(() => sync.data.vulnerability[props.sessionID] ?? [])
+  // Group vulns by triage status (New → Duplicate → Approved), each sorted by severity.
+  const SEV_RANK_V: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
+  const vulnGroups = createMemo(() => {
+    const all = vulnerability()
+    const bySev = (a: (typeof all)[number], b: (typeof all)[number]) =>
+      (SEV_RANK_V[a.severity] ?? 9) - (SEV_RANK_V[b.severity] ?? 9)
+    const pick = (pred: (v: (typeof all)[number]) => boolean) => all.filter(pred).sort(bySev)
+    const out: { key: string; label: string; symbol: string; items: typeof all }[] = []
+    const n = pick((v) => v.status === "new")
+    if (n.length) out.push({ key: "new", label: "New", symbol: "◍", items: n })
+    const d = pick((v) => v.status === "duplicate")
+    if (d.length) out.push({ key: "duplicate", label: "Duplicates", symbol: "⊗", items: d })
+    const a = pick((v) => v.status !== "new" && v.status !== "duplicate")
+    if (a.length) out.push({ key: "approved", label: "Approved", symbol: "●", items: a })
+    return out
+  })
   const requests = createMemo(() => sync.data.request[props.sessionID] ?? [])
   // Group endpoints by host for sidebar — narrow column can't fit
   // method+host+path on one line, so we render the host once per group
@@ -82,6 +98,17 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
     functions: true,
     retests: true,
   })
+
+  // Per-endpoint expand state (by request id). Clicking an endpoint fetches its
+  // observed values on demand and reveals the param→credential→values tree.
+  const [expandedEp, setExpandedEp] = createStore<Record<string, boolean>>({})
+  const credLabel = (id: string | null) =>
+    id == null ? "anon" : (credentials().find((c) => c.id === id)?.label ?? id.slice(0, 6))
+  const toggleEndpoint = (r: { id: string; key_hash?: string }) => {
+    const open = !expandedEp[r.id]
+    setExpandedEp(r.id, open)
+    if (open && r.key_hash) void sync.fetchObservations(props.sessionID, r.key_hash)
+  }
 
   // Sort MCP servers alphabetically for consistent display order
   const mcpEntries = createMemo(() => Object.entries(sync.data.mcp).sort(([a], [b]) => a.localeCompare(b)))
@@ -432,28 +459,37 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                   </text>
                 </box>
                 <Show when={vulnerability().length <= 2 || expanded.vulnerability}>
-                  <For each={vulnerability()}>
-                    {(v) => (
-                      <box flexDirection="row" gap={1}>
-                        <text
-                          flexShrink={0}
-                          style={{
-                            fg:
-                              {
-                                critical: theme.error,
-                                high: theme.warning,
-                                medium: theme.text,
-                                low: theme.textMuted,
-                                info: theme.textMuted,
-                              }[v.severity] ?? theme.text,
-                          }}
-                        >
-                          •
+                  <For each={vulnGroups()}>
+                    {(g) => (
+                      <box flexDirection="column">
+                        <text fg={theme.textMuted}>
+                          {g.symbol} {g.label} ({g.items.length})
                         </text>
-                        <text fg={theme.text} wrapMode="word">
-                          {v.title}
-                          {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
-                        </text>
+                        <For each={g.items}>
+                          {(v) => (
+                            <box flexDirection="row" gap={1} paddingLeft={1}>
+                              <text
+                                flexShrink={0}
+                                style={{
+                                  fg:
+                                    {
+                                      critical: theme.error,
+                                      high: theme.warning,
+                                      medium: theme.text,
+                                      low: theme.textMuted,
+                                      info: theme.textMuted,
+                                    }[v.severity] ?? theme.text,
+                                }}
+                              >
+                                •
+                              </text>
+                              <text fg={theme.text} wrapMode="word">
+                                {v.title}
+                                {v.file ? ` (${v.line_start != null ? `${v.file}:${v.line_start}` : v.file})` : ""}
+                              </text>
+                            </box>
+                          )}
+                        </For>
                       </box>
                     )}
                   </For>
@@ -483,26 +519,65 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
                         </text>
                         <For each={rows}>
                           {(r) => (
-                            <box flexDirection="row" gap={1} paddingLeft={1}>
-                              <text
-                                flexShrink={0}
-                                style={{
-                                  fg:
-                                    {
-                                      queued: theme.textMuted,
-                                      processing: theme.warning,
-                                      processed: theme.success,
-                                    }[r.status] ?? theme.text,
-                                }}
-                              >
-                                •
-                              </text>
-                              <text fg={theme.accent} flexShrink={0}>
-                                {r.method}
-                              </text>
-                              <text fg={theme.text} wrapMode="none">
-                                {r.normalized_path}
-                              </text>
+                            <box flexDirection="column">
+                              <box flexDirection="row" gap={1} paddingLeft={1} onMouseDown={() => toggleEndpoint(r)}>
+                                <text fg={theme.textMuted} flexShrink={0}>
+                                  {expandedEp[r.id] ? "▼" : "▶"}
+                                </text>
+                                <text
+                                  flexShrink={0}
+                                  style={{
+                                    fg:
+                                      {
+                                        queued: theme.textMuted,
+                                        processing: theme.warning,
+                                        processed: theme.success,
+                                      }[r.status] ?? theme.text,
+                                  }}
+                                >
+                                  •
+                                </text>
+                                <text fg={theme.accent} flexShrink={0}>
+                                  {r.method}
+                                </text>
+                                <text fg={theme.text} wrapMode="none">
+                                  {r.normalized_path}
+                                </text>
+                                <Show when={r.operation}>
+                                  <text fg={theme.textMuted} wrapMode="none" flexShrink={0}>
+                                    · {r.operation}
+                                  </text>
+                                </Show>
+                              </box>
+                              {/* Observed values tree — fetched on expand */}
+                              <Show when={expandedEp[r.id] && r.key_hash}>
+                                <For each={sync.data.request_observation[r.key_hash!]?.params ?? []}>
+                                  {(p) => (
+                                    <box flexDirection="column" paddingLeft={3}>
+                                      <text fg={theme.textMuted} wrapMode="none">
+                                        {p.name}
+                                      </text>
+                                      <For each={p.byCredential}>
+                                        {(bc) => (
+                                          <box flexDirection="row" gap={1} paddingLeft={2}>
+                                            <text fg={theme.accent} flexShrink={0} wrapMode="none">
+                                              {credLabel(bc.credentialID)}
+                                            </text>
+                                            <text fg={theme.text} wrapMode="none">
+                                              → {bc.redacted ? "[redacted]" : bc.values.join(", ")}
+                                            </text>
+                                          </box>
+                                        )}
+                                      </For>
+                                    </box>
+                                  )}
+                                </For>
+                                <Show when={(sync.data.request_observation[r.key_hash!]?.params ?? []).length === 0}>
+                                  <text fg={theme.textMuted} wrapMode="none" style={{ paddingLeft: 3 }}>
+                                    (no observed values)
+                                  </text>
+                                </Show>
+                              </Show>
                             </box>
                           )}
                         </For>

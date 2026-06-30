@@ -14,6 +14,8 @@ import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
 import { Request } from "../../session/request"
+import { Observation } from "../../session/observation"
+import { CoverageNote } from "../../session/coverage-note"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
@@ -166,13 +168,53 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
   return lines
 }
 
+// Renders the `## Observed Values` block: the concrete input values each credential was
+// observed using on THIS endpoint shape (deterministic, redaction-aware). RAW FACTS ONLY —
+// no interpretation. What the values mean (access-control/IDOR/etc.) is the orchestrator's
+// and tester subagent's call, never pre-judged here. Empty when no params carry values.
+function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
+  if (tree.params.length === 0) return []
+  const lines = [
+    "",
+    "## Observed Values",
+    "Concrete input values captured on this endpoint, per credential (deterministic, redaction-aware).",
+  ]
+  for (const p of tree.params.slice(0, 12)) {
+    const parts = p.byCredential.map((c) => {
+      const label = c.credentialID
+        ? (WebCredential.getById(c.credentialID)?.label ?? c.credentialID)
+        : "unauthenticated"
+      if (c.redacted && c.values.length === 0) return `${label}=[redacted]`
+      const vals = c.values
+        .slice(0, 6)
+        .map((v) => JSON.stringify(v))
+        .join(", ")
+      return `${label}=[${vals}]${c.redacted ? " (+redacted)" : ""}`
+    })
+    lines.push(`- ${p.name} (${p.loc}): ${parts.join("; ")}`)
+  }
+  return lines
+}
+
 function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
   processedResponse?: string,
   accessContext?: AccessContextInput,
+  operationContext?: { protocol: string; operation: string },
+  observedValues?: Observation.EndpointTree,
 ): string {
   const lines: string[] = []
+
+  // Protocol/operation banner — this request is a body-dispatched operation
+  // (GraphQL/JSON-RPC), not a plain REST endpoint. Route protocol-aware tests
+  // (e.g. GraphQL introspection/batching/field-authz; JSON-RPC method enum).
+  if (operationContext) {
+    lines.push(`## Operation`)
+    lines.push(`- protocol: ${operationContext.protocol}`)
+    lines.push(`- operation: ${operationContext.operation}`)
+    lines.push("")
+  }
 
   lines.push("## Credential Context")
 
@@ -203,6 +245,10 @@ function buildPromptWithCredentialContext(
 
   if (accessContext) {
     lines.push(...renderAccessContextLines(accessContext))
+  }
+
+  if (observedValues) {
+    lines.push(...renderObservedValuesLines(observedValues))
   }
 
   lines.push("")
@@ -677,6 +723,37 @@ export const SessionRoutes = lazy(() =>
         return c.json(list)
       },
     )
+    .get(
+      "/:sessionID/observations",
+      describeRoute({
+        summary: "Get observed values for an endpoint",
+        description:
+          "Per-endpoint observed values (raw facts): which credential used which concrete values for each parameter. " +
+          "Pulled on-demand when the UI expands an endpoint. Pass the endpoint's key_hash.",
+        operationId: "session.observations",
+        responses: {
+          200: { description: "Observed-value tree", content: { "application/json": { schema: resolver(z.any()) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "query",
+        z.object({
+          keyHash: z.string().optional().meta({ description: "Endpoint key_hash" }),
+          id: z.string().optional().meta({ description: "Request id (alternative to keyHash)" }),
+        }),
+      ),
+      async (c) => {
+        const { sessionID } = c.req.valid("param")
+        const { keyHash, id } = c.req.valid("query")
+        // Resolve the key_hash from a request id when keyHash isn't supplied (the web
+        // client's stale SDK schema can strip key_hash from the request list).
+        const kh = keyHash ?? (id ? Request.get(sessionID).find((r) => r.id === id)?.key_hash : undefined)
+        if (!kh) return c.json({ keyHash: "", credentials: [], params: [] })
+        return c.json(Observation.endpointTree(sessionID, kh))
+      },
+    )
     // Web Proxy Agent Context Endpoints
     .get(
       "/:sessionID/web/credentials",
@@ -1087,9 +1164,27 @@ export const SessionRoutes = lazy(() =>
             origin: normalized.origin,
             bodyHash: normalized.bodyHash,
             queryHash: normalized.queryKeyHash,
+            opKeyHash: normalized.opKeyHash,
+            keyHash: normalized.keyHash,
           })
 
+          // Record per-credential observed values on EVERY ingest — including
+          // dedup skips, because the whole point is capturing which values which
+          // credential used on an already-known endpoint (IDOR/BFLA substrate).
+          // Append-only + idempotent, so safe to call on every path.
+          const recordObservation = (requestID?: string) =>
+            Observation.observe({
+              sessionID,
+              keyHash: normalized.keyHash,
+              opGroupHash: normalized.opGroupHash,
+              requestID,
+              credentialID,
+              valueHash: normalized.valueHash,
+              slots: normalized.observedParams,
+            })
+
           if (isDuplicate) {
+            recordObservation()
             log.info("duplicate request skipped", {
               sessionID,
               method: normalized.method,
@@ -1123,21 +1218,53 @@ export const SessionRoutes = lazy(() =>
             canonicalPath: normalized.canonicalPath,
             templateID: normalized.templateId,
             normSource: normalized.normSource,
+            protocol: normalized.protocol,
+            operation: normalized.operation,
+            opKeyHash: normalized.opKeyHash,
+            keyHash: normalized.keyHash,
           })
 
-          // Build prompt with credential context, response, and access context
-          const promptText = buildPromptWithCredentialContext(
-            truncatedRawRequest,
-            credentialID,
-            req.processed_response,
-            {
-              triggerElement: body.trigger_element,
-              elementRoles: body.element_roles,
-              pageUrl: body.page_url,
-              pageVisitedBy: body.page_visited_by,
-              uiContext: body.ui_context as Record<string, unknown> | undefined,
-            },
-          )
+          // Race-duplicate: a concurrent ingest won the atomic key_hash upsert
+          // between our exists() check and this insert. Treat exactly like a
+          // duplicate — no row was created, so skip the LLM enqueue, but still
+          // record the observation (the values are evidence regardless).
+          if (!req) {
+            recordObservation()
+            c.status(202)
+            return c.json({ sessionID, skipped: true })
+          }
+
+          // New endpoint shape: record the first observation, linked to the row.
+          recordObservation(req.id)
+
+          // Build the prompt as a thunk so the `## Observed Values` block reflects the
+          // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
+          // are slow) and other per-credential requests to the SAME endpoint accrue
+          // observations while a prompt waits — rendering at dequeue captures them (e.g. a
+          // second credential's values land in the prompt instead of being missed).
+          const buildPrompt = () => {
+            // Prepend app-wide coverage already recorded for this origin so the
+            // orchestrator skips re-dispatching deployment-wide testers (JWT/TLS/headers).
+            // Rendered at dequeue, so it reflects coverage that accrued while queued.
+            const coverage = CoverageNote.wideBlock(sessionID, normalized.origin)
+            const base = buildPromptWithCredentialContext(
+              truncatedRawRequest,
+              credentialID,
+              req.processed_response,
+              {
+                triggerElement: body.trigger_element,
+                elementRoles: body.element_roles,
+                pageUrl: body.page_url,
+                pageVisitedBy: body.page_visited_by,
+                uiContext: body.ui_context as Record<string, unknown> | undefined,
+              },
+              normalized.protocol && normalized.operation
+                ? { protocol: normalized.protocol, operation: normalized.operation }
+                : undefined,
+              Observation.endpointTree(sessionID, normalized.keyHash),
+            )
+            return coverage ? `${coverage}\n\n${base}` : base
+          }
 
           if (ingestDryRun) {
             // Log the prompt that would be sent to LLM — skip actual LLM call
@@ -1147,7 +1274,7 @@ export const SessionRoutes = lazy(() =>
               path: normalized.normalizedPath,
               requestId: req.id,
             })
-            log.info("prompt preview:\n" + promptText)
+            log.info("prompt preview:\n" + buildPrompt())
             Request.updateStatus({ id: req.id, status: "processed" })
           } else {
             const agentName = body.agent ?? "proxy-agent"
@@ -1155,6 +1282,10 @@ export const SessionRoutes = lazy(() =>
             IngestQueue.enqueue(sessionID, async () => {
               Request.updateStatus({ id: req.id, status: "processing" })
               const before = IngestSummary.snapshot(sessionID)
+              // Render at dequeue (send time) so `## Observed Values` includes observations
+              // that accrued while this prompt waited in the queue — other credentials and
+              // other values seen on the same endpoint shape in the meantime.
+              const promptText = buildPrompt()
               try {
                 await SessionPrompt.prompt({
                   sessionID,

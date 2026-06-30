@@ -346,6 +346,25 @@ function VulnsPanelList() {
 
   const openCount = createMemo(() => items().filter((v) => v.status !== "fixed" && v.status !== "ignored").length)
 
+  // Group by triage status (New → Duplicate → Approved). items() is already severity-sorted,
+  // so each group stays severity-sorted. "approved" is a catch-all so no vuln is ever dropped.
+  const vulnGroups = createMemo(() => {
+    const all = items()
+    const out: { key: string; label: string; symbol: string; items: typeof all }[] = []
+    const n = all.filter((v) => v.status === "new")
+    if (n.length) out.push({ key: "new", label: "New", symbol: "◍", items: n })
+    const d = all.filter((v) => v.status === "duplicate")
+    if (d.length) out.push({ key: "duplicate", label: "Duplicates", symbol: "⊗", items: d })
+    const a = all.filter((v) => v.status !== "new" && v.status !== "duplicate")
+    if (a.length) out.push({ key: "approved", label: "Approved", symbol: "●", items: a })
+    return out
+  })
+  // New + Duplicate collapsed by default; Approved open.
+  const [collapsedGroups, setCollapsedGroups] = createSignal<Record<string, boolean>>({ new: true, duplicate: true })
+  const toggleGroup = (key: string) => setCollapsedGroups((p) => ({ ...p, [key]: !p[key] }))
+  const canonicalTitle = (v: ReturnType<typeof items>[number]) =>
+    v.duplicate_of ? items().find((x) => x.id === v.duplicate_of)?.title : undefined
+
   const toggle = (id: string) => {
     setExpanded((prev) => (prev === id ? undefined : id))
   }
@@ -367,78 +386,100 @@ function VulnsPanelList() {
           {language.t("dialog.vulnerability.empty")}
         </div>
       </Show>
-      <For each={items()}>
-        {(v) => {
-          const id = () => v.id ?? v.title
-          const isExpanded = () => expanded() === id()
-          return (
+      <For each={vulnGroups()}>
+        {(g) => (
+          <div class="flex flex-col">
             <div
-              class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
-              classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
+              class="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-text-weaker"
+              on:click={() => toggleGroup(g.key)}
             >
-              <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
-                <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
-                <div class="flex flex-col min-w-0 flex-1">
-                  <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
-                    {v.title}
-                  </span>
-                  <span class="text-11-regular text-text-weaker truncate">
-                    {v.severity.toUpperCase()}
-                    {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
-                    {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
-                  </span>
-                </div>
-                <Show
-                  when={isExpanded()}
-                  fallback={
-                    <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <CopyVulnButton vuln={v} iconOnly />
-                    </span>
-                  }
-                >
-                  <CopyVulnButton vuln={v} />
-                </Show>
-                <Icon
-                  name={isExpanded() ? "chevron-down" : "chevron-right"}
-                  size="small"
-                  class="shrink-0 mt-0.5 text-icon-weak"
-                />
-              </div>
-              <Show when={isExpanded()}>
-                <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
-                      {severityLabel(v.severity)}
-                    </span>
-                    <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                      {statusLabel(v.status ?? "open")}
-                    </span>
-                    <Show when={v.cwe_id}>
-                      <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
-                        CWE-{v.cwe_id}
-                      </span>
-                    </Show>
-                  </div>
-                  <Show when={v.file}>
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-11-medium text-text-weaker uppercase tracking-wider">Location</span>
-                      <span class="text-12-regular text-text-base font-mono">
-                        {v.file}
-                        {v.line_start ? `:${v.line_start}` : ""}
-                        {v.line_end && v.line_end !== v.line_start ? `-${v.line_end}` : ""}
-                      </span>
-                    </div>
-                  </Show>
-                  <VulnDetailSection label="Description" content={v.description} />
-                  <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
-                  <VulnDetailSection label="Proof of Concept" content={v.poc} />
-                  <VulnDetailSection label="Business Impact" content={v.business_impact} />
-                  <VulnDetailSection label="Recommendation" content={v.recommendation} />
-                </div>
-              </Show>
+              <Icon
+                name={collapsedGroups()[g.key] ? "chevron-right" : "chevron-down"}
+                size="small"
+                class="shrink-0 text-icon-weak"
+              />
+              <span class="text-11-medium uppercase tracking-wider">
+                {g.symbol} {g.label} ({g.items.length})
+              </span>
             </div>
-          )
-        }}
+            <Show when={!collapsedGroups()[g.key]}>
+              <For each={g.items}>
+                {(v) => {
+                  const id = () => v.id ?? v.title
+                  const isExpanded = () => expanded() === id()
+                  return (
+                    <div
+                      class="group flex flex-col rounded transition-colors hover:bg-surface-raised-base-hover"
+                      classList={{ "opacity-50": v.status === "fixed" || v.status === "ignored" }}
+                    >
+                      <div class="flex items-start gap-2 px-2 py-1.5 cursor-pointer" on:click={() => toggle(id())}>
+                        <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${severityDot(v.severity)}`} />
+                        <div class="flex flex-col min-w-0 flex-1">
+                          <span class="text-12-regular text-text-strong" classList={{ truncate: !isExpanded() }}>
+                            {v.title}
+                          </span>
+                          <span class="text-11-regular text-text-weaker truncate">
+                            {v.severity.toUpperCase()}
+                            {v.cwe_id ? ` · CWE-${v.cwe_id}` : ""}
+                            {v.file ? ` · ${v.file}${v.line_start ? `:${v.line_start}` : ""}` : ""}
+                            {v.status === "duplicate" && canonicalTitle(v) ? ` · → ${canonicalTitle(v)}` : ""}
+                          </span>
+                        </div>
+                        <Show
+                          when={isExpanded()}
+                          fallback={
+                            <span class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <CopyVulnButton vuln={v} iconOnly />
+                            </span>
+                          }
+                        >
+                          <CopyVulnButton vuln={v} />
+                        </Show>
+                        <Icon
+                          name={isExpanded() ? "chevron-down" : "chevron-right"}
+                          size="small"
+                          class="shrink-0 mt-0.5 text-icon-weak"
+                        />
+                      </div>
+                      <Show when={isExpanded()}>
+                        <div class="flex flex-col gap-2.5 px-2 pb-2.5 pt-0.5 ml-3.5 border-l border-border-weak-base select-text">
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class={`text-10-medium px-1.5 py-0.5 rounded ${severityBadge(v.severity)}`}>
+                              {severityLabel(v.severity)}
+                            </span>
+                            <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
+                              {statusLabel(v.status ?? "open")}
+                            </span>
+                            <Show when={v.cwe_id}>
+                              <span class="text-10-medium px-1.5 py-0.5 rounded bg-surface-base text-text-weaker">
+                                CWE-{v.cwe_id}
+                              </span>
+                            </Show>
+                          </div>
+                          <Show when={v.file}>
+                            <div class="flex flex-col gap-0.5">
+                              <span class="text-11-medium text-text-weaker uppercase tracking-wider">Location</span>
+                              <span class="text-12-regular text-text-base font-mono">
+                                {v.file}
+                                {v.line_start ? `:${v.line_start}` : ""}
+                                {v.line_end && v.line_end !== v.line_start ? `-${v.line_end}` : ""}
+                              </span>
+                            </div>
+                          </Show>
+                          <VulnDetailSection label="Description" content={v.description} />
+                          <VulnDetailSection label="Steps to Reproduce" content={v.steps_to_reproduce} />
+                          <VulnDetailSection label="Proof of Concept" content={v.poc} />
+                          <VulnDetailSection label="Business Impact" content={v.business_impact} />
+                          <VulnDetailSection label="Recommendation" content={v.recommendation} />
+                        </div>
+                      </Show>
+                    </div>
+                  )
+                }}
+              </For>
+            </Show>
+          </div>
+        )}
       </For>
     </div>
   )
@@ -718,13 +759,41 @@ const functionActionColor = (action: string) => {
   return "text-text-weak"
 }
 
+type ObsTree = {
+  params: { name: string; byCredential: { credentialID: string | null; values: string[]; redacted: boolean }[] }[]
+}
+
 function WebContextPanelList() {
   const sync = useSync()
+  const sdk = useSDK()
   const language = useLanguage()
   const params = useParams()
   const [section, setSection] = createSignal<WebSection>("endpoints")
+  // Per-endpoint expand state (by request id) + fetched observed-value trees (by key_hash).
+  const [expandedEp, setExpandedEp] = createSignal<Record<string, boolean>>({})
+  const [obsTree, setObsTree] = createSignal<Record<string, ObsTree>>({})
 
   const sessionID = () => params.id ?? ""
+  const credLabel = (id: string | null) =>
+    id == null
+      ? "anon"
+      : (((sync.data.web_credential[sessionID()] ?? []) as { id: string; label: string }[]).find((c) => c.id === id)
+          ?.label ?? id.slice(0, 6))
+  const toggleEndpoint = async (v: Record<string, unknown>) => {
+    const id = v.id as string
+    const open = !expandedEp()[id]
+    setExpandedEp({ ...expandedEp(), [id]: open })
+    // Fetch by request id (always present; the SDK can strip key_hash from the list).
+    if (open && !obsTree()[id]) {
+      try {
+        const r = await sdk.fetch(`/session/${sessionID()}/observations?id=${encodeURIComponent(id)}`)
+        const tree = (await r.json()) as ObsTree
+        if (tree && Array.isArray(tree.params)) setObsTree({ ...obsTree(), [id]: tree })
+      } catch {
+        /* ignore — expanded row simply shows nothing */
+      }
+    }
+  }
 
   // Fetch web context for active session
   createEffect(() => {
@@ -799,10 +868,44 @@ function WebContextPanelList() {
           return (
             <div class="flex items-start gap-2 px-2 py-1 rounded">
               <Show when={section() === "endpoints"}>
-                <span class={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${endpointStatusColor(v.status as string)}`} />
-                <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-12-medium text-text-accent shrink-0">{v.method as string}</span>
-                  <span class="text-12-regular truncate">{v.normalized_path as string}</span>
+                <div class="flex flex-col w-full gap-0.5">
+                  <div class="flex items-center gap-1.5 cursor-pointer" onClick={() => toggleEndpoint(v)}>
+                    <span class="text-11-regular text-text-muted shrink-0">
+                      {expandedEp()[v.id as string] ? "▾" : "▸"}
+                    </span>
+                    <span class={`w-1.5 h-1.5 rounded-full shrink-0 ${endpointStatusColor(v.status as string)}`} />
+                    <span class="text-12-medium text-text-accent shrink-0">{v.method as string}</span>
+                    <span class="text-12-regular truncate">{v.normalized_path as string}</span>
+                    <Show when={v.operation as string | undefined}>
+                      <span class="text-12-regular text-text-muted shrink-0">· {v.operation as string}</span>
+                    </Show>
+                  </div>
+                  <Show when={expandedEp()[v.id as string]}>
+                    <div class="flex flex-col gap-0.5 pl-5">
+                      <For each={obsTree()[v.id as string]?.params ?? []}>
+                        {(p) => (
+                          <div class="flex flex-col">
+                            <span class="text-11-regular text-text-muted">{p.name}</span>
+                            <For each={p.byCredential}>
+                              {(bc) => (
+                                <div class="flex gap-1.5 pl-3">
+                                  <span class="text-11-medium text-text-accent shrink-0">
+                                    {credLabel(bc.credentialID)}
+                                  </span>
+                                  <span class="text-11-regular truncate">
+                                    → {bc.redacted ? "[redacted]" : bc.values.join(", ")}
+                                  </span>
+                                </div>
+                              )}
+                            </For>
+                          </div>
+                        )}
+                      </For>
+                      <Show when={obsTree()[v.id as string] && (obsTree()[v.id as string]?.params ?? []).length === 0}>
+                        <span class="text-11-regular text-text-weak pl-3">(no observed values)</span>
+                      </Show>
+                    </div>
+                  </Show>
                 </div>
               </Show>
               <Show when={section() === "roles"}>

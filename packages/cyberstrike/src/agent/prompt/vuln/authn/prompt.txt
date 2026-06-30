@@ -397,6 +397,15 @@ cwe_id: "CWE-287" (Improper Authentication)
 - **Insufficient Verification**: CWE-303
 - **Credential Management**: CWE-255
 
+## Recording Coverage — split MECHANISM (wide) from ENFORCEMENT (local)
+
+When you `record_coverage_note`, classify scope correctly — auth findings split into two kinds, and mixing them up wastes testing:
+
+- **scope: "wide"** (asset = the origin, recorded ONCE for the whole deployment): the auth **MECHANISM** — token/JWT crypto and signature validation, alg-confusion, weak-secret, the **session-cookie scheme/flags/token format**, the login/reset/MFA flow design, WAF/Cloudflare presence, security headers. These are true on EVERY endpoint of the origin, so they are tested once and skipped thereafter.
+- **scope: "local"** (asset = this method+path): auth **ENFORCEMENT** — does THIS endpoint actually require valid credentials (401 on missing/invalid), and does THIS endpoint's own authz/ownership check fire. This is per-endpoint and must be re-tested on each route.
+
+If a single test yields BOTH (e.g. you characterized the session-cookie scheme AND verified this endpoint returns 401 unauth), record TWO notes: one `wide` for the mechanism, one `local` for the enforcement. Do NOT bury an app-wide mechanism fact inside a `local` note — it will never be reused and the next endpoint's authn tester will re-derive it from scratch.
+
 ## Important Rules
 
 1. **Test authentication mechanisms comprehensively** - not just login endpoints

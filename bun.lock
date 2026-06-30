@@ -249,6 +249,7 @@
         "diff": "catalog:",
         "drizzle-orm": "1.0.0-beta.12-a5629fb",
         "fuzzysort": "3.1.0",
+        "graphql": "17.0.1",
         "gray-matter": "4.0.3",
         "hono": "catalog:",
         "hono-openapi": "catalog:",
@@ -2409,7 +2410,7 @@
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
-    "graphql": ["graphql@16.12.0", "", {}, "sha512-DKKrynuQRne0PNpEbzuEdHlYOMksHSUI8Zc9Unei5gTsMNA2/vMpoMz/yKba50pejK56qj98qM0SjYxAKi13gQ=="],
+    "graphql": ["graphql@17.0.1", "", {}, "sha512-8eWbg5Zcv/8o20nzEjHUGPTj20MLFJjc5kagbIPxbaeGxvFwpitJhemEC/k17n5+UD4M/9ea5rTuce78mELujQ=="],
 
     "graphql-request": ["graphql-request@6.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.2.0", "cross-fetch": "^3.1.5" }, "peerDependencies": { "graphql": "14 - 16" } }, "sha512-p+XPfS4q7aIpKVcgmnZKhMNqhltk20hfXtkaIkTfjjmiKMJ5xrt5c743cL03y/K7y1rg3WrIC49xGiEQ4mxdNw=="],
 
@@ -3924,6 +3925,8 @@
     "glob/minimatch": ["minimatch@10.2.0", "", { "dependencies": { "brace-expansion": "^5.0.2" } }, "sha512-ugkC31VaVg9cF0DFVoADH12k6061zNZkZON+aX8AWsR9GhPcErkcMBceb6znR8wLERM2AkkOxy2nWRLpT9Jq5w=="],
 
     "globby/ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
+
+    "graphql-request/graphql": ["graphql@16.12.0", "", {}, "sha512-DKKrynuQRne0PNpEbzuEdHlYOMksHSUI8Zc9Unei5gTsMNA2/vMpoMz/yKba50pejK56qj98qM0SjYxAKi13gQ=="],
 
     "happy-dom/entities": ["entities@6.0.1", "", {}, "sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g=="],
 

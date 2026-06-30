@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, primaryKey } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer, real, index, uniqueIndex, primaryKey } from "drizzle-orm/sqlite-core"
 import { ProjectTable } from "../project/project.sql"
 import type { MessageV2 } from "./message-v2"
 import type { Snapshot } from "@/snapshot"
@@ -101,6 +101,7 @@ export const VulnerabilityTable = sqliteTable(
     endpoint: text(),
     attack_vector: text(),
     status: text().notNull(),
+    duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
     ...Timestamps,
   },
@@ -149,6 +150,17 @@ export const RequestTable = sqliteTable(
     canonical_path: text(),
     template_id: text(), // soft pointer to endpoint_template.id
     norm_source: text(), // "tier1" | "tier2" | "tier3" | "failed"
+    // Protocol/operation enrichment (nullable — REST rows leave these null).
+    // op_key_hash is the per-operation dedup key (values stripped) used in place
+    // of body_hash for GraphQL/JSON-RPC so each operation is its own unit.
+    protocol: text(), // "graphql" | "jsonrpc"
+    operation: text(), // human label, e.g. "mutation:deleteUser"
+    op_key_hash: text(),
+    // Unified structural identity (Faz 0). Explicit materialization of the dedup
+    // key: sha16(method ∥ origin ∥ normalized_path ∥ (op_key_hash ?? body_hash ?? "") ∥ query_hash).
+    // Nullable: legacy rows pre-date it and dedup via the body/query/op fallback.
+    // The unique index treats NULLs as distinct, so legacy rows never collide.
+    key_hash: text(),
     // Response fields
     response_status: integer(),
     response_headers: text({ mode: "json" }).$type<Record<string, string>>(),
@@ -162,6 +174,10 @@ export const RequestTable = sqliteTable(
     index("request_normalized_idx").on(table.session_id, table.method, table.normalized_path),
     index("request_credential_idx").on(table.credential_id),
     index("request_template_idx").on(table.template_id),
+    // One row per (session, key_hash). NULLs are distinct in SQLite, so legacy
+    // key_hash=NULL rows are unaffected; this guards new rows against the
+    // exists()→add() TOCTOU by making the insert an atomic ON CONFLICT upsert.
+    uniqueIndex("request_keyhash_idx").on(table.session_id, table.key_hash),
   ],
 )
 
@@ -219,6 +235,11 @@ export const WebObjectTable = sqliteTable(
     sensitive_fields: text({ mode: "json" }).$type<string[]>(),
     id_fields: text({ mode: "json" }).$type<string[]>(),
     discovered_from: text(),
+    // Provenance for context relevance-scoping (code-stamped from the processing
+    // request; the analyzer never sees these): which endpoint created this object,
+    // and the list of endpoints whose analysis touched it.
+    created_request_id: text(),
+    updated_request_ids: text({ mode: "json" }).$type<string[]>(),
     ...Timestamps,
   },
   (table) => [
@@ -296,6 +317,66 @@ export const EndpointTemplateTable = sqliteTable(
     index("endpoint_template_session_idx").on(table.session_id),
     index("endpoint_template_lookup_idx").on(table.session_id, table.origin, table.method, table.segment_count),
     index("endpoint_template_unique_idx").on(table.session_id, table.origin, table.method, table.template),
+  ],
+)
+
+// Per-credential observed values (Faz 3). Append-only fact stream: one row per
+// (session, key_hash, credential, value_hash). Mirrors the WebObject→WebObjectValue
+// split — values live adjacent to the operation that produced them so access-control
+// analysis (IDOR/BFLA/mass-assignment) aggregates by op_group_hash. The unique index
+// makes observe() an idempotent ON CONFLICT DO NOTHING upsert (no read-modify-write
+// race). `values` is the redacted ParamSlot list; sensitive values are blanked.
+export const RequestObservationTable = sqliteTable(
+  "request_observation",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    op_group_hash: text().notNull(), // operation-level anchor for aggregation
+    key_hash: text().notNull(), // shape-level anchor; joins to request.key_hash
+    request_id: text().references(() => RequestTable.id, { onDelete: "cascade" }), // soft pointer
+    credential_id: text(), // null = anonymous identity
+    value_hash: text().notNull(), // value-set digest; the dedup unit within (key_hash, credential)
+    slots: text({ mode: "json" }).$type<{ loc: string; name: string; value: string; retained?: boolean }[]>(),
+    ...Timestamps,
+  },
+  (table) => [
+    uniqueIndex("request_observation_dedup_idx").on(
+      table.session_id,
+      table.key_hash,
+      table.credential_id,
+      table.value_hash,
+    ),
+    index("request_observation_op_idx").on(table.session_id, table.op_group_hash),
+    index("request_observation_key_idx").on(table.session_id, table.key_hash),
+  ],
+)
+
+// Append-only coverage memory: WHAT vuln class was tested at WHICH scope, declared
+// by the tester agent itself. Generic text — `asset` and `class` are LLM-declared
+// strings so the same table serves web (origin/keyHash), cloud (ARN) and network
+// (host:port) alike. The note's EXISTENCE for an (asset, class) cell means "tested";
+// verdict (vuln/clean) lives in intel/vulnerability, NOT here. No status column.
+// The orchestrator reads these notes and skips re-dispatching a covered cell.
+export const CoverageNoteTable = sqliteTable(
+  "coverage_note",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    asset: text().notNull(), // LLM-declared scope id: origin / endpoint / ARN / host:port
+    class: text().notNull(), // LLM-declared vuln class: authn-crypto / idor / iam-posture …
+    scope: text().notNull(), // LLM-declared: "wide" (deployment-wide, recurs across endpoints) | "local" (this asset only)
+    note: text().notNull(), // compact prose: what was tried + result + gaps
+    tested_by: text(), // agent name that recorded it
+    request_id: text(), // optional traceability soft pointer (absent for cloud/network)
+    ...Timestamps,
+  },
+  (table) => [
+    index("coverage_note_cell_idx").on(table.session_id, table.asset, table.class),
+    index("coverage_note_session_idx").on(table.session_id),
   ],
 )
 

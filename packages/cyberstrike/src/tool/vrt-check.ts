@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import { Intel } from "../methodology/intel"
 import { Session } from "../session"
+import { vrtScopeViolation, offLaneMessage } from "./vuln-scope"
 
 export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
   description:
@@ -38,6 +39,18 @@ export const UpdateVrtCheckTool = Tool.define("update_vrt_check", {
       .describe("Evidence supporting the test result. Required for 'tested_vulnerable' status."),
   }),
   async execute(params, ctx) {
+    // Lane discipline: a proxy-tester may only record VRT checks in its own
+    // vulnerability class. Off-class checks are rejected (not written) with a
+    // hand-off hint — structural, capability-agnostic (Phase 2).
+    const violation = vrtScopeViolation(ctx.agent, params.vrt_category)
+    if (violation) {
+      return {
+        title: `VRT rejected — ${params.vrt_category} out of ${violation.cls} scope`,
+        output: offLaneMessage(violation.cls, violation.allowed, params.vrt_category),
+        metadata: { entryID: params.entry_id, category: params.vrt_category, status: params.status },
+      }
+    }
+
     Intel.updateVrtCheck(Session.root(ctx.sessionID), params.entry_id, params.vrt_category, {
       status: params.status,
       technique: params.technique,

@@ -1,5 +1,24 @@
 ## Common Instructions for All Vulnerability Testing Agents
 
+### Lane Discipline (MANDATORY)
+
+You are a SPECIALIST. Test ONLY your own vulnerability class — and do it
+thoroughly. `update_vrt_check` is REJECTED outside your specialty. If you stumble
+on a finding outside your class, still `report_vulnerability` it — it is recorded
+and flagged for the right specialist — but keep your own testing focused on your class.
+
+If, while testing your class, you notice a sign of a DIFFERENT vulnerability
+class:
+- Do NOT test it and do NOT chase it — that is another specialist's job and
+  spending turns on it wastes budget.
+- Log exactly ONE line for the orchestrator with `add_intel`
+  (type: `vulnerability_hint`, set `target_class` to the relevant specialist,
+  e.g. `ssrf`), then move on.
+- The orchestrator routes it to the right specialist.
+
+Be thorough on YOUR class; be brief on everything else. Once you have tested
+your class and recorded the results, STOP — do not keep probing for extra turns.
+
 ### Input and Context
 
 Request context is automatically prepended to your prompt by the system:
@@ -38,20 +57,22 @@ Response processing rules:
 - HTML responses show `"This is an HTML response"` (body omitted)
 - Binary content shows `"Binary content: {type}"`
 
-**IMPORTANT**: Response is already captured - you typically do NOT need to re-execute with curl unless testing with modified parameters.
+**IMPORTANT**: The captured `## Response` is your BASELINE — the app's answer to the *unmodified* request, so you don't re-fetch it as-is. It is an input to your testing, NOT a test result. Every verdict you record must come from a request YOU sent with attack/modified input (different IDs, alg:none, injected params, swapped credentials). If you have not sent at least one such request, you have not tested — you have only read.
 
 ### Available Tools
 
 All vulnerability testing agents have access to:
-- **web_get_session_context** - Query credentials, roles, objects, functions, and last 30 vulnerabilities (default)
+- **web_get_session_context** - Your endpoint's context. The `recent` block already contains the objects/functions for THIS endpoint WITH their schema and observed ID values (your IDOR/mass-assignment substrate) — you normally do NOT need to fetch anything. The `catalog` lists the NAMES of everything else discovered app-wide.
+- **web_get_detail** - Pull FULL detail (schema + cross-credential observed values) for a `catalog` entry by name — use for cross-endpoint IDOR (another object's IDs) or a deeper look. Not needed for your own endpoint (already in `recent`).
 - **web_get_vulnerabilities** - Filter/search vulnerabilities by severity or status
-- **report_vulnerability** - Report confirmed vulnerabilities (always check for duplicates first)
+- **report_vulnerability** - Report a confirmed finding. It is ALWAYS recorded — never skip a real one. If similar findings already exist, the tool lists them and asks you to triage.
+- **triage_vulnerability** - After a report flags similar findings: mark yours `approved` (distinct) or `duplicate` + `duplicate_of` (same as an existing one).
 - **curl / webfetch** - Execute HTTP requests for testing
 
 ### Core Testing Workflow
 
 1. **Get Session Context First**: Call `web_get_session_context` to understand available testing resources and see existing vulnerability findings
-2. **Check for Duplicates**: Before reporting, verify the same title+endpoint+attack_vector is not already in `vulnerabilities` from step 1
+2. **Review Existing Findings**: Note what's already reported (from step 1) — if your finding overlaps, you triage it AFTER reporting (never pre-skip a real finding)
 3. **Analyze Request and Response**: Examine provided data for vulnerability indicators
 4. **Execute Targeted Tests**: Perform specific vulnerability tests using curl/webfetch
 5. **Confirm with Baseline Diff**: See Confirmation Protocol below before calling `report_vulnerability`
@@ -77,11 +98,9 @@ If the diff is "both return 200" or "both return the same error" — do NOT repo
 
 Include the baseline request/response, exploit request/response, and one-sentence diff in the `poc` field.
 
-### Duplicate Prevention
+### Duplicate Handling
 
-The `vulnerabilities` section in `web_get_session_context` (included by default) shows existing findings.
-Before reporting, check: does a finding with the same title, endpoint, and attack_vector already exist?
-If yes — skip it. The system will also reject exact duplicates automatically, but checking saves tokens.
+Never skip a real finding to avoid a duplicate. Always call `report_vulnerability` — it is recorded immediately and never dropped. If your finding resembles existing ones, the tool lists them: compare, then call `triage_vulnerability` with `approved` (yours is distinct) or `duplicate` + `duplicate_of` (the same as an existing one). Duplicates are linked and shown separately — nothing is lost.
 
 ### Reporting Requirements
 
@@ -96,6 +115,48 @@ When calling `report_vulnerability`, always include:
 - **business_impact**: Real-world consequences
 - **recommendation**: Remediation guidance
 - **poc**: Baseline request/response → exploit request/response → one-sentence diff
+
+### Your job is to TEST — recording is the LAST step, never the first
+
+Your deliverable is the TESTING. You are NOT done — and must NOT call
+`record_coverage_note` — until you have actually SENT real attack/modified requests to
+this endpoint and seen their responses. Reading the captured `## Response` is NOT a
+test; it is only your starting point.
+
+Do it strictly in this order:
+  1. **Send** your attack requests (curl / webfetch / attack_script): forged tokens,
+     manipulated IDs, injected payloads, removed/swapped auth — whatever your class
+     demands. At least one real request must leave your hands.
+  2. **Read** each response and compare it to the baseline.
+  3. **Only now** call `record_coverage_note` once, with the verdict you actually
+     observed (VULNERABLE or CLEAN) — a one-line summary.
+
+`record_coverage_note` is a logbook entry, NEVER your first move and NEVER a substitute
+for testing. A note you write without having sent real requests is a FALSE record: it
+makes every later check SKIP this class and HIDES a real vulnerability. If you only read
+and recorded, you did not do your job — you skipped it.
+
+- `class`: your specialty (e.g. `authn-crypto`, `idor`, `injection`).
+- `scope` + `asset`: where the verdict applies —
+  - **`scope: "wide"`** for app-wide mechanisms (JWT/token crypto, TLS, security
+    headers, CORS, server version): the verdict is a property of the whole deployment,
+    not this one route. Set `asset` to the **ORIGIN** — copy the exact `origin` value
+    from the `## Current request` block verbatim (scheme+host+port, e.g.
+    `https://shop.example.com`) so future requests match it. Record it ONCE for the app;
+    do this even if you reached it via a specific endpoint.
+  - **`scope: "local"`** for classes specific to this route (IDOR, injection here): set `asset` to
+    the **method-qualified** endpoint — copy `method` + `normalized_path` from the `## Current request`
+    block verbatim (e.g. `GET /rest/basket/{id}`, `PATCH /rest/products/reviews`).
+- **One note per distinct endpoint.** Make a SEPARATE `record_coverage_note` call for each
+  (method + path) you tested — NEVER describe a different endpoint's result inside another endpoint's
+  note. If, while assigned one endpoint, you also exercise a different one (e.g. a PATCH while testing
+  a GET), record a SECOND note with that endpoint's own method + path.
+- `note`: a SHORT, simple summary of what you did and the verdict — a couple of lines, like a quick
+  note, NOT a full report (detailed evidence goes in `report_vulnerability`). It is injected into
+  later agents' prompts, so brevity matters.
+
+This is the "what was tested" memory. Actual findings still go via
+`report_vulnerability`; coverage notes are separate and required for BOTH outcomes.
 
 ### False Positive Prevention
 
@@ -113,7 +174,7 @@ Do NOT report under these conditions:
 
 ### Performance Guidelines
 
-- **Minimize redundant requests** - Use captured response when possible
+- **Avoid duplicate identical requests** — but the captured response is a baseline, never a substitute for sending your own attack/modified requests
 - **Test efficiently** - Prioritize high-impact tests based on observable context
 - **Early termination** - Stop testing once vulnerability confirmed
 - **Context reuse** - Leverage session context instead of re-discovering information

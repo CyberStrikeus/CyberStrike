@@ -28,7 +28,13 @@ import {
 } from "./ingest.ts"
 import { loadSession, autoLogin, handle2FA, waitForManualLogin } from "./auth.ts"
 import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
-import { collectElements, isViewportCenterBlocked, filterVisitedLinks } from "./scanner.ts"
+import {
+  collectElements,
+  isViewportCenterBlocked,
+  filterVisitedLinks,
+  revealLazyContent,
+  expandDisclosures,
+} from "./scanner.ts"
 import {
   createGlobalState,
   buildPlannerSnapshot,
@@ -1036,7 +1042,17 @@ async function executeClickTask(
     targetSelector: el.selector,
     credential: credentialId,
   })
-  const result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  let result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  // Reactive overlay-aware retry: a stray overlay (a menu/dropdown/dialog backdrop opened
+  // by a PRIOR action) can intercept this click and time it out even though the target is
+  // fine. The existing proactive closeOverlay only runs when an element is NOT found; here
+  // the element IS found but blocked. If the click failed while a blocking overlay is up,
+  // dismiss it (closeOverlay: Escape → backdrop click) and retry the click ONCE.
+  if (!result.success && (await isViewportCenterBlocked(page))) {
+    log.debug("click blocked by a stray overlay — closing it and retrying once", { label: el.label })
+    await closeOverlay(page)
+    result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
+  }
   interceptor.clearPendingTrigger()
   trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
   void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
@@ -1549,7 +1565,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
   // Track auth headers per credential for sync (same pattern as Firefox extension)
   const lastAuthHeaders = new Map<string, Record<string, string>>()
 
-  for (const cred of credentials) {
+  for (const [credIndex, cred] of credentials.entries()) {
     const browserContext = await browser.newContext({
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     })
@@ -1571,8 +1587,10 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     })
     void csEmit(page, { type: "credential-switch", from: null, to: cred.id })
 
-    // Manual login for this credential
-    await waitForManualLogin(page, cred.id)
+    // Manual login for this credential. Pass position in the sequence so the
+    // button shows progress (e.g. "ADMIN (1/2)") and only the final credential
+    // says "START SCAN" — earlier ones say "CONFIRM & NEXT".
+    await waitForManualLogin(page, cred.id, { index: credIndex, total: credentials.length })
 
     // Register credential with CyberStrike (same as Firefox extension pattern)
     let credentialId = cred.id
@@ -1729,6 +1747,8 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       await ctx.page.keyboard.press("Escape").catch(() => {})
       await ctx.page.waitForTimeout(OVERLAY_ESCAPE_WAIT)
       await dismissCookieBanner(ctx.page)
+      await revealLazyContent(ctx.page)
+      await expandDisclosures(ctx.page)
     }
 
     // Collect elements from each context
@@ -2078,6 +2098,13 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
 
     // Dismiss cookie banners — deterministic, no LLM needed
     await dismissCookieBanner(page)
+
+    // Reveal lazily-rendered below-the-fold content (scroll-gated sections) before
+    // collection so a non-scrolling scan doesn't miss unique sections. Bounded.
+    await revealLazyContent(page)
+    // Expand safe disclosures (<details>, aria-expanded accordions) so hidden
+    // actions become visible surface without spending LLM turns. Bounded, ARIA-safe.
+    await expandDisclosures(page)
 
     // Fingerprint comparison: skip unchanged pages on re-visit (no LLM calls)
     // Fingerprint only includes input roles (textbox/combobox/checkbox/radio/slider)

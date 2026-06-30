@@ -70,7 +70,13 @@ const PANEL_CSS = `
   width: 360px;
   background: #0b0f14;
   border: 1px solid #1f2937;
-  pointer-events: auto;
+  /* Non-blocking HUD: the agent's own observability overlay must NEVER intercept
+     clicks meant for the page. The card sits bottom-right where page chrome
+     (cookie banners, chat widgets, FABs) commonly lives — pointer-events:auto here
+     silently blocked those page elements (Playwright hit-test returns the panel →
+     2s timeout per click). The panel is display-only; click-to-expand is sacrificed
+     (re-add later via a keydown shortcut, which needs no pointer-events). */
+  pointer-events: none;
   transition: width 200ms ease-out, height 200ms ease-out;
   box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
   overflow: hidden;

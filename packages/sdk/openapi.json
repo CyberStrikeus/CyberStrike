@@ -2328,6 +2328,83 @@
         ]
       }
     },
+    "/session/{sessionID}/observations": {
+      "get": {
+        "operationId": "session.observations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Session ID"
+          },
+          {
+            "in": "query",
+            "name": "keyHash",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Endpoint key_hash"
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Request id (alternative to keyHash)"
+          }
+        ],
+        "summary": "Get observed values for an endpoint",
+        "description": "Per-endpoint observed values (raw facts): which credential used which concrete values for each parameter. Pulled on-demand when the UI expands an endpoint. Pass the endpoint's key_hash.",
+        "responses": {
+          "200": {
+            "description": "Observed-value tree",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.session.observations({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/session/{sessionID}/web/credentials": {
       "get": {
         "operationId": "session.webCredentials",
@@ -7610,6 +7687,65 @@
         ]
       }
     },
+    "/methodology/session/{sessionID}/coverage-notes": {
+      "get": {
+        "operationId": "methodology.coverageNotes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sessionID",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Get coverage notes",
+        "description": "Returns the coverage notes (what vuln class was tested at which scope/asset) for a session.",
+        "responses": {
+          "200": {
+            "description": "Coverage notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createCyberstrikeClient } from \"@cyberstrike-io/sdk\n\nconst client = createCyberstrikeClient()\nawait client.methodology.coverageNotes({\n  ...\n})"
+          }
+        ]
+      }
+    },
     "/methodology/session/{sessionID}/intel/coverage": {
       "get": {
         "operationId": "methodology.coverage",
@@ -9992,6 +10128,9 @@
           },
           "finish": {
             "type": "string"
+          },
+          "stepCapped": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -11338,6 +11477,18 @@
             "type": "string",
             "enum": ["tier1", "tier2", "tier3", "failed"]
           },
+          "protocol": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "op_key_hash": {
+            "type": "string"
+          },
+          "key_hash": {
+            "type": "string"
+          },
           "response_status": {
             "type": "number"
           },
@@ -11667,9 +11818,12 @@
             "type": "string"
           },
           "status": {
-            "default": "open",
+            "default": "new",
             "type": "string",
-            "enum": ["open", "fixed", "ignored"]
+            "enum": ["new", "approved", "duplicate", "open", "fixed", "ignored"]
+          },
+          "duplicate_of": {
+            "type": "string"
           },
           "message_id": {
             "type": "string"
@@ -12134,28 +12288,6 @@
         },
         "required": ["type", "properties"]
       },
-      "Event.intel.updated": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "intel.updated"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "sessionID": {
-                "type": "string"
-              },
-              "entryCount": {
-                "type": "number"
-              }
-            },
-            "required": ["sessionID", "entryCount"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
       "Event.tui.prompt.append": {
         "type": "object",
         "properties": {
@@ -12308,6 +12440,28 @@
               }
             },
             "required": ["mcpName", "url"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Event.intel.updated": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "intel.updated"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string"
+              },
+              "entryCount": {
+                "type": "number"
+              }
+            },
+            "required": ["sessionID", "entryCount"]
           }
         },
         "required": ["type", "properties"]
@@ -12870,9 +13024,6 @@
             "$ref": "#/components/schemas/Event.web_retest.updated"
           },
           {
-            "$ref": "#/components/schemas/Event.intel.updated"
-          },
-          {
             "$ref": "#/components/schemas/Event.tui.prompt.append"
           },
           {
@@ -12889,6 +13040,9 @@
           },
           {
             "$ref": "#/components/schemas/Event.mcp.browser.open.failed"
+          },
+          {
+            "$ref": "#/components/schemas/Event.intel.updated"
           },
           {
             "$ref": "#/components/schemas/Event.command.executed"
@@ -15634,6 +15788,9 @@
               }
             },
             "required": ["modelID", "providerID"]
+          },
+          "useSmallModel": {
+            "type": "boolean"
           },
           "variant": {
             "type": "string"

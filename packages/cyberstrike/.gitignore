@@ -9,3 +9,7 @@ jq
 postman/
 TODO.md
 update_review_payload.json
+
+# local cyberstrike state + throwaway DAST benchmark harness/apps/results
+.cyberstrike/
+test/benchmark/

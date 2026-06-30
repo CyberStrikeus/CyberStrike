@@ -103,7 +103,17 @@ export async function handle2FA(page: Page): Promise<boolean> {
  * @param page — Playwright page to inject button into
  * @param label — Optional credential label for multi-credential mode (e.g. "admin", "user")
  */
-export async function waitForManualLogin(page: Page, label?: string): Promise<void> {
+// User-dragged position of the manual-login button, persisted across
+// re-injections, page navigations AND credentials (module-level survives
+// cross-origin navigations where page localStorage would reset). Updated via an
+// exposed callback on drag-end; re-applied on every re-injection.
+let savedBtnPos: { left: number; top: number } | null = null
+
+export async function waitForManualLogin(
+  page: Page,
+  label?: string,
+  progress?: { index: number; total: number },
+): Promise<void> {
   let resolveReady: () => void
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve
@@ -114,17 +124,29 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
     resolveReady()
   })
 
-  // Two-line label: top tells the user what to do (log in first), bottom is
-  // the action they confirm by clicking. Uppercase throughout.
-  const topLine = label ? `// ${label.toUpperCase()} · LOGIN MANUALLY ⟶ CLICK` : `// LOGIN MANUALLY ⟶ CLICK`
-  const buttonText = "START SCAN"
+  const posCallbackName = label ? `__cyberstrikePos_${label}` : "__cyberstrikePos"
+  await page.exposeFunction(posCallbackName, (left: number, top: number) => {
+    savedBtnPos = { left, top }
+  })
+
+  // Multi-credential manual login is sequential: only the FINAL credential
+  // actually starts the scan; earlier ones just confirm that login and open the
+  // next window. Label the button honestly so the user isn't told "SCANNING…"
+  // when another login is still waiting.
+  const isFinal = !progress || progress.index >= progress.total - 1
+  const step = progress ? ` (${progress.index + 1}/${progress.total})` : ""
+  const who = label ? label.toUpperCase() : "LOGIN"
+  const topLine = isFinal
+    ? `// ${who}${step} · LOGIN MANUALLY ⟶ START SCAN`
+    : `// ${who}${step} · LOGIN MANUALLY ⟶ CONFIRM & NEXT`
+  const buttonText = isFinal ? "START SCAN" : "CONFIRM & NEXT ⟶"
   const buttonId = label ? `__cyberstrike-ready-btn-${label}` : "__cyberstrike-ready-btn"
   const styleId = "__cyberstrike-ready-btn-style"
 
   const injectButton = async () => {
     await page
       .evaluate(
-        ({ btnId, btnText, topText, cbName, styleElId }) => {
+        ({ btnId, btnText, topText, cbName, styleElId, posCb, savedPos, isFinal }) => {
           if (document.getElementById(btnId)) return
 
           // Inject keyframes + hover styles once per page.
@@ -153,9 +175,10 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
             document.head.appendChild(style)
           }
 
-          const btn = document.createElement("button")
+          // Outer container is a draggable DIV — the action is carved out into its
+          // own <button> below so dragging the bar can NEVER trigger START SCAN.
+          const btn = document.createElement("div")
           btn.id = btnId
-          btn.type = "button"
           btn.style.cssText = [
             "all: initial",
             "position: fixed",
@@ -171,12 +194,21 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
             "border: 1px solid #1f2937",
             "color: #e5e7eb",
             "font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, ui-monospace, monospace",
-            "cursor: pointer",
+            "cursor: grab",
             "user-select: none",
+            "touch-action: none",
             "box-shadow: 0 0 0 1px rgba(34,211,238,0.15), 0 0 20px rgba(34,211,238,0.25), 0 8px 24px rgba(0,0,0,0.5)",
             "transition: box-shadow 180ms ease-out, background 180ms ease-out",
             "-webkit-font-smoothing: antialiased",
           ].join(";")
+
+          // Re-apply the user's previously dragged position (if any) so the bar
+          // stays where they moved it across pages / credentials.
+          if (savedPos) {
+            btn.style.left = savedPos.left + "px"
+            btn.style.top = savedPos.top + "px"
+            btn.style.right = "auto"
+          }
 
           // Corner brackets — tactical HUD signature (same as panel card).
           for (const corner of ["tl", "tr", "bl", "br"]) {
@@ -185,7 +217,13 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
             btn.appendChild(b)
           }
 
-          // Top meta line: "// LABEL · STATUS" in muted cyan.
+          // Top row: grip handle (drag origin) + meta line.
+          const topRow = document.createElement("span")
+          topRow.style.cssText = "display: flex; align-items: center; gap: 8px;"
+          const grip = document.createElement("span")
+          grip.textContent = "⠿"
+          grip.setAttribute("aria-hidden", "true")
+          grip.style.cssText = "font-size: 12px; color: #22d3ee; opacity: 0.55; cursor: grab;"
           const meta = document.createElement("span")
           meta.textContent = topText
           meta.style.cssText = [
@@ -195,11 +233,22 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
             "opacity: 0.75",
             "text-transform: uppercase",
           ].join(";")
-          btn.appendChild(meta)
+          topRow.appendChild(grip)
+          topRow.appendChild(meta)
+          btn.appendChild(topRow)
 
-          // Primary row: pulse dot + "START SCAN" in bright cyan.
-          const row = document.createElement("span")
-          row.style.cssText = "display: flex; align-items: center; gap: 8px;"
+          // Action — the ONLY element that fires. Real <button> for keyboard/a11y.
+          const action = document.createElement("button")
+          action.type = "button"
+          action.setAttribute("aria-label", isFinal ? "Start scan" : "Confirm login and open next")
+          action.style.cssText = [
+            "all: unset",
+            "display: flex",
+            "align-items: center",
+            "gap: 8px",
+            "cursor: pointer",
+            "padding: 2px 0",
+          ].join(";")
           const dot = document.createElement("span")
           dot.style.cssText = [
             "display: inline-block",
@@ -219,25 +268,113 @@ export async function waitForManualLogin(page: Page, label?: string): Promise<vo
             "color: #22d3ee",
             "text-transform: uppercase",
           ].join(";")
-          row.appendChild(dot)
-          row.appendChild(txt)
-          btn.appendChild(row)
+          action.appendChild(dot)
+          action.appendChild(txt)
+          btn.appendChild(action)
 
-          btn.addEventListener("click", () => {
+          // Affordance hint under the action: the bar moves via the grip.
+          const hint = document.createElement("span")
+          hint.textContent = "drag ⠿ to move"
+          hint.style.cssText = ["font-size: 8px", "letter-spacing: 0.1em", "color: #6b7280", "margin-top: 1px"].join(
+            ";",
+          )
+          btn.appendChild(hint)
+
+          // Drag via Pointer Events + capture: one path for mouse/touch/pen and no
+          // document-level listeners that would leak across re-injections. Drag
+          // starts only when the press did NOT land on the action button.
+          let dragging = false
+          let moved = false
+          let sx = 0
+          let sy = 0
+          let ox = 0
+          let oy = 0
+          let dragEndedAt = 0
+          btn.addEventListener("pointerdown", (e) => {
+            if (action.contains(e.target as Node)) return // let the action handle its own click
+            dragging = true
+            moved = false
+            const r = btn.getBoundingClientRect()
+            ox = r.left
+            oy = r.top
+            sx = e.clientX
+            sy = e.clientY
+            btn.style.left = ox + "px"
+            btn.style.top = oy + "px"
+            btn.style.right = "auto"
+            btn.style.cursor = "grabbing"
+            btn.setPointerCapture(e.pointerId)
+            e.preventDefault()
+          })
+          btn.addEventListener("pointermove", (e) => {
+            if (!dragging) return
+            const dx = e.clientX - sx
+            const dy = e.clientY - sy
+            if (Math.abs(dx) + Math.abs(dy) > 4) moved = true
+            const w = btn.offsetWidth
+            const h = btn.offsetHeight
+            btn.style.left = Math.max(0, Math.min(window.innerWidth - w, ox + dx)) + "px"
+            btn.style.top = Math.max(0, Math.min(window.innerHeight - h, oy + dy)) + "px"
+          })
+          const endDrag = (e: PointerEvent) => {
+            if (!dragging) return
+            dragging = false
+            btn.style.cursor = "grab"
+            try {
+              btn.releasePointerCapture(e.pointerId)
+            } catch {
+              /* capture may already be released */
+            }
+            if (moved) {
+              dragEndedAt = Date.now()
+              const r = btn.getBoundingClientRect()
+              ;(window as unknown as Record<string, (l: number, t: number) => void>)[posCb](r.left, r.top)
+            }
+          }
+          btn.addEventListener("pointerup", endDrag)
+          btn.addEventListener("pointercancel", endDrag)
+
+          // Action fires ONLY on a clean click on the action button, and never
+          // within 350ms of a drag-end (swallows the stray click after moving —
+          // this is what stops "accidentally hit START SCAN while dragging").
+          action.addEventListener("click", () => {
+            if (Date.now() - dragEndedAt < 350) return
             ;(window as unknown as Record<string, () => void>)[cbName]()
-            meta.textContent = "// SCANNING…"
-            txt.textContent = "INITIATED"
+            meta.textContent = isFinal ? "// SCANNING…" : "// LOGIN CONFIRMED"
+            txt.textContent = isFinal ? "INITIATED" : "NEXT LOGIN ⟶"
             dot.style.animation = "none"
             dot.style.background = "#6b7280"
             dot.style.boxShadow = "none"
             txt.style.color = "#9ca3af"
             meta.style.color = "#6b7280"
+            action.style.cursor = "default"
             btn.style.cursor = "default"
             btn.style.opacity = "0.7"
+            hint.style.display = "none"
           })
           document.body.appendChild(btn)
+
+          // Re-clamp against the real (post-layout) size so a position restored
+          // from a larger page can't strand the bar offscreen here.
+          {
+            const w = btn.offsetWidth
+            const h = btn.offsetHeight
+            const curLeft = parseFloat(btn.style.left || "")
+            const curTop = parseFloat(btn.style.top || "")
+            if (!Number.isNaN(curLeft)) btn.style.left = Math.max(0, Math.min(window.innerWidth - w, curLeft)) + "px"
+            if (!Number.isNaN(curTop)) btn.style.top = Math.max(0, Math.min(window.innerHeight - h, curTop)) + "px"
+          }
         },
-        { btnId: buttonId, btnText: buttonText, topText: topLine, cbName: callbackName, styleElId: styleId },
+        {
+          btnId: buttonId,
+          btnText: buttonText,
+          topText: topLine,
+          cbName: callbackName,
+          styleElId: styleId,
+          posCb: posCallbackName,
+          savedPos: savedBtnPos,
+          isFinal,
+        },
       )
       .catch(() => {})
   }
