@@ -33,3 +33,6 @@ opencode-dev
 logs/
 *.bun-build
 .skill-signing-key
+
+# Local throwaway test/eval harness (not committed)
+packages/cyberstrike/test/proxy-eval/

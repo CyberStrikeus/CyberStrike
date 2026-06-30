@@ -16,6 +16,7 @@ export interface RawElement {
   options: string // comma-separated option values for <select> elements
   constraints: string // HTML5 validation meta: "min:0 max:1000 step:10", "maxlength:160", ...
   selector: string // Playwright selector — LLM never sees this
+  inChrome: boolean // true if inside a site-chrome landmark (nav/header/footer/aside) — excluded from the re-discovery fingerprint so site-wide navbar changes don't flip every page
 }
 
 /** Deferred auth page — discovered during anonymous phase, processed later */

@@ -6,6 +6,7 @@ import { lazy } from "../../util/lazy"
 import { errors } from "../error"
 import { Methodology } from "../../methodology/methodology"
 import { Intel } from "../../methodology/intel"
+import { CoverageNote } from "../../session/coverage-note"
 import { Chain } from "../../methodology/chain"
 import { Validation } from "../../methodology/validation"
 import { AgentPerformance } from "../../methodology/performance"
@@ -95,6 +96,34 @@ export const MethodologyRoutes = lazy(() =>
         const rootSession = Session.root(sessionID)
         const entries = Intel.get(rootSession)
         return c.json(entries)
+      },
+    )
+
+    // Coverage notes — what each tester recorded as tested, at which scope (asset).
+    // Separate from the VRT coverage report below; this is the proxy-lane test memory.
+    .get(
+      "/session/:sessionID/coverage-notes",
+      describeRoute({
+        summary: "Get coverage notes",
+        description: "Returns the coverage notes (what vuln class was tested at which scope/asset) for a session.",
+        operationId: "methodology.coverageNotes",
+        responses: {
+          200: {
+            description: "Coverage notes",
+            content: {
+              "application/json": {
+                schema: resolver(z.array(z.record(z.string(), z.any()))),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", sessionParam),
+      async (c) => {
+        const { sessionID } = c.req.valid("param")
+        const rootSession = Session.root(sessionID)
+        return c.json(CoverageNote.listBySession(rootSession))
       },
     )
 
@@ -337,7 +366,7 @@ export const MethodologyRoutes = lazy(() =>
         const rootSession = Session.root(sessionID)
         const session = await Session.get(rootSession)
 
-        const vulns = Vulnerability.get(rootSession)
+        const vulns = Vulnerability.confirmed(rootSession)
         const coverage = Intel.computeCoverage(rootSession)
         const assetCoverage = Intel.computePerAssetCoverage(rootSession)
         const state = Methodology.computeState(rootSession)

@@ -269,7 +269,7 @@ brew install CyberStrikeus/tap/cyberstrike
 scoop install cyberstrike
 
 # Linux / macOS (curl)
-curl -fsSL https://cyberstrike.io/install | bash
+curl -fsSL https://cyberstrike.io/install.sh | bash
 ```
 
 ---

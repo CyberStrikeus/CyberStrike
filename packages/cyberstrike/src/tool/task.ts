@@ -11,14 +11,21 @@ import { defer } from "@/util/defer"
 import { Config } from "../config/config"
 import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
+import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
 import { renderAccessContextLines } from "../server/routes/session"
-import { MethodologyContext } from "@/methodology/context"
 import { Truncate } from "./truncation"
+import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 
 // Per-field byte cap for raw request/response prepended into a subagent prompt.
-// The full content stays retrievable via the web_get_request_detail tool.
-const MAX_PREPEND_BYTES = 16 * 1024
+// Raised 16KB→48KB: validation showed weak models (o4-mini) do NOT follow the
+// "call web_get_request_detail" hint when content is truncated — they proceed on
+// the head and MISS anything past the cap (e.g. a secret leaked at byte 30k). The
+// cap is now large enough that most responses fit in-context (structural fix:
+// don't depend on the model following a hint), affordable since prompt caching
+// makes the extra tokens cheap. The full content stays retrievable via
+// web_get_request_detail for the rare response that still exceeds this.
+const MAX_PREPEND_BYTES = 48 * 1024
 
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
@@ -58,6 +65,23 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       // Skip permission check when user explicitly invoked via @ or command subtask
       if (!ctx.extra?.bypassAgentCheck) {
+        // Dispatch lane guard (Phase 4): the orchestrator must route each test to
+        // the specialist whose lane owns it. Bounce a confidently mis-routed
+        // proxy-tester dispatch (e.g. a rate-limiting task sent to business-logic)
+        // with a re-dispatch hint instead of spawning a wasted subagent. Domain
+        // logic lives in vuln-scope; here we only enforce. Only autonomous dispatch
+        // is constrained — explicit user @-invocation is bypassAgentCheck and skips.
+        const violation = dispatchScopeViolation(params.subagent_type, `${params.description}\n${params.prompt}`)
+        if (violation) {
+          return {
+            title: `Dispatch rejected — ${params.subagent_type} out of lane`,
+            output: dispatchOffLaneMessage(violation.cls, violation.inferred),
+            // Match the success return's metadata shape so the tool's inferred
+            // Metadata type stays consistent (no subtask was created here).
+            metadata: { sessionId: "", model: { providerID: "", modelID: "" }, outcome: "clean" as const },
+          }
+        }
+
         await ctx.ask({
           permission: "task",
           patterns: [params.subagent_type],
@@ -114,10 +138,14 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       const msg = await MessageV2.get({ sessionID: ctx.sessionID, messageID: ctx.messageID })
       if (msg.info.role !== "assistant") throw new Error("Not an assistant message")
 
-      const model = agent.model ?? {
-        modelID: msg.info.modelID,
-        providerID: msg.info.providerID,
-      }
+      // Inherit the caller's INTENDED model — its user-message model, NOT the
+      // assistant message's model. The assistant model reflects the model actually
+      // run, which for a useSmallModel caller (orchestrator/analyzer) is already
+      // downgraded; inheriting it would force every dispatched tester onto the
+      // small tier too. The user message keeps the original tier. The subagent's
+      // own useSmallModel downgrade (if any) is applied at run time in the
+      // SessionPrompt loop — never here.
+      const model = agent.model ?? (await SessionPrompt.lastModel(ctx.sessionID))
 
       ctx.metadata({
         title: params.description,
@@ -151,8 +179,17 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             `- session_id: ${current.session_id}`,
             `- method: ${current.method}`,
             `- normalized_path: ${current.normalized_path}`,
+            `- origin: ${current.origin ?? "—"}`,
             `- status: ${current.status}`,
           )
+
+          // App-wide coverage already recorded for this origin — reuse the verdict /
+          // forged artifacts and do NOT re-test these deployment-wide classes here.
+          const coverage = CoverageNote.wideBlock(Session.root(ctx.sessionID), current.origin ?? "")
+          if (coverage) {
+            lines.push("")
+            lines.push(coverage)
+          }
 
           // Credential context
           if (current.credential_id) {
@@ -201,7 +238,10 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           // request fans out into every dispatched subagent's prompt. The full
           // request/response stays available on demand via web_get_request_detail.
           const reqHint = (shown: number, total: number) =>
-            `...[truncated: showing ${shown} of ${total} bytes — call web_get_request_detail with request_id ${current.id} for the full request/response]`
+            `\n\n⚠️ TRUNCATED: only the first ${shown} of ${total} bytes are shown above. ` +
+            `The rest (including anything past this point — params, headers, leaked data, sinks) is NOT visible here. ` +
+            `You MUST call web_get_request_detail with request_id "${current.id}" to read the FULL request/response ` +
+            `before you conclude anything about this endpoint — do NOT decide based only on this truncated head.`
           if (current.raw_request) {
             lines.push(
               "",
@@ -226,12 +266,12 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }
 
-      // Inject methodology context so sub-agents have intel, work queue, and chain data
-      const methodologyCtx = MethodologyContext.generate(Session.root(ctx.sessionID))
-      if (methodologyCtx) {
-        prompt = "## Methodology Context\n" + methodologyCtx + "\n\n" + prompt
-      }
-
+      // NOTE: methodology context is NOT injected here. The subagent's own run loop
+      // (session/prompt.ts) pushes MethodologyContext.generate(root, testerClass(agent))
+      // into the system prompt on EVERY turn (lane-scoped identically), and that prefix
+      // is prompt-cached. Prepending it here too only duplicated it into turn-1's user
+      // message. The system-prompt path covers all subagent sessions, so this is the
+      // single source.
       const promptParts = await SessionPrompt.resolvePromptParts(prompt)
 
       const result = await SessionPrompt.prompt({
@@ -253,7 +293,32 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       const text = result.parts.findLast((x) => x.type === "text")?.text ?? ""
 
+      // Classify the subagent's ACTUAL outcome from its final assistant message so
+      // the parent's recording gate (session/prompt.ts) doesn't count an aborted /
+      // errored / step-capped run as a successful mission. The child loop swallows
+      // aborts/errors into info.error and still returns a result, and a step-capped
+      // run looks like a clean finish:"stop" — both previously recorded success:true.
+      const childInfo = result.info
+      const childError = childInfo.role === "assistant" ? childInfo.error : undefined
+      const outcome: "clean" | "aborted" | "errored" | "capped" = childError
+        ? MessageV2.AbortedError.isInstance(childError)
+          ? "aborted"
+          : "errored"
+        : childInfo.role === "assistant" && childInfo.stepCapped
+          ? "capped"
+          : "clean"
+
+      const statusBanner =
+        outcome === "clean"
+          ? null
+          : outcome === "aborted"
+            ? "INCOMPLETE: this subagent was ABORTED before finishing. Its results are partial and were NOT credited as tested."
+            : outcome === "errored"
+              ? `INCOMPLETE: this subagent ERRORED before finishing (${(childError as { name?: string })?.name ?? "error"}). Its results are partial and were NOT credited as tested.`
+              : "INCOMPLETE: this subagent hit its step limit and was forced to wrap up before finishing. Its results may be partial and were NOT credited as tested."
+
       const output = [
+        ...(statusBanner ? [`<task_status>${statusBanner}</task_status>`, ""] : []),
         `task_id: ${session.id} (for resuming to continue this task if needed)`,
         "",
         "<task_result>",
@@ -266,6 +331,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         metadata: {
           sessionId: session.id,
           model,
+          outcome,
         },
         output,
       }

@@ -50,6 +50,7 @@ import { Truncate } from "@/tool/truncation"
 import { Token } from "@/util/token"
 import { MethodologyContext } from "@/methodology/context"
 import { AgentPerformance } from "@/methodology/performance"
+import { testerClass } from "@/tool/vuln-scope"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -351,7 +352,7 @@ export namespace SessionPrompt {
           history: msgs,
         })
 
-      const model = await Provider.getModel(lastUser.model.providerID, lastUser.model.modelID).catch((e) => {
+      let model = await Provider.getModel(lastUser.model.providerID, lastUser.model.modelID).catch((e) => {
         if (Provider.ModelNotFoundError.isInstance(e)) {
           const hint = e.data.suggestions?.length ? ` Did you mean: ${e.data.suggestions.join(", ")}?` : ""
           Bus.publish(Session.Event.Error, {
@@ -363,6 +364,15 @@ export namespace SessionPrompt {
         }
         throw e
       })
+      // Phase 1.3: small-tier downgrade applied ONCE here, at run time, gated on the
+      // running agent's useSmallModel — NOT persisted on the user message (which
+      // keeps the original model so dispatched testers inherit the full tier). The
+      // provider is kept; only the tier is forced down (anthropic→haiku, etc).
+      const runAgent = lastUser.agent ? await Agent.get(lastUser.agent).catch(() => undefined) : undefined
+      if (runAgent?.useSmallModel) {
+        const small = await Provider.getSmallModel(model.providerID).catch(() => undefined)
+        if (small) model = (await Provider.getModel(small.providerID, small.id).catch(() => undefined)) ?? model
+      }
       const task = tasks.pop()
 
       // pending subtask
@@ -497,15 +507,26 @@ export namespace SessionPrompt {
               },
             },
           } satisfies MessageV2.ToolPart)
-          // Record successful mission for agent performance tracking
+          // Record mission for agent performance tracking. Gate success on the
+          // subagent's ACTUAL outcome (set by the task tool) — an aborted / errored
+          // / step-capped run returns a result but did NOT complete, so it must not
+          // count as success, and its (partial) output must not inflate findings.
           try {
+            const outcome = (result.metadata as { outcome?: string } | undefined)?.outcome ?? "clean"
+            const clean = outcome === "clean"
             const output = result.output ?? ""
-            const findings = (
-              output.match(/report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi) ?? []
-            ).length
-            const vrtUpdates = (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
+            const findings = clean
+              ? (
+                  output.match(
+                    /report_vulnerability|VULNERABILITY REPORTED|severity.{0,5}(?:critical|high|medium)/gi,
+                  ) ?? []
+                ).length
+              : 0
+            const vrtUpdates = clean
+              ? (output.match(/update_vrt_check|tested_vulnerable|tested_not_vulnerable/gi) ?? []).length
+              : 0
             AgentPerformance.recordMission(Session.root(sessionID), task.agent, {
-              success: true,
+              success: clean,
               findingsReported: findings,
               coverageContributed: vrtUpdates,
             })
@@ -605,6 +626,9 @@ export namespace SessionPrompt {
           mode: agent.name,
           agent: agent.name,
           variant: lastUser.variant,
+          // Mark the forced wrap-up turn so callers (task tool) can tell a
+          // step-capped run apart from a genuinely clean finish.
+          ...(isLastStep ? { stepCapped: true } : {}),
           path: {
             cwd: Instance.directory,
             root: Instance.worktree,
@@ -690,8 +714,10 @@ export namespace SessionPrompt {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
       }
 
-      // Inject methodology context if the session has intel data
-      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID))
+      // Inject methodology context if the session has intel data. Scope it to the
+      // running agent's lane when it's a proxy-tester (Phase 2.3) — orchestrator
+      // (non-tester) gets the full routing view.
+      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent))
       if (methodologyCtx) system.push(methodologyCtx)
 
       // Inject MCP tool availability info so the LLM knows to use tool_search
@@ -1096,6 +1122,12 @@ export namespace SessionPrompt {
   async function createUserMessage(input: PromptInput) {
     const agent = await Agent.get(input.agent ?? (await Agent.defaultAgent()))
 
+    // Store the ORIGINAL (requested) model on the user message — do NOT apply the
+    // useSmallModel tier downgrade here. Persisting the downgrade poisons model
+    // inheritance: dispatched testers (no useSmallModel) would inherit the
+    // orchestrator's downgraded tier. The downgrade is a run-time concern applied
+    // once at assistant model resolution (see the loop in `prompt`), gated on the
+    // running agent's useSmallModel — keeping user messages at the original model.
     const model = input.model ?? agent.model ?? (await lastModel(input.sessionID))
     const full =
       !input.variant && agent.variant

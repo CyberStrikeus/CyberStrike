@@ -6,6 +6,7 @@
 
 import { createHash } from "crypto"
 import type { Method, ParsedRequest } from "./types"
+import { extractOperation, bodyKeyShapeHash } from "./protocol"
 
 const DEFAULT_PORT_FOR: Record<"http" | "https", number> = { http: 80, https: 443 }
 
@@ -39,6 +40,19 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
   const bodyContentType = findHeaderValue(lines, "content-type")?.split(";")[0]?.trim().toLowerCase()
   const body = extractBody(lines)
   const bodyHash = body ? hashBody(body, bodyContentType) : undefined
+  // Faz 1: structural key-shape of a JSON body (values stripped) — the REST dedup
+  // discriminator, so same-shape/different-values mutations collapse. undefined
+  // for non-JSON, where the value-bearing bodyHash remains the fallback.
+  const bodyKeyHash = bodyKeyShapeHash(body, bodyContentType)
+
+  // Body/header-dispatched protocols (GraphQL, JSON-RPC): derive a per-operation
+  // identity so each operation is its own dedup unit. Undefined ⇒ plain REST.
+  const op = extractOperation({
+    method,
+    bodyContentType,
+    body,
+    query: targetUrl.search.replace(/^\?/, ""),
+  })
 
   return {
     method,
@@ -54,6 +68,11 @@ export function parseRawRequest({ raw, scheme }: ParseInput): ParsedRequest {
     queryKeyHash,
     bodyContentType,
     bodyHash,
+    bodyKeyHash,
+    protocol: op?.protocol,
+    operation: op?.operation,
+    opKeyHash: op?.opKeyHash,
+    body,
   }
 }
 
@@ -61,11 +80,28 @@ function resolveTargetUrl(target: string, scheme: "http" | "https", lines: strin
   if (target.startsWith("http://") || target.startsWith("https://")) {
     return new URL(target)
   }
-  const hostHeader = findHeaderValue(lines, "host")
-  if (!hostHeader) {
-    return new URL(target, `${scheme}://unknown.local`)
+  const authority = findAuthority(lines)
+  const base = `${scheme}://${authority ?? "unknown.local"}`
+  // In origin-form the request target is a PATH and must never determine the
+  // host. `new URL("//seg/rest", base)` would treat a `//`-prefixed target as
+  // protocol-relative and hijack the host (e.g. `//accounts-identity-manager/x`
+  // → host "accounts-identity-manager", dropping the real host AND the segment).
+  // Collapse leading slashes so the target stays a path on `base`.
+  const pathTarget = target.startsWith("//") ? "/" + target.replace(/^\/+/, "") : target
+  return new URL(pathTarget, base)
+}
+
+// Resolve the request host: prefer the HTTP/2 `:authority` pseudo-header (which
+// carries the host when there is no `Host:` header), then fall back to `Host:`.
+// findHeaderValue can't read `:authority` because the line starts with `:`.
+function findAuthority(lines: string[]): string | undefined {
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line) break
+    const match = line.match(/^:authority:\s*(.+)$/i)
+    if (match) return match[1]!.trim()
   }
-  return new URL(target, `${scheme}://${hostHeader.trim()}`)
+  return findHeaderValue(lines, "host")?.trim()
 }
 
 // Splits on `/` BEFORE decoding so %2F inside a segment can't spawn a new

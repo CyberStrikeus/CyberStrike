@@ -433,6 +433,14 @@ export namespace MessageV2 {
     structured: z.any().optional(),
     variant: z.string().optional(),
     finish: z.string().optional(),
+    /**
+     * True when this assistant message was produced on the step that hit the
+     * agent's max-steps cap (tools disabled, forced wrap-up). The message looks
+     * like a clean `finish: "stop"` but the run did NOT complete its task — used
+     * by the task tool to classify a subagent's outcome as "capped" rather than
+     * "clean" so it isn't recorded as a successful mission.
+     */
+    stepCapped: z.boolean().optional(),
   }).meta({
     ref: "AssistantMessage",
   })

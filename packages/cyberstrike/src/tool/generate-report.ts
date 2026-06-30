@@ -5,6 +5,7 @@ import { Vulnerability } from "../session/vulnerability"
 import { Session } from "../session"
 import { Methodology } from "../methodology/methodology"
 import { Intel } from "../methodology/intel"
+import { CoverageNote } from "../session/coverage-note"
 import { Chain } from "../methodology/chain"
 import { Validation } from "../methodology/validation"
 import { Request } from "../session/request"
@@ -59,10 +60,11 @@ export const GenerateReportTool = Tool.define("generate_report", {
     const rootSession = Session.root(ctx.sessionID)
     const session = await Session.get(rootSession)
 
-    const vulns = Vulnerability.get(rootSession)
+    const vulns = Vulnerability.confirmed(rootSession)
     const intel = Intel.get(rootSession)
     const coverage = Intel.computeCoverage(rootSession)
     const assetCoverage = Intel.computePerAssetCoverage(rootSession)
+    const coverageNotes = CoverageNote.listBySession(rootSession)
     const state = Methodology.computeState(rootSession)
     const chains = Chain.load(rootSession)
     const requests = Request.get(rootSession)
@@ -88,7 +90,7 @@ export const GenerateReportTool = Tool.define("generate_report", {
 
     if (sections.includes("findings")) parts.push(formatVulnTable(vulns))
 
-    if (sections.includes("coverage")) parts.push(formatCoverage(coverage, assetCoverage))
+    if (sections.includes("coverage")) parts.push(formatCoverage(coverage, assetCoverage, coverageNotes))
 
     if (sections.includes("methodology")) parts.push(formatMethodologySection(state))
 
@@ -204,7 +206,11 @@ function formatVulnTable(vulns: Vulnerability.Info[]): string {
   return lines.join("\n") + "\n" + details.join("\n")
 }
 
-function formatCoverage(coverage: Intel.CoverageReport, assets: Intel.AssetCoverage[]): string {
+function formatCoverage(
+  coverage: Intel.CoverageReport,
+  assets: Intel.AssetCoverage[],
+  notes: CoverageNote.Info[] = [],
+): string {
   const lines: string[] = [
     "## Testing Coverage",
     "",
@@ -226,6 +232,26 @@ function formatCoverage(coverage: Intel.CoverageReport, assets: Intel.AssetCover
       lines.push(
         `| ${a.asset} | ${a.totalEntries} | ${a.totalChecks} | ${a.completedChecks} | ${a.vulnerableChecks} | ${a.coveragePercent}% |`,
       )
+    }
+  }
+
+  // What each tester actually recorded as tested, grouped by scope (asset). This is the
+  // proxy-lane test memory (coverage_note) — distinct from the VRT checklist above, which
+  // is only populated by the methodology lane.
+  if (notes.length > 0) {
+    const byAsset = new Map<string, CoverageNote.Info[]>()
+    for (const n of notes) {
+      const arr = byAsset.get(n.asset)
+      if (arr) arr.push(n)
+      else byAsset.set(n.asset, [n])
+    }
+    lines.push("")
+    lines.push("### Tested (coverage notes)")
+    lines.push(`What testers recorded as tested, by scope and class (${notes.length} notes).`)
+    for (const [asset, arr] of byAsset) {
+      lines.push("")
+      lines.push(`**${asset}**`)
+      for (const n of arr) lines.push(`- _[${n.scope}/${n.class}]_ ${n.note}${n.testedBy ? ` — ${n.testedBy}` : ""}`)
     }
   }
 

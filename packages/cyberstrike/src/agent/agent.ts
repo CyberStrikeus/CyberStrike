@@ -133,6 +133,11 @@ export namespace Agent {
           providerID: z.string(),
         })
         .optional(),
+      // Run this agent on the provider's SMALL tier (Phase 1.3, docs/
+      // proxy-pipeline-redesign) regardless of the session model — for cheap,
+      // routing/extraction-only agents (orchestrator, analyzer). Resolved via
+      // Provider.getSmallModel(<session provider>).
+      useSmallModel: z.boolean().optional(),
       variant: z.string().optional(),
       prompt: z.string().optional(),
       skills: z.array(z.string()).optional(),
@@ -195,6 +200,7 @@ export namespace Agent {
             todoread: "deny",
             todowrite: "deny",
             report_vulnerability: "deny",
+            triage_vulnerability: "deny",
           }),
           user,
         ),
@@ -310,6 +316,7 @@ export namespace Agent {
             webfetch: "allow",
             websearch: "allow",
             report_vulnerability: "allow",
+            triage_vulnerability: "allow",
             add_intel: "allow",
             update_vrt_check: "allow",
             methodology_status: "allow",
@@ -339,6 +346,7 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            triage_vulnerability: "allow",
             add_intel: "allow",
             update_vrt_check: "allow",
             methodology_status: "allow",
@@ -378,6 +386,7 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            triage_vulnerability: "allow",
             add_intel: "allow",
             update_vrt_check: "allow",
             methodology_status: "allow",
@@ -420,6 +429,7 @@ export namespace Agent {
             glob: "allow",
             grep: "allow",
             report_vulnerability: "allow",
+            triage_vulnerability: "allow",
             add_intel: "allow",
             update_vrt_check: "allow",
             methodology_status: "allow",
@@ -443,18 +453,29 @@ export namespace Agent {
         description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
         mode: "subagent",
         native: true,
+        // NOTE: proxy-agent runs on the FULL run model (no useSmallModel). Routing
+        // is the brain of the pipeline — dispatch quality matters; downgrading it to
+        // the small tier caused measured mis-/over-/under-dispatch. Only the analyzer
+        // (pure recon/extraction) runs cheap.
         color: "blue",
         prompt: `${PROMPT_METHODOLOGY_COMMON}\n\n---\n\n${PROMPT_WEB_PROXY_AGENT}`,
         permission: PermissionNext.merge(
           defaults,
           PermissionNext.fromConfig({
+            // Pure orchestrator (Phase 1b, docs/proxy-pipeline-redesign): deny
+            // everything, then allow ONLY delegation + read. Findings, intel and
+            // architecture writes are the testers'/analyzer's job. This structurally
+            // removes the orchestrator overreach measured on opus (self add_intel /
+            // update_vrt_check / web_write) — the tools aren't even offered to the
+            // model. `task` MUST be allowed explicitly or delegation breaks.
+            "*": "deny",
+            task: "allow",
             question: "allow",
             web_get_session_context: "allow",
+            web_get_detail: "allow",
             web_get_vulnerabilities: "allow",
             web_get_vuln_detail: "allow",
-            // proxy-agent is a pure orchestrator - it only reads session context
-            // and delegates to subagents. Writing is done by proxy-analyzer.
-            add_intel: "allow",
+            get_coverage_notes: "allow",
             methodology_status: "allow",
             scope_check: "allow",
           }),
@@ -469,6 +490,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         hidden: true,
+        useSmallModel: true, // architecture extraction, not exploitation — run cheap
         prompt: PROMPT_PROXY_ANALYZER,
         prependRequestContext: true,
         permission: PermissionNext.merge(
@@ -478,6 +500,7 @@ export namespace Agent {
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_detail: "allow",
             web_get_request_detail: "allow",
             web_write_role: "allow",
             web_write_object: "allow",
@@ -544,12 +567,16 @@ export namespace Agent {
             bash: "allow",
             webfetch: "allow",
             web_get_session_context: "allow",
+            web_get_detail: "allow",
             web_get_request_detail: "allow",
             web_get_vulnerabilities: "allow",
             report_vulnerability: "allow",
+            triage_vulnerability: "allow",
             // Methodology Engine tools
             add_intel: "allow",
             update_vrt_check: "allow",
+            record_coverage_note: "allow",
+            get_coverage_notes: "allow",
             methodology_status: "allow",
             scope_check: "allow",
             attack_script: "allow",
@@ -735,6 +762,20 @@ export namespace Agent {
         result[name].permission,
         PermissionNext.fromConfig({ external_directory: { [Truncate.GLOB]: "allow" } }),
       )
+    }
+
+    // Phase 1a (docs/proxy-pipeline-redesign): default turn budget for the proxy
+    // vuln testers. Measured baseline: a single tester ran up to ~12 turns on ONE
+    // request. An earlier cap of 8 turned out to be BELOW that natural length —
+    // testers spent all their turns verifying via bash and hit the soft wrap-up
+    // before ever calling report_vulnerability, so confirmed findings were summarized
+    // to the orchestrator but never recorded. Raised to 15 to leave headroom for
+    // verification AND reporting. Affordable now that prompt caching is on (extra
+    // turns re-read the cached prefix at ~10% cost, not full price). The cap is soft
+    // (forces a text wrap-up at the limit, prompt.ts) and only applies when not
+    // explicitly configured, so user config still overrides.
+    for (const name in result) {
+      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 15
     }
 
     return result

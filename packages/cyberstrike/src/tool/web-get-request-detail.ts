@@ -1,6 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { Request } from "../session/request"
+import { Observation } from "../session/observation"
 import { Session } from "../session"
 
 const description = `Get detailed information for a specific HTTP request by ID.
@@ -57,6 +58,22 @@ export const WebGetRequestDetailTool = Tool.define("web_get_request_detail", {
     if (request.element_roles) detail.element_roles = request.element_roles
     if (request.page_url) detail.page_url = request.page_url
     if (request.page_visited_by) detail.page_visited_by = request.page_visited_by
+
+    // Protocol/operation — present only for body-dispatched endpoints (GraphQL/JSON-RPC).
+    if (request.protocol) detail.protocol = request.protocol
+    if (request.operation) detail.operation = request.operation
+
+    // Observed values — which concrete inputs which credential used on THIS endpoint
+    // shape (deterministic, from captured traffic; redaction-aware). The core
+    // access-control substrate: 2+ credentials on the same param = an IDOR/BOLA
+    // cross-replay candidate (caller does the replay + judgment, not this tool).
+    if (request.key_hash) {
+      detail.key_hash = request.key_hash
+      const tree = Observation.endpointTree(sessionID, request.key_hash)
+      if (tree.params.length > 0) {
+        detail.observed_values = { credentials: tree.credentials, params: tree.params }
+      }
+    }
 
     // UI context — only when explicitly requested (large, mainly for mass-assignment/injection)
     if (params.include_ui_context && request.ui_context) {

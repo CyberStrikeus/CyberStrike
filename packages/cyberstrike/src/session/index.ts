@@ -805,9 +805,13 @@ export namespace Session {
             .add(new Decimal(tokens.output).mul(costInfo?.output ?? 0).div(1_000_000))
             .add(new Decimal(tokens.cache.read).mul(costInfo?.cache?.read ?? 0).div(1_000_000))
             .add(new Decimal(tokens.cache.write).mul(costInfo?.cache?.write ?? 0).div(1_000_000))
-            // TODO: update models.dev to have better pricing model, for now:
-            // charge reasoning tokens at the same rate as output tokens
-            .add(new Decimal(tokens.reasoning).mul(costInfo?.output ?? 0).div(1_000_000))
+            // NOTE: reasoning tokens are NOT added separately. Every provider that reports
+            // reasoningTokens (OpenAI Responses via output_tokens_details, OpenAI-compatible
+            // chat via completion_tokens_details) reports them as a SUBSET of output_tokens —
+            // i.e. outputTokens already includes reasoning. Anthropic doesn't set reasoningTokens
+            // (thinking is already inside output_tokens). Adding tokens.reasoning here again
+            // double-charged reasoning at the output rate. tokens.reasoning is still recorded
+            // (for display) but must not be billed twice.
             .toNumber(),
         ),
         tokens,

@@ -5,7 +5,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { useSDK } from "@tui/context/sdk"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 
-type SectionID = "intel" | "coverage" | "chains" | "phases" | "violations"
+type SectionID = "notes" | "intel" | "coverage" | "chains" | "phases" | "violations"
 
 // View-only methodology browser (/methodology). Snapshot — fetched on open via
 // the /methodology routes; re-open to refresh. The sidebar shows a live digest;
@@ -19,6 +19,7 @@ export function DialogMethodology(props: { sessionID: string }) {
   let scroll: ScrollBoxRenderable | undefined
 
   const sections: { id: SectionID; label: string }[] = [
+    { id: "notes", label: "Tested" },
     { id: "intel", label: "Intel" },
     { id: "coverage", label: "Coverage" },
     { id: "chains", label: "Chains" },
@@ -26,10 +27,11 @@ export function DialogMethodology(props: { sessionID: string }) {
     { id: "violations", label: "Violations" },
   ]
 
-  const [section, setSection] = createSignal<SectionID>("intel")
+  const [section, setSection] = createSignal<SectionID>("notes")
   const [index, setIndex] = createSignal(0)
   const [mode, setMode] = createSignal<"list" | "detail">("list")
 
+  const [notes, setNotes] = createSignal<any[]>([])
   const [intel, setIntel] = createSignal<any[]>([])
   const [coverage, setCoverage] = createSignal<any[]>([])
   const [chains, setChains] = createSignal<any[]>([])
@@ -39,6 +41,12 @@ export function DialogMethodology(props: { sessionID: string }) {
   onMount(() => {
     dialog.setSize("large")
     const sessionID = props.sessionID
+    // coverage-notes has no generated SDK method yet — fetch the route directly.
+    sdk
+      .fetch(`${sdk.url}/methodology/session/${sessionID}/coverage-notes`)
+      .then((r) => r.json())
+      .then((d) => setNotes((d as any[]) ?? []))
+      .catch(() => {})
     sdk.client.methodology
       .intel({ sessionID })
       .then((r) => setIntel((r.data as any[]) ?? []))
@@ -63,6 +71,8 @@ export function DialogMethodology(props: { sessionID: string }) {
 
   const items = createMemo<any[]>(() => {
     switch (section()) {
+      case "notes":
+        return notes()
       case "intel":
         return intel()
       case "coverage":
@@ -209,6 +219,18 @@ export function DialogMethodology(props: { sessionID: string }) {
                         backgroundColor={active() ? theme.backgroundElement : undefined}
                         flexDirection="column"
                       >
+                        <Show when={section() === "notes"}>
+                          <text fg={theme.text}>
+                            <span style={{ fg: v().scope === "wide" ? theme.warning : theme.textMuted }}>
+                              [{v().scope}]
+                            </span>{" "}
+                            {v().class} · {v().asset}
+                          </text>
+                          <text fg={theme.textMuted} wrapMode="word">
+                            {v().note}
+                            <Show when={v().testedBy}> · {v().testedBy}</Show>
+                          </text>
+                        </Show>
                         <Show when={section() === "intel"}>
                           <text fg={theme.text}>
                             <span style={{ fg: sev(v().severity) }}>[{(v().severity ?? "info").toUpperCase()}]</span>{" "}

@@ -34,8 +34,17 @@ export const AddIntelTool = Tool.define("add_intel", {
       .optional()
       .describe("If this finding could chain with others, describe the potential chain"),
     related_entries: z.array(z.string()).optional().describe("IDs of related intel entries that could form a chain"),
+    target_class: z
+      .string()
+      .optional()
+      .describe(
+        "For a vulnerability_hint handed off to another specialist: the target tester class (e.g. ssrf, idor, file-attacks). Lets the orchestrator route the hint to the right specialist instead of testing it yourself.",
+      ),
   }),
   async execute(params, ctx) {
+    // Carry hint-routing intent on the existing tags channel (no schema change):
+    // a `target:<class>` tag the orchestrator can read to route the hint.
+    const tags = params.target_class ? [...(params.tags ?? []), `target:${params.target_class}`] : params.tags
     const result = Intel.add({
       sessionID: Session.root(ctx.sessionID),
       data: {
@@ -46,7 +55,7 @@ export const AddIntelTool = Tool.define("add_intel", {
         source: ctx.agent,
         asset: params.asset,
         confidenceLevel: params.confidence_level,
-        tags: params.tags,
+        tags,
         chainPotential: params.chain_potential,
         relatedEntries: params.related_entries,
       },

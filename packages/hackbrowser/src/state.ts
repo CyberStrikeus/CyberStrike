@@ -159,17 +159,33 @@ export function classifyAuthUrl(url: string): DeferredAuthPage["type"] | null {
 }
 
 /**
- * Generate a structural fingerprint from page elements.
- * Only includes INPUT roles — form fields that matter for security testing.
- * Buttons, links, info elements excluded — they change site-wide (navbar/toolbar)
- * and cause false positives during post-login re-discovery.
+ * Generate a structural fingerprint for post-login re-discovery comparison.
+ *
+ * Includes INPUT roles (form fields) AND content-area ACTION roles
+ * (button/menuitem/tab) — but only actions OUTSIDE site-chrome (!inChrome).
+ *
+ * Why actions are included now: a page that gains new buttons once authenticated
+ * ("Delete", "Admin", "Edit") has UNCHANGED inputs, so an input-only fingerprint
+ * wrongly reports "no change" and skips the page — the authenticated attack
+ * surface is never explored (blind spot). Content-area actions close that gap.
+ *
+ * Why chrome is excluded: navbar/header/footer actions (Logout/Profile) appear
+ * site-wide after login. Including them would flip EVERY page's fingerprint and
+ * force a full re-explore of the whole site — the exact false-positive the
+ * input-only design avoided. `inChrome` (semantic landmark detection in the
+ * scanner) lets us keep buttons while dropping the site-wide chrome noise.
+ *
+ * Links stay excluded — BFS discovery already handles navigation.
  * Sorted for deterministic comparison.
  */
 export const INPUT_ROLES = new Set(["textbox", "combobox", "checkbox", "radio", "slider"])
 
+/** Content-area action roles that signal a real post-auth change when added/removed. */
+const ACTION_ROLES = new Set(["button", "menuitem", "tab"])
+
 export function generateFingerprint(elements: RawElement[]): string {
   return elements
-    .filter((e) => INPUT_ROLES.has(e.role))
+    .filter((e) => INPUT_ROLES.has(e.role) || (ACTION_ROLES.has(e.role) && !e.inChrome))
     .map((e) => `${e.role}:${e.label}:${e.type}:${e.enabled}`)
     .sort()
     .join("|")

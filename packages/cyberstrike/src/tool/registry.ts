@@ -8,6 +8,7 @@ import { ReadTool } from "./read"
 import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
 import { ReportVulnerabilityTool } from "./vulnerability"
+import { TriageVulnerabilityTool } from "./triage-vulnerability"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
@@ -36,6 +37,7 @@ import { WebWriteObjectTool } from "./web-write-object"
 import { WebWriteObjectValueTool } from "./web-write-object-value"
 import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
+import { WebGetDetailTool } from "./web-get-detail"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
@@ -43,6 +45,7 @@ import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
 import { UpdateVrtCheckTool } from "./vrt-check"
+import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
@@ -140,6 +143,7 @@ export namespace ToolRegistry {
       WebFetchTool,
       TodoWriteTool,
       ReportVulnerabilityTool,
+      TriageVulnerabilityTool,
       // TodoReadTool,
       WebSearchTool,
       CodeSearchTool,
@@ -161,6 +165,7 @@ export namespace ToolRegistry {
       WebWriteObjectValueTool,
       WebWriteFunctionTool,
       WebGetSessionContextTool,
+      WebGetDetailTool,
       WebGetRequestDetailTool,
       WebGetVulnerabilitiesTool,
       WebGetVulnDetailTool,
@@ -171,6 +176,8 @@ export namespace ToolRegistry {
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,
       UpdateVrtCheckTool,
+      RecordCoverageNoteTool,
+      GetCoverageNotesTool,
       ScopeCheckTool,
       EnsureToolsTool,
       MethodologyStatusTool,
