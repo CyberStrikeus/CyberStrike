@@ -347,16 +347,20 @@ export function bodyKeyShapeHash(body: string | undefined, contentType: string |
   if (!body) return undefined
   const ct = (contentType ?? "").toLowerCase()
 
-  if (ct.includes("json")) {
-    let parsed: unknown
+  // JSON by content-type OR by shape-sniff (body starts with { or [). The sniff catches
+  // application/csp-report, application/vnd.api+json, ld+json, and any mislabeled JSON whose
+  // content-type carries no "json" token — otherwise those fall to the raw bodyHash and every
+  // volatile-value payload fragments into its own endpoint (csp-report seen ×55 on one host).
+  // A parse failure falls through to the form/multipart handlers below rather than returning.
+  const trimmed = body.trimStart()
+  if (ct.includes("json") || trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
-      parsed = JSON.parse(body)
+      const parsed = JSON.parse(trimmed)
+      const paths = keyPaths(parsed).sort()
+      if (paths.length > 0) return sha16("rest-shape<|>" + paths.join(","))
     } catch {
-      return undefined
+      // not valid JSON — fall through to form/multipart/raw handling
     }
-    const paths = keyPaths(parsed).sort()
-    if (paths.length === 0) return undefined
-    return sha16("rest-shape<|>" + paths.join(","))
   }
 
   if (ct.includes("x-www-form-urlencoded")) {
