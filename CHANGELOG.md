@@ -6,7 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ---
 
-## [Unreleased]
+## [1.1.15] — 2026-06-23
 
 ### Added
 
