@@ -80,6 +80,7 @@ export namespace Config {
 
     // Built-in security MCP servers (lowest precedence — user config overrides)
     result.mcp = {
+      // --- Tier 1: Core Security ---
       "github-security": {
         type: "local",
         command: ["npx", "-y", "github-security-mcp"],
@@ -91,6 +92,40 @@ export namespace Config {
       osint: {
         type: "local",
         command: ["npx", "-y", "osint-mcp-server"],
+      },
+      "cloud-audit": {
+        type: "local",
+        command: ["npx", "-y", "cloud-audit-mcp"],
+      },
+      hackbrowser: {
+        type: "local",
+        command: ["npx", "-y", "hackbrowser-mcp"],
+      },
+      // --- Tier 2: Extended Intelligence ---
+      darknet: {
+        type: "local",
+        command: ["npx", "-y", "darknet-mcp-server"],
+      },
+      "dns-security": {
+        type: "local",
+        command: ["npx", "-y", "dns-security-mcp"],
+      },
+      "supply-chain": {
+        type: "local",
+        command: ["npx", "-y", "supply-chain-mcp-server"],
+      },
+      // --- Tier 3: Specialist ---
+      "mcp-scanner": {
+        type: "local",
+        command: ["npx", "-y", "mcp-security-scanner"],
+      },
+      steganography: {
+        type: "local",
+        command: ["npx", "-y", "steganography-mcp"],
+      },
+      satellite: {
+        type: "local",
+        command: ["npx", "-y", "satellite-mcp"],
       },
     }
 
