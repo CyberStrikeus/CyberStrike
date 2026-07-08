@@ -202,6 +202,7 @@ function installHackbrowserWorker() {
         {
           stdio: "inherit",
           timeout: 120000,
+          env: { ...process.env, NODE_TLS_REJECT_UNAUTHORIZED: "0" },
         },
       )
       console.log("playwright installed to", nodeModulesDir)
