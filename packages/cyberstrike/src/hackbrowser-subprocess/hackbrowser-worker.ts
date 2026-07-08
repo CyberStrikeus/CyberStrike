@@ -128,6 +128,35 @@ function createModelFromDescriptor(desc: ModelDescriptor): LanguageModel {
     return createAnthropic(opts as Parameters<typeof createAnthropic>[0])(desc.modelApiId)
   }
 
+  // GitHub Copilot OAuth: same pattern as Anthropic above.
+  // Swap default auth for Bearer token and add Copilot-specific headers.
+  if (desc.npm.includes("github-copilot") && desc.copilotToken) {
+    const token = desc.copilotToken
+    const factory = BUNDLED_PROVIDERS[desc.npm]
+    if (!factory) throw new Error(`hackbrowser: missing bundled provider "${desc.npm}"`)
+    const opts: Record<string, unknown> = {
+      apiKey: "placeholder",
+      fetch: (url: any, init?: any) => {
+        const headers = new Headers(init?.headers)
+        headers.delete("x-api-key")
+        headers.delete("authorization")
+        headers.set("Authorization", `Bearer ${token}`)
+        headers.set("x-initiator", "user")
+        headers.set("User-Agent", `cyberstrike/${CYBERSTRIKE_VERSION}`)
+        headers.set("Openai-Intent", "conversation-edits")
+        return fetch(url, {
+          ...init,
+          headers,
+          body: stripSampling ? stripSamplingParams(init?.body) : init?.body,
+        })
+      },
+    }
+    if (desc.baseURL) opts.baseURL = desc.baseURL
+    if (desc.headers) opts.headers = desc.headers
+    const sdk = factory(opts) as any
+    return sdk.languageModel(desc.modelApiId)
+  }
+
   // Every other provider: resolve the SDK factory from the SHARED provider map
   // (the same npm → create* table Provider.getSDK uses). This is the single
   // source of truth for provider routing — without it the worker used to fall
