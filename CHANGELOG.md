@@ -20,6 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 - **Copilot OAuth uses GitHub's first-party app** — replaced upstream's third-party OAuth app (`Ov23`, OpenCode by Anomaly) with GitHub's official Copilot CLI OAuth app (`Iv1.b507a08c87ecfe98`). Enterprise customers now see "Authorize GitHub Copilot CLI by GitHub" instead of "Authorize OpenCode by Anomaly". Also enables `copilot_internal/v2/token` for live model catalog discovery and adds `copilot` scope for proper API access
 - **HackBrowser works with GitHub Copilot** — Copilot's OAuth token is now extracted and passed to the crawler subprocess via `ModelDescriptor`, following the same pattern as Anthropic Pro/Max. Previously, Copilot users got "OAuth/subscription auth runs only in the main process" error when launching hackbrowser
+- **HackBrowser auto-installs Chromium on first use** — when Chromium browser is missing, hackbrowser now automatically downloads it via Playwright CLI with SSL verification bypass for corporate proxy environments. No manual `npx playwright install chromium` step needed
 
 ---
 
