@@ -157,6 +157,31 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
     )
   }
 
+  // 2c. Verify Chromium binary is installed. If missing, attempt automatic
+  // installation via `npx playwright install chromium`. This avoids the common
+  // UX issue where users install cyberstrike but don't know they need Chromium.
+  const playwrightDir = path.join(Global.Path.data, "node_modules", "playwright")
+  try {
+    const { execSync } = await import("child_process")
+    const checkScript = `require("${playwrightDir.replace(/\\/g, "/")}").chromium.executablePath()`
+    const chromiumPath = execSync(`${runtime} -e "process.stdout.write(${JSON.stringify(checkScript)})"`, {
+      encoding: "utf-8",
+      timeout: 5000,
+    }).trim()
+    if (!chromiumPath || !existsSync(chromiumPath)) {
+      log.info("chromium not found, attempting auto-install", { chromiumPath })
+      execSync(`${runtime} ${path.join(playwrightDir, "cli.js")} install chromium`, {
+        timeout: 300000,
+        stdio: "pipe",
+        env: { ...process.env, NODE_TLS_REJECT_UNAUTHORIZED: "0" },
+      })
+      log.info("chromium auto-install completed")
+    }
+  } catch (e) {
+    log.warn("chromium auto-install failed, user may need to install manually", { error: String(e) })
+    // Don't throw — let the worker's preflightCheck produce the detailed error
+  }
+
   // 3. Resolve LLM via cyberstrike Provider — extract serializable descriptor
   //    instead of a LanguageModel instance (subprocess.md: model resolution).
   const modelInfo = await Provider.defaultModel()
