@@ -6,6 +6,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **11 built-in MCP servers** — 8 new official MCP servers added to the default configuration, bringing the total from 3 to 11. All load at lowest priority so user config can override. New servers: `cloud-audit` (AWS/Azure/GCP misconfiguration), `hackbrowser` (AI browser security testing), `darknet` (dark web & breach intel), `dns-security` (DNSSEC, hijacking, tunneling), `supply-chain` (OSV, GHSA, dependency audit), `mcp-scanner` (MCP server security analysis), `steganography` (digital forensics & stego), `satellite` (geospatial & maritime OSINT)
+
+### Fixed
+
+- **Copilot OAuth uses GitHub's first-party app** — replaced upstream's third-party OAuth app (`Ov23`, OpenCode by Anomaly) with GitHub's official Copilot CLI OAuth app (`Iv1.b507a08c87ecfe98`). Enterprise customers now see "Authorize GitHub Copilot CLI by GitHub" instead of "Authorize OpenCode by Anomaly". Also enables `copilot_internal/v2/token` for live model catalog discovery and adds `copilot` scope for proper API access
+
+---
+
 ## [1.1.15] — 2026-06-23
 
 ### Added
