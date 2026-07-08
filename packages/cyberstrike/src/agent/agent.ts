@@ -769,13 +769,13 @@ export namespace Agent {
     // request. An earlier cap of 8 turned out to be BELOW that natural length —
     // testers spent all their turns verifying via bash and hit the soft wrap-up
     // before ever calling report_vulnerability, so confirmed findings were summarized
-    // to the orchestrator but never recorded. Raised to 15 to leave headroom for
-    // verification AND reporting. Affordable now that prompt caching is on (extra
-    // turns re-read the cached prefix at ~10% cost, not full price). The cap is soft
-    // (forces a text wrap-up at the limit, prompt.ts) and only applies when not
-    // explicitly configured, so user config still overrides.
+    // to the orchestrator but never recorded. Raised to 50 to leave ample headroom for
+    // multi-step verification AND reporting on complex endpoints. Affordable now that
+    // prompt caching is on (extra turns re-read the cached prefix at ~10% cost, not full
+    // price). The cap is soft (forces a text wrap-up at the limit, prompt.ts) and only
+    // applies when not explicitly configured, so user config still overrides.
     for (const name in result) {
-      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 15
+      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 50
     }
 
     return result
