@@ -2,6 +2,7 @@ import type { Page } from "playwright"
 import { Log } from "./log.ts"
 import type { RawElement, ActionResult, UIContext } from "./types.ts"
 import { snapshotPageUI } from "./capture.ts"
+import { pickSample } from "./upload-samples.ts"
 
 const log = Log.create({ service: "hackbrowser:executor" })
 
@@ -87,6 +88,13 @@ async function executeFill(page: Page, element: RawElement, value: string): Prom
     return executeSliderFill(page, selector || "role=slider", value)
   }
 
+  // File input: cannot be typed into. Provide a bundled sample file matching the
+  // input's `accept` (mirrors the slider branch — the System acts mechanically, no
+  // LLM). Runs inline in the form fill, so the file is set BEFORE the form submits.
+  if (element.type === "file") {
+    return executeFileSelect(page, selector)
+  }
+
   // Standard fill
   const fillErr = await page
     .fill(selector, value, { timeout: FILL_TIMEOUT })
@@ -106,6 +114,26 @@ async function executeFill(page: Page, element: RawElement, value: string): Prom
 
   log.warn("fill failed", { selector, error: fillErr })
   return fillErr
+}
+
+async function executeFileSelect(page: Page, selector: string): Promise<string | undefined> {
+  const accept = await page.getAttribute(selector, "accept").catch(() => null)
+  const sample = pickSample(accept)
+  const err = await page
+    .setInputFiles(
+      selector,
+      { name: sample.name, mimeType: sample.mimeType, buffer: sample.buffer },
+      { timeout: FILL_TIMEOUT },
+    )
+    .then(() => null)
+    .catch((e: Error) => e.message.split("\n")[0]!)
+
+  if (err) {
+    log.warn("file select failed", { selector, accept, error: err })
+    return err
+  }
+  log.info("file selected", { selector, file: sample.name })
+  return undefined
 }
 
 async function executeSliderFill(page: Page, selector: string, value: string): Promise<string | undefined> {

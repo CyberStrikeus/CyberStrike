@@ -343,6 +343,28 @@ interface PromptElement {
   options?: string
   constraints?: string
   enabled?: boolean
+  /** Set when a click on this element was found physically covered by an overlay.
+   *  Carries the occluder's visible text so the LLM can dismiss it first. */
+  occludedBy?: string
+}
+
+/** A target found covered by an overlay at click time (reactive occlusion probe). */
+export interface OcclusionSignal {
+  label: string
+  role: string
+  occluderText: string
+}
+
+/**
+ * Per-page occlusion bookkeeping, threaded through a page's click execution.
+ *  - `pending`: occluders detected since the last re-plan, fed into the next snapshot.
+ *  - `signaled`: occluder texts already sent to the planner this visit. An occluder
+ *    is signaled ONCE; if it still blocks after a dismiss attempt, the target is given
+ *    up (marked done) instead of re-signaling — this bounds any dismiss loop.
+ */
+export interface OcclusionState {
+  pending: OcclusionSignal[]
+  signaled: Set<string>
 }
 
 function elementToPrompt(el: RawElement): PromptElement {
@@ -445,12 +467,22 @@ export function buildPlannerSnapshot(
   globalState: GlobalState,
   credId: string,
   viewportCenterBlocked: boolean,
+  occlusions?: readonly OcclusionSignal[],
 ): PlannerSnapshot {
+  const promptElements = elements.map(elementToPrompt)
+  // Mark any element found covered at click time so the planner dismisses the
+  // overlay first (System Observes occlusion / LLM Interprets how to clear it).
+  if (occlusions && occlusions.length > 0) {
+    for (const occ of occlusions) {
+      const match = promptElements.find((e) => e.label === occ.label && e.role === occ.role)
+      if (match) match.occludedBy = occ.occluderText
+    }
+  }
   const snapshot: PlannerSnapshot = {
     url,
     viewportCenterBlocked,
     totalPagesVisited: globalState.visitedPages.size,
-    elements: elements.map(elementToPrompt),
+    elements: promptElements,
   }
   if (globalState.outOfScope.length > 0) {
     snapshot.outOfScope = [...globalState.outOfScope]
