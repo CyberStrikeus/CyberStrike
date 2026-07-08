@@ -223,6 +223,48 @@ function installHackbrowserWorker() {
   )
 }
 
+/**
+ * Ensure npm's global bin directory is in the Windows user PATH.
+ * Corporate installs often skip PATH setup, leaving `cyberstrike` unreachable
+ * from both CMD and PowerShell. Uses PowerShell to append to user-level PATH
+ * (no admin required). Safe: checks for duplicates, doesn't truncate.
+ */
+function ensureWindowsPath() {
+  try {
+    const npmPrefix = execSync("npm config get prefix", { encoding: "utf-8", timeout: 10000 }).trim()
+    if (!npmPrefix) return
+
+    const currentPath = process.env.PATH || ""
+    // Case-insensitive check for Windows paths
+    if (currentPath.toLowerCase().includes(npmPrefix.toLowerCase())) {
+      console.log(`npm global bin already in PATH: ${npmPrefix}`)
+      return
+    }
+
+    console.log(`Adding npm global bin to user PATH: ${npmPrefix}`)
+    // Use PowerShell to safely append to user-level PATH without truncation
+    const psCommand = [
+      `$current = [Environment]::GetEnvironmentVariable('Path', 'User')`,
+      `if ($current -and -not $current.ToLower().Contains('${npmPrefix.toLowerCase().replace(/'/g, "''")}')) {`,
+      `  [Environment]::SetEnvironmentVariable('Path', $current + ';${npmPrefix}', 'User')`,
+      `  Write-Host 'Added to user PATH: ${npmPrefix}'`,
+      `}`,
+    ].join("; ")
+    execSync(`powershell -NoProfile -Command "${psCommand}"`, {
+      stdio: "inherit",
+      timeout: 15000,
+    })
+    console.log("PATH updated. Restart your terminal for changes to take effect.")
+  } catch (err) {
+    console.warn(
+      `Warning: Could not add npm global bin to PATH automatically.\n` +
+        `If 'cyberstrike' command is not found, add npm's global bin directory to your PATH manually:\n` +
+        `  PowerShell: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (npm config get prefix), 'User')\n` +
+        `  CMD: setx PATH "%PATH%;%APPDATA%\\npm"`,
+    )
+  }
+}
+
 async function main() {
   try {
     if (os.platform() === "win32") {
@@ -232,6 +274,7 @@ async function main() {
       installWebUI()
       installSkills()
       installHackbrowserWorker()
+      ensureWindowsPath()
       return
     }
 
