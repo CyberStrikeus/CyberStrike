@@ -2,7 +2,7 @@ import type { Hooks, PluginInput } from "@cyberstrike-io/plugin"
 import { Installation } from "@/installation"
 import { iife } from "@/util/iife"
 
-const CLIENT_ID = "Ov23li8tweQw6odWQebz"
+const CLIENT_ID = "Iv1.b507a08c87ecfe98"
 // Add a small safety buffer when polling to avoid hitting the server
 // slightly too early due to clock skew / timer drift.
 const OAUTH_POLLING_SAFETY_MARGIN_MS = 3000 // 3 seconds
@@ -203,7 +203,7 @@ export async function CopilotAuthPlugin(input: PluginInput): Promise<Hooks> {
               },
               body: JSON.stringify({
                 client_id: CLIENT_ID,
-                scope: "read:user",
+                scope: "read:user user:email copilot",
               }),
             })
 
