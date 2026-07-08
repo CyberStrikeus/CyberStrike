@@ -14,6 +14,7 @@
 
 import type { ParamSlot } from "./types"
 import { extractInlineArgs } from "./graphql-inline"
+import { parseBody } from "./protocol"
 
 const MAX_DEPTH = 6
 const MAX_SLOTS = 64 // hard cap before redactor's tighter MAX_PARAMS; guards pathological bodies
@@ -90,36 +91,44 @@ function bodySlots(
   contentType: string | undefined,
   protocol: string | undefined,
 ): ParamSlot[] {
-  if (!body || !(contentType ?? "").includes("json")) return []
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(body)
-  } catch {
-    return []
-  }
+  const parsed = parseBody(body, contentType)
   const out: ParamSlot[] = []
-  if (protocol === "jsonrpc") {
-    const params = (parsed as Record<string, unknown>)?.params
-    jsonLeaves(params, "", out, 0)
-  } else if (protocol === "graphql") {
-    const vars = (parsed as Record<string, unknown>)?.variables
-    jsonLeaves(vars, "", out, 0)
-    // Inline literal arg values (getUser(id:"3")) — merged with variable values so
-    // both forms feed one IDOR pool. Fail-safe: [] on any parse error. Dedup by name
-    // so a variable-provided arg isn't double-counted by a same-named inline.
-    const query = (parsed as Record<string, unknown>)?.query
-    if (typeof query === "string") {
-      const seen = new Set(out.map((s) => s.name))
-      for (const slot of extractInlineArgs(query)) {
-        if (!seen.has(slot.name)) {
-          out.push(slot)
-          seen.add(slot.name)
+  if (parsed.kind === "json") {
+    const value = parsed.value
+    if (protocol === "jsonrpc") {
+      jsonLeaves((value as Record<string, unknown>)?.params, "", out, 0)
+    } else if (protocol === "graphql") {
+      jsonLeaves((value as Record<string, unknown>)?.variables, "", out, 0)
+      // Inline literal arg values (getUser(id:"3")) — merged with variable values so
+      // both forms feed one IDOR pool. Dedup by name so a variable-provided arg isn't
+      // double-counted by a same-named inline.
+      const query = (value as Record<string, unknown>)?.query
+      if (typeof query === "string") {
+        const seen = new Set(out.map((s) => s.name))
+        for (const slot of extractInlineArgs(query)) {
+          if (!seen.has(slot.name)) {
+            out.push(slot)
+            seen.add(slot.name)
+          }
         }
       }
+    } else {
+      // REST (incl. tRPC, whose method is in the URL) — unwrap the tRPC envelope first.
+      jsonLeaves(unwrapTRPC(value), "", out, 0)
     }
-  } else {
-    // REST (incl. tRPC, whose method is in the URL) — unwrap the tRPC envelope first.
-    jsonLeaves(unwrapTRPC(parsed), "", out, 0)
+  } else if (parsed.kind === "xml") {
+    // SOAP/XML: the parsed object is a plain tree — the same leaf walk as JSON gives the
+    // element/attribute values (e.g. Envelope.Body.GetUser.userId=42 → IDOR substrate).
+    jsonLeaves(parsed.value, "", out, 0)
+  } else if (parsed.kind === "form" || parsed.kind === "multipart") {
+    // Flat form / multipart fields — each name/value is an observed slot. This is the half
+    // that used to be JSON-only, so form-app values (e.g. an ASP.NET HiddenUserID) were
+    // never observed. File parts carry a name for keying but no observable value.
+    for (const f of parsed.fields) {
+      if (out.length >= MAX_SLOTS) break
+      if (f.isFile) continue
+      out.push({ loc: "body", name: f.name, value: f.value })
+    }
   }
   return out
 }
