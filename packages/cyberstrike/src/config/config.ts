@@ -84,48 +84,59 @@ export namespace Config {
       "github-security": {
         type: "local",
         command: ["npx", "-y", "github-security-mcp"],
+        enabled: false,
       },
       cve: {
         type: "local",
         command: ["npx", "-y", "cve-mcp"],
+        enabled: false,
       },
       osint: {
         type: "local",
         command: ["npx", "-y", "osint-mcp-server"],
+        enabled: false,
       },
       "cloud-audit": {
         type: "local",
         command: ["npx", "-y", "cloud-audit-mcp"],
+        enabled: false,
       },
       hackbrowser: {
         type: "local",
         command: ["npx", "-y", "hackbrowser-mcp"],
+        enabled: false,
       },
       // --- Tier 2: Extended Intelligence ---
       darknet: {
         type: "local",
         command: ["npx", "-y", "darknet-mcp-server"],
+        enabled: false,
       },
       "dns-security": {
         type: "local",
         command: ["npx", "-y", "dns-security-mcp"],
+        enabled: false,
       },
       "supply-chain": {
         type: "local",
         command: ["npx", "-y", "supply-chain-mcp-server"],
+        enabled: false,
       },
       // --- Tier 3: Specialist ---
       "mcp-scanner": {
         type: "local",
         command: ["npx", "-y", "mcp-security-scanner"],
+        enabled: false,
       },
       steganography: {
         type: "local",
         command: ["npx", "-y", "steganography-mcp"],
+        enabled: false,
       },
       satellite: {
         type: "local",
         command: ["npx", "-y", "satellite-mcp"],
+        enabled: false,
       },
     }
 
