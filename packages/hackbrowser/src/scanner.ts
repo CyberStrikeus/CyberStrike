@@ -459,7 +459,11 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // out. Force the CSS selector, which resolves to the real <input type=file>.
       const isFileInput = el.matches("input[type=file]")
       const selectorRole =
-        syntheticRole || count > 1 || isFileInput ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
+        syntheticRole || count > 1 || isFileInput
+          ? ""
+          : safeAriaLabel
+            ? `role=${role}[name="${safeAriaLabel}"]`
+            : `role=${role}`
       const selectorCSS = buildCSSSelector(el)
 
       // Site-chrome detection: actions inside navigation/banner/footer/aside
