@@ -22,6 +22,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 - **HackBrowser works with GitHub Copilot** — Copilot's OAuth token is now extracted and passed to the crawler subprocess via `ModelDescriptor`, following the same pattern as Anthropic Pro/Max. Previously, Copilot users got "OAuth/subscription auth runs only in the main process" error when launching hackbrowser
 - **HackBrowser auto-installs Chromium on first use** — when Chromium browser is missing, hackbrowser now automatically downloads it via Playwright CLI with SSL verification bypass for corporate proxy environments. No manual `npx playwright install chromium` step needed
 - **Postinstall works in corporate proxy environments** — Playwright JS package installation during `npm install` now bypasses SSL verification to avoid `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` errors from corporate MITM proxies
+- **Windows PATH auto-configuration** — postinstall now detects if npm's global bin directory is missing from the user PATH and adds it automatically via PowerShell (no admin required). Fixes the issue where `cyberstrike` command was not found after `npm install -g` in corporate Windows environments
 
 ---
 
