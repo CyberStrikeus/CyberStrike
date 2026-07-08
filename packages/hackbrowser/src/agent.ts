@@ -31,6 +31,7 @@ import { resolveModel, planPage, planUnexploredElements } from "./navigator.ts"
 import {
   collectElements,
   isViewportCenterBlocked,
+  probeClickPoint,
   filterVisitedLinks,
   revealLazyContent,
   expandDisclosures,
@@ -51,8 +52,10 @@ import {
   hasSuccessfulMutation,
   getIntelligence,
   SINGLE_CRED,
+  type OcclusionState,
 } from "./state.ts"
 import { execute } from "./executor.ts"
+import { pickSample } from "./upload-samples.ts"
 import { PANEL_INIT_SCRIPT } from "./panel/inject.ts"
 import { csEmit, setPanelEnabled } from "./panel/emit.ts"
 import { deriveScope, makeMatcher, normalizeScope, type ScopeMatcher } from "./scope.ts"
@@ -69,8 +72,16 @@ const MAX_STEPS_PER_PAGE = 30 // Max tasks executed per page (loop guard)
 const MAX_TASK_QUEUE_SIZE = 30 // TaskQueue growth cap
 const MAX_UNPLANNED_ITERATIONS = 2 // Max additional LLM calls for unexplored elements
 const OVERLAY_ESCAPE_WAIT = 400
+// After clearing an overlay, wait for transient/loading overlays to actually go away
+// before the safe retry click. Longer than OVERLAY_ESCAPE_WAIT to cover spinner fade-outs.
+const OVERLAY_CLEAR_WAIT = 800
 const SPA_RENDER_RETRY_WAIT = 600
 const POST_GOTO_WAIT = 400
+/** Max nesting for inline depth-first exploration of pages reached via a
+ *  state-changing action (e.g. an ASP.NET postback). Such a page can be
+ *  unreachable by a later queued GET (its server-side state is lost on return →
+ *  session-timeout), so it must be explored in place. Bounded to avoid runaway. */
+const MAX_INLINE_DEPTH = 2
 const LOGIN_SUCCESS_PATTERN = /POST\s+.*\/(login|signin|authenticate)\S*\s+\[200\]/i
 const SKIP_AUTO_DISCOVERY = /\b(logout|sign.?out|log.?out|delete.?account|reset.?data|revoke)\b/i
 
@@ -320,6 +331,26 @@ function attachDialogAutoAccept(page: Page): void {
   })
 }
 
+// Any control that opens a native file picker (a dropzone, an "Upload" button, or
+// a bare file input that gets clicked) fires `filechooser`. Auto-provide a bundled
+// sample matching the input's `accept` so the upload flow proceeds — the click-
+// triggered counterpart to executeFill's file branch. Mirrors attachDialogAutoAccept:
+// mechanical, no LLM, registered once per page at creation.
+function attachFileChooserAutoFill(page: Page): void {
+  page.on("filechooser", async (chooser) => {
+    try {
+      const accept = await chooser
+        .element()
+        .getAttribute("accept")
+        .catch(() => null)
+      const sample = pickSample(accept)
+      await chooser.setFiles({ name: sample.name, mimeType: sample.mimeType, buffer: sample.buffer })
+    } catch {
+      // chooser already consumed or page navigated mid-open — non-fatal
+    }
+  })
+}
+
 // ============================================================
 // Request interceptor
 // ============================================================
@@ -549,9 +580,15 @@ async function explorePageWithAI(
   credentialId: string,
   maxPages: number,
   usageAcc?: CrawlUsage,
+  // Inline-exploration capability; default is a no-op at max depth so callers that
+  // don't opt in keep the plain BFS-enqueue behavior (backward compatible).
+  nav: ExploreContext = { explore: async () => {}, depth: MAX_INLINE_DEPTH },
 ): Promise<string[]> {
   const linksToEnqueue: string[] = []
   const semanticActionsDone = new Set<string>()
+  // Reactive occlusion state for this page visit: occluders detected but not yet
+  // fed to the planner (pending), and occluder texts already signaled (bounds loops).
+  const occ: OcclusionState = { pending: [], signaled: new Set<string>() }
 
   void csEmit(page, {
     type: "page-change",
@@ -641,6 +678,8 @@ async function explorePageWithAI(
         linksToEnqueue,
         pageUrl,
         inScope,
+        occ,
+        nav,
       )
     } else {
       await executeClickTask(
@@ -654,6 +693,8 @@ async function explorePageWithAI(
         linksToEnqueue,
         pageUrl,
         inScope,
+        occ,
+        nav,
       )
     }
 
@@ -675,8 +716,10 @@ async function explorePageWithAI(
     // Any DOM change that affects the queue → re-plan with LLM
     // Additions: hasNewElements (new buttons/inputs appeared)
     // Removals: hasStaleTargets (queued task's target is gone — filter, tab, delete)
+    // Occlusion: occ.pending — a click hit a covering overlay; re-plan so the LLM
+    //   dismisses it first (the occluded target is marked occludedBy in the snapshot).
     // System only detects change; LLM decides what to do (Architecture 2.1)
-    if (hasNewElements || hasStaleTargets) {
+    if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
       const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
       const snapshot = buildPlannerSnapshot(
         pageUrl,
@@ -684,7 +727,9 @@ async function explorePageWithAI(
         globalState,
         credentialId,
         await isViewportCenterBlocked(page),
+        occ.pending,
       )
+      occ.pending = [] // consumed into this snapshot
       void csEmit(page, {
         type: "llm-thinking",
         reason: "replan",
@@ -818,6 +863,8 @@ async function explorePageWithAI(
           linksToEnqueue,
           pageUrl,
           inScope,
+          occ,
+          nav,
         )
       } else {
         await executeClickTask(
@@ -831,6 +878,8 @@ async function explorePageWithAI(
           linksToEnqueue,
           pageUrl,
           inScope,
+          occ,
+          nav,
         )
       }
 
@@ -842,7 +891,7 @@ async function explorePageWithAI(
       }
       const hasNewElements = discoverNewElements(postActionElements, seenKeys)
       const hasStaleTargets = queueHasStaleTargets(additionalQueue, postActionElements)
-      if (hasNewElements || hasStaleTargets) {
+      if (hasNewElements || hasStaleTargets || occ.pending.length > 0) {
         const freshElements = filterVisitedLinks(await collectElements(page), pageUrl, globalState.visitedPages)
         const freshSnap = buildPlannerSnapshot(
           pageUrl,
@@ -850,7 +899,9 @@ async function explorePageWithAI(
           globalState,
           credentialId,
           await isViewportCenterBlocked(page),
+          occ.pending,
         )
+        occ.pending = [] // consumed into this snapshot
         void csEmit(page, {
           type: "llm-thinking",
           reason: "replan",
@@ -910,6 +961,92 @@ async function explorePageWithAI(
 // ============================================================
 
 /**
+ * Safe overlay recovery for a failed click. If `el`'s click point is physically covered,
+ * clear the overlay (closeOverlay: Escape → backdrop click) and wait for transient overlays
+ * (loading spinners) to fade, then re-run `retry` — a REAL click. A real click can only land
+ * if the overlay genuinely cleared, so it can never reach a still-covered target: this never
+ * fabricates unreachable surface. Returns the retried result, or the original if not occluded.
+ * Shared by the click and form-submit paths.
+ */
+async function recoverFromOcclusion(
+  page: Page,
+  el: RawElement,
+  original: ActionResult,
+  retry: () => Promise<ActionResult>,
+): Promise<ActionResult> {
+  if (original.success) return original
+  if ((await probeClickPoint(page, el.selector)).status !== "occluded") return original
+  log.debug("click occluded — clearing overlay + waiting, then retrying once", { label: el.label })
+  await closeOverlay(page)
+  await page.waitForTimeout(OVERLAY_CLEAR_WAIT)
+  return retry()
+}
+
+/**
+ * After an action failed, check whether an unrelated overlay physically covers the
+ * target's click point (a banner/toast/dialog the center-only closeOverlay misses).
+ * If so, record the occluder so the planner dismisses it first, and report that the
+ * target must NOT be marked done (it retries once the overlay is gone). Each occluder
+ * is signalled ONCE per visit — bounds any dismiss loop. Shared by the click and
+ * form-submit paths so occlusion is diagnosed wherever a click physically happens.
+ * @returns true if the target was occluded (caller skips marking it done).
+ */
+async function diagnoseOcclusion(page: Page, el: RawElement, occ: OcclusionState): Promise<boolean> {
+  const probe = await probeClickPoint(page, el.selector)
+  if (probe.status === "occluded" && !occ.signaled.has(probe.occluder.text)) {
+    occ.signaled.add(probe.occluder.text)
+    occ.pending.push({ label: el.label, role: el.role, occluderText: probe.occluder.text })
+    log.debug("action target occluded — signalling planner to dismiss overlay first", {
+      label: el.label,
+      occluder: probe.occluder.text,
+    })
+    return true
+  }
+  return false
+}
+
+/** Injected inline-exploration capability + current nesting depth. Dependency
+ *  Inversion: task executors depend on this abstraction, not on explorePageWithAI,
+ *  so the low-level executors never call the high-level orchestrator directly. */
+interface ExploreContext {
+  explore: (page: Page, url: string, depth: number) => Promise<void>
+  depth: number
+}
+
+/**
+ * Decide what to do after an action navigated the page away from `parentUrl`.
+ * A stateful action (e.g. an ASP.NET postback) can land on a page reachable ONLY
+ * right now — a later queued GET would hit a session-timeout. So we explore such a
+ * page INLINE (depth-first) while its state is alive; GET-reachable pages (and
+ * depth-bounded / already-visited ones) fall back to the normal BFS enqueue. Then
+ * we return to the parent so its remaining tasks continue. Shared by the click and
+ * form task executors (DRY).
+ */
+async function handleNavigation(
+  page: Page,
+  parentUrl: string,
+  linksToEnqueue: string[],
+  inScope: ScopeMatcher,
+  globalState: ReturnType<typeof createGlobalState>,
+  nav: ExploreContext,
+): Promise<void> {
+  const cur = page.url()
+  const curNorm = normalizeUrl(cur)
+  if (curNorm !== normalizeUrl(parentUrl) && isInScope(cur, inScope)) {
+    if (!globalState.visitedPages.has(curNorm) && nav.depth < MAX_INLINE_DEPTH) {
+      globalState.visitedPages.add(curNorm)
+      await nav.explore(page, cur, nav.depth + 1)
+    } else {
+      linksToEnqueue.push(cur)
+    }
+  }
+  // Return to the parent so its remaining tasks can continue (GET-reachable parent).
+  await page.goto(parentUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
+  await page.waitForTimeout(POST_GOTO_WAIT)
+  await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+}
+
+/**
  * Execute a form task: fill all fields in order, then click submit.
  * Handles textbox, combobox, checkbox, radio, slider fields.
  */
@@ -924,6 +1061,8 @@ async function executeFormTask(
   linksToEnqueue: string[],
   pageUrl: string,
   inScope: ScopeMatcher,
+  occ: OcclusionState,
+  nav: ExploreContext,
 ): Promise<void> {
   for (const field of task.fields) {
     let el = resolveElement(elements, field.role, field.label)
@@ -990,22 +1129,20 @@ async function executeFormTask(
     targetSelector: submitEl.selector,
     credential: credentialId,
   })
-  const result = await execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length)
+  let result = await execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length)
+  // Same safe overlay recovery + occlusion diagnosis as a click task, for the form submit.
+  result = await recoverFromOcclusion(page, submitEl, result, () =>
+    execute(page, submitEl, "click", undefined, interceptor.setPendingUI, elements.length),
+  )
+  const occluded = !result.success && (await diagnoseOcclusion(page, submitEl, occ))
   interceptor.clearPendingTrigger()
   trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
   void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
 
-  semanticActionsDone.add(submitKey)
+  if (!occluded) semanticActionsDone.add(submitKey)
   globalState.totalSteps++
 
-  if (result.navigated) {
-    const cur = page.url()
-    if (cur !== pageUrl && isInScope(cur, inScope)) linksToEnqueue.push(cur)
-    log.debug("reloading after form submit", { pageUrl })
-    await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
-    await page.waitForTimeout(POST_GOTO_WAIT)
-    await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
-  }
+  if (result.navigated) await handleNavigation(page, pageUrl, linksToEnqueue, inScope, globalState, nav)
 }
 
 /**
@@ -1023,6 +1160,8 @@ async function executeClickTask(
   linksToEnqueue: string[],
   pageUrl: string,
   inScope: ScopeMatcher,
+  occ: OcclusionState,
+  nav: ExploreContext,
 ): Promise<void> {
   const el = resolveElement(elements, task.role, task.label)
   if (!el) {
@@ -1043,21 +1182,20 @@ async function executeClickTask(
     credential: credentialId,
   })
   let result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
-  // Reactive overlay-aware retry: a stray overlay (a menu/dropdown/dialog backdrop opened
-  // by a PRIOR action) can intercept this click and time it out even though the target is
-  // fine. The existing proactive closeOverlay only runs when an element is NOT found; here
-  // the element IS found but blocked. If the click failed while a blocking overlay is up,
-  // dismiss it (closeOverlay: Escape → backdrop click) and retry the click ONCE.
-  if (!result.success && (await isViewportCenterBlocked(page))) {
-    log.debug("click blocked by a stray overlay — closing it and retrying once", { label: el.label })
-    await closeOverlay(page)
-    result = await execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length)
-  }
+  // Safe overlay recovery (Escape/backdrop + wait + real retry) for a covered target.
+  result = await recoverFromOcclusion(page, el, result, () =>
+    execute(page, el, "click", undefined, interceptor.setPendingUI, elements.length),
+  )
+  // Still covered after the safe recovery → signal the planner to dismiss the overlay via a
+  // control it can identify (diagnoseOcclusion); leave the target retryable.
+  const occluded = !result.success && (await diagnoseOcclusion(page, el, occ))
   interceptor.clearPendingTrigger()
   trackResult(result, interceptor, globalState, credentialId, task.triggersMutation, page)
   void csEmit(page, { type: "action-end", ok: result.success, credential: credentialId })
 
-  semanticActionsDone.add(key)
+  // Occluded targets are NOT marked done — they retry after the planner dismisses
+  // the overlay. Success or genuine failure is marked so it is not re-attempted.
+  if (!occluded) semanticActionsDone.add(key)
   globalState.totalSteps++
 
   // Option click → mark parent combobox as done (Architecture 6.6)
@@ -1069,11 +1207,7 @@ async function executeClickTask(
   }
 
   if (result.navigated) {
-    const cur = page.url()
-    if (cur !== pageUrl && isInScope(cur, inScope)) linksToEnqueue.push(cur)
-    await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {})
-    await page.waitForTimeout(POST_GOTO_WAIT)
-    await page.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {})
+    await handleNavigation(page, pageUrl, linksToEnqueue, inScope, globalState, nav)
     return
   }
 
@@ -1573,6 +1707,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     if (panelOn) await browserContext.addInitScript(PANEL_INIT_SCRIPT)
     const page = await browserContext.newPage()
     attachDialogAutoAccept(page)
+    attachFileChooserAutoFill(page)
 
     // Navigate to target
     await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 })
@@ -1722,12 +1857,23 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
           })
           continue
         }
-        // Normal redirect (e.g. / → /dashboard) — explore the actual page
-        log.info("redirect to different page, will explore actual URL", {
+        // Redirect to a DIFFERENT page than requested. Recording the landed content
+        // under entry.url MISLABELS it — e.g. an onboarding/login gate funnels
+        // /profil → /onboarding, so /profil would falsely record the onboarding
+        // page's elements, corrupting the per-credential access-control diff (both
+        // creds would appear to "see the same /profil"). Instead enqueue the LANDED
+        // url so it's explored under its own identity: enqueueWithContext's
+        // visitedPages dedup collapses N routes funnelling to one gate into a single
+        // exploration, while legitimate 1→1 redirects (/rapor → /rapor-detay) still
+        // get their target explored under the correct URL.
+        const landed = normalizeUrl(r.ctx.page.url())
+        log.info("redirect to different page, enqueueing landed URL", {
           credential: r.ctx.id,
           intended: entry.url,
-          actual: r.ctx.page.url(),
+          landed,
         })
+        enqueueWithContext(landed, r.ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+        continue
       }
       visitableContexts.push(r.ctx)
     }
@@ -1792,6 +1938,13 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
     // state (empty-state queue, revisitCount, pageFingerprints) stays separate.
     for (const ctx of visitableContexts) {
       log.info("exploring", { credential: ctx.id, url: entry.url })
+      const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+        const found = await explorePageWithAI(
+          p, url, ctx.interceptor, model, globalState, inScope, ctx.id, maxPages, usageAcc,
+          { explore: exploreInline, depth },
+        )
+        for (const u of found) enqueueWithContext(u, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
+      }
       const discovered = await explorePageWithAI(
         ctx.page,
         entry.url,
@@ -1802,6 +1955,7 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
         ctx.id,
         maxPages,
         usageAcc,
+        { explore: exploreInline, depth: 0 },
       )
       for (const url of discovered) {
         enqueueWithContext(url, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
@@ -1925,6 +2079,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
   if (panelOn) await context.addInitScript(PANEL_INIT_SCRIPT)
   const page = await context.newPage()
   attachDialogAutoAccept(page)
+  attachFileChooserAutoFill(page)
 
   if (config.auth.sessionFile) {
     await loadSession(context, config.auth.sessionFile)
@@ -2069,6 +2224,17 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     }
 
     const currentUrl = normalizeUrl(page.url())
+    // Redirect-collapse guard: a distinct queued URL that REDIRECTS to a page we've
+    // already explored (a login/onboarding gate or SPA router-guard funnelling every
+    // route to one page). Re-exploring the same landed page burns the page budget and
+    // LLM turns for zero new coverage. Fires ONLY on a real redirect (landed URL differs
+    // from the requested one) to an already-visited page — so deliberate revisits
+    // (empty-state, post-login re-discovery, where requested == landed) and the first
+    // visit of a gate page are unaffected. Lands the gate page exactly once, skips the rest.
+    if (currentUrl !== normalizeUrl(nextUrl) && globalState.visitedPages.has(currentUrl)) {
+      log.info("redirect to already-explored page, skipping", { requested: normalizeUrl(nextUrl), landed: currentUrl })
+      continue
+    }
     globalState.visitedPages.add(currentUrl)
     log.info("exploring page", { page: `${pagesExplored}/${maxPages}`, url: currentUrl })
     log.debug("state", {
@@ -2136,7 +2302,16 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       log.info("page changed after auth, re-exploring", { url: currentUrl })
     }
 
-    // Explore the page with AI
+    // Explore the page with AI. A page reached via a state-changing action (e.g. an
+    // ASP.NET postback) is explored INLINE while its state is alive (handleNavigation),
+    // then its discoveries are enqueued the same way as top-level discoveries.
+    const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
+      const found = await explorePageWithAI(
+        p, url, interceptor, model, globalState, inScope, SINGLE_CRED, maxPages, usageAcc,
+        { explore: exploreInline, depth },
+      )
+      for (const u of found) enqueueUrl(u, globalState, inScope)
+    }
     const discovered = await explorePageWithAI(
       page,
       currentUrl,
@@ -2147,6 +2322,7 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
       SINGLE_CRED,
       maxPages,
       usageAcc,
+      { explore: exploreInline, depth: 0 },
     )
 
     // Enqueue new same-host pages (auth URLs deferred during anonymous phase)
