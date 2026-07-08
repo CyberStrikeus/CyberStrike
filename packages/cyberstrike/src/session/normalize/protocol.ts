@@ -13,6 +13,7 @@
 // preserves mass-assignment signal (an extra input field changes the shape).
 
 import { createHash } from "crypto"
+import { parseXmlToObject } from "./xml"
 import { extractInlineArgPaths } from "./graphql-inline"
 
 export interface OperationInfo {
@@ -343,44 +344,121 @@ function rpcDispatcher(method: string, params: unknown): string {
  * collapses to ONE endpoint instead of one per call. Returns undefined for opaque
  * bodies, where the caller falls back to the value-bearing body_hash.
  */
-export function bodyKeyShapeHash(body: string | undefined, contentType: string | undefined): string | undefined {
-  if (!body) return undefined
-  const ct = (contentType ?? "").toLowerCase()
+export interface BodyField {
+  name: string
+  value: string
+  /** multipart file part — kept for keying, but its (binary) value is dropped from observation. */
+  isFile?: boolean
+}
 
-  // JSON by content-type OR by shape-sniff (body starts with { or [). The sniff catches
-  // application/csp-report, application/vnd.api+json, ld+json, and any mislabeled JSON whose
-  // content-type carries no "json" token — otherwise those fall to the raw bodyHash and every
-  // volatile-value payload fragments into its own endpoint (csp-report seen ×55 on one host).
-  // A parse failure falls through to the form/multipart handlers below rather than returning.
+/**
+ * The parsed shape of a request body. `json` carries the parsed value (walked differently
+ * by keying vs value-extraction); `form`/`multipart` carry flat name/value fields.
+ */
+export type ParsedBody =
+  | { kind: "json"; value: unknown }
+  | { kind: "xml"; value: unknown }
+  | { kind: "form"; fields: BodyField[] }
+  | { kind: "multipart"; fields: BodyField[] }
+  | { kind: "none" }
+
+/**
+ * ONE body parse/dispatch, shared by BOTH the endpoint-identity discriminator
+ * (bodyKeyShapeHash) and the observed-value extractor (extractSlots). This is the whole
+ * point of the refactor: the two callers used to each re-decide how to read a body and
+ * drifted — keying learned form/multipart, value-extraction stayed JSON-only, so form
+ * field values (e.g. an ASP.NET HiddenUserID → IDOR substrate) were never observed.
+ * JSON is detected by content-type OR shape-sniff (leading `{`/`[`) so mislabeled JSON
+ * (application/csp-report, +json variants) is parsed, not fragmented on the raw body.
+ * Parse failures fall through to the next handler rather than returning.
+ */
+export function parseBody(body: string | undefined, contentType: string | undefined): ParsedBody {
+  if (!body) return { kind: "none" }
+  const ct = (contentType ?? "").toLowerCase()
   const trimmed = body.trimStart()
   if (ct.includes("json") || trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
-      const parsed = JSON.parse(trimmed)
-      const paths = keyPaths(parsed).sort()
-      if (paths.length > 0) return sha16("rest-shape<|>" + paths.join(","))
+      return { kind: "json", value: JSON.parse(trimmed) }
     } catch {
-      // not valid JSON — fall through to form/multipart/raw handling
+      // not valid JSON — fall through to form/multipart
     }
   }
-
+  // XML / SOAP — by content-type ONLY (text/xml, application/xml, application/soap+xml). We do
+  // NOT shape-sniff on a leading `<` the way JSON sniffs on `{`: SOAP always sends a correct
+  // xml content-type, whereas a `<`-sniff would swallow HTML, `<?php …?>` injection payloads,
+  // and other non-XML bodies into fast-xml-parser and fork their endpoint key. Parsed to a
+  // plain object so the SAME keyPaths/jsonLeaves handle it; the SOAP operation is just the
+  // element under <Body>, so value-invariance and operation-distinction fall out of the
+  // element-path shape (no bespoke operation key). Not-usable XML falls through.
+  if (ct.includes("xml") || ct.includes("soap")) {
+    const value = parseXmlToObject(trimmed)
+    if (value !== undefined) return { kind: "xml", value }
+  }
   if (ct.includes("x-www-form-urlencoded")) {
-    let keys: string[]
     try {
-      keys = [...new Set([...new URLSearchParams(body).keys()])].sort()
+      const fields = [...new URLSearchParams(body)].map(([name, value]) => ({ name, value }))
+      if (fields.length > 0) return { kind: "form", fields }
     } catch {
-      return undefined
+      // unparseable urlencoded — fall through
     }
-    if (keys.length === 0) return undefined
-    return sha16("form-shape<|>" + keys.join(","))
   }
-
   if (ct.includes("multipart/form-data")) {
-    const names = [...new Set([...body.matchAll(/name="([^"]+)"/g)].map((m) => m[1]))].sort()
-    if (names.length === 0) return undefined
-    return sha16("multipart-shape<|>" + names.join(","))
+    const fields = parseMultipartFields(body)
+    if (fields.length > 0) return { kind: "multipart", fields }
   }
+  return { kind: "none" }
+}
 
-  return undefined
+// Split a multipart body into its field parts. Names match the SAME name="..." occurrences
+// the keying used before — INCLUDING the false match inside filename="..." — so the endpoint
+// key stays byte-identical. The optional `file` capture flags a filename-derived match (and
+// any part that carries a filename), so value-extraction skips it: those names exist only to
+// keep the key stable, they are not observable field values.
+function parseMultipartFields(body: string): BodyField[] {
+  const out: BodyField[] = []
+  for (const part of body.split(/\r?\n--/)) {
+    const partIsFile = /filename="/.test(part)
+    let value: string | undefined
+    for (const m of part.matchAll(/(file)?name="([^"]+)"/g)) {
+      const fromFilename = m[1] === "file"
+      const isFile = fromFilename || partIsFile
+      if (!isFile && value === undefined) {
+        const sep = part.search(/\r?\n\r?\n/)
+        value = sep >= 0 ? part.slice(sep).replace(/^\r?\n\r?\n/, "").replace(/\r?\n$/, "") : ""
+      }
+      out.push({ name: m[2], value: isFile ? "" : value ?? "", isFile })
+    }
+  }
+  return out
+}
+
+/**
+ * Endpoint-identity discriminator for the body: the value-stripped SHAPE (field names /
+ * JSON key-paths, values removed), hashed. A projection of parseBody — same output as
+ * before the parse was unified (guarded by a golden characterization test).
+ */
+export function bodyKeyShapeHash(body: string | undefined, contentType: string | undefined): string | undefined {
+  const parsed = parseBody(body, contentType)
+  switch (parsed.kind) {
+    case "json": {
+      const paths = keyPaths(parsed.value).sort()
+      return paths.length > 0 ? sha16("rest-shape<|>" + paths.join(",")) : undefined
+    }
+    case "xml": {
+      const paths = keyPaths(parsed.value).sort()
+      return paths.length > 0 ? sha16("xml-shape<|>" + paths.join(",")) : undefined
+    }
+    case "form": {
+      const names = [...new Set(parsed.fields.map((f) => f.name))].sort()
+      return names.length > 0 ? sha16("form-shape<|>" + names.join(",")) : undefined
+    }
+    case "multipart": {
+      const names = [...new Set(parsed.fields.map((f) => f.name))].sort()
+      return names.length > 0 ? sha16("multipart-shape<|>" + names.join(",")) : undefined
+    }
+    default:
+      return undefined
+  }
 }
 
 /**
