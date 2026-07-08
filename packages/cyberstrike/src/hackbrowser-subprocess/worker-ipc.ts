@@ -34,6 +34,10 @@ export interface ModelDescriptor {
   // process does in-process (anthropic-subscription-model omits them;
   // ProviderTransform.temperature returns undefined for such models).
   supportsTemperature?: boolean
+  // GitHub Copilot OAuth bearer token. When set, the worker authenticates
+  // via Authorization: Bearer instead of apiKey, and adds Copilot-specific
+  // headers (Openai-Intent, x-initiator, User-Agent).
+  copilotToken?: string
 }
 
 // ============================================================
