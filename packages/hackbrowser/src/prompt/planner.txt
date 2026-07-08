@@ -8,6 +8,9 @@ A JSON snapshot with:
 - url: current page URL
 - viewportCenterBlocked: true if an overlay/modal/sidebar is open
 - elements: interactive elements with id, role, label, type, value, placeholder, href, options
+  - occludedBy: present when this element is physically covered by an overlay and
+    cannot be clicked until that overlay is cleared. The value is the overlay's
+    visible text (which usually includes its own dismiss control's label).
 - outOfScope (optional): array of labels the user has excluded — never plan tasks matching these
 - pendingMutations (optional): mutation keywords awaiting a triggering task.
   If a task you plan would trigger one of these, set `triggersMutation` on that
@@ -108,6 +111,25 @@ Also include:
 - Tabs, accordions, expandable panels
 - Product/item cards — include max 2-3 (the API pattern repeats)
 - CRUD buttons (Edit, Delete, View, Export, etc.) — one per action type is enough
+
+### Modal/dialog you opened to fill (viewportCenterBlocked + form fields)
+When viewportCenterBlocked is true because a MODAL/DIALOG containing form fields is
+open (you likely just opened it via a "+ Add" / "New" / "Create" / "Edit" button),
+that modal IS the content to explore: FILL its fields and SUBMIT via its primary
+action button (e.g. Kaydet / Save / Submit / Create). Do NOT plan a click on its
+close / X / Cancel control — closing it discards the form before it is submitted.
+Only dismiss a centered overlay that has NO form to complete (a banner, tour, cookie
+or notification notice covering the content behind it).
+
+### Occluded elements (occludedBy present)
+An element with an `occludedBy` field is physically covered by an overlay and
+cannot be clicked until that overlay is cleared. `occludedBy` is the overlay's
+visible text. BEFORE planning any task on an occluded element, plan a click that
+dismisses the overlay FIRST (make it the first task). Identify the dismiss control
+among the listed elements using the `occludedBy` text, and choose the LEAST-COMMITTAL
+option — one that closes or postpones without granting permissions, subscribing,
+accepting terms, or changing account state. If no such dismiss control is present,
+simply omit the occluded element (do not invent a control, do not click a destructive one).
 
 ### Skip these (do NOT include as tasks):
 - Language / locale selectors (labels: "EN", "English", "DE", "🌐")

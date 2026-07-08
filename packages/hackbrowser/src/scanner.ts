@@ -218,7 +218,7 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       return /^(mui-\d|radix-|headlessui-|react-aria-|rc-_?\d|ember\d)/i.test(id)
     }
 
-    function buildCSSSelector(el: Element): string {
+    function buildCSSSelectorCandidate(el: Element): string {
       const tag = el.tagName.toLowerCase()
       const id = el.getAttribute("id")
       if (id && !isEphemeralId(id)) return `${tag}#${CSS.escape(id)}`
@@ -274,6 +274,47 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
         }
       }
       return tag
+    }
+
+    // Guaranteed-unique positional path from a stable-id ancestor (or the root)
+    // down to `el`, adding :nth-of-type only where same-tag siblings exist. Pure
+    // CSS (querySelector- and Playwright-compatible), used only when the short
+    // candidate is ambiguous.
+    function uniquePositionalPath(el: Element): string {
+      const segs: string[] = []
+      let cur: Element | null = el
+      while (cur && cur !== document.documentElement) {
+        const tag = cur.tagName.toLowerCase()
+        const id = cur.getAttribute("id")
+        if (id && !isEphemeralId(id)) {
+          segs.unshift(`${tag}#${CSS.escape(id)}`)
+          break // an id anchors the path — everything below it is already unique
+        }
+        const parent: Element | null = cur.parentElement
+        if (!parent) {
+          segs.unshift(tag)
+          break
+        }
+        const sameTag = Array.from(parent.children).filter((c) => c.tagName === cur!.tagName)
+        segs.unshift(sameTag.length > 1 ? `${tag}:nth-of-type(${sameTag.indexOf(cur) + 1})` : tag)
+        cur = parent
+      }
+      return segs.join(" > ")
+    }
+
+    // A selector must identify EXACTLY ONE element: page.click / querySelector on
+    // an ambiguous selector silently hits the first match, so N distinct sibling
+    // controls (toolbar buttons, table-row actions, menu items) that share a short
+    // selector collapse to one — only the first is ever clicked, and dedup keyed on
+    // the selector drops the rest. Verify uniqueness; fall back to a positional path.
+    function buildCSSSelector(el: Element): string {
+      const candidate = buildCSSSelectorCandidate(el)
+      try {
+        if (document.querySelectorAll(candidate).length === 1) return candidate
+      } catch {
+        // Malformed candidate (unescaped exotic chars) — fall through to the path.
+      }
+      return uniquePositionalPath(el)
     }
 
     const INTERACTIVE_SELECTORS = [
@@ -412,8 +453,13 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // executor resolves to the exact DOM element.
       const ariaLabelRaw = (el.getAttribute("aria-label") || "").trim()
       const safeAriaLabel = ariaLabelRaw.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+      // A file input has no matching accessibility role — the scanner classifies it
+      // as "textbox", but Playwright's role=textbox engine resolves to NOTHING (file
+      // inputs are not textboxes), so a role selector would make setInputFiles time
+      // out. Force the CSS selector, which resolves to the real <input type=file>.
+      const isFileInput = el.matches("input[type=file]")
       const selectorRole =
-        syntheticRole || count > 1 ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
+        syntheticRole || count > 1 || isFileInput ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
       const selectorCSS = buildCSSSelector(el)
 
       // Site-chrome detection: actions inside navigation/banner/footer/aside
@@ -594,8 +640,23 @@ function assignIds(browserElements: BrowserElement[], startId: number): RawEleme
  */
 export async function collectElements(page: Page): Promise<RawElement[]> {
   const browserElements = await collectInteractiveElements(page)
-  const sampled = sampleTemplates(browserElements)
-  return assignIds(sampled, 1).slice(0, MAX_ELEMENTS)
+  const sampled = capElements(sampleTemplates(browserElements))
+  return assignIds(sampled, 1)
+}
+
+// Action-priority element cap. A plain first-N-in-DOM-order cut drops whatever sits
+// LAST — and on a large form/modal that is the FOOTER, where the primary submit
+// (Kaydet/Save/Submit) and Cancel live. Losing an input costs one field; losing the
+// submit breaks the whole form (the planner then mis-picks a header close-X as submit).
+// So keep the interactive ACTIONS (button/link/menuitem/tab) preferentially and fill
+// the remaining budget with the other controls in DOM order, then restore DOM order.
+const ACTION_ROLES_CAP = new Set(["button", "link", "menuitem", "tab"])
+function capElements<T extends { role: string }>(els: T[]): T[] {
+  if (els.length <= MAX_ELEMENTS) return els
+  const actions = els.filter((e) => ACTION_ROLES_CAP.has(e.role))
+  const rest = els.filter((e) => !ACTION_ROLES_CAP.has(e.role))
+  const kept = new Set([...actions, ...rest].slice(0, MAX_ELEMENTS))
+  return els.filter((e) => kept.has(e)) // preserve original DOM order
 }
 
 /**
@@ -769,6 +830,92 @@ function evalIsViewportCenterBlocked(page: Page): Promise<boolean> {
     }
     return false
   })
+}
+
+// ============================================================
+// Per-target click-point occlusion probe (reactive, structural)
+//
+// Answers ONE question for ONE target: at the point Playwright would click
+// (the element's bounding-box center), is the topmost element the target
+// itself, something in its own DOM lineage (ancestor/descendant — the click
+// still lands or retargets), or an UNRELATED element covering it?
+//
+// Reactive + SAFE-DEFAULT by design (see occlusion-fix-design): only reports
+// "occluded" when confident an unrelated light-DOM element is on top. When the
+// hit-test is ambiguous — shadow-DOM host, iframe, cross-root — it returns
+// "clickable" so the normal click path (which Playwright resolves correctly for
+// those cases) runs unchanged. This keeps the probe from inventing occlusion on
+// tech it cannot hit-test cleanly: a false positive can never originate there.
+// ============================================================
+
+export interface OccluderInfo {
+  tag: string
+  role: string
+  /** Short visible-text snippet — lets the LLM relate the occluder to its own dismiss controls. */
+  text: string
+}
+
+export type ClickPointProbe =
+  | { status: "clickable" }
+  | { status: "offscreen" }
+  | { status: "occluded"; occluder: OccluderInfo }
+
+export async function probeClickPoint(page: Page, selector: string): Promise<ClickPointProbe> {
+  try {
+    return await page.evaluate((sel) => {
+      const el = document.querySelector(sel) as HTMLElement | null
+      // Not found / degenerate box → let the normal path handle it (safe default).
+      if (!el) return { status: "clickable" as const }
+      const r = el.getBoundingClientRect()
+      if (r.width === 0 || r.height === 0) return { status: "clickable" as const }
+      const cx = r.left + r.width / 2
+      const cy = r.top + r.height / 2
+      // Click point outside the viewport → not an overlay, needs a scroll.
+      if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) {
+        return { status: "offscreen" as const }
+      }
+      const top = document.elementFromPoint(cx, cy) as HTMLElement | null
+      if (!top) return { status: "offscreen" as const }
+
+      // Same element, or normal DOM lineage (a wrapper the click retargets to,
+      // e.g. a pointer-events:none child inside its interactive parent) → fine.
+      if (top === el || el.contains(top) || top.contains(el)) return { status: "clickable" as const }
+
+      // SAFE-DEFAULT for tech we cannot hit-test across cleanly:
+      //  - iframe: elementFromPoint returns the frame, not the in-frame target.
+      //  - shadow DOM: contains() does not pierce shadow roots, so an element
+      //    inside `top`'s shadow tree looks "unrelated". Walk el's shadow-host
+      //    chain; if `top` hosts (or contains the host of) el, it is the same subtree.
+      if (top.tagName === "IFRAME") return { status: "clickable" as const }
+      let node: Node | null = el
+      while (node) {
+        const root = node.getRootNode()
+        if (root instanceof ShadowRoot) {
+          const host = root.host as HTMLElement
+          if (host === top || top.contains(host)) return { status: "clickable" as const }
+          node = host
+        } else break
+      }
+
+      // Confident: an unrelated light-DOM element is on top of the target.
+      const text = (top.innerText || top.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 80)
+      return {
+        status: "occluded" as const,
+        occluder: { tag: top.tagName.toLowerCase(), role: top.getAttribute("role") || "", text },
+      }
+    }, selector)
+  } catch {
+    // A probe is a best-effort occlusion HINT — it must NEVER crash the crawl.
+    // Any failure to resolve/hit-test the target degrades to the "clickable" safe
+    // default (proceed via the normal path), mirroring the shadow/iframe handling
+    // above. Two known-benign causes:
+    //  - in-flight navigation destroyed the context (page no longer exists);
+    //  - a non-CSS Playwright engine selector (role=…/text=…) reached
+    //    document.querySelector, which only parses CSS → "not a valid selector"
+    //    SyntaxError. Such selectors are valid for page.click but cannot be
+    //    hit-tested here, so we skip the probe rather than kill the whole crawl.
+    return { status: "clickable" }
+  }
 }
 
 /**
