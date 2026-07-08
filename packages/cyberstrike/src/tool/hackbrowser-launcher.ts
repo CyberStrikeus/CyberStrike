@@ -169,7 +169,7 @@ async function prepareCrawl(opts: LauncherOptions): Promise<PreparedWorker> {
   // placeholder key, the LLM calls would 401, and the crawl would silently
   // finish with zero endpoints. Fail fast with an actionable message instead.
   const auth = await Auth.get(modelInfo.providerID)
-  if (auth?.type === "oauth" && modelInfo.providerID !== "anthropic") {
+  if (auth?.type === "oauth" && modelInfo.providerID !== "anthropic" && !modelInfo.providerID.startsWith("github-copilot")) {
     throw new Error(
       `HackBrowser can't use ${modelInfo.providerID}/${modelInfo.modelID}: its OAuth/subscription auth runs only in the main process and can't be passed to the crawler subprocess. ` +
         `Use an API-key provider (or Anthropic Pro/Max) as your default model for hackbrowser runs.`,

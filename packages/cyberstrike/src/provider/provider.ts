@@ -1213,6 +1213,7 @@ export namespace Provider {
     supportsTemperature?: boolean
     anthropicUserId?: string
     anthropicSystemPrefix?: string
+    copilotToken?: string
   }> {
     const s = await state()
     const provider = s.providers[model.providerID]
@@ -1248,6 +1249,28 @@ export namespace Provider {
           anthropicUserId: subscriptionUserId(accountUuid),
           anthropicSystemPrefix: AGENT_SDK_PREFIX,
           baseURL: options["baseURL"] as string | undefined,
+          modelApiId: model.api.id,
+          headers: mergedHeaders,
+          supportsTemperature: model.capabilities.temperature,
+        }
+      }
+    }
+
+    // GitHub Copilot OAuth: pass the Bearer token to the worker so it can
+    // authenticate the crawler subprocess. Same pattern as Anthropic above.
+    if (model.providerID.startsWith("github-copilot")) {
+      const auth = await Auth.get(model.providerID)
+      if (auth?.type === "oauth" && auth.refresh) {
+        // Enterprise deployments route through copilot-api.{domain}
+        let baseURL = options["baseURL"] as string | undefined
+        if (auth.enterpriseUrl) {
+          const domain = auth.enterpriseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")
+          baseURL = `https://copilot-api.${domain}`
+        }
+        return {
+          npm: model.api.npm,
+          copilotToken: auth.refresh,
+          baseURL,
           modelApiId: model.api.id,
           headers: mergedHeaders,
           supportsTemperature: model.capabilities.temperature,
