@@ -751,6 +751,22 @@ export namespace SessionPrompt {
         system.push(lines.join("\n"))
       }
 
+      // Inject disabled MCP server awareness so the agent can remind the
+      // user to enable them when relevant capabilities are needed.
+      const mcpStatus = await MCP.status()
+      const disabledServers = Object.entries(mcpStatus)
+        .filter(([, s]) => s.status === "disabled")
+        .map(([name]) => name)
+      if (disabledServers.length > 0) {
+        system.push(
+          [
+            "# Disabled MCP Servers",
+            `The following ${disabledServers.length} MCP servers are installed but disabled: ${disabledServers.join(", ")}.`,
+            "If the user asks about capabilities these servers provide, inform them that the relevant MCP server is available but disabled, and they can enable it via the MCP panel or `cyberstrike mcp enable <name>`.",
+          ].join("\n"),
+        )
+      }
+
       // Inject skill awareness so the agent knows to use the skill tool
       const allSkills = await Skill.all()
       if (allSkills.length > 0) {
