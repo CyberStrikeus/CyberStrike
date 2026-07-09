@@ -368,6 +368,17 @@ export namespace MCP {
     let status: Status | undefined = undefined
 
     if (mcp.type === "remote") {
+      // Validate URL before attempting to connect
+      try {
+        new URL(mcp.url)
+      } catch {
+        log.error("invalid MCP URL", { key, url: mcp.url })
+        return {
+          mcpClient: undefined,
+          status: { status: "failed" as const, error: `Invalid URL: ${mcp.url}` },
+        }
+      }
+
       // OAuth is enabled by default for remote servers unless explicitly disabled with oauth: false
       const oauthDisabled = mcp.oauth === false
       const oauthConfig = typeof mcp.oauth === "object" ? mcp.oauth : undefined
