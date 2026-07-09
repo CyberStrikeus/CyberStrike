@@ -855,6 +855,19 @@ export namespace ProviderTransform {
   }
 
   export function providerOptions(model: Provider.Model, options: { [x: string]: any }) {
+    // OpenAI SDK gates reasoning behind an explicit flag. Force it on when
+    // the model advertises reasoning capability or when the caller passes
+    // reasoning-related options so custom deployments work correctly.
+    const usesOpenAIReasoningGate =
+      model.api.npm === "@ai-sdk/openai" ||
+      model.api.npm === "@ai-sdk/azure" ||
+      model.api.npm === "@ai-sdk/amazon-bedrock/mantle"
+    const normalized =
+      usesOpenAIReasoningGate &&
+      (model.capabilities.reasoning || options.reasoningEffort !== undefined || options.reasoningSummary !== undefined)
+        ? { ...options, forceReasoning: true }
+        : options
+
     if (model.api.npm === "@ai-sdk/gateway") {
       // Gateway providerOptions are split across two namespaces:
       // - `gateway`: gateway-native routing/caching controls (order, only, byok, etc.)
@@ -864,8 +877,8 @@ export namespace ProviderTransform {
       const i = model.api.id.indexOf("/")
       const rawSlug = i > 0 ? model.api.id.slice(0, i) : undefined
       const slug = rawSlug ? (SLUG_OVERRIDES[rawSlug] ?? rawSlug) : undefined
-      const gateway = options.gateway
-      const rest = Object.fromEntries(Object.entries(options).filter(([k]) => k !== "gateway"))
+      const gateway = normalized.gateway
+      const rest = Object.fromEntries(Object.entries(normalized).filter(([k]) => k !== "gateway"))
       const has = Object.keys(rest).length > 0
 
       const result: Record<string, any> = {}
@@ -886,7 +899,10 @@ export namespace ProviderTransform {
     }
 
     const key = sdkKey(model.api.npm) ?? model.providerID
-    return { [key]: options }
+    if (model.api.npm === "@ai-sdk/azure") {
+      return { openai: normalized, azure: normalized }
+    }
+    return { [key]: normalized }
   }
 
   export function maxOutputTokens(model: Provider.Model): number {
