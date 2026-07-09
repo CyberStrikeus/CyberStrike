@@ -909,24 +909,104 @@ export namespace ProviderTransform {
     return Math.min(model.limit.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX
   }
 
-  export function schema(model: Provider.Model, schema: JSONSchema.BaseSchema | JSONSchema7): JSONSchema7 {
-    /*
-    if (["openai", "azure"].includes(providerID)) {
-      if (schema.type === "object" && schema.properties) {
-        for (const [key, value] of Object.entries(schema.properties)) {
-          if (schema.required?.includes(key)) continue
-          schema.properties[key] = {
-            anyOf: [
-              value as JSONSchema.JSONSchema,
-              {
-                type: "null",
-              },
-            ],
-          }
-        }
+  // Sanitize MCP tool schemas for OpenAI API compatibility.
+  // OpenAI tool schemas reject many valid JSON Schema constructs (boolean
+  // schemas, `const`, missing `type`, etc.). This lowering pass mirrors the
+  // approach used by Codex to ensure MCP-sourced schemas are accepted.
+  type JsonRecord = Record<string, unknown>
+
+  function isPlainObject(value: unknown): value is JsonRecord {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+  }
+
+  const JSON_SCHEMA_TYPES = ["string", "number", "boolean", "integer", "object", "array", "null"]
+  const COMPOSITION_KEYS = ["anyOf", "oneOf", "allOf"]
+
+  function sanitizeOpenAISchema(value: unknown): unknown {
+    // JSON Schema boolean form (`true`/`false`) is unsupported by OpenAI
+    if (typeof value === "boolean") return { type: "string" }
+    if (Array.isArray(value)) return value.map(sanitizeOpenAISchema)
+    if (!isPlainObject(value)) return value
+
+    const result: JsonRecord = {}
+
+    if (typeof value.$ref === "string") result.$ref = value.$ref
+    if (typeof value.description === "string") result.description = value.description
+    if ("const" in value) result.enum = [value.const]
+    else if (Array.isArray(value.enum)) result.enum = value.enum
+
+    if (isPlainObject(value.properties)) {
+      result.properties = Object.fromEntries(
+        Object.entries(value.properties).map(([key, item]) => [key, sanitizeOpenAISchema(item)]),
+      )
+    }
+
+    if (Array.isArray(value.required)) {
+      result.required = value.required.filter((item) => typeof item === "string")
+    }
+
+    if ("items" in value) result.items = sanitizeOpenAISchema(value.items)
+
+    if ("additionalProperties" in value) {
+      result.additionalProperties =
+        typeof value.additionalProperties === "boolean"
+          ? value.additionalProperties
+          : sanitizeOpenAISchema(value.additionalProperties)
+    }
+
+    for (const key of COMPOSITION_KEYS) {
+      if (Array.isArray(value[key])) result[key] = (value[key] as unknown[]).map(sanitizeOpenAISchema)
+    }
+
+    for (const key of ["$defs", "definitions"]) {
+      if (isPlainObject(value[key])) {
+        result[key] = Object.fromEntries(
+          Object.entries(value[key] as JsonRecord).map(([name, item]) => [name, sanitizeOpenAISchema(item)]),
+        )
       }
     }
-    */
+
+    const schemaTypes =
+      typeof value.type === "string"
+        ? JSON_SCHEMA_TYPES.includes(value.type)
+          ? [value.type]
+          : []
+        : Array.isArray(value.type)
+          ? (value.type as string[]).filter((item) => typeof item === "string" && JSON_SCHEMA_TYPES.includes(item))
+          : []
+
+    // $ref or composition keywords carry their own type constraints
+    if (schemaTypes.length === 0 && (typeof result.$ref === "string" || COMPOSITION_KEYS.some((key) => key in result))) {
+      return result
+    }
+
+    // Infer type from keywords when `type` is missing
+    const inferredTypes =
+      schemaTypes.length > 0
+        ? schemaTypes
+        : ["properties", "required", "additionalProperties"].some((key) => key in value)
+          ? ["object"]
+          : ["items", "prefixItems"].some((key) => key in value)
+            ? ["array"]
+            : "enum" in result || "format" in value
+              ? ["string"]
+              : ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"].some((key) => key in value)
+                ? ["number"]
+                : []
+
+    if (inferredTypes.length === 0) return {}
+
+    result.type = inferredTypes.length === 1 ? inferredTypes[0] : inferredTypes
+    if (inferredTypes.includes("object") && !("properties" in result)) result.properties = {}
+    if (inferredTypes.includes("array") && !("items" in result)) result.items = { type: "string" }
+    return result
+  }
+
+  export function schema(model: Provider.Model, schema: JSONSchema.BaseSchema | JSONSchema7): JSONSchema7 {
+    // Sanitize MCP tool schemas for OpenAI/Azure compatibility
+    if (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/azure") {
+      schema = sanitizeOpenAISchema(schema) as JSONSchema7
+    }
 
     // Convert integer enums to string enums for Google/Gemini
     if (model.providerID === "google" || model.api.id.includes("gemini")) {
