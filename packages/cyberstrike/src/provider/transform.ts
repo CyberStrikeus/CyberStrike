@@ -1059,6 +1059,14 @@ export namespace ProviderTransform {
           }
         }
 
+        // Gemini does not support type arrays like ["string", "null"].
+        // Flatten to the first non-null type, or fall back to "string".
+        if (Array.isArray(result.type)) {
+          const nonNull = (result.type as string[]).filter((t) => t !== "null")
+          result.type = nonNull[0] ?? "string"
+          result.nullable = true
+        }
+
         // Remove properties/required from non-object types (Gemini rejects these)
         if (result.type && result.type !== "object") {
           delete result.properties
