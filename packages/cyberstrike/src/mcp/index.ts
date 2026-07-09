@@ -247,6 +247,21 @@ export namespace MCP {
       }
     },
     async (state) => {
+      // The MCP SDK only signals the direct child process on close.
+      // Servers like chrome-devtools-mcp or browser-based MCPs spawn
+      // grandchild processes (e.g. Chromium) that the SDK never reaches,
+      // leaving them orphaned. Kill the full descendant tree first so
+      // no processes are left behind after shutdown.
+      for (const client of Object.values(state.clients)) {
+        const pid = (client.transport as any)?.pid
+        if (typeof pid !== "number") continue
+        for (const dpid of await descendants(pid)) {
+          try {
+            process.kill(dpid, "SIGTERM")
+          } catch {}
+        }
+      }
+
       await Promise.all(
         Object.values(state.clients).map((client) =>
           client.close().catch((error) => {
