@@ -150,33 +150,30 @@ export namespace SessionCompaction {
       { sessionID: input.sessionID },
       { context: [], prompt: undefined },
     )
-    const defaultPrompt = `Provide a detailed prompt for continuing our conversation above.
-Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next.
-The summary that you construct will be used so that another agent can read it and continue the work.
+    const defaultPrompt = `Output exactly the Markdown structure shown inside <template> and keep the section order unchanged. Do not include the <template> tags in your response.
+<template>
+## Objective
+- [one or two brief sentences describing what the user is trying to accomplish]
 
-When constructing the summary, try to stick to this template:
----
-## Goal
+## Important Details
+- [constraints/preferences, decisions and why, important facts/assumptions, exact context needed to continue, or "(none)"]
 
-[What goal(s) is the user trying to accomplish?]
+## Work State
+- Completed: [finished work, verified facts, or changes made; otherwise "(none)"]
+- Active: [current work, partial changes, or investigation state; otherwise "(none)"]
+- Blocked: [blockers, failing commands, or unknowns; otherwise "(none)"]
 
-## Instructions
+## Next Move
+1. [immediate concrete action, or "(none)"]
+2. [next action if known, or "(none)"]
+</template>
 
-- [What important instructions did the user give you that are relevant]
-- [If there is a plan or spec, include information about it so next agent can continue using it]
-
-## Discoveries
-
-[What notable things were learned during this conversation that would be useful for the next agent to know when continuing the work]
-
-## Accomplished
-
-[What work has been completed, what work is still in progress, and what work is left?]
-
-## Relevant files / directories
-
-[Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
----`
+Rules:
+- Keep every section, even when empty.
+- Use terse bullets, not prose paragraphs.
+- Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers when known.
+- Put relevant files and symbols inside the section where they matter; do not add extra sections.
+- Do not mention the summary process or that context was compacted.`
 
     const promptText = compacting.prompt ?? [defaultPrompt, ...compacting.context].join("\n\n")
     // Limit messages sent to compaction agent to prevent double-overflow
