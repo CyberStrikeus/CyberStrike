@@ -511,14 +511,21 @@ export namespace ProviderTransform {
       case "@ai-sdk/google-vertex/anthropic":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/google-vertex#anthropic-provider
 
-        if (model.api.id.includes("opus-4-6") || model.api.id.includes("opus-4.6")) {
-          const efforts = ["low", "medium", "high", "max"]
+        if (
+          model.api.id.includes("opus-4-6") ||
+          model.api.id.includes("opus-4.6") ||
+          model.api.id.includes("sonnet-5") ||
+          model.api.id.includes("5-sonnet") ||
+          model.api.id.includes("fable-5")
+        ) {
+          const efforts = ["low", "medium", "high", "xhigh", "max"]
           return Object.fromEntries(
             efforts.map((effort) => [
               effort,
               {
                 thinking: {
                   type: "adaptive",
+                  display: "summarized",
                 },
                 effort,
               },
@@ -543,8 +550,14 @@ export namespace ProviderTransform {
 
       case "@ai-sdk/amazon-bedrock":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock
-        if (model.api.id.includes("opus-4-6") || model.api.id.includes("opus-4.6")) {
-          const efforts = ["low", "medium", "high", "max"]
+        if (
+          model.api.id.includes("opus-4-6") ||
+          model.api.id.includes("opus-4.6") ||
+          model.api.id.includes("sonnet-5") ||
+          model.api.id.includes("5-sonnet") ||
+          model.api.id.includes("fable-5")
+        ) {
+          const efforts = ["low", "medium", "high", "xhigh", "max"]
           return Object.fromEntries(
             efforts.map((effort) => [
               effort,
@@ -552,6 +565,7 @@ export namespace ProviderTransform {
                 reasoningConfig: {
                   type: "adaptive",
                   maxReasoningEffort: effort,
+                  display: "summarized",
                 },
               },
             ]),
