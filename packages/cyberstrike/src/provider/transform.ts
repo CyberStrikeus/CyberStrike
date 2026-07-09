@@ -837,7 +837,12 @@ export namespace ProviderTransform {
       if (model.api.id.includes("google")) {
         return { reasoning: { enabled: false } }
       }
-      return { reasoningEffort: "minimal" }
+      // Use the model's weakest variant effort instead of hardcoding "minimal"
+      // which may not be supported by all OpenRouter models
+      const v = variants(model)
+      const keys = Object.keys(v)
+      if (keys.length > 0) return v[keys[0]]
+      return {}
     }
     if (model.providerID === "deepseek") {
       return { thinking: { type: "disabled" } }
