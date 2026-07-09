@@ -1092,7 +1092,11 @@ export namespace Provider {
         // Codex uses #[serde(skip_serializing)] on id fields for all item types:
         // Message, Reasoning, FunctionCall, LocalShellCall, CustomToolCall, WebSearchCall
         // IDs are only re-attached for Azure with store=true
-        if ((model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/github-copilot") && opts.body && opts.method === "POST") {
+        if (
+          (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/github-copilot") &&
+          opts.body &&
+          opts.method === "POST"
+        ) {
           const body = JSON.parse(opts.body as string)
           const isAzure = model.providerID.includes("azure")
           const keepIds = isAzure && body.store === true
