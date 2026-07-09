@@ -18,6 +18,7 @@ export namespace ProviderError {
     /greater than the context length/i, // LM Studio
     /context window exceeds limit/i, // MiniMax
     /exceeded model token limit/i, // Kimi For Coding, Moonshot
+    /tokens in request more than max tokens allowed/i, // xAI / zAI
     /context[_ ]length[_ ]exceeded/i, // Generic fallback
   ]
 
