@@ -403,11 +403,17 @@ export namespace Provider {
       const location = Env.get("GOOGLE_CLOUD_LOCATION") ?? Env.get("VERTEX_LOCATION") ?? "global"
       const autoload = Boolean(project)
       if (!autoload) return { autoload: false }
+      // Continental multi-regions (eu, us) require Regional Endpoint Platform domains
+      const baseURL =
+        project && (location === "eu" || location === "us")
+          ? `https://aiplatform.${location}.rep.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+          : undefined
       return {
         autoload: true,
         options: {
           project,
           location,
+          ...(baseURL && { baseURL }),
         },
         async getModel(sdk: any, modelID) {
           const id = String(modelID).trim()
@@ -1399,7 +1405,8 @@ export namespace Provider {
       return { providerID: entry.providerID, modelID: entry.modelID }
     }
 
-    const provider = Object.values(providers).find((p) => !cfg.provider || Object.keys(cfg.provider).includes(p.id))
+    const configured = Object.keys(cfg.provider ?? {})
+    const provider = Object.values(providers).find((p) => configured.length === 0 || configured.includes(p.id))
     if (!provider) throw new Error("no providers found")
     const [model] = sort(Object.values(provider.models))
     if (!model) throw new Error("no models found")

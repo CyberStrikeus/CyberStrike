@@ -266,7 +266,11 @@ export namespace Config {
     }
 
     if (Flag.CYBERSTRIKE_PERMISSION) {
-      result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.CYBERSTRIKE_PERMISSION))
+      try {
+        result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.CYBERSTRIKE_PERMISSION))
+      } catch {
+        log.warn("CYBERSTRIKE_PERMISSION contains invalid JSON, skipping")
+      }
     }
 
     // Backwards compatibility: legacy top-level `tools` config
