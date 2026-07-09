@@ -1011,8 +1011,8 @@ export namespace ProviderTransform {
   }
 
   export function schema(model: Provider.Model, schema: JSONSchema.BaseSchema | JSONSchema7): JSONSchema7 {
-    // Sanitize MCP tool schemas for OpenAI/Azure compatibility
-    if (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/azure") {
+    // Sanitize MCP tool schemas for OpenAI/Azure/Copilot compatibility
+    if (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/azure" || model.api.npm === "@ai-sdk/github-copilot") {
       schema = sanitizeOpenAISchema(schema) as JSONSchema7
     }
 
