@@ -161,17 +161,33 @@ export namespace MCP {
       description: mcpTool.description ?? "",
       inputSchema: jsonSchema(schema),
       execute: async (args: unknown) => {
-        return client.callTool(
-          {
-            name: mcpTool.name,
-            arguments: (args || {}) as Record<string, unknown>,
-          },
-          CallToolResultSchema,
-          {
-            resetTimeoutOnProgress: true,
-            timeout,
-          },
-        )
+        try {
+          return await client.callTool(
+            {
+              name: mcpTool.name,
+              arguments: (args || {}) as Record<string, unknown>,
+            },
+            CallToolResultSchema,
+            {
+              resetTimeoutOnProgress: true,
+              timeout,
+            },
+          )
+        } catch (error) {
+          log.error("MCP tool execution failed", {
+            tool: mcpTool.name,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error calling MCP tool "${mcpTool.name}": ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+            isError: true,
+          }
+        }
       },
     })
   }
