@@ -233,7 +233,8 @@ Rules:
       model,
     })
 
-    if (result === "continue" && input.auto) {
+    const config = await Config.get()
+    if (result === "continue" && input.auto && config.compaction?.auto !== false) {
       const continueMsg = await Session.updateMessage({
         id: Identifier.ascending("message"),
         role: "user",

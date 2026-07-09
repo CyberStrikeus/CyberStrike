@@ -161,17 +161,33 @@ export namespace MCP {
       description: mcpTool.description ?? "",
       inputSchema: jsonSchema(schema),
       execute: async (args: unknown) => {
-        return client.callTool(
-          {
-            name: mcpTool.name,
-            arguments: (args || {}) as Record<string, unknown>,
-          },
-          CallToolResultSchema,
-          {
-            resetTimeoutOnProgress: true,
-            timeout,
-          },
-        )
+        try {
+          return await client.callTool(
+            {
+              name: mcpTool.name,
+              arguments: (args || {}) as Record<string, unknown>,
+            },
+            CallToolResultSchema,
+            {
+              resetTimeoutOnProgress: true,
+              timeout,
+            },
+          )
+        } catch (error) {
+          log.error("MCP tool execution failed", {
+            tool: mcpTool.name,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error calling MCP tool "${mcpTool.name}": ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+            isError: true,
+          }
+        }
       },
     })
   }
@@ -300,7 +316,7 @@ export namespace MCP {
 
   async function fetchResourcesForClient(clientName: string, client: Client) {
     const resources = await client.listResources().catch((e) => {
-      log.error("failed to get prompts", { clientName, error: e.message })
+      log.error("failed to get resources", { clientName, error: e.message })
       return undefined
     })
 
@@ -368,6 +384,17 @@ export namespace MCP {
     let status: Status | undefined = undefined
 
     if (mcp.type === "remote") {
+      // Validate URL before attempting to connect
+      try {
+        new URL(mcp.url)
+      } catch {
+        log.error("invalid MCP URL", { key, url: mcp.url })
+        return {
+          mcpClient: undefined,
+          status: { status: "failed" as const, error: `Invalid URL: ${mcp.url}` },
+        }
+      }
+
       // OAuth is enabled by default for remote servers unless explicitly disabled with oauth: false
       const oauthDisabled = mcp.oauth === false
       const oauthConfig = typeof mcp.oauth === "object" ? mcp.oauth : undefined
@@ -1066,7 +1093,7 @@ export namespace MCP {
     const client = clientsSnapshot[clientName]
 
     if (!client) {
-      log.warn("client not found for prompt", {
+      log.warn("client not found for resource", {
         clientName: clientName,
       })
       return undefined
@@ -1077,7 +1104,7 @@ export namespace MCP {
         uri: resourceUri,
       })
       .catch((e) => {
-        log.error("failed to get prompt from MCP server", {
+        log.error("failed to read resource from MCP server", {
           clientName: clientName,
           resourceUri: resourceUri,
           error: e.message,

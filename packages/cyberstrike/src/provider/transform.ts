@@ -90,7 +90,7 @@ export namespace ProviderTransform {
     if (
       model.providerID === "mistral" ||
       model.api.id.toLowerCase().includes("mistral") ||
-      model.api.id.toLocaleLowerCase().includes("devstral")
+      model.api.id.toLowerCase().includes("devstral")
     ) {
       const result: ModelMessage[] = []
       for (let i = 0; i < msgs.length; i++) {
@@ -296,7 +296,7 @@ export namespace ProviderTransform {
     if (id.includes("gemini")) return 1.0
     if (id.includes("glm-4.6")) return 1.0
     if (id.includes("glm-4.7")) return 1.0
-    if (id.includes("minimax-m2")) return 1.0
+    if (id.includes("minimax-m2") || id.includes("minimax-m3")) return 1.0
     if (id.includes("kimi-k2")) {
       // kimi-k2-thinking & kimi-k2.5 && kimi-k2p5
       if (id.includes("thinking") || id.includes("k2.") || id.includes("k2p")) {
@@ -310,7 +310,7 @@ export namespace ProviderTransform {
   export function topP(model: Provider.Model) {
     const id = model.id.toLowerCase()
     if (id.includes("qwen")) return 1
-    if (id.includes("minimax-m2") || id.includes("kimi-k2.5") || id.includes("kimi-k2p5") || id.includes("gemini")) {
+    if (id.includes("minimax-m2") || id.includes("minimax-m3") || id.includes("kimi-k2.5") || id.includes("kimi-k2p5") || id.includes("gemini")) {
       return 0.95
     }
     return undefined
@@ -318,8 +318,8 @@ export namespace ProviderTransform {
 
   export function topK(model: Provider.Model) {
     const id = model.id.toLowerCase()
-    if (id.includes("minimax-m2")) {
-      if (id.includes("m2.1")) return 40
+    if (id.includes("minimax-m2") || id.includes("minimax-m3")) {
+      if (id.includes("m2.1") || id.includes("m3")) return 40
       return 20
     }
     if (id.includes("gemini")) return 64
@@ -1011,8 +1011,8 @@ export namespace ProviderTransform {
   }
 
   export function schema(model: Provider.Model, schema: JSONSchema.BaseSchema | JSONSchema7): JSONSchema7 {
-    // Sanitize MCP tool schemas for OpenAI/Azure compatibility
-    if (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/azure") {
+    // Sanitize MCP tool schemas for OpenAI/Azure/Copilot compatibility
+    if (model.api.npm === "@ai-sdk/openai" || model.api.npm === "@ai-sdk/azure" || model.api.npm === "@ai-sdk/github-copilot") {
       schema = sanitizeOpenAISchema(schema) as JSONSchema7
     }
 
@@ -1059,11 +1059,24 @@ export namespace ProviderTransform {
           }
         }
 
+        // Gemini does not support type arrays like ["string", "null"].
+        // Flatten to the first non-null type, or fall back to "string".
+        if (Array.isArray(result.type)) {
+          const nonNull = (result.type as string[]).filter((t) => t !== "null")
+          result.type = nonNull[0] ?? "string"
+          result.nullable = true
+        }
+
         // Remove properties/required from non-object types (Gemini rejects these)
         if (result.type && result.type !== "object") {
           delete result.properties
           delete result.required
+          delete result.additionalProperties
         }
+
+        // Gemini does not support $defs / definitions
+        delete result.$defs
+        delete result.definitions
 
         return result
       }
