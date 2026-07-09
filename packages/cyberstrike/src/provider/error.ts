@@ -18,6 +18,7 @@ export namespace ProviderError {
     /greater than the context length/i, // LM Studio
     /context window exceeds limit/i, // MiniMax
     /exceeded model token limit/i, // Kimi For Coding, Moonshot
+    /tokens in request more than max tokens allowed/i, // xAI / zAI
     /context[_ ]length[_ ]exceeded/i, // Generic fallback
   ]
 
@@ -79,6 +80,18 @@ export namespace ProviderError {
           return `${msg}: ${errMsg}`
         }
       } catch {}
+
+      // If responseBody is HTML (e.g. from a gateway or proxy error page),
+      // provide a human-readable message instead of dumping raw markup
+      if (/^\s*<!doctype|^\s*<html/i.test(e.responseBody)) {
+        if (e.statusCode === 401) {
+          return "Unauthorized: request was blocked by a gateway or proxy. Your authentication token may be missing or expired — try re-authenticating with your provider."
+        }
+        if (e.statusCode === 403) {
+          return "Forbidden: request was blocked by a gateway or proxy. You may not have permission to access this resource — check your account and provider settings."
+        }
+        return msg
+      }
 
       return `${msg}: ${e.responseBody}`
     }).trim()
