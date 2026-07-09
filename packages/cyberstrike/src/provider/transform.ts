@@ -976,7 +976,10 @@ export namespace ProviderTransform {
           : []
 
     // $ref or composition keywords carry their own type constraints
-    if (schemaTypes.length === 0 && (typeof result.$ref === "string" || COMPOSITION_KEYS.some((key) => key in result))) {
+    if (
+      schemaTypes.length === 0 &&
+      (typeof result.$ref === "string" || COMPOSITION_KEYS.some((key) => key in result))
+    ) {
       return result
     }
 
