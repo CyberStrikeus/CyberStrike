@@ -19,6 +19,11 @@ export namespace ProviderError {
     /context window exceeds limit/i, // MiniMax
     /exceeded model token limit/i, // Kimi For Coding, Moonshot
     /tokens in request more than max tokens allowed/i, // xAI / zAI
+    /input.?length exceeds/i, // Mistral
+    /request payload size exceeds/i, // Cerebras
+    /total number of tokens.*exceeded/i, // Cohere
+    /input tokens exceed/i, // Venice AI
+    /exceeds the model's maximum/i, // Together AI
     /context[_ ]length[_ ]exceeded/i, // Generic fallback
   ]
 
