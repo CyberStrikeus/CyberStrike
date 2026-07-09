@@ -96,7 +96,7 @@ export namespace ToolRegistry {
     return {
       id,
       init: async (initCtx) => ({
-        parameters: z.object(def.args),
+        parameters: z.object(def.args ?? {}),
         description: def.description,
         execute: async (args, ctx) => {
           const pluginCtx = {
