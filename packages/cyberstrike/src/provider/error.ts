@@ -79,8 +79,12 @@ export namespace ProviderError {
 
       try {
         const body = JSON.parse(e.responseBody)
-        // try to extract common error message fields
-        const errMsg = body.message || body.error || body.error?.message
+        // try to extract common error message fields across providers
+        const errMsg =
+          body.message ||
+          (typeof body.error === "string" ? body.error : body.error?.message) ||
+          body.detail ||
+          body.errors?.[0]?.message
         if (errMsg && typeof errMsg === "string") {
           return `${msg}: ${errMsg}`
         }
