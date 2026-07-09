@@ -50,6 +50,11 @@ export const EditTool = Tool.define("edit", {
     await FileTime.withLock(filePath, async () => {
       if (params.oldString === "") {
         const existed = await Bun.file(filePath).exists()
+        if (existed) {
+          throw new Error(
+            "oldString cannot be empty when editing an existing file. Provide the exact text to replace, or use write for an intentional full-file replacement.",
+          )
+        }
         contentNew = params.newString
         diff = trimDiff(createTwoFilesPatch(filePath, filePath, contentOld, contentNew))
         await ctx.ask({
@@ -67,7 +72,7 @@ export const EditTool = Tool.define("edit", {
         })
         await Bus.publish(FileWatcher.Event.Updated, {
           file: filePath,
-          event: existed ? "change" : "add",
+          event: "add",
         })
         FileTime.read(ctx.sessionID, filePath)
         return
@@ -618,6 +623,11 @@ export function trimDiff(diff: string): string {
 export function replace(content: string, oldString: string, newString: string, replaceAll = false): string {
   if (oldString === newString) {
     throw new Error("No changes to apply: oldString and newString are identical.")
+  }
+  if (oldString === "") {
+    throw new Error(
+      "oldString cannot be empty when editing an existing file. Provide the exact text to replace, or use write for an intentional full-file replacement.",
+    )
   }
 
   let notFound = true
