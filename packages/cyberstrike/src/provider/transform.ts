@@ -90,7 +90,7 @@ export namespace ProviderTransform {
     if (
       model.providerID === "mistral" ||
       model.api.id.toLowerCase().includes("mistral") ||
-      model.api.id.toLocaleLowerCase().includes("devstral")
+      model.api.id.toLowerCase().includes("devstral")
     ) {
       const result: ModelMessage[] = []
       for (let i = 0; i < msgs.length; i++) {
