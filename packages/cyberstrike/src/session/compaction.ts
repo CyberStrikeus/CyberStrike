@@ -159,20 +159,27 @@ export namespace SessionCompaction {
 - [constraints/preferences, decisions and why, important facts/assumptions, exact context needed to continue, or "(none)"]
 
 ## Work State
-- Completed: [finished work, verified facts, or changes made; otherwise "(none)"]
-- Active: [current work, partial changes, or investigation state; otherwise "(none)"]
-- Blocked: [blockers, failing commands, or unknowns; otherwise "(none)"]
+### Completed
+- [finished work, verified facts, or changes made; otherwise "(none)"]
+
+### Active
+- [current work, partial changes, or investigation state; otherwise "(none)"]
+
+### Blocked
+- [blockers, failing commands, or unknowns; otherwise "(none)"]
 
 ## Next Move
 1. [immediate concrete action, or "(none)"]
 2. [next action if known, or "(none)"]
+
+## Relevant Files
+- [file or directory path: why it matters, or "(none)"]
 </template>
 
 Rules:
 - Keep every section, even when empty.
 - Use terse bullets, not prose paragraphs.
 - Preserve exact file paths, symbols, commands, error strings, URLs, and identifiers when known.
-- Put relevant files and symbols inside the section where they matter; do not add extra sections.
 - Do not mention the summary process or that context was compacted.`
 
     const promptText = compacting.prompt ?? [defaultPrompt, ...compacting.context].join("\n\n")
