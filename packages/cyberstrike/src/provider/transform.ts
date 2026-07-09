@@ -366,8 +366,6 @@ export namespace ProviderTransform {
         high: { reasoningEffort: "high" },
       }
     }
-    if (id.includes("grok")) return {}
-
     switch (model.api.npm) {
       case "@openrouter/ai-sdk-provider":
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3") && !model.id.includes("claude")) return {}
