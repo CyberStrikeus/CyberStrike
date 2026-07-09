@@ -682,8 +682,7 @@ export namespace MessageV2 {
           }
           if (part.type === "reasoning") {
             if (differentModel) {
-              if (part.text.length > 0)
-                assistantMessage.parts.push({ type: "text", text: part.text })
+              if (part.text.length > 0) assistantMessage.parts.push({ type: "text", text: part.text })
             } else {
               assistantMessage.parts.push({
                 type: "reasoning",
