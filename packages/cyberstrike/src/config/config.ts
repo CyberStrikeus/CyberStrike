@@ -1316,7 +1316,7 @@ export namespace Config {
     let text = await Bun.file(filepath)
       .text()
       .catch((err) => {
-        if (err.code === "ENOENT") return
+        if (err.code === "ENOENT" || err.code === "EACCES") return
         throw new JsonError({ path: filepath }, { cause: err })
       })
     if (!text) return {}
