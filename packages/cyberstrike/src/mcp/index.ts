@@ -316,7 +316,7 @@ export namespace MCP {
 
   async function fetchResourcesForClient(clientName: string, client: Client) {
     const resources = await client.listResources().catch((e) => {
-      log.error("failed to get prompts", { clientName, error: e.message })
+      log.error("failed to get resources", { clientName, error: e.message })
       return undefined
     })
 
