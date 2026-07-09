@@ -681,11 +681,16 @@ export namespace MessageV2 {
               })
           }
           if (part.type === "reasoning") {
-            assistantMessage.parts.push({
-              type: "reasoning",
-              text: part.text,
-              ...(differentModel ? {} : { providerMetadata: part.metadata }),
-            })
+            if (differentModel) {
+              if (part.text.length > 0)
+                assistantMessage.parts.push({ type: "text", text: part.text })
+            } else {
+              assistantMessage.parts.push({
+                type: "reasoning",
+                text: part.text,
+                providerMetadata: part.metadata,
+              })
+            }
           }
         }
         if (assistantMessage.parts.length > 0) {
