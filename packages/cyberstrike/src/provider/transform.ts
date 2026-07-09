@@ -1071,7 +1071,12 @@ export namespace ProviderTransform {
         if (result.type && result.type !== "object") {
           delete result.properties
           delete result.required
+          delete result.additionalProperties
         }
+
+        // Gemini does not support $defs / definitions
+        delete result.$defs
+        delete result.definitions
 
         return result
       }
