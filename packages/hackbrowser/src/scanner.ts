@@ -412,7 +412,18 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const label = getLabel(el)
       const tag = el.tagName.toLowerCase()
       const type = (el as HTMLInputElement).type?.toLowerCase() || ""
-      const href = (el as HTMLAnchorElement).href || ""
+      // `href` = where this element NAVIGATES. A bare "#", a "#fragment", a
+      // "javascript:" scheme, or an empty href does NOT navigate to a new page —
+      // it is the idiom for a JS action link (click handler / AJAX / modal / tab)
+      // or an in-page scroll anchor. Give those NO nav target (href = "") so the
+      // BFS enqueue + self-link filtering leave them alone and treat them as plain
+      // clickables (otherwise a table's `<a href="#">Receipt</a>` is dropped as a
+      // self-link and never clicked). The RAW attribute is checked, not the
+      // resolved el.href, which would turn "#" into "<current-page>#" —
+      // indistinguishable from a genuine self-link like "/page#".
+      const rawHref = (el.getAttribute("href") || "").trim()
+      const navigates = !!rawHref && rawHref !== "#" && !rawHref.startsWith("#") && !rawHref.startsWith("javascript:")
+      const href = navigates ? (el as HTMLAnchorElement).href || "" : ""
       const isSlider = role === "slider"
       const value = isSlider
         ? (el.getAttribute("aria-valuenow") ?? (el as HTMLInputElement).value ?? "")
@@ -935,7 +946,7 @@ export function filterVisitedLinks(
   }
 
   return elements.filter((el) => {
-    if (el.role !== "link" || !el.href) return true // keep non-links
+    if (el.role !== "link" || !el.href) return true // keep non-links (incl. non-navigating anchors, whose href the scanner sets to "")
     try {
       const u = new URL(el.href)
       const path = u.pathname + u.hash
