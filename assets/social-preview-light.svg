@@ -6,12 +6,12 @@
       <stop offset="100%" style="stop-color:#f6f8fa"/>
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00b33c"/>
-      <stop offset="100%" style="stop-color:#009930"/>
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#1e40af"/>
     </linearGradient>
     <linearGradient id="accent2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00b33c;stop-opacity:0.08"/>
-      <stop offset="100%" style="stop-color:#009930;stop-opacity:0.08"/>
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.08"/>
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:0.08"/>
     </linearGradient>
   </defs>
 
@@ -53,17 +53,17 @@
 
   <!-- Stats pills -->
   <g transform="translate(400, 210)" text-anchor="middle">
-    <rect x="-228" y="-14" width="100" height="28" rx="14" fill="url(#accent2)" stroke="#00b33c" stroke-width="1" opacity="0.8"/>
-    <text x="-178" y="5" fill="#00803c" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">13+ Agents</text>
+    <rect x="-228" y="-14" width="100" height="28" rx="14" fill="url(#accent2)" stroke="#2563eb" stroke-width="1" opacity="0.8"/>
+    <text x="-178" y="5" fill="#1e40af" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">13+ Agents</text>
 
-    <rect x="-116" y="-14" width="105" height="28" rx="14" fill="url(#accent2)" stroke="#00b33c" stroke-width="1" opacity="0.8"/>
-    <text x="-63" y="5" fill="#00803c" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">120+ OWASP</text>
+    <rect x="-116" y="-14" width="105" height="28" rx="14" fill="url(#accent2)" stroke="#2563eb" stroke-width="1" opacity="0.8"/>
+    <text x="-63" y="5" fill="#1e40af" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">120+ OWASP</text>
 
-    <rect x="1" y="-14" width="118" height="28" rx="14" fill="url(#accent2)" stroke="#00b33c" stroke-width="1" opacity="0.8"/>
-    <text x="60" y="5" fill="#00803c" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">150+ Providers</text>
+    <rect x="1" y="-14" width="118" height="28" rx="14" fill="url(#accent2)" stroke="#2563eb" stroke-width="1" opacity="0.8"/>
+    <text x="60" y="5" fill="#1e40af" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">150+ Providers</text>
 
-    <rect x="131" y="-14" width="105" height="28" rx="14" fill="url(#accent2)" stroke="#00b33c" stroke-width="1" opacity="0.8"/>
-    <text x="183" y="5" fill="#00803c" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">176+ MCP Tools</text>
+    <rect x="131" y="-14" width="105" height="28" rx="14" fill="url(#accent2)" stroke="#2563eb" stroke-width="1" opacity="0.8"/>
+    <text x="183" y="5" fill="#1e40af" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">176+ MCP Tools</text>
   </g>
 
   <!-- Feature keywords -->
