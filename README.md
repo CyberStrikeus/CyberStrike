@@ -36,7 +36,8 @@
 
 <p align="center">
   Automated penetration testing from your terminal — plug in your Claude, GPT, or any LLM subscription<br>
-  and turn it into an autonomous red team agent with 13+ specialized agents and 120+ OWASP test cases.
+  and turn it into an autonomous red team agent with 13+ specialized agents, 7,600+ security skills, and 120+ OWASP test cases.<br>
+  <b>150+ AI providers</b> &bull; <b>5,300+ models</b> &bull; <b>56+ built-in tools</b> &bull; <b>176+ MCP tools</b>
 </p>
 
 <p align="center">
@@ -44,9 +45,11 @@
   <a href="#intelligence-layer">Intelligence Layer</a> &bull;
   <a href="#what-makes-it-different">What Makes It Different</a> &bull;
   <a href="#agents">Agents</a> &bull;
+  <a href="#security-skills">Skills</a> &bull;
   <a href="#web-ui--remote-access">Web UI</a> &bull;
   <a href="#bolt--remote-tool-execution">Bolt</a> &bull;
   <a href="#mcp-ecosystem">MCP Ecosystem</a> &bull;
+  <a href="#post-exploitation">Post-Exploitation</a> &bull;
   <a href="#installation">Installation</a> &bull;
   <a href="https://docs.cyberstrike.io">Docs</a> &bull;
   <a href="https://cyberstrike.io">Website</a>
@@ -89,20 +92,31 @@ CyberStrike isn't just a wrapper around an LLM. It's an intelligence layer that 
 - **Provider auto-detection** — Automatically identifies your LLM endpoint and configures the optimal transport
 - **Tool orchestration** — Chains security tools intelligently based on findings, not fixed scripts
 
-**15+ LLM providers supported out of the box:**
+**150+ AI providers and 5,300+ models supported out of the box:**
+
+CyberStrike integrates with the entire AI ecosystem through 23 bundled SDK providers and 150+ providers via the [models.dev](https://models.dev) catalog. Here are the core integrations:
 
 | Provider                  | Models                   | Notes                                   |
 | ------------------------- | ------------------------ | --------------------------------------- |
 | **Anthropic**             | Claude 4.5, Claude 4     | Best performance with extended thinking |
-| **OpenAI**                | GPT-4.1, o3, o4-mini     | Full tool-use support                   |
+| **OpenAI**                | GPT-5, GPT-4.1, o3, o4  | Full tool-use + reasoning support       |
 | **Google**                | Gemini 2.5 Pro/Flash     | Long context for large codebases        |
 | **Amazon Bedrock**        | All Bedrock models       | IAM auth, no API keys needed            |
 | **Azure OpenAI**          | All Azure-hosted models  | Enterprise deployments                  |
+| **Google Vertex AI**      | Gemini + Claude on GCP   | Regional endpoints (EU/US)              |
+| **GitHub Copilot**        | GPT-5, Claude, Gemini    | Use your existing Copilot subscription  |
+| **xAI**                   | Grok 3, Grok 3 Mini      | Real-time data access                   |
 | **Groq**                  | LLaMA, Mixtral           | Ultra-fast inference                    |
 | **Mistral**               | Mistral Large, Codestral | European data residency                 |
 | **DeepSeek**              | DeepSeek V3, R1          | Cost-effective alternative              |
-| **OpenRouter**            | 100+ models              | Single API, any model                   |
+| **Cerebras**              | LLaMA on Cerebras        | Fastest inference available             |
+| **Cohere**                | Command R+               | RAG-optimized models                    |
+| **OpenRouter**            | 300+ models              | Single API, any model                   |
 | **Together AI**           | Open-source models       | Fine-tuning support                     |
+| **DeepInfra**             | Open-source models       | Pay-per-token, no GPU needed            |
+| **Perplexity**            | Sonar models             | Search-augmented generation             |
+| **Alibaba Cloud**         | Qwen, Kimi, DashScope    | Chinese model ecosystem                 |
+| **Cloudflare AI Gateway** | Any provider via gateway  | Caching, rate limiting, analytics       |
 | **Ollama**                | Any GGUF model           | Fully offline, local-only               |
 | **LM Studio**             | Any local model          | Desktop GUI + API server                |
 | **vLLM**                  | Any HuggingFace model    | Self-hosted, GPU-optimized              |
@@ -127,16 +141,16 @@ CyberStrike ships with 13+ agents purpose-built for security domains. Each agent
 
 **Intelligence Layer, Not Just an LLM Wrapper**
 
-Most AI security tools are thin wrappers that send your prompt to an API. CyberStrike's intelligence layer normalizes outputs across 15+ providers, guards context between test phases, auto-detects your provider configuration, and orchestrates multi-step attack chains. The result: consistent, methodology-driven pentesting regardless of which model you use.
+Most AI security tools are thin wrappers that send your prompt to an API. CyberStrike's intelligence layer normalizes outputs across 150+ providers and 5,300+ models, guards context between test phases, auto-detects your provider configuration, and orchestrates multi-step attack chains. The result: consistent, methodology-driven pentesting regardless of which model you use.
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-**Any LLM, Zero Lock-in**
+**150+ Providers, Zero Lock-in**
 
-Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, DeepSeek, OpenRouter, Together AI — or run fully offline with Ollama and LM Studio. You choose the model. You own the results. As AI models get better and cheaper, CyberStrike gets better with them. Switch providers in seconds without reconfiguring anything.
+Anthropic, OpenAI, Google, Amazon Bedrock, Azure, Groq, Mistral, xAI, DeepSeek, Cerebras, Cohere, OpenRouter, Together AI, GitHub Copilot — or run fully offline with Ollama and LM Studio. 150+ providers, 5,300+ models. You choose the model. You own the results. As AI models get better and cheaper, CyberStrike gets better with them. Switch providers in seconds without reconfiguring anything.
 
 </td>
 <td width="50%">
@@ -177,6 +191,23 @@ Plus **8 specialized proxy testers** that run automatically on intercepted traff
 | **File Attacks**         | Path traversal, unrestricted upload, dangerous file types                    |
 
 Each tester uses a **3-gate confirmation protocol**: execute a baseline request, execute the attack, compare responses. A finding is only reported when there is a measurable, reproducible difference — not on speculation. Duplicate findings (same endpoint + attack vector) are automatically suppressed across the session.
+
+---
+
+### Security Skills
+
+CyberStrike ships with **7,600+ security skill files** — structured, Ed25519-signed methodology documents that give agents deep domain knowledge at runtime. Skills are lazy-loaded (one at a time, on demand) and statically injected into agent prompts.
+
+**Skill categories:**
+
+| Category | Skills | What They Cover |
+| --- | --- | --- |
+| **Attack Methodologies** | 19 | JWT attacks, SSRF, SSTI, race conditions, request smuggling, cache poisoning, CORS, GraphQL, prototype pollution, XXE, WebSocket, subdomain takeover, host header injection, open redirect |
+| **Post-Exploitation** | 5 | AWS, Azure, Kubernetes, Windows, macOS privilege escalation and persistence |
+| **Compliance Frameworks** | 3 | CIS Benchmarks (AWS/Azure/GCP/K8s), NIST Framework, MITRE ATT&CK (Enterprise, Mobile, ICS) |
+| **Domain Knowledge** | 8+ | Active Directory security, web security patterns, recon methodology, CI/CD attacks, Kerberos attacks, eBPF techniques |
+
+Each skill includes testing procedures, payloads, tool commands, and CWE mappings. Skills are tagged with OWASP WSTG IDs, CIS control IDs, and chain relationships — so agents know which skills to combine for multi-step attack chains.
 
 ---
 
@@ -292,17 +323,38 @@ All open source. All installable with `npx`. Plug them into CyberStrike or use t
 
 ### Built-in Tools
 
-CyberStrike agents have direct access to 30+ tools without any external dependencies:
+CyberStrike agents have direct access to **56+ tools** without any external dependencies:
 
-| Category        | Tools                                                                               |
-| --------------- | ----------------------------------------------------------------------------------- |
-| **Execution**   | Shell (bash), file read/write/edit, directory listing                               |
-| **Discovery**   | Web fetch, web search, code search, glob, grep                                      |
-| **Security**    | Vulnerability reporting (HackerOne format), evidence collection                     |
-| **Proxy**       | HTTP/HTTPS interception, request replay, session context sharing across sub-testers |
-| **Integration** | MCP servers, Bolt remote tools, custom plugins                                      |
+| Category              | Tools                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| **Execution**         | Shell (bash), file read/write/edit/patch, directory listing, batch operations        |
+| **Discovery**         | Web fetch, web search, code search, glob, grep, intel gathering                      |
+| **Offensive**         | HackBrowser, attack script execution, vulnerability reporting & triage               |
+| **Post-Exploitation** | AWS hook, Azure hook, Kubernetes hook, Windows hook, macOS hook, CI/CD pipe, eBPF    |
+| **Web Context**       | Session context, endpoint/role/credential/function discovery and management          |
+| **Proxy**             | HTTP/HTTPS interception, request replay, session context sharing across sub-testers  |
+| **Reporting**         | Professional report generation, coverage notes, methodology tracking, VRT checks     |
+| **Integration**       | MCP servers, Bolt remote tools, custom plugins, LSP                                  |
 
-Plus a **plugin SDK** — build your own agents and tools, register them at runtime.
+Plus a **plugin SDK** with 15+ hook types (tool interception, message transformation, permission prompts, shell environment) — build your own agents and tools, register them at runtime.
+
+---
+
+### Post-Exploitation
+
+CyberStrike includes built-in post-exploitation capabilities across multiple platforms — no external tools required.
+
+| Platform | Capabilities |
+| --- | --- |
+| **macOS** | Chrome credential extraction, Keychain dumping, keylogging, TCC bypass, GateKeeper bypass, XProtect checks, SSH key extraction, DTrace system tracing |
+| **Windows** | Post-exploitation hooks for privilege escalation and persistence |
+| **Linux/eBPF** | 29 kernel-level scripts — process execution monitoring, SSL/TLS sniffing, keystroke logging, namespace manipulation detection, rootkit detection, process/file/connection hiding |
+| **AWS** | IAM enumeration, S3 exposure, Lambda backdoors, CloudTrail evasion |
+| **Azure** | Identity enumeration, storage exposure, function exploitation |
+| **Kubernetes** | Pod escape, service account abuse, secret extraction, RBAC exploitation |
+| **CI/CD** | Pipeline injection, secret extraction, build artifact manipulation |
+
+All post-exploitation tools are agent-driven — they execute based on context and findings, not as fixed scripts.
 
 ---
 
@@ -359,13 +411,13 @@ Read the [Contributing Guide](./CONTRIBUTING.md) before submitting a PR. All con
 
 CyberStrike is the core platform. These MCP servers extend its capabilities:
 
-| Project                                                                | Domain                                  | Tools                                 |
-| ---------------------------------------------------------------------- | --------------------------------------- | ------------------------------------- |
-| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 120+ OWASP test cases** |
-| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                  |
-| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                   |
-| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                   |
-| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                  |
+| Project                                                                | Domain                                  | Tools                                                      |
+| ---------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------- |
+| **CyberStrike**                                                        | **Autonomous offensive security agent** | **13+ agents, 56+ tools, 7,600+ skills, 150+ AI providers** |
+| [cloud-audit-mcp](https://github.com/badchars/cloud-audit-mcp)         | Cloud security (AWS/Azure/GCP)          | 38 tools, 60+ checks                                       |
+| [github-security-mcp](https://github.com/badchars/github-security-mcp) | GitHub security posture                 | 39 tools, 45 checks                                        |
+| [cve-mcp](https://github.com/badchars/cve-mcp)                         | Vulnerability intelligence              | 23 tools, 5 sources                                        |
+| [osint-mcp](https://github.com/badchars/osint-mcp-server)              | OSINT & reconnaissance                  | 37 tools, 12 sources                                       |
 
 ---
 
