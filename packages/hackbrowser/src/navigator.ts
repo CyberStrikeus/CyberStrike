@@ -109,8 +109,11 @@ export async function planPage(
       model,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
-      maxOutputTokens: 2048,
+      maxOutputTokens: 16384,
       temperature: 0,
+      providerOptions: {
+        openai: { reasoningEffort: "low" },
+      },
     })
 
     if (usageAcc) {
@@ -189,8 +192,11 @@ export async function planUnexploredElements(
       model,
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
-      maxOutputTokens: 2048,
+      maxOutputTokens: 16384,
       temperature: 0,
+      providerOptions: {
+        openai: { reasoningEffort: "low" },
+      },
     })
 
     if (usageAcc) {
