@@ -15,15 +15,31 @@ Format based on [Keep a Changelog](https://keepachangelog.com/), versions follow
 ### Changed
 
 - **Built-in MCP servers disabled by default** — all 11 MCP servers are now installed but disabled to avoid token overhead. The agent is aware of disabled servers and will remind users to enable them when relevant capabilities are needed. Enable via MCP panel or `cyberstrike mcp enable <name>`
+- **README: accurate platform numbers** — updated provider count (15+ → 150+), model count (5,300+), tool count (30+ → 56+), expanded provider table from 14 to 23 entries. Added Security Skills section (7,600+ Ed25519-signed skill files), Post-Exploitation section (macOS/Windows/Linux/AWS/Azure/K8s/CI/CD), and nav links
 
 ### Fixed
 
 - **Copilot OAuth uses GitHub's first-party app** — replaced upstream's third-party OAuth app (`Ov23`, OpenCode by Anomaly) with GitHub's official Copilot CLI OAuth app (`Iv1.b507a08c87ecfe98`). Enterprise customers now see "Authorize GitHub Copilot CLI by GitHub" instead of "Authorize OpenCode by Anomaly". Also enables `copilot_internal/v2/token` for live model catalog discovery and adds `copilot` scope for proper API access
 - **HackBrowser works with GitHub Copilot** — Copilot's OAuth token is now extracted and passed to the crawler subprocess via `ModelDescriptor`, following the same pattern as Anthropic Pro/Max. Previously, Copilot users got "OAuth/subscription auth runs only in the main process" error when launching hackbrowser
 - **HackBrowser auto-installs Chromium on first use** — when Chromium browser is missing, hackbrowser now automatically downloads it via Playwright CLI with SSL verification bypass for corporate proxy environments. No manual `npx playwright install chromium` step needed
+- **HackBrowser planner token budget** — raised `maxOutputTokens` from 2048 to 16384 in both `planPage()` and `planUnexploredElements()`. OpenAI reasoning models (o4-mini) share `max_completion_tokens` between internal reasoning and visible output — 2048 was far below OpenAI's recommended 25,000+ minimum, causing the planner to return empty JSON and fall back to "nothing to do". Added `reasoningEffort: "low"` provider option to minimize reasoning token consumption
 - **Postinstall works in corporate proxy environments** — Playwright JS package installation during `npm install` now bypasses SSL verification to avoid `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` errors from corporate MITM proxies
 - **Windows PATH auto-configuration** — postinstall now detects if npm's global bin directory is missing from the user PATH and adds it automatically via PowerShell (no admin required). Fixes the issue where `cyberstrike` command was not found after `npm install -g` in corporate Windows environments
 - **curl installer auto-installs Playwright JS** — `install.sh` now automatically installs the Playwright JS package (~5 MB) with SSL bypass for corporate proxies. Combined with the launcher's Chromium auto-install, hackbrowser works out of the box with zero manual setup
+- **Provider: Gemini schema sanitization** — flatten type arrays (`["string", "null"]` → single type + `nullable: true`), strip `$defs`/`definitions`, remove `additionalProperties` from non-object types. Gemini API rejects these OpenAPI constructs
+- **Provider: GitHub Copilot schema sanitization** — apply the same OpenAI schema sanitization (`sanitizeOpenAISchema`) to the `@ai-sdk/github-copilot` provider, fixing schema validation errors when using MCP tools through Copilot
+- **Provider: error message extraction** — extract nested error messages from `body.detail`, `body.errors[0].message`, and string-type `body.error` in addition to existing patterns
+- **Provider: overflow detection** — added context overflow patterns for Mistral, Cerebras, Cohere, Venice AI, and Together AI providers
+- **Provider: MiniMax M3 parameters** — added sampling parameters (temperature 1.0, topP 0.95, topK 40) for MiniMax M3 model family
+- **Provider: Devstral detection** — use locale-invariant `toLowerCase()` instead of `toLocaleLowerCase()` to avoid Turkish `İ`/`i` locale issues
+- **MCP: tool execution crash** — `client.callTool` exceptions now caught and returned as `{ isError: true }` results instead of crashing the session
+- **MCP: URL validation** — validate URL before creating remote transport, preventing cryptic errors from malformed MCP server URLs
+- **MCP: log message accuracy** — corrected "failed to get prompts" → "failed to get resources" in `fetchResourcesForClient` and "failed to get prompt from MCP server" → "failed to read resource from MCP server" in `readResource`
+- **Session: auto-compaction config** — `compaction.auto: false` was checked in `isOverflow()` but not in the `process()` continuation path, causing auto-compaction to run even when explicitly disabled
+- **Session: content-filter visibility** — when a provider returns `content-filter` finish reason, the response now shows a message to the user instead of appearing as a silent empty response
+- **Config: CRLF parsing** — frontmatter fallback parser now splits on `/\r?\n/` instead of `"\n"`, fixing parse failures on Windows-edited markdown files
+- **File: script binary detection** — removed `.bat`, `.cmd`, `.ps1`, `.sh`, `.bash`, `.zsh`, `.fish` from the binary extensions set. These text-based scripts were incorrectly returning `{ type: "binary", content: "" }`, preventing agents from reading them
+- **Grep: symlink traversal** — ripgrep searches now follow symlinks by default, matching expected behavior in monorepos with linked packages
 
 ---
 
