@@ -27,6 +27,7 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
+  EventSubscribeResponse,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -47,6 +48,7 @@ import type {
   GlobalConfigUpdateResponses,
   GlobalDisposeResponses,
   GlobalEventPollResponses,
+  GlobalEventResponse,
   GlobalEventResponses,
   GlobalHealthResponses,
   GlobalVersionCheckResponses,
@@ -261,10 +263,11 @@ import type {
   WorktreeResetResponses,
 } from "./types.gen.js"
 
-export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
-  TData,
-  ThrowOnError
-> & {
+export type Options<
+  TData extends TDataShape = TDataShape,
+  ThrowOnError extends boolean = boolean,
+  TResponse = unknown,
+> = Options2<TData, ThrowOnError, TResponse> & {
   /**
    * You can provide a client instance returned by `createClient()` instead of
    * individual options. This might be also useful if you want to implement a
@@ -304,7 +307,7 @@ class HeyApiRegistry<T> {
   }
 }
 
-export class Event extends HeyApiClient {
+export class Event_ extends HeyApiClient {
   /**
    * Poll global events
    *
@@ -386,7 +389,7 @@ export class Global extends HeyApiClient {
    *
    * Subscribe to global events from the CyberStrike system using server-sent events.
    */
-  public event<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+  public event<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError, GlobalEventResponse>) {
     return (options?.client ?? this.client).sse.get<GlobalEventResponses, unknown, ThrowOnError>({
       url: "/global/event",
       ...options,
@@ -405,9 +408,9 @@ export class Global extends HeyApiClient {
     })
   }
 
-  private _event?: Event
-  get event2(): Event {
-    return (this._event ??= new Event({ client: this.client }))
+  private _event?: Event_
+  get event2(): Event_ {
+    return (this._event ??= new Event_({ client: this.client }))
   }
 
   private _config?: Config
@@ -1165,7 +1168,7 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      target?: string
+      target: string
       credentials?: Array<string>
       scope?: Array<string>
       exclude?: Array<string>
@@ -1596,7 +1599,7 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      label?: string
+      label: string
       headers?: {
         [key: string]: string
       }
@@ -1851,9 +1854,9 @@ export class Session extends HeyApiClient {
    * Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.
    */
   public ingest<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      text?: string
+      text: string
       sessionID?: string
       agent?: string
       model?: {
@@ -1939,9 +1942,9 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      modelID?: string
-      providerID?: string
-      messageID?: string
+      modelID: string
+      providerID: string
+      messageID: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2199,8 +2202,8 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      providerID?: string
-      modelID?: string
+      providerID: string
+      modelID: string
       auto?: boolean
     },
     options?: Options<never, ThrowOnError>,
@@ -2286,7 +2289,7 @@ export class Session extends HeyApiClient {
       system?: string
       variant?: string
       excludeHistory?: boolean
-      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2378,7 +2381,7 @@ export class Session extends HeyApiClient {
       system?: string
       variant?: string
       excludeHistory?: boolean
-      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2427,8 +2430,8 @@ export class Session extends HeyApiClient {
       messageID?: string
       agent?: string
       model?: string
-      arguments?: string
-      command?: string
+      arguments: string
+      command: string
       variant?: string
       parts?: Array<{
         id?: string
@@ -2480,12 +2483,12 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      agent?: string
+      agent: string
       model?: {
         providerID: string
         modelID: string
       }
-      command?: string
+      command: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2524,7 +2527,7 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      messageID?: string
+      messageID: string
       partID?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -2671,7 +2674,7 @@ export class Permission extends HeyApiClient {
       sessionID: string
       permissionID: string
       directory?: string
-      response?: "once" | "always" | "reject"
+      response: "once" | "always" | "reject"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2709,7 +2712,7 @@ export class Permission extends HeyApiClient {
     parameters: {
       requestID: string
       directory?: string
-      reply?: "once" | "always" | "reject"
+      reply: "once" | "always" | "reject"
       message?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -2788,7 +2791,7 @@ export class Question extends HeyApiClient {
     parameters: {
       requestID: string
       directory?: string
-      answers?: Array<QuestionAnswer>
+      answers: Array<QuestionAnswer>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2857,7 +2860,7 @@ export class Oauth extends HeyApiClient {
     parameters: {
       providerID: string
       directory?: string
-      method?: number
+      method: number
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2898,7 +2901,7 @@ export class Oauth extends HeyApiClient {
     parameters: {
       providerID: string
       directory?: string
-      method?: number
+      method: number
       code?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -3076,7 +3079,7 @@ export class Find extends HeyApiClient {
   }
 }
 
-export class File extends HeyApiClient {
+export class File_ extends HeyApiClient {
   /**
    * List files
    *
@@ -3227,7 +3230,7 @@ export class Auth2 extends HeyApiClient {
     parameters: {
       name: string
       directory?: string
-      code?: string
+      code: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3314,10 +3317,10 @@ export class Mcp extends HeyApiClient {
    * Dynamically add a new Model Context Protocol (MCP) server to the system.
    */
   public add<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      name?: string
-      config?: McpLocalConfig | McpRemoteConfig
+      name: string
+      config: McpLocalConfig | McpRemoteConfig
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3482,10 +3485,10 @@ export class Bolt extends HeyApiClient {
    * Dynamically add a new Bolt server.
    */
   public add<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      name?: string
-      config?: BoltConfig
+      name: string
+      config: BoltConfig
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3522,8 +3525,8 @@ export class Bolt extends HeyApiClient {
     parameters: {
       name: string
       directory?: string
-      url?: string
-      adminToken?: string
+      url: string
+      adminToken: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3702,9 +3705,9 @@ export class Tui extends HeyApiClient {
    * Append prompt to the TUI
    */
   public appendPrompt<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      text?: string
+      text: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3851,9 +3854,9 @@ export class Tui extends HeyApiClient {
    * Execute a TUI command (e.g. agent_cycle)
    */
   public executeCommand<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      command?: string
+      command: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3886,11 +3889,11 @@ export class Tui extends HeyApiClient {
    * Show a toast notification in the TUI
    */
   public showToast<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
       title?: string
-      message?: string
-      variant?: "info" | "success" | "warning" | "error"
+      message: string
+      variant: "info" | "success" | "warning" | "error"
       duration?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -3962,9 +3965,9 @@ export class Tui extends HeyApiClient {
    * Navigate the TUI to display the specified session.
    */
   public selectSession<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      sessionID?: string
+      sessionID: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4416,11 +4419,11 @@ export class App extends HeyApiClient {
    * Write a log entry to the server logs with specified level and metadata.
    */
   public log<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      service?: string
-      level?: "debug" | "info" | "error" | "warn"
-      message?: string
+      service: string
+      level: "debug" | "info" | "error" | "warn"
+      message: string
       extra?: {
         [key: string]: unknown
       }
@@ -4556,9 +4559,9 @@ export class Skill extends HeyApiClient {
    * Analyze findings for kill chain opportunities.
    */
   public chain<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      findings?: Array<{
+      findings: Array<{
         skill_id: string
         severity: "info" | "low" | "medium" | "high" | "critical"
         cwe_id?: string
@@ -4686,9 +4689,9 @@ export class Skill extends HeyApiClient {
    * Download and install a skill from a remote URL or registry.
    */
   public install<ThrowOnError extends boolean = false>(
-    parameters?: {
+    parameters: {
       directory?: string
-      url?: string
+      url: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4828,7 +4831,7 @@ export class Event2 extends HeyApiClient {
     parameters?: {
       directory?: string
     },
-    options?: Options<never, ThrowOnError>,
+    options?: Options<never, ThrowOnError, EventSubscribeResponse>,
   ) {
     const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
     return (options?.client ?? this.client).sse.get<EventSubscribeResponses, unknown, ThrowOnError>({
@@ -4917,9 +4920,9 @@ export class CyberstrikeClient extends HeyApiClient {
     return (this._find ??= new Find({ client: this.client }))
   }
 
-  private _file?: File
-  get file(): File {
-    return (this._file ??= new File({ client: this.client }))
+  private _file?: File_
+  get file(): File_ {
+    return (this._file ??= new File_({ client: this.client }))
   }
 
   private _mcp?: Mcp
