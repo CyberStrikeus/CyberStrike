@@ -14,7 +14,7 @@ import path from "path"
 import { readFileSync, readdirSync } from "fs"
 import * as schema from "./schema"
 
-declare const CYBERSTRIKE_MIGRATIONS: { sql: string; timestamp: number }[] | undefined
+declare const CYBERSTRIKE_MIGRATIONS: { sql: string; timestamp: number; name: string }[] | undefined
 
 export const NotFoundError = NamedError.create(
   "NotFoundError",
@@ -31,7 +31,7 @@ export namespace Database {
 
   type Client = SQLiteBunDatabase<Schema>
 
-  type Journal = { sql: string; timestamp: number }[]
+  type Journal = { sql: string; timestamp: number; name: string }[]
 
   function time(tag: string) {
     const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(tag)
@@ -66,6 +66,7 @@ export namespace Database {
         return {
           sql: readFileSync(file, "utf-8"),
           timestamp: ts,
+          name,
         }
       })
       .filter(Boolean) as Journal
@@ -211,9 +212,9 @@ export namespace Database {
     } catch (err) {
       if (err instanceof Context.NotFound) {
         const effects: (() => void | Promise<void>)[] = []
-        const result = Client().transaction((tx) => {
-          return ctx.provide({ tx, effects }, () => callback(tx))
-        })
+        const result = (Client() as any).transaction((tx: any) =>
+          ctx.provide({ tx, effects }, () => callback(tx)),
+        ) as T
         for (const effect of effects) effect()
         return result
       }
