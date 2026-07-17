@@ -212,9 +212,7 @@ export namespace Database {
     } catch (err) {
       if (err instanceof Context.NotFound) {
         const effects: (() => void | Promise<void>)[] = []
-        const result = (Client() as any).transaction((tx: any) =>
-          ctx.provide({ tx, effects }, () => callback(tx)),
-        ) as T
+        const result = (Client() as any).transaction((tx: any) => ctx.provide({ tx, effects }, () => callback(tx))) as T
         for (const effect of effects) effect()
         return result
       }
