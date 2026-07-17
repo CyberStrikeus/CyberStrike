@@ -1,0 +1,13 @@
+name: "CyberStrike CodeQL Config"
+
+# Post-exploit tooling directories contain offensive security payloads that
+# intentionally handle secrets, credentials, and perform actions that static
+# analyzers flag as vulnerabilities. These are features, not bugs.
+paths-ignore:
+  - packages/cyberstrike/data/awshook
+  - packages/cyberstrike/data/azurehook
+  - packages/cyberstrike/data/cipipe
+  - packages/cyberstrike/data/ebpf
+  - packages/cyberstrike/data/kubehook
+  - packages/cyberstrike/data/machook
+  - packages/cyberstrike/data/winhook
