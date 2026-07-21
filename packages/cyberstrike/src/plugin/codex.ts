@@ -91,6 +91,20 @@ export function extractAccountId(tokens: TokenResponse): string | undefined {
   return undefined
 }
 
+// The Codex backend serves its own tiers ("priority" for Fast) and rejects the
+// platform-only "auto" that ProviderTransform sets for every OpenAI model.
+export function stripServiceTier(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== "object" || parsed.service_tier !== "auto") return body
+    delete parsed.service_tier
+    return JSON.stringify(parsed)
+  } catch {
+    return body
+  }
+}
+
 function buildAuthorizeUrl(redirectUri: string, pkce: PkceCodes, state: string): string {
   const params = new URLSearchParams({
     response_type: "code",
@@ -501,9 +515,14 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
                 ? new URL(CODEX_API_ENDPOINT)
                 : parsed
 
+            // The Codex backend only knows its own tiers and rejects the platform-only
+            // values ProviderTransform sets, e.g. "Unsupported service_tier: auto".
+            const body = url === parsed ? init?.body : stripServiceTier(init?.body)
+
             return fetch(url, {
               ...init,
               headers,
+              body,
             })
           },
         }
