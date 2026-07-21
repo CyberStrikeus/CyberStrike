@@ -362,8 +362,16 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         const auth = await getAuth()
         if (auth.type !== "oauth") return {}
 
-        // Filter models to only allowed Codex models for OAuth
+        // Filter models to only allowed Codex models for OAuth.
+        // Non-codex slugs served by the ChatGPT backend (see ~/.codex/models_cache.json)
+        // have to be listed explicitly, otherwise they get dropped below.
         const allowedModels = new Set([
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5",
+          "gpt-5.4",
+          "gpt-5.4-mini",
           "gpt-5.1-codex-max",
           "gpt-5.1-codex-mini",
           "gpt-5.2",
