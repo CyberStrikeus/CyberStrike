@@ -376,26 +376,24 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         const auth = await getAuth()
         if (auth.type !== "oauth") return {}
 
-        // Filter models to only allowed Codex models for OAuth.
-        // Non-codex slugs served by the ChatGPT backend (see ~/.codex/models_cache.json)
-        // have to be listed explicitly, otherwise they get dropped below.
-        const allowedModels = new Set([
-          "gpt-5.6-sol",
-          "gpt-5.6-terra",
-          "gpt-5.6-luna",
-          "gpt-5.5",
-          "gpt-5.4",
-          "gpt-5.4-mini",
-          "gpt-5.1-codex-max",
-          "gpt-5.1-codex-mini",
-          "gpt-5.2",
-          "gpt-5.2-codex",
-          "gpt-5.3-codex",
-          "gpt-5.1-codex",
-        ])
+        // Filter models to only those available via the Codex (ChatGPT subscription) endpoint.
+        // Uses a version-based regex so new models (e.g. gpt-5.7, gpt-6.x) are automatically
+        // included without needing a code change. Explicit allow/disallow sets handle edge cases.
+        const allowedModels = new Set(["gpt-5.5", "gpt-5.3-codex-spark", "gpt-5.4", "gpt-5.4-mini"])
+        const disallowedModels = new Set(["gpt-5.5-pro"])
         for (const modelId of Object.keys(provider.models)) {
           if (modelId.includes("codex")) continue
           if (allowedModels.has(modelId)) continue
+          if (disallowedModels.has(modelId)) {
+            delete provider.models[modelId]
+            continue
+          }
+          if (modelId === "gpt-5.6") {
+            delete provider.models[modelId]
+            continue
+          }
+          const match = modelId.match(/^gpt-(\d+\.\d+)/)
+          if (match && parseFloat(match[1]) > 5.4) continue
           delete provider.models[modelId]
         }
 
