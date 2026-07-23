@@ -91,6 +91,20 @@ export function extractAccountId(tokens: TokenResponse): string | undefined {
   return undefined
 }
 
+// The Codex backend serves its own tiers ("priority" for Fast) and rejects the
+// platform-only "auto" that ProviderTransform sets for every OpenAI model.
+export function stripServiceTier(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== "object" || parsed.service_tier !== "auto") return body
+    delete parsed.service_tier
+    return JSON.stringify(parsed)
+  } catch {
+    return body
+  }
+}
+
 function buildAuthorizeUrl(redirectUri: string, pkce: PkceCodes, state: string): string {
   const params = new URLSearchParams({
     response_type: "code",
@@ -362,8 +376,16 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         const auth = await getAuth()
         if (auth.type !== "oauth") return {}
 
-        // Filter models to only allowed Codex models for OAuth
+        // Filter models to only allowed Codex models for OAuth.
+        // Non-codex slugs served by the ChatGPT backend (see ~/.codex/models_cache.json)
+        // have to be listed explicitly, otherwise they get dropped below.
         const allowedModels = new Set([
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5",
+          "gpt-5.4",
+          "gpt-5.4-mini",
           "gpt-5.1-codex-max",
           "gpt-5.1-codex-mini",
           "gpt-5.2",
@@ -493,9 +515,14 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
                 ? new URL(CODEX_API_ENDPOINT)
                 : parsed
 
+            // The Codex backend only knows its own tiers and rejects the platform-only
+            // values ProviderTransform sets, e.g. "Unsupported service_tier: auto".
+            const body = url === parsed ? init?.body : stripServiceTier(init?.body)
+
             return fetch(url, {
               ...init,
               headers,
+              body,
             })
           },
         }
