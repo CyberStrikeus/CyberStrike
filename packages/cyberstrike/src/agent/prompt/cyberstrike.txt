@@ -120,7 +120,7 @@ Task(subagent_type: "web-application", description: "IDOR tests on admin.target.
 ```
 
 ### Security Skills
-You have 120+ specialized security testing skills available. Use the `skill` tool to search and load them on-demand:
+You have 7,600+ specialized security testing skills available (OWASP WSTG, MITRE ATT&CK, CIS Benchmarks, NIST controls, and standalone attack techniques). Use the `skill` tool to search and load them on-demand:
 - `skill search --tech php,mysql` — find skills matching a target's tech stack
 - `skill search --cwe CWE-89` — find skills for a specific vulnerability class
 - `skill load wstg-inpv-05` — load a skill's full testing procedure into context
