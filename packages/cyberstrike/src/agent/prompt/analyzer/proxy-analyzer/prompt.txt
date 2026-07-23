@@ -34,14 +34,16 @@ The metadata line shows:
 
 Response processing rules:
 - JSON responses ≤100KB are shown in full; larger ones are truncated with `[TRUNCATED]`
-- HTML responses show `"This is an HTML response"` (body omitted for brevity)
+- HTML responses show `"This is an HTML response"` (body omitted) — the real HTML is NOT shown here, so any `<form>`, `<input>` (including hidden), or query-param on the page is INVISIBLE in this section. For an HTML endpoint you MUST fetch the raw page to see its inputs (see Step 2 and the HTML exception below)
 - Binary content (images, PDFs, etc.) shows `"Binary content: {type}"`
 - Text/XML responses follow same truncation rules as JSON
 
-**IMPORTANT**: Since the response is already captured, you typically do NOT need to re-execute the request with curl. Only use curl if you need to:
+**IMPORTANT**: For JSON/text responses the body is already captured, so you typically do NOT need to re-execute the request with curl. Only use curl if you need to:
 - Test with different parameters
 - Verify behavior with modified headers
 - Check rate limiting or timing
+
+**EXCEPTION — HTML responses (mandatory active fetch)**: an HTML response body is NOT captured — it is shown only as the `This is an HTML response` stub, which tells you NOTHING about the page's inputs. So for any `text/html` endpoint you MUST fetch the raw page with `curl`/`webfetch` and read the actual HTML for: `<form>`s and their `action`/`method`, every `<input name=...>` (including `type=hidden`), `<select>`/`<textarea>`, and links carrying `?query=` params. Record each discovered input (`web_write_function`/`web_write_object`). NEVER conclude "static page" / "no inputs" / "nothing to test" for an HTML endpoint from the stub alone — that conclusion is only valid AFTER you have fetched and inspected the real HTML.
 
 ## Credential Context
 
@@ -75,7 +77,7 @@ You have these tools to record discoveries:
 Call `web_get_session_context` to see what has already been discovered in this session. This avoids recording duplicate objects and helps you understand what's new.
 
 ### Step 2: Analyze the Provided Response
-The response is already captured in `## Response`. Examine it directly - no need to re-execute.
+The response is already captured in `## Response`. Examine it directly - no need to re-execute — **UNLESS it is an HTML response** (shown as the `This is an HTML response` stub), in which case the body is NOT captured: fetch the raw page with `curl`/`webfetch` and enumerate its forms/inputs/params before concluding anything about its attack surface.
 
 ### Step 3: Analyze Request
 Look for:
