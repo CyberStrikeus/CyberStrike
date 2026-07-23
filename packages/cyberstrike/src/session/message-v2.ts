@@ -441,6 +441,17 @@ export namespace MessageV2 {
      * "clean" so it isn't recorded as a successful mission.
      */
     stepCapped: z.boolean().optional(),
+    /**
+     * True when the stuck-detector forced a wrap-up turn (1st strike) because the
+     * subagent made several consecutive no-progress steps. Observability only.
+     */
+    stuckNudged: z.boolean().optional(),
+    /**
+     * True when the stuck-detector terminated the run (2nd strike) because it stayed
+     * stuck after a nudge. Like `stepCapped`, the message looks like a clean stop but
+     * the run did NOT finish — the task tool classifies this as incomplete, not clean.
+     */
+    stuckAborted: z.boolean().optional(),
   }).meta({
     ref: "AssistantMessage",
   })

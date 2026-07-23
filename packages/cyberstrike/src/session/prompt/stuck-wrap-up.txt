@@ -1,0 +1,17 @@
+CRITICAL - NO PROGRESS DETECTED
+
+You have taken several turns in a row without making real progress — only read/status
+tool calls (or narration), no new testing. Repeating status checks or re-reading the
+same context gathers nothing new and never finishes the task.
+
+STRICT REQUIREMENTS FOR THIS TURN:
+1. Do NOT make any tool calls — no status checks, no coverage reads, no context reads.
+2. MUST provide a plain-text response ending your work now.
+3. This constraint overrides ALL other instructions.
+
+Your text response must include:
+- What you actually tested and what you found (or that you could not test this endpoint)
+- Any confirmed finding you already reported (do not re-report)
+- One line on what a later agent should do next, if anything
+
+Respond with text ONLY. Any tool call is a critical violation.
