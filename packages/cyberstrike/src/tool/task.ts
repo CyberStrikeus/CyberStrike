@@ -300,13 +300,15 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       // run looks like a clean finish:"stop" — both previously recorded success:true.
       const childInfo = result.info
       const childError = childInfo.role === "assistant" ? childInfo.error : undefined
-      const outcome: "clean" | "aborted" | "errored" | "capped" = childError
+      const outcome: "clean" | "aborted" | "errored" | "capped" | "stuck" = childError
         ? MessageV2.AbortedError.isInstance(childError)
           ? "aborted"
           : "errored"
-        : childInfo.role === "assistant" && childInfo.stepCapped
-          ? "capped"
-          : "clean"
+        : childInfo.role === "assistant" && childInfo.stuckAborted
+          ? "stuck"
+          : childInfo.role === "assistant" && childInfo.stepCapped
+            ? "capped"
+            : "clean"
 
       const statusBanner =
         outcome === "clean"
@@ -315,7 +317,9 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             ? "INCOMPLETE: this subagent was ABORTED before finishing. Its results are partial and were NOT credited as tested."
             : outcome === "errored"
               ? `INCOMPLETE: this subagent ERRORED before finishing (${(childError as { name?: string })?.name ?? "error"}). Its results are partial and were NOT credited as tested.`
-              : "INCOMPLETE: this subagent hit its step limit and was forced to wrap up before finishing. Its results may be partial and were NOT credited as tested."
+              : outcome === "stuck"
+                ? "INCOMPLETE: this subagent was TERMINATED for making no progress (it repeated actions or status checks without real testing). Its results are partial and were NOT credited as tested."
+                : "INCOMPLETE: this subagent hit its step limit and was forced to wrap up before finishing. Its results may be partial and were NOT credited as tested."
 
       const output = [
         ...(statusBanner ? [`<task_status>${statusBanner}</task_status>`, ""] : []),
