@@ -347,6 +347,28 @@ For any endpoint returning 401/403:
 # Add X-Forwarded-For: 127.0.0.1
 ```
 
+**4. Type-Juggling / Array Auth Bypass (PHP & other loose-comparison stacks):**
+When a login compares a submitted value with a loose operator (`==`) or with
+`strcmp()`, the check can be defeated by changing the SECRET's TYPE rather than
+guessing it:
+```
+# Array injection — send the SECRET (password/token) as an ARRAY, while keeping
+# the IDENTITY (username) as its normal literal string:
+#   ?username=admin&password[]=          (username stays "admin"; password is an array)
+# strcmp(array, string) returns NULL, and NULL == 0 is true → the check passes.
+#
+# CRITICAL: array ONLY the secret param. Do NOT array the identity param — a
+# username is matched with `==`, so `username[]=admin` makes the array != "admin"
+# and fails its own check. Keep the username the literal value you want to be.
+#
+# Magic-hash — if a hash is compared with ==, a value whose MD5/SHA1 begins
+# 0e followed by only digits is read as 0 == 0 (e.g. "0e...").
+```
+Use a likely-privileged identity as the literal username (`admin`) and the secret
+as an array. Any auth that succeeds without a real secret is a bypass — report
+it. Do not conclude the login is safe until you have tried the secret as an array
+with the username kept literal.
+
 ## Step 4: Verify and Report
 
 When vulnerability found, call `report_vulnerability` with:
