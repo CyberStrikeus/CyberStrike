@@ -51,8 +51,9 @@ import { Token } from "@/util/token"
 import { MethodologyContext } from "@/methodology/context"
 import { AgentPerformance } from "@/methodology/performance"
 import { testerClass } from "@/tool/vuln-scope"
-import { toolSig } from "./stuck/signals"
+import { toolSig, READ_ONLY_TOOLS } from "./stuck/signals"
 import { StuckDetector, DEFAULT_STUCK_CONFIG } from "./stuck/stuck-detector"
+import { RepeatDetector } from "./stuck/repeat-detector"
 import STUCK_WRAP_UP from "./prompt/stuck-wrap-up.txt"
 
 // @ts-ignore
@@ -318,6 +319,19 @@ export namespace SessionPrompt {
     // 1st-strike nudge from one step into the next (strip tools + wrap-up prompt).
     const stuckDetector = new StuckDetector({ ...DEFAULT_STUCK_CONFIG })
     let forceWrapUpNext = false
+    // Loop-termination Layer 2b — CROSS-TURN identical-call guard. The within-turn
+    // suppressor (resolveTools `sigCounts`) and the doom_loop check (processor) both
+    // see only ONE generation, so a weak model that re-emits the SAME (tool,args)
+    // once per turn across many turns evades both (observed: qwen re-emitting an
+    // identical record_coverage_note ~26× → failure-to-terminate). Count each
+    // signature over the whole subagent run; a byte-identical repeat past the limit
+    // forces wrap-up (nudge) then aborts (backstop). Different args never collide
+    // because toolSig includes the args, so legitimate probing is unaffected.
+    const repeatDetector = new RepeatDetector(3)
+    // The monologue rule only starts counting after this step, so a subagent's opening
+    // context-gathering (a handful of read-only steps before it begins real testing) is
+    // never mistaken for a no-progress stall. A genuine loop persists well past it.
+    const MONOLOGUE_MIN_STEP = 6
     while (true) {
       SessionStatus.set(sessionID, { type: "busy" })
       log.info("loop", { step, sessionID })
@@ -921,23 +935,54 @@ export namespace SessionPrompt {
       // cleanly below and must NOT be reclassified as stuck. Native subagents only.
       if (!modelFinished && agent.mode === "subagent" && agent.native === true) {
         const stepParts = await MessageV2.parts(processor.message.id)
-        const toolCalls = stepParts.filter((p) => p.type === "tool").map((p) => ({ tool: p.tool }))
-        const verdict = stuckDetector.observe({ toolCalls })
-        if (verdict.kind === "nudge") {
+        const toolCalls = stepParts
+          .filter((p) => p.type === "tool")
+          .map((p) => ({ tool: p.tool, input: p.state.status !== "pending" ? p.state.input : undefined }))
+        // Monologue rule (Layer 2): fed ONLY after an opening grace window so a
+        // tester's legitimate opening context-gathering (a few read-only steps before
+        // it starts testing) is never cut short. A genuine no-progress stall persists
+        // well past the window. The repeat rule below stays ungated (counts from step 1).
+        if (step >= MONOLOGUE_MIN_STEP) {
+          const verdict = stuckDetector.observe({ toolCalls })
+          if (verdict.kind === "nudge") {
+            forceWrapUpNext = true
+            log.warn("stuck-detector nudge — forcing wrap-up next turn", {
+              reason: verdict.reason,
+              detail: verdict.detail,
+              sessionID,
+            })
+          } else if (verdict.kind === "abort") {
+            processor.message.stuckAborted = true
+            await Session.updateMessage(processor.message)
+            log.warn("stuck-detector abort — terminating subagent", {
+              reason: verdict.reason,
+              detail: verdict.detail,
+              sessionID,
+            })
+            break
+          }
+        }
+
+        // Layer 2b: cross-turn identical-call loop (the doom_loop's cross-turn twin).
+        // Byte-identical (tool,args) re-emitted past the limit across turns = a
+        // failure-to-terminate loop. Nudge first (forces a tool-free wrap-up next
+        // turn), abort as backstop if it somehow keeps repeating.
+        // Exempt READ_ONLY_TOOLS only: re-polling status/context with identical args
+        // (e.g. the orchestrator re-reading web_get_session_context({}) each ingest)
+        // is normal, not a loop — counting it would kill legitimate pipeline drivers.
+        // Status-writes (record_coverage_note/update_vrt_check) are NOT read-only and
+        // DO count here — a byte-identical re-write is exactly the loop we target.
+        const repeatSigs = toolCalls
+          .filter((c) => c.input !== undefined && !READ_ONLY_TOOLS.has(c.tool))
+          .map((c) => toolSig(c.tool, c.input))
+        const repeatVerdict = repeatDetector.observe(repeatSigs)
+        if (repeatVerdict === "nudge") {
           forceWrapUpNext = true
-          log.warn("stuck-detector nudge — forcing wrap-up next turn", {
-            reason: verdict.reason,
-            detail: verdict.detail,
-            sessionID,
-          })
-        } else if (verdict.kind === "abort") {
+          log.warn("cross-turn repeat nudge — forcing wrap-up next turn", { sessionID })
+        } else if (repeatVerdict === "abort" && !processor.message.stuckAborted) {
           processor.message.stuckAborted = true
           await Session.updateMessage(processor.message)
-          log.warn("stuck-detector abort — terminating subagent", {
-            reason: verdict.reason,
-            detail: verdict.detail,
-            sessionID,
-          })
+          log.warn("cross-turn repeat abort — terminating subagent", { sessionID })
           break
         }
       }

@@ -56,7 +56,19 @@ export const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   "list_loaded_tools",
 ])
 
-/** A tool call counts as progress (resets the monologue streak) iff it is not read-only. */
+/**
+ * Status-write tools: they DO write, so they are not read-only (and a byte-identical
+ * re-write IS caught by the repeat rule via toolSig), but re-emitting them is NOT real
+ * testing progress. Kept separate from READ_ONLY_TOOLS so the repeat rule still counts
+ * them while the monologue rule treats them as no-progress.
+ */
+export const STATUS_WRITE_TOOLS: ReadonlySet<string> = new Set(["record_coverage_note", "update_vrt_check"])
+
+/**
+ * A tool call counts as progress (resets the monologue streak) iff it is real testing —
+ * i.e. neither a read-only/status read NOR a status-write. Exploit/mutating tools
+ * (bash, webfetch, report_vulnerability, web_write_*, attack_script, …) are progress.
+ */
 export function isProgressTool(tool: string): boolean {
-  return !READ_ONLY_TOOLS.has(tool)
+  return !READ_ONLY_TOOLS.has(tool) && !STATUS_WRITE_TOOLS.has(tool)
 }
