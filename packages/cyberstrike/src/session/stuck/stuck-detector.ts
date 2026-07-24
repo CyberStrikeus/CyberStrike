@@ -29,13 +29,14 @@ export interface StuckConfig {
   maxMonologue: number
 }
 
-// DISABLED for the benchmark: the monologue rule can nudge a tester during its
-// legitimate OPENING context-gathering phase (3 read-only steps before it starts
-// testing), forcing an early wrap-up that could miss a finding and contaminate the
-// recall metric. The mechanical guards (step-cap + within-turn duplicate suppression)
-// stay active — they never mis-fire on legitimate work. Re-enable to true when the
-// benchmark is not the priority.
-export const DEFAULT_STUCK_CONFIG: StuckConfig = { enabled: false, maxMonologue: 3 }
+// Monologue rule: catches a subagent that takes several consecutive no-progress steps
+// (only reads / status-writes / narration, no real testing) — the no-progress stall
+// that the byte-identical repeat rule misses when the looping calls vary trivially.
+// ENABLED, but the call site only starts feeding it AFTER an opening grace window
+// (MONOLOGUE_MIN_STEP in prompt.ts), so a tester's legitimate opening context-gathering
+// (a few read-only steps before it starts testing) is never cut short. Two-strike:
+// nudge (force a tool-free wrap-up) then abort.
+export const DEFAULT_STUCK_CONFIG: StuckConfig = { enabled: true, maxMonologue: 3 }
 
 export class StuckDetector {
   private streak = 0

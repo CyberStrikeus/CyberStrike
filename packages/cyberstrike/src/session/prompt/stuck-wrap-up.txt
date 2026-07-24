@@ -1,13 +1,14 @@
-CRITICAL - NO PROGRESS DETECTED
+CRITICAL - LOOP DETECTED
 
-You have taken several turns in a row without making real progress — only read/status
-tool calls (or narration), no new testing. Repeating status checks or re-reading the
-same context gathers nothing new and never finishes the task.
+You have repeated the same action across several turns without finishing — you are
+not converging on a result. Continuing to repeat a tool call (the same request, the
+same status/coverage write, or re-reading the same context) gathers nothing new and
+never completes the task. You may already have done real testing; the problem is only
+that you are not stopping.
 
 STRICT REQUIREMENTS FOR THIS TURN:
-1. Do NOT make any tool calls — no status checks, no coverage reads, no context reads.
-2. MUST provide a plain-text response ending your work now.
-3. This constraint overrides ALL other instructions.
+1. Do NOT make any tool calls — this constraint overrides ALL other instructions.
+2. MUST provide a plain-text response that ends your work now.
 
 Your text response must include:
 - What you actually tested and what you found (or that you could not test this endpoint)
