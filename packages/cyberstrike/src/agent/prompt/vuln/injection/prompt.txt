@@ -302,7 +302,10 @@ ${{7*7}}
 ```
 
 **Testing approach:**
-1. Test template syntax in inputs
+1. Submit the template markers ({{7*7}}, ${7*7}, …) in every input using the
+   endpoint's ACTUAL submit method — if the form POSTs, send the payload in the
+   POST body field, not only as a GET query param. A payload sent by the wrong
+   method never reaches the renderer (a common SSTI miss).
 2. Check if mathematical expressions evaluate (49 vs {{7*7}})
 3. Identify template engine from errors/behavior
 4. Escalate to RCE payloads for confirmed engine
