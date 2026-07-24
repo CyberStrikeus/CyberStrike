@@ -328,10 +328,6 @@ export namespace SessionPrompt {
     // forces wrap-up (nudge) then aborts (backstop). Different args never collide
     // because toolSig includes the args, so legitimate probing is unaffected.
     const repeatDetector = new RepeatDetector(3)
-    // The monologue rule only starts counting after this step, so a subagent's opening
-    // context-gathering (a handful of read-only steps before it begins real testing) is
-    // never mistaken for a no-progress stall. A genuine loop persists well past it.
-    const MONOLOGUE_MIN_STEP = 6
     while (true) {
       SessionStatus.set(sessionID, { type: "busy" })
       log.info("loop", { step, sessionID })
@@ -938,29 +934,25 @@ export namespace SessionPrompt {
         const toolCalls = stepParts
           .filter((p) => p.type === "tool")
           .map((p) => ({ tool: p.tool, input: p.state.status !== "pending" ? p.state.input : undefined }))
-        // Monologue rule (Layer 2): fed ONLY after an opening grace window so a
-        // tester's legitimate opening context-gathering (a few read-only steps before
-        // it starts testing) is never cut short. A genuine no-progress stall persists
-        // well past the window. The repeat rule below stays ungated (counts from step 1).
-        if (step >= MONOLOGUE_MIN_STEP) {
-          const verdict = stuckDetector.observe({ toolCalls })
-          if (verdict.kind === "nudge") {
-            forceWrapUpNext = true
-            log.warn("stuck-detector nudge — forcing wrap-up next turn", {
-              reason: verdict.reason,
-              detail: verdict.detail,
-              sessionID,
-            })
-          } else if (verdict.kind === "abort") {
-            processor.message.stuckAborted = true
-            await Session.updateMessage(processor.message)
-            log.warn("stuck-detector abort — terminating subagent", {
-              reason: verdict.reason,
-              detail: verdict.detail,
-              sessionID,
-            })
-            break
-          }
+        // Monologue rule (Layer 2) — DISABLED by default (over-fires; see stuck-detector.ts).
+        // Left wired so it can be re-enabled with a properly scoped config later.
+        const verdict = stuckDetector.observe({ toolCalls })
+        if (verdict.kind === "nudge") {
+          forceWrapUpNext = true
+          log.warn("stuck-detector nudge — forcing wrap-up next turn", {
+            reason: verdict.reason,
+            detail: verdict.detail,
+            sessionID,
+          })
+        } else if (verdict.kind === "abort") {
+          processor.message.stuckAborted = true
+          await Session.updateMessage(processor.message)
+          log.warn("stuck-detector abort — terminating subagent", {
+            reason: verdict.reason,
+            detail: verdict.detail,
+            sessionID,
+          })
+          break
         }
 
         // Layer 2b: cross-turn identical-call loop (the doom_loop's cross-turn twin).

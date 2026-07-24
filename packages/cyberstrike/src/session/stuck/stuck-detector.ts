@@ -29,14 +29,16 @@ export interface StuckConfig {
   maxMonologue: number
 }
 
-// Monologue rule: catches a subagent that takes several consecutive no-progress steps
-// (only reads / status-writes / narration, no real testing) — the no-progress stall
-// that the byte-identical repeat rule misses when the looping calls vary trivially.
-// ENABLED, but the call site only starts feeding it AFTER an opening grace window
-// (MONOLOGUE_MIN_STEP in prompt.ts), so a tester's legitimate opening context-gathering
-// (a few read-only steps before it starts testing) is never cut short. Two-strike:
-// nudge (force a tool-free wrap-up) then abort.
-export const DEFAULT_STUCK_CONFIG: StuckConfig = { enabled: true, maxMonologue: 3 }
+// Monologue rule DISABLED — it is too coarse. A retest (XBEN-025, qwen3-coder) showed
+// that even with a MONOLOGUE_MIN_STEP grace window it over-fires: it nudged ~70% of
+// subagents INCLUDING the orchestrator, because normal operation has short no-progress
+// stretches (the orchestrator polling web_get_session_context while an ingest is in
+// flight; a tester in its read/record phase after real testing). "N consecutive
+// no-progress steps" cannot distinguish a genuine stall from legitimate coordination.
+// The RepeatDetector (byte-identical cross-turn repeats) is the correct, targeted fix
+// for the reported loop and does NOT over-fire. Re-enable only with a properly scoped
+// design (orchestrator-exempt, much higher threshold, args-aware).
+export const DEFAULT_STUCK_CONFIG: StuckConfig = { enabled: false, maxMonologue: 3 }
 
 export class StuckDetector {
   private streak = 0
