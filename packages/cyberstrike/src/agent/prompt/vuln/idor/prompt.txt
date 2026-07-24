@@ -10,6 +10,13 @@ Test endpoints for unauthorized access to objects by manipulating ID values.
 - Request contains UUIDs or object identifiers
 - Endpoint operates on user-specific resources
 - Session has multiple credentials with discovered object values
+- A submitted user/account/owner id the server trusts to choose WHOSE session or
+  record applies — one that is DISTINCT from the credential being authenticated
+  (e.g. a `user_id` sent alongside the password, not the username itself). In
+  scope even on a login / registration / password step: the server trusting a
+  submitted ownership id to set the session IS the IDOR (privilege escalation).
+  (A plain username+password login with no such extra id does NOT qualify —
+  tampering the credential just fails auth.)
 
 **Medium Priority:**
 - Single credential available (still test ID manipulation: sequential, negative, common IDs)
@@ -17,7 +24,10 @@ Test endpoints for unauthorized access to objects by manipulating ID values.
 
 **Skip If:**
 - No identifiable object references in request
-- Endpoint is purely functional (login, search without IDs)
+- Endpoint is purely functional and submits no ownership/record id beyond the
+  login credential — e.g. a plain login/search with no separate user/account/
+  owner/object id. (If such an id IS submitted, it is in scope — see High
+  Priority above.)
 
 ## IDOR Testing Strategy
 
