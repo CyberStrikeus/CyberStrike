@@ -209,6 +209,13 @@ Examine the current request characteristics:
 - File upload (multipart/form-data)? → Consider file-attacks
 - JSON body? → Consider injection, mass assignment
 - XML content? → Consider injection (XXE)
+- A `<form>`, or an analyzer-registered object with input fields, in the RESPONSE —
+  even when THIS request carried no query/body params? → the form's submit target
+  IS an injectable surface. Dispatch proxy-tester-injection to test the submission
+  directly: POST the form's action (or the same path if no action) with each
+  discovered field set to a payload. Do NOT wait for the browser to capture that
+  POST first — synthesize and send it yourself. This is the most common missed
+  case: a GET page that only renders a form whose POST is never crawled.
 
 **What identifiers are present?**
 - Numeric IDs in path/query/body? → Consider IDOR (even with single credential - test ID manipulation)
@@ -323,6 +330,30 @@ Task(
   prompt: "Test for IDOR."
 )
 ```
+
+**For injection tests, describe the surface — let the tester pick the payloads.**
+When you launch `proxy-tester-injection`, tell it WHERE to look and let it choose
+WHAT to send:
+- the field/parameter that carries user input
+- where and how that input appears in the response (HTML body, tag attribute, JSON value, error text)
+- any input handling you observed (tags stripped, quotes escaped, keywords filtered, or reflected verbatim)
+- which injection class the context suggests (reflected input → XSS / SSTI; DB-backed → SQLi; shell/OS context → command; XML body → XXE)
+
+Name the target and what you saw — the injection tester runs its own full payload
+sequence from there.
+
+**Reflected input is an SSTI sink as much as an XSS sink — name both, distinctly.**
+When the analyzer reports a value reflected in the response, do NOT dispatch it as
+"XSS (and other injections)" — that phrasing gets tested as XSS-only and template
+injection is missed. Make SSTI its own named requirement in the dispatch, separate
+from XSS: tell the tester to confirm or rule out server-side template evaluation in
+addition to reflected XSS. Reflected input is the single most common missed SSTI.
+
+**Every user-controlled text field is a SQLi target — name them all, not just id/search/email.**
+On a form or endpoint with multiple fields, dispatch the tester to SQLi-probe EVERY text field,
+one at a time with the others held constant (name, subject, comment, message included) — not only
+the obvious id/search/email ones, because the concatenated field is usually the LEAST obvious.
+Do not let a field's label ("name", "message") narrow it to XSS-only.
 
 ### Step 6: Launch Testers in Parallel — ONLY AFTER the analyzer finished
 
