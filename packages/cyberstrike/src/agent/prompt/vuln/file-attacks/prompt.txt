@@ -219,12 +219,29 @@ file:///etc/passwd
 ../../etc/passwd\x00
 ```
 
+**6. Filter-bypass (defeat naive single-pass sanitizers):**
+```
+....//....//....//etc/passwd     (nested: becomes ../ only AFTER one str_replace pass)
+....\/....\/....\/
+..;/..;/..;/
+.//..//..//
+```
+A denylist that strips `../` only ONCE (non-recursive str_replace/preg_replace) is
+defeated by a token that BECOMES `../` after its own removal. When plain `../` and its
+single URL-encoding are stripped, these are the payloads that get through.
+
 **Testing approach:**
-1. Test basic ../ sequences
-2. Test encoded variations
-3. Test absolute paths
-4. Test null byte truncation
-5. Test OS-specific paths
+1. Test basic ../ sequences and their encodings.
+2. If stripped/blocked, the parameter DOES reach a file sink behind a filter — a bypass
+   target, not a "safe" verdict. Escalate to the filter-bypass payloads (nested `....//`,
+   `..;/`, double-encode) before concluding anything.
+3. Test absolute paths, null-byte truncation, OS-specific paths.
+4. Aim at the app's own secret/config file (web root or one level up), not only
+   /etc/passwd, when the goal is app data.
+5. Do NOT record "no traversal" after only canonical `../` payloads fail — that is the
+   expected starting point, not proof of safety.
+6. If the input never reaches a file sink at all — no block, no error, no path/content
+   change — a couple of probes settle it; don't grind the bypass list on a dead surface.
 
 **Report if:**
 - Sensitive files accessible (/etc/passwd, win.ini)
