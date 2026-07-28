@@ -603,6 +603,9 @@ export namespace Agent {
         const injectionAgentPermission = PermissionNext.merge(
           vulnAgentPermission,
           PermissionNext.fromConfig({
+            // Injection-only: deterministic payload-battery / evidence tool. Scoped to
+            // this agent (not vulnAgentPermission) to keep the blast radius narrow.
+            inject_probe: "allow",
             bash: {
               // Destructive SQL DDL
               "*DROP TABLE*": "deny",

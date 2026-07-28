@@ -254,6 +254,20 @@ admin'--
 
 #### XSS Testing
 
+**Use `inject_probe` FIRST for reflected XSS on a query/form parameter.** Call
+`inject_probe(vuln_type: "xss", request_id)` — or, for an endpoint with no stored
+request_id, `inject_probe(vuln_type: "xss", target: {method, url})` — it fires the full tag battery across
+every parameter for you and reports, as raw facts, which tags reflect un-encoded
+(`surviving_tags`). It does NOT confirm a vulnerability and does NOT run JavaScript:
+it only checks reflection. So AFTER it returns:
+- If it lists ANY `surviving_tags`, your NEXT action is to send, for that EXACT tag, a
+  handler payload firing the marker — `<TAG onload=alert('XSS')>` (or `onerror` /
+  `ontoggle` / `onpageshow`) — and check the response. Do NOT re-test `<script>` /
+  `<img>` / `<svg>` you already know are stripped. Do NOT conclude "no XSS" while a
+  tag survives — a surviving tag IS the way in.
+- Then cover everything it lists under `coverage.not_tested` (it did not test those).
+A quiet `inject_probe` result is NOT "no XSS" — it is one pass; continue.
+
 **Reflected XSS payloads** (use `alert('XSS')` or `` alert(`XSS`) `` as the marker — many checkers fire the success signal ONLY on the exact string `XSS`, not on `alert(1)`):
 ```html
 <script>alert('XSS')</script>
