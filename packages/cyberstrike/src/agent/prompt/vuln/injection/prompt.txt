@@ -178,6 +178,19 @@ Based on endpoint characteristics and response patterns:
 
 ### Step 4: Execute Tests
 
+**RUN `inject_probe` FIRST — it is your PRIMARY initial sweep on every parameter-bearing request.** It fires a payload battery and returns RAW FACTS (leads); it never confirms a vuln and never exploits. Use it before hand-crafting payloads.
+
+1. **Pick the `vuln_type` classes that fit THIS endpoint — do NOT run every class everywhere.** Match class to context:
+   - `sqli` / `nosql` — params that reach a database (ids, filters, search, login).
+   - `ssti` — values reflected into a server-rendered template/page.
+   - `cmd` — params that look like they reach the OS (filenames, hosts, ping/lookup).
+   - `xss` — anything reflected into an HTML response.
+   - `ldap` / `xpath` — ONLY where the backend plausibly uses LDAP / XML (rare — not on a plain JSON REST API).
+2. **Select the `points`** — omit for query/form (auto-enumerated), or pass `points` for `json_body` / `header` / `cookie` / `path`. E.g. `inject_probe(vuln_type: ["sqli","xss"], request_id)` or `inject_probe(vuln_type: ["ssti"], target: {method, url}, points: [{location: "json_body", name: "user.name"}])`.
+3. **Read the `leads` and go DEEP only where there is a lead.** The tool hands you the signal — error_findings (payload + snippet + status/ms/server), bool_findings (true/false bytes + Location/Set-Cookie + `signals`), evaluated (syntax + snippet), command_output (separator + snippet), surviving_tags (+ context/breakout). YOU confirm, weaponize, and extract (UNION, OR-bypass, blind, auth-bypass) — the tool never does that.
+4. **A silent result for a class is ONE pass, NOT proof of absence.** Cover `coverage.not_tested`, and if `block_signals` is set the endpoint was WAF-shielded — escalate (encoding/evasion, different vantage), do NOT conclude "safe".
+5. **A lead is NOT a finding — confirm with a real exploit BEFORE `report_vulnerability`.** A lead reported as high/critical without `execution_evidence` is recorded only as a downgraded CANDIDATE, not a confirmed finding.
+
 For each injection type, test systematically:
 
 #### SQL Injection Testing
