@@ -19,17 +19,26 @@ import { Session } from "../session"
 // enumeration weak models skip); the AGENT crafts the real exploit and confirms.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS (baseline vs each payload: did a marker reflect, was it HTML-encoded, which HTML tags survived a filter).
+const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
 
-This tool does NOT find or confirm vulnerabilities and does NOT execute JavaScript — it only reports what the server echoed back. Every observation is a LEAD you must verify yourself, never a verdict. After reading it: craft and send the actual exploit to confirm, and separately cover every class listed under coverage.not_tested (this tool does not test them).
+This tool does NOT find or confirm vulnerabilities and does NOT run a JS engine or a shell — it only reports what the server echoed back. Every observation is a LEAD you must verify yourself, never a verdict. After reading it: craft and send the actual exploit to confirm, and separately cover every class listed under coverage.not_tested (this tool does not test them).
 
-v1 supports vuln_type "xss" only, on query-string and form-urlencoded parameters.`
+vuln_type:
+- "xss"  — reflected tag-survival (which HTML tags reflect un-encoded past a filter).
+- "ssti" — server-side template evaluation: fires a fixed arithmetic expression in several engine
+           syntaxes and reports which (if any) the server EVALUATED (product present, literal absent).
+- "cmd"  — OS command injection: fires benign READ-ONLY probes (id/ver) behind shell separators and
+           reports which (if any) produced command output in the response. Read-only DETECTION ONLY —
+           it never sends network/file/write commands.
+
+Query-string and form-urlencoded parameters only. You choose WHERE (request_id/target/target_param);
+the tool chooses the payloads (you cannot supply a command or template expression).`
 
 // Tag battery — one benign marker per tag so we can detect survival + encoding
 // without executing anything. The agent weaponizes a surviving tag afterwards.
 const XSS_TAGS = ["script", "img", "svg", "body", "style", "details", "a", "marquee", "input", "iframe"]
 
-const V1_NOT_TESTED = [
+const XSS_NOT_TESTED = [
   "stored/second-order XSS (fires on a different render request)",
   "DOM-based XSS (needs a JS engine)",
   "true JS execution (this tool only checks reflection, not execution)",
@@ -37,6 +46,99 @@ const V1_NOT_TESTED = [
   "CSRF-token-protected or multi-step flows",
   "non-query/non-form injection points (path, header, cookie, JSON, XML, GraphQL, multipart)",
 ]
+
+// ── SSTI: arithmetic-evaluation battery ──
+// Fire a fixed arithmetic expression wrapped in each engine's syntax. The discriminant is a
+// FACT about bytes: the PRODUCT appears in the response AND the LITERAL expression does not
+// (a literal echo means it was reflected, NOT evaluated). Distinctive factors → an 8-digit
+// product with negligible coincidence. No agent-supplied template expression, ever.
+const SSTI_A = 7919
+const SSTI_B = 6841
+const SSTI_EXPR = `${SSTI_A}*${SSTI_B}`
+const SSTI_PRODUCT = String(SSTI_A * SSTI_B)
+const SSTI_SYNTAXES: { name: string; wrap: (e: string) => string }[] = [
+  { name: "{{ }}", wrap: (e) => `{{${e}}}` }, // Jinja2, Twig, Nunjucks, Django
+  { name: "${ }", wrap: (e) => `\${${e}}` }, // FreeMarker, JSP EL, Spring, Thymeleaf, JS template
+  { name: "#{ }", wrap: (e) => `#{${e}}` }, // Ruby/Slim, JSF EL
+  { name: "<%= %>", wrap: (e) => `<%= ${e} %>` }, // ERB, EJS, ASP
+  { name: "@( )", wrap: (e) => `@(${e})` }, // Razor
+]
+const SSTI_NOT_TESTED = [
+  "blind/out-of-band SSTI (evaluated result not reflected in the response)",
+  "non-arithmetic template gadgets (config/object access, RCE chains — this tool only checks arithmetic evaluation)",
+  "DOM/client-side template evaluation (needs a JS engine)",
+  "non-query/non-form injection points (path, header, cookie, JSON, XML, GraphQL, multipart)",
+]
+
+// ── Command injection: benign READ-ONLY probes behind shell separators ──
+// HARD BOUNDARY (ratified): read-only DETECTION only. The command set is a CLOSED internal
+// constant — id/ver — the agent cannot change it. NO network (ping/curl/wget/nslookup), NO
+// file read/write, NO redirects, NO time-delay (sleep) — that line is detection⇄exploitation.
+const CMD_PROBES: { cmd: string; marker: RegExp; os: string }[] = [
+  { cmd: "id", marker: /\buid=\d+\(/i, os: "unix" }, // uid=0(root) gid=0(root) …
+  { cmd: "ver", marker: /windows \[version/i, os: "windows" }, // Microsoft Windows [Version …]
+]
+const CMD_SEPARATORS: { name: string; wrap: (c: string) => string }[] = [
+  { name: ";", wrap: (c) => `;${c}` },
+  { name: "|", wrap: (c) => `|${c}` },
+  { name: "&&", wrap: (c) => `&& ${c}` },
+  { name: "$( )", wrap: (c) => `$(${c})` },
+  { name: "` `", wrap: (c) => `\`${c}\`` },
+  { name: "newline", wrap: (c) => `\n${c}` }, // URL-encoded to %0A by searchParams
+]
+const CMD_NOT_TESTED = [
+  "blind/time-based command injection (no command output reflected in the response)",
+  "out-of-band command injection (DNS/HTTP callback)",
+  "commands beyond the read-only id/ver probes (this tool never sends network/file/write/delay commands)",
+  "non-query/non-form injection points (path, header, cookie, JSON, XML, GraphQL, multipart)",
+]
+
+// ── error-signature classes (sqli / nosql / ldap / xpath) ──
+// The probe fires a battery of NON-DESTRUCTIVE payloads and reports, as raw facts, which
+// elicited that class's error signature or a boolean-differential. HARD SAFETY INVARIANT:
+// NOTHING here can WIDEN a write query's affected-row set — no OR-always-true, no stacked
+// queries (`;`), no write verbs, no time-delay. Boolean pairs are AND-based (AND narrows or
+// no-ops; it can never delete/update MORE rows). Bare quote/paren breakers only error out.
+// Exploitation (UNION, OR-bypass, blind extraction) is the AGENT's job, not the probe's.
+interface ErrSigClass {
+  payloads: string[]
+  // AND-based true/false pairs for a boolean-differential FACT (safe: AND cannot widen)
+  boolPairs?: { t: string; f: string }[]
+  signatures: RegExp
+}
+const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
+  sqli: {
+    payloads: ["'", '"', "`", "\\", "')", '")', "'))", `'"`, "'--", "'#", "'/*", "1'", '1"'],
+    boolPairs: [
+      { t: "' AND '1'='1", f: "' AND '1'='2" },
+      { t: '" AND "1"="1', f: '" AND "1"="2' },
+      { t: "') AND ('1'='1", f: "') AND ('1'='2" },
+      { t: "' AND 1=1-- -", f: "' AND 1=2-- -" },
+      { t: "1 AND 1=1", f: "1 AND 1=2" },
+    ],
+    signatures:
+      /SQL syntax|mysqli?_|you have an error in your sql|unclosed quotation|quoted string not properly terminated|ORA-\d{5}|PLS-\d|SQLSTATE|PostgreSQL.*(ERROR|error)|SQLite(3)?::|sqlite_|syntax error at or near|Microsoft OLE DB|ODBC.*Driver|Incorrect syntax near|Unclosed quotation mark|Warning.*\bpg_|Warning.*\bmysqli?/i,
+  },
+  nosql: {
+    // malformed value / type-confusion that a Mongo/BSON layer surfaces as an error — no
+    // operator-injection ([$ne]/[$gt]) here (deferred: it can change match semantics = widen).
+    payloads: ["'", '"', "\\", "[", "]", "{", "}", "'\"", '{"a":', "']", "'}", "%00"],
+    signatures:
+      /MongoError|MongoServerError|BSONError|BSONTypeError|E11000|CastError|failed to parse|unexpected token.*(json|in json)|SyntaxError:.*JSON|\$where|Mongoose|couldn't parse/i,
+  },
+  ldap: {
+    // LDAP filter metacharacters that break the filter → server surfaces a filter/DN error.
+    payloads: ["(", ")", "*", "\\", ")(", "*)", "(&", "(|", "))", "*()", "\\29", "\\28"],
+    signatures:
+      /LDAP.*(error|syntax|filter)|invalid DN|bad search filter|(javax|com)\.naming|invalid filter|Protocol error|InvalidSearchFilter|ldap_search/i,
+  },
+  xpath: {
+    // XPath is a read-only query language (no write-widening risk); breakers elicit parser errors.
+    payloads: ["'", '"', ")", "(", "]", "[", "//", "*", "')", '")', "' and '1'='2", "count("],
+    signatures:
+      /XPath|XPathException|xmlXPathEval|SyntaxError.*xpath|unclosed token|Invalid (expression|predicate)|xpath.*(syntax|error)|MS\.Internal\.Xml/i,
+  },
+}
 
 function nonce(): string {
   return "m" + randomBytes(5).toString("hex")
@@ -159,13 +261,32 @@ function resolveFromTarget(t: {
   }
 }
 
-// ── injection points (v1: query params + form-urlencoded fields) ──
+// ── injection points — agent picks WHERE (location + name); tool injects the payload ──
+
+type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
 
 interface InjPoint {
-  location: "query" | "form_field"
+  location: Location
   name: string
 }
 
+// Header names the tool must never let a payload set — routing/framing headers whose
+// mutation could redirect the request or split/smuggle the response.
+const FORBIDDEN_HEADERS = new Set([
+  "host",
+  ":authority",
+  ":method",
+  ":path",
+  ":scheme",
+  "content-length",
+  "connection",
+  "transfer-encoding",
+  "te",
+  "upgrade",
+  "content-type",
+])
+
+// Auto-enumerate the self-evident points (query + form) when the agent gives none.
 function enumeratePoints(r: ResolvedRequest, only?: string): InjPoint[] {
   const points: InjPoint[] = []
   for (const [name] of r.url.searchParams) if (!only || only === name) points.push({ location: "query", name })
@@ -176,35 +297,140 @@ function enumeratePoints(r: ResolvedRequest, only?: string): InjPoint[] {
   return points
 }
 
-function withPayload(r: ResolvedRequest, point: InjPoint, value: string): { url: string; body: string } {
-  if (point.location === "query") {
-    const u = new URL(r.url.toString())
-    u.searchParams.set(point.name, value)
-    return { url: u.toString(), body: r.body }
+// Validate agent-supplied points; reject unsafe ones up front (never silently mutate).
+function validatePoints(pts: InjPoint[]): { points: InjPoint[]; rejected: { point: string; reason: string }[] } {
+  const points: InjPoint[] = []
+  const rejected: { point: string; reason: string }[] = []
+  for (const p of pts) {
+    if (p.location === "header" && FORBIDDEN_HEADERS.has(p.name.toLowerCase())) {
+      rejected.push({ point: `header:${p.name}`, reason: "routing/framing header — refused (no response-splitting/rerouting)" })
+      continue
+    }
+    points.push(p)
   }
-  const form = new URLSearchParams(r.body)
-  form.set(point.name, value)
-  return { url: r.url.toString(), body: form.toString() }
+  return { points, rejected }
+}
+
+// no CR/LF/NUL in a header value → cannot inject a new header or split the response
+const sanitizeHeaderValue = (v: string) => v.replace(/[\r\n ]/g, "")
+
+function setJsonField(body: string, path: string, value: string): string {
+  try {
+    const root = JSON.parse(body || "{}")
+    const keys = path.split(".")
+    let cur: any = root
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {}
+      cur = cur[keys[i]]
+    }
+    cur[keys[keys.length - 1]] = value
+    return JSON.stringify(root)
+  } catch {
+    return body // not JSON — leave untouched (caller still sends, agent sees no change)
+  }
+}
+
+function setCookie(cookieHeader: string, name: string, value: string): string {
+  const safeVal = value.replace(/[;\r\n ]/g, "")
+  const parts = (cookieHeader ? cookieHeader.split(/;\s*/) : []).filter(
+    (p) => p && p.split("=")[0].trim().toLowerCase() !== name.toLowerCase(),
+  )
+  parts.push(`${name}=${safeVal}`)
+  return parts.join("; ")
+}
+
+function injectPathSegment(pathname: string, indexStr: string, value: string): string {
+  const segs = pathname.split("/")
+  const nonEmpty: number[] = []
+  for (let i = 0; i < segs.length; i++) if (segs[i] !== "") nonEmpty.push(i)
+  const target = nonEmpty[Number(indexStr)]
+  if (target == null) return pathname
+  // path is a MARKER location, never a traversal vector: strip any ../ and encode
+  segs[target] = encodeURIComponent(value.replace(/\.\.(\/|\\)?/g, ""))
+  return segs.join("/")
+}
+
+// Apply one payload at one point → the full mutated {url, body, headers}. Location-specific
+// sanitizers keep new reach (header/cookie/path/json) benign; guardHost still governs the host.
+function applyPayload(
+  r: ResolvedRequest,
+  point: InjPoint,
+  value: string,
+): { url: string; body: string; headers: Record<string, string> } {
+  const headers = { ...r.headers }
+  const u = new URL(r.url.toString())
+  let body = r.body
+  switch (point.location) {
+    case "query":
+      u.searchParams.set(point.name, value)
+      break
+    case "form_field": {
+      const f = new URLSearchParams(r.body)
+      f.set(point.name, value)
+      body = f.toString()
+      break
+    }
+    case "json_body":
+      body = setJsonField(r.body, point.name, value)
+      break
+    case "header":
+      headers[point.name.toLowerCase()] = sanitizeHeaderValue(value)
+      break
+    case "cookie":
+      headers["cookie"] = setCookie(headers["cookie"] ?? "", point.name, value)
+      break
+    case "path":
+      u.pathname = injectPathSegment(u.pathname, point.name, value)
+      break
+  }
+  return { url: u.toString(), body, headers }
 }
 
 // ── safety choke point: EVERY send goes through here ──
 
 function guardHost(r: ResolvedRequest, target: URL): { ok: true } | { ok: false; reason: string } {
-  // v1 scope guard: only ever send to the SAME host as the resolved (already-crawled,
-  // in-scope) request. The tool cannot be pointed at an arbitrary/out-of-scope host.
+  // scope guard: only ever send to the SAME host as the resolved (already-crawled, in-scope)
+  // request. The tool cannot be pointed at an arbitrary/out-of-scope host.
   if (target.host !== r.url.host) return { ok: false, reason: `out-of-scope host ${target.host}` }
   return { ok: true }
 }
 
+// Hard upper bound on total sends per tool call (WAF-ban + DoS + context guard). When hit,
+// remaining probes are skipped and reported as truncated rather than exploding silently.
+interface SendBudget {
+  sent: number
+  max: number
+}
+
+// A curated subset of response headers the agent needs to reason about (DB/engine fingerprint,
+// auth-bypass tells, WAF identity) — NOT the whole header set (context discipline).
+const KEEP_HEADERS = ["server", "x-powered-by", "location", "www-authenticate", "content-type", "set-cookie", "cf-ray", "x-sucuri-id", "x-akamai-transformed", "x-cache"]
+function extractHeaders(h: Headers): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const k of KEEP_HEADERS) {
+    const v = h.get(k)
+    if (v) out[k] = v.slice(0, 200)
+  }
+  return out
+}
+
+type SendOk = { status: number; text: string; ms: number; headers: Record<string, string> }
+type SendResult = SendOk | { error: string; timeout?: boolean }
+
 async function send(
   r: ResolvedRequest,
-  target: { url: string; body: string },
+  target: { url: string; body: string; headers?: Record<string, string> },
   abort: AbortSignal,
-): Promise<{ status: number; text: string; ms: number } | { error: string }> {
+  budget?: SendBudget,
+): Promise<SendResult> {
+  if (budget) {
+    if (budget.sent >= budget.max) return { error: "send budget exhausted" }
+    budget.sent++
+  }
   const u = new URL(target.url)
   const guard = guardHost(r, u)
   if (!guard.ok) return { error: guard.reason }
-  const sendHeaders: Record<string, string> = { ...r.headers }
+  const sendHeaders: Record<string, string> = { ...(target.headers ?? r.headers) }
   delete sendHeaders["content-length"] // recomputed by fetch
   delete sendHeaders["host"]
   const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
@@ -220,23 +446,103 @@ async function send(
   try {
     const resp = await fetch(u.toString(), init as RequestInit)
     const text = (await resp.text()).slice(0, 200_000)
-    return { status: resp.status, text, ms: Math.round(performance.now() - t0) }
+    return { status: resp.status, text, ms: Math.round(performance.now() - t0), headers: extractHeaders(resp.headers) }
   } catch (e: any) {
-    return { error: String(e?.message ?? e) }
+    const msg = String(e?.message ?? e)
+    // a dropped/reset/timed-out connection is a common WAF response — flag it, don't treat as clean
+    const timeout = /timeout|timed ?out|aborted|reset|ECONNRESET|ETIMEDOUT|socket|EOF|closed/i.test(msg)
+    return { error: msg, timeout }
   }
 }
 
-// ── XSS observation: facts about bytes only ──
-
+// ── block detection: distinguish a WAF/challenge/rate-limit from a clean negative ──
+// A "no leads" result must NOT be read as "endpoint is safe" when a WAF ate the payload.
+const WAF_BODY = /cloudflare|attention required|just a moment|checking your browser|access denied|request unsuccessful|mod_?security|incapsula|sucuri|akamai|captcha|are you a robot|ddos protection/i
+const WAF_SERVER = /cloudflare|sucuri|akamai|incapsula|mod_?security|awselb|barracuda|f5|big-?ip/i
 function looksBlocked(status: number): boolean {
-  return status === 403 || status === 406 || status === 429
+  return status === 403 || status === 406 || status === 429 || status === 503
+}
+// Returns a short reason string when the response looks WAF/challenge-shaped, else undefined.
+function blockSignal(res: SendOk): string | undefined {
+  if (looksBlocked(res.status)) return `HTTP ${res.status}`
+  const server = res.headers["server"] ?? ""
+  if (res.headers["cf-ray"] || res.headers["x-sucuri-id"] || WAF_SERVER.test(server)) {
+    if (WAF_BODY.test(res.text.slice(0, 4000))) return `WAF challenge (${server || "cdn header"})`
+  }
+  if (WAF_BODY.test(res.text.slice(0, 2000))) return "WAF/challenge page"
+  return undefined
+}
+
+// Bounded evidence excerpt: ~radius chars of context around a match, whitespace-collapsed,
+// so the agent SEES the real signal (error text / evaluated value / command output) without
+// the tool dumping the whole body (context discipline). Capped hard at 320 chars.
+function excerptAround(text: string, index: number, matchLen: number, radius = 90): string {
+  const start = Math.max(0, index - radius)
+  const end = Math.min(text.length, index + matchLen + radius)
+  const body = text.slice(start, end).replace(/\s+/g, " ").trim().slice(0, 320)
+  return (start > 0 ? "…" : "") + body + (end < text.length ? "…" : "")
+}
+function excerptOf(text: string, needle: string, radius = 90): string {
+  const i = text.indexOf(needle)
+  return i < 0 ? "" : excerptAround(text, i, needle.length, radius)
+}
+
+// Repeat the benign baseline a few times to measure the page's NATURAL jitter (bytes + latency)
+// — so a boolean-differential must exceed real noise, not a timestamp/CSRF-token/ad wobble.
+type Baseline =
+  | { ok: true; status: number; bytes: number; ms: number; byteJitter: number; marker: string; text: string; headers: Record<string, string> }
+  | { ok: false; block?: string; error?: string; timeout?: boolean }
+async function repeatBaseline(r: ResolvedRequest, point: InjPoint, abort: AbortSignal, budget: SendBudget, times = 2): Promise<Baseline> {
+  let first: SendOk | undefined
+  let minB = Infinity
+  let maxB = -Infinity
+  let maxMs = 0
+  let marker = ""
+  for (let i = 0; i < times; i++) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const n = nonce()
+    const res = await send(r, applyPayload(r, point, n), abort, budget)
+    if ("error" in res) return { ok: false, error: res.error, timeout: res.timeout }
+    const blk = blockSignal(res)
+    if (blk) return { ok: false, block: blk }
+    if (!first) {
+      first = res
+      marker = n
+    }
+    minB = Math.min(minB, res.text.length)
+    maxB = Math.max(maxB, res.text.length)
+    maxMs = Math.max(maxMs, res.ms)
+  }
+  if (!first) return { ok: false, error: "no baseline sample (budget/abort)" }
+  return { ok: true, status: first.status, bytes: first.text.length, ms: maxMs, byteJitter: maxB - minB, marker, text: first.text, headers: first.headers }
+}
+
+// classify WHERE the marker landed so the agent knows how to break out (attribute vs JS vs body)
+function classifyXssContext(text: string, marker: string): string {
+  const i = text.indexOf(marker)
+  if (i < 0) return "unknown"
+  const before = text.slice(Math.max(0, i - 80), i)
+  if (/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*$/i.test(before)) return "javascript"
+  if (/=\s*"[^"]*$/.test(before)) return "attribute-double-quote"
+  if (/=\s*'[^']*$/.test(before)) return "attribute-single-quote"
+  if (/<[a-z][^>]*$/i.test(before)) return "tag-name"
+  return "html-body"
+}
+const XSS_BREAKOUT: Record<string, (n: string) => string> = {
+  "attribute-double-quote": (n) => `"><svg data-p=${n}>`,
+  "attribute-single-quote": (n) => `'><svg data-p=${n}>`,
+  javascript: (n) => `</script><svg data-p=${n}>`,
 }
 
 interface PointObservation {
   point: string
   marker_reflected: boolean
   marker_html_encoded: boolean | null
+  reflection_snippet?: string // excerpt of the response around the reflected marker (shows the sink context)
+  context?: string // html-body | attribute-* | javascript | tag-name — how to weaponize
   surviving_tags: string[] // tags that reflected RAW (un-stripped, un-encoded) — a fact, not a verdict
+  breakout?: string // a context-breakout sequence ("><svg…, '><svg…, </script>…) that reflected RAW
+  block_signal?: string
   blocked: boolean
   note?: string
 }
@@ -246,6 +552,7 @@ async function probeXssPoint(
   point: InjPoint,
   abort: AbortSignal,
   delayMs: number,
+  budget: SendBudget,
 ): Promise<PointObservation> {
   const obs: PointObservation = {
     point: `${point.location}:${point.name}`,
@@ -257,24 +564,28 @@ async function probeXssPoint(
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
   const n = nonce()
   // 1) benign marker — is this param reflected at all, and encoded?
-  const m = await send(r, withPayload(r, point, n), abort)
+  const m = await send(r, applyPayload(r, point,n), abort, budget)
   if ("error" in m) {
     obs.note = `send failed: ${m.error}`
     return obs
   }
-  if (looksBlocked(m.status)) {
+  const bblk = blockSignal(m)
+  if (bblk) {
     obs.blocked = true
-    obs.note = `baseline marker got HTTP ${m.status} — WAF/rate-limit, NOT evidence of safety`
+    obs.block_signal = bblk
+    obs.note = `baseline ${bblk} — NOT evidence of safety`
     return obs
   }
   obs.marker_reflected = m.text.includes(n)
   if (!obs.marker_reflected) return obs // not reflected here — nothing to enumerate
+  obs.reflection_snippet = excerptOf(m.text, n) // show the sink context so the agent picks the right handler
+  obs.context = classifyXssContext(m.text, n) // attribute / javascript / html-body → how to break out
 
   // 2) tag battery — which tags survive a filter (reflect RAW), one send per tag
   for (const tag of XSS_TAGS) {
-    if (abort.aborted) break
+    if (abort.aborted || budget.sent >= budget.max) break
     const tn = nonce()
-    const res = await send(r, withPayload(r, point, `<${tag} data-p=${tn}>`), abort)
+    const res = await send(r, applyPayload(r, point,`<${tag} data-p=${tn}>`), abort, budget)
     if ("error" in res) continue
     if (looksBlocked(res.status)) {
       obs.blocked = true
@@ -285,6 +596,278 @@ async function probeXssPoint(
     const encoded = res.text.includes(`&lt;${tag}`) || res.text.includes(`&lt;${tag.toUpperCase()}`)
     if (rawTag) obs.surviving_tags.push(tag)
     if (obs.marker_html_encoded === null) obs.marker_html_encoded = encoded && !rawTag
+    await sleep(delayMs)
+  }
+  // 3) context-breakout probe: if the marker is in an attribute or a <script> block, does the
+  //    quote/`</script>` escape reflect RAW? (attribute/JS XSS lives here, not in body tag-survival)
+  const mk = obs.context && XSS_BREAKOUT[obs.context]
+  if (mk && !abort.aborted && budget.sent < budget.max) {
+    const tn = nonce()
+    const res = await send(r, applyPayload(r, point, mk(tn)), abort, budget)
+    if (!("error" in res) && !looksBlocked(res.status) && new RegExp(`<svg\\b[^>]*${tn}`, "i").test(res.text)) obs.breakout = mk(tn)
+  }
+  return obs
+}
+
+// ── SSTI observation: was a template expression EVALUATED server-side? (facts about bytes) ──
+
+interface SstiObservation {
+  point: string
+  marker_reflected: boolean
+  block_signal?: string
+  baseline: { status: number; bytes: number; ms: number }
+  // engine syntaxes whose arithmetic was EVALUATED (product present, literal absent) — each WITH
+  // an excerpt of the response showing the computed product in context. A fact, not a verdict.
+  evaluated: { syntax: string; snippet: string }[]
+  blocked: boolean
+  note?: string
+}
+
+async function probeSstiPoint(
+  r: ResolvedRequest,
+  point: InjPoint,
+  abort: AbortSignal,
+  delayMs: number,
+  budget: SendBudget,
+): Promise<SstiObservation> {
+  const obs: SstiObservation = {
+    point: `${point.location}:${point.name}`,
+    marker_reflected: false,
+    baseline: { status: 0, bytes: 0, ms: 0 },
+    evaluated: [],
+    blocked: false,
+  }
+  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
+  const n = nonce()
+  const m = await send(r, applyPayload(r, point,n), abort, budget)
+  if ("error" in m) {
+    obs.note = `send failed: ${m.error}`
+    return obs
+  }
+  const bsig = blockSignal(m)
+  if (bsig) {
+    obs.blocked = true
+    obs.block_signal = bsig
+    obs.note = `baseline ${bsig} — NOT evidence of safety`
+    return obs
+  }
+  obs.marker_reflected = m.text.includes(n)
+  obs.baseline = { status: m.status, bytes: m.text.length, ms: m.ms }
+  // Fire each engine syntax. FACT = product present AND literal absent ⇒ evaluated server-side.
+  for (const s of SSTI_SYNTAXES) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const res = await send(r, applyPayload(r, point,s.wrap(SSTI_EXPR)), abort, budget)
+    if ("error" in res) continue
+    if (looksBlocked(res.status)) {
+      obs.blocked = true
+      continue
+    }
+    if (res.text.includes(SSTI_PRODUCT) && !res.text.includes(SSTI_EXPR))
+      obs.evaluated.push({ syntax: s.name, snippet: excerptOf(res.text, SSTI_PRODUCT) })
+    await sleep(delayMs)
+  }
+  return obs
+}
+
+// ── Command-injection observation: did a benign read-only probe produce command output? ──
+
+interface CmdObservation {
+  point: string
+  marker_reflected: boolean
+  block_signal?: string
+  baseline: { status: number; bytes: number; ms: number }
+  // separators whose read-only command produced OUTPUT, each WITH an excerpt of the response
+  // showing that output (e.g. the uid= line). A fact, not a verdict.
+  command_output: { separator: string; cmd: string; snippet: string }[]
+  blocked: boolean
+  note?: string
+}
+
+async function probeCmdPoint(
+  r: ResolvedRequest,
+  point: InjPoint,
+  abort: AbortSignal,
+  delayMs: number,
+  budget: SendBudget,
+): Promise<CmdObservation> {
+  const obs: CmdObservation = {
+    point: `${point.location}:${point.name}`,
+    marker_reflected: false,
+    baseline: { status: 0, bytes: 0, ms: 0 },
+    command_output: [],
+    blocked: false,
+  }
+  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
+  const n = nonce()
+  const m = await send(r, applyPayload(r, point,n), abort, budget)
+  if ("error" in m) {
+    obs.note = `send failed: ${m.error}`
+    return obs
+  }
+  const bsig = blockSignal(m)
+  if (bsig) {
+    obs.blocked = true
+    obs.block_signal = bsig
+    obs.note = `baseline ${bsig} — NOT evidence of safety`
+    return obs
+  }
+  obs.marker_reflected = m.text.includes(n)
+  obs.baseline = { status: m.status, bytes: m.text.length, ms: m.ms }
+  // Try each read-only probe across every separator. Once one probe's OS confirms, skip the
+  // other OS (keeps the common Unix case to ~6 sends, not 12).
+  for (const probe of CMD_PROBES) {
+    let found = false
+    for (const sep of CMD_SEPARATORS) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const res = await send(r, applyPayload(r, point,sep.wrap(probe.cmd)), abort, budget)
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        continue
+      }
+      const mm = probe.marker.exec(res.text)
+      if (mm) {
+        obs.command_output.push({ separator: sep.name, cmd: probe.cmd, snippet: excerptAround(res.text, mm.index, mm[0].length) })
+        found = true
+      }
+      await sleep(delayMs)
+    }
+    if (found) break
+  }
+  return obs
+}
+
+const ERRSIG_NOT_TESTED = [
+  "blind injection with no error text AND no response differential (needs the agent's timing/OOB techniques)",
+  "exploitation — data extraction, UNION, OR-based/stacked/auth-bypass payloads (the AGENT does this; the probe never widens a query)",
+  "second-order/stored injection (fires on a later request)",
+]
+const TESTED_LABEL: Record<string, string> = {
+  xss: "xss: reflected tag-survival",
+  ssti: "ssti: arithmetic evaluation",
+  cmd: "cmd: read-only id/ver command-output",
+  sqli: "sqli: error-signature + AND-based boolean-differential",
+  nosql: "nosql: error-signature",
+  ldap: "ldap: error-signature",
+  xpath: "xpath: error-signature",
+}
+const NOT_TESTED_BY_CLASS: Record<string, string[]> = {
+  xss: XSS_NOT_TESTED,
+  ssti: SSTI_NOT_TESTED,
+  cmd: CMD_NOT_TESTED,
+  sqli: ERRSIG_NOT_TESTED,
+  nosql: ERRSIG_NOT_TESTED,
+  ldap: ERRSIG_NOT_TESTED,
+  xpath: ERRSIG_NOT_TESTED,
+}
+
+// ── error-signature observation (sqli/nosql/ldap/xpath): facts about which payloads broke ──
+
+interface ErrSigObservation {
+  point: string
+  class: string
+  baseline: { status: number; bytes: number; ms: number; byte_jitter: number } // fingerprint + measured noise floor
+  block_signal?: string // WAF/challenge/timeout shadowed this probe → a "no findings" result is NOT "safe"
+  // payloads that tripped this class's error signature — WITH fingerprint, latency, engine hint + excerpt.
+  error_findings: { payload: string; status: number; bytes: number; ms: number; server?: string; snippet: string }[]
+  // AND-based boolean-differential with RAW base/true/false status+bytes+latency+Location+Set-Cookie so
+  // YOU judge the shape (true≈base & false≠base ⇒ classic boolean SQLi; a Location/Set-Cookie flip ⇒ auth
+  // bypass). `signals` lists which axes differed above the measured noise floor.
+  bool_findings: {
+    pair: string
+    base_bytes: number
+    true: { status: number; bytes: number; ms: number; location?: string; set_cookie: boolean }
+    false: { status: number; bytes: number; ms: number; location?: string; set_cookie: boolean }
+    differential: boolean
+    signals: string[]
+  }[]
+  blocked: boolean
+  note?: string
+}
+
+async function probeErrorSigPoint(
+  r: ResolvedRequest,
+  point: InjPoint,
+  cls: "sqli" | "nosql" | "ldap" | "xpath",
+  abort: AbortSignal,
+  delayMs: number,
+  budget: SendBudget,
+): Promise<ErrSigObservation> {
+  const spec = ERRSIG[cls]
+  const obs: ErrSigObservation = {
+    point: `${point.location}:${point.name}`,
+    class: cls,
+    baseline: { status: 0, bytes: 0, ms: 0, byte_jitter: 0 },
+    error_findings: [],
+    bool_findings: [],
+    blocked: false,
+  }
+  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
+  // repeat baseline → status/bytes/latency + a measured byte-jitter noise floor
+  const bl = await repeatBaseline(r, point, abort, budget)
+  if (!bl.ok) {
+    obs.blocked = !!bl.block
+    obs.block_signal = bl.block
+    obs.note = bl.block
+      ? `baseline blocked: ${bl.block} — NOT evidence of safety`
+      : `baseline failed: ${bl.error}${bl.timeout ? " (timeout/reset — possible WAF drop, NOT safety)" : ""}`
+    if (bl.timeout) obs.block_signal = "timeout/reset (possible WAF)"
+    return obs
+  }
+  obs.baseline = { status: bl.status, bytes: bl.bytes, ms: bl.ms, byte_jitter: bl.byteJitter }
+  const floor = Math.max(16, bl.byteJitter + 8) // a real differential must beat measured page noise
+  // 1) error-signature battery — pure syntax-breakers (cannot widen: a broken query only errors)
+  for (const p of spec.payloads) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const res = await send(r, applyPayload(r, point, p), abort, budget)
+    if ("error" in res) {
+      if (res.timeout && !obs.block_signal) obs.block_signal = "timeout/reset (possible WAF)"
+      continue
+    }
+    const blk = blockSignal(res)
+    if (blk) {
+      obs.blocked = true
+      obs.block_signal ??= blk
+      continue
+    }
+    const m = spec.signatures.exec(res.text)
+    if (m)
+      obs.error_findings.push({
+        payload: p,
+        status: res.status,
+        bytes: res.text.length,
+        ms: res.ms,
+        server: res.headers["server"] ?? res.headers["x-powered-by"],
+        snippet: excerptAround(res.text, m.index, m[0].length),
+      })
+    await sleep(delayMs)
+  }
+  // 2) AND-based boolean-differential (SAFE: AND narrows/no-ops — it can never widen a write)
+  for (const pair of spec.boolPairs ?? []) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const t = await send(r, applyPayload(r, point, pair.t), abort, budget)
+    const fr = await send(r, applyPayload(r, point, pair.f), abort, budget)
+    if ("error" in t || "error" in fr) continue
+    // a WAF/rate-limit on either half manufactures a phantom differential — exclude it, don't flag
+    if (blockSignal(t) || blockSignal(fr)) {
+      obs.block_signal ??= "boolean pair blocked (WAF/rate-limit) — differential unreliable"
+      continue
+    }
+    const near = (a: number, b: number) => Math.abs(a - b) <= floor
+    const signals: string[] = []
+    if (Math.abs(t.text.length - fr.text.length) > floor) signals.push("bytes")
+    if (t.status !== fr.status) signals.push("status")
+    if ((t.headers["location"] ?? "") !== (fr.headers["location"] ?? "")) signals.push("location")
+    if (!!t.headers["set-cookie"] !== !!fr.headers["set-cookie"]) signals.push("set-cookie")
+    if (near(t.text.length, bl.bytes) && !near(fr.text.length, bl.bytes)) signals.push("true≈base,false≠base")
+    obs.bool_findings.push({
+      pair: `${pair.t}  vs  ${pair.f}`,
+      base_bytes: bl.bytes,
+      true: { status: t.status, bytes: t.text.length, ms: t.ms, location: t.headers["location"], set_cookie: !!t.headers["set-cookie"] },
+      false: { status: fr.status, bytes: fr.text.length, ms: fr.ms, location: fr.headers["location"], set_cookie: !!fr.headers["set-cookie"] },
+      differential: signals.length > 0,
+      signals,
+    })
     await sleep(delayMs)
   }
   return obs
@@ -304,16 +887,29 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       })
       .optional()
       .describe("Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target."),
-    vuln_type: z.enum(["xss"]).describe("Injection class to probe. v1: xss only."),
+    vuln_type: z
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath"]))
+      .min(1)
+      .describe(
+        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts. The tool never exploits — it hands you leads.",
+      ),
+    points: z
+      .array(
+        z.object({
+          location: z.enum(["query", "form_field", "json_body", "header", "cookie", "path"]),
+          name: z
+            .string()
+            .describe("query/form param name · JSON field path (a.b.c) · header name · cookie name · 0-based path-segment index"),
+        }),
+      )
+      .optional()
+      .describe("WHERE to inject — YOU choose the points. Omit to auto-enumerate query + form-urlencoded params."),
     target_param: z
       .string()
       .optional()
-      .describe("Optional: probe only this parameter. Omit to fan out over all query/form params."),
+      .describe("Convenience filter for the auto-enumerate path (probe only this query/form param). Ignored when `points` is given."),
   }),
   async execute(params, ctx) {
-    if (params.vuln_type !== "xss") {
-      return { title: "inject_probe", output: "v1 supports vuln_type 'xss' only.", metadata: {} }
-    }
     let resolved: ResolvedRequest | { error: string }
     if (params.request_id) {
       const sessionID = Session.root(ctx.sessionID)
@@ -351,15 +947,35 @@ export const InjectProbeTool = Tool.define("inject_probe", {
     if ("error" in resolved) {
       return { title: "inject_probe", output: `Could not resolve request: ${resolved.error}`, metadata: {} }
     }
-    const points = enumeratePoints(resolved, params.target_param)
+    const DELAY = 120
+    const budget: SendBudget = { sent: 0, max: 120 } // hard upper bound on total sends per call
+
+    const targetInfo = {
+      method: resolved.method,
+      url: resolved.url.toString(),
+      auth: resolved.auth,
+      provenance: resolved.provenance,
+    }
+
+    // WHERE: agent-chosen points (validated), else auto-enumerate query + form params.
+    let points: InjPoint[]
+    let rejected: { point: string; reason: string }[] = []
+    if (params.points && params.points.length > 0) {
+      const v = validatePoints(params.points as InjPoint[])
+      points = v.points
+      rejected = v.rejected
+    } else {
+      points = enumeratePoints(resolved, params.target_param)
+    }
+
     if (points.length === 0) {
       return {
         title: "inject_probe",
         output: JSON.stringify(
           {
-            note: "No query or form-urlencoded parameters found to probe. This tool did NOT test any other injection point.",
-            target: { method: resolved.method, url: resolved.url.toString(), auth: resolved.auth },
-            coverage: { not_tested: V1_NOT_TESTED },
+            note: "No injection points to probe (no query/form params auto-found and no explicit `points` given). Pass `points` (json_body/header/cookie/path/…) to target other locations. This tool did NOT test any injection point.",
+            target: targetInfo,
+            rejected_points: rejected.length ? rejected : undefined,
           },
           null,
           2,
@@ -368,44 +984,81 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       }
     }
 
-    const observations: PointObservation[] = []
-    for (const point of points) {
-      if (ctx.abort.aborted) break
-      observations.push(await probeXssPoint(resolved, point, ctx.abort, 120))
+    // Probe each SELECTED class at each SELECTED point, capped by the shared send budget.
+    const results: { class: string; observations: unknown[] }[] = []
+    const leads: string[] = []
+    const testedLabels: string[] = []
+    const notTested = new Set<string>()
+    const blockSignals = new Set<string>() // WAF/challenge/timeout hits — qualify any "no leads" result
+    const markBlocked = (o: { point: string; blocked?: boolean; block_signal?: string }, cls: string) => {
+      if (o.block_signal) blockSignals.add(`${cls} @ ${o.point}: ${o.block_signal}`)
+      else if (o.blocked) blockSignals.add(`${cls} @ ${o.point}: blocked (WAF/rate-limit)`)
+    }
+    for (const cls of params.vuln_type) {
+      const classObs: unknown[] = []
+      for (const point of points) {
+        if (ctx.abort.aborted || budget.sent >= budget.max) break
+        if (cls === "xss") {
+          const o = await probeXssPoint(resolved, point, ctx.abort, DELAY, budget)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.surviving_tags.length > 0)
+            leads.push(`xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`)
+        } else if (cls === "ssti") {
+          const o = await probeSstiPoint(resolved, point, ctx.abort, DELAY, budget)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.evaluated.length > 0)
+            leads.push(`ssti @ ${o.point}: syntax [${o.evaluated.map((e) => e.syntax).join(", ")}] evaluated ${SSTI_EXPR}→${SSTI_PRODUCT} server-side (snippet in evaluated) — confirm engine + weaponize.`)
+        } else if (cls === "cmd") {
+          const o = await probeCmdPoint(resolved, point, ctx.abort, DELAY, budget)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.command_output.length > 0)
+            leads.push(`cmd @ ${o.point}: separator(s) [${o.command_output.map((c) => c.separator).join(", ")}] returned command output (snippet in command_output) — confirm + enumerate.`)
+        } else {
+          const o = await probeErrorSigPoint(resolved, point, cls, ctx.abort, DELAY, budget)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.error_findings.length > 0)
+            leads.push(`${cls} @ ${o.point}: payload(s) [${o.error_findings.map((e) => e.payload).join(" ")}] tripped a ${cls} error signature (snippet in error_findings) — investigate (exploitation is YOURS).`)
+          const diffs = o.bool_findings.filter((b) => b.differential)
+          if (diffs.length > 0)
+            leads.push(`${cls} @ ${o.point}: boolean-differential on [${diffs.map((b) => `${b.pair} {${b.signals.join(",")}}`).join(" ; ")}] (baseline=${o.baseline.bytes}B±${o.baseline.byte_jitter}; true/false detail in bool_findings) — boolean-injection lead; verify.`)
+        }
+      }
+      results.push({ class: cls, observations: classObs })
+      testedLabels.push(TESTED_LABEL[cls])
+      for (const n of NOT_TESTED_BY_CLASS[cls]) notTested.add(n)
     }
 
+    const truncated = budget.sent >= budget.max
+    if (truncated)
+      notTested.add(`send cap (${budget.max}) reached — some class×point combinations were NOT probed; narrow points/vuln_type and re-run.`)
+
+    const blocked = [...blockSignals]
     const evidence = {
       note:
-        "OBSERVATIONS ONLY — this tool did not confirm any vulnerability and did not run JavaScript. Each 'surviving_tags' entry is a fact (that tag reflected un-encoded), NOT proof of XSS. To confirm: send a weaponized payload in a surviving tag (e.g. an event handler firing alert('XSS')) and judge the result yourself.",
-      target: {
-        method: resolved.method,
-        url: resolved.url.toString(),
-        auth: resolved.auth,
-        provenance: resolved.provenance,
-      },
-      probed: `xss over ${points.length} param(s)`,
-      observations,
+        "OBSERVATIONS ONLY — inject_probe does NOT confirm vulnerabilities and never exploits. Every entry is a LEAD you must verify yourself, never a verdict. Exploitation — UNION, OR-bypass, auth-bypass, blind extraction, weaponization — is YOUR job, not the probe's." +
+        (leads.length === 0 && blocked.length > 0
+          ? " ⚠️ NO LEADS but payloads were WAF/challenge-BLOCKED at some points — this is NOT evidence the endpoint is safe; the app was shielded. Escalate with encoding/evasion (agent-side) or a different vantage."
+          : ""),
+      target: targetInfo,
+      probed: `classes [${params.vuln_type.join(", ")}] × ${points.length} point(s)`,
+      results,
       verification_required: true,
-      to_confirm: observations
-        .filter((o) => o.surviving_tags.length > 0)
-        .map(
-          (o) =>
-            `${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded — weaponize one and confirm execution.`,
-        ),
-      coverage: {
-        tested: ["xss: reflected tag-survival on query/form params"],
-        not_tested: V1_NOT_TESTED,
-      },
+      leads,
+      block_signals: blocked.length ? blocked : undefined,
+      coverage: { tested: testedLabels, not_tested: [...notTested] },
+      sends: { used: budget.sent, cap: budget.max, truncated },
+      rejected_points: rejected.length ? rejected : undefined,
       aborted: ctx.abort.aborted || undefined,
     }
-
-    const anyReflected = observations.some((o) => o.marker_reflected)
-    const anySurviving = observations.some((o) => o.surviving_tags.length > 0)
-    const title = anySurviving
-      ? `inject_probe xss: surviving tags found (verify)`
-      : anyReflected
-        ? `inject_probe xss: reflected, no raw tag survived`
-        : `inject_probe xss: no reflection observed`
+    const title = leads.length
+      ? `inject_probe: ${leads.length} lead(s) across [${params.vuln_type.join(",")}] (verify)`
+      : blocked.length
+        ? `inject_probe: no leads but ${blocked.length} WAF-block(s) — NOT proof of safety`
+        : `inject_probe: no leads across [${params.vuln_type.join(",")}]`
     return { title, output: JSON.stringify(evidence, null, 2), metadata: {} }
   },
 })
