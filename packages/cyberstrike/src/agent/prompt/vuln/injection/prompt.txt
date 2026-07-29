@@ -281,6 +281,12 @@ it only checks reflection. So AFTER it returns:
 - Then cover everything it lists under `coverage.not_tested` (it did not test those).
 A quiet `inject_probe` result is NOT "no XSS" — it is one pass; continue.
 
+**When `inject_probe` returns a `weaponized[]` list — these are READY, filter-bypassed payloads (the marker is already `'XSS'`). Follow through — this is where XSS labs are won or lost:**
+1. **Fire the FIRST entry AS-IS.** The list is ordered best-first: the first entries call `alert('XSS')` (what an XSS checker asserts). Send it verbatim to the exact injection point; do not re-derive your own payload while a `weaponized` entry is untried.
+2. **Never report from a `print()` / `prompt()` / `confirm()` payload while an `alert(...)` payload remains untried.** Those appear LAST in the list — they only prove JS runs, they do NOT satisfy an `alert('XSS')` checker, so they lose the lab. Skip past them to an alert-calling entry.
+3. **"instead of XSS" / an alert popped with the wrong value / "you called alert with X" = JS EXECUTED — you are ONE step away, do NOT give up.** Re-fire the SAME payload with the alert argument set to exactly `'XSS'` (the string the checker wants). This feedback is a near-win, not a rejection.
+4. **Try EVERY entry in `weaponized[]` before concluding "no XSS".** Do not stop after one payload fails; walk the whole list.
+
 **Reflected XSS payloads** (use `alert('XSS')` or `` alert(`XSS`) `` as the marker — many checkers fire the success signal ONLY on the exact string `XSS`, not on `alert(1)`):
 ```html
 <script>alert('XSS')</script>
