@@ -193,6 +193,7 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **Path-confusion-prone** | Routes with overlapping prefixes, `/api/v1/users/../admin` | ssrf, authz (path normalization bypass) |
 | **Admin / privileged** | Path contains `/admin`, `/manage`, `/internal`, `/system` | authz (vertical priv esc) |
 | **Search / filter** | Param like `q=`, `search=`, `filter=`, `where=` | injection (SQLi via filter, NoSQL operators) |
+| **Form / free-text input** | Any `<form>` in the response, or any param/body field carrying free text (name, subject, message, comment, contact) | injection — dispatch it and name the full floor **SQLi + XSS + SSTI on EVERY field** (a text field is both a DB/query sink and a reflection/template sink; do not skip it just because THIS request had no params — test the form's submit target) |
 | **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
 
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
@@ -231,9 +232,9 @@ Examine the current request characteristics:
 - File operations? → Consider file-attacks
 
 **What's in the response?**
-- User input reflected? → Consider injection (XSS)
+- User input reflected? → injection: XSS **AND SSTI** (reflected input is a server-side template-evaluation sink as often as an XSS sink — name SSTI distinctly). The field is ALSO a SQLi sink — reflection does not rule out a database write/query behind it.
 - JWT tokens? → Consider authn (JWT analysis)
-- Error messages? → Consider injection (SQL errors)
+- Error messages? → Consider injection (SQL / parser errors)
 
 #### B. Session Context Analysis
 
@@ -331,29 +332,15 @@ Task(
 )
 ```
 
-**For injection tests, describe the surface — let the tester pick the payloads.**
-When you launch `proxy-tester-injection`, tell it WHERE to look and let it choose
-WHAT to send:
-- the field/parameter that carries user input
-- where and how that input appears in the response (HTML body, tag attribute, JSON value, error text)
-- any input handling you observed (tags stripped, quotes escaped, keywords filtered, or reflected verbatim)
-- which injection class the context suggests (reflected input → XSS / SSTI; DB-backed → SQLi; shell/OS context → command; XML body → XXE)
+**For injection tests, describe the surface AND name the full class floor — do NOT make the tester guess which classes matter, and do NOT narrow the classes yourself.**
 
-Name the target and what you saw — the injection tester runs its own full payload
-sequence from there.
+When you launch `proxy-tester-injection`, the prompt MUST contain two things:
 
-**Reflected input is an SSTI sink as much as an XSS sink — name both, distinctly.**
-When the analyzer reports a value reflected in the response, do NOT dispatch it as
-"XSS (and other injections)" — that phrasing gets tested as XSS-only and template
-injection is missed. Make SSTI its own named requirement in the dispatch, separate
-from XSS: tell the tester to confirm or rule out server-side template evaluation in
-addition to reflected XSS. Reflected input is the single most common missed SSTI.
+1. WHERE to look — name EVERY user-controlled field to test (name, subject, message, id, search — ALL of them, one at a time), not just the obvious id/search/email ones; plus where the input appears in the response (HTML body, attribute, JSON value, error text) and any handling you saw (tags stripped, quotes escaped, keywords filtered, reflected verbatim).
 
-**Every user-controlled text field is a SQLi target — name them all, not just id/search/email.**
-On a form or endpoint with multiple fields, dispatch the tester to SQLi-probe EVERY text field,
-one at a time with the others held constant (name, subject, comment, message included) — not only
-the obvious id/search/email ones, because the concatenated field is usually the LEAST obvious.
-Do not let a field's label ("name", "message") narrow it to XSS-only.
+2. WHICH classes to cover. The floor for ANY free-text field is **SQLi + XSS + SSTI — always, unconditionally.** A text field is BOTH a DB/query sink AND a reflection/template sink, and you CANNOT tell from outside whether it reaches a database, so assume it does and name SQLi. On top of that floor, add: **NoSQLi** if a document store is plausible, **Command** if the value reaches the OS (filename, host, ping, cmd), **XXE** if the body is XML.
+
+**NEVER dispatch injection as "XSS", "XSS/SSTI", or "XSS and other injections."** That phrasing gets tested as the named class(es) only, and SQLi/SSTI are silently missed. A field's label ("name", "message", "contact") does NOT narrow its class set — a contact form's `message` field is a SQLi target as much as a reflected-XSS target. **Under-scoping the injection dispatch is the single most common coverage failure — name the full floor (SQLi + XSS + SSTI) every time, then let the tester run its own payload sequence.**
 
 ### Step 6: Launch Testers in Parallel — ONLY AFTER the analyzer finished
 
