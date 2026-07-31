@@ -385,6 +385,9 @@ function enumeratePoints(r: ResolvedRequest, only?: string): InjPoint[] {
   if (r.contentType.includes("application/x-www-form-urlencoded")) {
     const form = new URLSearchParams(r.body)
     for (const [name] of form) if (!only || only === name) points.push({ location: "form_field", name })
+  } else if (r.contentType.includes("multipart/form-data")) {
+    const b = multipartBoundary(r)
+    if (b) for (const name of multipartFieldNames(r.body, b)) if (!only || only === name) points.push({ location: "form_field", name })
   }
   return points
 }
@@ -484,6 +487,11 @@ function applyOperatorTarget(
       return { url: `${origin}?${parts.join("&")}`, body: r.body, headers }
     }
     case "form_field": {
+      if (r.contentType.includes("multipart/form-data")) {
+        const b = multipartBoundary(r)
+        const mp = b ? setMultipartOperator(r.body, b, point.name, opKey, opVal) : null
+        return mp != null ? { url: u.toString(), body: mp, headers } : null
+      }
       const f = new URLSearchParams(r.body)
       const parts: string[] = []
       for (const [k, v] of f) if (k !== point.name) parts.push(`${enc(k)}=${enc(v)}`)
@@ -495,6 +503,78 @@ function applyOperatorTarget(
     default:
       return null
   }
+}
+
+// ── multipart/form-data support (form_field on a multipart body) ──
+// We do SURGICAL raw-string edits — never parse→rebuild — so the boundary, part headers, sibling
+// fields, and (binary) file parts survive byte-for-byte. Value goes in RAW (no url-encoding).
+function multipartBoundary(r: ResolvedRequest): string | null {
+  const m = r.contentType.match(/boundary=("?)([^";]+)\1/i)
+  if (m) return m[2].trim()
+  // fallback: a truncated/reconstructed header may drop the boundary param — recover it from the
+  // body's first delimiter line (`--<boundary>\r\n`); the closing `--<boundary>--` is never first.
+  const b = r.body.match(/^--(.+?)\r?\n/)
+  return b ? b[1].trim() : null
+}
+// The field name declared by a part's Content-Disposition (null for a file part, whose binary body
+// we never touch). `\bname=` avoids the false match inside `filename="…"`.
+function mpFieldName(seg: string): string | null {
+  if (/filename="/i.test(seg)) return null
+  const m = seg.match(/content-disposition:[^\r\n]*\bname="([^"]+)"/i)
+  return m ? m[1] : null
+}
+// Non-file text field names in a multipart body (for auto-enumeration).
+function multipartFieldNames(body: string, boundary: string): string[] {
+  const names: string[] = []
+  for (const seg of body.split(`--${boundary}`)) {
+    const n = mpFieldName(seg)
+    if (n != null) names.push(n)
+  }
+  return names
+}
+// Replace ONE text field's value in a multipart body. Returns null (caller leaves body unchanged)
+// if the field is absent, is a file part, or the value would corrupt the framing.
+function setMultipartField(body: string, boundary: string, name: string, value: string): string | null {
+  if (value.includes(`--${boundary}`)) return null // never let a value forge a part boundary
+  const delim = `--${boundary}`
+  const segments = body.split(delim)
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
+    if (mpFieldName(seg) !== name) continue // not our text field (file parts → null, so never matched)
+    const sep = seg.match(/\r?\n\r?\n/) // header/value separator
+    if (!sep || sep.index == null) continue
+    const headEnd = sep.index + sep[0].length
+    const rest = seg.slice(headEnd) // = OLD_VALUE + trailing CRLF (before the next boundary)
+    const trail = rest.match(/\r?\n$/)?.[0] ?? "\r\n"
+    segments[i] = seg.slice(0, headEnd) + value + trail
+    return segments.join(delim) // split/join with a string delimiter is lossless — only this part changed
+  }
+  return null
+}
+// NoSQL OPERATOR injection on a multipart text field: rename the part `name="user"` → `name="user[$op]"`
+// and set its value. On a bracket-parsing stack (multer + qs) this decodes to {user:{$op:val}}; on one
+// that doesn't, it's an inert literal field name → no differential → no false positive. Best-effort,
+// framework-dependent (documented). Null if the field is absent / a file part / would forge a boundary.
+function setMultipartOperator(body: string, boundary: string, name: string, opKey: string, opVal: any): string | null {
+  const v = String(opVal)
+  if (v.includes(`--${boundary}`)) return null
+  const delim = `--${boundary}`
+  const segments = body.split(delim)
+  for (let i = 0; i < segments.length; i++) {
+    if (mpFieldName(segments[i]) !== name) continue // (file parts → null, never matched)
+    // 1) rewrite the Content-Disposition field name → name[$op]  (text part → only one name=" here).
+    //    Function replacer — never a string — so a `$` in the field name or operator (opKey is `$ne`…)
+    //    can't be mis-read as a replacement backreference.
+    const seg = segments[i].replace(/(content-disposition:[^\r\n]*?\bname=")[^"]+(")/i, (_m, pre, post) => `${pre}${name}[${opKey}]${post}`)
+    // 2) set the value (recompute the header/value split on the RENAMED segment)
+    const sep = seg.match(/\r?\n\r?\n/)
+    if (!sep || sep.index == null) return null
+    const headEnd = sep.index + sep[0].length
+    const trail = seg.slice(headEnd).match(/\r?\n$/)?.[0] ?? "\r\n"
+    segments[i] = seg.slice(0, headEnd) + v + trail
+    return segments.join(delim)
+  }
+  return null
 }
 
 // Apply one payload at one point → the full mutated {url, body, headers}. Location-specific
@@ -512,6 +592,12 @@ function applyPayload(
       u.searchParams.set(point.name, value)
       break
     case "form_field": {
+      if (r.contentType.includes("multipart/form-data")) {
+        const b = multipartBoundary(r)
+        const mp = b ? setMultipartField(r.body, b, point.name, value) : null
+        body = mp ?? r.body // couldn't set (absent/file/no boundary) → leave unchanged, never corrupt
+        break
+      }
       const f = new URLSearchParams(r.body)
       f.set(point.name, value)
       body = f.toString()
