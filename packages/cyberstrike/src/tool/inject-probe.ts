@@ -650,6 +650,13 @@ function extractHeaders(h: Headers): Record<string, string> {
 type SendOk = { status: number; text: string; ms: number; headers: Record<string, string> }
 type SendResult = SendOk | { error: string; timeout?: boolean }
 
+// Per-request deadline. Without it, an endpoint that accepts the connection but never finishes the
+// response (tarpit / rate-limit / held connection — common when a real login endpoint is fuzzed)
+// makes `await fetch()` / `await resp.text()` block FOREVER, freezing the tool, the subagent, and
+// the session. 15s is well above a legit slow response; a hit surfaces as a timeout (→ WAF/tarpit
+// signal, NOT a clean "safe"), so a false-abort never becomes a false negative.
+const SEND_TIMEOUT_MS = Number(process.env.INJECT_PROBE_TIMEOUT_MS) || 15_000
+
 async function send(
   r: ResolvedRequest,
   target: { url: string; body: string; headers?: Record<string, string> },
@@ -666,10 +673,13 @@ async function send(
   const sendHeaders: Record<string, string> = { ...(target.headers ?? r.headers) }
   delete sendHeaders["content-length"] // recomputed by fetch
   delete sendHeaders["host"]
+  // combine the caller's abort with a per-request deadline — the deadline signal governs BOTH the
+  // fetch (connect/headers) and the streamed `resp.text()` body read, so neither can hang forever.
+  const signal = AbortSignal.any([abort, AbortSignal.timeout(SEND_TIMEOUT_MS)])
   const init: RequestInit & { tls?: { rejectUnauthorized: boolean } } = {
     method: r.method,
     headers: sendHeaders,
-    signal: abort,
+    signal,
     redirect: "manual",
     // authorized-testing: accept self-signed on the (already in-scope) target host
     tls: { rejectUnauthorized: false },
