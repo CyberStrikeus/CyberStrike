@@ -639,6 +639,14 @@ export namespace Agent {
           }),
         )
 
+        // File-attacks-specific permission: inject_probe's LFI mode (read-only Linux/Windows
+        // path-traversal file-disclosure) hands this agent the WORKING filter-bypass shape. Scoped
+        // to this agent only (not vulnAgentPermission) to keep the blast radius narrow.
+        const fileAttacksPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ inject_probe: "allow" }),
+        )
+
         return {
           "proxy-tester-idor": {
             name: "proxy-tester-idor",
@@ -725,7 +733,7 @@ export namespace Agent {
             hidden: true,
             prompt: fileAttacksAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: fileAttacksPermission,
             options: {},
           },
         }
