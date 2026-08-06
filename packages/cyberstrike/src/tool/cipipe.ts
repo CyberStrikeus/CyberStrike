@@ -355,7 +355,7 @@ async function gitlabTokens(args: string[], timeout: number): Promise<HookResult
   const pats = await gitlabApi(url, "/personal_access_tokens?state=active", token) as Record<string, string>[] | null
   if (pats && Array.isArray(pats)) {
     output.push(`[+] Active PATs: ${pats.length}`)
-    for (const p of pats) output.push(`    ${p.name} — scopes: ${(p as Record<string, string[]>).scopes?.join(",")} expires: ${p.expires_at || "never"}`)
+    for (const p of pats) output.push(`    ${p.name} — scopes: ${(p as unknown as Record<string, string[]>).scopes?.join(",")} expires: ${p.expires_at || "never"}`)
   }
 
   return { output: output.join("\n"), findings: [] }
