@@ -244,6 +244,80 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function imageAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing container images...\n"]
+
+  const trustedRegistries = ["gcr.io", "docker.io/library", "registry.k8s.io", "quay.io", "ghcr.io", "mcr.microsoft.com", "public.ecr.aws"]
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+
+  for (const n of namespaces) {
+    if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
+    const pods = await kc(["get", "pods", "-n", n], kubeconfig, ctx, timeout)
+    if (pods.exitCode !== 0) continue
+    const items = tryJson(pods.stdout)?.items || []
+    for (const pod of items) {
+      const containers = [...(pod.spec?.containers || []), ...(pod.spec?.initContainers || [])]
+      for (const c of containers) {
+        const image = c.image || ""
+        const pullPolicy = c.imagePullPolicy || ""
+
+        if (image.endsWith(":latest") || !image.includes(":")) {
+          output.push(`  [!] ${n}/${pod.metadata.name}/${c.name}: uses :latest tag — ${image}`)
+          findings.push({
+            checkId: "K8S-IMG-001",
+            provider: "kubernetes",
+            severity: "medium",
+            status: "FAIL",
+            resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
+            title: `Container uses :latest tag: ${image}`,
+            details: `Image "${image}" uses :latest or no tag. This is non-deterministic and can pull different versions silently.`,
+            remediation: "Pin images to a specific version tag or SHA256 digest.",
+          })
+        }
+
+        if (pullPolicy === "Never" || pullPolicy === "IfNotPresent") {
+          if (image.endsWith(":latest") || !image.includes(":")) {
+            output.push(`  [!] ${n}/${pod.metadata.name}/${c.name}: imagePullPolicy=${pullPolicy} with :latest`)
+            findings.push({
+              checkId: "K8S-IMG-002",
+              provider: "kubernetes",
+              severity: "medium",
+              status: "FAIL",
+              resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
+              title: `imagePullPolicy ${pullPolicy} with mutable tag`,
+              details: `Container uses "${pullPolicy}" pull policy with a mutable tag. Stale or tampered images may run.`,
+              remediation: "Use imagePullPolicy: Always with mutable tags, or pin to immutable digests.",
+            })
+          }
+        }
+
+        const registry = image.split("/")[0]
+        if (registry && !registry.includes(".") && registry !== "library") continue
+        if (registry && !trustedRegistries.some(tr => image.startsWith(tr))) {
+          output.push(`  [*] ${n}/${pod.metadata.name}/${c.name}: untrusted registry — ${registry}`)
+          findings.push({
+            checkId: "K8S-IMG-003",
+            provider: "kubernetes",
+            severity: "low",
+            status: "WARN",
+            resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
+            title: `Image from non-standard registry: ${registry}`,
+            details: `Image "${image}" is pulled from "${registry}" which is not in the trusted registry list.`,
+            remediation: "Use images from trusted registries or add this registry to your allowlist after verification.",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(formatFindings("image_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function secretsAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -519,7 +593,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       network_policy_audit: () => networkPolicyAudit(params.args, params.timeout_seconds),
       pod_security_audit: () => podSecurityAudit(params.args, params.timeout_seconds),
       secrets_audit: () => secretsAudit(params.args, params.timeout_seconds),
-      image_audit: () => stub("image_audit"),
+      image_audit: () => imageAudit(params.args, params.timeout_seconds),
       api_server_audit: () => stub("api_server_audit"),
       resource_limits_audit: () => stub("resource_limits_audit"),
       ingress_audit: () => stub("ingress_audit"),
