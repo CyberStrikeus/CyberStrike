@@ -244,6 +244,91 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function secretsAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes Secrets...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  let total = 0
+  const byType: Record<string, number> = {}
+
+  for (const n of namespaces) {
+    const secrets = await kc(["get", "secrets", "-n", n], kubeconfig, ctx, timeout)
+    if (secrets.exitCode !== 0) continue
+    const items = tryJson(secrets.stdout)?.items || []
+    for (const s of items) {
+      total++
+      const t = s.type || "Opaque"
+      byType[t] = (byType[t] || 0) + 1
+
+      if (t === "kubernetes.io/service-account-token") continue
+      const data = s.data || {}
+      const keys = Object.keys(data)
+      const sensitiveKeys = keys.filter(k => /password|secret|token|key|credential|api.?key/i.test(k))
+      if (sensitiveKeys.length > 0) {
+        output.push(`  [*] ${n}/${s.metadata.name}: ${sensitiveKeys.length} sensitive key(s) — ${sensitiveKeys.join(", ")}`)
+      }
+    }
+
+    const pods = await kc(["get", "pods", "-n", n], kubeconfig, ctx, timeout)
+    if (pods.exitCode !== 0) continue
+    const podItems = tryJson(pods.stdout)?.items || []
+    for (const pod of podItems) {
+      const containers = [...(pod.spec?.containers || []), ...(pod.spec?.initContainers || [])]
+      for (const c of containers) {
+        const envFrom = c.envFrom || []
+        for (const ef of envFrom) {
+          if (ef.secretRef) {
+            output.push(`  [!] ${n}/${pod.metadata.name}/${c.name}: entire secret "${ef.secretRef.name}" mounted as env`)
+            findings.push({
+              checkId: "K8S-SEC-001",
+              provider: "kubernetes",
+              severity: "medium",
+              status: "FAIL",
+              resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
+              title: `Entire secret mounted as env vars: ${ef.secretRef.name}`,
+              details: `Container "${c.name}" mounts all keys from Secret "${ef.secretRef.name}" as environment variables. Env vars are visible in /proc and crash dumps.`,
+              remediation: "Mount individual keys via env[].valueFrom.secretKeyRef or use volume mounts with specific items.",
+            })
+          }
+        }
+        const env = c.env || []
+        for (const e of env) {
+          if (e.valueFrom?.secretKeyRef) {
+            const secret = e.valueFrom.secretKeyRef.name
+            const key = e.valueFrom.secretKeyRef.key
+            output.push(`  [*] ${n}/${pod.metadata.name}/${c.name}: env ${e.name} ← secret/${secret}/${key}`)
+          }
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Total secrets: ${total}`)
+  for (const [t, count] of Object.entries(byType)) output.push(`    ${t}: ${count}`)
+
+  const encConfig = await kcText(["get", "--raw", "/api/v1/namespaces/kube-system/configmaps/encryption-config"], kubeconfig, ctx, timeout)
+  if (encConfig.exitCode !== 0) {
+    output.push("\n[!] Cannot verify etcd encryption configuration (no access to kube-system or not configured)")
+    findings.push({
+      checkId: "K8S-SEC-002",
+      provider: "kubernetes",
+      severity: "high",
+      status: "WARN",
+      resource: "cluster/etcd-encryption",
+      title: "Cannot verify etcd encryption at rest",
+      details: "Unable to check EncryptionConfiguration. Secrets may be stored unencrypted in etcd.",
+      remediation: "Enable EncryptionConfiguration for secrets. Use aescbc or secretbox provider.",
+    })
+  }
+
+  output.push(formatFindings("secrets_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function podSecurityAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -433,7 +518,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       rbac_audit: () => rbacAudit(params.args, params.timeout_seconds),
       network_policy_audit: () => networkPolicyAudit(params.args, params.timeout_seconds),
       pod_security_audit: () => podSecurityAudit(params.args, params.timeout_seconds),
-      secrets_audit: () => stub("secrets_audit"),
+      secrets_audit: () => secretsAudit(params.args, params.timeout_seconds),
       image_audit: () => stub("image_audit"),
       api_server_audit: () => stub("api_server_audit"),
       resource_limits_audit: () => stub("resource_limits_audit"),
