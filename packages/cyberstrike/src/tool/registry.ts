@@ -60,6 +60,7 @@ import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
 import { GcphookTool } from "./gcphook"
 import { CloudAuditTool } from "./cloud-audit"
+import { K8sAuditTool } from "./k8s-audit"
 import { CipipeTool } from "./cipipe"
 
 export namespace ToolRegistry {
@@ -195,6 +196,7 @@ export namespace ToolRegistry {
       KubehookTool,
       GcphookTool,
       CloudAuditTool,
+      K8sAuditTool,
       CipipeTool,
       ...custom,
     ]

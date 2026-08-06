@@ -385,6 +385,7 @@ export namespace Agent {
           "k8s-postexploit",
           "gcp-postexploit",
           "cloud-assessment",
+          "k8s-assessment",
         ],
         permission: PermissionNext.merge(
           defaults,
@@ -408,6 +409,7 @@ export namespace Agent {
             kubehook: "allow",
             gcphook: "allow",
             cloud_audit: "allow",
+            k8s_audit: "allow",
           }),
           user,
         ),
@@ -457,6 +459,7 @@ export namespace Agent {
             kubehook: "allow",
             gcphook: "allow",
             cloud_audit: "allow",
+            k8s_audit: "allow",
             cipipe: "allow",
           }),
           user,
