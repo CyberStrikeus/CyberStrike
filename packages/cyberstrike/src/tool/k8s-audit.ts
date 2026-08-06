@@ -244,6 +244,80 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function apiServerAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes API server configuration...\n"]
+
+  const version = await kc(["version"], kubeconfig, ctx, timeout)
+  if (version.exitCode === 0) {
+    const v = tryJson(version.stdout)
+    output.push(`[+] Server version: ${v?.serverVersion?.gitVersion || "unknown"}`)
+    output.push(`    Platform: ${v?.serverVersion?.platform || "unknown"}`)
+  }
+
+  const anonCheck = await kcText(["auth", "can-i", "list", "namespaces", "--as=system:anonymous"], kubeconfig, ctx, timeout)
+  if (anonCheck.stdout.trim() === "yes") {
+    output.push("[!] Anonymous authentication: ENABLED — anonymous user can list namespaces")
+    findings.push({
+      checkId: "K8S-API-001",
+      provider: "kubernetes",
+      severity: "critical",
+      status: "FAIL",
+      resource: "kube-apiserver",
+      title: "Anonymous authentication allows namespace listing",
+      details: "system:anonymous can list namespaces. Anonymous auth may be enabled on the API server.",
+      remediation: "Set --anonymous-auth=false on kube-apiserver. Remove anonymous ClusterRoleBindings.",
+    })
+  } else {
+    output.push("[+] Anonymous auth: restricted (cannot list namespaces)")
+  }
+
+  const anonSecrets = await kcText(["auth", "can-i", "get", "secrets", "--as=system:anonymous", "--all-namespaces"], kubeconfig, ctx, timeout)
+  if (anonSecrets.stdout.trim() === "yes") {
+    output.push("[!] CRITICAL — Anonymous user can read secrets!")
+    findings.push({
+      checkId: "K8S-API-002",
+      provider: "kubernetes",
+      severity: "critical",
+      status: "FAIL",
+      resource: "kube-apiserver",
+      title: "Anonymous user can read secrets",
+      details: "system:anonymous has get access to secrets across all namespaces. Full credential compromise risk.",
+      remediation: "Remove all anonymous ClusterRoleBindings. Set --anonymous-auth=false.",
+    })
+  }
+
+  const apiPod = await kc(["get", "pods", "-n", "kube-system", "-l", "component=kube-apiserver"], kubeconfig, ctx, timeout)
+  if (apiPod.exitCode === 0) {
+    const items = tryJson(apiPod.stdout)?.items || []
+    for (const pod of items) {
+      const containers = pod.spec?.containers || []
+      for (const c of containers) {
+        const cmd = (c.command || []).join(" ")
+        if (cmd.includes("--insecure-port") && !cmd.includes("--insecure-port=0")) {
+          findings.push({ checkId: "K8S-API-003", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "Insecure port enabled on API server", details: "kube-apiserver has --insecure-port set to non-zero. Unauthenticated access possible.", remediation: "Set --insecure-port=0 on kube-apiserver." })
+          output.push("[!] Insecure port enabled!")
+        }
+        if (!cmd.includes("--enable-admission-plugins") || !cmd.includes("NodeRestriction")) {
+          findings.push({ checkId: "K8S-API-004", provider: "kubernetes", severity: "high", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "NodeRestriction admission controller not enabled", details: "NodeRestriction admission plugin is not in --enable-admission-plugins. Compromised nodes can modify any object.", remediation: "Add NodeRestriction to --enable-admission-plugins on kube-apiserver." })
+          output.push("[!] NodeRestriction admission controller not found")
+        }
+        if (!cmd.includes("--audit-log-path")) {
+          findings.push({ checkId: "K8S-API-005", provider: "kubernetes", severity: "high", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "API server audit logging not configured", details: "No --audit-log-path set. API server requests are not being logged for forensics.", remediation: "Configure --audit-log-path and --audit-policy-file on kube-apiserver." })
+          output.push("[!] Audit logging not configured")
+        }
+      }
+    }
+  } else {
+    output.push("[*] Cannot inspect API server pod (managed cluster or insufficient permissions)")
+  }
+
+  output.push(formatFindings("api_server_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function imageAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -594,7 +668,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       pod_security_audit: () => podSecurityAudit(params.args, params.timeout_seconds),
       secrets_audit: () => secretsAudit(params.args, params.timeout_seconds),
       image_audit: () => imageAudit(params.args, params.timeout_seconds),
-      api_server_audit: () => stub("api_server_audit"),
+      api_server_audit: () => apiServerAudit(params.args, params.timeout_seconds),
       resource_limits_audit: () => stub("resource_limits_audit"),
       ingress_audit: () => stub("ingress_audit"),
       serviceaccount_audit: () => stub("serviceaccount_audit"),
