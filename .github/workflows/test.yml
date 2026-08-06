@@ -6,6 +6,10 @@ on:
       - dev
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   unit:
     name: unit (linux)

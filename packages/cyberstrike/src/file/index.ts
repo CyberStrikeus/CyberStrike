@@ -167,13 +167,6 @@ export namespace File {
     "efi",
     "rom",
     "com",
-    "bat",
-    "cmd",
-    "ps1",
-    "sh",
-    "bash",
-    "zsh",
-    "fish",
   ])
 
   const imageExtensions = new Set([

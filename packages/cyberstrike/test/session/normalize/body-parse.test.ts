@@ -24,10 +24,17 @@ describe("parseBody — single dispatch", () => {
   test("form-urlencoded", () => {
     const p = parseBody("a=1&b=2", FORM)
     expect(p.kind).toBe("form")
-    if (p.kind === "form") expect(p.fields).toEqual([{ name: "a", value: "1" }, { name: "b", value: "2" }])
+    if (p.kind === "form")
+      expect(p.fields).toEqual([
+        { name: "a", value: "1" },
+        { name: "b", value: "2" },
+      ])
   })
   test("multipart", () => {
-    const p = parseBody('--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n7\r\n--X--', "multipart/form-data; boundary=X")
+    const p = parseBody(
+      '--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n7\r\n--X--',
+      "multipart/form-data; boundary=X",
+    )
     expect(p.kind).toBe("multipart")
   })
   test("none: empty / unstructured / malformed-not-JSON", () => {
@@ -62,7 +69,9 @@ describe("bodyKeyShapeHash — value-invariance is the dedup contract", () => {
   test("multipart: same field names, different values → SAME key", () => {
     const a = '--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n7\r\n--X--'
     const b = '--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n999\r\n--X--'
-    expect(bodyKeyShapeHash(a, "multipart/form-data; boundary=X")).toBe(bodyKeyShapeHash(b, "multipart/form-data; boundary=X"))
+    expect(bodyKeyShapeHash(a, "multipart/form-data; boundary=X")).toBe(
+      bodyKeyShapeHash(b, "multipart/form-data; boundary=X"),
+    )
   })
   test("distinct content-type shapes stay in separate namespaces (form vs json prefix)", () => {
     expect(bodyKeyShapeHash("a=1&b=2", FORM)).not.toBe(bodyKeyShapeHash('{"a":1,"b":2}', JSON_CT))
@@ -79,7 +88,8 @@ describe("bodySlots — value extraction, now symmetric with keying", () => {
     expect(slots).toContain("csp-report.line-number=42")
   })
   test("multipart: text field observed, file part skipped (binary, no value)", () => {
-    const body = '--X\r\nContent-Disposition: form-data; name="file"; filename="a.png"\r\n\r\nBINARY\r\n--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n7\r\n--X--'
+    const body =
+      '--X\r\nContent-Disposition: form-data; name="file"; filename="a.png"\r\n\r\nBINARY\r\n--X\r\nContent-Disposition: form-data; name="uid"\r\n\r\n7\r\n--X--'
     const slots = bodySlots(body, "multipart/form-data; boundary=X")
     expect(slots).toContain("uid=7")
     expect(slots.some((s) => s.startsWith("file=") || s.startsWith("a.png="))).toBe(false)
@@ -124,7 +134,7 @@ describe("SOAP/XML — dedup + operation + observation", () => {
     const slots = bodySlots(SOAP("GetUser", "<userId>42</userId>"), XML)
     expect(slots).toContain("Envelope.Body.GetUser.userId=42")
   })
-  test("attributes observed (id=\"42\" is IDOR-relevant)", () => {
+  test('attributes observed (id="42" is IDOR-relevant)', () => {
     const slots = bodySlots(SOAP("Get", '<user id="42">alice</user>'), XML)
     expect(slots.some((s) => s.includes("@id=42"))).toBe(true)
   })

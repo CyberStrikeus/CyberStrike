@@ -27,9 +27,28 @@ export interface UploadSample {
 // Order matters: pickSample returns the first sample matching any accept token,
 // so the most common upload targets (image, then document, then data) come first.
 const SAMPLES: readonly UploadSample[] = [
-  { name: "sample.png", ext: "png", mimeType: "image/png", buffer: b64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGJgAQAAAAUAAaX2RUAAAAAASUVORK5CYII=") },
-  { name: "sample.jpg", ext: "jpg", mimeType: "image/jpeg", buffer: b64("/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AfwD/2Q==") },
-  { name: "sample.pdf", ext: "pdf", mimeType: "application/pdf", buffer: b64("JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMjAwIDIwMF0+PmVuZG9iagp0cmFpbGVyPDwvUm9vdCAxIDAgUj4+CiUlRU9GCg==") },
+  {
+    name: "sample.png",
+    ext: "png",
+    mimeType: "image/png",
+    buffer: b64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGJgAQAAAAUAAaX2RUAAAAAASUVORK5CYII="),
+  },
+  {
+    name: "sample.jpg",
+    ext: "jpg",
+    mimeType: "image/jpeg",
+    buffer: b64(
+      "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AfwD/2Q==",
+    ),
+  },
+  {
+    name: "sample.pdf",
+    ext: "pdf",
+    mimeType: "application/pdf",
+    buffer: b64(
+      "JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMjAwIDIwMF0+PmVuZG9iagp0cmFpbGVyPDwvUm9vdCAxIDAgUj4+CiUlRU9GCg==",
+    ),
+  },
   { name: "sample.csv", ext: "csv", mimeType: "text/csv", buffer: txt("name,email\nTest User,test@example.com\n") },
   { name: "sample.txt", ext: "txt", mimeType: "text/plain", buffer: txt("sample text file\n") },
   { name: "sample.json", ext: "json", mimeType: "application/json", buffer: txt('{"sample":true,"value":123}\n') },

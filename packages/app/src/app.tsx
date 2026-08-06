@@ -127,7 +127,7 @@ const resolveDefaultServerUrl = (props: {
 }) => {
   if (props.defaultUrl) return props.defaultUrl
   // Hub mode: always show connect screen (storedDefault may point to stale localhost)
-  if (props.hostname.includes("cyberstrike.io")) return ""
+  if (props.hostname === "cyberstrike.io" || props.hostname.endsWith(".cyberstrike.io")) return ""
   if (props.storedDefaultServerUrl) return props.storedDefaultServerUrl
   if (props.isDev) return `http://${props.devHost ?? "localhost"}:${props.devPort ?? "4096"}`
   return props.origin
@@ -190,7 +190,10 @@ function ServerKey(props: ParentProps) {
 export function AppInterface(props: { defaultUrl?: string; children?: JSX.Element; isSidecar?: boolean }) {
   const platform = usePlatform()
   const storedDefaultServerUrl = getStoredDefaultServerUrl(platform)
-  const isHub = !props.defaultUrl && !props.isSidecar && location.hostname.includes("cyberstrike.io")
+  const isHub =
+    !props.defaultUrl &&
+    !props.isSidecar &&
+    (location.hostname === "cyberstrike.io" || location.hostname.endsWith(".cyberstrike.io"))
   if (isHub) console.info("[cyberstrike] hub mode:", location.hostname)
   const defaultServerUrl = resolveDefaultServerUrl({
     defaultUrl: props.defaultUrl,

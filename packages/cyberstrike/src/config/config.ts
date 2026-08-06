@@ -266,7 +266,11 @@ export namespace Config {
     }
 
     if (Flag.CYBERSTRIKE_PERMISSION) {
-      result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.CYBERSTRIKE_PERMISSION))
+      try {
+        result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.CYBERSTRIKE_PERMISSION))
+      } catch {
+        log.warn("CYBERSTRIKE_PERMISSION contains invalid JSON, skipping")
+      }
     }
 
     // Backwards compatibility: legacy top-level `tools` config
@@ -1316,7 +1320,7 @@ export namespace Config {
     let text = await Bun.file(filepath)
       .text()
       .catch((err) => {
-        if (err.code === "ENOENT") return
+        if (err.code === "ENOENT" || err.code === "EACCES") return
         throw new JsonError({ path: filepath }, { cause: err })
       })
     if (!text) return {}

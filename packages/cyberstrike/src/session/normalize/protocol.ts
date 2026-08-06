@@ -424,9 +424,15 @@ function parseMultipartFields(body: string): BodyField[] {
       const isFile = fromFilename || partIsFile
       if (!isFile && value === undefined) {
         const sep = part.search(/\r?\n\r?\n/)
-        value = sep >= 0 ? part.slice(sep).replace(/^\r?\n\r?\n/, "").replace(/\r?\n$/, "") : ""
+        value =
+          sep >= 0
+            ? part
+                .slice(sep)
+                .replace(/^\r?\n\r?\n/, "")
+                .replace(/\r?\n$/, "")
+            : ""
       }
-      out.push({ name: m[2], value: isFile ? "" : value ?? "", isFile })
+      out.push({ name: m[2], value: isFile ? "" : (value ?? ""), isFile })
     }
   }
   return out

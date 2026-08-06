@@ -337,7 +337,7 @@ export function DialogConnectProvider(props: { provider: string }) {
       const result = await globalSDK.client.provider.oauth
         .callback({
           providerID: props.provider,
-          method: store.methodIndex,
+          method: store.methodIndex!,
           code,
         })
         .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const }))
@@ -394,7 +394,7 @@ export function DialogConnectProvider(props: { provider: string }) {
         const result = await globalSDK.client.provider.oauth
           .callback({
             providerID: props.provider,
-            method: store.methodIndex,
+            method: store.methodIndex!,
           })
           .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const }))
           .catch((error) => ({ ok: false as const, error }))

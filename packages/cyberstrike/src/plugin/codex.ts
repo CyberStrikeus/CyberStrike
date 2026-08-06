@@ -29,10 +29,16 @@ async function generatePKCE(): Promise<PkceCodes> {
 
 function generateRandomString(length: number): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-  const bytes = crypto.getRandomValues(new Uint8Array(length))
-  return Array.from(bytes)
-    .map((b) => chars[b % chars.length])
-    .join("")
+  const limit = 256 - (256 % chars.length)
+  let result = ""
+  while (result.length < length) {
+    const bytes = crypto.getRandomValues(new Uint8Array(length - result.length))
+    for (const b of bytes) {
+      if (b < limit) result += chars[b % chars.length]
+      if (result.length === length) break
+    }
+  }
+  return result
 }
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
@@ -83,6 +89,20 @@ export function extractAccountId(tokens: TokenResponse): string | undefined {
     return claims ? extractAccountIdFromClaims(claims) : undefined
   }
   return undefined
+}
+
+// The Codex backend serves its own tiers ("priority" for Fast) and rejects the
+// platform-only "auto" that ProviderTransform sets for every OpenAI model.
+export function stripServiceTier(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== "object" || parsed.service_tier !== "auto") return body
+    delete parsed.service_tier
+    return JSON.stringify(parsed)
+  } catch {
+    return body
+  }
 }
 
 function buildAuthorizeUrl(redirectUri: string, pkce: PkceCodes, state: string): string {
@@ -356,18 +376,24 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         const auth = await getAuth()
         if (auth.type !== "oauth") return {}
 
-        // Filter models to only allowed Codex models for OAuth
-        const allowedModels = new Set([
-          "gpt-5.1-codex-max",
-          "gpt-5.1-codex-mini",
-          "gpt-5.2",
-          "gpt-5.2-codex",
-          "gpt-5.3-codex",
-          "gpt-5.1-codex",
-        ])
+        // Filter models to only those available via the Codex (ChatGPT subscription) endpoint.
+        // Uses a version-based regex so new models (e.g. gpt-5.7, gpt-6.x) are automatically
+        // included without needing a code change. Explicit allow/disallow sets handle edge cases.
+        const allowedModels = new Set(["gpt-5.5", "gpt-5.3-codex-spark", "gpt-5.4", "gpt-5.4-mini"])
+        const disallowedModels = new Set(["gpt-5.5-pro"])
         for (const modelId of Object.keys(provider.models)) {
           if (modelId.includes("codex")) continue
           if (allowedModels.has(modelId)) continue
+          if (disallowedModels.has(modelId)) {
+            delete provider.models[modelId]
+            continue
+          }
+          if (modelId === "gpt-5.6") {
+            delete provider.models[modelId]
+            continue
+          }
+          const match = modelId.match(/^gpt-(\d+\.\d+)/)
+          if (match && parseFloat(match[1]) > 5.4) continue
           delete provider.models[modelId]
         }
 
@@ -487,9 +513,14 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
                 ? new URL(CODEX_API_ENDPOINT)
                 : parsed
 
+            // The Codex backend only knows its own tiers and rejects the platform-only
+            // values ProviderTransform sets, e.g. "Unsupported service_tier: auto".
+            const body = url === parsed ? init?.body : stripServiceTier(init?.body)
+
             return fetch(url, {
               ...init,
               headers,
+              body,
             })
           },
         }

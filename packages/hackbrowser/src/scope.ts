@@ -36,7 +36,7 @@ export function normalizeScope(input: string): string {
   s = s.replace(/^https?:\/\//, "")
   s = s.split(/[/?#]/)[0] ?? ""
   s = s.replace(/:\d+$/, "")
-  s = s.replace(/\.+$/, "")
+  while (s.endsWith(".")) s = s.slice(0, -1)
   return s
 }
 

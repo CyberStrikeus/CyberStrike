@@ -158,7 +158,7 @@ export namespace ModelsDev {
   }
 }
 
-if (!Flag.CYBERSTRIKE_DISABLE_MODELS_FETCH) {
+if (!Flag.CYBERSTRIKE_DISABLE_MODELS_FETCH && !process.argv.includes("--get-yargs-completions")) {
   ModelsDev.refresh()
   setInterval(
     async () => {

@@ -1940,7 +1940,15 @@ async function runMultiCredential(config: AgentConfig, credentials: CredentialCo
       log.info("exploring", { credential: ctx.id, url: entry.url })
       const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
         const found = await explorePageWithAI(
-          p, url, ctx.interceptor, model, globalState, inScope, ctx.id, maxPages, usageAcc,
+          p,
+          url,
+          ctx.interceptor,
+          model,
+          globalState,
+          inScope,
+          ctx.id,
+          maxPages,
+          usageAcc,
           { explore: exploreInline, depth },
         )
         for (const u of found) enqueueWithContext(u, ctx.id, pageQueue, visitedPages, inScope, pathPatternCounts)
@@ -2307,7 +2315,15 @@ export async function run(config: AgentConfig): Promise<CrawlResult> {
     // then its discoveries are enqueued the same way as top-level discoveries.
     const exploreInline = async (p: Page, url: string, depth: number): Promise<void> => {
       const found = await explorePageWithAI(
-        p, url, interceptor, model, globalState, inScope, SINGLE_CRED, maxPages, usageAcc,
+        p,
+        url,
+        interceptor,
+        model,
+        globalState,
+        inScope,
+        SINGLE_CRED,
+        maxPages,
+        usageAcc,
         { explore: exploreInline, depth },
       )
       for (const u of found) enqueueUrl(u, globalState, inScope)
