@@ -244,6 +244,84 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function resourceLimitsAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing resource limits and quotas...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  for (const n of namespaces) {
+    if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
+
+    const lr = await kc(["get", "limitranges", "-n", n], kubeconfig, ctx, timeout)
+    const limitRanges = lr.exitCode === 0 ? (tryJson(lr.stdout)?.items || []) : []
+    if (limitRanges.length === 0) {
+      findings.push({
+        checkId: "K8S-RES-001",
+        provider: "kubernetes",
+        severity: "medium",
+        status: "FAIL",
+        resource: `Namespace/${n}`,
+        title: `No LimitRange in namespace ${n}`,
+        details: `Namespace "${n}" has no LimitRange. Containers can consume unlimited CPU/memory.`,
+        remediation: "Create a LimitRange with default CPU/memory requests and limits.",
+      })
+    }
+
+    const rq = await kc(["get", "resourcequotas", "-n", n], kubeconfig, ctx, timeout)
+    const quotas = rq.exitCode === 0 ? (tryJson(rq.stdout)?.items || []) : []
+    if (quotas.length === 0) {
+      findings.push({
+        checkId: "K8S-RES-002",
+        provider: "kubernetes",
+        severity: "low",
+        status: "WARN",
+        resource: `Namespace/${n}`,
+        title: `No ResourceQuota in namespace ${n}`,
+        details: `Namespace "${n}" has no ResourceQuota. No upper bound on total resource consumption.`,
+        remediation: "Create a ResourceQuota to limit total CPU, memory, and object counts per namespace.",
+      })
+    }
+
+    output.push(`  ${n}: LimitRanges=${limitRanges.length}, ResourceQuotas=${quotas.length}`)
+
+    const pods = await kc(["get", "pods", "-n", n], kubeconfig, ctx, timeout)
+    if (pods.exitCode !== 0) continue
+    const items = tryJson(pods.stdout)?.items || []
+    let noLimits = 0
+    for (const pod of items) {
+      const containers = pod.spec?.containers || []
+      for (const c of containers) {
+        const resources = c.resources || {}
+        if (!resources.limits?.cpu || !resources.limits?.memory) {
+          noLimits++
+          if (noLimits <= 5) output.push(`    [!] ${pod.metadata.name}/${c.name}: missing CPU/memory limits`)
+        }
+        if (!resources.requests?.cpu || !resources.requests?.memory) {
+          if (noLimits <= 5) output.push(`    [!] ${pod.metadata.name}/${c.name}: missing CPU/memory requests`)
+        }
+      }
+    }
+    if (noLimits > 0) {
+      findings.push({
+        checkId: "K8S-RES-003",
+        provider: "kubernetes",
+        severity: "medium",
+        status: "FAIL",
+        resource: `Namespace/${n}`,
+        title: `${noLimits} container(s) without resource limits in ${n}`,
+        details: `${noLimits} container(s) in namespace "${n}" lack CPU/memory limits. Risk of resource exhaustion (DoS).`,
+        remediation: "Set resources.requests and resources.limits on all containers.",
+      })
+    }
+  }
+
+  output.push(formatFindings("resource_limits_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function apiServerAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -669,7 +747,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       secrets_audit: () => secretsAudit(params.args, params.timeout_seconds),
       image_audit: () => imageAudit(params.args, params.timeout_seconds),
       api_server_audit: () => apiServerAudit(params.args, params.timeout_seconds),
-      resource_limits_audit: () => stub("resource_limits_audit"),
+      resource_limits_audit: () => resourceLimitsAudit(params.args, params.timeout_seconds),
       ingress_audit: () => stub("ingress_audit"),
       serviceaccount_audit: () => stub("serviceaccount_audit"),
     }
