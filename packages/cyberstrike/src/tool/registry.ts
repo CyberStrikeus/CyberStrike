@@ -58,6 +58,8 @@ import { MachookTool } from "./machook"
 import { AwshookTool } from "./awshook"
 import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
+import { GcphookTool } from "./gcphook"
+import { CloudAuditTool } from "./cloud-audit"
 import { CipipeTool } from "./cipipe"
 
 export namespace ToolRegistry {
@@ -191,6 +193,8 @@ export namespace ToolRegistry {
       AwshookTool,
       AzurehookTool,
       KubehookTool,
+      GcphookTool,
+      CloudAuditTool,
       CipipeTool,
       ...custom,
     ]
