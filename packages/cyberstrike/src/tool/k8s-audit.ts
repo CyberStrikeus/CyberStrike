@@ -244,6 +244,95 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function networkPolicyAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes NetworkPolicies...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  for (const n of namespaces) {
+    if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
+    const np = await kc(["get", "networkpolicies", "-n", n], kubeconfig, ctx, timeout)
+    const policies = np.exitCode === 0 ? (tryJson(np.stdout)?.items || []) : []
+    if (policies.length === 0) {
+      output.push(`  [!] No NetworkPolicies in namespace: ${n}`)
+      findings.push({
+        checkId: "K8S-NET-001",
+        provider: "kubernetes",
+        severity: "high",
+        status: "FAIL",
+        resource: `Namespace/${n}`,
+        title: `No NetworkPolicies in namespace ${n}`,
+        details: `Namespace "${n}" has zero NetworkPolicies. All pod-to-pod traffic is unrestricted.`,
+        remediation: "Create default-deny ingress/egress NetworkPolicies and add allow rules for required traffic.",
+      })
+      continue
+    }
+
+    output.push(`  [+] ${n}: ${policies.length} NetworkPolicy(ies)`)
+    let hasDefaultDenyIngress = false
+    let hasDefaultDenyEgress = false
+    for (const p of policies) {
+      const spec = p.spec || {}
+      const podSelector = spec.podSelector || {}
+      const isEmpty = !podSelector.matchLabels && !podSelector.matchExpressions?.length
+      const policyTypes = spec.policyTypes || []
+      if (isEmpty && policyTypes.includes("Ingress") && (!spec.ingress || spec.ingress.length === 0)) hasDefaultDenyIngress = true
+      if (isEmpty && policyTypes.includes("Egress") && (!spec.egress || spec.egress.length === 0)) hasDefaultDenyEgress = true
+
+      const ingress = spec.ingress || []
+      for (const rule of ingress) {
+        const from = rule.from || []
+        if (from.length === 0 && ingress.length > 0) {
+          output.push(`    [!] ${p.metadata.name}: ingress rule allows all sources`)
+          findings.push({
+            checkId: "K8S-NET-002",
+            provider: "kubernetes",
+            severity: "medium",
+            status: "FAIL",
+            resource: `${n}/NetworkPolicy/${p.metadata.name}`,
+            title: `Overly permissive ingress in ${p.metadata.name}`,
+            details: `Ingress rule with no "from" selector — allows traffic from all pods/namespaces.`,
+            remediation: "Add explicit podSelector/namespaceSelector to ingress rules.",
+          })
+        }
+      }
+    }
+
+    if (!hasDefaultDenyIngress) {
+      output.push(`    [!] ${n}: no default-deny ingress policy`)
+      findings.push({
+        checkId: "K8S-NET-003",
+        provider: "kubernetes",
+        severity: "medium",
+        status: "FAIL",
+        resource: `Namespace/${n}`,
+        title: `No default-deny ingress NetworkPolicy in ${n}`,
+        details: `Namespace "${n}" has policies but no default-deny ingress (empty podSelector + Ingress type + no ingress rules).`,
+        remediation: "Add a default-deny ingress NetworkPolicy: podSelector: {}, policyTypes: [Ingress].",
+      })
+    }
+    if (!hasDefaultDenyEgress) {
+      output.push(`    [!] ${n}: no default-deny egress policy`)
+      findings.push({
+        checkId: "K8S-NET-004",
+        provider: "kubernetes",
+        severity: "medium",
+        status: "FAIL",
+        resource: `Namespace/${n}`,
+        title: `No default-deny egress NetworkPolicy in ${n}`,
+        details: `Namespace "${n}" has no default-deny egress policy. Pods can reach any external endpoint.`,
+        remediation: "Add a default-deny egress NetworkPolicy and whitelist required destinations.",
+      })
+    }
+  }
+
+  output.push(formatFindings("network_policy_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -275,7 +364,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
     const dispatch: Record<Program, () => Promise<AuditResult>> = {
       verify_readonly: () => verifyReadonly(params.args, params.timeout_seconds),
       rbac_audit: () => rbacAudit(params.args, params.timeout_seconds),
-      network_policy_audit: () => stub("network_policy_audit"),
+      network_policy_audit: () => networkPolicyAudit(params.args, params.timeout_seconds),
       pod_security_audit: () => stub("pod_security_audit"),
       secrets_audit: () => stub("secrets_audit"),
       image_audit: () => stub("image_audit"),
