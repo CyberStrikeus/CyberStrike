@@ -254,6 +254,17 @@ export namespace SessionProcessor {
                   input.assistantMessage.finish = value.finishReason
                   input.assistantMessage.cost += usage.cost
                   input.assistantMessage.tokens = usage.tokens
+                  // Surface content-filter blocks so the user understands why
+                  // the response was empty or truncated
+                  if (value.finishReason === "content-filter") {
+                    await Session.updatePart({
+                      id: Identifier.ascending("part"),
+                      messageID: input.assistantMessage.id,
+                      sessionID: input.assistantMessage.sessionID,
+                      type: "text",
+                      text: "The model's response was blocked by a content filter. Try rephrasing your request.",
+                    })
+                  }
                   await Session.updatePart({
                     id: Identifier.ascending("part"),
                     reason: value.finishReason,

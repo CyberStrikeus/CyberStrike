@@ -482,7 +482,11 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // engine will not resolve a plain <a>, so force the CSS selector (same reason
       // as file inputs) — otherwise every reclassified anchor click-times-out.
       const selectorRole =
-        syntheticRole || count > 1 || isFileInput || nonNavAnchor ? "" : safeAriaLabel ? `role=${role}[name="${safeAriaLabel}"]` : `role=${role}`
+        syntheticRole || count > 1 || isFileInput || nonNavAnchor
+          ? ""
+          : safeAriaLabel
+            ? `role=${role}[name="${safeAriaLabel}"]`
+            : `role=${role}`
       const selectorCSS = buildCSSSelector(el)
 
       // Site-chrome detection: actions inside navigation/banner/footer/aside

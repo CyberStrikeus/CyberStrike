@@ -15,7 +15,7 @@ export function formatDateForTable(date: Date) {
     minute: "2-digit",
     hour12: true,
   }
-  return date.toLocaleDateString(undefined, options).replace(",", ",")
+  return date.toLocaleDateString(undefined, options)
 }
 
 export function formatDateUTC(date: Date) {

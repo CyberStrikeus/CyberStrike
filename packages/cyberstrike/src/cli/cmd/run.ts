@@ -308,7 +308,7 @@ export const RunCommand = cmd({
   },
   handler: async (args) => {
     let message = [...args.message, ...(args["--"] || [])]
-      .map((arg) => (arg.includes(" ") ? `"${arg.replace(/"/g, '\\"')}"` : arg))
+      .map((arg) => (arg.includes(" ") ? `"${arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : arg))
       .join(" ")
 
     const directory = (() => {
