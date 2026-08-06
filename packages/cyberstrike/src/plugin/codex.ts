@@ -91,6 +91,20 @@ export function extractAccountId(tokens: TokenResponse): string | undefined {
   return undefined
 }
 
+// The Codex backend serves its own tiers ("priority" for Fast) and rejects the
+// platform-only "auto" that ProviderTransform sets for every OpenAI model.
+export function stripServiceTier(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (typeof body !== "string") return body
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== "object" || parsed.service_tier !== "auto") return body
+    delete parsed.service_tier
+    return JSON.stringify(parsed)
+  } catch {
+    return body
+  }
+}
+
 function buildAuthorizeUrl(redirectUri: string, pkce: PkceCodes, state: string): string {
   const params = new URLSearchParams({
     response_type: "code",
@@ -362,31 +376,60 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         const auth = await getAuth()
         if (auth.type !== "oauth") return {}
 
-        // Filter models to only allowed Codex models for OAuth
+        // Filter models to only those available via the Codex (ChatGPT subscription) endpoint.
+        // Uses a version-based regex so new models (e.g. gpt-5.7, gpt-6.x) are automatically
+        // included without needing a code change. Explicit allow/disallow sets handle edge cases.
         const allowedModels = new Set([
-          "gpt-5.1-codex-max",
-          "gpt-5.1-codex-mini",
+          "gpt-5.6",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5",
+          "gpt-5.4",
+          "gpt-5.4-mini",
+          "gpt-5.3-codex-spark",
+        ])
+        const disallowedModels = new Set([
+          "gpt-5.5-pro",
+          "gpt-5.3-codex",
           "gpt-5.2",
           "gpt-5.2-codex",
-          "gpt-5.3-codex",
+          "gpt-5.1-codex-max",
+          "gpt-5.1-codex-mini",
           "gpt-5.1-codex",
         ])
         for (const modelId of Object.keys(provider.models)) {
-          if (modelId.includes("codex")) continue
           if (allowedModels.has(modelId)) continue
+          if (disallowedModels.has(modelId)) {
+            delete provider.models[modelId]
+            continue
+          }
+          const match = modelId.match(/^gpt-(\d+\.\d+)/)
+          if (match && parseFloat(match[1]) > 5.4) continue
           delete provider.models[modelId]
         }
 
-        if (!provider.models["gpt-5.3-codex"]) {
+        const missing = [
+          { id: "gpt-5.6", name: "GPT-5.6", release_date: "2026-07-15" },
+          { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", release_date: "2026-07-15" },
+          { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", release_date: "2026-07-15" },
+          { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", release_date: "2026-07-15" },
+          { id: "gpt-5.5", name: "GPT-5.5", release_date: "2026-05-15" },
+          { id: "gpt-5.4", name: "GPT-5.4", release_date: "2026-03-05" },
+          { id: "gpt-5.4-mini", name: "GPT-5.4 Mini", release_date: "2026-03-16" },
+          { id: "gpt-5.3-codex-spark", name: "GPT-5.3 Codex Spark", release_date: "2026-02-25" },
+        ].filter((model) => !provider.models[model.id])
+
+        for (const missingModel of missing) {
           const model = {
-            id: "gpt-5.3-codex",
+            id: missingModel.id,
             providerID: "openai",
             api: {
-              id: "gpt-5.3-codex",
+              id: missingModel.id,
               url: "https://chatgpt.com/backend-api/codex",
               npm: "@ai-sdk/openai",
             },
-            name: "GPT-5.3 Codex",
+            name: missingModel.name,
             capabilities: {
               temperature: false,
               reasoning: true,
@@ -401,12 +444,12 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
             status: "active" as const,
             options: {},
             headers: {},
-            release_date: "2026-02-05",
+            release_date: missingModel.release_date,
             variants: {} as Record<string, Record<string, any>>,
-            family: "gpt-codex",
+            family: missingModel.id.includes("codex") ? "gpt-codex" : "gpt",
           }
           model.variants = ProviderTransform.variants(model)
-          provider.models["gpt-5.3-codex"] = model
+          provider.models[missingModel.id] = model
         }
 
         // Zero out costs for Codex (included with ChatGPT subscription)
@@ -493,9 +536,14 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
                 ? new URL(CODEX_API_ENDPOINT)
                 : parsed
 
+            // The Codex backend only knows its own tiers and rejects the platform-only
+            // values ProviderTransform sets, e.g. "Unsupported service_tier: auto".
+            const body = url === parsed ? init?.body : stripServiceTier(init?.body)
+
             return fetch(url, {
               ...init,
               headers,
+              body,
             })
           },
         }
