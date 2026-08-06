@@ -266,6 +266,70 @@ async function managedIdentity(args: string[]): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function cleanupAzure(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const dryRun = args.includes("--dry-run")
+  const output: string[] = [dryRun ? "[*] CLEANUP DRY RUN — no changes will be made\n" : "[*] Cleaning up CyberStrike artifacts from Azure...\n"]
+  let cleaned = 0
+
+  output.push("[*] Checking for CyberStrike automation runbooks (cs-* prefix)...")
+  const accts = await az(["automation", "account", "list"], sub, timeout)
+  if (accts.exitCode === 0) {
+    const accounts = JSON.parse(accts.stdout)
+    for (const a of accounts) {
+      const rbs = await az(["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      if (rbs.exitCode !== 0) continue
+      const runbooks = JSON.parse(rbs.stdout)
+      for (const r of runbooks) {
+        if (!String(r.name).startsWith("cs-")) continue
+        if (dryRun) {
+          output.push(`    [DRY] Would delete runbook: ${r.name} in ${a.name}`)
+        } else {
+          const del = await az(["automation", "runbook", "delete", "--automation-account-name", a.name, "--resource-group", a.resourceGroup, "--name", r.name, "--yes"], sub, timeout)
+          output.push(del.exitCode === 0 ? `    [+] Deleted runbook: ${r.name}` : `    [-] Failed to delete ${r.name}: ${del.stderr.slice(0, 100)}`)
+        }
+        cleaned++
+      }
+    }
+  }
+
+  output.push("\n[*] Checking for CyberStrike role assignments...")
+  const assignments = await az(["role", "assignment", "list"], sub, timeout)
+  if (assignments.exitCode === 0) {
+    const roles = JSON.parse(assignments.stdout)
+    for (const r of roles) {
+      const desc = String(r.description || "")
+      if (!desc.includes("cyberstrike") && !desc.includes("cs-")) continue
+      if (dryRun) {
+        output.push(`    [DRY] Would remove role assignment: ${r.roleDefinitionName} on ${r.principalName}`)
+      } else {
+        const del = await az(["role", "assignment", "delete", "--ids", r.id], sub, timeout)
+        output.push(del.exitCode === 0 ? `    [+] Removed: ${r.roleDefinitionName} on ${r.principalName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+      }
+      cleaned++
+    }
+  }
+
+  output.push("\n[*] Checking for CyberStrike app registrations (cs-* prefix)...")
+  const apps = await az(["ad", "app", "list", "--display-name", "cs-"], sub, timeout)
+  if (apps.exitCode === 0) {
+    const appList = JSON.parse(apps.stdout)
+    for (const a of appList) {
+      if (!String(a.displayName).startsWith("cs-")) continue
+      if (dryRun) {
+        output.push(`    [DRY] Would delete app registration: ${a.displayName} (${a.appId})`)
+      } else {
+        const del = await az(["ad", "app", "delete", "--id", a.appId], sub, timeout)
+        output.push(del.exitCode === 0 ? `    [+] Deleted app: ${a.displayName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+      }
+      cleaned++
+    }
+  }
+
+  output.push(`\n[*] Cleanup complete: ${cleaned} artifact(s) ${dryRun ? "found" : "removed"}`)
+  return { output: output.join("\n"), findings: [] }
+}
+
 async function azureadToken(args: string[], timeout: number): Promise<HookResult> {
   const resource = argVal(args, "--resource") || "https://graph.microsoft.com"
   const scope = argVal(args, "--scope")
@@ -442,8 +506,6 @@ export const AzurehookTool = Tool.define("azurehook", {
       }
     }
 
-    const stub = (name: string): Promise<HookResult> => Promise.resolve({ output: `[*] ${name}: not yet implemented`, findings: [] })
-
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       entra_enum: () => entraEnum(params.args, params.timeout_seconds),
       entra_privesc: () => entraPrivesc(params.args, params.timeout_seconds),
@@ -452,7 +514,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       managed_identity: () => managedIdentity(params.args),
       runbook_backdoor: () => runbookBackdoor(params.args, params.timeout_seconds),
       azuread_token: () => azureadToken(params.args, params.timeout_seconds),
-      cleanup_azure: () => stub("cleanup_azure"),
+      cleanup_azure: () => cleanupAzure(params.args, params.timeout_seconds),
     }
 
     try {
