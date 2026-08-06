@@ -244,6 +244,112 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function serviceaccountAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes ServiceAccounts...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  let total = 0
+
+  const crb = await kc(["get", "clusterrolebindings"], kubeconfig, ctx, timeout)
+  const clusterBindings = crb.exitCode === 0 ? (tryJson(crb.stdout)?.items || []) : []
+  const saClusterRoles = new Map<string, string[]>()
+  for (const b of clusterBindings) {
+    for (const s of (b.subjects || [])) {
+      if (s.kind !== "ServiceAccount") continue
+      const key = `${s.namespace || "default"}/${s.name}`
+      const roles = saClusterRoles.get(key) || []
+      roles.push(b.roleRef.name)
+      saClusterRoles.set(key, roles)
+    }
+  }
+
+  for (const n of namespaces) {
+    const sas = await kc(["get", "serviceaccounts", "-n", n], kubeconfig, ctx, timeout)
+    if (sas.exitCode !== 0) continue
+    const items = tryJson(sas.stdout)?.items || []
+    total += items.length
+
+    for (const sa of items) {
+      const name = sa.metadata.name
+      const automount = sa.automountServiceAccountToken
+      const key = `${n}/${name}`
+
+      if (automount !== false && name === "default") {
+        output.push(`  [!] ${n}/default: automountServiceAccountToken not disabled`)
+        findings.push({
+          checkId: "K8S-SA-001",
+          provider: "kubernetes",
+          severity: "medium",
+          status: "FAIL",
+          resource: `${n}/ServiceAccount/default`,
+          title: `Default SA auto-mounts token in ${n}`,
+          details: `Default ServiceAccount in "${n}" has automountServiceAccountToken=true. All pods without explicit SA get a token.`,
+          remediation: "Set automountServiceAccountToken: false on the default ServiceAccount.",
+        })
+      }
+
+      const roles = saClusterRoles.get(key) || []
+      if (roles.includes("cluster-admin")) {
+        output.push(`  [!] ${key}: bound to cluster-admin!`)
+        findings.push({
+          checkId: "K8S-SA-002",
+          provider: "kubernetes",
+          severity: "critical",
+          status: "FAIL",
+          resource: `${n}/ServiceAccount/${name}`,
+          title: `ServiceAccount ${name} has cluster-admin`,
+          details: `ServiceAccount "${name}" in "${n}" is bound to cluster-admin via ClusterRoleBinding.`,
+          remediation: "Remove cluster-admin binding. Use a scoped ClusterRole with minimum required permissions.",
+        })
+      }
+
+      const secrets = sa.secrets || []
+      if (secrets.length > 1) {
+        output.push(`  [*] ${key}: ${secrets.length} secrets attached`)
+      }
+    }
+
+    const rb = await kc(["get", "rolebindings", "-n", n], kubeconfig, ctx, timeout)
+    if (rb.exitCode !== 0) continue
+    const bindings = tryJson(rb.stdout)?.items || []
+    const boundSAs = new Set<string>()
+    for (const b of bindings) {
+      for (const s of (b.subjects || [])) {
+        if (s.kind === "ServiceAccount" && s.namespace === n) boundSAs.add(s.name)
+      }
+    }
+
+    const saItems = tryJson((await kc(["get", "serviceaccounts", "-n", n], kubeconfig, ctx, timeout)).stdout)?.items || []
+    for (const sa of saItems) {
+      if (sa.metadata.name === "default") continue
+      if (!boundSAs.has(sa.metadata.name) && !saClusterRoles.has(`${n}/${sa.metadata.name}`)) {
+        const pods = await kcText(["get", "pods", "-n", n, "--field-selector", `spec.serviceAccountName=${sa.metadata.name}`, "--no-headers"], kubeconfig, ctx, timeout)
+        if (pods.stdout.trim() === "") {
+          output.push(`  [*] ${n}/${sa.metadata.name}: unused (no bindings, no pods)`)
+          findings.push({
+            checkId: "K8S-SA-003",
+            provider: "kubernetes",
+            severity: "low",
+            status: "WARN",
+            resource: `${n}/ServiceAccount/${sa.metadata.name}`,
+            title: `Unused ServiceAccount: ${sa.metadata.name}`,
+            details: `ServiceAccount "${sa.metadata.name}" in "${n}" has no role bindings and no running pods. Dormant SA with secrets is an attack surface.`,
+            remediation: "Delete unused ServiceAccounts to reduce attack surface.",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Total ServiceAccounts: ${total}`)
+  output.push(formatFindings("serviceaccount_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function ingressAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -799,8 +905,6 @@ async function networkPolicyAudit(args: string[], timeout: number): Promise<Audi
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
 
-const stub = (name: string): Promise<AuditResult> => Promise.resolve({ output: `[*] ${name}: not yet implemented`, findings: [] })
-
 export const K8sAuditTool = Tool.define("k8s_audit", {
   description: `Execute a READ-ONLY Kubernetes security assessment based on CIS Kubernetes Benchmark. No resources are created, modified, or deleted — all checks use kubectl get/describe/auth can-i. Run verify_readonly first. Programs: ${programKeys.join(", ")}`,
   parameters: z.object({
@@ -833,7 +937,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       api_server_audit: () => apiServerAudit(params.args, params.timeout_seconds),
       resource_limits_audit: () => resourceLimitsAudit(params.args, params.timeout_seconds),
       ingress_audit: () => ingressAudit(params.args, params.timeout_seconds),
-      serviceaccount_audit: () => stub("serviceaccount_audit"),
+      serviceaccount_audit: () => serviceaccountAudit(params.args, params.timeout_seconds),
     }
 
     try {
