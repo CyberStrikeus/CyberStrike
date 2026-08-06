@@ -244,6 +244,73 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function podSecurityAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing pod security configurations...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  for (const n of namespaces) {
+    if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
+    const pods = await kc(["get", "pods", "-n", n], kubeconfig, ctx, timeout)
+    if (pods.exitCode !== 0) continue
+    const items = tryJson(pods.stdout)?.items || []
+    for (const pod of items) {
+      const name = pod.metadata.name
+      const spec = pod.spec || {}
+
+      if (spec.hostPID) {
+        findings.push({ checkId: "K8S-POD-001", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `hostPID enabled on ${name}`, details: "Pod shares host PID namespace — can see all host processes and potentially inject code.", remediation: "Remove hostPID: true unless absolutely required." })
+        output.push(`  [!] ${n}/${name}: hostPID=true`)
+      }
+      if (spec.hostNetwork) {
+        findings.push({ checkId: "K8S-POD-002", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `hostNetwork enabled on ${name}`, details: "Pod shares host network namespace — can sniff traffic and bind to host ports.", remediation: "Remove hostNetwork: true. Use Services/Ingress for external access." })
+        output.push(`  [!] ${n}/${name}: hostNetwork=true`)
+      }
+
+      const containers = [...(spec.containers || []), ...(spec.initContainers || [])]
+      for (const c of containers) {
+        const sc = c.securityContext || {}
+        if (sc.privileged) {
+          findings.push({ checkId: "K8S-POD-003", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Privileged container: ${c.name} in ${name}`, details: "Container runs in privileged mode — full access to host devices and kernel.", remediation: "Remove privileged: true. Use specific capabilities instead." })
+          output.push(`  [!] ${n}/${name}/${c.name}: privileged=true`)
+        }
+        if (sc.runAsUser === 0 || (sc.runAsNonRoot !== true && !sc.runAsUser)) {
+          findings.push({ checkId: "K8S-POD-004", provider: "kubernetes", severity: "high", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Container may run as root: ${c.name}`, details: "No runAsNonRoot: true or explicit non-root runAsUser set. Container may run as UID 0.", remediation: "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero UID." })
+        }
+        const caps = sc.capabilities?.add || []
+        const dangerous = ["SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "NET_RAW", "ALL"]
+        for (const cap of caps) {
+          if (dangerous.includes(cap)) {
+            findings.push({ checkId: "K8S-POD-005", provider: "kubernetes", severity: "high", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Dangerous capability ${cap} on ${c.name}`, details: `Container has ${cap} capability added. This can be used for container escape or network attacks.`, remediation: `Remove ${cap} from capabilities.add. Use the minimum required capabilities.` })
+            output.push(`  [!] ${n}/${name}/${c.name}: cap_add=${cap}`)
+          }
+        }
+        if (!sc.readOnlyRootFilesystem) {
+          findings.push({ checkId: "K8S-POD-006", provider: "kubernetes", severity: "low", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Writable root filesystem: ${c.name}`, details: "Container root filesystem is writable. Attackers can modify binaries or drop tools.", remediation: "Set securityContext.readOnlyRootFilesystem: true. Use emptyDir for writable paths." })
+        }
+      }
+
+      const volumes = spec.volumes || []
+      for (const v of volumes) {
+        if (v.hostPath) {
+          const hp = v.hostPath.path
+          const critical = ["/", "/etc", "/var", "/root", "/var/run/docker.sock"]
+          if (critical.some(p => hp === p || hp.startsWith(p + "/"))) {
+            findings.push({ checkId: "K8S-POD-007", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `Sensitive hostPath mount: ${hp}`, details: `Pod mounts "${hp}" from host. This provides direct access to host filesystem or Docker socket.`, remediation: "Remove hostPath volume or restrict to a non-sensitive directory." })
+            output.push(`  [!] ${n}/${name}: hostPath=${hp}`)
+          }
+        }
+      }
+    }
+  }
+
+  output.push(formatFindings("pod_security_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function networkPolicyAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -365,7 +432,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       verify_readonly: () => verifyReadonly(params.args, params.timeout_seconds),
       rbac_audit: () => rbacAudit(params.args, params.timeout_seconds),
       network_policy_audit: () => networkPolicyAudit(params.args, params.timeout_seconds),
-      pod_security_audit: () => stub("pod_security_audit"),
+      pod_security_audit: () => podSecurityAudit(params.args, params.timeout_seconds),
       secrets_audit: () => stub("secrets_audit"),
       image_audit: () => stub("image_audit"),
       api_server_audit: () => stub("api_server_audit"),
