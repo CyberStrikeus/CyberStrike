@@ -101,6 +101,24 @@ describe("ProviderTransform.options - setCacheKey", () => {
     })
     expect(result.store).toBe(false)
   })
+
+  test("should not set serviceTier for openai provider by default", () => {
+    const openaiModel = {
+      ...mockModel,
+      providerID: "openai",
+      api: {
+        id: "gpt-4",
+        url: "https://api.openai.com",
+        npm: "@ai-sdk/openai",
+      },
+    }
+    const result = ProviderTransform.options({
+      model: openaiModel,
+      sessionID,
+      providerOptions: {},
+    })
+    expect(result.serviceTier).toBeUndefined()
+  })
 })
 
 describe("ProviderTransform.options - gpt-5 textVerbosity", () => {
