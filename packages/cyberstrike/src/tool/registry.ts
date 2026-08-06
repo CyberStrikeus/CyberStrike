@@ -39,6 +39,7 @@ import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
 import { WebGetDetailTool } from "./web-get-detail"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
+import { InjectProbeTool } from "./inject-probe"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
@@ -167,6 +168,7 @@ export namespace ToolRegistry {
       WebGetSessionContextTool,
       WebGetDetailTool,
       WebGetRequestDetailTool,
+      InjectProbeTool,
       WebGetVulnerabilitiesTool,
       WebGetVulnDetailTool,
       WebUpdateCredentialClaimsTool,

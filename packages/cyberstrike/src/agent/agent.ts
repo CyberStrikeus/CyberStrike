@@ -116,6 +116,14 @@ async function loadVulnAgent(
 }
 
 export namespace Agent {
+  // Hard step-caps (Layer 1 backstop for the loop-termination fix — see
+  // AGENT_LOOP_TERMINATION_SPEC.md). Single tuning point. NOTE: proxy-tester-* are
+  // deliberately left at their existing default of 50 (see the `startsWith` guard
+  // below — lowering them regressed findings); only the two genuinely-uncapped
+  // orchestration agents get a cap here. Enforcement (tool-strip + break on the
+  // capped turn) lives in session/prompt.ts.
+  const STEP_CAPS = { orchestrator: 40, analyzer: 20 } as const
+
   export const Info = z
     .object({
       name: z.string(),
@@ -453,6 +461,7 @@ export namespace Agent {
         description: DESC_WEB_PROXY_AGENT.split("\n")[0].trim(),
         mode: "subagent",
         native: true,
+        steps: STEP_CAPS.orchestrator,
         // NOTE: proxy-agent runs on the FULL run model (no useSmallModel). Routing
         // is the brain of the pipeline — dispatch quality matters; downgrading it to
         // the small tier caused measured mis-/over-/under-dispatch. Only the analyzer
@@ -490,6 +499,7 @@ export namespace Agent {
         mode: "subagent",
         native: true,
         hidden: true,
+        steps: STEP_CAPS.analyzer,
         useSmallModel: true, // architecture extraction, not exploitation — run cheap
         prompt: PROMPT_PROXY_ANALYZER,
         prependRequestContext: true,
@@ -593,6 +603,9 @@ export namespace Agent {
         const injectionAgentPermission = PermissionNext.merge(
           vulnAgentPermission,
           PermissionNext.fromConfig({
+            // Injection-only: deterministic payload-battery / evidence tool. Scoped to
+            // this agent (not vulnAgentPermission) to keep the blast radius narrow.
+            inject_probe: "allow",
             bash: {
               // Destructive SQL DDL
               "*DROP TABLE*": "deny",
@@ -624,6 +637,14 @@ export namespace Agent {
               "*--reg-del*": "deny",
             },
           }),
+        )
+
+        // File-attacks-specific permission: inject_probe's LFI mode (read-only Linux/Windows
+        // path-traversal file-disclosure) hands this agent the WORKING filter-bypass shape. Scoped
+        // to this agent only (not vulnAgentPermission) to keep the blast radius narrow.
+        const fileAttacksPermission = PermissionNext.merge(
+          vulnAgentPermission,
+          PermissionNext.fromConfig({ inject_probe: "allow" }),
         )
 
         return {
@@ -712,7 +733,7 @@ export namespace Agent {
             hidden: true,
             prompt: fileAttacksAgent.prompt,
             prependRequestContext: true,
-            permission: vulnAgentPermission,
+            permission: fileAttacksPermission,
             options: {},
           },
         }
@@ -775,7 +796,7 @@ export namespace Agent {
     // price). The cap is soft (forces a text wrap-up at the limit, prompt.ts) and only
     // applies when not explicitly configured, so user config still overrides.
     for (const name in result) {
-      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 50
+      if (result[name].steps == null && name.startsWith("proxy-tester-")) result[name].steps = 60
     }
 
     return result

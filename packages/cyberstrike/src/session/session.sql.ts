@@ -101,6 +101,11 @@ export const VulnerabilityTable = sqliteTable(
     endpoint: text(),
     attack_vector: text(),
     status: text().notNull(),
+    // Candidate marker: when non-null, this finding was recorded as an UNCONFIRMED candidate
+    // (execution-dependent class filed without execution_evidence) and holds the severity it
+    // was downgraded FROM. NULL = a normal (confirmed/claimed) finding. First-class signal so
+    // downstream never parses the title prefix. Cleared to NULL on an in-place evidence upgrade.
+    candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
     position: integer().notNull(),
     ...Timestamps,
