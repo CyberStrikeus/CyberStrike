@@ -1,0 +1,299 @@
+import z from "zod"
+import { Tool } from "./tool"
+
+const PROGRAMS = {
+  verify_readonly: {
+    description:
+      "Safety check: confirm current kubeconfig identity has no write/modify permissions by testing create/delete/patch verbs via kubectl auth can-i. ALWAYS run first",
+    args: "[--kubeconfig PATH] [--context CTX]",
+  },
+  rbac_audit: {
+    description:
+      "Audit RBAC: cluster-admin bindings, wildcard verb/resource roles, default ServiceAccount permissions, overprivileged bindings",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  network_policy_audit: {
+    description:
+      "Check for missing or overly permissive NetworkPolicies. Identify namespaces with no ingress/egress restrictions",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  pod_security_audit: {
+    description:
+      "Check pods for dangerous configurations: privileged, hostPID, hostNetwork, hostPath, SYS_ADMIN, runAsRoot, no securityContext",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  secrets_audit: {
+    description:
+      "Audit Kubernetes Secrets: count by type, check for unencrypted etcd (EncryptionConfiguration), detect mounted secrets in pods",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  image_audit: {
+    description:
+      "Check container images: latest tag usage, non-pinned digests, images from untrusted registries, missing imagePullPolicy",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  api_server_audit: {
+    description:
+      "Check API server exposure: anonymous auth, insecure port, NodeRestriction admission, audit logging, OIDC config",
+    args: "[--kubeconfig PATH] [--context CTX]",
+  },
+  resource_limits_audit: {
+    description:
+      "Check for missing CPU/memory requests/limits, LimitRange and ResourceQuota coverage per namespace",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  ingress_audit: {
+    description:
+      "Audit Ingress resources: TLS termination, missing annotations, exposed internal services, wildcard hosts",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+  serviceaccount_audit: {
+    description:
+      "Check ServiceAccounts: automountServiceAccountToken=true, bound to cluster-admin, unused SAs with secrets",
+    args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
+  },
+} as const satisfies Record<string, { description: string; args: string }>
+
+type Program = keyof typeof PROGRAMS
+type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type AuditResult = { output: string; findings: Finding[] }
+
+// ── CLI helpers ──
+
+async function exec(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
+  const timer = setTimeout(() => proc.kill(), timeout * 1000)
+  const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  clearTimeout(timer)
+  return { stdout, stderr, exitCode: await proc.exited }
+}
+
+function argVal(args: string[], flag: string): string | undefined {
+  const i = args.indexOf(flag)
+  return i >= 0 && i + 1 < args.length ? args[i + 1] : undefined
+}
+
+function tryJson(s: string) {
+  try { return JSON.parse(s) } catch { return null }
+}
+
+function kc(args: string[], kubeconfig: string | undefined, ctx: string | undefined, timeout: number) {
+  const extra = [...(kubeconfig ? ["--kubeconfig", kubeconfig] : []), ...(ctx ? ["--context", ctx] : [])]
+  return exec("kubectl", [...args, ...extra, "-o", "json"], timeout)
+}
+
+function kcText(args: string[], kubeconfig: string | undefined, ctx: string | undefined, timeout: number) {
+  const extra = [...(kubeconfig ? ["--kubeconfig", kubeconfig] : []), ...(ctx ? ["--context", ctx] : [])]
+  return exec("kubectl", [...args, ...extra], timeout)
+}
+
+function formatFindings(tool: string, findings: Finding[]): string {
+  const crit = findings.filter(f => f.severity === "critical").length
+  const high = findings.filter(f => f.severity === "high").length
+  const med = findings.filter(f => f.severity === "medium").length
+  const lines = [`\n${"=".repeat(60)}`, `${tool} — ${findings.length} finding(s) (critical: ${crit}, high: ${high}, medium: ${med})\n`]
+  for (const f of findings) {
+    lines.push(`[${f.severity.toUpperCase()}] ${f.title}`)
+    lines.push(`  Resource: ${f.resource}`)
+    lines.push(`  ${f.details}`)
+    lines.push(`  Fix: ${f.remediation}\n`)
+  }
+  return lines.join("\n")
+}
+
+async function getNamespaces(kubeconfig: string | undefined, ctx: string | undefined, timeout: number): Promise<string[]> {
+  const r = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
+  if (r.exitCode !== 0) return ["default"]
+  const items = tryJson(r.stdout)?.items || []
+  return items.map((n: Record<string, Record<string, string>>) => n.metadata.name)
+}
+
+// ── Programs ──
+
+async function verifyReadonly(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const output: string[] = ["[*] Verifying READ-ONLY access to Kubernetes cluster...\n"]
+  const findings: Finding[] = []
+
+  const whoami = await kcText(["auth", "whoami"], kubeconfig, ctx, timeout)
+  if (whoami.exitCode === 0) {
+    output.push(`[+] Current identity:\n${whoami.stdout}`)
+  }
+
+  const writeVerbs = ["create", "delete", "patch", "update"]
+  const resources = ["pods", "deployments", "secrets", "configmaps", "clusterroles", "clusterrolebindings"]
+  let hasWrite = false
+  for (const verb of writeVerbs) {
+    for (const res of resources) {
+      const check = await kcText(["auth", "can-i", verb, res, "--all-namespaces"], kubeconfig, ctx, timeout)
+      if (check.stdout.trim() === "yes") {
+        hasWrite = true
+        output.push(`[!] WRITE permission detected: ${verb} ${res}`)
+        findings.push({
+          checkId: "K8S-READONLY-001",
+          provider: "kubernetes",
+          severity: "high",
+          status: "FAIL",
+          resource: `verb:${verb}/resource:${res}`,
+          title: `Write permission detected: ${verb} ${res}`,
+          details: `Current identity can ${verb} ${res} across all namespaces. This violates read-only assessment constraints.`,
+          remediation: "Use a kubeconfig with read-only ClusterRole (view or custom) for security assessments",
+        })
+      }
+    }
+  }
+
+  if (!hasWrite) output.push("[+] PASS — No write permissions detected. Safe to proceed with audit.")
+
+  const readVerbs = ["get", "list"]
+  for (const verb of readVerbs) {
+    const check = await kcText(["auth", "can-i", verb, "pods", "--all-namespaces"], kubeconfig, ctx, timeout)
+    output.push(check.stdout.trim() === "yes" ? `[+] Can ${verb} pods: YES` : `[-] Can ${verb} pods: NO (limited audit coverage)`)
+  }
+
+  output.push(formatFindings("verify_readonly", findings))
+  return { output: output.join("\n"), findings }
+}
+
+async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Kubernetes RBAC...\n"]
+
+  const crb = await kc(["get", "clusterrolebindings"], kubeconfig, ctx, timeout)
+  if (crb.exitCode === 0) {
+    const bindings = tryJson(crb.stdout)?.items || []
+    output.push(`[*] ClusterRoleBindings: ${bindings.length}`)
+    for (const b of bindings) {
+      const role = b.roleRef?.name
+      if (role !== "cluster-admin") continue
+      const subjects = b.subjects || []
+      for (const s of subjects) {
+        if (s.name === "system:masters") continue
+        output.push(`  [!] cluster-admin binding: ${s.kind}/${s.name} via ${b.metadata.name}`)
+        findings.push({
+          checkId: "K8S-RBAC-001",
+          provider: "kubernetes",
+          severity: "critical",
+          status: "FAIL",
+          resource: `ClusterRoleBinding/${b.metadata.name}`,
+          title: `cluster-admin bound to ${s.kind}/${s.name}`,
+          details: `${s.kind} "${s.name}" has cluster-admin via ClusterRoleBinding "${b.metadata.name}". This grants unrestricted cluster access.`,
+          remediation: "Replace cluster-admin with a scoped ClusterRole following least-privilege. Use namespaced RoleBindings where possible.",
+        })
+      }
+    }
+  }
+
+  const cr = await kc(["get", "clusterroles"], kubeconfig, ctx, timeout)
+  if (cr.exitCode === 0) {
+    const roles = tryJson(cr.stdout)?.items || []
+    for (const r of roles) {
+      if (r.metadata.name.startsWith("system:")) continue
+      const rules = r.rules || []
+      for (const rule of rules) {
+        const verbs = rule.verbs || []
+        const resources = rule.resources || []
+        const apiGroups = rule.apiGroups || []
+        if (verbs.includes("*") && resources.includes("*") && apiGroups.includes("*")) continue
+        if (verbs.includes("*") || resources.includes("*")) {
+          output.push(`  [!] Wildcard role: ${r.metadata.name} — verbs:${verbs.join(",")} resources:${resources.join(",")}`)
+          findings.push({
+            checkId: "K8S-RBAC-002",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `ClusterRole/${r.metadata.name}`,
+            title: `Wildcard permissions in ClusterRole ${r.metadata.name}`,
+            details: `ClusterRole has wildcard verbs (${verbs.join(",")}) or resources (${resources.join(",")}).`,
+            remediation: "Replace wildcards with explicit verb and resource lists.",
+          })
+        }
+      }
+    }
+  }
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  for (const n of namespaces) {
+    const sa = await kc(["get", "rolebindings", "-n", n], kubeconfig, ctx, timeout)
+    if (sa.exitCode !== 0) continue
+    const bindings = tryJson(sa.stdout)?.items || []
+    for (const b of bindings) {
+      const subjects = b.subjects || []
+      for (const s of subjects) {
+        if (s.kind !== "ServiceAccount" || s.name !== "default") continue
+        output.push(`  [!] Default SA has RoleBinding in ${n}: ${b.metadata.name} → ${b.roleRef.name}`)
+        findings.push({
+          checkId: "K8S-RBAC-003",
+          provider: "kubernetes",
+          severity: "medium",
+          status: "FAIL",
+          resource: `${n}/RoleBinding/${b.metadata.name}`,
+          title: `Default ServiceAccount has RoleBinding in namespace ${n}`,
+          details: `The default ServiceAccount is bound to role "${b.roleRef.name}" in namespace "${n}". Pods without explicit SA inherit these permissions.`,
+          remediation: "Bind specific ServiceAccounts instead of default. Set automountServiceAccountToken: false on default SA.",
+        })
+      }
+    }
+  }
+
+  output.push(formatFindings("rbac_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
+// ── Tool definition ──
+
+const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
+
+const stub = (name: string): Promise<AuditResult> => Promise.resolve({ output: `[*] ${name}: not yet implemented`, findings: [] })
+
+export const K8sAuditTool = Tool.define("k8s_audit", {
+  description: `Execute a READ-ONLY Kubernetes security assessment based on CIS Kubernetes Benchmark. No resources are created, modified, or deleted — all checks use kubectl get/describe/auth can-i. Run verify_readonly first. Programs: ${programKeys.join(", ")}`,
+  parameters: z.object({
+    program: z.enum(programKeys).describe(
+      "K8s audit program. Options: " +
+        Object.entries(PROGRAMS)
+          .map(([k, v]) => `${k} — ${v.description}`)
+          .join("; "),
+    ),
+    args: z.array(z.string()).describe("Arguments for the program"),
+    timeout_seconds: z.number().optional().default(300).describe("Max execution time (default: 300)"),
+  }),
+  async execute(params) {
+    const check = await exec("which", ["kubectl"], 5)
+    if (check.exitCode !== 0) {
+      return {
+        title: `k8s_audit: ${params.program}`,
+        output: "kubectl not found. Install: https://kubernetes.io/docs/tasks/tools/",
+        metadata: { program: params.program, findings: [] as Finding[] },
+      }
+    }
+
+    const dispatch: Record<Program, () => Promise<AuditResult>> = {
+      verify_readonly: () => verifyReadonly(params.args, params.timeout_seconds),
+      rbac_audit: () => rbacAudit(params.args, params.timeout_seconds),
+      network_policy_audit: () => stub("network_policy_audit"),
+      pod_security_audit: () => stub("pod_security_audit"),
+      secrets_audit: () => stub("secrets_audit"),
+      image_audit: () => stub("image_audit"),
+      api_server_audit: () => stub("api_server_audit"),
+      resource_limits_audit: () => stub("resource_limits_audit"),
+      ingress_audit: () => stub("ingress_audit"),
+      serviceaccount_audit: () => stub("serviceaccount_audit"),
+    }
+
+    try {
+      const result = await dispatch[params.program]()
+      return {
+        title: `k8s_audit: ${params.program}`,
+        output: result.output,
+        metadata: { program: params.program, findings: result.findings },
+      }
+    } catch (e) {
+      return { title: `k8s_audit: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+    }
+  },
+})
