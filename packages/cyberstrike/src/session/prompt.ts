@@ -51,6 +51,10 @@ import { Token } from "@/util/token"
 import { MethodologyContext } from "@/methodology/context"
 import { AgentPerformance } from "@/methodology/performance"
 import { testerClass } from "@/tool/vuln-scope"
+import { toolSig, READ_ONLY_TOOLS } from "./stuck/signals"
+import { StuckDetector, DEFAULT_STUCK_CONFIG } from "./stuck/stuck-detector"
+import { RepeatDetector } from "./stuck/repeat-detector"
+import STUCK_WRAP_UP from "./prompt/stuck-wrap-up.txt"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -310,6 +314,20 @@ export namespace SessionPrompt {
 
     let step = 0
     const session = await Session.get(sessionID)
+    // Loop-termination Layer 2: one stuck-detector per subagent run (monologue rule).
+    // Only observed for native subagents (gated below). `forceWrapUpNext` carries a
+    // 1st-strike nudge from one step into the next (strip tools + wrap-up prompt).
+    const stuckDetector = new StuckDetector({ ...DEFAULT_STUCK_CONFIG })
+    let forceWrapUpNext = false
+    // Loop-termination Layer 2b — CROSS-TURN identical-call guard. The within-turn
+    // suppressor (resolveTools `sigCounts`) and the doom_loop check (processor) both
+    // see only ONE generation, so a weak model that re-emits the SAME (tool,args)
+    // once per turn across many turns evades both (observed: qwen re-emitting an
+    // identical record_coverage_note ~26× → failure-to-terminate). Count each
+    // signature over the whole subagent run; a byte-identical repeat past the limit
+    // forces wrap-up (nudge) then aborts (backstop). Different args never collide
+    // because toolSig includes the args, so legitimate probing is unaffected.
+    const repeatDetector = new RepeatDetector(3)
     while (true) {
       SessionStatus.set(sessionID, { type: "busy" })
       log.info("loop", { step, sessionID })
@@ -612,6 +630,16 @@ export namespace SessionPrompt {
       const agent = await Agent.get(lastUser.agent)
       const maxSteps = agent.steps ?? Infinity
       const isLastStep = step >= maxSteps
+      // Hard backstop (loop-termination Layer 1): the forced wrap-up turn strips
+      // tools (below) so the model finishes with text. If a provider STILL returned a
+      // tool-call finish on that turn, we'd re-enter here with step > maxSteps — break
+      // rather than loop forever. This is the only unconditional terminator.
+      if (step > maxSteps) break
+      // A wrap-up turn is forced either by the step-cap (Layer 1) or by the stuck-
+      // detector's 1st-strike nudge (Layer 2). Consume the nudge flag here.
+      const stuckWrapUp = forceWrapUpNext
+      forceWrapUpNext = false
+      const wrapUp = isLastStep || stuckWrapUp
       msgs = await insertReminders({
         messages: msgs,
         agent,
@@ -627,8 +655,9 @@ export namespace SessionPrompt {
           agent: agent.name,
           variant: lastUser.variant,
           // Mark the forced wrap-up turn so callers (task tool) can tell a
-          // step-capped run apart from a genuinely clean finish.
+          // step-capped / stuck run apart from a genuinely clean finish.
           ...(isLastStep ? { stepCapped: true } : {}),
+          ...(stuckWrapUp ? { stuckNudged: true } : {}),
           path: {
             cwd: Instance.directory,
             root: Instance.worktree,
@@ -675,6 +704,19 @@ export namespace SessionPrompt {
             structuredOutput = output
           },
         })
+      }
+
+      // Loop-termination enforcement (Layer 1): on the capped/last turn, remove every
+      // tool so the model MUST emit a plain-text final message → finish becomes "stop"
+      // → the modelFinished exit (below) fires. Without this the model can keep calling
+      // tools forever — max-steps.txt claims tools are disabled but nothing disabled
+      // them. In json_schema mode keep only StructuredOutput (that mode's designated
+      // exit). Combined with the `step > maxSteps` break above, termination is absolute.
+      // `wrapUp` covers both the step-cap (Layer 1) and a stuck-detector nudge (Layer 2).
+      if (wrapUp) {
+        const structured = lastUser.format?.type === "json_schema" ? tools["StructuredOutput"] : undefined
+        for (const key of Object.keys(tools)) delete tools[key]
+        if (structured) tools["StructuredOutput"] = structured
       }
 
       if (step === 1) {
@@ -830,11 +872,11 @@ export namespace SessionPrompt {
         system,
         messages: [
           ...modelMessages,
-          ...(isLastStep
+          ...(wrapUp
             ? [
                 {
                   role: "assistant" as const,
-                  content: MAX_STEPS,
+                  content: stuckWrapUp ? STUCK_WRAP_UP : MAX_STEPS,
                 },
               ]
             : []),
@@ -884,6 +926,59 @@ export namespace SessionPrompt {
         }
       }
 
+      // Loop-termination Layer 2: feed the stuck-detector this step's tool calls, but
+      // ONLY when the model is CONTINUING (made tool calls). A natural text finish exits
+      // cleanly below and must NOT be reclassified as stuck. Native subagents only.
+      if (!modelFinished && agent.mode === "subagent" && agent.native === true) {
+        const stepParts = await MessageV2.parts(processor.message.id)
+        const toolCalls = stepParts
+          .filter((p) => p.type === "tool")
+          .map((p) => ({ tool: p.tool, input: p.state.status !== "pending" ? p.state.input : undefined }))
+        // Monologue rule (Layer 2) — DISABLED by default (over-fires; see stuck-detector.ts).
+        // Left wired so it can be re-enabled with a properly scoped config later.
+        const verdict = stuckDetector.observe({ toolCalls })
+        if (verdict.kind === "nudge") {
+          forceWrapUpNext = true
+          log.warn("stuck-detector nudge — forcing wrap-up next turn", {
+            reason: verdict.reason,
+            detail: verdict.detail,
+            sessionID,
+          })
+        } else if (verdict.kind === "abort") {
+          processor.message.stuckAborted = true
+          await Session.updateMessage(processor.message)
+          log.warn("stuck-detector abort — terminating subagent", {
+            reason: verdict.reason,
+            detail: verdict.detail,
+            sessionID,
+          })
+          break
+        }
+
+        // Layer 2b: cross-turn identical-call loop (the doom_loop's cross-turn twin).
+        // Byte-identical (tool,args) re-emitted past the limit across turns = a
+        // failure-to-terminate loop. Nudge first (forces a tool-free wrap-up next
+        // turn), abort as backstop if it somehow keeps repeating.
+        // Exempt READ_ONLY_TOOLS only: re-polling status/context with identical args
+        // (e.g. the orchestrator re-reading web_get_session_context({}) each ingest)
+        // is normal, not a loop — counting it would kill legitimate pipeline drivers.
+        // Status-writes (record_coverage_note/update_vrt_check) are NOT read-only and
+        // DO count here — a byte-identical re-write is exactly the loop we target.
+        const repeatSigs = toolCalls
+          .filter((c) => c.input !== undefined && !READ_ONLY_TOOLS.has(c.tool))
+          .map((c) => toolSig(c.tool, c.input))
+        const repeatVerdict = repeatDetector.observe(repeatSigs)
+        if (repeatVerdict === "nudge") {
+          forceWrapUpNext = true
+          log.warn("cross-turn repeat nudge — forcing wrap-up next turn", { sessionID })
+        } else if (repeatVerdict === "abort" && !processor.message.stuckAborted) {
+          processor.message.stuckAborted = true
+          await Session.updateMessage(processor.message)
+          log.warn("cross-turn repeat abort — terminating subagent", { sessionID })
+          break
+        }
+      }
+
       if (result === "stop") break
       if (result === "compact") {
         await SessionCompaction.create({
@@ -926,6 +1021,16 @@ export namespace SessionPrompt {
   }) {
     using _ = log.time("resolveTools")
     const tools: Record<string, AITool> = {}
+
+    // Within-turn duplicate suppression (loop-termination). A weak model can emit the
+    // SAME (tool+args) call dozens/hundreds of times in ONE generation. This resolveTools
+    // call maps 1:1 to one assistant message (one step), so a Map here counts signatures
+    // per step. Past a small threshold, execute() short-circuits with a feedback result
+    // instead of running the duplicate. Gated to native subagents (the proxy pipeline) so
+    // interactive/primary agents are untouched. Same keying as the doom_loop check.
+    const suppressDuplicates = input.agent.mode === "subagent" && input.agent.native === true
+    const DUP_SUPPRESS_THRESHOLD = 3
+    const sigCounts = new Map<string, number>()
 
     const context = (args: any, options: ToolCallOptions): Tool.Context => ({
       sessionID: input.session.id,
@@ -973,6 +1078,22 @@ export namespace SessionPrompt {
         inputSchema: jsonSchema(schema as any),
         async execute(args, options) {
           const ctx = context(args, options)
+          if (suppressDuplicates) {
+            const sig = toolSig(item.id, args)
+            const n = (sigCounts.get(sig) ?? 0) + 1
+            sigCounts.set(sig, n)
+            if (n > DUP_SUPPRESS_THRESHOLD) {
+              log.warn("duplicate tool call suppressed", { tool: item.id, count: n, sessionID: ctx.sessionID })
+              return {
+                title: "duplicate suppressed",
+                output:
+                  `This exact ${item.id} call (identical arguments) was already made ${n - 1}× this turn and ` +
+                  `returns the same result every time. It was SKIPPED. Stop repeating identical calls — change ` +
+                  `the arguments if you have more to test, or finish with a plain-text summary.`,
+                metadata: {},
+              }
+            }
+          }
           await Plugin.trigger(
             "tool.execute.before",
             {

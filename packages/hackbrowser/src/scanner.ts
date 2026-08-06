@@ -412,7 +412,27 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       const label = getLabel(el)
       const tag = el.tagName.toLowerCase()
       const type = (el as HTMLInputElement).type?.toLowerCase() || ""
-      const href = (el as HTMLAnchorElement).href || ""
+      // `href` = where this element NAVIGATES. A bare "#", a "#fragment", a
+      // "javascript:" scheme, or an empty href does NOT navigate to a new page —
+      // it is the idiom for a JS action link (click handler / AJAX / modal / tab)
+      // or an in-page scroll anchor. Give those NO nav target (href = "") so the
+      // BFS enqueue + self-link filtering leave them alone and treat them as plain
+      // clickables (otherwise a table's `<a href="#">Receipt</a>` is dropped as a
+      // self-link and never clicked). The RAW attribute is checked, not the
+      // resolved el.href, which would turn "#" into "<current-page>#" —
+      // indistinguishable from a genuine self-link like "/page#".
+      const rawHref = (el.getAttribute("href") || "").trim()
+      const navigates = !!rawHref && rawHref !== "#" && !rawHref.startsWith("#") && !rawHref.startsWith("javascript:")
+      const href = navigates ? (el as HTMLAnchorElement).href || "" : ""
+      // A non-navigating <a> (href "", "#", "#frag", "javascript:") is not a
+      // navigation link but a JS action control (addEventListener → AJAX / modal /
+      // tab). Reclassify it as a button so the planner's click rules apply — the
+      // planner prompt excludes links ("the system handles navigation separately")
+      // and the post-action / unexplored-element sweeps skip role==="link". Without
+      // this the anchor falls in a gap: the planner ignores it and BFS only follows
+      // links that carry an href. Must precede the dedup key + selector below.
+      const nonNavAnchor = tag === "a" && !navigates
+      if (nonNavAnchor) role = "button"
       const isSlider = role === "slider"
       const value = isSlider
         ? (el.getAttribute("aria-valuenow") ?? (el as HTMLInputElement).value ?? "")
@@ -458,8 +478,11 @@ async function collectInteractiveElements(page: Page): Promise<BrowserElement[]>
       // inputs are not textboxes), so a role selector would make setInputFiles time
       // out. Force the CSS selector, which resolves to the real <input type=file>.
       const isFileInput = el.matches("input[type=file]")
+      // nonNavAnchor was reclassified <a> → button above; Playwright's role=button
+      // engine will not resolve a plain <a>, so force the CSS selector (same reason
+      // as file inputs) — otherwise every reclassified anchor click-times-out.
       const selectorRole =
-        syntheticRole || count > 1 || isFileInput
+        syntheticRole || count > 1 || isFileInput || nonNavAnchor
           ? ""
           : safeAriaLabel
             ? `role=${role}[name="${safeAriaLabel}"]`
@@ -939,7 +962,7 @@ export function filterVisitedLinks(
   }
 
   return elements.filter((el) => {
-    if (el.role !== "link" || !el.href) return true // keep non-links
+    if (el.role !== "link" || !el.href) return true // keep non-links (incl. non-navigating anchors, whose href the scanner sets to "")
     try {
       const u = new URL(el.href)
       const path = u.pathname + u.hash

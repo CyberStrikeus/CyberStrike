@@ -100,6 +100,41 @@ export function classifyFindingTitle(title: string): string | null {
   return null
 }
 
+// Execution-dependent finding classes: ones where "it exists" needs an OBSERVED
+// trigger (alert/flag/checker output), not just a reflected/echoed byte. Derived
+// deterministically from title+cwe — the model's vrt_category is NEVER trusted.
+// Intentionally narrower and separate from classifyFindingTitle: that collapses
+// ALL injection into one coarse "injection" bucket and can't tell XSS from SQLi;
+// this splits out the exec subset and EXCLUDES SQLi/LFI/IDOR/SSRF (response = proof).
+// Short/ambiguous tokens are \b-bounded to avoid substring bleed (rce↮commerce).
+const EXEC_DEPENDENT_TITLE =
+  /\bxss\b|cross-site script|dom[- ]?based|\bssti\b|template injection|command injection|os command|\brce\b|remote code execution|insecure deserial|deserializ/i
+const EXEC_DEPENDENT_CWE = new Set([
+  "CWE-79", // XSS
+  "CWE-80", // basic XSS
+  "CWE-83", // improper neutralization of script in attributes
+  "CWE-87", // improper neutralization for alternate XSS syntax
+  "CWE-94", // code injection
+  "CWE-95", // eval injection (SSTI/code)
+  "CWE-917", // expression-language injection (SSTI)
+  "CWE-1336", // template-engine injection (SSTI)
+  "CWE-78", // OS command injection
+  "CWE-77", // command injection
+  "CWE-502", // deserialization → RCE
+])
+/**
+ * True when the finding's class needs an OBSERVED trigger to be "confirmed"
+ * (reflected/DOM XSS, SSTI-exec, command-injection, deser-RCE). SQLi (error or
+ * blind), LFI, IDOR, SSRF, info-disclosure return FALSE — their response is the
+ * proof, so they are never gated. Errs toward TRUE (over-gating only downgrades,
+ * never fabricates a finding). Model-supplied vrt_category is ignored by design.
+ */
+export function isExecutionDependentFinding(title: string, cweId?: string): boolean {
+  if (EXEC_DEPENDENT_TITLE.test(title ?? "")) return true
+  const c = (cweId ?? "").toUpperCase().trim()
+  return c ? EXEC_DEPENDENT_CWE.has(c) : false
+}
+
 /**
  * Scope check for report_vulnerability. Uses the explicit vrt_category when the
  * tester provides one; otherwise infers the class from the title. Returns the

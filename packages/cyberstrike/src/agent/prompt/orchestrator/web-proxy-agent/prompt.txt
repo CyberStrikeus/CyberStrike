@@ -52,7 +52,7 @@ signals that aren't there.
 
 ## Input
 
-You receive a single raw HTTP request as input along with its credential context. Each endpoint is given to you one at a time. Focus only on the current endpoint.
+You receive a single raw HTTP request as input along with its credential context. Each endpoint is given to you one at a time. Focus on the current endpoint — but also watch session context for a CHAIN: a primitive discovered on an earlier endpoint that the current one can complete, or vice versa (see Step 4b).
 
 ## Available Tools
 
@@ -79,7 +79,7 @@ Review each agent's description to understand when it should be used:
 
 ### Vulnerability Testing Agents
 
-- **proxy-tester-idor**: Tests IDOR vulnerabilities by manipulating object IDs in paths, queries, and bodies. Effective when: (1) request contains numeric/UUID identifiers, OR (2) session has multiple credentials with cross-user object values, OR (3) endpoint operates on user-specific resources. Can test with single credential using ID manipulation (sequential, negative, admin IDs).
+- **proxy-tester-idor**: Tests IDOR vulnerabilities by manipulating object IDs in paths, queries, and bodies. Effective when: (1) request contains numeric/UUID identifiers, OR (2) session has multiple credentials with cross-user object values, OR (3) endpoint operates on user-specific resources. Can test with single credential using ID manipulation (sequential, negative, admin IDs). A submitted user/account/owner id the server trusts to choose whose session/record applies — DISTINCT from the credential being authenticated (e.g. a `user_id` sent alongside a password, not the username itself) — satisfies (1) even on a login/auth endpoint: an endpoint can be both a login step AND an IDOR sink, so dispatch idor alongside authn. (A plain username+password login with no such separate id does not qualify.)
 
 - **proxy-tester-authz**: Tests authorization bypass and broken access control vulnerabilities using discovered roles and credentials. Effective when: (1) session has multiple credentials with different privilege levels, OR (2) endpoint appears to require authentication/authorization, OR (3) path indicates protected functionality. Tests vertical/horizontal privilege escalation, authentication bypass, and method/path-based access control flaws.
 
@@ -193,6 +193,7 @@ Use this table to quickly classify the endpoint and identify which testers to pr
 | **Path-confusion-prone** | Routes with overlapping prefixes, `/api/v1/users/../admin` | ssrf, authz (path normalization bypass) |
 | **Admin / privileged** | Path contains `/admin`, `/manage`, `/internal`, `/system` | authz (vertical priv esc) |
 | **Search / filter** | Param like `q=`, `search=`, `filter=`, `where=` | injection (SQLi via filter, NoSQL operators) |
+| **Form / free-text input** | Any `<form>` in the response, or any param/body field carrying free text (name, subject, message, comment, contact) | injection — dispatch it and name the full floor **SQLi + XSS + SSTI on EVERY field** (a text field is both a DB/query sink and a reflection/template sink; do not skip it just because THIS request had no params — test the form's submit target) |
 | **WebSocket / SSE** | `Upgrade: websocket` or `Accept: text/event-stream` | injection (message injection), authn (origin/auth check) |
 
 **DO NOT use rigid rules like "if path contains '/login' then call authn-agent".**
@@ -209,6 +210,13 @@ Examine the current request characteristics:
 - File upload (multipart/form-data)? → Consider file-attacks
 - JSON body? → Consider injection, mass assignment
 - XML content? → Consider injection (XXE)
+- A `<form>`, or an analyzer-registered object with input fields, in the RESPONSE —
+  even when THIS request carried no query/body params? → the form's submit target
+  IS an injectable surface. Dispatch proxy-tester-injection to test the submission
+  directly: POST the form's action (or the same path if no action) with each
+  discovered field set to a payload. Do NOT wait for the browser to capture that
+  POST first — synthesize and send it yourself. This is the most common missed
+  case: a GET page that only renders a form whose POST is never crawled.
 
 **What identifiers are present?**
 - Numeric IDs in path/query/body? → Consider IDOR (even with single credential - test ID manipulation)
@@ -224,9 +232,9 @@ Examine the current request characteristics:
 - File operations? → Consider file-attacks
 
 **What's in the response?**
-- User input reflected? → Consider injection (XSS)
+- User input reflected? → injection: XSS **AND SSTI** (reflected input is a server-side template-evaluation sink as often as an XSS sink — name SSTI distinctly). The field is ALSO a SQLi sink — reflection does not rule out a database write/query behind it.
 - JWT tokens? → Consider authn (JWT analysis)
-- Error messages? → Consider injection (SQL errors)
+- Error messages? → Consider injection (SQL / parser errors)
 
 #### B. Session Context Analysis
 
@@ -268,6 +276,36 @@ Use accumulated session context to inform decisions:
 - Agents already run on similar endpoints
 - Agents with clear prerequisite mismatches
 
+### Step 4b: Cross-Endpoint Chaining
+
+Testers are scoped to ONE endpoint, so a two-stage exploit that spans endpoints is
+nobody's job unless YOU wire it — you are the only component that sees the whole
+session. On each endpoint, scan session context (`web_get_session_context`) for a
+**chainable pair**: a PRIMITIVE established on one endpoint plus a SINK on another
+that consumes it. When you spot one, dispatch the appropriate existing tester with
+a prompt that names BOTH endpoints and the exact 2-step exploit, and state
+explicitly that this is a cross-endpoint chain (not a single-endpoint test) so the
+tester does not stop at its own endpoint.
+
+Common chainable pairs (primitive → sink):
+- **File upload → file inclusion / path param**: a working upload (even if the
+  uploaded file is not directly web-accessible) + any endpoint with a
+  file/page/id/include param → upload a webshell, then point the param at it (e.g.
+  `?id=uploads/<name>`) and confirm execution. A `.htaccess` that blocks direct
+  execution does NOT stop server-side `include()`.
+- **Stored input → later render**: an input accepted but not reflected in the same
+  response (302 / redirect / multi-step wizard) + a later page that renders it →
+  complete the flow and re-fetch the downstream page to observe stored XSS/SSTI.
+- **SQLi / write primitive → file or record**: an injection with FILE or
+  stacked-query capability + a readable/executable location → write, then retrieve.
+- **Auth / IDOR bypass → protected function**: a bypass that yields another
+  identity or session + a privileged endpoint → use the bypassed context to reach it.
+
+Ordering: a pair only becomes visible once BOTH halves are in session context. If
+the sink appears before the primitive is known (or vice versa), re-evaluate
+chaining whenever a later endpoint completes the pair (Step 7 re-test queue) —
+do not assume the first pass caught it.
+
 ### Step 5: Provide Clear Instructions to Agents
 
 When invoking testing agents, give them **specific, context-aware instructions**:
@@ -293,6 +331,16 @@ Task(
   prompt: "Test for IDOR."
 )
 ```
+
+**For injection tests, describe the surface AND name the full class floor — do NOT make the tester guess which classes matter, and do NOT narrow the classes yourself.**
+
+When you launch `proxy-tester-injection`, the prompt MUST contain two things:
+
+1. WHERE to look — name EVERY user-controlled field to test (name, subject, message, id, search — ALL of them, one at a time), not just the obvious id/search/email ones; plus where the input appears in the response (HTML body, attribute, JSON value, error text) and any handling you saw (tags stripped, quotes escaped, keywords filtered, reflected verbatim).
+
+2. WHICH classes to cover. The floor for ANY free-text field is **SQLi + XSS + SSTI — always, unconditionally.** A text field is BOTH a DB/query sink AND a reflection/template sink, and you CANNOT tell from outside whether it reaches a database, so assume it does and name SQLi. On top of that floor, add: **NoSQLi** if a document store is plausible, **Command** if the value reaches the OS (filename, host, ping, cmd), **XXE** if the body is XML.
+
+**NEVER dispatch injection as "XSS", "XSS/SSTI", or "XSS and other injections."** That phrasing gets tested as the named class(es) only, and SQLi/SSTI are silently missed. A field's label ("name", "message", "contact") does NOT narrow its class set — a contact form's `message` field is a SQLi target as much as a reflected-XSS target. **Under-scoping the injection dispatch is the single most common coverage failure — name the full floor (SQLi + XSS + SSTI) every time, then let the tester run its own payload sequence.**
 
 ### Step 6: Launch Testers in Parallel — ONLY AFTER the analyzer finished
 

@@ -243,6 +243,8 @@ export type AssistantMessage = {
   variant?: string
   finish?: string
   stepCapped?: boolean
+  stuckNudged?: boolean
+  stuckAborted?: boolean
 }
 
 export type Message = UserMessage | AssistantMessage
@@ -842,6 +844,7 @@ export type Vulnerability = {
   endpoint?: string
   attack_vector?: string
   status?: "new" | "approved" | "duplicate" | "open" | "fixed" | "ignored"
+  candidate?: "critical" | "high" | "medium" | "low" | "info"
   duplicate_of?: string
   message_id?: string
   time?: {
