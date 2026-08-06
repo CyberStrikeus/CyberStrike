@@ -927,7 +927,7 @@ export const MachookTool = Tool.define("machook", {
       return {
         title: `machook: ${params.program}`,
         output: `machook requires macOS. Current platform: ${process.platform}\n\nUse 'ebpf' for Linux post-exploitation or 'winhook' for Windows.`,
-        metadata: { program: params.program, findings: [] },
+        metadata: { program: params.program, findings: [] as Finding[] },
       }
     }
 
