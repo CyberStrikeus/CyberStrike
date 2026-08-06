@@ -10131,6 +10131,12 @@
           },
           "stepCapped": {
             "type": "boolean"
+          },
+          "stuckNudged": {
+            "type": "boolean"
+          },
+          "stuckAborted": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -11821,6 +11827,10 @@
             "default": "new",
             "type": "string",
             "enum": ["new", "approved", "duplicate", "open", "fixed", "ignored"]
+          },
+          "candidate": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"]
           },
           "duplicate_of": {
             "type": "string"
