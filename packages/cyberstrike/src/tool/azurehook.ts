@@ -266,6 +266,46 @@ async function managedIdentity(args: string[]): Promise<HookResult> {
   return { output: output.join("\n"), findings: [] }
 }
 
+async function azureadToken(args: string[], timeout: number): Promise<HookResult> {
+  const resource = argVal(args, "--resource") || "https://graph.microsoft.com"
+  const scope = argVal(args, "--scope")
+  const sub = argVal(args, "--subscription-id")
+  const output: string[] = ["[*] Acquiring Azure AD access tokens...\n"]
+
+  const tokenArgs = ["account", "get-access-token", "--resource", resource]
+  if (scope) tokenArgs.push("--scope", scope)
+  const tokenResult = await az(tokenArgs, sub, timeout)
+  if (tokenResult.exitCode !== 0) {
+    output.push(`[-] Token acquisition failed: ${tokenResult.stderr.slice(0, 300)}`)
+    return { output: output.join("\n"), findings: [] }
+  }
+  const token = JSON.parse(tokenResult.stdout)
+  output.push(`[+] Token acquired for resource: ${resource}`)
+  output.push(`    Token type: ${token.tokenType}`)
+  output.push(`    Expires: ${token.expiresOn}`)
+  output.push(`    Tenant: ${token.tenant}`)
+  output.push(`    Token: ${String(token.accessToken).slice(0, 30)}...`)
+
+  const acctResult = await az(["account", "show"], sub, timeout)
+  if (acctResult.exitCode === 0) {
+    const acct = JSON.parse(acctResult.stdout)
+    output.push(`\n[+] Current identity:`)
+    output.push(`    User: ${acct.user?.name} (${acct.user?.type})`)
+    output.push(`    Subscription: ${acct.name} (${acct.id})`)
+    output.push(`    Tenant: ${acct.tenantId}`)
+  }
+
+  const resources = ["https://management.azure.com", "https://vault.azure.net", "https://storage.azure.com", "https://database.windows.net"]
+  output.push("\n[*] Probing additional resource tokens...")
+  for (const r of resources) {
+    if (r === resource) continue
+    const probe = await az(["account", "get-access-token", "--resource", r], sub, timeout)
+    output.push(probe.exitCode === 0 ? `    [+] ${r} — token acquired` : `    [-] ${r} — denied`)
+  }
+
+  return { output: output.join("\n"), findings: [] }
+}
+
 async function runbookBackdoor(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const automationAccount = argVal(args, "--automation-account")
@@ -411,7 +451,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       storage_dump: () => storageDump(params.args, params.timeout_seconds),
       managed_identity: () => managedIdentity(params.args),
       runbook_backdoor: () => runbookBackdoor(params.args, params.timeout_seconds),
-      azuread_token: () => stub("azuread_token"),
+      azuread_token: () => azureadToken(params.args, params.timeout_seconds),
       cleanup_azure: () => stub("cleanup_azure"),
     }
 
