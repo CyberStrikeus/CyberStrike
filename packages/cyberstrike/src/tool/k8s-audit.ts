@@ -244,6 +244,90 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
   return { output: output.join("\n"), findings }
 }
 
+async function ingressAudit(args: string[], timeout: number): Promise<AuditResult> {
+  const kubeconfig = argVal(args, "--kubeconfig")
+  const ctx = argVal(args, "--context")
+  const ns = argVal(args, "--namespace")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Auditing Ingress resources...\n"]
+
+  const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
+  let total = 0
+
+  for (const n of namespaces) {
+    const ingresses = await kc(["get", "ingresses", "-n", n], kubeconfig, ctx, timeout)
+    if (ingresses.exitCode !== 0) continue
+    const items = tryJson(ingresses.stdout)?.items || []
+    total += items.length
+
+    for (const ing of items) {
+      const name = ing.metadata.name
+      const tls = ing.spec?.tls || []
+      const rules = ing.spec?.rules || []
+
+      if (tls.length === 0) {
+        output.push(`  [!] ${n}/${name}: no TLS configured`)
+        findings.push({
+          checkId: "K8S-ING-001",
+          provider: "kubernetes",
+          severity: "high",
+          status: "FAIL",
+          resource: `${n}/Ingress/${name}`,
+          title: `No TLS on Ingress ${name}`,
+          details: `Ingress "${name}" in namespace "${n}" has no TLS configuration. Traffic is unencrypted.`,
+          remediation: "Add spec.tls with a valid TLS secret reference.",
+        })
+      }
+
+      for (const rule of rules) {
+        const host = rule.host || ""
+        if (host === "*" || host === "") {
+          output.push(`  [!] ${n}/${name}: wildcard or empty host`)
+          findings.push({
+            checkId: "K8S-ING-002",
+            provider: "kubernetes",
+            severity: "medium",
+            status: "FAIL",
+            resource: `${n}/Ingress/${name}`,
+            title: `Wildcard host on Ingress ${name}`,
+            details: `Ingress rule has wildcard or empty host — matches all incoming requests.`,
+            remediation: "Set explicit hostnames on Ingress rules to prevent unintended routing.",
+          })
+        }
+
+        const paths = rule.http?.paths || []
+        for (const p of paths) {
+          const svc = p.backend?.service?.name || p.backend?.serviceName || ""
+          const port = p.backend?.service?.port?.number || p.backend?.servicePort || ""
+          output.push(`  [*] ${n}/${name}: ${host}${p.path || "/"} → ${svc}:${port}`)
+        }
+      }
+
+      const annotations = ing.metadata?.annotations || {}
+      const sensitive = ["nginx.ingress.kubernetes.io/server-snippet", "nginx.ingress.kubernetes.io/configuration-snippet"]
+      for (const ann of sensitive) {
+        if (annotations[ann]) {
+          output.push(`  [!] ${n}/${name}: has ${ann} annotation (code injection risk)`)
+          findings.push({
+            checkId: "K8S-ING-003",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `${n}/Ingress/${name}`,
+            title: `Dangerous annotation on Ingress ${name}: ${ann}`,
+            details: `Annotation "${ann}" allows arbitrary nginx config injection. Can leak secrets or proxy to internal services.`,
+            remediation: "Remove snippet annotations. Use dedicated Ingress annotations for configuration.",
+          })
+        }
+      }
+    }
+  }
+
+  output.push(`\n[*] Total Ingress resources: ${total}`)
+  output.push(formatFindings("ingress_audit", findings))
+  return { output: output.join("\n"), findings }
+}
+
 async function resourceLimitsAudit(args: string[], timeout: number): Promise<AuditResult> {
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
@@ -748,7 +832,7 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
       image_audit: () => imageAudit(params.args, params.timeout_seconds),
       api_server_audit: () => apiServerAudit(params.args, params.timeout_seconds),
       resource_limits_audit: () => resourceLimitsAudit(params.args, params.timeout_seconds),
-      ingress_audit: () => stub("ingress_audit"),
+      ingress_audit: () => ingressAudit(params.args, params.timeout_seconds),
       serviceaccount_audit: () => stub("serviceaccount_audit"),
     }
 
