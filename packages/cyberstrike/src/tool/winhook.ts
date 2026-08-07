@@ -482,6 +482,11 @@ const PROGRAMS = {
       "AppLocker and WDAC bypass for execution restriction evasion — enumerate AppLocker/WDAC policy, find writable allowed directories, use LOLBAS (MSBuild, InstallUtil, Regsvr32, CMSTP, Mshta, CertUtil) for arbitrary code execution past application whitelisting. Covers all major bypass techniques",
     args: "--action enum|bypass [--method msbuild|installutil|regsvr32|cmstp|mshta|certutil|wmic|xsl] [--payload CMD] [--file PATH]",
   },
+  stealth_check: {
+    description:
+      "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
+    args: "[--mode base64|amsi|obfuscate|all]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -13756,6 +13761,67 @@ if ($hLsass -ne [IntPtr]::Zero) {
   return { output: output.join("\n"), findings }
 }
 
+async function stealthCheck(args: string[], timeout: number): Promise<HookResult> {
+  const mode = argVal(args, "--mode") || "all"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Stealth encoding verification...\n"]
+  const testScript = `Write-Output "STEALTH_OK_$(hostname)_$([System.DateTime]::UtcNow.Ticks)"`
+
+  const modes: StealthMode[] = mode === "all" ? ["base64", "amsi", "obfuscate"] : [mode as StealthMode]
+
+  const plain = await ps(testScript, timeout)
+  output.push(`[*] Plain (no encoding): ${plain.stdout.includes("STEALTH_OK") ? "OK" : "FAILED"}`)
+  output.push(`    Command-line: powershell.exe -Command "Write-Output ..."`)
+  output.push(`    Detection: AMSI scans content, Script Block Logging captures plaintext, command-line logged\n`)
+
+  for (const m of modes) {
+    const result = await ps(testScript, timeout, m)
+    const ok = result.stdout.includes("STEALTH_OK")
+    output.push(`[*] Mode: ${m} — ${ok ? "OK" : "FAILED"}`)
+
+    if (m === "base64") {
+      output.push(`    Technique: UTF-16LE Base64 → -EncodedCommand`)
+      output.push(`    Bypasses: command-line string matching, simple AV signatures`)
+      output.push(`    Detected by: AMSI (decodes before scan), advanced EDR\n`)
+    }
+    if (m === "amsi") {
+      output.push(`    Technique: AMSI patch (AmsiInitFailed=true) + Base64 encoding`)
+      output.push(`    Bypasses: AMSI content scanning, string-based AV, Script Block Logging content`)
+      output.push(`    Detected by: ETW (if not blinded), kernel callbacks, AMSI patch detection\n`)
+    }
+    if (m === "obfuscate") {
+      output.push(`    Technique: String chunking → variable concat → IEX → Base64`)
+      output.push(`    Bypasses: signature matching, static analysis, content-based rules`)
+      output.push(`    Detected by: behavioral analysis, IEX pattern detection, deobfuscation engines\n`)
+    }
+
+    if (ok) {
+      findings.push({
+        checkId: `WIN-STEALTH-${m.toUpperCase()}`,
+        provider: "windows",
+        severity: "info",
+        status: "VERIFIED",
+        resource: `stealth://${m}`,
+        title: `Stealth mode ${m} operational`,
+        details: `Encoding mode ${m} executed successfully. Safe to use with other programs via --stealth ${m}`,
+        remediation: "N/A — offensive tool verification",
+      })
+    }
+  }
+
+  output.push("\n[*] Usage: winhook <any_program> --stealth <mode>")
+  output.push("    Example: winhook lsass_dump --stealth amsi")
+  output.push("    Example: winhook dcsync --stealth obfuscate")
+  output.push("    Example: winhook ad_enum --stealth base64")
+  output.push("\n[*] Recommended OpSec chain:")
+  output.push("    1. winhook stealth_check --mode all        (verify modes work)")
+  output.push("    2. winhook etw_blind --stealth amsi        (blind ETW first)")
+  output.push("    3. winhook amsi_bypass --stealth base64    (patch AMSI)")
+  output.push("    4. winhook <target_program>                (now safe without --stealth)")
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -17361,6 +17427,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   msi_abuse: msiAbuse,
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
+  stealth_check: stealthCheck,
 }
 
 export const WinhookTool = Tool.define("winhook", {
