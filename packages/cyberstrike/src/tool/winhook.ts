@@ -14051,7 +14051,8 @@ Write-Output "    chisel server -p ${listenPort} --socks5 --reverse"
       resource: `socks://0.0.0.0:${listenPort}`,
       title: `SOCKS proxy established on port ${listenPort} for network pivoting`,
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor for unexpected listening ports. Block unnecessary outbound connections. Use network segmentation.",
+      remediation:
+        "Monitor for unexpected listening ports. Block unnecessary outbound connections. Use network segmentation.",
     })
   }
 
@@ -14359,7 +14360,8 @@ Write-Output "[*] Restore: auditpol /set /subcategory:'Process Creation' /succes
       resource: "auditpol://subcategories",
       title: "Audit policy subcategories disabled — no new security events generated",
       details: r.stdout.substring(0, 500),
-      remediation: "Enforce audit policies via GPO. Monitor Event ID 4719 (audit policy changed). Alert on auditpol.exe execution.",
+      remediation:
+        "Enforce audit policies via GPO. Monitor Event ID 4719 (audit policy changed). Alert on auditpol.exe execution.",
     })
   }
 
@@ -14465,7 +14467,8 @@ if (-not $sysmonService -and -not $sysmonProcess) {
       resource: "sysmon://driver",
       title: "Sysmon detection and neutralization",
       details: r.stdout.substring(0, 500),
-      remediation: "Protect Sysmon with tamper protection. Monitor for SysmonDrv unload. Use kernel-level Sysmon protection.",
+      remediation:
+        "Protect Sysmon with tamper protection. Monitor for SysmonDrv unload. Use kernel-level Sysmon protection.",
     })
   }
 
@@ -14511,7 +14514,7 @@ foreach ($storeLoc in $stores) {
                 $usages = if ($eku) { ($eku.EnhancedKeyUsages | ForEach-Object { $_.FriendlyName }) -join ', ' } else { 'N/A' }
 
                 $isInteresting = $hasPrivKey -or $usages -match 'Code Signing|Client Auth|Smart Card|Server Auth'
-                if (${exportableOnly ? '$exportable' : '$isInteresting'}) {
+                if (${exportableOnly ? "$exportable" : "$isInteresting"}) {
                     $certInfo = [PSCustomObject]@{
                         Store = "$storeLoc\\$sn"
                         Subject = $cert.Subject
@@ -14592,7 +14595,8 @@ if ('${action}' -eq 'export') {
     resource: "certstore://local",
     title: "Certificate store enumeration/export — code signing, client auth, private keys",
     details: r.stdout.substring(0, 500),
-    remediation: "Mark private keys as non-exportable. Use HSMs for code signing certs. Monitor certificate export events (Event ID 1007).",
+    remediation:
+      "Mark private keys as non-exportable. Use HSMs for code signing certs. Monitor certificate export events (Event ID 1007).",
   })
 
   return { output: output.join("\n"), findings }
@@ -14800,7 +14804,8 @@ if ($targetBrowser -eq 'all' -or $targetBrowser -eq 'firefox') {
     resource: "browser://credentials",
     title: "Browser credential harvest — passwords, cookies, history from all browsers",
     details: r.stdout.substring(0, 500),
-    remediation: "Use enterprise password managers instead of browser password storage. Deploy Chrome/Edge policies to disable password saving.",
+    remediation:
+      "Use enterprise password managers instead of browser password storage. Deploy Chrome/Edge policies to disable password saving.",
   })
 
   return { output: output.join("\n"), findings }
@@ -15027,7 +15032,8 @@ foreach ($cf in $credFinds) { Write-Output "    [!] $cf" }
     resource: "registry://credentials",
     title: "Registry credential sweep — AutoLogon, VNC, PuTTY, WinSCP, services, apps",
     details: r.stdout.substring(0, 500),
-    remediation: "Remove cleartext passwords from registry. Disable AutoLogon. Use credential managers with encryption.",
+    remediation:
+      "Remove cleartext passwords from registry. Disable AutoLogon. Use credential managers with encryption.",
   })
 
   return { output: output.join("\n"), findings }
@@ -15491,7 +15497,8 @@ if ($credFinds.Count -gt 0) {
       resource: `smb://SYSVOL`,
       title: "SYSVOL/NETLOGON credential hunt — GPP passwords, scripts, configs",
       details: r.stdout.substring(0, 500),
-      remediation: "Delete Groups.xml with cPassword. Remove plaintext credentials from SYSVOL scripts. Apply MS14-025 patch.",
+      remediation:
+        "Delete Groups.xml with cPassword. Remove plaintext credentials from SYSVOL scripts. Apply MS14-025 patch.",
     })
   }
 
@@ -15567,7 +15574,8 @@ if ($writableShares) {
       resource: "smb://writable-shares",
       title: "Writable share discovery for staging and persistence",
       details: r.stdout.substring(0, 500),
-      remediation: "Restrict write access on shares. Use NTFS + share-level permissions. Monitor for unexpected file drops.",
+      remediation:
+        "Restrict write access on shares. Use NTFS + share-level permissions. Monitor for unexpected file drops.",
     })
   }
 
