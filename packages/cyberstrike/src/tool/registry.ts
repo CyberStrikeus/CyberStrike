@@ -59,6 +59,8 @@ import { AwshookTool } from "./awshook"
 import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
 import { GcphookTool } from "./gcphook"
+import { ContainerhookTool } from "./containerhook"
+import { IachookTool } from "./iachook"
 import { CloudAuditTool } from "./cloud-audit"
 import { K8sAuditTool } from "./k8s-audit"
 import { CiAuditTool } from "./ci-audit"
@@ -196,6 +198,8 @@ export namespace ToolRegistry {
       AzurehookTool,
       KubehookTool,
       GcphookTool,
+      ContainerhookTool,
+      IachookTool,
       CloudAuditTool,
       K8sAuditTool,
       CiAuditTool,
