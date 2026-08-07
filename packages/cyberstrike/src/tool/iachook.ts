@@ -45,12 +45,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -68,7 +81,11 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 // ── Programs ──
@@ -79,7 +96,8 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
   const findings: Finding[] = []
   const output: string[] = ["[*] Extracting secrets from Terraform state...\n"]
 
-  const secretPatterns = /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|access[_-]?key|master[_-]?password|admin[_-]?password)/i
+  const secretPatterns =
+    /(?:password|secret|api[_-]?key|token|credential|private[_-]?key|connection[_-]?string|access[_-]?key|master[_-]?password|admin[_-]?password)/i
 
   const stateFiles: string[] = []
 
@@ -98,7 +116,11 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
       }
     }
   } else {
-    const find = await run("find", [".", "-maxdepth", "5", "-name", "*.tfstate", "-o", "-name", "terraform.tfstate.backup"], timeout)
+    const find = await run(
+      "find",
+      [".", "-maxdepth", "5", "-name", "*.tfstate", "-o", "-name", "terraform.tfstate.backup"],
+      timeout,
+    )
     if (find.exitCode === 0) stateFiles.push(...find.stdout.trim().split("\n").filter(Boolean))
     const pull = await run("terraform", ["state", "pull"], timeout)
     if (pull.exitCode === 0 && pull.stdout.trim().startsWith("{")) {
@@ -153,7 +175,9 @@ async function tfStateSecrets(args: string[], timeout: number): Promise<HookResu
     for (const [key, val] of Object.entries(outputs)) {
       const v = val as Record<string, unknown>
       if (secretPatterns.test(key) || v.sensitive) {
-        output.push(`    [!] Output: ${key} = ${String(v.value || "").substring(0, 80)}${v.sensitive ? " [SENSITIVE]" : ""}`)
+        output.push(
+          `    [!] Output: ${key} = ${String(v.value || "").substring(0, 80)}${v.sensitive ? " [SENSITIVE]" : ""}`,
+        )
         if (!v.sensitive) {
           findings.push({
             checkId: "IAC-STATE-002",
@@ -199,12 +223,23 @@ async function tfPlanAudit(args: string[], timeout: number): Promise<HookResult>
   const plan = tryJson(planJson)
   if (!plan?.resource_changes) return { output: output.join("\n") + "\n[!] Invalid plan format", findings }
 
-  const dangerousTypes = ["aws_security_group_rule", "aws_security_group", "azurerm_network_security_rule", "google_compute_firewall", "aws_iam_policy", "aws_iam_role_policy", "azurerm_role_assignment", "google_project_iam_member"]
+  const dangerousTypes = [
+    "aws_security_group_rule",
+    "aws_security_group",
+    "azurerm_network_security_rule",
+    "google_compute_firewall",
+    "aws_iam_policy",
+    "aws_iam_role_policy",
+    "azurerm_role_assignment",
+    "google_project_iam_member",
+  ]
   const changes = plan.resource_changes || []
 
   output.push(`[+] Resource changes: ${changes.length}`)
 
-  let creates = 0, updates = 0, deletes = 0
+  let creates = 0,
+    updates = 0,
+    deletes = 0
   for (const rc of changes) {
     const actions = rc.change?.actions || []
     if (actions.includes("create")) creates++
@@ -328,7 +363,8 @@ async function s3PolicyAudit(args: string[], timeout: number): Promise<HookResul
 
   const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
   const bucketPattern = /resource\s+"(?:aws_s3_bucket|google_storage_bucket|azurerm_storage_(?:account|container))"/
-  const publicPatterns = /(?:public-read|public-read-write|allUsers|allAuthenticatedUsers|blob.*public|container.*public|\*.*Principal)/i
+  const publicPatterns =
+    /(?:public-read|public-read-write|allUsers|allAuthenticatedUsers|blob.*public|container.*public|\*.*Principal)/i
 
   for (const file of files) {
     const content = await run("cat", [file], 5)
@@ -382,7 +418,10 @@ async function encryptionAudit(args: string[], timeout: number): Promise<HookRes
     aws_dynamodb_table: { pattern: /resource\s+"aws_dynamodb_table"/, encryptionField: "server_side_encryption" },
     azurerm_managed_disk: { pattern: /resource\s+"azurerm_managed_disk"/, encryptionField: "encryption_type" },
     google_compute_disk: { pattern: /resource\s+"google_compute_disk"/, encryptionField: "disk_encryption_key" },
-    google_sql_database_instance: { pattern: /resource\s+"google_sql_database_instance"/, encryptionField: "encryption_key_name" },
+    google_sql_database_instance: {
+      pattern: /resource\s+"google_sql_database_instance"/,
+      encryptionField: "encryption_key_name",
+    },
   }
 
   let scanned = 0
@@ -437,7 +476,8 @@ async function iamAudit(args: string[], timeout: number): Promise<HookResult> {
   if (tfFiles.exitCode !== 0) return { output: output.join("\n") + "[!] No .tf files found", findings }
 
   const files = tfFiles.stdout.trim().split("\n").filter(Boolean)
-  const iamPattern = /resource\s+"(?:aws_iam_(?:policy|role_policy|user_policy|group_policy)|azurerm_role_(?:assignment|definition)|google_(?:project|organization)_iam_(?:member|binding|policy))"/
+  const iamPattern =
+    /resource\s+"(?:aws_iam_(?:policy|role_policy|user_policy|group_policy)|azurerm_role_(?:assignment|definition)|google_(?:project|organization)_iam_(?:member|binding|policy))"/
 
   for (const file of files) {
     const content = await run("cat", [file], 5)
@@ -533,7 +573,11 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
       })
     }
 
-    const getState = await run("aws", ["s3", "cp", `s3://${bucket}/${key}`, "/tmp/cs-remote-state.json", "--no-sign-request"], timeout)
+    const getState = await run(
+      "aws",
+      ["s3", "cp", `s3://${bucket}/${key}`, "/tmp/cs-remote-state.json", "--no-sign-request"],
+      timeout,
+    )
     if (getState.exitCode === 0) {
       output.push(`[+] State file downloaded: ${key}`)
       output.push(`    Run tf_state_secrets --path /tmp/cs-remote-state.json to extract secrets`)
@@ -541,13 +585,19 @@ async function remoteStateExploit(args: string[], timeout: number): Promise<Hook
 
     if (inject) {
       output.push(`\n[!] State injection is destructive — requires manual terraform apply on victim's next run`)
-      output.push(`    Modify /tmp/cs-remote-state.json and upload with: aws s3 cp /tmp/cs-remote-state.json s3://${bucket}/${key} --no-sign-request`)
+      output.push(
+        `    Modify /tmp/cs-remote-state.json and upload with: aws s3 cp /tmp/cs-remote-state.json s3://${bucket}/${key} --no-sign-request`,
+      )
     }
   }
 
   if (backend === "gcs") {
     const bucket = target.replace("gs://", "").split("/")[0]
-    const getState = await run("curl", ["-sk", `https://storage.googleapis.com/${bucket}/default.tfstate`, "--max-time", "15"], timeout)
+    const getState = await run(
+      "curl",
+      ["-sk", `https://storage.googleapis.com/${bucket}/default.tfstate`, "--max-time", "15"],
+      timeout,
+    )
     if (getState.exitCode === 0 && getState.stdout.includes('"terraform_version"')) {
       output.push(`[+] GCS bucket ${bucket} serves state publicly!`)
       await Bun.write("/tmp/cs-gcs-state.json", getState.stdout)
@@ -591,7 +641,14 @@ async function cleanupIac(_args: string[], _timeout: number): Promise<HookResult
   const findings: Finding[] = []
   const output: string[] = ["[*] Cleaning up IaC audit artifacts...\n"]
 
-  const tmpFiles = ["/tmp/cs-tfstate-pulled.json", "/tmp/cs-tfstate-current.json", "/tmp/cs-tfplan", "/tmp/cs-remote-state.json", "/tmp/cs-gcs-state.json", "/tmp/cs-http-state.json"]
+  const tmpFiles = [
+    "/tmp/cs-tfstate-pulled.json",
+    "/tmp/cs-tfstate-current.json",
+    "/tmp/cs-tfplan",
+    "/tmp/cs-remote-state.json",
+    "/tmp/cs-gcs-state.json",
+    "/tmp/cs-http-state.json",
+  ]
 
   for (const f of tmpFiles) {
     const check = await run("test", ["-f", f], 5)
@@ -640,7 +697,11 @@ export const IachookTool = Tool.define("iachook", {
         metadata: { program: params.program, findings: result.findings },
       }
     } catch (e) {
-      return { title: `iachook: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+      return {
+        title: `iachook: ${params.program}`,
+        output: `Error: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program: params.program, findings: [] },
+      }
     }
   },
 })

@@ -36,7 +36,8 @@ const LFI_TARGETS: { file: string; sig: RegExp; os: "unix" | "windows" }[] = [
   { file: "boot.ini", sig: /\[boot loader\]/i, os: "windows" },
 ]
 
-const ERRSIG_SQLI = /SQL syntax|mysql_|ORA-\d{5}|PG::SyntaxError|sqlite3?\.|SQLSTATE|quoted string not properly terminated|unclosed quotation|near ".*": syntax error|syntax error at or near|Microsoft OLE DB|ODBC SQL Server|JET Database|SQLite3::/i
+const ERRSIG_SQLI =
+  /SQL syntax|mysql_|ORA-\d{5}|PG::SyntaxError|sqlite3?\.|SQLSTATE|quoted string not properly terminated|unclosed quotation|near ".*": syntax error|syntax error at or near|Microsoft OLE DB|ODBC SQL Server|JET Database|SQLite3::/i
 
 describe("SSTI payload constants", () => {
   test("SSTI_PRODUCT is the correct multiplication result", () => {

