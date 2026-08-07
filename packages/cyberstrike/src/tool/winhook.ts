@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  local_recon: {
+    description:
+      "Local environment reconnaissance — enumerate installed software, running services, AV/EDR product detection (Defender, CrowdStrike, SentinelOne, Carbon Black, Sophos, Cylance, Trend Micro, ESET, McAfee, Symantec, Palo Alto Cortex), security tools, .NET versions, PowerShell versions, hotfixes, network interfaces, firewall profiles, and attack surface mapping. Identifies defensive products before choosing evasion strategy",
+    args: "--action full|av|software|services|network|hotfixes",
+  },
   ps_downgrade: {
     description:
       "PowerShell downgrade attack — force PowerShell 2.0 engine to bypass AMSI, Script Block Logging, Constrained Language Mode, and module logging. PS 2.0 predates all modern security features. Checks if .NET 2.0/3.5 and PS 2.0 engine are available, then executes commands through the v2 engine where none of these protections exist",
@@ -13865,6 +13870,347 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function localRecon(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "full"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Local environment reconnaissance...\n"]
+
+  if (action === "av" || action === "full") {
+    const script = `
+Write-Output "=== AV/EDR Product Detection ==="
+Write-Output ""
+
+$avProducts = @{
+    'MsMpEng' = @{ Name = 'Windows Defender'; Type = 'AV'; Risk = 'MEDIUM' }
+    'MsSense' = @{ Name = 'Microsoft Defender for Endpoint (EDR)'; Type = 'EDR'; Risk = 'HIGH' }
+    'CSFalconService' = @{ Name = 'CrowdStrike Falcon'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'CSFalconContainer' = @{ Name = 'CrowdStrike Falcon (Container)'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'SentinelAgent' = @{ Name = 'SentinelOne'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'SentinelHelperService' = @{ Name = 'SentinelOne Helper'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'CbDefense' = @{ Name = 'VMware Carbon Black Cloud'; Type = 'EDR'; Risk = 'HIGH' }
+    'CbDefenseService' = @{ Name = 'Carbon Black Defense Service'; Type = 'EDR'; Risk = 'HIGH' }
+    'RepMgr' = @{ Name = 'Carbon Black Response'; Type = 'EDR'; Risk = 'HIGH' }
+    'SophosMcsAgent' = @{ Name = 'Sophos Central'; Type = 'EDR'; Risk = 'HIGH' }
+    'SAVService' = @{ Name = 'Sophos AV'; Type = 'AV'; Risk = 'MEDIUM' }
+    'CylanceSvc' = @{ Name = 'Cylance (BlackBerry)'; Type = 'AI-AV'; Risk = 'HIGH' }
+    'TmListen' = @{ Name = 'Trend Micro Apex One'; Type = 'EDR'; Risk = 'HIGH' }
+    'Ntrtscan' = @{ Name = 'Trend Micro OfficeScan'; Type = 'AV'; Risk = 'MEDIUM' }
+    'ekrn' = @{ Name = 'ESET NOD32'; Type = 'AV'; Risk = 'MEDIUM' }
+    'ERAAgent' = @{ Name = 'ESET Remote Agent'; Type = 'AV'; Risk = 'MEDIUM' }
+    'McAfeeFramework' = @{ Name = 'McAfee/Trellix'; Type = 'AV'; Risk = 'MEDIUM' }
+    'mfetp' = @{ Name = 'McAfee Endpoint Threat Prevention'; Type = 'EDR'; Risk = 'HIGH' }
+    'ccSvcHst' = @{ Name = 'Symantec/Broadcom Endpoint'; Type = 'AV'; Risk = 'MEDIUM' }
+    'SepMasterService' = @{ Name = 'Symantec SEP'; Type = 'AV'; Risk = 'MEDIUM' }
+    'CortexXDR' = @{ Name = 'Palo Alto Cortex XDR'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'cyserver' = @{ Name = 'Palo Alto Cortex (Cybereason)'; Type = 'EDR'; Risk = 'CRITICAL' }
+    'WinDefend' = @{ Name = 'Windows Defender Service'; Type = 'AV'; Risk = 'MEDIUM' }
+    'EventTracker' = @{ Name = 'EventTracker SIEM Agent'; Type = 'SIEM'; Risk = 'MEDIUM' }
+    'splunkd' = @{ Name = 'Splunk Universal Forwarder'; Type = 'SIEM'; Risk = 'MEDIUM' }
+    'winlogbeat' = @{ Name = 'Elastic Winlogbeat'; Type = 'SIEM'; Risk = 'MEDIUM' }
+    'ossec' = @{ Name = 'OSSEC/Wazuh Agent'; Type = 'HIDS'; Risk = 'MEDIUM' }
+}
+
+$detected = @()
+$procs = Get-Process -ErrorAction SilentlyContinue | Select-Object -Property ProcessName, Id, Path -Unique
+$services = Get-Service -ErrorAction SilentlyContinue
+
+foreach ($key in $avProducts.Keys) {
+    $proc = $procs | Where-Object { $_.ProcessName -eq $key }
+    $svc = $services | Where-Object { $_.Name -eq $key -and $_.Status -eq 'Running' }
+    if ($proc -or $svc) {
+        $info = $avProducts[$key]
+        $detected += [PSCustomObject]@{
+            Product = $info.Name
+            Type = $info.Type
+            Risk = $info.Risk
+            PID = if ($proc) { $proc.Id } else { 'N/A (service)' }
+            Status = 'RUNNING'
+        }
+    }
+}
+
+if ($detected.Count -gt 0) {
+    Write-Output "[!] DETECTED SECURITY PRODUCTS ($($detected.Count)):"
+    Write-Output ""
+    foreach ($d in $detected | Sort-Object Risk -Descending) {
+        Write-Output "    [$($d.Risk)] $($d.Product) ($($d.Type)) — PID: $($d.PID)"
+    }
+} else {
+    Write-Output "[+] No known AV/EDR products detected"
+}
+
+Write-Output ""
+Write-Output "=== Windows Security Status ==="
+try {
+    $mpStatus = Get-MpComputerStatus -ErrorAction SilentlyContinue
+    if ($mpStatus) {
+        Write-Output "[*] Defender RealTime Protection: $($mpStatus.RealTimeProtectionEnabled)"
+        Write-Output "[*] Defender AntiSpyware: $($mpStatus.AntispywareEnabled)"
+        Write-Output "[*] Defender Tamper Protection: $($mpStatus.IsTamperProtected)"
+        Write-Output "[*] Defender Cloud Protection: $($mpStatus.IoavProtectionEnabled)"
+        Write-Output "[*] Defender Behavior Monitor: $($mpStatus.BehaviorMonitorEnabled)"
+    }
+} catch {}
+
+$fw = Get-NetFirewallProfile -ErrorAction SilentlyContinue
+if ($fw) {
+    Write-Output ""
+    Write-Output "=== Firewall Profiles ==="
+    foreach ($profile in $fw) {
+        Write-Output "    $($profile.Name): $(if ($profile.Enabled) { 'ENABLED' } else { 'DISABLED' })"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Recommended Evasion Strategy ==="
+$hasEDR = $detected | Where-Object { $_.Type -eq 'EDR' }
+$hasCritical = $detected | Where-Object { $_.Risk -eq 'CRITICAL' }
+if ($hasCritical) {
+    Write-Output "[!] CRITICAL EDR detected — use winhook ps_downgrade first"
+    Write-Output "[!] Consider: etw_blind -> amsi_bypass -> --stealth obfuscate --pwsh"
+    Write-Output "[!] Avoid: direct LSASS access, CreateRemoteThread, suspicious parent-child"
+} elseif ($hasEDR) {
+    Write-Output "[!] EDR detected — use winhook etw_blind + amsi_bypass before operations"
+    Write-Output "[*] Use --stealth amsi for all commands"
+} elseif ($detected.Count -gt 0) {
+    Write-Output "[*] AV only — winhook amsi_bypass should be sufficient"
+    Write-Output "[*] Use --stealth base64 for command-line logging evasion"
+} else {
+    Write-Output "[+] No protection detected — direct execution safe"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://av-edr",
+      title: "AV/EDR product detection and evasion strategy recommendation",
+      details: r.stdout.substring(0, 500),
+      remediation: "Ensure EDR agents are tamper-protected and cannot be disabled by local admins.",
+    })
+  }
+
+  if (action === "software" || action === "full") {
+    const script = `
+Write-Output "=== Installed Software ==="
+$apps = @()
+$regPaths = @(
+    "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+    "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+    "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"
+)
+foreach ($path in $regPaths) {
+    $apps += Get-ItemProperty $path -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName } |
+        Select-Object DisplayName, DisplayVersion, Publisher, InstallDate
+}
+$apps = $apps | Sort-Object DisplayName -Unique
+
+Write-Output "[*] Total installed applications: $($apps.Count)"
+Write-Output ""
+
+$interesting = @('Python','Git','Visual Studio','Node','Java','Docker','WSL','VPN','Remote','TeamViewer','AnyDesk','PuTTY','WinSCP','FileZilla','7-Zip','Wireshark','Nmap','Burp','Postman','Chrome','Firefox','KeePass','1Password','Bitwarden','OpenSSH','Cygwin','MSYS','MinGW')
+$found = $apps | Where-Object { $name = $_.DisplayName; $interesting | Where-Object { $name -match $_ } }
+if ($found) {
+    Write-Output "[!] Interesting software:"
+    foreach ($f in $found) {
+        Write-Output "    $($f.DisplayName) v$($f.DisplayVersion)"
+    }
+}
+
+Write-Output ""
+Write-Output "=== .NET / PowerShell Versions ==="
+$dotnetVersions = Get-ChildItem "HKLM:\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP" -Recurse -ErrorAction SilentlyContinue |
+    Get-ItemProperty -Name Version -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty Version -Unique | Sort-Object
+Write-Output "[*] .NET versions: $($dotnetVersions -join ', ')"
+Write-Output "[*] PowerShell: $($PSVersionTable.PSVersion)"
+Write-Output "[*] CLR: $($PSVersionTable.CLRVersion)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-002",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://software",
+      title: "Installed software and attack surface enumeration",
+      details: r.stdout.substring(0, 500),
+      remediation: "Remove unnecessary software. Audit remote access tools (TeamViewer, AnyDesk).",
+    })
+  }
+
+  if (action === "services" || action === "full") {
+    const script = `
+Write-Output "=== Running Services ==="
+$services = Get-Service | Where-Object { $_.Status -eq 'Running' } | Sort-Object DisplayName
+
+Write-Output "[*] Running services: $($services.Count)"
+Write-Output ""
+
+$vulnServices = @()
+foreach ($svc in $services) {
+    try {
+        $wmiSvc = Get-WmiObject Win32_Service -Filter "Name='$($svc.Name)'" -ErrorAction SilentlyContinue
+        if ($wmiSvc) {
+            $binPath = $wmiSvc.PathName
+            $startName = $wmiSvc.StartName
+            if ($startName -match 'LocalSystem|SYSTEM') {
+                if ($binPath -and $binPath -notmatch '^"' -and $binPath -match ' ') {
+                    $vulnServices += [PSCustomObject]@{
+                        Name = $svc.Name
+                        Display = $svc.DisplayName
+                        RunAs = $startName
+                        Issue = 'Unquoted path with spaces'
+                        Path = $binPath
+                    }
+                }
+            }
+        }
+    } catch {}
+}
+
+if ($vulnServices) {
+    Write-Output "[!] Potentially vulnerable services:"
+    foreach ($v in $vulnServices) {
+        Write-Output "    [$($v.Issue)] $($v.Name) — $($v.RunAs)"
+        Write-Output "    Path: $($v.Path)"
+    }
+} else {
+    Write-Output "[*] No obviously vulnerable service configurations found"
+}
+
+Write-Output ""
+Write-Output "[*] Services running as SYSTEM:"
+$systemServices = Get-WmiObject Win32_Service -Filter "State='Running' AND StartName='LocalSystem'" -ErrorAction SilentlyContinue |
+    Select-Object -First 20
+foreach ($s in $systemServices) {
+    Write-Output "    $($s.Name) — $($s.DisplayName)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-003",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://services",
+      title: "Running services and vulnerable service configuration enumeration",
+      details: r.stdout.substring(0, 500),
+      remediation: "Quote all service binary paths. Run services with least privilege (not LocalSystem).",
+    })
+  }
+
+  if (action === "network" || action === "full") {
+    const script = `
+Write-Output "=== Network Interfaces ==="
+Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+    Where-Object { $_.IPAddress -ne '127.0.0.1' } |
+    ForEach-Object { Write-Output "    $($_.InterfaceAlias): $($_.IPAddress)/$($_.PrefixLength)" }
+
+Write-Output ""
+Write-Output "=== Active Connections ==="
+$connections = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue |
+    Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, OwningProcess |
+    Sort-Object RemoteAddress -Unique | Select-Object -First 30
+foreach ($c in $connections) {
+    $proc = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
+    Write-Output "    $($c.LocalAddress):$($c.LocalPort) -> $($c.RemoteAddress):$($c.RemotePort) [$($proc.ProcessName)]"
+}
+
+Write-Output ""
+Write-Output "=== Listening Ports ==="
+Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+    Sort-Object LocalPort | Select-Object -First 20 |
+    ForEach-Object {
+        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+        Write-Output "    :$($_.LocalPort) [$($proc.ProcessName)]"
+    }
+
+Write-Output ""
+Write-Output "=== DNS Cache (recent lookups) ==="
+Get-DnsClientCache -ErrorAction SilentlyContinue |
+    Select-Object -First 20 |
+    ForEach-Object { Write-Output "    $($_.Entry) -> $($_.Data)" }
+
+Write-Output ""
+Write-Output "=== Network Shares ==="
+Get-SmbShare -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notmatch '\\$' } |
+    ForEach-Object { Write-Output "    $($_.Name): $($_.Path) — $($_.Description)" }
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-004",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://network",
+      title: "Network interfaces, connections, listening ports, and shares",
+      details: r.stdout.substring(0, 500),
+      remediation: "Close unnecessary listening ports. Disable unused SMB shares.",
+    })
+  }
+
+  if (action === "hotfixes" || action === "full") {
+    const script = `
+Write-Output "=== Installed Hotfixes ==="
+$hotfixes = Get-HotFix -ErrorAction SilentlyContinue | Sort-Object InstalledOn -Descending
+Write-Output "[*] Total hotfixes: $($hotfixes.Count)"
+Write-Output "[*] Last update: $(($hotfixes | Select-Object -First 1).InstalledOn)"
+Write-Output ""
+
+$recent = $hotfixes | Select-Object -First 10
+foreach ($h in $recent) {
+    Write-Output "    $($h.HotFixID) — $($h.Description) — $($h.InstalledOn)"
+}
+
+$daysSinceUpdate = ((Get-Date) - ($hotfixes | Select-Object -First 1).InstalledOn).Days
+Write-Output ""
+if ($daysSinceUpdate -gt 90) {
+    Write-Output "[!] System is $daysSinceUpdate days behind on updates — likely missing security patches"
+} elseif ($daysSinceUpdate -gt 30) {
+    Write-Output "[*] Last update was $daysSinceUpdate days ago"
+} else {
+    Write-Output "[+] System is relatively up to date ($daysSinceUpdate days)"
+}
+
+Write-Output ""
+Write-Output "=== OS Version ==="
+$os = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
+Write-Output "[*] $($os.Caption) $($os.Version) Build $($os.BuildNumber)"
+Write-Output "[*] Architecture: $($os.OSArchitecture)"
+Write-Output "[*] Install Date: $($os.ConvertToDateTime($os.InstallDate))"
+Write-Output "[*] Last Boot: $($os.ConvertToDateTime($os.LastBootUpTime))"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-005",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://hotfixes",
+      title: "Installed hotfixes and patch level assessment",
+      details: r.stdout.substring(0, 500),
+      remediation: "Keep systems patched. Enable automatic updates. Monitor for missing critical patches.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function psDowngrade(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "check"
   const command = argVal(args, "--command")
@@ -18519,6 +18865,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  local_recon: localRecon,
   ps_downgrade: psDowngrade,
   process_inject: processInject,
   anti_forensics: antiForensics,
