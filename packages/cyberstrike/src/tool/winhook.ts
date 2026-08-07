@@ -402,68 +402,84 @@ const PROGRAMS = {
       "Advanced LSASS memory dumping with EDR bypass — multiple techniques to dump LSASS while evading endpoint detection. Fork: clone LSASS via NtCreateProcessEx and dump the clone. Snapshot: PssCreateSnapshot API. SSP: inject custom Security Package via AddSecurityPackage to intercept credentials. Seclogon: leak LSASS handle via Secondary Logon service. Each method bypasses different EDR hooks",
     args: "--method <fork|snapshot|ssp|seclogon> [--outfile PATH]",
   },
-privilege_abuse: {
-    description: "Enumerate and exploit dangerous Windows token privileges — SeBackupPrivilege (read any file including SAM/NTDS.dit via robocopy /b), SeRestorePrivilege (write anywhere, replace utilman.exe), SeTakeOwnershipPrivilege (take ownership of any object), SeLoadDriverPrivilege (load vulnerable kernel driver), SeDebugPrivilege (inject into any process), SeManageVolumePrivilege (raw disk read), SeAssignPrimaryTokenPrivilege (create process with another token), SeImpersonatePrivilege (token theft for SYSTEM)",
+  privilege_abuse: {
+    description:
+      "Enumerate and exploit dangerous Windows token privileges — SeBackupPrivilege (read any file including SAM/NTDS.dit via robocopy /b), SeRestorePrivilege (write anywhere, replace utilman.exe), SeTakeOwnershipPrivilege (take ownership of any object), SeLoadDriverPrivilege (load vulnerable kernel driver), SeDebugPrivilege (inject into any process), SeManageVolumePrivilege (raw disk read), SeAssignPrimaryTokenPrivilege (create process with another token), SeImpersonatePrivilege (token theft for SYSTEM)",
     args: "--action enum|exploit --privilege PRIVILEGE_NAME [--target PATH]",
   },
-stored_creds_abuse: {
-    description: "Enumerate stored credentials across the system — cmdkey saved credentials, AutoLogon registry (DefaultUserName/DefaultPassword), Unattend.xml/sysprep.xml base64 passwords, PowerShell ConsoleHost_history.txt, IIS application pool credentials, web.config connection strings, McAfee SiteList.xml, and Group Policy Preferences cpassword remnants",
+  stored_creds_abuse: {
+    description:
+      "Enumerate stored credentials across the system — cmdkey saved credentials, AutoLogon registry (DefaultUserName/DefaultPassword), Unattend.xml/sysprep.xml base64 passwords, PowerShell ConsoleHost_history.txt, IIS application pool credentials, web.config connection strings, McAfee SiteList.xml, and Group Policy Preferences cpassword remnants",
     args: "--action enum [--deep true]",
   },
-named_pipe_privesc: {
-    description: "Named pipe impersonation for SYSTEM privilege escalation — create a named pipe server, trick a SYSTEM-level process into connecting, then impersonate its token. Covers PrintSpooler pipe, EfsRpc pipe, custom pipe + scheduled task trigger, and SeImpersonatePrivilege token theft",
+  named_pipe_privesc: {
+    description:
+      "Named pipe impersonation for SYSTEM privilege escalation — create a named pipe server, trick a SYSTEM-level process into connecting, then impersonate its token. Covers PrintSpooler pipe, EfsRpc pipe, custom pipe + scheduled task trigger, and SeImpersonatePrivilege token theft",
     args: "--action enum|exploit [--pipe PIPE_NAME] [--method spooler|efsrpc|task|custom]",
   },
-always_install_elevated: {
-    description: "Check and exploit AlwaysInstallElevated policy — when both HKLM and HKCU registry keys are set to 1, any user can install MSI packages with SYSTEM privileges. Optionally run a payload MSI for instant privilege escalation",
+  always_install_elevated: {
+    description:
+      "Check and exploit AlwaysInstallElevated policy — when both HKLM and HKCU registry keys are set to 1, any user can install MSI packages with SYSTEM privileges. Optionally run a payload MSI for instant privilege escalation",
     args: "--action check|exploit [--payload MSI_PATH]",
   },
-shadow_copy_abuse: {
-    description: "Volume Shadow Copy abuse for credential extraction — enumerate existing shadow copies, exploit HiveNightmare/SeriousSAM (CVE-2021-36934) to read SAM/SYSTEM/SECURITY from shadow copies as unprivileged user, or create new shadow copies for privileged file access",
+  shadow_copy_abuse: {
+    description:
+      "Volume Shadow Copy abuse for credential extraction — enumerate existing shadow copies, exploit HiveNightmare/SeriousSAM (CVE-2021-36934) to read SAM/SYSTEM/SECURITY from shadow copies as unprivileged user, or create new shadow copies for privileged file access",
     args: "--action enum|exploit|create [--outdir PATH]",
   },
-unquoted_service_path: {
-    description: "Find and exploit unquoted service paths — enumerate services with spaces in unquoted binary paths, check writable directories at each truncation point, and optionally place a payload for privilege escalation when the service restarts",
+  unquoted_service_path: {
+    description:
+      "Find and exploit unquoted service paths — enumerate services with spaces in unquoted binary paths, check writable directories at each truncation point, and optionally place a payload for privilege escalation when the service restarts",
     args: "--action enum|exploit [--service SERVICE_NAME] [--payload EXE_PATH]",
   },
-wsl_privesc: {
-    description: "WSL (Windows Subsystem for Linux) privilege escalation — abuse WSL interop to escape to Windows SYSTEM context, exploit writable WSL rootfs, or leverage WSL process execution for defense evasion. Enumerates WSL distributions, checks interop settings, and tests cross-boundary attacks",
+  wsl_privesc: {
+    description:
+      "WSL (Windows Subsystem for Linux) privilege escalation — abuse WSL interop to escape to Windows SYSTEM context, exploit writable WSL rootfs, or leverage WSL process execution for defense evasion. Enumerates WSL distributions, checks interop settings, and tests cross-boundary attacks",
     args: "--action enum|exploit [--distro DISTRO_NAME] [--payload CMD]",
   },
-scheduled_task_hijack: {
-    description: "Enumerate and exploit writable scheduled task binaries for privilege escalation — find tasks running as SYSTEM with writable executable paths, missing binaries, or writable argument files. Replace the binary or modify arguments to execute arbitrary code as SYSTEM on next trigger",
+  scheduled_task_hijack: {
+    description:
+      "Enumerate and exploit writable scheduled task binaries for privilege escalation — find tasks running as SYSTEM with writable executable paths, missing binaries, or writable argument files. Replace the binary or modify arguments to execute arbitrary code as SYSTEM on next trigger",
     args: "--action enum|exploit [--task TASK_NAME] [--payload PATH]",
   },
-byovd: {
-    description: "Bring Your Own Vulnerable Driver (BYOVD) — load a known-vulnerable signed kernel driver to gain kernel-level access, disable EDR/AV, or escalate privileges. Enumerates existing vulnerable drivers, checks driver signature enforcement, and supports loading drivers for kernel read/write primitives. Uses LOLDrivers project database",
+  byovd: {
+    description:
+      "Bring Your Own Vulnerable Driver (BYOVD) — load a known-vulnerable signed kernel driver to gain kernel-level access, disable EDR/AV, or escalate privileges. Enumerates existing vulnerable drivers, checks driver signature enforcement, and supports loading drivers for kernel read/write primitives. Uses LOLDrivers project database",
     args: "--action enum|check|load [--driver DRIVER_PATH] [--target PROCESS_NAME]",
   },
-weak_service_perms: {
-    description: "Find and exploit weak service permissions — enumerate services with modifiable DACLs (SERVICE_CHANGE_CONFIG, SERVICE_ALL_ACCESS, WRITE_DAC, WRITE_OWNER) or writable service binaries, then optionally modify the binary path or replace the executable for privilege escalation",
+  weak_service_perms: {
+    description:
+      "Find and exploit weak service permissions — enumerate services with modifiable DACLs (SERVICE_CHANGE_CONFIG, SERVICE_ALL_ACCESS, WRITE_DAC, WRITE_OWNER) or writable service binaries, then optionally modify the binary path or replace the executable for privilege escalation",
     args: "--action enum|exploit [--service SERVICE_NAME] [--command CMD]",
   },
-dll_sideload: {
-    description: "DLL sideloading / phantom DLL hijacking for privilege escalation — exploit Windows services that load missing DLLs from writable directories. Known targets: StorSvc (SprintCSP.dll), IKEEXT (wlbsctrl.dll), NetMan (wlanhlp.dll), SessionEnv (TSMSISrv.dll), CDPSvc (cdpsgshims.dll), Wlanext (wlanext.dll), DiagHub (DataCollectors DLL)",
+  dll_sideload: {
+    description:
+      "DLL sideloading / phantom DLL hijacking for privilege escalation — exploit Windows services that load missing DLLs from writable directories. Known targets: StorSvc (SprintCSP.dll), IKEEXT (wlbsctrl.dll), NetMan (wlanhlp.dll), SessionEnv (TSMSISrv.dll), CDPSvc (cdpsgshims.dll), Wlanext (wlanext.dll), DiagHub (DataCollectors DLL)",
     args: "--action enum|exploit [--target SERVICE] [--dll DLL_PATH]",
   },
-server_operator_abuse: {
-    description: "Abuse Server Operators group membership for privilege escalation to SYSTEM — Server Operators can start/stop services and modify service configurations on Domain Controllers. Modify an existing service's binary path to execute arbitrary commands as SYSTEM",
+  server_operator_abuse: {
+    description:
+      "Abuse Server Operators group membership for privilege escalation to SYSTEM — Server Operators can start/stop services and modify service configurations on Domain Controllers. Modify an existing service's binary path to execute arbitrary commands as SYSTEM",
     args: "--action check|exploit [--service SERVICE_NAME] [--payload CMD]",
   },
-dll_hijack: {
-    description: "DLL hijacking for privilege escalation — enumerate writable directories in system PATH, scan for known DLL hijack targets (StorSvc/SprintCSP.dll, CDPSvc/cdpsgshims.dll, DiagHub/diagtrack.dll, USO/windowscoredeviceinfo.dll, IKEEXT/wlbsctrl.dll, NetMan/wlanhlp.dll, SessionEnv/TSMSISrv.dll), check missing DLLs loaded by SYSTEM services, and optionally place a DLL payload",
+  dll_hijack: {
+    description:
+      "DLL hijacking for privilege escalation — enumerate writable directories in system PATH, scan for known DLL hijack targets (StorSvc/SprintCSP.dll, CDPSvc/cdpsgshims.dll, DiagHub/diagtrack.dll, USO/windowscoredeviceinfo.dll, IKEEXT/wlbsctrl.dll, NetMan/wlanhlp.dll, SessionEnv/TSMSISrv.dll), check missing DLLs loaded by SYSTEM services, and optionally place a DLL payload",
     args: "--action enum|exploit [--target SERVICE_NAME] [--dll DLL_PATH]",
   },
-msi_abuse: {
-    description: "Windows Installer (MSI) privilege escalation — check AlwaysInstallElevated registry keys, craft malicious MSI packages with custom actions for SYSTEM execution, and exploit MSI repair abuse. AlwaysInstallElevated allows any user to install MSI packages with SYSTEM privileges",
+  msi_abuse: {
+    description:
+      "Windows Installer (MSI) privilege escalation — check AlwaysInstallElevated registry keys, craft malicious MSI packages with custom actions for SYSTEM execution, and exploit MSI repair abuse. AlwaysInstallElevated allows any user to install MSI packages with SYSTEM privileges",
     args: "--action check|craft|install [--payload CMD] [--output MSI_PATH]",
   },
-backup_operator_abuse: {
-    description: "Abuse Backup Operators group membership for privilege escalation — use backup privilege (SeBackupPrivilege) to read protected files including SAM/SYSTEM hives and NTDS.dit via robocopy /b, diskshadow, or wbadmin. Backup Operators can read any file on the system regardless of ACLs",
+  backup_operator_abuse: {
+    description:
+      "Abuse Backup Operators group membership for privilege escalation — use backup privilege (SeBackupPrivilege) to read protected files including SAM/SYSTEM hives and NTDS.dit via robocopy /b, diskshadow, or wbadmin. Backup Operators can read any file on the system regardless of ACLs",
     args: "--action check|dump_sam|dump_ntds [--outdir PATH] [--dc DC_HOSTNAME]",
   },
-applocker_bypass: {
-    description: "AppLocker and WDAC bypass for execution restriction evasion — enumerate AppLocker/WDAC policy, find writable allowed directories, use LOLBAS (MSBuild, InstallUtil, Regsvr32, CMSTP, Mshta, CertUtil) for arbitrary code execution past application whitelisting. Covers all major bypass techniques",
+  applocker_bypass: {
+    description:
+      "AppLocker and WDAC bypass for execution restriction evasion — enumerate AppLocker/WDAC policy, find writable allowed directories, use LOLBAS (MSBuild, InstallUtil, Regsvr32, CMSTP, Mshta, CertUtil) for arbitrary code execution past application whitelisting. Covers all major bypass techniques",
     args: "--action enum|bypass [--method msbuild|installutil|regsvr32|cmstp|mshta|certutil|wmic|xsl] [--payload CMD] [--file PATH]",
   },
 } as const satisfies Record<string, { description: string; args: string }>
@@ -13998,7 +14014,9 @@ foreach ($d in $drivers) {
     const exploitScript = exploits[privilege]
     if (!exploitScript) {
       output.push(`[!] Unknown privilege: ${privilege}`)
-      output.push("[*] Supported: SeBackupPrivilege, SeRestorePrivilege, SeTakeOwnershipPrivilege, SeDebugPrivilege, SeLoadDriverPrivilege")
+      output.push(
+        "[*] Supported: SeBackupPrivilege, SeRestorePrivilege, SeTakeOwnershipPrivilege, SeDebugPrivilege, SeLoadDriverPrivilege",
+      )
       return { output: output.join("\n"), findings }
     }
 
@@ -14222,7 +14240,8 @@ Write-Output "[+] Total credential findings: $found"
       resource: "credentials://stored",
       title: `${total} stored credential(s) found across system`,
       details: result.stdout.substring(0, 500),
-      remediation: "Remove stored credentials with cmdkey /delete. Disable AutoLogon. Delete unattend files. Clear PowerShell history. Rotate exposed passwords.",
+      remediation:
+        "Remove stored credentials with cmdkey /delete. Disable AutoLogon. Delete unattend files. Clear PowerShell history. Rotate exposed passwords.",
     })
   }
 
@@ -14551,7 +14570,9 @@ if ($vulnerable) {
     Write-Output "[-] Not vulnerable — AlwaysInstallElevated not enabled on both hives"
 }
 
-${action === "exploit" && payload ? `
+${
+  action === "exploit" && payload
+    ? `
 # Exploit mode
 if ($vulnerable) {
     Write-Output ""
@@ -14562,7 +14583,9 @@ if ($vulnerable) {
 } else {
     Write-Output "[!] Cannot exploit — AlwaysInstallElevated not enabled"
 }
-` : ''}
+`
+    : ""
+}
 
 # Also check Windows Installer service configuration
 Write-Output ""
@@ -14598,8 +14621,10 @@ if ($products) {
       status: action === "exploit" && payload ? "EXPLOITED" : "VULNERABLE",
       resource: "policy://always-install-elevated",
       title: "AlwaysInstallElevated enabled — any user can install MSI as SYSTEM",
-      details: "Both HKLM and HKCU AlwaysInstallElevated registry keys are set to 1. Any MSI package will install with SYSTEM privileges.",
-      remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU. Remove via Group Policy: Computer Configuration > Administrative Templates > Windows Components > Windows Installer.",
+      details:
+        "Both HKLM and HKCU AlwaysInstallElevated registry keys are set to 1. Any MSI package will install with SYSTEM privileges.",
+      remediation:
+        "Set AlwaysInstallElevated to 0 in both HKLM and HKCU. Remove via Group Policy: Computer Configuration > Administrative Templates > Windows Components > Windows Installer.",
     })
   }
 
@@ -14689,7 +14714,8 @@ Write-Output "[*] Volume Shadow Copy Service: $($vss.Status)"
         resource: "vss://shadow-copies",
         title: "HiveNightmare/SeriousSAM (CVE-2021-36934) — SAM readable from shadow copies",
         details: "SAM hive has overly permissive ACLs — any user can read credentials from shadow copies",
-        remediation: "Apply KB5004945 patch. Delete shadow copies: vssadmin delete shadows /all /quiet. Fix ACLs: icacls %windir%\\system32\\config\\*.* /inheritance:e",
+        remediation:
+          "Apply KB5004945 patch. Delete shadow copies: vssadmin delete shadows /all /quiet. Fix ACLs: icacls %windir%\\system32\\config\\*.* /inheritance:e",
       })
     }
   } else if (action === "exploit") {
@@ -14890,7 +14916,8 @@ foreach ($svc in $services) {
         resource: "services://unquoted-paths",
         title: `${svcCount} unquoted service path(s) found, ${vulnCount} with writable directories`,
         details: result.stdout.substring(0, 500),
-        remediation: "Enclose service binary paths in double quotes. Remove write permissions from service directories for non-admin users.",
+        remediation:
+          "Enclose service binary paths in double quotes. Remove write permissions from service directories for non-admin users.",
       })
     }
   } else if (action === "exploit") {
@@ -15077,7 +15104,11 @@ if ($exploitableDistros -gt 0) {
     const result = await ps(script, timeout)
     output.push(result.stdout)
 
-    if (result.stdout.includes("EXPLOITABLE") || result.stdout.includes("READABLE from Windows") || result.stdout.includes("WRITABLE from Windows")) {
+    if (
+      result.stdout.includes("EXPLOITABLE") ||
+      result.stdout.includes("READABLE from Windows") ||
+      result.stdout.includes("WRITABLE from Windows")
+    ) {
       findings.push({
         checkId: "WIN-WSL-001",
         provider: "windows",
@@ -15086,7 +15117,8 @@ if ($exploitableDistros -gt 0) {
         resource: "wsl://rootfs",
         title: "WSL rootfs accessible/writable from Windows — cross-boundary attack possible",
         details: "WSL distribution rootfs is accessible from Windows, allowing credential theft or config modification",
-        remediation: "Restrict WSL rootfs directory ACLs. Disable WSL interop if not needed. Use WSL2 with virtual disk.",
+        remediation:
+          "Restrict WSL rootfs directory ACLs. Disable WSL interop if not needed. Use WSL2 with virtual disk.",
       })
     }
   } else if (action === "exploit") {
@@ -15168,7 +15200,8 @@ Write-Output "    Or trigger now: wsl -d ${targetDistro} -u root -- /bin/bash -c
       resource: `wsl://${targetDistro}`,
       title: `WSL distribution ${targetDistro} compromised via cross-boundary attack`,
       details: "Modified sudoers, added backdoor user, planted interop command in .bashrc",
-      remediation: "Review WSL rootfs for modifications. Check sudoers, passwd, bashrc. Restrict Windows access to WSL rootfs.",
+      remediation:
+        "Review WSL rootfs for modifications. Check sudoers, passwd, bashrc. Restrict Windows access to WSL rootfs.",
     })
   }
 
@@ -15452,7 +15485,8 @@ Write-Output "Total known vulnerable drivers in database: $($vulnDrivers.Count)"
         resource: "drivers://vulnerable",
         title: `${onDisk} vulnerable drivers on disk, ${loaded} currently loaded`,
         details: result.stdout.substring(0, 500),
-        remediation: "Remove vulnerable drivers. Enable HVCI (Hypervisor-protected Code Integrity). Use Microsoft's vulnerable driver blocklist.",
+        remediation:
+          "Remove vulnerable drivers. Enable HVCI (Hypervisor-protected Code Integrity). Use Microsoft's vulnerable driver blocklist.",
       })
     }
   } else if (action === "check") {
@@ -15578,7 +15612,9 @@ if ($loaded -and $loaded.State -eq 'Running') {
         Write-Output "    Device: $($devices.Name)"
     }
 
-    ${target ? `
+    ${
+      target
+        ? `
     # If target process specified, demonstrate EDR kill capability
     Write-Output ""
     Write-Output "[*] Target process: ${target}"
@@ -15589,7 +15625,9 @@ if ($loaded -and $loaded.State -eq 'Running') {
         Write-Output "    Technique: Zero PreviousMode, direct kernel object manipulation"
     } else {
         Write-Output "[-] Process not found: ${target}"
-    }` : ''}
+    }`
+        : ""
+    }
 } else {
     Write-Output "[-] Driver failed to load"
     Write-Output "[*] Check: signature valid? HVCI disabled? Running as admin?"
@@ -15764,7 +15802,8 @@ if ($vulnerable.Count -eq 0) {
         resource: "services://weak-perms",
         title: `${vulnCount} service(s) with exploitable permissions`,
         details: result.stdout.substring(0, 500),
-        remediation: "Fix service DACLs to remove CHANGE_CONFIG/ALL_ACCESS from low-privilege groups. Restrict write access to service binary directories.",
+        remediation:
+          "Fix service DACLs to remove CHANGE_CONFIG/ALL_ACCESS from low-privilege groups. Restrict write access to service binary directories.",
       })
     }
   } else if (action === "exploit") {
@@ -16240,7 +16279,8 @@ if ($writableSvcDirs.Count -eq 0) {
         resource: "dll://hijack-targets",
         title: `${exploitableCount} exploitable DLL hijack(s), ${writablePathCount} writable location(s)`,
         details: result.stdout.substring(0, 500),
-        remediation: "Remove write permissions from PATH directories. Install missing DLLs. Use DLL redirection or SafeDllSearchMode.",
+        remediation:
+          "Remove write permissions from PATH directories. Install missing DLLs. Use DLL redirection or SafeDllSearchMode.",
       })
     }
   } else if (action === "exploit") {
@@ -16925,7 +16965,8 @@ if ($writableDirs.Count -gt 0 -and $availableLolbas.Count -gt 0) {
         resource: "policy://applocker",
         title: "AppLocker bypassable via LOLBAS binaries + writable allowed directories",
         details: result.stdout.substring(0, 500),
-        remediation: "Restrict LOLBAS binaries in AppLocker rules. Remove writable dirs from allowed paths. Consider WDAC for stronger enforcement.",
+        remediation:
+          "Restrict LOLBAS binaries in AppLocker rules. Remove writable dirs from allowed paths. Consider WDAC for stronger enforcement.",
       })
     }
   } else if (action === "bypass") {
