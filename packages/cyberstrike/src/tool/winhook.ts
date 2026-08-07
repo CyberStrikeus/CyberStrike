@@ -14015,7 +14015,8 @@ Write-Output "    winhook data_exfil --action dns --target $archivePath --domain
       resource: "filesystem://staging",
       title: "Sensitive files staged and compressed for exfiltration",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor bulk file copy operations. DLP solutions should flag archive creation from sensitive directories.",
+      remediation:
+        "Monitor bulk file copy operations. DLP solutions should flag archive creation from sensitive directories.",
     })
   }
 
@@ -14943,9 +14944,12 @@ Write-Output "[*] Language Mode: $($ExecutionContext.SessionState.LanguageMode)"
       severity: r.stdout.includes("VULNERABLE") ? "high" : "info",
       status: r.stdout.includes("VULNERABLE") ? "VULNERABLE" : "CHECKED",
       resource: "powershell://v2-engine",
-      title: r.stdout.includes("VULNERABLE") ? "PS 2.0 engine available — all modern protections bypassable" : "PS 2.0 engine not available",
+      title: r.stdout.includes("VULNERABLE")
+        ? "PS 2.0 engine available — all modern protections bypassable"
+        : "PS 2.0 engine not available",
       details: r.stdout.substring(0, 500),
-      remediation: "Disable PS 2.0: Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2. Uninstall .NET 2.0/3.5 if not needed.",
+      remediation:
+        "Disable PS 2.0: Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2. Uninstall .NET 2.0/3.5 if not needed.",
     })
   }
 
@@ -14970,7 +14974,10 @@ Write-Output "[*] Language Mode: $($ExecutionContext.SessionState.LanguageMode)"
       severity: "high",
       status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
       resource: "powershell://v2-execution",
-      title: r.exitCode === 0 ? "Command executed via PS 2.0 — bypassed all modern security controls" : "PS 2.0 downgrade execution failed",
+      title:
+        r.exitCode === 0
+          ? "Command executed via PS 2.0 — bypassed all modern security controls"
+          : "PS 2.0 downgrade execution failed",
       details: (r.stdout || r.stderr).substring(0, 500),
       remediation: "Disable PS 2.0 engine. Monitor Event ID 400 (Engine Lifecycle) for EngineVersion=2.0.",
     })
@@ -15207,7 +15214,8 @@ if (-not (Test-Path '${payloadPath}')) {
       resource: `process://${targetProc}`,
       title: "Process hollowing — suspended process created with payload injection",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor for CREATE_SUSPENDED process creation followed by NtUnmapViewOfSection. Use ETW or Sysmon Event ID 8.",
+      remediation:
+        "Monitor for CREATE_SUSPENDED process creation followed by NtUnmapViewOfSection. Use ETW or Sysmon Event ID 8.",
     })
   }
 
@@ -15469,7 +15477,8 @@ if (-not (Test-Path '${payloadPath}')) {
       resource: `process://${targetBin}`,
       title: "Early bird injection — pre-initialization APC injection technique",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor CreateProcess+SUSPENDED followed by QueueUserAPC. Kernel callbacks catch this before userland hooks.",
+      remediation:
+        "Monitor CreateProcess+SUSPENDED followed by QueueUserAPC. Kernel callbacks catch this before userland hooks.",
     })
   }
 
