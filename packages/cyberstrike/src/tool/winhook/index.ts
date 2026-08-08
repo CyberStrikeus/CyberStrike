@@ -1312,10 +1312,9 @@ const PS_FAILURE_PATTERNS = [
 ]
 
 function isPsFailure(output: string): boolean {
+  if (output.length === 0) return true
   const lower = output.toLowerCase()
-  return (
-    PS_FAILURE_PATTERNS.some((p) => lower.includes(p.toLowerCase())) || (output.trim() === "" && output.length === 0)
-  )
+  return PS_FAILURE_PATTERNS.some(p => lower.includes(p.toLowerCase()))
 }
 
 export const WinhookTool = Tool.define("winhook", {
