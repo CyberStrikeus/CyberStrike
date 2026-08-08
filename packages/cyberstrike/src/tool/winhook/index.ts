@@ -1,6 +1,6 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv } from "./shared"
+import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv, resolveExec, activeExec } from "./shared"
 import type { Finding, HookResult, StealthMode, ExecMethod } from "./shared"
 
 import {
@@ -1159,6 +1159,23 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   pipe_enum: pipeEnum,
 }
 
+const PS_FAILURE_PATTERNS = [
+  "is not recognized as an internal or external command",
+  "is not recognized as the name of a cmdlet",
+  "FullyQualifiedErrorId : CommandNotFoundException",
+  "cannot be loaded because running scripts is disabled",
+  "ConstrainedLanguageMode",
+  "powershell.exe' is not recognized",
+  "Access is denied",
+  "This script contains malicious content",
+  "ScriptHalted",
+]
+
+function isPsFailure(output: string): boolean {
+  const lower = output.toLowerCase()
+  return PS_FAILURE_PATTERNS.some(p => lower.includes(p.toLowerCase())) || (output.trim() === "" && output.length === 0)
+}
+
 export const WinhookTool = Tool.define("winhook", {
   description: `Execute a Windows post-exploitation program. Covers Active Directory (enumeration, Kerberos attacks, DCSync, ADCS, delegation abuse), lateral movement (WMI, WinRM, DCOM, SMB, NTLM relay), persistence (scheduled tasks, services, registry, WMI subscriptions, COM hijacking), privilege escalation (token impersonation, UAC bypass, Potato attacks), and credential harvesting (LSASS, SAM, DPAPI, NTDS.dit, Vault, SCCM). Requires Administrator privileges on the target. Available programs: ${Object.keys(PROGRAMS).join(", ")}. No kernel driver signing needed — all techniques use userland APIs (PowerShell + Add-Type C#). ALWAYS run cleanup_win before leaving a target.`,
   parameters: z.object({
@@ -1185,11 +1202,32 @@ export const WinhookTool = Tool.define("winhook", {
     }
 
     setStealthState(argVal(params.args, "--stealth") as StealthMode | undefined, hasFlag(params.args, "--pwsh"))
-    setExecMethod((argVal(params.args, "--exec") as ExecMethod) || "ps")
+    const requestedExec = (argVal(params.args, "--exec") as ExecMethod) || "ps"
+
+    if (requestedExec === "auto") {
+      const env = await detectEnv(params.timeout_seconds)
+      setExecMethod(resolveExec("auto", env))
+    } else {
+      setExecMethod(requestedExec)
+    }
 
     const program = params.program as Program
     const handler = dispatch[program]
-    const result = await handler(params.args, params.timeout_seconds)
+    let result = await handler(params.args, params.timeout_seconds)
+
+    if (activeExec === "ps" && isPsFailure(result.output)) {
+      const env = await detectEnv(params.timeout_seconds)
+      const fallback = resolveExec("auto", env)
+      if (fallback !== "ps") {
+        setExecMethod(fallback)
+        const retry = await handler(params.args, params.timeout_seconds)
+        result = {
+          output: `[!] PowerShell failed — auto-fallback to ${fallback}\n\n${retry.output}`,
+          findings: retry.findings,
+        }
+      }
+    }
+
     setStealthState(undefined, false)
     setExecMethod("ps")
 
