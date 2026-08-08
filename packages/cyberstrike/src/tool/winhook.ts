@@ -21840,7 +21840,7 @@ Write-Output ""
 
 # Parse session details
 $activeCount = 0
-$lines = $sessions -split "`n" | Select-Object -Skip 1
+$lines = $sessions -split [char]10 | Select-Object -Skip 1
 foreach ($line in $lines) {
   if ($line -match '^\s*(\S+)\s+(\S+)\s+(\d+)\s+(Active|Disc)\s') {
     $user = $Matches[1]
