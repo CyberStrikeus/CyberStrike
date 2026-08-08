@@ -8,6 +8,7 @@ export type Finding = {
   title: string
   details: string
   remediation: string
+  cwe?: string
 }
 export type HookResult = { output: string; findings: Finding[] }
 
