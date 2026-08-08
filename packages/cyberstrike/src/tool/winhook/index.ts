@@ -1179,7 +1179,7 @@ function isPsFailure(output: string): boolean {
 }
 
 export const WinhookTool = Tool.define("winhook", {
-  description: `Execute a Windows post-exploitation program. Covers Active Directory (enumeration, Kerberos attacks, DCSync, ADCS, delegation abuse), lateral movement (WMI, WinRM, DCOM, SMB, NTLM relay), persistence (scheduled tasks, services, registry, WMI subscriptions, COM hijacking), privilege escalation (token impersonation, UAC bypass, Potato attacks), and credential harvesting (LSASS, SAM, DPAPI, NTDS.dit, Vault, SCCM). Requires Administrator privileges on the target. Available programs: ${Object.keys(PROGRAMS).join(", ")}. No kernel driver signing needed — all techniques use userland APIs (PowerShell + Add-Type C#). ALWAYS run cleanup_win before leaving a target.`,
+  description: `Execute a Windows post-exploitation program. Covers AD (enumeration, Kerberos, DCSync, ADCS), lateral movement (WMI, WinRM, DCOM, SMB, NTLM relay), persistence (schtask, service, registry, WMI, COM), privesc (token, UAC, Potato), and credential harvesting (LSASS, SAM, DPAPI, NTDS.dit, Vault). Requires Administrator on target. ALWAYS run detect_env first to check PS/cmd availability — if PowerShell is blocked (CLM, AMSI, disabled), use --exec cmd for cmd.exe native fallback (reg, netsh, certutil, sc, schtasks, wmic, nltest, dsquery). Auto-fallback retries with cmd when PS fails. Available programs: ${Object.keys(PROGRAMS).join(", ")}. ALWAYS run cleanup_win before leaving a target.`,
   parameters: z.object({
     program: z.enum(Object.keys(PROGRAMS) as [string, ...string[]]).describe(
       "Windows post-exploitation program to execute. Options: " +
