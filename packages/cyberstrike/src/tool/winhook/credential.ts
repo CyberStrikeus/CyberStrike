@@ -3482,7 +3482,8 @@ foreach ($cfg in $configPaths) {
       resource: "keepass://enum",
       title: "KeePass installation, database, and configuration discovery",
       details: r.stdout.substring(0, 500),
-      remediation: "Enable KeePass trigger protection. Use hardware key files (YubiKey). Restrict .kdbx file permissions.",
+      remediation:
+        "Enable KeePass trigger protection. Use hardware key files (YubiKey). Restrict .kdbx file permissions.",
     })
   }
 
@@ -3668,7 +3669,8 @@ Write-Output "[*] Alternatively, replace KeePass.exe.config with malicious .NET 
       resource: "keepass://trigger",
       title: "KeePass trigger system configuration analysis for credential theft",
       details: r.stdout.substring(0, 500),
-      remediation: "Set ForceSystemTriggers=false in KeePass enforced config. Use KeePassXC (no trigger system). Restrict config file permissions.",
+      remediation:
+        "Set ForceSystemTriggers=false in KeePass enforced config. Use KeePassXC (no trigger system). Restrict config file permissions.",
     })
   }
 
@@ -3790,7 +3792,8 @@ if ($serviceSecrets) {
       resource: "lsa://secrets",
       title: "LSA Secrets extraction — service account passwords, DPAPI keys, machine account",
       details: r.stdout.substring(0, 500),
-      remediation: "Use gMSA for service accounts. Disable AutoLogon. Restrict local admin access. Monitor registry hive access (Event ID 4663).",
+      remediation:
+        "Use gMSA for service accounts. Disable AutoLogon. Restrict local admin access. Monitor registry hive access (Event ID 4663).",
     })
   }
 
@@ -3890,7 +3893,8 @@ foreach ($keyName in $targetKeys) {
       resource: "lsa://decrypt",
       title: "LSA Secret in-memory decryption via LsaRetrievePrivateData",
       details: r.stdout.substring(0, 500),
-      remediation: "Restrict SYSTEM-level access. Enable Credential Guard. Monitor for LsaRetrievePrivateData API calls.",
+      remediation:
+        "Restrict SYSTEM-level access. Enable Credential Guard. Monitor for LsaRetrievePrivateData API calls.",
     })
   }
 

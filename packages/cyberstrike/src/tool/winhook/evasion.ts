@@ -1857,7 +1857,8 @@ Write-Output "    Service context: services.exe"
       resource: "process://ppid-candidates",
       title: "Spoofable parent process enumeration for PPID spoofing",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor for process creation with unusual parent-child relationships. Use ETW for PROC_THREAD_ATTRIBUTE detection.",
+      remediation:
+        "Monitor for process creation with unusual parent-child relationships. Use ETW for PROC_THREAD_ATTRIBUTE detection.",
     })
   }
 
@@ -1970,7 +1971,8 @@ Write-Output $result
       resource: `process://ppid-spoof/${parentTarget}`,
       title: `PPID spoofing — process created under fake parent ${parentTarget}`,
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor for PROC_THREAD_ATTRIBUTE_PARENT_PROCESS usage. Validate parent-child process relationships.",
+      remediation:
+        "Monitor for PROC_THREAD_ATTRIBUTE_PARENT_PROCESS usage. Validate parent-child process relationships.",
     })
   }
 
@@ -2193,7 +2195,8 @@ Write-Output $result
       resource: "ntdll://unhook",
       title: "NTDLL unhooking via fresh disk copy — EDR hook removal",
       details: r.stdout.substring(0, 500),
-      remediation: "N/A — offensive evasion technique. EDR vendors should use kernel callbacks instead of userland hooks.",
+      remediation:
+        "N/A — offensive evasion technique. EDR vendors should use kernel callbacks instead of userland hooks.",
     })
   }
 
