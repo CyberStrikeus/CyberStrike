@@ -1,7 +1,7 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { setStealthState, argVal, hasFlag } from "./shared"
-import type { Finding, HookResult, StealthMode } from "./shared"
+import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv } from "./shared"
+import type { Finding, HookResult, StealthMode, ExecMethod } from "./shared"
 
 import {
   lsassDump,
@@ -636,6 +636,11 @@ const PROGRAMS = {
       "AppLocker and WDAC bypass for execution restriction evasion — enumerate AppLocker/WDAC policy, find writable allowed directories, use LOLBAS (MSBuild, InstallUtil, Regsvr32, CMSTP, Mshta, CertUtil) for arbitrary code execution past application whitelisting. Covers all major bypass techniques",
     args: "--action enum|bypass [--method msbuild|installutil|regsvr32|cmstp|mshta|certutil|wmic|xsl] [--payload CMD] [--file PATH]",
   },
+  detect_env: {
+    description:
+      "Detect execution environment capabilities — PowerShell version, cmd.exe/wmic/cscript/mshta availability, CLM/AMSI status, execution policy, admin context, and OS build. Returns recommended execution method (ps/cmd/wmic/vbs). ALWAYS run before using --exec auto to determine best fallback chain",
+    args: "",
+  },
   stealth_check: {
     description:
       "Verify stealth encoding modes are working — runs a benign test command through each encoding mode (plain, base64, amsi-bypass, obfuscate) and reports which ones execute successfully. Use before real operations to confirm AV/EDR evasion readiness",
@@ -1022,6 +1027,45 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   msi_abuse: msiAbuse,
   backup_operator_abuse: backupOperatorAbuse,
   applocker_bypass: applockerBypass,
+  detect_env: async (_args: string[], timeout: number): Promise<HookResult> => {
+    const env = await detectEnv(timeout)
+    const lines = [
+      "=== EXECUTION ENVIRONMENT DETECTION ===",
+      "",
+      `PowerShell Available: ${env.psAvailable ? "YES" : "NO"}`,
+      `PowerShell Version: ${env.psVersion || "N/A"}`,
+      `PowerShell 7 (pwsh): ${env.pwshAvailable ? "YES" : "NO"}`,
+      `Constrained Language Mode: ${env.clmActive ? "ACTIVE (restricted)" : "OFF (full language)"}`,
+      `AMSI Active: ${env.amsiActive ? "YES" : "NO"}`,
+      `Execution Policy: ${env.executionPolicy}`,
+      `cmd.exe: AVAILABLE`,
+      `wmic.exe: ${env.wmicAvailable ? "AVAILABLE" : "NOT FOUND (deprecated in newer Windows)"}`,
+      `cscript.exe: ${env.cscriptAvailable ? "AVAILABLE" : "NOT FOUND"}`,
+      `mshta.exe: ${env.mshtaAvailable ? "AVAILABLE" : "NOT FOUND"}`,
+      `Administrator: ${env.isAdmin ? "YES" : "NO"}`,
+      `OS Build: ${env.osBuild || "unknown"}`,
+      "",
+      `Recommended --exec method: ${env.recommendedExec}`,
+      "",
+      "=== FALLBACK CHAIN ===",
+      env.psAvailable && !env.clmActive ? "1. ps (PowerShell full language) [AVAILABLE]" : "1. ps (PowerShell) [BLOCKED/RESTRICTED]",
+      env.pwshAvailable ? "2. pwsh (PowerShell 7) [AVAILABLE]" : "2. pwsh (PowerShell 7) [NOT FOUND]",
+      "3. cmd (cmd.exe native commands) [AVAILABLE]",
+      "4. bat (.bat file execution) [AVAILABLE]",
+      env.wmicAvailable ? "5. wmic (WMI command-line) [AVAILABLE]" : "5. wmic (WMI command-line) [NOT FOUND]",
+      env.cscriptAvailable ? "6. vbs (VBScript via cscript) [AVAILABLE]" : "6. vbs (VBScript via cscript) [NOT FOUND]",
+      env.mshtaAvailable ? "7. mshta (HTML Application) [AVAILABLE]" : "7. mshta (HTML Application) [NOT FOUND]",
+      "",
+      "Use: winhook <program> --exec auto   (auto-select best method)",
+      "Use: winhook <program> --exec cmd    (force cmd.exe native)",
+      "Use: winhook <program> --exec bat    (force .bat file)",
+    ]
+    const findings: Finding[] = []
+    if (env.clmActive) findings.push({ checkId: "ENV-CLM", provider: "winhook", severity: "HIGH", status: "FAIL", resource: "PowerShell", title: "Constrained Language Mode active", details: "CLM restricts PowerShell — use --exec cmd or --exec bat for fallback. PS 2.0 downgrade may bypass CLM.", remediation: "Use winhook ps_downgrade or --exec cmd/bat" })
+    if (!env.psAvailable) findings.push({ checkId: "ENV-PS", provider: "winhook", severity: "CRITICAL", status: "FAIL", resource: "PowerShell", title: "PowerShell not available", details: "powershell.exe not accessible — all PS-dependent handlers will fail. Use --exec cmd or --exec bat.", remediation: "Use --exec cmd for native command fallback" })
+    if (env.amsiActive) findings.push({ checkId: "ENV-AMSI", provider: "winhook", severity: "MEDIUM", status: "WARN", resource: "AMSI", title: "AMSI is active", details: "Antimalware Scan Interface will inspect PS commands. Use --stealth amsi to bypass or --exec cmd to avoid PS entirely.", remediation: "Run winhook amsi_bypass first or use --exec cmd" })
+    return { output: lines.join("\n"), findings }
+  },
   stealth_check: stealthCheck,
   proxy_pivot: proxyPivot,
   event_tamper: eventTamper,
@@ -1093,7 +1137,7 @@ export const WinhookTool = Tool.define("winhook", {
     args: z
       .array(z.string())
       .describe(
-        "Arguments to pass to the program. Use --stealth <mode> for AV/EDR evasion: base64 (EncodedCommand), amsi (AMSI patch + Base64), obfuscate (string chunking + IEX + Base64)",
+        "Arguments to pass to the program. Use --stealth <mode> for AV/EDR evasion: base64 (EncodedCommand), amsi (AMSI patch + Base64), obfuscate (string chunking + IEX + Base64). Use --exec <method> for execution engine: ps (PowerShell, default), cmd (cmd.exe native), bat (.bat file), wmic (WMI CLI), vbs (VBScript/cscript), mshta (HTA), auto (detect best available)",
       ),
     timeout_seconds: z.number().optional().default(120).describe("Maximum execution time in seconds (default: 120)"),
   }),
@@ -1107,11 +1151,13 @@ export const WinhookTool = Tool.define("winhook", {
     }
 
     setStealthState(argVal(params.args, "--stealth") as StealthMode | undefined, hasFlag(params.args, "--pwsh"))
+    setExecMethod((argVal(params.args, "--exec") as ExecMethod) || "ps")
 
     const program = params.program as Program
     const handler = dispatch[program]
     const result = await handler(params.args, params.timeout_seconds)
     setStealthState(undefined, false)
+    setExecMethod("ps")
 
     return {
       title: `winhook: ${program}`,
