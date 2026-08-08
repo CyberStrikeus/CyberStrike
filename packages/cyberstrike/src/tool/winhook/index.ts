@@ -1,6 +1,6 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv, resolveExec, activeExec } from "./shared"
+import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv, resolveExec, activeExec, resetEnvCache } from "./shared"
 import type { Finding, HookResult, StealthMode, ExecMethod } from "./shared"
 
 import {
@@ -1365,6 +1365,9 @@ export const WinhookTool = Tool.define("winhook", {
         }
       }
     }
+
+    const envChangingPrograms = new Set(["amsi_bypass", "etw_blind", "clm_bypass", "ps_downgrade", "defender_exclude"])
+    if (envChangingPrograms.has(program)) resetEnvCache()
 
     setStealthState(undefined, false)
     setExecMethod("ps")
