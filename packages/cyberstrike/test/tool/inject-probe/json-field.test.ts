@@ -45,7 +45,7 @@ describe("setJsonField", () => {
   })
 
   test("creates intermediate objects for missing path", () => {
-    const result = JSON.parse(setJsonField('{}', "a.b.c", "value"))
+    const result = JSON.parse(setJsonField("{}", "a.b.c", "value"))
     expect(result.a.b.c).toBe("value")
   })
 

@@ -16,7 +16,10 @@ const FORBIDDEN_HEADERS = new Set([
 ])
 
 type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
-interface InjPoint { location: Location; name: string }
+interface InjPoint {
+  location: Location
+  name: string
+}
 
 function validatePoints(pts: InjPoint[]): { points: InjPoint[]; rejected: { point: string; reason: string }[] } {
   const points: InjPoint[] = []

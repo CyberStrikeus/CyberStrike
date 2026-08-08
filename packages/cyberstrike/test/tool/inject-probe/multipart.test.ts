@@ -64,7 +64,8 @@ describe("multipartBoundary", () => {
   })
 
   test("falls back to body inspection when header lacks boundary", () => {
-    const body = "------WebKitBoundary\r\nContent-Disposition: form-data; name=\"test\"\r\n\r\nvalue\r\n------WebKitBoundary--"
+    const body =
+      '------WebKitBoundary\r\nContent-Disposition: form-data; name="test"\r\n\r\nvalue\r\n------WebKitBoundary--'
     const r = { contentType: "multipart/form-data", body }
     expect(multipartBoundary(r)).toBe("----WebKitBoundary")
   })
@@ -82,10 +83,7 @@ describe("multipartFieldNames", () => {
   })
 
   test("skips file upload parts", () => {
-    const body = mkBody(
-      { name: "comment", value: "hello" },
-      { name: "avatar", value: "binary data", file: true },
-    )
+    const body = mkBody({ name: "comment", value: "hello" }, { name: "avatar", value: "binary data", file: true })
     expect(multipartFieldNames(body, BOUNDARY)).toEqual(["comment"])
   })
 
