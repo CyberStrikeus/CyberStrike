@@ -1233,20 +1233,12 @@ export const WinhookTool = Tool.define("winhook", {
     setStealthState(undefined, false)
     setExecMethod("ps")
 
-    const output =
-      result.findings.length > 0
-        ? result.output +
-          "\n\n=== FINDINGS (" +
-          result.findings.length +
-          ") ===\n" +
-          result.findings
-            .map(
-              (f, i) =>
-                `[${i + 1}] ${f.severity} — ${f.title}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
-            )
-            .join("\n") +
-          "\n\nIMPORTANT: Call report_vulnerability for each finding above to formally record it."
-        : result.output
+    const normalized = result.findings.map(f => ({ ...f, severity: f.severity.toLowerCase() }))
+    const output = normalized.length > 0
+      ? result.output + "\n\n=== FINDINGS (" + normalized.length + ") ===\n" + normalized.map((f, i) =>
+          `[${i + 1}] ${f.severity} — ${f.title}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`
+        ).join("\n") + "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation."
+      : result.output
 
     return {
       title: `winhook: ${program}`,
