@@ -1176,7 +1176,7 @@ const CWE_MAP: Record<string, string> = {
   "WIN-REGSEC": "CWE-312",
   "WIN-KEYLOG": "CWE-319",
   "WIN-CAPTURE": "CWE-319",
-  "WDIGEST": "CWE-522",
+  WDIGEST: "CWE-522",
   "WIN-KERB": "CWE-287",
   "WIN-DELEG": "CWE-287",
   "WIN-DIAMOND": "CWE-287",
@@ -1197,22 +1197,22 @@ const CWE_MAP: Record<string, string> = {
   "WIN-GCERT": "CWE-295",
   "WIN-PTC": "CWE-295",
   "WIN-GMSA": "CWE-522",
-  "GGMSA": "CWE-522",
-  "GMSA": "CWE-522",
+  GGMSA: "CWE-522",
+  GMSA: "CWE-522",
   "WIN-TRUST": "CWE-287",
   "WIN-SAML": "CWE-287",
   "WIN-LAT": "CWE-78",
   "WIN-RELAY": "CWE-294",
   "WIN-NTLM": "CWE-294",
   "WIN-POISON": "CWE-350",
-  "RELAY": "CWE-294",
-  "POISON": "CWE-350",
-  "SPRAY": "CWE-307",
+  RELAY: "CWE-294",
+  POISON: "CWE-350",
+  SPRAY: "CWE-307",
   "WIN-SPRAY": "CWE-307",
   "WIN-MITM6": "CWE-350",
   "WIN-WPAD": "CWE-350",
-  "ADIDNS": "CWE-350",
-  "MACQ": "CWE-269",
+  ADIDNS: "CWE-350",
+  MACQ: "CWE-269",
   "WIN-NET": "CWE-350",
   "WIN-PERSIST": "CWE-269",
   "WIN-SCHTASK": "CWE-269",
@@ -1284,12 +1284,12 @@ const CWE_MAP: Record<string, string> = {
   "WIN-DLLHIJ": "CWE-426",
   "WIN-DLLSIDE": "CWE-426",
   "WIN-SCCM": "CWE-269",
-  "AZURE": "CWE-287",
-  "EXCH": "CWE-269",
-  "BITL": "CWE-312",
-  "CERT": "CWE-295",
-  "HELLO": "CWE-287",
-  "ENV": "CWE-693",
+  AZURE: "CWE-287",
+  EXCH: "CWE-269",
+  BITL: "CWE-312",
+  CERT: "CWE-295",
+  HELLO: "CWE-287",
+  ENV: "CWE-693",
 }
 
 function resolveCwe(checkId: string): string | undefined {
@@ -1314,15 +1314,15 @@ const PS_FAILURE_PATTERNS = [
 function isPsFailure(output: string): boolean {
   if (output.length === 0) return true
   const lower = output.toLowerCase()
-  return PS_FAILURE_PATTERNS.some(p => lower.includes(p.toLowerCase()))
+  return PS_FAILURE_PATTERNS.some((p) => lower.includes(p.toLowerCase()))
 }
 
 export const WinhookTool = Tool.define("winhook", {
   description: `Execute a Windows post-exploitation program. Covers AD (enumeration, Kerberos, DCSync, ADCS), lateral movement (WMI, WinRM, DCOM, SMB, NTLM relay), persistence (schtask, service, registry, WMI, COM), privesc (token, UAC, Potato), and credential harvesting (LSASS, SAM, DPAPI, NTDS.dit, Vault). Requires Administrator on target. ALWAYS run detect_env first to check PS/cmd availability — if PowerShell is blocked (CLM, AMSI, disabled), use --exec cmd for cmd.exe native fallback (reg, netsh, certutil, sc, schtasks, wmic, nltest, dsquery). Auto-fallback retries with cmd when PS fails. Available programs: ${Object.keys(PROGRAMS).join(", ")}. ALWAYS run cleanup_win before leaving a target.`,
   parameters: z.object({
-    program: z.enum(Object.keys(PROGRAMS) as [string, ...string[]]).describe(
-      "Program name. Run with no args to see usage. Full list in tool description.",
-    ),
+    program: z
+      .enum(Object.keys(PROGRAMS) as [string, ...string[]])
+      .describe("Program name. Run with no args to see usage. Full list in tool description."),
     args: z
       .array(z.string())
       .describe(
@@ -1369,16 +1369,27 @@ export const WinhookTool = Tool.define("winhook", {
     setStealthState(undefined, false)
     setExecMethod("ps")
 
-    const enriched = result.findings.map(f => ({
+    const enriched = result.findings.map((f) => ({
       ...f,
       severity: f.severity.toLowerCase(),
       cwe: f.cwe || resolveCwe(f.checkId),
     }))
-    const output = enriched.length > 0
-      ? result.output + "\n\n=== FINDINGS (" + enriched.length + ") ===\n" + enriched.map((f, i) =>
-          `[${i + 1}] ${f.severity} — ${f.title}${f.cwe ? ` (${f.cwe})` : ""}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`
-        ).join("\n") + "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation" + (enriched.some(f => f.cwe) ? ", cwe_id from parentheses above" : "") + "."
-      : result.output
+    const output =
+      enriched.length > 0
+        ? result.output +
+          "\n\n=== FINDINGS (" +
+          enriched.length +
+          ") ===\n" +
+          enriched
+            .map(
+              (f, i) =>
+                `[${i + 1}] ${f.severity} — ${f.title}${f.cwe ? ` (${f.cwe})` : ""}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
+            )
+            .join("\n") +
+          "\n\nCall report_vulnerability for each finding: severity (lowercase), title, description=details, recommendation=remediation" +
+          (enriched.some((f) => f.cwe) ? ", cwe_id from parentheses above" : "") +
+          "."
+        : result.output
 
     return {
       title: `winhook: ${program}`,
