@@ -11,7 +11,7 @@ import { goldenCert, passTheCert, gmsaDump, goldenGmsa, crossForest, silverSaml 
 import { wmiExec, winrmExec, dcomExec, smbExec, ntlmCoerce, coercerFull, remoteMonologue, mssqlAbuse, schtaskExec, sshExec } from "./lateral"
 import { schtaskPersist, servicePersist, registryPersist, wmiPersist, comHijack, startupPersist, gpoAbuse, bitsPersist, wsusAbuse, printMonitorPersist, sspPersist, passwordFilter, dsrmAbuse, accessibilityBackdoor, ifeoPersist, winlogonPersist, appinitDll, netshHelper, timeProvider, screensaverPersist, powershellProfile, activeSetup, bootExec } from "./persistence"
 import { tokenImpersonate, uacBypass, potatoAttack, printspoolerAbuse, nopac, zerologon, certifried, badSuccessor, privilegeAbuse, namedPipePrivesc, alwaysInstallElevated, shadowCopyAbuse, unquotedServicePath, wslPrivesc, scheduledTaskHijack, byovd, weakServicePerms, dllSideload, serverOperatorAbuse, dllHijack, msiAbuse, backupOperatorAbuse, ridHijack } from "./privesc"
-import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck, unhookNtdll } from "./evasion"
+import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck, ppidSpoof, unhookNtdll } from "./evasion"
 import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot, adidnsPoison, machineAccount } from "./network"
 import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon, pipeEnum } from "./recon"
 import { shareHunt, dataExfil, firewallManage, cleanupWin, eventTamper, antiForensics } from "./exfil"
@@ -719,6 +719,11 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  ppid_spoof: {
+    description:
+      "Parent PID spoofing — create processes with a fake parent PID via PROC_THREAD_ATTRIBUTE_PARENT_PROCESS to evade EDR parent-child process tree analysis. Enum mode lists candidate parents (explorer, svchost, RuntimeBroker, winlogon, services). Spoof mode creates a new process appearing as a child of the chosen parent",
+    args: "--action enum|spoof [--parent PROCESS_NAME] [--command CMD]",
+  },
   unhook_ntdll: {
     description:
       "NTDLL unhooking — detect and remove EDR userland hooks from ntdll.dll. Check mode scans 18 critical Nt* functions (NtWriteVirtualMemory, NtCreateThreadEx, NtAllocateVirtualMemory, etc.) for JMP/PUSH+RET/INT3 hook patterns. Unhook mode loads a fresh ntdll.dll from disk via NtCreateSection+NtMapViewOfSection and overwrites the hooked .text section with the clean copy. Essential pre-step before process_inject, lsass_dump, or token_impersonate on EDR-protected hosts",
@@ -909,6 +914,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  ppid_spoof: ppidSpoof,
   unhook_ntdll: unhookNtdll,
   powershell_profile: powershellProfile,
   active_setup: activeSetup,
