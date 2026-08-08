@@ -45,12 +45,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type AuditResult = { output: string; findings: Finding[] }
 
 // ── Helpers ──
 
-async function exec(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function exec(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -64,24 +77,33 @@ function argVal(args: string[], flag: string): string | undefined {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 function gh(args: string[], token: string | undefined, timeout: number) {
   const env = token ? { ...process.env, GH_TOKEN: token } : { ...process.env }
   const proc = Bun.spawn(["gh", ...args], { stdout: "pipe", stderr: "pipe", env })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
-  return Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]).then(([stdout, stderr, exitCode]) => {
-    clearTimeout(timer)
-    return { stdout, stderr, exitCode }
-  })
+  return Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]).then(
+    ([stdout, stderr, exitCode]) => {
+      clearTimeout(timer)
+      return { stdout, stderr, exitCode }
+    },
+  )
 }
 
 function formatFindings(tool: string, findings: Finding[]): string {
-  const crit = findings.filter(f => f.severity === "critical").length
-  const high = findings.filter(f => f.severity === "high").length
-  const med = findings.filter(f => f.severity === "medium").length
-  const lines = [`\n${"=".repeat(60)}`, `${tool} — ${findings.length} finding(s) (critical: ${crit}, high: ${high}, medium: ${med})\n`]
+  const crit = findings.filter((f) => f.severity === "critical").length
+  const high = findings.filter((f) => f.severity === "high").length
+  const med = findings.filter((f) => f.severity === "medium").length
+  const lines = [
+    `\n${"=".repeat(60)}`,
+    `${tool} — ${findings.length} finding(s) (critical: ${crit}, high: ${high}, medium: ${med})\n`,
+  ]
   for (const f of findings) {
     lines.push(`[${f.severity.toUpperCase()}] ${f.title}`)
     lines.push(`  Resource: ${f.resource}`)
@@ -125,12 +147,17 @@ async function githubActionsAudit(args: string[], timeout: number): Promise<Audi
         status: "FAIL",
         resource: `${repo}/.github/workflows/${name}`,
         title: `Dangerous trigger: pull_request_target in ${name}`,
-        details: "pull_request_target runs in the context of the base branch with write access and secrets. Combined with checkout of PR code, this enables code execution with elevated privileges.",
-        remediation: "Use pull_request trigger instead. If pull_request_target is needed, never checkout PR head code or use it in run steps.",
+        details:
+          "pull_request_target runs in the context of the base branch with write access and secrets. Combined with checkout of PR code, this enables code execution with elevated privileges.",
+        remediation:
+          "Use pull_request trigger instead. If pull_request_target is needed, never checkout PR head code or use it in run steps.",
       })
     }
 
-    const exprMatches = decoded.match(/\$\{\{\s*(github\.event\.(issue|pull_request|comment|review|discussion)\.(title|body|head\.ref)|github\.head_ref)/g) || []
+    const exprMatches =
+      decoded.match(
+        /\$\{\{\s*(github\.event\.(issue|pull_request|comment|review|discussion)\.(title|body|head\.ref)|github\.head_ref)/g,
+      ) || []
     for (const expr of exprMatches) {
       findings.push({
         checkId: "CI-GHA-002",
@@ -140,7 +167,8 @@ async function githubActionsAudit(args: string[], timeout: number): Promise<Audi
         resource: `${repo}/.github/workflows/${name}`,
         title: `Script injection via untrusted input: ${expr}`,
         details: `Expression "${expr}" interpolates user-controlled input directly into a workflow step. An attacker can inject arbitrary commands via PR title, body, or branch name.`,
-        remediation: "Store the value in an environment variable first, then reference $ENV_VAR. Never interpolate untrusted input directly in run: blocks.",
+        remediation:
+          "Store the value in an environment variable first, then reference $ENV_VAR. Never interpolate untrusted input directly in run: blocks.",
       })
       output.push(`  [!] ${name}: script injection — ${expr}`)
     }
@@ -153,7 +181,8 @@ async function githubActionsAudit(args: string[], timeout: number): Promise<Audi
         status: "FAIL",
         resource: `${repo}/.github/workflows/${name}`,
         title: `Workflow dispatch input used unsafely in ${name}`,
-        details: "workflow_dispatch inputs are interpolated via ${{ github.event.inputs.* }} which can contain shell metacharacters.",
+        details:
+          "workflow_dispatch inputs are interpolated via ${{ github.event.inputs.* }} which can contain shell metacharacters.",
         remediation: "Store dispatch inputs in environment variables before use in run: blocks.",
       })
     }
@@ -168,7 +197,8 @@ async function githubActionsAudit(args: string[], timeout: number): Promise<Audi
           status: "FAIL",
           resource: `${repo}/.github/workflows/${name}`,
           title: `Secrets used in always() step in ${name}`,
-          details: "A step with if: always() that uses secrets will run even on cancelled/failed workflows, potentially exposing secrets in error paths.",
+          details:
+            "A step with if: always() that uses secrets will run even on cancelled/failed workflows, potentially exposing secrets in error paths.",
           remediation: "Avoid using secrets in steps with if: always(). Use if: success() or remove the condition.",
         })
       }
@@ -206,8 +236,10 @@ async function githubPermissionsAudit(args: string[], timeout: number): Promise<
         status: "FAIL",
         resource: `${repo}/.github/workflows/${name}`,
         title: `No permissions block in ${name}`,
-        details: "Workflow has no top-level or job-level permissions declaration. It inherits the repository default, which may be write-all.",
-        remediation: "Add a top-level permissions: block with minimum required scopes. Set repository default to read-all in Settings > Actions > General.",
+        details:
+          "Workflow has no top-level or job-level permissions declaration. It inherits the repository default, which may be write-all.",
+        remediation:
+          "Add a top-level permissions: block with minimum required scopes. Set repository default to read-all in Settings > Actions > General.",
       })
     }
 
@@ -215,7 +247,14 @@ async function githubPermissionsAudit(args: string[], timeout: number): Promise<
       output.push(`  [!] ${name}: has write permissions`)
     }
 
-    const writePerms = ["contents: write", "packages: write", "deployments: write", "id-token: write", "actions: write", "security-events: write"]
+    const writePerms = [
+      "contents: write",
+      "packages: write",
+      "deployments: write",
+      "id-token: write",
+      "actions: write",
+      "security-events: write",
+    ]
     for (const perm of writePerms) {
       if (decoded.includes(perm)) {
         output.push(`  [*] ${name}: ${perm}`)
@@ -347,8 +386,10 @@ async function githubSecretsExposureAudit(args: string[], timeout: number): Prom
         status: "FAIL",
         resource: `${repo}/.github/workflows/${name}`,
         title: `Artifact upload in workflow that uses secrets: ${name}`,
-        details: "Workflow uploads artifacts and uses secrets. If secrets are written to files that get uploaded, they'll be accessible via artifact download.",
-        remediation: "Ensure uploaded artifact paths don't include files that contain secrets. Use .gitignore patterns for sensitive files.",
+        details:
+          "Workflow uploads artifacts and uses secrets. If secrets are written to files that get uploaded, they'll be accessible via artifact download.",
+        remediation:
+          "Ensure uploaded artifact paths don't include files that contain secrets. Use .gitignore patterns for sensitive files.",
       })
       output.push(`  [!] ${name}: artifact upload + secrets usage`)
     }
@@ -370,8 +411,10 @@ async function githubRunnerAudit(args: string[], timeout: number): Promise<Audit
     const data = tryJson(runners.stdout)
     const count = data?.total_count || 0
     output.push(`[*] Self-hosted runners: ${count}`)
-    for (const r of (data?.runners || [])) {
-      output.push(`    ${r.name} — OS: ${r.os}, status: ${r.status}, labels: ${(r.labels || []).map((l: Record<string, string>) => l.name).join(",")}`)
+    for (const r of data?.runners || []) {
+      output.push(
+        `    ${r.name} — OS: ${r.os}, status: ${r.status}, labels: ${(r.labels || []).map((l: Record<string, string>) => l.name).join(",")}`,
+      )
     }
     if (count > 0) {
       findings.push({
@@ -381,8 +424,10 @@ async function githubRunnerAudit(args: string[], timeout: number): Promise<Audit
         status: "WARN",
         resource: `${repo}/runners`,
         title: `${count} self-hosted runner(s) detected`,
-        details: "Self-hosted runners persist between jobs. Malicious workflows (from PRs) can leave backdoors, steal credentials, or pivot to internal networks.",
-        remediation: "Use ephemeral runners (actions-runner-controller with ephemeral mode). Never use self-hosted runners on public repos.",
+        details:
+          "Self-hosted runners persist between jobs. Malicious workflows (from PRs) can leave backdoors, steal credentials, or pivot to internal networks.",
+        remediation:
+          "Use ephemeral runners (actions-runner-controller with ephemeral mode). Never use self-hosted runners on public repos.",
       })
     }
   }
@@ -396,7 +441,10 @@ async function githubRunnerAudit(args: string[], timeout: number): Promise<Audit
       if (content.exitCode !== 0) continue
       const decoded = Buffer.from(content.stdout.trim(), "base64").toString("utf-8")
 
-      if (decoded.includes("self-hosted") && (decoded.includes("pull_request_target") || decoded.includes("pull_request"))) {
+      if (
+        decoded.includes("self-hosted") &&
+        (decoded.includes("pull_request_target") || decoded.includes("pull_request"))
+      ) {
         findings.push({
           checkId: "CI-RUN-002",
           provider: "github",
@@ -404,8 +452,10 @@ async function githubRunnerAudit(args: string[], timeout: number): Promise<Audit
           status: "FAIL",
           resource: `${repo}/.github/workflows/${file.name}`,
           title: `Self-hosted runner with PR trigger in ${file.name}`,
-          details: "Workflow runs on self-hosted runner and is triggered by pull requests. Fork PRs can execute arbitrary code on your infrastructure.",
-          remediation: "Never use self-hosted runners with pull_request triggers on public repos. Use GitHub-hosted runners for PR workflows.",
+          details:
+            "Workflow runs on self-hosted runner and is triggered by pull requests. Fork PRs can execute arbitrary code on your infrastructure.",
+          remediation:
+            "Never use self-hosted runners with pull_request triggers on public repos. Use GitHub-hosted runners for PR workflows.",
         })
         output.push(`  [!] ${file.name}: self-hosted + PR trigger`)
       }
@@ -445,7 +495,8 @@ async function githubBranchProtectionAudit(args: string[], timeout: number): Pro
       resource: `${repo}/branch/${defaultName}`,
       title: `Default branch "${defaultName}" is not protected`,
       details: `The default branch has no branch protection rules. Anyone with write access can force-push, delete, or push directly.`,
-      remediation: "Enable branch protection on the default branch with required reviews, status checks, and force-push prevention.",
+      remediation:
+        "Enable branch protection on the default branch with required reviews, status checks, and force-push prevention.",
     })
     output.push(`  [!] Default branch "${defaultName}" is NOT protected!`)
   }
@@ -480,7 +531,8 @@ async function githubBranchProtectionAudit(args: string[], timeout: number): Pro
           status: "FAIL",
           resource: `${repo}/branch/${name}`,
           title: `Stale reviews not dismissed on ${name}`,
-          details: "Approved reviews are not dismissed when new commits are pushed. An attacker can get approval then push malicious code.",
+          details:
+            "Approved reviews are not dismissed when new commits are pushed. An attacker can get approval then push malicious code.",
           remediation: "Enable 'Dismiss stale pull request approvals when new commits are pushed'.",
         })
       }
@@ -542,7 +594,9 @@ async function dependencyAudit(args: string[], timeout: number): Promise<AuditRe
   if (await pkgFile.exists()) {
     const pkg = tryJson(await pkgFile.text())
     if (pkg) {
-      output.push(`[*] Package: ${pkg.name || "unnamed"} — ${Object.keys(pkg.dependencies || {}).length} deps, ${Object.keys(pkg.devDependencies || {}).length} devDeps`)
+      output.push(
+        `[*] Package: ${pkg.name || "unnamed"} — ${Object.keys(pkg.dependencies || {}).length} deps, ${Object.keys(pkg.devDependencies || {}).length} devDeps`,
+      )
 
       const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }
       for (const [name, version] of Object.entries(allDeps)) {
@@ -610,7 +664,8 @@ async function dependencyAudit(args: string[], timeout: number): Promise<AuditRe
       status: "FAIL",
       resource: `${dir}`,
       title: "No lockfile found",
-      details: "No package lockfile detected. Builds are not reproducible and vulnerable to dependency confusion attacks.",
+      details:
+        "No package lockfile detected. Builds are not reproducible and vulnerable to dependency confusion attacks.",
       remediation: "Commit a lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, or bun.lock).",
     })
     output.push("  [!] No lockfile found!")
@@ -621,7 +676,9 @@ async function dependencyAudit(args: string[], timeout: number): Promise<AuditRe
     const audit = tryJson(npmAudit.stdout)
     if (audit?.metadata?.vulnerabilities) {
       const v = audit.metadata.vulnerabilities
-      output.push(`\n[*] npm audit: critical=${v.critical || 0}, high=${v.high || 0}, moderate=${v.moderate || 0}, low=${v.low || 0}`)
+      output.push(
+        `\n[*] npm audit: critical=${v.critical || 0}, high=${v.high || 0}, moderate=${v.moderate || 0}, low=${v.low || 0}`,
+      )
       if ((v.critical || 0) > 0 || (v.high || 0) > 0) {
         findings.push({
           checkId: "CI-DEP-004",
@@ -649,9 +706,17 @@ async function supplyChainAudit(args: string[], timeout: number): Promise<AuditR
   const output: string[] = ["[*] Auditing software supply chain...\n"]
 
   if (repo) {
-    const dependabot = await gh(["api", `repos/${repo}/contents/.github/dependabot.yml`, "--jq", ".content"], token, timeout)
+    const dependabot = await gh(
+      ["api", `repos/${repo}/contents/.github/dependabot.yml`, "--jq", ".content"],
+      token,
+      timeout,
+    )
     if (dependabot.exitCode !== 0) {
-      const dependabotYaml = await gh(["api", `repos/${repo}/contents/.github/dependabot.yaml`, "--jq", ".content"], token, timeout)
+      const dependabotYaml = await gh(
+        ["api", `repos/${repo}/contents/.github/dependabot.yaml`, "--jq", ".content"],
+        token,
+        timeout,
+      )
       if (dependabotYaml.exitCode !== 0) {
         findings.push({
           checkId: "CI-SC-001",
@@ -681,8 +746,10 @@ async function supplyChainAudit(args: string[], timeout: number): Promise<AuditR
         status: "WARN",
         resource: `${repo}/.github/CODEOWNERS`,
         title: "No CODEOWNERS file",
-        details: "No CODEOWNERS file found. Critical paths (CI configs, security configs) don't have enforced reviewers.",
-        remediation: "Add a .github/CODEOWNERS file with owners for .github/workflows/, security configs, and other sensitive paths.",
+        details:
+          "No CODEOWNERS file found. Critical paths (CI configs, security configs) don't have enforced reviewers.",
+        remediation:
+          "Add a .github/CODEOWNERS file with owners for .github/workflows/, security configs, and other sensitive paths.",
       })
       output.push("  [!] No CODEOWNERS file")
     } else {
@@ -769,7 +836,11 @@ export const CiAuditTool = Tool.define("ci_audit", {
         metadata: { program: params.program, findings: result.findings },
       }
     } catch (e) {
-      return { title: `ci_audit: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+      return {
+        title: `ci_audit: ${params.program}`,
+        output: `Error: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program: params.program, findings: [] },
+      }
     }
   },
 })

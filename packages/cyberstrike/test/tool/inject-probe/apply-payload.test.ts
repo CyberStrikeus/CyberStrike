@@ -70,8 +70,17 @@ function setMultipartField(body: string, boundary: string, name: string, value: 
 }
 
 type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
-interface InjPoint { location: Location; name: string }
-interface ResolvedRequest { method: string; url: URL; headers: Record<string, string>; body: string; contentType: string }
+interface InjPoint {
+  location: Location
+  name: string
+}
+interface ResolvedRequest {
+  method: string
+  url: URL
+  headers: Record<string, string>
+  body: string
+  contentType: string
+}
 
 function applyPayload(
   r: ResolvedRequest,

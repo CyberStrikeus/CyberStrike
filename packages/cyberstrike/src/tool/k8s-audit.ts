@@ -38,8 +38,7 @@ const PROGRAMS = {
     args: "[--kubeconfig PATH] [--context CTX]",
   },
   resource_limits_audit: {
-    description:
-      "Check for missing CPU/memory requests/limits, LimitRange and ResourceQuota coverage per namespace",
+    description: "Check for missing CPU/memory requests/limits, LimitRange and ResourceQuota coverage per namespace",
     args: "[--namespace NS] [--kubeconfig PATH] [--context CTX]",
   },
   ingress_audit: {
@@ -55,12 +54,25 @@ const PROGRAMS = {
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
-type Finding = { checkId: string; provider: string; severity: string; status: string; resource: string; title: string; details: string; remediation: string }
+type Finding = {
+  checkId: string
+  provider: string
+  severity: string
+  status: string
+  resource: string
+  title: string
+  details: string
+  remediation: string
+}
 type AuditResult = { output: string; findings: Finding[] }
 
 // ── CLI helpers ──
 
-async function exec(cmd: string, args: string[], timeout: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function exec(
+  cmd: string,
+  args: string[],
+  timeout: number,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env } })
   const timer = setTimeout(() => proc.kill(), timeout * 1000)
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
@@ -74,7 +86,11 @@ function argVal(args: string[], flag: string): string | undefined {
 }
 
 function tryJson(s: string) {
-  try { return JSON.parse(s) } catch { return null }
+  try {
+    return JSON.parse(s)
+  } catch {
+    return null
+  }
 }
 
 function kc(args: string[], kubeconfig: string | undefined, ctx: string | undefined, timeout: number) {
@@ -88,10 +104,13 @@ function kcText(args: string[], kubeconfig: string | undefined, ctx: string | un
 }
 
 function formatFindings(tool: string, findings: Finding[]): string {
-  const crit = findings.filter(f => f.severity === "critical").length
-  const high = findings.filter(f => f.severity === "high").length
-  const med = findings.filter(f => f.severity === "medium").length
-  const lines = [`\n${"=".repeat(60)}`, `${tool} — ${findings.length} finding(s) (critical: ${crit}, high: ${high}, medium: ${med})\n`]
+  const crit = findings.filter((f) => f.severity === "critical").length
+  const high = findings.filter((f) => f.severity === "high").length
+  const med = findings.filter((f) => f.severity === "medium").length
+  const lines = [
+    `\n${"=".repeat(60)}`,
+    `${tool} — ${findings.length} finding(s) (critical: ${crit}, high: ${high}, medium: ${med})\n`,
+  ]
   for (const f of findings) {
     lines.push(`[${f.severity.toUpperCase()}] ${f.title}`)
     lines.push(`  Resource: ${f.resource}`)
@@ -101,7 +120,11 @@ function formatFindings(tool: string, findings: Finding[]): string {
   return lines.join("\n")
 }
 
-async function getNamespaces(kubeconfig: string | undefined, ctx: string | undefined, timeout: number): Promise<string[]> {
+async function getNamespaces(
+  kubeconfig: string | undefined,
+  ctx: string | undefined,
+  timeout: number,
+): Promise<string[]> {
   const r = await kc(["get", "namespaces"], kubeconfig, ctx, timeout)
   if (r.exitCode !== 0) return ["default"]
   const items = tryJson(r.stdout)?.items || []
@@ -149,7 +172,9 @@ async function verifyReadonly(args: string[], timeout: number): Promise<AuditRes
   const readVerbs = ["get", "list"]
   for (const verb of readVerbs) {
     const check = await kcText(["auth", "can-i", verb, "pods", "--all-namespaces"], kubeconfig, ctx, timeout)
-    output.push(check.stdout.trim() === "yes" ? `[+] Can ${verb} pods: YES` : `[-] Can ${verb} pods: NO (limited audit coverage)`)
+    output.push(
+      check.stdout.trim() === "yes" ? `[+] Can ${verb} pods: YES` : `[-] Can ${verb} pods: NO (limited audit coverage)`,
+    )
   }
 
   output.push(formatFindings("verify_readonly", findings))
@@ -182,7 +207,8 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
           resource: `ClusterRoleBinding/${b.metadata.name}`,
           title: `cluster-admin bound to ${s.kind}/${s.name}`,
           details: `${s.kind} "${s.name}" has cluster-admin via ClusterRoleBinding "${b.metadata.name}". This grants unrestricted cluster access.`,
-          remediation: "Replace cluster-admin with a scoped ClusterRole following least-privilege. Use namespaced RoleBindings where possible.",
+          remediation:
+            "Replace cluster-admin with a scoped ClusterRole following least-privilege. Use namespaced RoleBindings where possible.",
         })
       }
     }
@@ -200,7 +226,9 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
         const apiGroups = rule.apiGroups || []
         if (verbs.includes("*") && resources.includes("*") && apiGroups.includes("*")) continue
         if (verbs.includes("*") || resources.includes("*")) {
-          output.push(`  [!] Wildcard role: ${r.metadata.name} — verbs:${verbs.join(",")} resources:${resources.join(",")}`)
+          output.push(
+            `  [!] Wildcard role: ${r.metadata.name} — verbs:${verbs.join(",")} resources:${resources.join(",")}`,
+          )
           findings.push({
             checkId: "K8S-RBAC-002",
             provider: "kubernetes",
@@ -234,7 +262,8 @@ async function rbacAudit(args: string[], timeout: number): Promise<AuditResult> 
           resource: `${n}/RoleBinding/${b.metadata.name}`,
           title: `Default ServiceAccount has RoleBinding in namespace ${n}`,
           details: `The default ServiceAccount is bound to role "${b.roleRef.name}" in namespace "${n}". Pods without explicit SA inherit these permissions.`,
-          remediation: "Bind specific ServiceAccounts instead of default. Set automountServiceAccountToken: false on default SA.",
+          remediation:
+            "Bind specific ServiceAccounts instead of default. Set automountServiceAccountToken: false on default SA.",
         })
       }
     }
@@ -255,10 +284,10 @@ async function serviceaccountAudit(args: string[], timeout: number): Promise<Aud
   let total = 0
 
   const crb = await kc(["get", "clusterrolebindings"], kubeconfig, ctx, timeout)
-  const clusterBindings = crb.exitCode === 0 ? (tryJson(crb.stdout)?.items || []) : []
+  const clusterBindings = crb.exitCode === 0 ? tryJson(crb.stdout)?.items || [] : []
   const saClusterRoles = new Map<string, string[]>()
   for (const b of clusterBindings) {
-    for (const s of (b.subjects || [])) {
+    for (const s of b.subjects || []) {
       if (s.kind !== "ServiceAccount") continue
       const key = `${s.namespace || "default"}/${s.name}`
       const roles = saClusterRoles.get(key) || []
@@ -318,16 +347,22 @@ async function serviceaccountAudit(args: string[], timeout: number): Promise<Aud
     const bindings = tryJson(rb.stdout)?.items || []
     const boundSAs = new Set<string>()
     for (const b of bindings) {
-      for (const s of (b.subjects || [])) {
+      for (const s of b.subjects || []) {
         if (s.kind === "ServiceAccount" && s.namespace === n) boundSAs.add(s.name)
       }
     }
 
-    const saItems = tryJson((await kc(["get", "serviceaccounts", "-n", n], kubeconfig, ctx, timeout)).stdout)?.items || []
+    const saItems =
+      tryJson((await kc(["get", "serviceaccounts", "-n", n], kubeconfig, ctx, timeout)).stdout)?.items || []
     for (const sa of saItems) {
       if (sa.metadata.name === "default") continue
       if (!boundSAs.has(sa.metadata.name) && !saClusterRoles.has(`${n}/${sa.metadata.name}`)) {
-        const pods = await kcText(["get", "pods", "-n", n, "--field-selector", `spec.serviceAccountName=${sa.metadata.name}`, "--no-headers"], kubeconfig, ctx, timeout)
+        const pods = await kcText(
+          ["get", "pods", "-n", n, "--field-selector", `spec.serviceAccountName=${sa.metadata.name}`, "--no-headers"],
+          kubeconfig,
+          ctx,
+          timeout,
+        )
         if (pods.stdout.trim() === "") {
           output.push(`  [*] ${n}/${sa.metadata.name}: unused (no bindings, no pods)`)
           findings.push({
@@ -410,7 +445,10 @@ async function ingressAudit(args: string[], timeout: number): Promise<AuditResul
       }
 
       const annotations = ing.metadata?.annotations || {}
-      const sensitive = ["nginx.ingress.kubernetes.io/server-snippet", "nginx.ingress.kubernetes.io/configuration-snippet"]
+      const sensitive = [
+        "nginx.ingress.kubernetes.io/server-snippet",
+        "nginx.ingress.kubernetes.io/configuration-snippet",
+      ]
       for (const ann of sensitive) {
         if (annotations[ann]) {
           output.push(`  [!] ${n}/${name}: has ${ann} annotation (code injection risk)`)
@@ -446,7 +484,7 @@ async function resourceLimitsAudit(args: string[], timeout: number): Promise<Aud
     if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
 
     const lr = await kc(["get", "limitranges", "-n", n], kubeconfig, ctx, timeout)
-    const limitRanges = lr.exitCode === 0 ? (tryJson(lr.stdout)?.items || []) : []
+    const limitRanges = lr.exitCode === 0 ? tryJson(lr.stdout)?.items || [] : []
     if (limitRanges.length === 0) {
       findings.push({
         checkId: "K8S-RES-001",
@@ -461,7 +499,7 @@ async function resourceLimitsAudit(args: string[], timeout: number): Promise<Aud
     }
 
     const rq = await kc(["get", "resourcequotas", "-n", n], kubeconfig, ctx, timeout)
-    const quotas = rq.exitCode === 0 ? (tryJson(rq.stdout)?.items || []) : []
+    const quotas = rq.exitCode === 0 ? tryJson(rq.stdout)?.items || [] : []
     if (quotas.length === 0) {
       findings.push({
         checkId: "K8S-RES-002",
@@ -525,7 +563,12 @@ async function apiServerAudit(args: string[], timeout: number): Promise<AuditRes
     output.push(`    Platform: ${v?.serverVersion?.platform || "unknown"}`)
   }
 
-  const anonCheck = await kcText(["auth", "can-i", "list", "namespaces", "--as=system:anonymous"], kubeconfig, ctx, timeout)
+  const anonCheck = await kcText(
+    ["auth", "can-i", "list", "namespaces", "--as=system:anonymous"],
+    kubeconfig,
+    ctx,
+    timeout,
+  )
   if (anonCheck.stdout.trim() === "yes") {
     output.push("[!] Anonymous authentication: ENABLED — anonymous user can list namespaces")
     findings.push({
@@ -542,7 +585,12 @@ async function apiServerAudit(args: string[], timeout: number): Promise<AuditRes
     output.push("[+] Anonymous auth: restricted (cannot list namespaces)")
   }
 
-  const anonSecrets = await kcText(["auth", "can-i", "get", "secrets", "--as=system:anonymous", "--all-namespaces"], kubeconfig, ctx, timeout)
+  const anonSecrets = await kcText(
+    ["auth", "can-i", "get", "secrets", "--as=system:anonymous", "--all-namespaces"],
+    kubeconfig,
+    ctx,
+    timeout,
+  )
   if (anonSecrets.stdout.trim() === "yes") {
     output.push("[!] CRITICAL — Anonymous user can read secrets!")
     findings.push({
@@ -557,7 +605,12 @@ async function apiServerAudit(args: string[], timeout: number): Promise<AuditRes
     })
   }
 
-  const apiPod = await kc(["get", "pods", "-n", "kube-system", "-l", "component=kube-apiserver"], kubeconfig, ctx, timeout)
+  const apiPod = await kc(
+    ["get", "pods", "-n", "kube-system", "-l", "component=kube-apiserver"],
+    kubeconfig,
+    ctx,
+    timeout,
+  )
   if (apiPod.exitCode === 0) {
     const items = tryJson(apiPod.stdout)?.items || []
     for (const pod of items) {
@@ -565,15 +618,43 @@ async function apiServerAudit(args: string[], timeout: number): Promise<AuditRes
       for (const c of containers) {
         const cmd = (c.command || []).join(" ")
         if (cmd.includes("--insecure-port") && !cmd.includes("--insecure-port=0")) {
-          findings.push({ checkId: "K8S-API-003", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "Insecure port enabled on API server", details: "kube-apiserver has --insecure-port set to non-zero. Unauthenticated access possible.", remediation: "Set --insecure-port=0 on kube-apiserver." })
+          findings.push({
+            checkId: "K8S-API-003",
+            provider: "kubernetes",
+            severity: "critical",
+            status: "FAIL",
+            resource: `kube-system/Pod/${pod.metadata.name}`,
+            title: "Insecure port enabled on API server",
+            details: "kube-apiserver has --insecure-port set to non-zero. Unauthenticated access possible.",
+            remediation: "Set --insecure-port=0 on kube-apiserver.",
+          })
           output.push("[!] Insecure port enabled!")
         }
         if (!cmd.includes("--enable-admission-plugins") || !cmd.includes("NodeRestriction")) {
-          findings.push({ checkId: "K8S-API-004", provider: "kubernetes", severity: "high", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "NodeRestriction admission controller not enabled", details: "NodeRestriction admission plugin is not in --enable-admission-plugins. Compromised nodes can modify any object.", remediation: "Add NodeRestriction to --enable-admission-plugins on kube-apiserver." })
+          findings.push({
+            checkId: "K8S-API-004",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `kube-system/Pod/${pod.metadata.name}`,
+            title: "NodeRestriction admission controller not enabled",
+            details:
+              "NodeRestriction admission plugin is not in --enable-admission-plugins. Compromised nodes can modify any object.",
+            remediation: "Add NodeRestriction to --enable-admission-plugins on kube-apiserver.",
+          })
           output.push("[!] NodeRestriction admission controller not found")
         }
         if (!cmd.includes("--audit-log-path")) {
-          findings.push({ checkId: "K8S-API-005", provider: "kubernetes", severity: "high", status: "FAIL", resource: `kube-system/Pod/${pod.metadata.name}`, title: "API server audit logging not configured", details: "No --audit-log-path set. API server requests are not being logged for forensics.", remediation: "Configure --audit-log-path and --audit-policy-file on kube-apiserver." })
+          findings.push({
+            checkId: "K8S-API-005",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `kube-system/Pod/${pod.metadata.name}`,
+            title: "API server audit logging not configured",
+            details: "No --audit-log-path set. API server requests are not being logged for forensics.",
+            remediation: "Configure --audit-log-path and --audit-policy-file on kube-apiserver.",
+          })
           output.push("[!] Audit logging not configured")
         }
       }
@@ -593,7 +674,15 @@ async function imageAudit(args: string[], timeout: number): Promise<AuditResult>
   const findings: Finding[] = []
   const output: string[] = ["[*] Auditing container images...\n"]
 
-  const trustedRegistries = ["gcr.io", "docker.io/library", "registry.k8s.io", "quay.io", "ghcr.io", "mcr.microsoft.com", "public.ecr.aws"]
+  const trustedRegistries = [
+    "gcr.io",
+    "docker.io/library",
+    "registry.k8s.io",
+    "quay.io",
+    "ghcr.io",
+    "mcr.microsoft.com",
+    "public.ecr.aws",
+  ]
   const namespaces = ns ? [ns] : await getNamespaces(kubeconfig, ctx, timeout)
 
   for (const n of namespaces) {
@@ -639,7 +728,7 @@ async function imageAudit(args: string[], timeout: number): Promise<AuditResult>
 
         const registry = image.split("/")[0]
         if (registry && !registry.includes(".") && registry !== "library") continue
-        if (registry && !trustedRegistries.some(tr => image.startsWith(tr))) {
+        if (registry && !trustedRegistries.some((tr) => image.startsWith(tr))) {
           output.push(`  [*] ${n}/${pod.metadata.name}/${c.name}: untrusted registry — ${registry}`)
           findings.push({
             checkId: "K8S-IMG-003",
@@ -649,7 +738,8 @@ async function imageAudit(args: string[], timeout: number): Promise<AuditResult>
             resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
             title: `Image from non-standard registry: ${registry}`,
             details: `Image "${image}" is pulled from "${registry}" which is not in the trusted registry list.`,
-            remediation: "Use images from trusted registries or add this registry to your allowlist after verification.",
+            remediation:
+              "Use images from trusted registries or add this registry to your allowlist after verification.",
           })
         }
       }
@@ -683,9 +773,11 @@ async function secretsAudit(args: string[], timeout: number): Promise<AuditResul
       if (t === "kubernetes.io/service-account-token") continue
       const data = s.data || {}
       const keys = Object.keys(data)
-      const sensitiveKeys = keys.filter(k => /password|secret|token|key|credential|api.?key/i.test(k))
+      const sensitiveKeys = keys.filter((k) => /password|secret|token|key|credential|api.?key/i.test(k))
       if (sensitiveKeys.length > 0) {
-        output.push(`  [*] ${n}/${s.metadata.name}: ${sensitiveKeys.length} sensitive key(s) — ${sensitiveKeys.join(", ")}`)
+        output.push(
+          `  [*] ${n}/${s.metadata.name}: ${sensitiveKeys.length} sensitive key(s) — ${sensitiveKeys.join(", ")}`,
+        )
       }
     }
 
@@ -698,7 +790,9 @@ async function secretsAudit(args: string[], timeout: number): Promise<AuditResul
         const envFrom = c.envFrom || []
         for (const ef of envFrom) {
           if (ef.secretRef) {
-            output.push(`  [!] ${n}/${pod.metadata.name}/${c.name}: entire secret "${ef.secretRef.name}" mounted as env`)
+            output.push(
+              `  [!] ${n}/${pod.metadata.name}/${c.name}: entire secret "${ef.secretRef.name}" mounted as env`,
+            )
             findings.push({
               checkId: "K8S-SEC-001",
               provider: "kubernetes",
@@ -707,7 +801,8 @@ async function secretsAudit(args: string[], timeout: number): Promise<AuditResul
               resource: `${n}/Pod/${pod.metadata.name}/container/${c.name}`,
               title: `Entire secret mounted as env vars: ${ef.secretRef.name}`,
               details: `Container "${c.name}" mounts all keys from Secret "${ef.secretRef.name}" as environment variables. Env vars are visible in /proc and crash dumps.`,
-              remediation: "Mount individual keys via env[].valueFrom.secretKeyRef or use volume mounts with specific items.",
+              remediation:
+                "Mount individual keys via env[].valueFrom.secretKeyRef or use volume mounts with specific items.",
             })
           }
         }
@@ -726,7 +821,12 @@ async function secretsAudit(args: string[], timeout: number): Promise<AuditResul
   output.push(`\n[*] Total secrets: ${total}`)
   for (const [t, count] of Object.entries(byType)) output.push(`    ${t}: ${count}`)
 
-  const encConfig = await kcText(["get", "--raw", "/api/v1/namespaces/kube-system/configmaps/encryption-config"], kubeconfig, ctx, timeout)
+  const encConfig = await kcText(
+    ["get", "--raw", "/api/v1/namespaces/kube-system/configmaps/encryption-config"],
+    kubeconfig,
+    ctx,
+    timeout,
+  )
   if (encConfig.exitCode !== 0) {
     output.push("\n[!] Cannot verify etcd encryption configuration (no access to kube-system or not configured)")
     findings.push({
@@ -763,11 +863,29 @@ async function podSecurityAudit(args: string[], timeout: number): Promise<AuditR
       const spec = pod.spec || {}
 
       if (spec.hostPID) {
-        findings.push({ checkId: "K8S-POD-001", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `hostPID enabled on ${name}`, details: "Pod shares host PID namespace — can see all host processes and potentially inject code.", remediation: "Remove hostPID: true unless absolutely required." })
+        findings.push({
+          checkId: "K8S-POD-001",
+          provider: "kubernetes",
+          severity: "critical",
+          status: "FAIL",
+          resource: `${n}/Pod/${name}`,
+          title: `hostPID enabled on ${name}`,
+          details: "Pod shares host PID namespace — can see all host processes and potentially inject code.",
+          remediation: "Remove hostPID: true unless absolutely required.",
+        })
         output.push(`  [!] ${n}/${name}: hostPID=true`)
       }
       if (spec.hostNetwork) {
-        findings.push({ checkId: "K8S-POD-002", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `hostNetwork enabled on ${name}`, details: "Pod shares host network namespace — can sniff traffic and bind to host ports.", remediation: "Remove hostNetwork: true. Use Services/Ingress for external access." })
+        findings.push({
+          checkId: "K8S-POD-002",
+          provider: "kubernetes",
+          severity: "critical",
+          status: "FAIL",
+          resource: `${n}/Pod/${name}`,
+          title: `hostNetwork enabled on ${name}`,
+          details: "Pod shares host network namespace — can sniff traffic and bind to host ports.",
+          remediation: "Remove hostNetwork: true. Use Services/Ingress for external access.",
+        })
         output.push(`  [!] ${n}/${name}: hostNetwork=true`)
       }
 
@@ -775,22 +893,58 @@ async function podSecurityAudit(args: string[], timeout: number): Promise<AuditR
       for (const c of containers) {
         const sc = c.securityContext || {}
         if (sc.privileged) {
-          findings.push({ checkId: "K8S-POD-003", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Privileged container: ${c.name} in ${name}`, details: "Container runs in privileged mode — full access to host devices and kernel.", remediation: "Remove privileged: true. Use specific capabilities instead." })
+          findings.push({
+            checkId: "K8S-POD-003",
+            provider: "kubernetes",
+            severity: "critical",
+            status: "FAIL",
+            resource: `${n}/Pod/${name}/container/${c.name}`,
+            title: `Privileged container: ${c.name} in ${name}`,
+            details: "Container runs in privileged mode — full access to host devices and kernel.",
+            remediation: "Remove privileged: true. Use specific capabilities instead.",
+          })
           output.push(`  [!] ${n}/${name}/${c.name}: privileged=true`)
         }
         if (sc.runAsUser === 0 || (sc.runAsNonRoot !== true && !sc.runAsUser)) {
-          findings.push({ checkId: "K8S-POD-004", provider: "kubernetes", severity: "high", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Container may run as root: ${c.name}`, details: "No runAsNonRoot: true or explicit non-root runAsUser set. Container may run as UID 0.", remediation: "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero UID." })
+          findings.push({
+            checkId: "K8S-POD-004",
+            provider: "kubernetes",
+            severity: "high",
+            status: "FAIL",
+            resource: `${n}/Pod/${name}/container/${c.name}`,
+            title: `Container may run as root: ${c.name}`,
+            details: "No runAsNonRoot: true or explicit non-root runAsUser set. Container may run as UID 0.",
+            remediation: "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero UID.",
+          })
         }
         const caps = sc.capabilities?.add || []
         const dangerous = ["SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "NET_RAW", "ALL"]
         for (const cap of caps) {
           if (dangerous.includes(cap)) {
-            findings.push({ checkId: "K8S-POD-005", provider: "kubernetes", severity: "high", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Dangerous capability ${cap} on ${c.name}`, details: `Container has ${cap} capability added. This can be used for container escape or network attacks.`, remediation: `Remove ${cap} from capabilities.add. Use the minimum required capabilities.` })
+            findings.push({
+              checkId: "K8S-POD-005",
+              provider: "kubernetes",
+              severity: "high",
+              status: "FAIL",
+              resource: `${n}/Pod/${name}/container/${c.name}`,
+              title: `Dangerous capability ${cap} on ${c.name}`,
+              details: `Container has ${cap} capability added. This can be used for container escape or network attacks.`,
+              remediation: `Remove ${cap} from capabilities.add. Use the minimum required capabilities.`,
+            })
             output.push(`  [!] ${n}/${name}/${c.name}: cap_add=${cap}`)
           }
         }
         if (!sc.readOnlyRootFilesystem) {
-          findings.push({ checkId: "K8S-POD-006", provider: "kubernetes", severity: "low", status: "FAIL", resource: `${n}/Pod/${name}/container/${c.name}`, title: `Writable root filesystem: ${c.name}`, details: "Container root filesystem is writable. Attackers can modify binaries or drop tools.", remediation: "Set securityContext.readOnlyRootFilesystem: true. Use emptyDir for writable paths." })
+          findings.push({
+            checkId: "K8S-POD-006",
+            provider: "kubernetes",
+            severity: "low",
+            status: "FAIL",
+            resource: `${n}/Pod/${name}/container/${c.name}`,
+            title: `Writable root filesystem: ${c.name}`,
+            details: "Container root filesystem is writable. Attackers can modify binaries or drop tools.",
+            remediation: "Set securityContext.readOnlyRootFilesystem: true. Use emptyDir for writable paths.",
+          })
         }
       }
 
@@ -799,8 +953,17 @@ async function podSecurityAudit(args: string[], timeout: number): Promise<AuditR
         if (v.hostPath) {
           const hp = v.hostPath.path
           const critical = ["/", "/etc", "/var", "/root", "/var/run/docker.sock"]
-          if (critical.some(p => hp === p || hp.startsWith(p + "/"))) {
-            findings.push({ checkId: "K8S-POD-007", provider: "kubernetes", severity: "critical", status: "FAIL", resource: `${n}/Pod/${name}`, title: `Sensitive hostPath mount: ${hp}`, details: `Pod mounts "${hp}" from host. This provides direct access to host filesystem or Docker socket.`, remediation: "Remove hostPath volume or restrict to a non-sensitive directory." })
+          if (critical.some((p) => hp === p || hp.startsWith(p + "/"))) {
+            findings.push({
+              checkId: "K8S-POD-007",
+              provider: "kubernetes",
+              severity: "critical",
+              status: "FAIL",
+              resource: `${n}/Pod/${name}`,
+              title: `Sensitive hostPath mount: ${hp}`,
+              details: `Pod mounts "${hp}" from host. This provides direct access to host filesystem or Docker socket.`,
+              remediation: "Remove hostPath volume or restrict to a non-sensitive directory.",
+            })
             output.push(`  [!] ${n}/${name}: hostPath=${hp}`)
           }
         }
@@ -823,7 +986,7 @@ async function networkPolicyAudit(args: string[], timeout: number): Promise<Audi
   for (const n of namespaces) {
     if (n === "kube-system" || n === "kube-public" || n === "kube-node-lease") continue
     const np = await kc(["get", "networkpolicies", "-n", n], kubeconfig, ctx, timeout)
-    const policies = np.exitCode === 0 ? (tryJson(np.stdout)?.items || []) : []
+    const policies = np.exitCode === 0 ? tryJson(np.stdout)?.items || [] : []
     if (policies.length === 0) {
       output.push(`  [!] No NetworkPolicies in namespace: ${n}`)
       findings.push({
@@ -847,8 +1010,10 @@ async function networkPolicyAudit(args: string[], timeout: number): Promise<Audi
       const podSelector = spec.podSelector || {}
       const isEmpty = !podSelector.matchLabels && !podSelector.matchExpressions?.length
       const policyTypes = spec.policyTypes || []
-      if (isEmpty && policyTypes.includes("Ingress") && (!spec.ingress || spec.ingress.length === 0)) hasDefaultDenyIngress = true
-      if (isEmpty && policyTypes.includes("Egress") && (!spec.egress || spec.egress.length === 0)) hasDefaultDenyEgress = true
+      if (isEmpty && policyTypes.includes("Ingress") && (!spec.ingress || spec.ingress.length === 0))
+        hasDefaultDenyIngress = true
+      if (isEmpty && policyTypes.includes("Egress") && (!spec.egress || spec.egress.length === 0))
+        hasDefaultDenyEgress = true
 
       const ingress = spec.ingress || []
       for (const rule of ingress) {
@@ -948,7 +1113,11 @@ export const K8sAuditTool = Tool.define("k8s_audit", {
         metadata: { program: params.program, findings: result.findings },
       }
     } catch (e) {
-      return { title: `k8s_audit: ${params.program}`, output: `Error: ${e instanceof Error ? e.message : String(e)}`, metadata: { program: params.program, findings: [] } }
+      return {
+        title: `k8s_audit: ${params.program}`,
+        output: `Error: ${e instanceof Error ? e.message : String(e)}`,
+        metadata: { program: params.program, findings: [] },
+      }
     }
   },
 })

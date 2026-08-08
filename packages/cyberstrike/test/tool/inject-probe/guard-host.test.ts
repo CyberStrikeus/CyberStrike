@@ -1,10 +1,7 @@
 import { describe, test, expect } from "bun:test"
 
 // Standalone copy of guardHost from inject-probe.ts (not exported)
-function guardHost(
-  r: { url: URL },
-  target: URL,
-): { ok: true } | { ok: false; reason: string } {
+function guardHost(r: { url: URL }, target: URL): { ok: true } | { ok: false; reason: string } {
   if (target.host !== r.url.host) return { ok: false, reason: `out-of-scope host ${target.host}` }
   return { ok: true }
 }

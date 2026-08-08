@@ -2,8 +2,15 @@ import { describe, test, expect } from "bun:test"
 
 // Standalone copies from inject-probe.ts (not exported)
 type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
-interface InjPoint { location: Location; name: string }
-interface ResolvedRequest { url: URL; contentType: string; body: string }
+interface InjPoint {
+  location: Location
+  name: string
+}
+interface ResolvedRequest {
+  url: URL
+  contentType: string
+  body: string
+}
 
 function multipartBoundary(r: { contentType: string; body: string }): string | null {
   const m = r.contentType.match(/boundary=("?)([^";]+)\1/i)
