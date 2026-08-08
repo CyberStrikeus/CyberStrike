@@ -24425,7 +24425,7 @@ Write-Output "STATUS=SUCCESS"
       output.push(r.stdout)
     }
 
-    if (output.some(o => o.includes("STATUS=SUCCESS"))) {
+    if (output.some((o) => o.includes("STATUS=SUCCESS"))) {
       findings.push({
         checkId: "WIN-WLGN-010",
         provider: "windows",
@@ -24440,11 +24440,12 @@ Write-Output "STATUS=SUCCESS"
   }
 
   if (action === "restore") {
-    const script = key === "userinit"
-      ? `Set-ItemProperty '${winlogonPath}' -Name Userinit -Value 'C:\\Windows\\system32\\userinit.exe,' -Type String; Write-Output "[+] Userinit restored to default"`
-      : key === "shell"
-        ? `Set-ItemProperty '${winlogonPath}' -Name Shell -Value 'explorer.exe' -Type String; Write-Output "[+] Shell restored to default"`
-        : `Remove-Item '${winlogonPath}\\Notify\\CyberStrike' -Recurse -Force -ErrorAction SilentlyContinue; Write-Output "[+] Notify key removed"`
+    const script =
+      key === "userinit"
+        ? `Set-ItemProperty '${winlogonPath}' -Name Userinit -Value 'C:\\Windows\\system32\\userinit.exe,' -Type String; Write-Output "[+] Userinit restored to default"`
+        : key === "shell"
+          ? `Set-ItemProperty '${winlogonPath}' -Name Shell -Value 'explorer.exe' -Type String; Write-Output "[+] Shell restored to default"`
+          : `Remove-Item '${winlogonPath}\\Notify\\CyberStrike' -Recurse -Force -ErrorAction SilentlyContinue; Write-Output "[+] Notify key removed"`
     const r = await ps(script, timeout)
     output.push(r.stdout)
   }
@@ -24459,9 +24460,10 @@ async function appinitDll(args: string[], timeout: number): Promise<HookResult> 
   const findings: Finding[] = []
   const output: string[] = ["[*] AppInit_DLLs Persistence...\n"]
 
-  const regPath = scope === "wow64"
-    ? "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
-    : "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+  const regPath =
+    scope === "wow64"
+      ? "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+      : "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
 
   if (action === "enum") {
     const script = `
