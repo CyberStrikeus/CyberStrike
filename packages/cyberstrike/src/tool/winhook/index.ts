@@ -1048,7 +1048,9 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
       `Recommended --exec method: ${env.recommendedExec}`,
       "",
       "=== FALLBACK CHAIN ===",
-      env.psAvailable && !env.clmActive ? "1. ps (PowerShell full language) [AVAILABLE]" : "1. ps (PowerShell) [BLOCKED/RESTRICTED]",
+      env.psAvailable && !env.clmActive
+        ? "1. ps (PowerShell full language) [AVAILABLE]"
+        : "1. ps (PowerShell) [BLOCKED/RESTRICTED]",
       env.pwshAvailable ? "2. pwsh (PowerShell 7) [AVAILABLE]" : "2. pwsh (PowerShell 7) [NOT FOUND]",
       "3. cmd (cmd.exe native commands) [AVAILABLE]",
       "4. bat (.bat file execution) [AVAILABLE]",
@@ -1061,9 +1063,41 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
       "Use: winhook <program> --exec bat    (force .bat file)",
     ]
     const findings: Finding[] = []
-    if (env.clmActive) findings.push({ checkId: "ENV-CLM", provider: "winhook", severity: "HIGH", status: "FAIL", resource: "PowerShell", title: "Constrained Language Mode active", details: "CLM restricts PowerShell — use --exec cmd or --exec bat for fallback. PS 2.0 downgrade may bypass CLM.", remediation: "Use winhook ps_downgrade or --exec cmd/bat" })
-    if (!env.psAvailable) findings.push({ checkId: "ENV-PS", provider: "winhook", severity: "CRITICAL", status: "FAIL", resource: "PowerShell", title: "PowerShell not available", details: "powershell.exe not accessible — all PS-dependent handlers will fail. Use --exec cmd or --exec bat.", remediation: "Use --exec cmd for native command fallback" })
-    if (env.amsiActive) findings.push({ checkId: "ENV-AMSI", provider: "winhook", severity: "MEDIUM", status: "WARN", resource: "AMSI", title: "AMSI is active", details: "Antimalware Scan Interface will inspect PS commands. Use --stealth amsi to bypass or --exec cmd to avoid PS entirely.", remediation: "Run winhook amsi_bypass first or use --exec cmd" })
+    if (env.clmActive)
+      findings.push({
+        checkId: "ENV-CLM",
+        provider: "winhook",
+        severity: "HIGH",
+        status: "FAIL",
+        resource: "PowerShell",
+        title: "Constrained Language Mode active",
+        details:
+          "CLM restricts PowerShell — use --exec cmd or --exec bat for fallback. PS 2.0 downgrade may bypass CLM.",
+        remediation: "Use winhook ps_downgrade or --exec cmd/bat",
+      })
+    if (!env.psAvailable)
+      findings.push({
+        checkId: "ENV-PS",
+        provider: "winhook",
+        severity: "CRITICAL",
+        status: "FAIL",
+        resource: "PowerShell",
+        title: "PowerShell not available",
+        details: "powershell.exe not accessible — all PS-dependent handlers will fail. Use --exec cmd or --exec bat.",
+        remediation: "Use --exec cmd for native command fallback",
+      })
+    if (env.amsiActive)
+      findings.push({
+        checkId: "ENV-AMSI",
+        provider: "winhook",
+        severity: "MEDIUM",
+        status: "WARN",
+        resource: "AMSI",
+        title: "AMSI is active",
+        details:
+          "Antimalware Scan Interface will inspect PS commands. Use --stealth amsi to bypass or --exec cmd to avoid PS entirely.",
+        remediation: "Run winhook amsi_bypass first or use --exec cmd",
+      })
     return { output: lines.join("\n"), findings }
   },
   stealth_check: stealthCheck,

