@@ -1193,9 +1193,15 @@ export const WinhookTool = Tool.define("winhook", {
     setStealthState(undefined, false)
     setExecMethod("ps")
 
+    const output = result.findings.length > 0
+      ? result.output + "\n\n=== FINDINGS (" + result.findings.length + ") ===\n" + result.findings.map((f, i) =>
+          `[${i + 1}] ${f.severity} — ${f.title}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`
+        ).join("\n") + "\n\nIMPORTANT: Call report_vulnerability for each finding above to formally record it."
+      : result.output
+
     return {
       title: `winhook: ${program}`,
-      output: result.output,
+      output,
       metadata: { program, findings: result.findings },
     }
   },
