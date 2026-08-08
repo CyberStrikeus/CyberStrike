@@ -3383,7 +3383,7 @@ $kpPaths = @()
 $searchPaths = @(
     "$env:ProgramFiles\\KeePass*",
     "$env:ProgramFiles\\KeePassXC*",
-    "${env:ProgramFiles(x86)}\\KeePass*",
+    "$((Get-Item 'Env:ProgramFiles(x86)').Value)\\KeePass*",
     "$env:LOCALAPPDATA\\KeePass*",
     "$env:LOCALAPPDATA\\KeePassXC*",
     "$env:APPDATA\\KeePass*",
