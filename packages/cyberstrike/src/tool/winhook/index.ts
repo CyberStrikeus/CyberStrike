@@ -1,6 +1,15 @@
 import z from "zod"
 import { Tool } from "../tool"
-import { setStealthState, setExecMethod, argVal, hasFlag, detectEnv, resolveExec, activeExec, resetEnvCache } from "./shared"
+import {
+  setStealthState,
+  setExecMethod,
+  argVal,
+  hasFlag,
+  detectEnv,
+  resolveExec,
+  activeExec,
+  resetEnvCache,
+} from "./shared"
 import type { Finding, HookResult, StealthMode, ExecMethod } from "./shared"
 
 import {
