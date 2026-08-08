@@ -270,7 +270,6 @@ export function resolveExec(requested: ExecMethod, env?: EnvInfo): ExecMethod {
   if (!env) return activeExec !== "auto" ? activeExec : "ps"
   if (env.psAvailable && !env.clmActive) return "ps"
   if (env.psAvailable && env.clmActive && env.psVersion === 2) return "ps"
-  if (env.wmicAvailable) return "wmic"
   return "cmd"
 }
 
