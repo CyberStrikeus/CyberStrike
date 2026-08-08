@@ -3,7 +3,7 @@ import { Tool } from "../tool"
 import { setStealthState, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult, StealthMode } from "./shared"
 
-import { lsassDump, samDump, dpapiExtract, credentialPrompt, ntdsDump, dpapiDomain, cachedCreds, mssqlCreds, wifiDump, vaultDump, sccmAbuse, browserHarvest, regSecrets, storedCredsAbuse, wdigestEnable, nanodumpAdvanced, winHelloDump, bitlockerKeys, certSteal, lsaSecrets } from "./credential"
+import { lsassDump, samDump, dpapiExtract, credentialPrompt, ntdsDump, dpapiDomain, cachedCreds, mssqlCreds, wifiDump, vaultDump, sccmAbuse, browserHarvest, regSecrets, storedCredsAbuse, wdigestEnable, nanodumpAdvanced, winHelloDump, bitlockerKeys, certSteal, keepassDump, lsaSecrets } from "./credential"
 import { adEnum, bloodhoundCollect, lapsDump, gpoEnum, adDnsEnum, adwsRecon, lapsV2Decrypt, primaryGroupAbuse } from "./ad-enum"
 import { kerberoast, asreproast, goldenTicket, silverTicket, delegationAbuse, overpassHash, passTheTicket, diamondTicket, sapphireTicket, krbrelayup, unpacHash, bronzeBit } from "./kerberos"
 import { dcsync, dcshadow, skeletonKey, adAclAbuse, adcsAbuse, shadowCreds, sidHistory, dnsAdminAbuse, adcsEscAdvanced, adminsdholder, rbcdChain } from "./ad-exploit"
@@ -719,6 +719,11 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  keepass_dump: {
+    description:
+      "KeePass credential extraction — discover KeePass installations and .kdbx database files, extract master password from memory via CVE-2023-32784 (.NET TextBox CLR string residue in KeePass 2.x < 2.54), and analyze trigger system configuration for credential export injection. Works against KeePass 2.x; KeePassXC is NOT vulnerable to memory attack",
+    args: "--action enum|memory|trigger|full",
+  },
   lsa_secrets: {
     description:
       "Extract LSA secrets from SECURITY registry hive — service account plaintext passwords (_SC_ entries), machine account password ($MACHINE.ACC), DPAPI system master key, NL$KM cached credential encryption key, AutoLogon DefaultPassword. Complements sam_dump (SAM only) and cached_creds (DCC2 only). In-memory decryption via LsaRetrievePrivateData or offline via secretsdump",
@@ -874,6 +879,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  keepass_dump: keepassDump,
   lsa_secrets: lsaSecrets,
   pipe_enum: pipeEnum,
 }
