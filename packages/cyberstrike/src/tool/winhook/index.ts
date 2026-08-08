@@ -12,7 +12,7 @@ import { wmiExec, winrmExec, dcomExec, smbExec, ntlmCoerce, coercerFull, remoteM
 import { schtaskPersist, servicePersist, registryPersist, wmiPersist, comHijack, startupPersist, gpoAbuse, bitsPersist, wsusAbuse, printMonitorPersist, sspPersist, passwordFilter, dsrmAbuse, accessibilityBackdoor, ifeoPersist, winlogonPersist, appinitDll, netshHelper, timeProvider, screensaverPersist, powershellProfile, activeSetup, bootExec } from "./persistence"
 import { tokenImpersonate, uacBypass, potatoAttack, printspoolerAbuse, nopac, zerologon, certifried, badSuccessor, privilegeAbuse, namedPipePrivesc, alwaysInstallElevated, shadowCopyAbuse, unquotedServicePath, wslPrivesc, scheduledTaskHijack, byovd, weakServicePerms, dllSideload, serverOperatorAbuse, dllHijack, msiAbuse, backupOperatorAbuse, ridHijack } from "./privesc"
 import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck, ppidSpoof, unhookNtdll } from "./evasion"
-import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot, adidnsPoison, machineAccount } from "./network"
+import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot, adidnsPoison, machineAccount, mitm6Attack, wpadAbuse } from "./network"
 import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon, pipeEnum } from "./recon"
 import { shareHunt, dataExfil, firewallManage, cleanupWin, eventTamper, antiForensics } from "./exfil"
 import { processInject } from "./injection"
@@ -719,6 +719,16 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  mitm6: {
+    description:
+      "IPv6 DHCPv6 DNS takeover (mitm6-style) — assess vulnerability to DHCPv6 spoofing by checking IPv6 status on all interfaces, DHCPv6 client, DNS config, and WPAD resolution. Poison mode configures DHCPv6 DNS poisoning to redirect name resolution to attacker. IPv6 is enabled by default on Windows but rarely used, making it a reliable MITM vector. Combine with ntlm_relay for domain compromise",
+    args: "--action check|poison [--domain DOMAIN] [--relay TARGET_HOST] [--interface IFACE]",
+  },
+  wpad_abuse: {
+    description:
+      "WPAD proxy auto-detection abuse — check if WPAD AutoDetect is enabled (default on Windows), verify wpad DNS resolution, analyze proxy settings, and generate PAC files for NTLM credential interception. WPAD is enabled by default and clients actively query for the wpad host. Combine with adidns_poison or responder_poison to serve malicious PAC",
+    args: "--action check|serve",
+  },
   ppid_spoof: {
     description:
       "Parent PID spoofing — create processes with a fake parent PID via PROC_THREAD_ATTRIBUTE_PARENT_PROCESS to evade EDR parent-child process tree analysis. Enum mode lists candidate parents (explorer, svchost, RuntimeBroker, winlogon, services). Spoof mode creates a new process appearing as a child of the chosen parent",
@@ -914,6 +924,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  mitm6: mitm6Attack,
+  wpad_abuse: wpadAbuse,
   ppid_spoof: ppidSpoof,
   unhook_ntdll: unhookNtdll,
   powershell_profile: powershellProfile,
