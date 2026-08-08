@@ -1139,7 +1139,8 @@ foreach ($loc in $locations) {
       resource: "teams://enum",
       title: "Microsoft Teams installation, tokens, and data storage discovery",
       details: r.stdout.substring(0, 500),
-      remediation: "Use Teams New (WebView2) which uses Token Broker instead of LevelDB. Enable MAM policies for data protection.",
+      remediation:
+        "Use Teams New (WebView2) which uses Token Broker instead of LevelDB. Enable MAM policies for data protection.",
     })
   }
 
@@ -1231,7 +1232,8 @@ if (Test-Path $brokerPath) {
       resource: "teams://tokens",
       title: "Microsoft Teams access token extraction from LevelDB and Token Broker",
       details: r.stdout.substring(0, 500),
-      remediation: "Migrate to Teams New (WebView2 + Token Broker). Enable Conditional Access device compliance. Revoke sessions regularly.",
+      remediation:
+        "Migrate to Teams New (WebView2 + Token Broker). Enable Conditional Access device compliance. Revoke sessions regularly.",
     })
   }
 
@@ -1302,7 +1304,8 @@ if (Test-Path $cachePath) {
       resource: "teams://chats",
       title: "Microsoft Teams chat history, attachments, and cached data extraction",
       details: r.stdout.substring(0, 500),
-      remediation: "Enable Teams DLP policies. Restrict file downloads. Use Information Protection labels on sensitive chats.",
+      remediation:
+        "Enable Teams DLP policies. Restrict file downloads. Use Information Protection labels on sensitive chats.",
     })
   }
 

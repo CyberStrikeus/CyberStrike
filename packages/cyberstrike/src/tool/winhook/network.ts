@@ -1882,7 +1882,8 @@ if ($wpadDns) {
       resource: "network://ipv6-mitm",
       title: "IPv6 DHCPv6 DNS takeover vulnerability assessment",
       details: r.stdout.substring(0, 500),
-      remediation: "Disable IPv6 if not needed. Enable DHCPv6 Guard on network switches. Configure Group Policy to prefer IPv4 DNS.",
+      remediation:
+        "Disable IPv6 if not needed. Enable DHCPv6 Guard on network switches. Configure Group Policy to prefer IPv4 DNS.",
     })
   }
 
@@ -1948,7 +1949,8 @@ Write-Output "    ntlmrelayx.py -6 -t ldaps://<dc> -wh wpad.${targetDomain}"
       resource: `network://mitm6/${targetDomain}`,
       title: `IPv6 DHCPv6 DNS poisoning setup for ${targetDomain}`,
       details: r.stdout.substring(0, 500),
-      remediation: "Disable IPv6 via Group Policy. Enable DHCPv6 Guard. Block WPAD via DNS. Enable LDAP signing and channel binding.",
+      remediation:
+        "Disable IPv6 via Group Policy. Enable DHCPv6 Guard. Block WPAD via DNS. Enable LDAP signing and channel binding.",
     })
   }
 
@@ -2039,7 +2041,8 @@ try {
       resource: "network://wpad",
       title: "WPAD proxy auto-detection vulnerability assessment",
       details: r.stdout.substring(0, 500),
-      remediation: "Disable WPAD via Group Policy. Create DNS entry for 'wpad' pointing to nothing. Block DHCPv6 option 252.",
+      remediation:
+        "Disable WPAD via Group Policy. Create DNS entry for 'wpad' pointing to nothing. Block DHCPv6 option 252.",
     })
   }
 
@@ -2074,7 +2077,8 @@ Write-Output "    (place wpad.dat in the serve directory)"
       resource: "network://wpad/serve",
       title: "WPAD PAC file generation for credential interception",
       details: r.stdout.substring(0, 500),
-      remediation: "Disable WPAD. Monitor for unexpected proxy configurations. Block unknown WPAD servers at network level.",
+      remediation:
+        "Disable WPAD. Monitor for unexpected proxy configurations. Block unknown WPAD servers at network level.",
     })
   }
 

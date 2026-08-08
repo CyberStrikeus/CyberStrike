@@ -1195,7 +1195,8 @@ Write-Output "[+] Task deleted"
       resource: `schtask://${target}/${taskName}`,
       title: `Remote command execution via scheduled task on ${target}`,
       details: `Command: ${command}`,
-      remediation: "Restrict remote task scheduler. Monitor Event ID 4698/4702. Disable remote task creation for non-admin users.",
+      remediation:
+        "Restrict remote task scheduler. Monitor Event ID 4698/4702. Disable remote task creation for non-admin users.",
     })
   }
 
@@ -1315,7 +1316,8 @@ if (Test-Path $adminKeys) {
       resource: "ssh://local",
       title: "SSH client/server discovery, key enumeration, and known hosts mapping",
       details: r.stdout.substring(0, 500),
-      remediation: "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
+      remediation:
+        "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
     })
   }
 

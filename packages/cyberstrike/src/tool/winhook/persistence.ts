@@ -3631,7 +3631,8 @@ Write-Output "[*] ISE, VS Code, Windows Terminal all load profiles"
       resource: "profile://powershell",
       title: "PowerShell profile enumeration — persistence locations and write permissions",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor profile files for changes. Use -NoProfile in automated scripts. Restrict AllUsers profile write access.",
+      remediation:
+        "Monitor profile files for changes. Use -NoProfile in automated scripts. Restrict AllUsers profile write access.",
     })
   }
 
@@ -3779,7 +3780,8 @@ Write-Output "[*] Changing Version forces re-execution for all users"
       resource: "registry://active-setup",
       title: "Active Setup registry persistence enumeration",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor Active Setup registry key changes. Audit non-Microsoft entries. Use SIEM rules for new GUID creation.",
+      remediation:
+        "Monitor Active Setup registry key changes. Audit non-Microsoft entries. Use SIEM rules for new GUID creation.",
     })
   }
 
@@ -3919,7 +3921,8 @@ Write-Output "[*] Runs as SYSTEM with kernel-level access"
       resource: "registry://boot-execute",
       title: "BootExecute and Session Manager early boot persistence check",
       details: r.stdout.substring(0, 500),
-      remediation: "Monitor BootExecute registry changes. Only 'autocheck autochk *' should be present. Alert on any additions.",
+      remediation:
+        "Monitor BootExecute registry changes. Only 'autocheck autochk *' should be present. Alert on any additions.",
     })
   }
 
