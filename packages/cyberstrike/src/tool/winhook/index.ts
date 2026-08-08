@@ -8,7 +8,7 @@ import { adEnum, bloodhoundCollect, lapsDump, gpoEnum, adDnsEnum, adwsRecon, lap
 import { kerberoast, asreproast, goldenTicket, silverTicket, delegationAbuse, overpassHash, passTheTicket, diamondTicket, sapphireTicket, krbrelayup, unpacHash, bronzeBit } from "./kerberos"
 import { dcsync, dcshadow, skeletonKey, adAclAbuse, adcsAbuse, shadowCreds, sidHistory, dnsAdminAbuse, adcsEscAdvanced, adminsdholder, rbcdChain } from "./ad-exploit"
 import { goldenCert, passTheCert, gmsaDump, goldenGmsa, crossForest, silverSaml } from "./ad-cert-trust"
-import { wmiExec, winrmExec, dcomExec, smbExec, ntlmCoerce, coercerFull, remoteMonologue, mssqlAbuse } from "./lateral"
+import { wmiExec, winrmExec, dcomExec, smbExec, ntlmCoerce, coercerFull, remoteMonologue, mssqlAbuse, sshExec } from "./lateral"
 import { schtaskPersist, servicePersist, registryPersist, wmiPersist, comHijack, startupPersist, gpoAbuse, bitsPersist, wsusAbuse, printMonitorPersist, sspPersist, passwordFilter, dsrmAbuse, accessibilityBackdoor, ifeoPersist, winlogonPersist, appinitDll, netshHelper, timeProvider, screensaverPersist } from "./persistence"
 import { tokenImpersonate, uacBypass, potatoAttack, printspoolerAbuse, nopac, zerologon, certifried, badSuccessor, privilegeAbuse, namedPipePrivesc, alwaysInstallElevated, shadowCopyAbuse, unquotedServicePath, wslPrivesc, scheduledTaskHijack, byovd, weakServicePerms, dllSideload, serverOperatorAbuse, dllHijack, msiAbuse, backupOperatorAbuse, ridHijack } from "./privesc"
 import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck } from "./evasion"
@@ -719,6 +719,11 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  ssh_exec: {
+    description:
+      "SSH lateral movement via Windows built-in OpenSSH (Win10 1803+) — enumerate SSH client/server status, discover private keys and known_hosts for target mapping, SSH config entries, other users' keys, and execute remote commands via key or password authentication",
+    args: "--action enum|exec --target HOST --command CMD [--user USER] [--password PASS] [--key KEY_PATH]",
+  },
   keepass_dump: {
     description:
       "KeePass credential extraction — discover KeePass installations and .kdbx database files, extract master password from memory via CVE-2023-32784 (.NET TextBox CLR string residue in KeePass 2.x < 2.54), and analyze trigger system configuration for credential export injection. Works against KeePass 2.x; KeePassXC is NOT vulnerable to memory attack",
@@ -879,6 +884,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  ssh_exec: sshExec,
   keepass_dump: keepassDump,
   lsa_secrets: lsaSecrets,
   pipe_enum: pipeEnum,
