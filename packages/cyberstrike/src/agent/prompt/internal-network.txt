@@ -126,6 +126,9 @@ After gaining root on a Linux target, deploy kernel-level tools for stealth oper
 
 **Windows post-exploitation (Administrator required, Windows only):**
 After gaining Administrator on a Windows target, deploy userland tools for credential harvesting and stealth operations.
+- **FIRST:** `winhook detect_env` — detect PS version, CLM/AMSI status, available tools. Use the recommended exec method for all subsequent commands.
+- If PS is blocked/restricted: add `--exec cmd` to ALL winhook commands (uses cmd.exe native: reg, netsh, certutil, sc, schtasks, wmic, nltest, dsquery)
+- If cmd is also blocked: try `--exec bat` (.bat files), `--exec vbs` (VBScript), or `--exec mshta` (HTA)
 - `winhook lsass_dump` — dump LSASS process memory for NTLM hashes, Kerberos tickets, and plaintext passwords
 - `winhook sam_dump` — extract SAM/SYSTEM/SECURITY registry hives for offline cracking
 - `winhook dpapi_extract` — decrypt DPAPI-protected secrets (Chrome/Edge passwords, WiFi keys, Vault credentials)
