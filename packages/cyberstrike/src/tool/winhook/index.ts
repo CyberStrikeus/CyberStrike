@@ -3,16 +3,153 @@ import { Tool } from "../tool"
 import { setStealthState, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult, StealthMode } from "./shared"
 
-import { lsassDump, samDump, dpapiExtract, credentialPrompt, ntdsDump, dpapiDomain, cachedCreds, mssqlCreds, wifiDump, vaultDump, sccmAbuse, browserHarvest, regSecrets, storedCredsAbuse, wdigestEnable, nanodumpAdvanced, winHelloDump, bitlockerKeys, certSteal, keepassDump, lsaSecrets } from "./credential"
-import { adEnum, bloodhoundCollect, lapsDump, gpoEnum, adDnsEnum, adwsRecon, lapsV2Decrypt, primaryGroupAbuse } from "./ad-enum"
-import { kerberoast, asreproast, goldenTicket, silverTicket, delegationAbuse, overpassHash, passTheTicket, diamondTicket, sapphireTicket, krbrelayup, unpacHash, bronzeBit } from "./kerberos"
-import { dcsync, dcshadow, skeletonKey, adAclAbuse, adcsAbuse, shadowCreds, sidHistory, dnsAdminAbuse, adcsEscAdvanced, adminsdholder, rbcdChain } from "./ad-exploit"
+import {
+  lsassDump,
+  samDump,
+  dpapiExtract,
+  credentialPrompt,
+  ntdsDump,
+  dpapiDomain,
+  cachedCreds,
+  mssqlCreds,
+  wifiDump,
+  vaultDump,
+  sccmAbuse,
+  browserHarvest,
+  regSecrets,
+  storedCredsAbuse,
+  wdigestEnable,
+  nanodumpAdvanced,
+  winHelloDump,
+  bitlockerKeys,
+  certSteal,
+  keepassDump,
+  lsaSecrets,
+} from "./credential"
+import {
+  adEnum,
+  bloodhoundCollect,
+  lapsDump,
+  gpoEnum,
+  adDnsEnum,
+  adwsRecon,
+  lapsV2Decrypt,
+  primaryGroupAbuse,
+} from "./ad-enum"
+import {
+  kerberoast,
+  asreproast,
+  goldenTicket,
+  silverTicket,
+  delegationAbuse,
+  overpassHash,
+  passTheTicket,
+  diamondTicket,
+  sapphireTicket,
+  krbrelayup,
+  unpacHash,
+  bronzeBit,
+} from "./kerberos"
+import {
+  dcsync,
+  dcshadow,
+  skeletonKey,
+  adAclAbuse,
+  adcsAbuse,
+  shadowCreds,
+  sidHistory,
+  dnsAdminAbuse,
+  adcsEscAdvanced,
+  adminsdholder,
+  rbcdChain,
+} from "./ad-exploit"
 import { goldenCert, passTheCert, gmsaDump, goldenGmsa, crossForest, silverSaml } from "./ad-cert-trust"
-import { wmiExec, winrmExec, dcomExec, smbExec, ntlmCoerce, coercerFull, remoteMonologue, mssqlAbuse, schtaskExec, sshExec } from "./lateral"
-import { schtaskPersist, servicePersist, registryPersist, wmiPersist, comHijack, startupPersist, gpoAbuse, bitsPersist, wsusAbuse, printMonitorPersist, sspPersist, passwordFilter, dsrmAbuse, accessibilityBackdoor, ifeoPersist, winlogonPersist, appinitDll, netshHelper, timeProvider, screensaverPersist, powershellProfile, activeSetup, bootExec } from "./persistence"
-import { tokenImpersonate, uacBypass, potatoAttack, printspoolerAbuse, nopac, zerologon, certifried, badSuccessor, privilegeAbuse, namedPipePrivesc, alwaysInstallElevated, shadowCopyAbuse, unquotedServicePath, wslPrivesc, scheduledTaskHijack, byovd, weakServicePerms, dllSideload, serverOperatorAbuse, dllHijack, msiAbuse, backupOperatorAbuse, ridHijack } from "./privesc"
-import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck, ppidSpoof, unhookNtdll } from "./evasion"
-import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot, adidnsPoison, machineAccount, mitm6Attack, wpadAbuse } from "./network"
+import {
+  wmiExec,
+  winrmExec,
+  dcomExec,
+  smbExec,
+  ntlmCoerce,
+  coercerFull,
+  remoteMonologue,
+  mssqlAbuse,
+  schtaskExec,
+  sshExec,
+} from "./lateral"
+import {
+  schtaskPersist,
+  servicePersist,
+  registryPersist,
+  wmiPersist,
+  comHijack,
+  startupPersist,
+  gpoAbuse,
+  bitsPersist,
+  wsusAbuse,
+  printMonitorPersist,
+  sspPersist,
+  passwordFilter,
+  dsrmAbuse,
+  accessibilityBackdoor,
+  ifeoPersist,
+  winlogonPersist,
+  appinitDll,
+  netshHelper,
+  timeProvider,
+  screensaverPersist,
+  powershellProfile,
+  activeSetup,
+  bootExec,
+} from "./persistence"
+import {
+  tokenImpersonate,
+  uacBypass,
+  potatoAttack,
+  printspoolerAbuse,
+  nopac,
+  zerologon,
+  certifried,
+  badSuccessor,
+  privilegeAbuse,
+  namedPipePrivesc,
+  alwaysInstallElevated,
+  shadowCopyAbuse,
+  unquotedServicePath,
+  wslPrivesc,
+  scheduledTaskHijack,
+  byovd,
+  weakServicePerms,
+  dllSideload,
+  serverOperatorAbuse,
+  dllHijack,
+  msiAbuse,
+  backupOperatorAbuse,
+  ridHijack,
+} from "./privesc"
+import {
+  amsiBypass,
+  etwBlind,
+  defenderExclude,
+  tokenStomp,
+  pplBypass,
+  psDowngrade,
+  clmBypass,
+  applockerBypass,
+  stealthCheck,
+  ppidSpoof,
+  unhookNtdll,
+} from "./evasion"
+import {
+  ntlmRelay,
+  responderPoison,
+  passwordSpray,
+  ntlmv1Downgrade,
+  proxyPivot,
+  adidnsPoison,
+  machineAccount,
+  mitm6Attack,
+  wpadAbuse,
+} from "./network"
 import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon, pipeEnum } from "./recon"
 import { shareHunt, dataExfil, firewallManage, cleanupWin, eventTamper, antiForensics } from "./exfil"
 import { processInject } from "./injection"
@@ -983,4 +1120,3 @@ export const WinhookTool = Tool.define("winhook", {
     }
   },
 })
-
