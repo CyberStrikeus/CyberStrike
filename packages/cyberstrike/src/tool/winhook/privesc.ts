@@ -4836,7 +4836,7 @@ export async function backupOperatorAbuse(args: string[], timeout: number): Prom
       output.push(`[*] SeBackupPrivilege: ${hasBackup ? "PRESENT" : "MISSING"}`)
       output.push(`[*] SeRestorePrivilege: ${hasRestore ? "PRESENT" : "MISSING"}`)
       if (isBackupOp || hasBackup) {
-        findings.push({ title: "Backup Operator / SeBackupPrivilege", severity: "high", details: "Can read any file regardless of ACL — SAM/SYSTEM/NTDS.dit" })
+        findings.push({ checkId: "WIN-PRIVESC-BACKUP-001", provider: "windows", severity: "high", status: "VULNERABLE", resource: "privilege://SeBackupPrivilege", title: "Backup Operator / SeBackupPrivilege", details: "Can read any file regardless of ACL — SAM/SYSTEM/NTDS.dit", remediation: "Remove user from Backup Operators group. Revoke SeBackupPrivilege." })
         output.push("\n[!] Attack paths:")
         output.push("    1. Dump SAM/SYSTEM hives:")
         output.push(`       reg save HKLM\\SAM ${outdir}\\SAM /y`)
