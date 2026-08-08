@@ -1182,10 +1182,7 @@ export const WinhookTool = Tool.define("winhook", {
   description: `Execute a Windows post-exploitation program. Covers AD (enumeration, Kerberos, DCSync, ADCS), lateral movement (WMI, WinRM, DCOM, SMB, NTLM relay), persistence (schtask, service, registry, WMI, COM), privesc (token, UAC, Potato), and credential harvesting (LSASS, SAM, DPAPI, NTDS.dit, Vault). Requires Administrator on target. ALWAYS run detect_env first to check PS/cmd availability — if PowerShell is blocked (CLM, AMSI, disabled), use --exec cmd for cmd.exe native fallback (reg, netsh, certutil, sc, schtasks, wmic, nltest, dsquery). Auto-fallback retries with cmd when PS fails. Available programs: ${Object.keys(PROGRAMS).join(", ")}. ALWAYS run cleanup_win before leaving a target.`,
   parameters: z.object({
     program: z.enum(Object.keys(PROGRAMS) as [string, ...string[]]).describe(
-      "Windows post-exploitation program to execute. Options: " +
-        Object.entries(PROGRAMS)
-          .map(([k, v]) => `${k} — ${v.description}`)
-          .join("; "),
+      "Program name. Run with no args to see usage. Full list in tool description.",
     ),
     args: z
       .array(z.string())
