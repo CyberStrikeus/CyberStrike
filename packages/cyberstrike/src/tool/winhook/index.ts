@@ -13,7 +13,7 @@ import { schtaskPersist, servicePersist, registryPersist, wmiPersist, comHijack,
 import { tokenImpersonate, uacBypass, potatoAttack, printspoolerAbuse, nopac, zerologon, certifried, badSuccessor, privilegeAbuse, namedPipePrivesc, alwaysInstallElevated, shadowCopyAbuse, unquotedServicePath, wslPrivesc, scheduledTaskHijack, byovd, weakServicePerms, dllSideload, serverOperatorAbuse, dllHijack, msiAbuse, backupOperatorAbuse, ridHijack } from "./privesc"
 import { amsiBypass, etwBlind, defenderExclude, tokenStomp, pplBypass, psDowngrade, clmBypass, applockerBypass, stealthCheck } from "./evasion"
 import { ntlmRelay, responderPoison, passwordSpray, ntlmv1Downgrade, proxyPivot, adidnsPoison, machineAccount } from "./network"
-import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon } from "./recon"
+import { keylogWin, etwProcess, etwNetwork, clipboardSniff, screenshotGrab, localRecon, pipeEnum } from "./recon"
 import { shareHunt, dataExfil, firewallManage, cleanupWin, eventTamper, antiForensics } from "./exfil"
 import { processInject } from "./injection"
 import { azureAdHybrid, exchangeAbuse, rdpHijack, rdpShadow } from "./hybrid"
@@ -719,6 +719,11 @@ const PROGRAMS = {
       "Screensaver persistence — set a payload as the screensaver executable via SCRNSAVE.EXE registry key. Triggers when the user is idle (configurable timeout). Per-user persistence, no admin required. Enumerate, install, and remove",
     args: "--action enum|install|remove [--payload PATH] [--timeout SECONDS]",
   },
+  pipe_enum: {
+    description:
+      "Named pipe enumeration — discover all named pipes on the system, identify security-relevant pipes (LSASS, Spooler, EFS, Netlogon, SMB, RDP), check pipe ACLs for impersonation opportunities, and find custom/non-standard pipes that may indicate C2 frameworks or third-party applications with weak permissions",
+    args: "--action enum|acl|custom|full [--filter PATTERN]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -864,6 +869,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   netsh_helper: netshHelper,
   time_provider: timeProvider,
   screensaver_persist: screensaverPersist,
+  pipe_enum: pipeEnum,
 }
 
 export const WinhookTool = Tool.define("winhook", {

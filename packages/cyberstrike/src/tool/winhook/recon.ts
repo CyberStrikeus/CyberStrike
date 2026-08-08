@@ -707,3 +707,157 @@ Write-Output "[*] Last Boot: $($os.ConvertToDateTime($os.LastBootUpTime))"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function pipeEnum(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const filter = argVal(args, "--filter")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Named pipe enumeration...\n"]
+
+  if (action === "enum" || action === "full") {
+    const script = `
+Write-Output "=== Named Pipes ==="
+$pipes = [System.IO.Directory]::GetFiles('\\\\.\\pipe\\')
+Write-Output "[*] Total named pipes: $($pipes.Count)"
+Write-Output ""
+
+$interesting = @(
+    @{ Pattern = 'lsass'; Desc = 'LSASS — credential extraction target'; Risk = 'HIGH' },
+    @{ Pattern = 'spoolss'; Desc = 'Print Spooler — PrinterBug/SpoolSample coercion'; Risk = 'HIGH' },
+    @{ Pattern = 'efsrpc'; Desc = 'EFS RPC — PetitPotam coercion'; Risk = 'HIGH' },
+    @{ Pattern = 'netlogon'; Desc = 'Netlogon — Zerologon target'; Risk = 'HIGH' },
+    @{ Pattern = 'samr'; Desc = 'SAM Remote — user enumeration'; Risk = 'MEDIUM' },
+    @{ Pattern = 'srvsvc'; Desc = 'Server Service — share enumeration'; Risk = 'LOW' },
+    @{ Pattern = 'wkssvc'; Desc = 'Workstation Service — domain info'; Risk = 'LOW' },
+    @{ Pattern = 'atsvc'; Desc = 'Task Scheduler — remote task creation'; Risk = 'MEDIUM' },
+    @{ Pattern = 'svcctl'; Desc = 'Service Control Manager — remote service management'; Risk = 'MEDIUM' },
+    @{ Pattern = 'winreg'; Desc = 'Remote Registry — registry access'; Risk = 'MEDIUM' },
+    @{ Pattern = 'FssagentRpc'; Desc = 'File Server VSS — ShadowCoerce'; Risk = 'HIGH' },
+    @{ Pattern = 'msagent'; Desc = 'SQL Agent — MSSQL lateral movement'; Risk = 'MEDIUM' },
+    @{ Pattern = 'SQLLocal'; Desc = 'SQL Server local pipe — database access'; Risk = 'MEDIUM' },
+    @{ Pattern = 'dnsserver'; Desc = 'DNS Server — DnsAdmin abuse target'; Risk = 'HIGH' },
+    @{ Pattern = 'cert'; Desc = 'Certificate Services — ADCS target'; Risk = 'MEDIUM' },
+    @{ Pattern = 'TSVCPIPE'; Desc = 'Terminal Services — RDP session'; Risk = 'MEDIUM' }
+)
+
+Write-Output "[!] Security-relevant pipes:"
+Write-Output ""
+foreach ($item in $interesting) {
+    $found = $pipes | Where-Object { $_ -match $item.Pattern }
+    if ($found) {
+        foreach ($p in $found) {
+            $name = $p.Replace('\\\\.\\pipe\\', '')
+            Write-Output "    [$($item.Risk)] $name"
+            Write-Output "         $($item.Desc)"
+        }
+    }
+}
+
+$filterVal = '${filter || ""}'
+if ($filterVal) {
+    Write-Output ""
+    Write-Output "=== Filtered Pipes (pattern: $filterVal) ==="
+    $filtered = $pipes | Where-Object { $_ -match $filterVal }
+    foreach ($p in $filtered) {
+        Write-Output "    $($p.Replace('\\\\.\\pipe\\', ''))"
+    }
+    Write-Output "[*] Matched: $($filtered.Count)"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-010",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://named-pipes",
+      title: "Named pipe enumeration for attack surface discovery",
+      details: r.stdout.substring(0, 500),
+      remediation: "Disable unnecessary named pipes. Restrict pipe ACLs to authorized users only.",
+    })
+  }
+
+  if (action === "acl" || action === "full") {
+    const target = filter || "spoolss"
+    const script = `
+Write-Output "=== Named Pipe ACL Analysis ==="
+Write-Output "[*] Checking pipe: ${target}"
+Write-Output ""
+
+try {
+    $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", "${target}", [System.IO.Pipes.PipeDirection]::InOut, [System.IO.Pipes.PipeOptions]::None)
+    $pipe.Connect(3000)
+    Write-Output "[+] Successfully connected to pipe — accessible to current user"
+    $pipe.Close()
+    $pipe.Dispose()
+} catch {
+    Write-Output "[-] Cannot connect: $($_.Exception.Message)"
+}
+
+Write-Output ""
+Write-Output "=== Impersonation-Capable Pipes ==="
+Write-Output "[*] SYSTEM-owned pipes (impersonation targets):"
+Get-ChildItem '\\\\.\\pipe\\' -ErrorAction SilentlyContinue | Select-Object -First 40 | ForEach-Object {
+    Write-Output "    $($_.Name)"
+}
+Write-Output ""
+Write-Output "[*] Use named_pipe_privesc to exploit impersonation on target pipes"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-011",
+      provider: "windows",
+      severity: "medium",
+      status: "ENUMERATED",
+      resource: `host://pipe/${target}`,
+      title: "Named pipe ACL analysis for impersonation targeting",
+      details: r.stdout.substring(0, 500),
+      remediation: "Restrict named pipe creation permissions. Monitor pipe server creation for impersonation attacks.",
+    })
+  }
+
+  if (action === "custom") {
+    const script = `
+Write-Output "=== Custom/Non-Standard Pipes ==="
+$systemPipes = @('lsass','ntsvcs','scerpc','spoolss','efsrpc','netlogon','samr','srvsvc','svcctl','wkssvc','winreg','browser','eventlog','PIPE_EVENTROOT','InitShutdown','LSM_API','ROUTER','W32TIME','Winsock2','atsvc','trkwks','DAV RPC','protected_storage','MsFteWds','TSVCPIPE','TermSrv','Ctx')
+
+$pipes = [System.IO.Directory]::GetFiles('\\\\.\\pipe\\')
+$custom = $pipes | ForEach-Object {
+    $name = $_.Replace('\\\\.\\pipe\\', '')
+    $isSystem = $false
+    foreach ($sp in $systemPipes) {
+        if ($name -match $sp) { $isSystem = $true; break }
+    }
+    if (-not $isSystem) { $name }
+}
+
+Write-Output "[*] Custom/third-party pipes ($($custom.Count)):"
+foreach ($c in ($custom | Sort-Object | Select-Object -First 50)) {
+    Write-Output "    $c"
+}
+
+Write-Output ""
+Write-Output "[*] Look for: C2 framework pipes, RAT pipes, custom app pipes with weak ACLs"
+Write-Output "[*] Common C2 pipes: msagent_, MSSE-, postex_, beacon"
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+    if (r.stderr) output.push(`[!] ${r.stderr}`)
+    findings.push({
+      checkId: "WIN-RECON-012",
+      provider: "windows",
+      severity: "info",
+      status: "ENUMERATED",
+      resource: "host://custom-pipes",
+      title: "Custom named pipe discovery for C2 and third-party application detection",
+      details: r.stdout.substring(0, 500),
+      remediation: "Investigate unknown named pipes. Monitor for C2 framework pipe patterns.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
