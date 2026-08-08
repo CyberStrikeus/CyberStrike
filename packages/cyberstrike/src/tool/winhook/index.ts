@@ -1173,7 +1173,9 @@ const PS_FAILURE_PATTERNS = [
 
 function isPsFailure(output: string): boolean {
   const lower = output.toLowerCase()
-  return PS_FAILURE_PATTERNS.some(p => lower.includes(p.toLowerCase())) || (output.trim() === "" && output.length === 0)
+  return (
+    PS_FAILURE_PATTERNS.some((p) => lower.includes(p.toLowerCase())) || (output.trim() === "" && output.length === 0)
+  )
 }
 
 export const WinhookTool = Tool.define("winhook", {
@@ -1231,11 +1233,20 @@ export const WinhookTool = Tool.define("winhook", {
     setStealthState(undefined, false)
     setExecMethod("ps")
 
-    const output = result.findings.length > 0
-      ? result.output + "\n\n=== FINDINGS (" + result.findings.length + ") ===\n" + result.findings.map((f, i) =>
-          `[${i + 1}] ${f.severity} — ${f.title}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`
-        ).join("\n") + "\n\nIMPORTANT: Call report_vulnerability for each finding above to formally record it."
-      : result.output
+    const output =
+      result.findings.length > 0
+        ? result.output +
+          "\n\n=== FINDINGS (" +
+          result.findings.length +
+          ") ===\n" +
+          result.findings
+            .map(
+              (f, i) =>
+                `[${i + 1}] ${f.severity} — ${f.title}\n    Check: ${f.checkId} | Status: ${f.status} | Resource: ${f.resource}\n    ${f.details}\n    Remediation: ${f.remediation}`,
+            )
+            .join("\n") +
+          "\n\nIMPORTANT: Call report_vulnerability for each finding above to formally record it."
+        : result.output
 
     return {
       title: `winhook: ${program}`,
