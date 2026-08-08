@@ -1394,7 +1394,7 @@ export const WinhookTool = Tool.define("winhook", {
     return {
       title: `winhook: ${program}`,
       output,
-      metadata: { program, findings: result.findings },
+      metadata: { program, findings: enriched },
     }
   },
 })
