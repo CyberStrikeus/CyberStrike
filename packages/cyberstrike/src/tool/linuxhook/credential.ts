@@ -1062,3 +1062,77 @@ nmcli -s connection show 2>/dev/null | head -20
   return { output: output.join("\n"), findings }
 }
 
+export async function kerberosKeytab(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Kerberos Keytab & Ticket Harvest ==="]
+
+  const script = `
+echo "--- System Keytab ---"
+if [ -f /etc/krb5.keytab ]; then
+  echo "[+] /etc/krb5.keytab found ($(wc -c < /etc/krb5.keytab) bytes)"
+  klist -k /etc/krb5.keytab 2>/dev/null | head -20
+else
+  echo "[-] /etc/krb5.keytab not found"
+fi
+
+echo ""
+echo "--- User Keytabs ---"
+find /root /home /etc /opt /srv -name "*.keytab" -readable 2>/dev/null | while read -r kt; do
+  echo "[+] Keytab: $kt ($(wc -c < "$kt") bytes)"
+  klist -k "$kt" 2>/dev/null | head -10
+  echo ""
+done
+
+echo ""
+echo "--- Credential Caches ---"
+echo "KRB5CCNAME=$KRB5CCNAME"
+ls -la /tmp/krb5cc_* 2>/dev/null
+for dir in /root /home/*; do
+  ls -la "$dir/.krb5cc" "$dir/krb5cc_*" 2>/dev/null
+done
+
+echo ""
+echo "--- Active Tickets ---"
+klist 2>/dev/null || echo "[-] klist not available or no tickets"
+
+echo ""
+echo "--- Kerberos Config ---"
+if [ -f /etc/krb5.conf ]; then
+  echo "[*] /etc/krb5.conf:"
+  grep -E "(default_realm|kdc|admin_server|dns_lookup)" /etc/krb5.conf 2>/dev/null
+fi
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("krb5.keytab found") || r.stdout.includes("Keytab:")) {
+    const ktCount = (r.stdout.match(/Keytab:|krb5\.keytab found/g) || []).length
+    findings.push({
+      checkId: "LNX-KRB-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "kerberos_keytab",
+      title: `${ktCount} Kerberos keytab(s) found`,
+      details: "Keytab files contain long-term Kerberos keys — can be used for authentication without password, ticket forging, or lateral movement",
+      remediation: "Restrict keytab permissions to specific service accounts (chmod 600). Rotate service account keys.",
+    })
+  }
+
+  if (r.stdout.includes("krb5cc_")) {
+    findings.push({
+      checkId: "LNX-KRB-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "kerberos_ccache",
+      title: "Kerberos credential cache tickets found",
+      details: "Active Kerberos tickets found in ccache files — can be passed for authenticated access to AD-joined services",
+      remediation: "Set short ticket lifetimes. Clear ccache files when sessions end.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
