@@ -500,3 +500,84 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function envSecrets(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Environment Variable Secrets ==="]
+
+  const script = `
+echo "--- Current Environment ---"
+env 2>/dev/null | grep -iE "(password|passwd|secret|token|api_key|apikey|private|auth|credential|access_key|aws_)" | sort
+
+echo ""
+echo "--- /proc/*/environ (readable processes) ---"
+for pid in $(ls /proc/ 2>/dev/null | grep -E '^[0-9]+$' | head -100); do
+  if [ -r "/proc/$pid/environ" ]; then
+    procname=$(cat /proc/$pid/comm 2>/dev/null)
+    secrets=$(tr '\\0' '\\n' < /proc/$pid/environ 2>/dev/null | grep -iE "(password|passwd|secret|token|api_key|apikey|private|auth|credential|access_key|aws_)" 2>/dev/null)
+    if [ -n "$secrets" ]; then
+      echo "[+] PID $pid ($procname):"
+      echo "$secrets" | head -10
+      echo ""
+    fi
+  fi
+done
+
+echo ""
+echo "--- Systemd Service Environments ---"
+if command -v systemctl >/dev/null 2>&1; then
+  for svc in $(systemctl list-units --type=service --state=running --no-legend 2>/dev/null | awk '{print $1}' | head -30); do
+    envvars=$(systemctl show "$svc" -p Environment 2>/dev/null | grep -iE "(password|secret|token|key)")
+    envfile=$(systemctl show "$svc" -p EnvironmentFiles 2>/dev/null | grep -v "^EnvironmentFiles=$")
+    if [ -n "$envvars" ] || [ -n "$envfile" ]; then
+      echo "[+] Service: $svc"
+      [ -n "$envvars" ] && echo "  $envvars"
+      [ -n "$envfile" ] && echo "  EnvFile: $envfile"
+    fi
+  done
+fi
+
+echo ""
+echo "--- .env Files (common locations) ---"
+find /opt /srv /var/www /home -maxdepth 4 -name ".env" -readable 2>/dev/null | while read -r envfile; do
+  secrets=$(grep -iE "(password|secret|token|key|api)" "$envfile" 2>/dev/null | head -5)
+  if [ -n "$secrets" ]; then
+    echo "[+] $envfile:"
+    echo "$secrets"
+    echo ""
+  fi
+done
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const envMatches = (r.stdout.match(/\[+\]/g) || []).length
+  if (envMatches > 0) {
+    findings.push({
+      checkId: "LNX-ENV-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "environment",
+      title: "Secrets found in environment variables",
+      details: `${envMatches} source(s) contain secrets in environment variables — passwords, API keys, tokens exposed in process memory`,
+      remediation: "Use a secrets manager (Vault, AWS Secrets Manager) instead of environment variables. Restrict /proc access with hidepid=2.",
+    })
+  }
+
+  if (r.stdout.includes(".env:")) {
+    findings.push({
+      checkId: "LNX-ENV-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "dotenv_files",
+      title: "Dotenv files with credentials found",
+      details: "Application .env files contain plaintext credentials — common in web applications",
+      remediation: "Use proper secrets management. Restrict .env file permissions to application user only (600).",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
