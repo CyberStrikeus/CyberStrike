@@ -280,7 +280,8 @@ done
       resource: "suid_binaries",
       title: "GTFOBins-exploitable SUID binaries found",
       details: `${exploitable.length} SUID binary/binaries match GTFOBins entries: ${exploitable.map((l) => l.split("/").pop()).join(", ")} — can be used for privilege escalation. Check versions against CVE database via cve-mcp for version-specific exploits.`,
-      remediation: "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible. Query: cve search_by_product --product <name> --version <ver>",
+      remediation:
+        "Remove SUID bit from unnecessary binaries (chmod u-s). Use capabilities instead where possible. Query: cve search_by_product --product <name> --version <ver>",
     })
   }
 
