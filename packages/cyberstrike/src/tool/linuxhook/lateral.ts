@@ -206,3 +206,90 @@ grep -r "private_key_file\|ansible_ssh_private_key" /etc/ansible/ ~/.ansible* 2>
 
   return { output: output.join("\n"), findings }
 }
+
+export async function puppetAbuse(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Puppet Abuse ==="]
+
+  const script = `
+echo "--- Puppet Installation ---"
+command -v puppet && puppet --version 2>/dev/null || echo "[-] puppet not found"
+command -v facter >/dev/null 2>&1 && echo "[+] facter available"
+
+echo ""
+echo "--- Puppet Configuration ---"
+for d in /etc/puppet /etc/puppetlabs/puppet /opt/puppetlabs/puppet; do
+  if [ -d "$d" ]; then
+    echo "[+] Config dir: $d"
+    cat "$d/puppet.conf" 2>/dev/null | grep -vE "^(#|$)" | head -20
+  fi
+done
+
+echo ""
+echo "--- Puppet SSL Certificates ---"
+for d in /etc/puppet/ssl /etc/puppetlabs/puppet/ssl /var/lib/puppet/ssl; do
+  if [ -d "$d" ]; then
+    echo "[+] SSL dir: $d"
+    ls -la "$d/private_keys/" 2>/dev/null
+    ls -la "$d/certs/" 2>/dev/null
+  fi
+done
+
+echo ""
+echo "--- Puppet Manifests & Modules ---"
+find /etc/puppet /etc/puppetlabs /opt/puppetlabs -name "*.pp" 2>/dev/null | head -20
+
+echo ""
+echo "--- Hiera Data (secrets) ---"
+find /etc/puppet /etc/puppetlabs -name "hiera.yaml" -o -name "*.eyaml" 2>/dev/null | head -10
+find /etc/puppet /etc/puppetlabs -path "*/data/*.yaml" 2>/dev/null | xargs grep -l "password\|secret\|token" 2>/dev/null | head -10
+
+echo ""
+echo "--- Puppet Master Check ---"
+ps aux 2>/dev/null | grep -i "puppet.*master\|puppetserver" | grep -v grep
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] SSL dir:")) {
+    findings.push({
+      checkId: "LNX-PUPPET-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "puppet_certs",
+      title: "Puppet SSL certificates and private keys found",
+      details: "Puppet SSL private keys accessible — can impersonate puppet agent or master for code execution on managed nodes",
+      remediation: "Restrict Puppet SSL directory permissions. Rotate certificates.",
+    })
+  }
+
+  if (r.stdout.includes("password") || r.stdout.includes(".eyaml")) {
+    findings.push({
+      checkId: "LNX-PUPPET-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "FOUND",
+      resource: "puppet_hiera",
+      title: "Puppet Hiera data with potential secrets",
+      details: "Hiera data files contain password/secret references — may contain plaintext or eyaml-encrypted credentials",
+      remediation: "Use eyaml encryption for all Hiera secrets. Restrict access to Hiera data directories.",
+    })
+  }
+
+  if (r.stdout.includes("puppetserver")) {
+    findings.push({
+      checkId: "LNX-PUPPET-003",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "FOUND",
+      resource: "puppet_master",
+      title: "Puppet master/server running on this host",
+      details: "This host is a Puppet master — full control over all managed nodes for code execution",
+      remediation: "Harden Puppet master access. Use RBAC. Restrict manifest editing.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
