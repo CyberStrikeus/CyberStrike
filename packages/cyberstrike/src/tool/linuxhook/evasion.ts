@@ -242,3 +242,138 @@ echo "  > /var/log/audit/audit.log  # Clear log"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function selinuxBypass(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SELinux Bypass ==="]
+
+  const script = `
+echo "--- SELinux Status ---"
+getenforce 2>/dev/null || echo "[-] getenforce not available"
+sestatus 2>/dev/null || echo "[-] sestatus not available"
+
+echo ""
+echo "--- Current Context ---"
+id -Z 2>/dev/null || echo "[-] No SELinux context"
+
+echo ""
+echo "--- SELinux Booleans (security-relevant) ---"
+getsebool -a 2>/dev/null | grep -iE "(httpd_can_network|allow_ptrace|allow_execmem|allow_execstack|secure_mode)" | head -20
+
+echo ""
+echo "--- Permissive Domains ---"
+semanage permissive -l 2>/dev/null | head -20
+
+echo ""
+echo "--- Bypass Options ---"
+echo "  setenforce 0                          # Set permissive (requires root)"
+echo "  chcon -t unconfined_t /path/to/file   # Change file context"
+echo "  runcon -t unconfined_t /bin/bash       # Run in unconfined context"
+echo "  setsebool -P httpd_can_network_connect on  # Enable network for httpd"
+echo "  semanage permissive -a httpd_t         # Set domain permissive"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const enforcing = r.stdout.includes("Enforcing")
+  const permissive = r.stdout.includes("Permissive")
+  const disabled = r.stdout.includes("Disabled") || r.stdout.includes("getenforce not available")
+
+  if (enforcing) {
+    findings.push({
+      checkId: "LNX-SELINUX-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "selinux",
+      title: "SELinux is enforcing — restricts exploitation",
+      details: "SELinux in enforcing mode. Some exploits and persistence mechanisms may be blocked. Consider setting permissive or using unconfined contexts.",
+      remediation: "Keep SELinux enforcing. Use targeted policy. Audit policy changes.",
+    })
+  }
+  if (permissive) {
+    findings.push({
+      checkId: "LNX-SELINUX-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "FOUND",
+      resource: "selinux",
+      title: "SELinux is permissive — logging only",
+      details: "SELinux in permissive mode — actions logged but NOT blocked. Proceed with exploitation.",
+      remediation: "Set SELinux to enforcing mode. Investigate why it was set to permissive.",
+    })
+  }
+  if (disabled) {
+    findings.push({
+      checkId: "LNX-SELINUX-003",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "FOUND",
+      resource: "selinux",
+      title: "SELinux is disabled — no MAC restrictions",
+      details: "SELinux disabled or not installed — no mandatory access control restrictions apply",
+      remediation: "Enable SELinux in enforcing mode with targeted policy.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
+
+export async function apparmorBypass(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== AppArmor Bypass ==="]
+
+  const script = `
+echo "--- AppArmor Status ---"
+aa-status 2>/dev/null || echo "[-] aa-status not available or not root"
+cat /sys/kernel/security/apparmor/profiles 2>/dev/null | head -30
+
+echo ""
+echo "--- Profile Modes ---"
+aa-status 2>/dev/null | grep -E "(enforce|complain|unconfined)" | head -20
+
+echo ""
+echo "--- Current Process Profile ---"
+cat /proc/self/attr/current 2>/dev/null || echo "[-] Cannot read current profile"
+
+echo ""
+echo "--- Bypass Options ---"
+echo "  aa-complain /path/to/profile   # Set to complain mode"
+echo "  aa-disable /path/to/profile    # Disable profile"
+echo "  apparmor_parser -R /etc/apparmor.d/profile  # Unload profile"
+echo "  ln -s /etc/apparmor.d/profile /etc/apparmor.d/disable/  # Disable on boot"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("enforce")) {
+    const enforced = (r.stdout.match(/enforce/g) || []).length
+    findings.push({
+      checkId: "LNX-APPARMOR-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "apparmor",
+      title: `AppArmor active with ${enforced} enforcing profile(s)`,
+      details: "AppArmor profiles in enforce mode — may restrict exploitation. Set to complain mode or disable specific profiles.",
+      remediation: "Keep AppArmor profiles enforcing. Audit profile changes.",
+    })
+  }
+
+  if (r.stdout.includes("unconfined")) {
+    findings.push({
+      checkId: "LNX-APPARMOR-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "FOUND",
+      resource: "apparmor",
+      title: "Unconfined processes detected",
+      details: "Some processes run without AppArmor confinement — can be exploited without profile restrictions",
+      remediation: "Create AppArmor profiles for all services. Minimize unconfined processes.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
