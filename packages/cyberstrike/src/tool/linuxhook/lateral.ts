@@ -466,3 +466,58 @@ ps aux 2>/dev/null | grep rsync | grep -v grep
 
   return { output: output.join("\n"), findings }
 }
+
+export async function sshTunnel(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SSH Tunnel Setup ==="]
+  const tunnelType = argVal(args, "--type") || "local"
+  const localPort = argVal(args, "--local-port") || "8080"
+  const remote = argVal(args, "--remote") || "127.0.0.1:80"
+  const target = argVal(args, "--target")
+
+  if (!target) {
+    output.push("Usage: linuxhook ssh_tunnel --target <ssh_host> --type <local|remote|dynamic> --local-port <port> --remote <host:port>")
+    output.push("")
+    output.push("Examples:")
+    output.push("  Local forward:   linuxhook ssh_tunnel --target pivot --type local --local-port 8080 --remote 10.0.0.5:80")
+    output.push("  Remote forward:  linuxhook ssh_tunnel --target pivot --type remote --local-port 4444 --remote 0.0.0.0:4444")
+    output.push("  Dynamic SOCKS:   linuxhook ssh_tunnel --target pivot --type dynamic --local-port 1080")
+    output.push("")
+    output.push("--- Current SSH Connections ---")
+    const r = activeExec === "sh" ? await sh("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout) : await bash("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout)
+    output.push(r.stdout || "No active SSH tunnels")
+    return { output: output.join("\n"), findings }
+  }
+
+  let cmd = ""
+  if (tunnelType === "local") cmd = `ssh -f -N -L ${localPort}:${remote} ${target}`
+  if (tunnelType === "remote") cmd = `ssh -f -N -R ${localPort}:${remote} ${target}`
+  if (tunnelType === "dynamic") cmd = `ssh -f -N -D ${localPort} ${target}`
+
+  const script = `
+echo "--- Setting up ${tunnelType} tunnel ---"
+echo "Command: ${cmd}"
+${cmd} 2>&1
+sleep 1
+echo ""
+echo "--- Verifying tunnel ---"
+ss -tlnp 2>/dev/null | grep ":${localPort}" || netstat -tlnp 2>/dev/null | grep ":${localPort}"
+ps aux | grep "ssh -" | grep -v grep
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  findings.push({
+    checkId: "LNX-TUNNEL-001",
+    provider: "linuxhook",
+    severity: "MEDIUM",
+    status: "IDENTIFIED",
+    resource: target,
+    title: `SSH ${tunnelType} tunnel configured`,
+    details: `${tunnelType} tunnel via ${target} — local port ${localPort}${tunnelType !== "dynamic" ? ` forwarding to ${remote}` : " as SOCKS proxy"}`,
+    remediation: "Monitor for unauthorized SSH tunnels. Restrict SSH port forwarding with AllowTcpForwarding and PermitOpen.",
+  })
+
+  return { output: output.join("\n"), findings }
+}
