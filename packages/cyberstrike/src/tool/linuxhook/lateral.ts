@@ -584,3 +584,92 @@ echo "  mkfifo /tmp/.p; nc -l 8080 < /tmp/.p | nc 10.0.0.5 80 > /tmp/.p &"
 
   return { output: output.join("\n"), findings }
 }
+
+export async function internalScan(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Internal Network Scan ==="]
+  const subnet = argVal(args, "--subnet")
+  const ports = argVal(args, "--ports") || "22,80,443,3306,5432,6379,8080,8443"
+
+  const script = `
+echo "--- Local Network Info ---"
+ip -br addr 2>/dev/null || ifconfig 2>/dev/null | grep -E "inet |flags"
+echo ""
+ip route 2>/dev/null | head -10 || route -n 2>/dev/null | head -10
+
+echo ""
+echo "--- ARP Table (known hosts) ---"
+ip neigh 2>/dev/null || arp -an 2>/dev/null
+
+${subnet ? `
+echo ""
+echo "--- Host Discovery (${subnet}) ---"
+if command -v nmap >/dev/null 2>&1; then
+  nmap -sn ${subnet} 2>/dev/null | grep -E "(scan report|Host is)"
+elif command -v ping >/dev/null 2>&1; then
+  echo "Using ping sweep..."
+  prefix=$(echo "${subnet}" | sed 's|/.*||; s|\\.[0-9]*$||')
+  for i in $(seq 1 254); do
+    ping -c 1 -W 1 "$prefix.$i" >/dev/null 2>&1 && echo "[+] $prefix.$i is alive" &
+  done
+  wait
+fi
+
+echo ""
+echo "--- Port Scan (${subnet} : ${ports}) ---"
+if command -v nmap >/dev/null 2>&1; then
+  nmap -p ${ports} --open ${subnet} 2>/dev/null | grep -E "(scan report|open)"
+else
+  echo "Using bash /dev/tcp..."
+  prefix=$(echo "${subnet}" | sed 's|/.*||; s|\\.[0-9]*$||')
+  for port in $(echo "${ports}" | tr ',' ' '); do
+    for i in 1 2 5 10 20 50 100 200; do
+      (echo >/dev/tcp/$prefix.$i/$port) 2>/dev/null && echo "[+] $prefix.$i:$port OPEN" &
+    done
+  done
+  wait
+fi
+` : `
+echo ""
+echo "--- Listening Services (local) ---"
+ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
+
+echo ""
+echo "Usage: linuxhook internal_scan --subnet 10.0.0.0/24 --ports 22,80,443"
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const aliveHosts = (r.stdout.match(/is alive|scan report/g) || []).length
+  const openPorts = (r.stdout.match(/OPEN|open/g) || []).length
+
+  if (aliveHosts > 0) {
+    findings.push({
+      checkId: "LNX-PORTSCAN-001",
+      provider: "linuxhook",
+      severity: "INFO",
+      status: "IDENTIFIED",
+      resource: subnet || "local",
+      title: "Live hosts discovered",
+      details: `${aliveHosts} live host(s) found on ${subnet || "local network"} — potential lateral movement targets`,
+      remediation: "Implement network segmentation. Monitor for internal scanning activity.",
+    })
+  }
+
+  if (openPorts > 0) {
+    findings.push({
+      checkId: "LNX-PORTSCAN-002",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: subnet || "local",
+      title: "Open ports found on internal hosts",
+      details: `${openPorts} open port(s) discovered — review for exploitable services`,
+      remediation: "Close unnecessary ports. Use host-based firewalls on all internal systems.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
