@@ -682,8 +682,8 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
         status: "ENUMERATED",
         resource: "host://software",
         title: "Software inventory via registry query",
-        details: `${names.length} apps found, ${found.length} interesting`,
-        remediation: "Remove unnecessary software.",
+        details: `${names.length} apps found, ${found.length} interesting. Review application names and versions in the output — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve`,
+        remediation: "Remove unnecessary software. Update vulnerable versions.",
       })
     }
 
@@ -718,8 +718,8 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
         status: "ENUMERATED",
         resource: "host://services",
         title: "Service enumeration via cmd.exe",
-        details: "sc query / wmic service / net start",
-        remediation: "Quote all service binary paths.",
+        details: "Running services enumerated. Review service names and versions — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve",
+        remediation: "Quote all service binary paths. Update vulnerable service versions.",
       })
     }
 
@@ -782,8 +782,8 @@ export async function localRecon(args: string[], timeout: number): Promise<HookR
         status: "ENUMERATED",
         resource: "host://hotfixes",
         title: "Patch level assessment via cmd.exe",
-        details: "systeminfo or wmic qfe",
-        remediation: "Keep systems patched.",
+        details: "OS version and installed hotfixes enumerated. Review OS build number and missing KBs — check CVE database via cve-mcp (cve search_by_product --product windows --version <build>) for known exploits. If cve-mcp is not enabled: cyberstrike mcp enable cve",
+        remediation: "Keep systems patched. Apply missing security updates.",
       })
     }
 
@@ -956,8 +956,8 @@ Write-Output "[*] CLR: $($PSVersionTable.CLRVersion)"
       status: "ENUMERATED",
       resource: "host://software",
       title: "Installed software and attack surface enumeration",
-      details: r.stdout.substring(0, 500),
-      remediation: "Remove unnecessary software. Audit remote access tools (TeamViewer, AnyDesk).",
+      details: `${r.stdout.substring(0, 400)} — Review application names and versions in the output — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve`,
+      remediation: "Remove unnecessary software. Audit remote access tools. Update vulnerable versions.",
     })
   }
 
@@ -1019,8 +1019,8 @@ foreach ($s in $systemServices) {
       status: "ENUMERATED",
       resource: "host://services",
       title: "Running services and vulnerable service configuration enumeration",
-      details: r.stdout.substring(0, 500),
-      remediation: "Quote all service binary paths. Run services with least privilege (not LocalSystem).",
+      details: `${r.stdout.substring(0, 400)} — Review service names and versions — for any with a version, check CVE database via cve-mcp (cve search_by_product --product <name> --version <ver>). If cve-mcp is not enabled: cyberstrike mcp enable cve`,
+      remediation: "Quote all service binary paths. Run services with least privilege. Update vulnerable versions.",
     })
   }
 
@@ -1118,8 +1118,8 @@ Write-Output "[*] Last Boot: $($os.ConvertToDateTime($os.LastBootUpTime))"
       status: "ENUMERATED",
       resource: "host://hotfixes",
       title: "Installed hotfixes and patch level assessment",
-      details: r.stdout.substring(0, 500),
-      remediation: "Keep systems patched. Enable automatic updates. Monitor for missing critical patches.",
+      details: `${r.stdout.substring(0, 400)} — Review OS build and missing KBs — check CVE database via cve-mcp (cve search_by_product --product windows --version <build>) for known exploits. If cve-mcp is not enabled: cyberstrike mcp enable cve`,
+      remediation: "Keep systems patched. Enable automatic updates. Apply missing critical patches.",
     })
   }
 
