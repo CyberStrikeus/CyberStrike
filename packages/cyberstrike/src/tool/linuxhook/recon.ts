@@ -742,3 +742,131 @@ command -v osquery >/dev/null 2>&1 && echo "osquery: installed" || echo "osquery
 
   return { output: output.join("\n"), findings }
 }
+
+export async function interestingFiles(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Interesting Files ==="]
+  const depth = argVal(args, "--depth") || "3"
+
+  const script = `
+echo "--- SUID Binaries ---"
+find / -perm -4000 -type f 2>/dev/null | head -50
+echo ""
+echo "--- SGID Binaries ---"
+find / -perm -2000 -type f 2>/dev/null | head -30
+echo ""
+echo "--- World-Writable Files (non-tmp) ---"
+find / -writable -type f ! -path "/proc/*" ! -path "/sys/*" ! -path "/tmp/*" ! -path "/dev/*" ! -path "/run/*" 2>/dev/null | head -30
+echo ""
+echo "--- World-Writable Directories ---"
+find / -writable -type d ! -path "/proc/*" ! -path "/sys/*" ! -path "/tmp/*" ! -path "/dev/*" ! -path "/run/*" 2>/dev/null | head -20
+echo ""
+echo "--- Writable PATH Directories ---"
+echo "$PATH" | tr ':' '\\n' | while read dir; do
+  [ -w "$dir" ] && echo "WRITABLE: $dir"
+done
+echo ""
+echo "--- /etc/shadow Permissions ---"
+ls -la /etc/shadow 2>/dev/null
+echo ""
+echo "--- /etc/passwd Permissions ---"
+ls -la /etc/passwd 2>/dev/null
+echo ""
+echo "--- SSH Keys ---"
+find / -name "id_rsa" -o -name "id_ecdsa" -o -name "id_ed25519" -o -name "id_dsa" 2>/dev/null | head -20
+find / -name "authorized_keys" 2>/dev/null | head -10
+echo ""
+echo "--- Backup Files ---"
+find / -maxdepth ${depth} \\( -name "*.bak" -o -name "*.old" -o -name "*.orig" -o -name "*.swp" -o -name "*.swo" -o -name "*~" -o -name "*.save" \\) -type f 2>/dev/null | head -20
+echo ""
+echo "--- Config Files with Potential Credentials ---"
+find / -maxdepth ${depth} \\( -name "*.conf" -o -name "*.cfg" -o -name "*.ini" -o -name "*.env" -o -name ".env" -o -name "*.properties" \\) -type f -readable 2>/dev/null | head -30
+echo ""
+echo "--- Database Files ---"
+find / -maxdepth ${depth} \\( -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" -o -name "*.mdb" \\) -type f 2>/dev/null | head -15
+echo ""
+echo "--- Log Files (writable) ---"
+find /var/log -writable -type f 2>/dev/null | head -15
+echo ""
+echo "--- Core Dumps ---"
+find / -maxdepth 3 -name "core" -o -name "core.*" 2>/dev/null | head -5
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  const suidSection = r.stdout.split("SUID Binaries ---")[1]?.split("---")[0] || ""
+  const suidCount = suidSection.trim().split("\n").filter((l: string) => l.trim()).length
+  if (suidCount > 0) {
+    findings.push({
+      checkId: "LNX-FILES-001",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "filesystem",
+      title: `${suidCount} SUID binaries found`,
+      details: `${suidCount} SUID binary(ies) detected — check against GTFOBins for privilege escalation opportunities`,
+      remediation: "Remove SUID bit from binaries that don't require it; audit SUID binaries regularly",
+    })
+  }
+
+  if (r.stdout.includes("WRITABLE:")) {
+    const writablePaths = (r.stdout.match(/WRITABLE: .+/g) || []).map((l: string) => l.replace("WRITABLE: ", ""))
+    findings.push({
+      checkId: "LNX-FILES-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "filesystem",
+      title: "Writable directories in PATH",
+      details: `User can write to PATH directories: ${writablePaths.join(", ")} — enables binary hijacking`,
+      remediation: "Fix permissions on PATH directories; ensure only root can write to system paths",
+    })
+  }
+
+  const shadowPerms = r.stdout.match(/shadow Permissions ---\n(.+)/m)
+  if (shadowPerms && (shadowPerms[1].includes("-r--r--") || shadowPerms[1].includes("-rw-r--") || shadowPerms[1].includes("rw-rw"))) {
+    findings.push({
+      checkId: "LNX-FILES-003",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "VULNERABLE",
+      resource: "/etc/shadow",
+      title: "/etc/shadow is world-readable",
+      details: "Shadow file is readable by non-root users — password hashes can be extracted for offline cracking",
+      remediation: "Fix permissions: chmod 640 /etc/shadow; chown root:shadow /etc/shadow",
+    })
+  }
+
+  const sshKeys = r.stdout.split("SSH Keys ---")[1]?.split("---")[0] || ""
+  const keyCount = sshKeys.trim().split("\n").filter((l: string) => l.trim() && l.includes("id_")).length
+  if (keyCount > 0) {
+    findings.push({
+      checkId: "LNX-FILES-004",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "ssh",
+      title: `${keyCount} SSH private key(s) found`,
+      details: `${keyCount} SSH private key file(s) discovered — can be used for lateral movement to other hosts`,
+      remediation: "Protect SSH keys with strong passphrases; use SSH agent with timeout; rotate keys regularly",
+    })
+  }
+
+  const backupSection = r.stdout.split("Backup Files ---")[1]?.split("---")[0] || ""
+  const backupCount = backupSection.trim().split("\n").filter((l: string) => l.trim()).length
+  if (backupCount > 0) {
+    findings.push({
+      checkId: "LNX-FILES-005",
+      provider: "linuxhook",
+      severity: "LOW",
+      status: "IDENTIFIED",
+      resource: "filesystem",
+      title: `${backupCount} backup/swap files found`,
+      details: `${backupCount} backup file(s) found — may contain previous versions of configs with credentials`,
+      remediation: "Remove unnecessary backup files; implement proper backup policies",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
