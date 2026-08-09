@@ -374,6 +374,23 @@ systemctl list-units --state=failed 2>/dev/null
   output.push(r.stdout || r.stderr)
 
   const running = (r.stdout.match(/running/gi) || []).length
+
+  const versionChecks = ["sshd", "nginx", "apache2", "httpd", "mysql", "mysqld", "postgres", "redis-server", "docker", "containerd", "vsftpd", "proftpd", "postfix", "dovecot", "named", "bind", "smbd", "cups"]
+  const verScript = versionChecks.map((svc) => `command -v ${svc} >/dev/null 2>&1 && VER=$(${svc} --version 2>&1 | head -1) && echo "SVC_VER:${svc}:$VER"`).join("\n")
+  const vr = activeExec === "sh" ? await sh(verScript, timeout) : await bash(verScript, timeout)
+  const svcVersions = vr.stdout.split("\n").filter((l) => l.startsWith("SVC_VER:"))
+  if (svcVersions.length > 0) {
+    output.push("\n--- Service Versions ---")
+    for (const sv of svcVersions) {
+      const parts = sv.replace("SVC_VER:", "").split(":")
+      output.push(`  ${parts[0]}: ${parts.slice(1).join(":").trim()}`)
+    }
+    output.push("")
+    output.push("[!] CVE check recommended for versioned services above.")
+    output.push("    Use cve-mcp: cve search_by_product --product <name> --version <ver>")
+    output.push("    If cve-mcp is not enabled: cyberstrike mcp enable cve")
+  }
+
   findings.push({
     checkId: "LNX-SERVICES-001",
     provider: "linuxhook",
@@ -381,8 +398,8 @@ systemctl list-units --state=failed 2>/dev/null
     status: "IDENTIFIED",
     resource: "services",
     title: "Running services enumerated",
-    details: `${running} running service references found — review for unnecessary or vulnerable services`,
-    remediation: "Disable unnecessary services; keep all services updated to latest versions",
+    details: `${running} running service references found. ${svcVersions.length} service versions detected — check against CVE database via cve-mcp for version-specific exploits.`,
+    remediation: "Disable unnecessary services; keep all services updated. Query: cve search_by_product --product <name> --version <ver>",
   })
 
   const dangerousServices = ["telnet", "rsh", "rlogin", "rexec", "ftp", "tftp", "finger", "talk"]
