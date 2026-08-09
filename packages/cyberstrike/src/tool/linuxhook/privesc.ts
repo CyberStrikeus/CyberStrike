@@ -237,3 +237,87 @@ getcap -r / 2>/dev/null | grep -iE "(cap_setuid|cap_setgid|cap_dac_override|cap_
 
   return { output: output.join("\n"), findings }
 }
+
+export async function cronPrivesc(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== Cron Privilege Escalation ==="]
+
+  const script = `
+echo "--- System Crontab ---"
+cat /etc/crontab 2>/dev/null
+echo ""
+echo "--- /etc/cron.d/ ---"
+for f in /etc/cron.d/*; do
+  [ -f "$f" ] && echo "==> $f <==" && cat "$f" 2>/dev/null | grep -vE "^#|^$"
+done
+echo ""
+echo "--- /etc/cron.{hourly,daily,weekly,monthly} ---"
+for d in /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly; do
+  [ -d "$d" ] && echo "==> $d <==" && ls -la "$d/" 2>/dev/null
+done
+echo ""
+echo "--- User crontabs ---"
+ls -la /var/spool/cron/crontabs/ 2>/dev/null || ls -la /var/spool/cron/ 2>/dev/null
+crontab -l 2>/dev/null && echo "[+] Current user crontab above"
+echo ""
+echo "--- Writable cron scripts ---"
+for f in /etc/cron.d/* /etc/cron.hourly/* /etc/cron.daily/* /etc/cron.weekly/* /etc/cron.monthly/*; do
+  [ -f "$f" ] && [ -w "$f" ] && echo "[!] WRITABLE: $f"
+done
+echo ""
+echo "--- Writable cron command targets ---"
+cat /etc/crontab /etc/cron.d/* 2>/dev/null | grep -vE "^#|^$" | awk '{for(i=6;i<=NF;i++) printf "%s ", $i; print ""}' | while read -r cmd; do
+  first=$(echo "$cmd" | awk '{print $1}')
+  [ -f "$first" ] && [ -w "$first" ] && echo "[!] WRITABLE TARGET: $first (from cron)"
+done
+echo ""
+echo "--- Wildcard in cron commands ---"
+grep -rn '\\*' /etc/crontab /etc/cron.d/* 2>/dev/null | grep -E "(tar |rsync |chown |chmod |cp )" | grep -v "^#"
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[!] WRITABLE:")) {
+    const writable = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE:"))
+    findings.push({
+      checkId: "LNX-CRON-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "Writable cron scripts found",
+      details: `${writable.length} writable cron script(s): ${writable[0]?.replace("[!] WRITABLE: ", "")} — inject commands for root execution`,
+      remediation: "Set cron scripts to root:root 755 or more restrictive. Audit cron script permissions regularly.",
+    })
+  }
+
+  if (r.stdout.includes("[!] WRITABLE TARGET:")) {
+    const targets = r.stdout.split("\n").filter(l => l.includes("[!] WRITABLE TARGET:"))
+    findings.push({
+      checkId: "LNX-CRON-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "Writable cron command targets",
+      details: `${targets.length} writable binary/script executed by cron: ${targets[0]?.replace("[!] WRITABLE TARGET: ", "")}`,
+      remediation: "Ensure all binaries executed by cron are owned by root and not writable by others.",
+    })
+  }
+
+  if (r.stdout.match(/(tar |rsync |chown |chmod ).*\*/)) {
+    findings.push({
+      checkId: "LNX-CRON-003",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "VULNERABLE",
+      resource: "cron",
+      title: "Wildcard injection possible in cron",
+      details: "Cron job uses tar/rsync/chown/chmod with wildcard (*) — create specially named files for argument injection (e.g., --checkpoint-action for tar)",
+      remediation: "Avoid wildcards in cron commands. Use full paths and explicit file lists.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
