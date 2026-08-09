@@ -22,7 +22,7 @@ if [ -r /etc/shadow ]; then
         '$1$'*) algo="MD5 (weak)" ;;
         '$sha1$'*) algo="SHA-1 (weak)" ;;
       esac
-      echo "USER=$user  ALGO=$algo  HASH=${hash:0:20}..."
+      echo "USER=$user  ALGO=$algo  HASH=\${hash:0:20}..."
     fi
   done < /etc/shadow
 else
