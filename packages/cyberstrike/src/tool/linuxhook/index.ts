@@ -145,6 +145,7 @@ import {
   firewallEnum,
   trafficRedirect,
   wifiAttack,
+  ipv6Attack,
 } from "./network"
 
 const PROGRAMS = {
@@ -743,6 +744,11 @@ const PROGRAMS = {
       "WiFi attacks — enumerate wireless interfaces, scan networks, deauth clients, capture handshakes for offline cracking (requires monitor mode)",
     args: "--action scan|deauth|capture [--interface IFACE] [--bssid BSSID]",
   },
+  ipv6_attack: {
+    description:
+      "IPv6 network attacks — RA spoofing, DHCPv6 poisoning, SLAAC abuse, neighbor discovery, multicast scan. Windows prefers IPv6 → effective even on IPv4-primary networks",
+    args: "--action scan|ra_spoof|dhcpv6|slaac [--interface IFACE] [--target IP] [--domain DOMAIN]",
+  },
 } as const satisfies Record<string, { description: string; args: string }>
 
 type Program = keyof typeof PROGRAMS
@@ -802,7 +808,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "bash",
         title: "Bash not available",
-        details: "bash is not accessible — some handlers will use sh fallback with reduced functionality. Use --exec auto.",
+        details:
+          "bash is not accessible — some handlers will use sh fallback with reduced functionality. Use --exec auto.",
         remediation: "Use --exec sh or --exec python3 for fallback",
       })
     if (!env.isRoot && !env.sudoNopasswd)
@@ -813,7 +820,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "privileges",
         title: "Not running as root and no NOPASSWD sudo",
-        details: "Many post-exploitation operations require root or passwordless sudo. Credential and persistence operations will be limited.",
+        details:
+          "Many post-exploitation operations require root or passwordless sudo. Credential and persistence operations will be limited.",
         remediation: "Escalate privileges first using linuxhook privesc programs",
       })
     if (env.selinuxStatus === "enforcing")
@@ -824,7 +832,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "WARN",
         resource: "SELinux",
         title: "SELinux is enforcing",
-        details: "SELinux enforcement may block some operations. Use linuxhook selinux_bypass to assess bypass options.",
+        details:
+          "SELinux enforcement may block some operations. Use linuxhook selinux_bypass to assess bypass options.",
         remediation: "Run linuxhook selinux_bypass --action check",
       })
     if (env.inContainer)
@@ -835,7 +844,8 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
         status: "INFO",
         resource: env.containerType,
         title: `Running inside ${env.containerType} container`,
-        details: "Container environment detected — some host-level operations will be unavailable. Consider container escape via containerhook.",
+        details:
+          "Container environment detected — some host-level operations will be unavailable. Consider container escape via containerhook.",
         remediation: "Use containerhook for container-specific attacks, or escape to host first",
       })
     return { output: lines.join("\n"), findings }
@@ -958,6 +968,7 @@ const dispatch: Record<Program, (args: string[], timeout: number) => Promise<Hoo
   firewall_enum: firewallEnum,
   traffic_redirect: trafficRedirect,
   wifi_attack: wifiAttack,
+  ipv6_attack: ipv6Attack,
 }
 
 const CWE_MAP: Record<string, string> = {
@@ -1064,6 +1075,7 @@ const CWE_MAP: Record<string, string> = {
   "LNX-FW": "CWE-200",
   "LNX-REDIRECT": "CWE-918",
   "LNX-WIFIATT": "CWE-319",
+  "LNX-NET-IPV6": "CWE-940",
   "LNX-RECON": "CWE-200",
   "LNX-SYSINFO": "CWE-200",
   "LNX-PROCS": "CWE-200",

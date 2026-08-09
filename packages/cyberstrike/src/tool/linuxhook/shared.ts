@@ -127,7 +127,11 @@ export async function detectEnv(timeout: number): Promise<EnvInfo> {
     }
   }
 
-  const shellResult = await run("sh", ["-c", "echo $SHELL"], timeout).catch(() => ({ stdout: "", stderr: "", exitCode: 1 }))
+  const shellResult = await run("sh", ["-c", "echo $SHELL"], timeout).catch(() => ({
+    stdout: "",
+    stderr: "",
+    exitCode: 1,
+  }))
   const shell = shellResult.stdout.trim() || "/bin/sh"
 
   const [bashAvailable, python3Available, perlAvailable, busyboxAvailable] = await Promise.all([
@@ -141,7 +145,11 @@ export async function detectEnv(timeout: number): Promise<EnvInfo> {
   const uid = parseInt(idResult.stdout.trim()) || 65534
   const isRoot = uid === 0
 
-  const sudoResult = await run("sh", ["-c", "command -v sudo"], timeout).catch(() => ({ stdout: "", stderr: "", exitCode: 1 }))
+  const sudoResult = await run("sh", ["-c", "command -v sudo"], timeout).catch(() => ({
+    stdout: "",
+    stderr: "",
+    exitCode: 1,
+  }))
   const sudoAvailable = sudoResult.exitCode === 0
   let sudoNopasswd = false
   if (sudoAvailable) {
@@ -149,13 +157,21 @@ export async function detectEnv(timeout: number): Promise<EnvInfo> {
     sudoNopasswd = nopass.exitCode === 0
   }
 
-  const unameResult = await run("sh", ["-c", "uname -r"], timeout).catch(() => ({ stdout: "0.0.0", stderr: "", exitCode: 1 }))
+  const unameResult = await run("sh", ["-c", "uname -r"], timeout).catch(() => ({
+    stdout: "0.0.0",
+    stderr: "",
+    exitCode: 1,
+  }))
   const kernelVersion = unameResult.stdout.trim()
   const kparts = kernelVersion.split(".")
   const kernelMajor = parseInt(kparts[0]) || 0
   const kernelMinor = parseInt(kparts[1]) || 0
 
-  const archResult = await run("sh", ["-c", "uname -m"], timeout).catch(() => ({ stdout: "unknown", stderr: "", exitCode: 1 }))
+  const archResult = await run("sh", ["-c", "uname -m"], timeout).catch(() => ({
+    stdout: "unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const arch = archResult.stdout.trim()
 
   const distroScript = `
@@ -170,7 +186,11 @@ else
   echo "unknown unknown"
 fi
 `
-  const distroResult = await run("sh", ["-c", distroScript], timeout).catch(() => ({ stdout: "unknown unknown", stderr: "", exitCode: 1 }))
+  const distroResult = await run("sh", ["-c", distroScript], timeout).catch(() => ({
+    stdout: "unknown unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const dparts = distroResult.stdout.trim().split(" ")
   const distro = dparts[0] || "unknown"
   const distroVersion = dparts[1] || "unknown"
@@ -184,9 +204,15 @@ else
   echo disabled
 fi
 `
-  const seResult = await run("sh", ["-c", selinuxScript], timeout).catch(() => ({ stdout: "unknown", stderr: "", exitCode: 1 }))
+  const seResult = await run("sh", ["-c", selinuxScript], timeout).catch(() => ({
+    stdout: "unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const seRaw = seResult.stdout.trim()
-  const selinuxStatus = (["enforcing", "permissive", "disabled"].includes(seRaw) ? seRaw : "unknown") as EnvInfo["selinuxStatus"]
+  const selinuxStatus = (
+    ["enforcing", "permissive", "disabled"].includes(seRaw) ? seRaw : "unknown"
+  ) as EnvInfo["selinuxStatus"]
 
   const aaScript = `
 if command -v aa-status >/dev/null 2>&1; then
@@ -197,9 +223,15 @@ else
   echo disabled
 fi
 `
-  const aaResult = await run("sh", ["-c", aaScript], timeout).catch(() => ({ stdout: "unknown", stderr: "", exitCode: 1 }))
+  const aaResult = await run("sh", ["-c", aaScript], timeout).catch(() => ({
+    stdout: "unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const aaRaw = aaResult.stdout.trim()
-  const apparmorStatus = (["enforcing", "complain", "disabled"].includes(aaRaw) ? aaRaw : "unknown") as EnvInfo["apparmorStatus"]
+  const apparmorStatus = (
+    ["enforcing", "complain", "disabled"].includes(aaRaw) ? aaRaw : "unknown"
+  ) as EnvInfo["apparmorStatus"]
 
   const containerScript = `
 if [ -f /.dockerenv ]; then echo docker
@@ -210,7 +242,11 @@ elif [ -f /run/.containerenv ]; then echo podman
 else echo none
 fi
 `
-  const contResult = await run("sh", ["-c", containerScript], timeout).catch(() => ({ stdout: "none", stderr: "", exitCode: 1 }))
+  const contResult = await run("sh", ["-c", containerScript], timeout).catch(() => ({
+    stdout: "none",
+    stderr: "",
+    exitCode: 1,
+  }))
   const containerType = contResult.stdout.trim() || "none"
   const inContainer = containerType !== "none"
 
@@ -223,7 +259,11 @@ elif command -v busybox >/dev/null 2>&1 && [ "$(readlink /sbin/init 2>/dev/null)
 else echo unknown
 fi
 `
-  const initResult = await run("sh", ["-c", initScript], timeout).catch(() => ({ stdout: "unknown", stderr: "", exitCode: 1 }))
+  const initResult = await run("sh", ["-c", initScript], timeout).catch(() => ({
+    stdout: "unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const initSystem = (initResult.stdout.trim() || "unknown") as EnvInfo["initSystem"]
 
   const pkgScript = `
@@ -236,7 +276,11 @@ elif command -v zypper >/dev/null 2>&1; then echo zypper
 else echo unknown
 fi
 `
-  const pkgResult = await run("sh", ["-c", pkgScript], timeout).catch(() => ({ stdout: "unknown", stderr: "", exitCode: 1 }))
+  const pkgResult = await run("sh", ["-c", pkgScript], timeout).catch(() => ({
+    stdout: "unknown",
+    stderr: "",
+    exitCode: 1,
+  }))
   const packageManager = (pkgResult.stdout.trim() || "unknown") as EnvInfo["packageManager"]
 
   const [hasCurl, hasWget, hasNetcat, hasSocat, hasNmap, hasGcc] = await Promise.all([

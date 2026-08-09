@@ -56,17 +56,21 @@ echo ""
 echo "--- SSH Agent Sockets ---"
 find /tmp -name "agent.*" -type s 2>/dev/null | head -5
 [ -n "$SSH_AUTH_SOCK" ] && echo "[+] SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
-${target ? `
+${
+  target
+    ? `
 echo ""
 echo "--- Attempting connection to ${target} ---"
 ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${key ? `-i ${key}` : ""} ${user}@${target} "hostname; id; ip addr show 2>/dev/null | grep inet" 2>&1
-` : ""}
+`
+    : ""
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
   output.push(r.stdout || r.stderr)
 
-  const hosts = (r.stdout.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || [])
+  const hosts = r.stdout.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || []
   const uniqueHosts = [...new Set(hosts)]
   if (uniqueHosts.length > 0) {
     findings.push({
@@ -172,8 +176,10 @@ grep -r "private_key_file\|ansible_ssh_private_key" /etc/ansible/ ~/.ansible* 2>
       status: "FOUND",
       resource: "ansible",
       title: "Ansible control node detected",
-      details: "Ansible is installed with playbook execution capability — can be used to execute commands across all managed hosts",
-      remediation: "Restrict Ansible access to authorized users. Use Ansible Vault for all secrets. Limit sudo in playbooks.",
+      details:
+        "Ansible is installed with playbook execution capability — can be used to execute commands across all managed hosts",
+      remediation:
+        "Restrict Ansible access to authorized users. Use Ansible Vault for all secrets. Limit sudo in playbooks.",
     })
   }
 
@@ -199,8 +205,10 @@ grep -r "private_key_file\|ansible_ssh_private_key" /etc/ansible/ ~/.ansible* 2>
       status: "FOUND",
       resource: "ansible_vault",
       title: "Ansible vault files found",
-      details: "Encrypted vault files detected — may contain credentials, API keys, or other secrets. Attempt decryption with found vault password files.",
-      remediation: "Rotate all secrets stored in Ansible vaults. Use external secret management (HashiCorp Vault, AWS Secrets Manager).",
+      details:
+        "Encrypted vault files detected — may contain credentials, API keys, or other secrets. Attempt decryption with found vault password files.",
+      remediation:
+        "Rotate all secrets stored in Ansible vaults. Use external secret management (HashiCorp Vault, AWS Secrets Manager).",
     })
   }
 
@@ -260,7 +268,8 @@ ps aux 2>/dev/null | grep -i "puppet.*master\|puppetserver" | grep -v grep
       status: "FOUND",
       resource: "puppet_certs",
       title: "Puppet SSL certificates and private keys found",
-      details: "Puppet SSL private keys accessible — can impersonate puppet agent or master for code execution on managed nodes",
+      details:
+        "Puppet SSL private keys accessible — can impersonate puppet agent or master for code execution on managed nodes",
       remediation: "Restrict Puppet SSL directory permissions. Rotate certificates.",
     })
   }
@@ -273,7 +282,8 @@ ps aux 2>/dev/null | grep -i "puppet.*master\|puppetserver" | grep -v grep
       status: "FOUND",
       resource: "puppet_hiera",
       title: "Puppet Hiera data with potential secrets",
-      details: "Hiera data files contain password/secret references — may contain plaintext or eyaml-encrypted credentials",
+      details:
+        "Hiera data files contain password/secret references — may contain plaintext or eyaml-encrypted credentials",
       remediation: "Use eyaml encryption for all Hiera secrets. Restrict access to Hiera data directories.",
     })
   }
@@ -344,7 +354,8 @@ salt '*' test.ping 2>/dev/null 2>&1 | head -10
       status: "FOUND",
       resource: "salt_master",
       title: "SaltStack master detected",
-      details: "This host is a Salt master — can execute arbitrary commands on all connected minions via salt '*' cmd.run",
+      details:
+        "This host is a Salt master — can execute arbitrary commands on all connected minions via salt '*' cmd.run",
       remediation: "Restrict Salt master access. Use ACLs and external_auth. Rotate master keys.",
     })
   }
@@ -357,7 +368,8 @@ salt '*' test.ping 2>/dev/null 2>&1 | head -10
       status: "FOUND",
       resource: "salt_minion",
       title: "SaltStack minion detected",
-      details: "Salt minion is installed — master connection details and keys may enable lateral movement to the master",
+      details:
+        "Salt minion is installed — master connection details and keys may enable lateral movement to the master",
       remediation: "Restrict minion key access. Use encrypted pillar data.",
     })
   }
@@ -476,15 +488,24 @@ export async function sshTunnel(args: string[], timeout: number): Promise<HookRe
   const target = argVal(args, "--target")
 
   if (!target) {
-    output.push("Usage: linuxhook ssh_tunnel --target <ssh_host> --type <local|remote|dynamic> --local-port <port> --remote <host:port>")
+    output.push(
+      "Usage: linuxhook ssh_tunnel --target <ssh_host> --type <local|remote|dynamic> --local-port <port> --remote <host:port>",
+    )
     output.push("")
     output.push("Examples:")
-    output.push("  Local forward:   linuxhook ssh_tunnel --target pivot --type local --local-port 8080 --remote 10.0.0.5:80")
-    output.push("  Remote forward:  linuxhook ssh_tunnel --target pivot --type remote --local-port 4444 --remote 0.0.0.0:4444")
+    output.push(
+      "  Local forward:   linuxhook ssh_tunnel --target pivot --type local --local-port 8080 --remote 10.0.0.5:80",
+    )
+    output.push(
+      "  Remote forward:  linuxhook ssh_tunnel --target pivot --type remote --local-port 4444 --remote 0.0.0.0:4444",
+    )
     output.push("  Dynamic SOCKS:   linuxhook ssh_tunnel --target pivot --type dynamic --local-port 1080")
     output.push("")
     output.push("--- Current SSH Connections ---")
-    const r = activeExec === "sh" ? await sh("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout) : await bash("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout)
+    const r =
+      activeExec === "sh"
+        ? await sh("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout)
+        : await bash("ss -tnp 2>/dev/null | grep ssh; ps aux | grep 'ssh -' | grep -v grep", timeout)
     output.push(r.stdout || "No active SSH tunnels")
     return { output: output.join("\n"), findings }
   }
@@ -516,7 +537,8 @@ ps aux | grep "ssh -" | grep -v grep
     resource: target,
     title: `SSH ${tunnelType} tunnel configured`,
     details: `${tunnelType} tunnel via ${target} — local port ${localPort}${tunnelType !== "dynamic" ? ` forwarding to ${remote}` : " as SOCKS proxy"}`,
-    remediation: "Monitor for unauthorized SSH tunnels. Restrict SSH port forwarding with AllowTcpForwarding and PermitOpen.",
+    remediation:
+      "Monitor for unauthorized SSH tunnels. Restrict SSH port forwarding with AllowTcpForwarding and PermitOpen.",
   })
 
   return { output: output.join("\n"), findings }
@@ -540,7 +562,9 @@ echo "--- Existing Tunnels/Listeners ---"
 ss -tlnp 2>/dev/null | grep -E "(socat|ncat|nc)" || echo "No active socat/nc listeners"
 ps aux 2>/dev/null | grep -E "(socat|ncat|nc )" | grep -v grep
 
-${listenPort && forwardTo ? `
+${
+  listenPort && forwardTo
+    ? `
 echo ""
 echo "--- Creating Tunnel ---"
 if command -v socat >/dev/null 2>&1; then
@@ -554,7 +578,8 @@ else
 fi
 sleep 1
 ss -tlnp 2>/dev/null | grep ":${listenPort}"
-` : `
+`
+    : `
 echo ""
 echo "--- Usage ---"
 echo "linuxhook socat_tunnel --listen-port 8080 --forward-to 10.0.0.5:80"
@@ -563,7 +588,8 @@ echo "Manual examples:"
 echo "  socat TCP-LISTEN:8080,fork TCP:10.0.0.5:80 &"
 echo "  ncat -lvkp 8080 -c 'ncat 10.0.0.5 80' &"
 echo "  mkfifo /tmp/.p; nc -l 8080 < /tmp/.p | nc 10.0.0.5 80 > /tmp/.p &"
-`}
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
@@ -601,7 +627,9 @@ echo ""
 echo "--- ARP Table (known hosts) ---"
 ip neigh 2>/dev/null || arp -an 2>/dev/null
 
-${subnet ? `
+${
+  subnet
+    ? `
 echo ""
 echo "--- Host Discovery (${subnet}) ---"
 if command -v nmap >/dev/null 2>&1; then
@@ -629,14 +657,16 @@ else
   done
   wait
 fi
-` : `
+`
+    : `
 echo ""
 echo "--- Listening Services (local) ---"
 ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null
 
 echo ""
 echo "Usage: linuxhook internal_scan --subnet 10.0.0.0/24 --ports 22,80,443"
-`}
+`
+}
 `
 
   const r = activeExec === "sh" ? await sh(script, timeout) : await bash(script, timeout)
